@@ -149,14 +149,20 @@ jobs:
       needs.changes.outputs.libs == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      # ADS-947: surfaced as a CI-health signal on the coverage-report comment.
+      lib-dist-cache-hit: ${{ steps.cache-lib-dist.outputs.cache-hit }}
 
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-      - uses: ./.github/actions/setup-workspace
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/checkout-and-setup
+        with:
+          download-lib-dist: 'false'
 
       # ADS-390: Cache compiled lib.*/dist across CI runs.
       # Key covers all lib source files, package manifests, tsconfig files and
@@ -173,14 +179,9 @@ jobs:
       - name: Build shared libraries
         if: steps.cache-lib-dist.outputs.cache-hit != 'true'
         run: pnpm build:libs
-      # ADS-909: downstream jobs restore packages/lib.*/dist from this same
-      # actions/cache entry (see their "Restore pre-built libraries" step)
-      # rather than downloading an artifact from this job — `actions/cache`
-      # auto-saves on a miss via its post-job hook, so the cache is populated
-      # either way by the time a `needs: build-libs` job starts. That made
-      # the separate upload-artifact step (previously unconditional, wasting
-      # ~10s per run even on a cache hit) redundant; removed rather than
-      # just gated.
+      # ADS-909: downstream jobs restore this same actions/cache entry
+      # (see .github/actions/checkout-and-setup) rather than downloading an
+      # artifact from this job — no separate upload step needed.
 
   # FRONTEND APPS — one runner per app, fail-fast disabled so all three report
   # ============================================================================
@@ -201,40 +202,15 @@ jobs:
         app: [client, admin, rescue]
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-      - uses: ./.github/actions/setup-workspace
-
-      - name: Restore pre-built libraries
-        # ADS-909: read the same actions/cache entry build-libs populated,
-        # instead of downloading its (conditionally-uploaded) artifact — see
-        # the comment on build-libs' upload-artifact step.
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/run-package-tests
         with:
-          path: packages/lib.*/dist
-          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
-
-      - name: Lint
-        run: pnpm exec turbo run lint --filter='@adopt-dont-shop/app.${{ matrix.app }}'
-
-      - name: Test (with coverage thresholds)
-        run: pnpm test:coverage
-        working-directory: apps/${{ matrix.app }}
-
-      - name: Type check
-        run: pnpm exec turbo run type-check --filter='@adopt-dont-shop/app.${{ matrix.app }}'
-
-      - name: Build
-        run: pnpm build
-        working-directory: apps/${{ matrix.app }}
-        env:
-          CI: true
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        if: always()
-        with:
-          name: test-results-${{ matrix.app }}
-          path: '**/test-results/junit.xml'
-          retention-days: 7
+          filter: '@adopt-dont-shop/app.${{ matrix.app }}'
+          working-directory: 'apps/${{ matrix.app }}'
+          run-build: 'true'
+          upload-artifact-name: 'test-results-${{ matrix.app }}'
+          coverage-cache-key: 'coverage-current-${{ github.run_id }}-${{ matrix.app }}'
 
   # ============================================================================
   # SHARED LIBRARIES — lint/test/type-check the libs themselves
@@ -254,43 +230,24 @@ jobs:
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-      - uses: ./.github/actions/setup-workspace
-
-      - name: Restore pre-built libraries
-        # ADS-909: read the same actions/cache entry build-libs populated,
-        # instead of downloading its (conditionally-uploaded) artifact — see
-        # the comment on build-libs' upload-artifact step.
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/run-package-tests
         with:
-          path: packages/lib.*/dist
-          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
-
-      - name: Lint, test and type-check all libraries
-        run: pnpm exec turbo run lint test:coverage type-check --filter='@adopt-dont-shop/lib.*'
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        if: always()
-        with:
-          name: test-results-libs
-          path: '**/test-results/junit.xml'
-          retention-days: 7
+          filter: '@adopt-dont-shop/lib.*'
+          upload-artifact-name: 'test-results-libs'
+          coverage-cache-key: 'coverage-current-${{ github.run_id }}-libs'
 
   # ============================================================================
   # SERVICE TESTS — lint/test:coverage/type-check all service.* packages
   # (ADS-822, coverage added in ADS-831). Mirrors test-libs in structure.
-  # Every service defines `test:coverage` (vitest run --coverage).
   #
-  # ADS-831: this job now COLLECTS coverage but does not yet GATE on it. No
-  # service vitest.config.ts declares coverage thresholds, so the effective floor
-  # is 0% — chosen deliberately so this change cannot break current CI (the
-  # cms/chat test gap that prompted the ticket is already closed). The next step
-  # is to ratchet a low, safely-passing floor per service via each service's
-  # vitest.config.ts (owned by the service teams), the same way lib.* packages
-  # ratchet against vitest.shared.config.ts (ADS-708 / ADS-717).
+  # ADS-831: COLLECTS coverage but does not yet GATE on it — no service
+  # vitest.config.ts declares thresholds, so the floor is 0% (deliberate, so
+  # this cannot break current CI). Next step: ratchet a per-service floor the
+  # same way lib.* packages do (ADS-708 / ADS-717).
   #
-  # Gated on the `backend` path filter so a frontend-only PR skips this job
-  # (ci-required treats skipped as pass — see aggregator comment below).
+  # Gated on the `backend` path filter — ci-required treats skipped as pass.
   # ============================================================================
   test-services:
     name: Service Tests
@@ -304,43 +261,23 @@ jobs:
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-      - uses: ./.github/actions/setup-workspace
-
-      - name: Restore pre-built libraries
-        # ADS-909: read the same actions/cache entry build-libs populated,
-        # instead of downloading its (conditionally-uploaded) artifact — see
-        # the comment on build-libs' upload-artifact step.
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/run-package-tests
         with:
-          path: packages/lib.*/dist
-          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
-
-      - name: Lint, test (with coverage) and type-check all services
-        run: pnpm exec turbo run lint test:coverage type-check --filter='@adopt-dont-shop/service.*'
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        if: always()
-        with:
-          name: test-results-services
-          path: '**/test-results/junit.xml'
-          retention-days: 7
+          filter: '@adopt-dont-shop/service.*'
+          upload-artifact-name: 'test-results-services'
+          coverage-cache-key: 'coverage-current-${{ github.run_id }}-services'
 
   # ============================================================================
   # CONTRACT TESTS — consumer-driven Pact verification matrix (ADS-816).
   #
-  # Runs as a separate job from test-services because contract tests have a
-  # strict two-phase ordering requirement: consumers must write their pact
-  # files BEFORE providers read them. Folding them into test-services (which
-  # runs each service in parallel under Turbo) would not guarantee that order.
+  # Separate job from test-services: contract tests need a strict two-phase
+  # order (consumers write pact files BEFORE providers read them), which
+  # test-services' parallel-under-Turbo execution can't guarantee.
   #
-  # Phase 1 — consumer tests: gateway (ValidateToken + GetApplication) and
-  #            notifications (gdpr.erasureRequested) write pact files to pacts/.
-  # Phase 2 — provider tests: auth, applications, and gateway-as-publisher
-  #            read those files and verify the interactions pass.
-  #
-  # Gated on the `backend` path filter (same as test-services) — a frontend-only
-  # PR skips this job. ci-required treats skipped as success.
+  # Gated on the `backend` path filter (same as test-services) — ci-required
+  # treats skipped as success.
   # ============================================================================
   test-contracts:
     name: Contract Tests (Pact)
@@ -356,17 +293,9 @@ jobs:
       PACT_DO_NOT_TRACK: 'true'
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-      - uses: ./.github/actions/setup-workspace
-
-      - name: Restore pre-built libraries
-        # ADS-909: read the same actions/cache entry build-libs populated,
-        # instead of downloading its (conditionally-uploaded) artifact — see
-        # the comment on build-libs' upload-artifact step.
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
-        with:
-          path: packages/lib.*/dist
-          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/checkout-and-setup
 
       # Phase 1 — consumers write pact files to pacts/
       - name: Contract tests — consumer phase
@@ -401,47 +330,9 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-
-      # ADS-676: verify that dev-auth bypass patterns only appear inside
-      # import.meta.env.DEV guards (which Vite replaces with `false` and
-      # tree-shakes in production builds). Fail if any reference to
-      # dev_user / dev-token- appears outside lib.auth's DEV-gated
-      # AuthContext or the explicitly dev-only files below.
-      #
-      # Allowed locations (dev-only by design):
-      #   packages/lib.auth/src/contexts/AuthContext.tsx — DEV-gated
-      #   apps/*/src/components/dev/*                    — dev panels
-      #   apps/*/src/utils/devAuth.ts                    — dev utilities
-      #   apps/*/src/contexts/base/devUtils.ts           — dev utilities
-      #   **/*.test.* / **/*.spec.*                      — test files
-      - name: Scan source for ungated dev auth bypass patterns
-        run: |
-          # Find dev_user or dev-token- references in production source
-          # (exclude test files, dev-only directories, and the known
-          # DEV-gated AuthContext).
-          HITS=$(grep -rn 'dev_user\|dev-token-' \
-            apps/*/src/ packages/lib.*/src/ \
-            --include='*.ts' --include='*.tsx' \
-            --exclude='*.test.*' --exclude='*.spec.*' \
-            | grep -v '/components/dev/' \
-            | grep -v '/utils/devAuth' \
-            | grep -v '/contexts/base/devUtils' \
-            | grep -v 'AuthContext.tsx' \
-            || true)
-
-          if [ -n "$HITS" ]; then
-            echo "ERROR: Dev auth bypass patterns found outside allowed locations:"
-            echo "$HITS"
-            echo ""
-            echo "dev_user / dev-token- must only appear in:"
-            echo "  - packages/lib.auth/src/contexts/AuthContext.tsx (DEV-gated)"
-            echo "  - apps/*/src/components/dev/* (dev-only panels)"
-            echo "  - apps/*/src/utils/devAuth.ts (dev-only utilities)"
-            echo "  - Test files (*.test.*, *.spec.*)"
-            exit 1
-          fi
-          echo "All dev auth patterns are properly gated."
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/dev-auth-guard
 
   # ============================================================================
   # E2E — Playwright journeys against the full docker-compose stack
@@ -452,15 +343,9 @@ jobs:
   test-e2e:
     name: E2E Tests (Playwright)
     needs: [test-frontend, test-services]
-    # E2E is opt-in on pull requests — the full docker-stack build + Playwright
-    # run is too slow to pay on every push during development, and gating it on
-    # the `run-e2e` label keeps unlabelled PRs fast and lets us land small,
-    # isolated changes without waiting on the suite. It runs when:
-    #   * pushing to main (the pre-deploy integration gate), or
-    #   * a PR carries the `run-e2e` label (opt in when the branch is ready), or
-    #   * triggered manually via workflow_dispatch.
-    # On any other PR it is skipped, which the `ci-required` aggregator treats as
-    # success — so E2E never blocks normal in-progress PRs.
+    # E2E is opt-in on PRs (too slow to pay on every push): runs on push to
+    # main, on a PR labelled `run-e2e`, or on workflow_dispatch. Otherwise
+    # skipped — which `ci-required` treats as success.
     if: |
       always() &&
       (
@@ -482,359 +367,46 @@ jobs:
       E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-
-      - name: Free up disk space
-        # The 14-image compose build needs ~25GB; the hosted runner has ~14GB
-        # free. Evict the big preinstalled toolchains (Android SDK, .NET, GHC,
-        # Swift, CodeQL, runner docker images) before building. Without this
-        # the build dies with ENOSPC mid-export, or — worse — limps through
-        # and the services then sit "unhealthy" because nothing inside the
-        # containers can write (the failure signature ADS-792 describes).
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" \
-            /usr/local/lib/android /usr/share/swift /opt/hostedtoolcache/CodeQL \
-            "$AGENT_TOOLSDIRECTORY"
-          sudo docker image prune -af
-          df -h /
-
-      - uses: ./.github/actions/setup-workspace
-
-      # ADS-792: expose ACTIONS_RUNTIME_TOKEN + cache-service URLs to plain
-      # `run:` steps so the raw `docker buildx bake` call below can use
-      # cache-from/cache-to type=gha. JS actions (docker/build-push-action)
-      # receive these implicitly; shell steps do not.
-      - uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487  # v4.0.0
-
-      # ADS-792: type=gha cache import/export requires a docker-container
-      # builder — the daemon's integrated BuildKit does not support it.
-      # Known tradeoff (this previously kept buildx out of this job): the
-      # container builder stores layers twice at peak — BuildKit cache plus
-      # the tarball re-import into the daemon ("sending tarball"). Two
-      # things keep that inside the runner's disk budget now:
-      #   - warm GHA cache hits skip re-executing (and re-storing
-      #     intermediates for) the expensive npm-ci/turbo layers;
-      #   - the build step prunes the BuildKit cache immediately after
-      #     --load, before the stack boots.
-      # ENOSPC under a fully cold cache is the residual risk — see the
-      # build step below. max-parallelism=4 replaces the old
-      # COMPOSE_PARALLEL_LIMIT=4: 12 concurrent `pnpm install` runs against the
-      # registry was the ECONNRESET source ADS-792 describes.
-      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c  # v4.2.0
-        with:
-          driver-opts: |
-            image=moby/buildkit:v0.23.0
-            network=host
-          buildkitd-config-inline: |
-            [worker.oci]
-              max-parallelism = 4
-
-      - name: Resolve Playwright version
-        id: pw
-        run: |
-          version=$(node -p "require('./e2e/package.json').devDependencies['@playwright/test']")
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          # ADS-901: this is a single-lockfile workspace (e2e/ has no lockfile
-          # of its own — pnpm-workspace.yaml includes it), so the root
-          # pnpm-lock.yaml hash is what actually changes when @playwright/test
-          # bumps. Without it, a patch bump that doesn't change `steps.pw`'s
-          # resolved version string could keep a stale cache and mismatch the
-          # installed browsers against the newer test runner.
-          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - name: Install Playwright browsers
-        run: pnpm test:e2e:install
-
-      - name: Generate secrets and write .env
-        run: |
-          {
-            echo "NODE_ENV=development"
-            echo "POSTGRES_USER=postgres"
-            # Hex, not base64, for the same reason as REDIS_PASSWORD below:
-            # compose interpolates this into DATABASE_URL=postgresql://user:
-            # ${POSTGRES_PASSWORD}@database:5432/db and base64's / + = break
-            # `new URL()` in every service's db:migrate — intermittently,
-            # whenever the random draw happens to contain one.
-            echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
-            echo "POSTGRES_DB=adopt_dont_shop_dev"
-            echo "JWT_SECRET=$(openssl rand -base64 32)"
-            echo "JWT_REFRESH_SECRET=$(openssl rand -base64 32)"
-            echo "SESSION_SECRET=$(openssl rand -base64 32)"
-            echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
-            # HMAC key for the service-to-service principal tokens minted
-            # and verified by packages/service-bootstrap (read via
-            # config-secrets as PRINCIPAL_SIGNING_KEY).
-            echo "PRINCIPAL_SIGNING_KEY=$(openssl rand -hex 32)"
-            # ADS-600 made REDIS_PASSWORD a required secret in
-            # docker-compose.yml; the CI stack-up step refuses to
-            # start without it. Generate it here so every E2E run
-            # gets a fresh, non-default value.
-            #
-            # Hex (not base64) because docker-compose interpolates
-            # this into REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-            # and `openssl rand -base64` includes `/`, `+`, `=` —
-            # `/` terminates the URL userinfo so the backend's
-            # `new URL(REDIS_URL)` rejects it with "Invalid URL"
-            # before validateEnv can finish.
-            echo "REDIS_PASSWORD=$(openssl rand -hex 32)"
-            # ADS-542 made UPLOAD_SIGNING_SECRET a required env var on
-            # the backend (32+ chars). Without it the /health probe
-            # never goes ready and the Wait-for-services step times
-            # out.
-            echo "UPLOAD_SIGNING_SECRET=$(openssl rand -base64 32)"
-            echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
-            # Raise the gateway's global per-IP rate limit for e2e. A full
-            # Playwright run drives the whole SPA (favourites, chats,
-            # notifications, permissions, legal, match, csrf) across parallel
-            # workers from a single docker-side IP, bursting past the 100/min
-            # production default and 429-ing page loads. (apiAs also caches its
-            # login token per role to stay under the stricter 10/min auth-login
-            # limit.) Production keeps the 100/min default.
-            echo "GATEWAY_RATE_LIMIT_MAX=100000"
-            # Also lift the stricter per-route auth limits (login 10/min,
-            # register 5/min, ...) — a full suite logs in/registers many times
-            # from one IP across workers. Production leaves this unset.
-            echo "GATEWAY_AUTH_RATE_LIMIT_MAX=100000"
-            # ADS-871: enable the gateway's test-only token-peek seam so the
-            # e2e suite can read one-time reset/verify/invitation tokens and
-            # drive the full auth round-trips. Safe here — NODE_ENV is
-            # development above, and the gateway refuses to boot with this on
-            # under NODE_ENV=production. Production/staging never set it.
-            echo "E2E_TOKEN_PEEK=true"
-          } > .env
-
-      - name: Start database and cache
-        run: |
-          docker compose -f docker-compose.yml up -d database redis
-          timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
-
-      - name: Build images
-        # ADS-792: `buildx bake` against docker-compose.yml with BuildKit GHA
-        # layer caching. Design notes:
-        #
-        # PER-TARGET scopes (scope=e2e-<service>): GHA cache writes are
-        # last-write-wins per scope, so a single shared scope with 12 targets
-        # exporting concurrently thrashes — each save evicts the previous
-        # target's layers and the hit rate collapses.
-        #
-        # mode=min, not mode=max, against the repo's 10GB Actions cache
-        # budget (shared with the pnpm/turbo/lib-dist/Playwright caches and
-        # docker.yml's type=gha caches):
-        #   - the `development` targets inherit FROM the build stage, so the
-        #     expensive pnpm-install + turbo-build layers ARE final-image
-        #     layers and mode=min still caches them;
-        #   - mode=max would additionally export intermediates like the
-        #     `pruner` stage, whose COPY-the-whole-repo layer changes every
-        #     commit — pure churn, several GB per scope, guaranteed eviction
-        #     pressure across 12 scopes;
-        #   - estimated mode=min footprint: ~0.3-0.6GB x 12 scopes. Layers
-        #     shared between images are still stored once per scope — the
-        #     price of not thrashing;
-        #   - ignore-error=true: a cache-backend outage degrades to an
-        #     uncached build instead of failing CI.
-        #
-        # Targets are discovered from the compose file via `bake --print`
-        # (buildx parses compose profiles as "all", so every buildable
-        # service is included) — compose-stack changes need no edits here.
-        # Bake assigns NO tags when compose services have no `image:` field,
-        # so each target's tag is set explicitly to the <project>-<service>
-        # name that `docker compose up --no-build` later resolves (project =
-        # lowercased checkout directory name, the same default compose uses).
-        # If bake ever fails to resolve targets (e.g. a compose-file feature
-        # it can't parse), fall back to the previous uncached compose build
-        # rather than breaking the job.
-        run: |
-          set -euo pipefail
-          # bake interpolates the compose file itself, so the ${VAR:?} guards
-          # (REDIS_PASSWORD, JWT_SECRET, ...) need the generated .env values
-          # in the process env.
-          set -a; source ./.env; set +a
-
-          project="$(basename "$PWD" | tr '[:upper:]' '[:lower:]')"
-          mapfile -t targets < <(docker buildx bake -f docker-compose.yml --print 2>/dev/null | jq -r '.group.default.targets[]' || true)
-
-          if [ "${#targets[@]}" -eq 0 ]; then
-            echo "::warning title=bake fallback::buildx bake resolved no targets from docker-compose.yml — falling back to uncached docker compose build"
-            COMPOSE_PARALLEL_LIMIT=4 docker compose -f docker-compose.yml --profile full build
-            exit 0
-          fi
-
-          echo "Building ${#targets[@]} targets: ${targets[*]}"
-          set_args=()
-          for t in "${targets[@]}"; do
-            set_args+=(
-              --set "${t}.tags=${project}-${t}"
-              --set "${t}.cache-from=type=gha,scope=e2e-${t}"
-              --set "${t}.cache-to=type=gha,mode=min,scope=e2e-${t},ignore-error=true"
-            )
-          done
-
-          # --load = output=type=docker: images land in the daemon store
-          # under the tags set above, where `up --no-build` expects them.
-          docker buildx bake -f docker-compose.yml --load "${set_args[@]}"
-
-          # The BuildKit cache is dead weight once the images are in the
-          # daemon store — reclaim the disk before the stack boots.
-          docker buildx prune -af > /dev/null
-          docker image ls --format '{{.Repository}}:{{.Tag}}  {{.Size}}' | grep "^${project}-" || true
-          df -h /
-
-      - name: Start the full stack (images already built)
-        # Phase 11 follow-up: bring the apps + gateway + services + nginx up
-        # in ONE compose invocation under the `full` profile. The previous
-        # two-step `--profile services up` + `up app-client app-admin
-        # app-rescue` left nginx (which has no profile and therefore
-        # auto-starts on the first invocation) crash-looping for six minutes
-        # because its `app-client:3000` upstream wasn't resolvable. nginx is
-        # now in the `full`/`proxy` profiles so it starts only alongside the
-        # apps it proxies, and a single `up` honours the compose dependency
-        # graph instead of racing two independent stacks.
-        # ADS-792: --no-build because images were pre-built above.
-        run: |
-          docker compose -f docker-compose.yml --profile full up -d --no-build
-          df -h /
-
-      - name: Wait for services
-        # The gateway is first in the list and carries the whole budget: it
-        # boots 10 sibling services' worth of migrations + tsx compiles on a
-        # contended 4-core runner, so it gets 240×2s (8 min) rather than the
-        # 90×2s that used to time out. Log dumps need --profile full — the
-        # service/app containers live in that profile, so a bare `compose
-        # logs` shows only the infra containers and hides the actual failure.
-        run: |
-          set -euo pipefail
-          for url in http://localhost:4000/health/simple http://localhost:3000 http://localhost:3001 http://localhost:3002; do
-            echo "Waiting for $url"
-            for i in $(seq 1 240); do
-              if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
-                echo "  ready: $url"
-                break
-              fi
-              if [ "$i" = "240" ]; then
-                echo "  timeout: $url"
-                docker compose -f docker-compose.yml --profile full ps
-                docker compose -f docker-compose.yml --profile full logs --tail=300
-                exit 1
-              fi
-              sleep 2
-            done
-          done
-
-          # The URL loop only proves the gateway + apps are up. The gateway
-          # answers /health/simple before its sibling gRPC services finish
-          # their own migrate→seed→boot cycle, so a Playwright login probe
-          # fired now hits ECONNREFUSED on service-auth:6002. Every service
-          # binds gRPC before its HTTP health server (see services/*/src/
-          # index.ts), so compose-healthy ⇒ gRPC ready — wait for that.
-          echo "Waiting for service containers to report healthy"
-          for i in $(seq 1 120); do
-            not_healthy=$(docker compose -f docker-compose.yml --profile full ps --format '{{.Service}} {{.Health}}' \
-              | awk '$1 ~ /^service-/ && $2 != "healthy" {print $1}')
-            if [ -z "$not_healthy" ]; then
-              echo "  all service containers healthy"
-              break
-            fi
-            if [ "$i" = "120" ]; then
-              echo "  timeout waiting for: $not_healthy"
-              docker compose -f docker-compose.yml --profile full ps
-              docker compose -f docker-compose.yml --profile full logs --tail=300
-              exit 1
-            fi
-            sleep 2
-          done
-
-      - name: Warm up Vite bundles
-        # Vite dev servers compile on first request. Hit /login on each app
-        # so the JS is built before Playwright tries to interact with it.
-        run: |
-          for url in \
-            http://localhost:3000/login \
-            http://localhost:3001/login \
-            http://localhost:3002/login; do
-            echo "Warming $url"
-            curl -fsS --max-time 60 "$url" >/dev/null || true
-          done
-
-      - name: Run Playwright suite
-        # E2E only reaches this point when explicitly requested (main push,
-        # `run-e2e` label, or manual dispatch), so always run the full suite —
-        # the point of opting in is to get complete integration coverage, not a
-        # smoke subset. Tag tests with @smoke and run `pnpm test:e2e:smoke`
-        # locally for a quick subset.
-        #
-        # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
-        run: |
-          echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
-          pnpm test:e2e
-
-      # ADS-386: Surface flaky-retry signal so engineers can see which tests
-      # needed retries without having to open the full HTML report.
-      # This step never blocks CI — it is informational only.
-      - name: Report E2E retry counts
-        if: always()
-        run: |
-          report_dir="e2e/test-results"
-          if [ ! -d "$report_dir" ]; then
-            echo "No test-results directory found — Playwright may not have run."
-            exit 0
-          fi
-          retried=$(find "$report_dir" -name '*.json' -exec grep -l '"retry":[^0]' {} \; 2>/dev/null | wc -l)
-          if [ "$retried" -gt 0 ]; then
-            echo "::warning::$retried test result file(s) contain retries — check the Playwright report artifact for details."
-          else
-            echo "No retried tests detected in this run."
-          fi
-
-      - name: Dump service logs on failure
-        # Inline (not just the artifact): the artifact requires a download to
-        # inspect, while the job log is immediately searchable. gRPC adapters
-        # mask unexpected handler errors as INTERNAL 'internal error', so the
-        # real exception only exists in the owning service's stdout.
-        if: failure()
-        run: |
-          docker compose -f docker-compose.yml --profile full logs --no-color --tail=150
-
-      - name: Capture docker-compose logs on failure
-        if: failure()
-        # --profile full: without it the dump only contains the default-profile
-        # infra containers (database/redis/nats/...) and silently omits every
-        # service and app container — the part that actually fails.
-        run: docker compose -f docker-compose.yml --profile full logs --no-color > docker-compose.log
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        if: always()
-        with:
-          name: e2e-playwright-report
-          path: |
-            e2e/playwright-report/
-            e2e/test-results/
-            docker-compose.log
-          retention-days: 7
-
-      - name: Tear down stack
-        if: always()
-        run: docker compose -f docker-compose.yml down -v
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/e2e-suite
 
   # ============================================================================
-  # CI REQUIRED — single aggregator gate for branch protection.
+  # COVERAGE REPORT — ADS-947: sticky PR comment with per-package coverage
+  # delta vs main + this run's job timings. Purely informational: not in
+  # ci-required's needs, and continue-on-error so a script/API hiccup (e.g.
+  # a fork PR's read-only token) can never block merge.
+  # ============================================================================
+  coverage-report:
+    name: Coverage & Timing Report
+    needs: [build-libs, test-frontend, test-libs, test-services]
+    if: |
+      always() &&
+      (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/coverage-report
+        with:
+          lib-dist-cache-hit: ${{ needs.build-libs.outputs.lib-dist-cache-hit }}
+
+  # ============================================================================
+  # CI REQUIRED — single aggregator gate for branch protection. Branch
+  # protection references this one job name, so adding/renaming a job below
+  # doesn't require touching the ruleset.
   #
-  # Branch protection / Rulesets reference this one job name. It fans-in to
-  # every regression-blocking job above so adding/renaming a job below does
-  # not require touching the ruleset.
-  #
-  # Several needs report `skipped` rather than `success`: the path-filtered
-  # jobs (test-frontend, test-libs, dev-auth-guard) on PRs that do not touch
-  # their paths, and test-e2e on any PR not labelled `run-e2e` (E2E is opt-in
-  # — see that job). Classic branch protection treats `skipped` as a failure,
-  # which is why a plain list of required checks is fragile. This aggregator
-  # only fails on `failure` or `cancelled`, treating `skipped` as success — the
-  # standard "merge gate" pattern. So an absent/skipped E2E never blocks merge.
+  # Path-filtered jobs (test-frontend, test-libs, dev-auth-guard) and test-e2e
+  # (opt-in via `run-e2e`) report `skipped` rather than `success` when they
+  # don't run. Classic branch protection treats `skipped` as a failure, so
+  # this aggregator only fails on `failure`/`cancelled` — the standard
+  # "merge gate" pattern — treating `skipped` as success.
   # ============================================================================
   ci-required:
     name: CI Required

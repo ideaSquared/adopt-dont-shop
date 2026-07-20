@@ -1,0 +1,106 @@
+name: 'Run Package Tests'
+description: >-
+  Shared test-job body for ci.yml's test-frontend / test-libs / test-services
+  jobs (ADS-953): checkout + setup-workspace + restore lib-dist (via
+  checkout-and-setup), lint/test/type-check via Turbo, and upload the junit
+  results. Two shapes are supported:
+    - combined (working-directory unset): a single Turbo call running
+      lint + test(:coverage) + type-check against `filter`, matching the
+      test-libs / test-services pattern.
+    - per-app (working-directory set): separate Lint / Test / Type check /
+      Build steps, matching the test-frontend pattern — `pnpm test:coverage`
+      and `pnpm build` run directly in `working-directory` rather than via
+      Turbo so per-app coverage/build output lands in that app's own tree.
+inputs:
+  filter:
+    description: 'Turbo filter pattern, e.g. @adopt-dont-shop/lib.*'
+    required: true
+  run-coverage:
+    description: "Run the ':coverage' variant of the test task."
+    required: false
+    default: 'true'
+  download-lib-dist:
+    description: 'Restore the packages/lib.*/dist cache before testing.'
+    required: false
+    default: 'true'
+  working-directory:
+    description: >-
+      When set, switches to the per-app step shape and runs the Test/Build
+      steps via plain `pnpm` in this directory instead of a single combined
+      Turbo call.
+    required: false
+    default: ''
+  run-build:
+    description: 'Add a Build step (only meaningful with working-directory set).'
+    required: false
+    default: 'false'
+  upload-artifact-name:
+    description: 'Name for the uploaded junit test-results artifact.'
+    required: true
+  upload-artifact-path:
+    description: 'Path glob for the uploaded junit test-results artifact.'
+    required: false
+    default: '**/test-results/junit.xml'
+  coverage-cache-key:
+    description: >-
+      ADS-947: when set, cache every coverage-summary.json this job produced
+      (across apps/*, packages/*, services/*) under this exact key, so the
+      coverage-report job can restore this run's coverage without re-running
+      tests. Leave unset to skip (e.g. test-contracts has no coverage).
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+    - uses: ./.github/actions/checkout-and-setup
+      with:
+        download-lib-dist: ${{ inputs.download-lib-dist }}
+
+    - name: Lint, test and type-check
+      if: inputs.working-directory == ''
+      shell: bash
+      run: |
+        pnpm exec turbo run lint ${{ inputs.run-coverage == 'true' && 'test:coverage' || 'test' }} type-check --filter='${{ inputs.filter }}'
+
+    - name: Lint
+      if: inputs.working-directory != ''
+      shell: bash
+      run: pnpm exec turbo run lint --filter='${{ inputs.filter }}'
+
+    - name: Test (with coverage thresholds)
+      if: inputs.working-directory != ''
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: pnpm ${{ inputs.run-coverage == 'true' && 'test:coverage' || 'test' }}
+
+    - name: Type check
+      if: inputs.working-directory != ''
+      shell: bash
+      run: pnpm exec turbo run type-check --filter='${{ inputs.filter }}'
+
+    - name: Build
+      if: inputs.working-directory != '' && inputs.run-build == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        CI: true
+      run: pnpm build
+
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      if: always()
+      with:
+        name: ${{ inputs.upload-artifact-name }}
+        path: ${{ inputs.upload-artifact-path }}
+        retention-days: 7
+
+    # ADS-947: run-scoped, so it's always a cache miss and always saves —
+    # same pattern build-libs uses for lib-dist. coverage-report restores it
+    # by the exact same key.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: always() && inputs.coverage-cache-key != ''
+      with:
+        path: |
+          apps/*/coverage/coverage-summary.json
+          packages/*/coverage/coverage-summary.json
+          services/*/coverage/coverage-summary.json
+        key: ${{ inputs.coverage-cache-key }}

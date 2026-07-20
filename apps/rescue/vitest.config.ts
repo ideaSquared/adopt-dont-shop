@@ -20,7 +20,9 @@ export default defineConfig({
     testTimeout: 10000,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      // ADS-947: json-summary is read by scripts/ci/coverage-delta.mjs to
+      // post the PR coverage-delta comment.
+      reporter: ['text', 'json', 'html', 'json-summary'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'src/**/*.d.ts',

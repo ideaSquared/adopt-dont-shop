@@ -1,0 +1,31 @@
+name: 'Checkout + Setup Workspace + Restore lib-dist'
+description: >-
+  Common preamble shared by every ci.yml test job (ADS-953): install the
+  workspace (Node + pnpm via the setup-workspace composite) and optionally
+  restore the packages/lib.*/dist cache populated by the build-libs job.
+  NOTE: the caller job must run actions/checkout first — a local composite
+  cannot check out the repo it is loaded from. Centralising the rest here
+  means the setup-workspace call and the lib-dist cache key only need to
+  change in one place.
+inputs:
+  download-lib-dist:
+    description: >-
+      Restore the packages/lib.*/dist cache built by the build-libs job.
+      Set to 'false' for jobs that don't consume compiled libs (e.g.
+      build-libs itself, which populates the cache instead).
+    required: false
+    default: 'true'
+runs:
+  using: 'composite'
+  steps:
+    - uses: ./.github/actions/setup-workspace
+
+    # ADS-909: read the same actions/cache entry build-libs populated,
+    # instead of downloading its (conditionally-uploaded) artifact — see
+    # the comment on build-libs' cache-lib-dist step in ci.yml.
+    - name: Restore pre-built libraries
+      if: inputs.download-lib-dist == 'true'
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: packages/lib.*/dist
+        key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}

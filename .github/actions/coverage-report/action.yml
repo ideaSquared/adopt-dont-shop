@@ -1,0 +1,202 @@
+name: 'Coverage & Timing Report'
+description: >-
+  ci.yml's coverage-report job body (ADS-947). On a pull_request run: restores
+  this run's coverage (saved by run-package-tests via its coverage-cache-key
+  input) and the main-branch baseline (an actions/cache snapshot), computes
+  the per-package coverage delta, fetches this run's job timings from the
+  Actions API, and posts/updates a single sticky PR comment. On a push to
+  main: snapshots this run's coverage as the new baseline for future PRs to
+  diff against. Informational only — never fails the job on API/permission
+  errors (e.g. a fork PR's read-only token), so it can't block merge.
+inputs:
+  lib-dist-cache-hit:
+    description: "build-libs' lib-dist cache-hit output, surfaced as a CI health signal."
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+
+    # ADS-947: restore this run's coverage-summary.json files, saved by each
+    # producer job's run-package-tests call under the matching exact key.
+    # A key that was never written (job skipped by a path filter) is simply
+    # a no-op miss — coverage-report just has less data for that family.
+    - name: Restore current coverage (frontend client)
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: |
+          apps/*/coverage/coverage-summary.json
+          packages/*/coverage/coverage-summary.json
+          services/*/coverage/coverage-summary.json
+        key: coverage-current-${{ github.run_id }}-client
+    - name: Restore current coverage (frontend admin)
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: |
+          apps/*/coverage/coverage-summary.json
+          packages/*/coverage/coverage-summary.json
+          services/*/coverage/coverage-summary.json
+        key: coverage-current-${{ github.run_id }}-admin
+    - name: Restore current coverage (frontend rescue)
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: |
+          apps/*/coverage/coverage-summary.json
+          packages/*/coverage/coverage-summary.json
+          services/*/coverage/coverage-summary.json
+        key: coverage-current-${{ github.run_id }}-rescue
+    - name: Restore current coverage (libs)
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: |
+          apps/*/coverage/coverage-summary.json
+          packages/*/coverage/coverage-summary.json
+          services/*/coverage/coverage-summary.json
+        key: coverage-current-${{ github.run_id }}-libs
+    - name: Restore current coverage (services)
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: |
+          apps/*/coverage/coverage-summary.json
+          packages/*/coverage/coverage-summary.json
+          services/*/coverage/coverage-summary.json
+        key: coverage-current-${{ github.run_id }}-services
+
+    # ADS-947: the main-branch snapshot to diff against. restore-keys prefix
+    # match returns the most recently saved entry — GitHub's cross-branch
+    # cache fallback lets a PR branch read a cache saved from main natively.
+    - name: Restore main coverage baseline
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: coverage-baseline
+        key: coverage-baseline-main-unused
+        restore-keys: |
+          coverage-baseline-main-
+
+    - name: Post/update coverage report comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        LIB_DIST_CACHE_HIT: ${{ inputs.lib-dist-cache-hit }}
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          // Everything is wrapped in one try/catch: a fork PR's GITHUB_TOKEN
+          // is read-only regardless of this workflow's `permissions:` block,
+          // so listComments/createComment/updateComment (and, in principle,
+          // listJobsForWorkflowRun) can 403. This job is purely informational
+          // — never fail it, just skip with a warning.
+          try {
+            const coverageCore = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/lib/coverage-delta-core.mjs`
+            );
+            const ratchetCore = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/lib/ratchet-coverage-core.mjs`
+            );
+
+            function collectCoverage(root) {
+              const byPackage = {};
+              for (const family of ['apps', 'packages', 'services']) {
+                const familyDir = path.join(root, family);
+                if (!fs.existsSync(familyDir)) continue;
+                for (const pkg of fs.readdirSync(familyDir)) {
+                  const summaryPath = path.join(familyDir, pkg, 'coverage', 'coverage-summary.json');
+                  if (!fs.existsSync(summaryPath)) continue;
+                  try {
+                    const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+                    byPackage[pkg] = ratchetCore.measuredFromSummaryTotal(summary.total ?? {});
+                  } catch (parseError) {
+                    core.warning(`Skipping unreadable coverage summary at ${summaryPath}: ${parseError.message}`);
+                  }
+                }
+              }
+              return byPackage;
+            }
+
+            const current = collectCoverage(process.env.GITHUB_WORKSPACE);
+            const baseline = collectCoverage(path.join(process.env.GITHUB_WORKSPACE, 'coverage-baseline'));
+            const coverageTable = coverageCore.formatCoverageTable(
+              coverageCore.computePackageDeltas(baseline, current)
+            );
+
+            const { data: jobsPage } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+              per_page: 100,
+            });
+            const jobs = jobsPage.jobs
+              .filter(job => job.started_at && job.completed_at)
+              .map(job => ({
+                name: job.name,
+                durationMs: new Date(job.completed_at).getTime() - new Date(job.started_at).getTime(),
+                status: job.status,
+                conclusion: job.conclusion,
+              }));
+            const timingsTable = coverageCore.formatJobTimingsTable(jobs);
+
+            const libDistCacheHit =
+              process.env.LIB_DIST_CACHE_HIT === 'true'
+                ? true
+                : process.env.LIB_DIST_CACHE_HIT === 'false'
+                  ? false
+                  : undefined;
+
+            const body = coverageCore.buildCommentBody({ coverageTable, timingsTable, libDistCacheHit });
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find(comment => comment.body?.startsWith(coverageCore.COMMENT_MARKER));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+          } catch (error) {
+            core.warning(`Skipping coverage report comment: ${error.message}`);
+          }
+
+    # ADS-947: snapshot this run's coverage as the new baseline for future
+    # PRs. Staged into its own directory (not the live apps/*|packages/*|
+    # services/* trees) so it can't collide with a PR run's "current" restore
+    # above landing at the same live paths.
+    - name: Stage coverage baseline for main
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      shell: bash
+      run: |
+        rm -rf coverage-baseline
+        for family in apps packages services; do
+          [ -d "$family" ] || continue
+          for pkg_dir in "$family"/*/; do
+            summary="${pkg_dir}coverage/coverage-summary.json"
+            if [ -f "$summary" ]; then
+              mkdir -p "coverage-baseline/${pkg_dir}coverage"
+              cp "$summary" "coverage-baseline/${pkg_dir}coverage/"
+            fi
+          done
+        done
+
+    - name: Save coverage baseline for main
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: coverage-baseline
+        key: coverage-baseline-main-${{ github.sha }}

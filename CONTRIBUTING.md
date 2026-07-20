@@ -98,6 +98,8 @@ pnpm exec turbo run test:coverage                 # every package, with threshol
 pnpm exec turbo run test:coverage --filter='@adopt-dont-shop/lib.api'   # scope to what you changed
 ```
 
+**Coverage & timing PR comment (ADS-947).** Once `test-frontend`, `test-libs`, and `test-services` finish, `ci.yml`'s `coverage-report` job posts a sticky comment on the PR showing per-package coverage delta vs `main` (only packages whose coverage changed) and this run's job timings. It updates the same comment in place on every push rather than posting a new one, and it's purely informational — it never blocks merge.
+
 #### Pre-commit hook (lint-staged)
 
 `.husky/pre-commit` runs [`.lintstagedrc.mjs`](./.lintstagedrc.mjs): Prettier formats the exact staged files, and ESLint runs via `pnpm exec turbo run lint --filter="...[HEAD]"` (ADS-905) — scoped to only the workspace packages your commit touches, using each package's own `eslint.config.js` (matching CI) rather than a single shared root config. A commit that only touches one package only lints that package.
