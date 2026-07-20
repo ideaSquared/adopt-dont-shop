@@ -149,8 +149,9 @@ providers, in order of what's actually wired into `services/notifications`
 # DEFAULT_FROM_NAME="Adopt Don't Shop"
 # DEFAULT_REPLY_TO_EMAIL=support@adoptdontshop.com
 
-# EMAIL_PROVIDER=ethereal           # fake SMTP catcher — test/dev only,
-                                    # refused in production
+# EMAIL_PROVIDER=ethereal           # fake SMTP catcher — test/dev only
+                                    # (unlike `console`, not refused in
+                                    # production — do not set it there)
 ```
 
 The following vars exist for a **possible future** provider switch but are

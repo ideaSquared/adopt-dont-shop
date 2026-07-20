@@ -22,7 +22,7 @@ pnpm setup
 ```
 
 `pnpm setup` enables Corepack, creates `.env` from `.env.example`, generates
-fresh JWT/session/CSRF/encryption secrets into it, and installs every
+fresh JWT/session/encryption secrets into it, and installs every
 workspace dependency. It'll also prompt you about the opt-in pre-push hook
 (answering yes is recommended for your first month) — see
 [CONTRIBUTING.md "Pre-push hook"](../CONTRIBUTING.md#pre-push-hook-ads-732--ads-905)

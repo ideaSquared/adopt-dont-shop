@@ -242,7 +242,7 @@ pnpm docker:dev:build         # rebuild images from scratch
 
 Common issues:
 
-- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5009 (services), 5432 (Postgres), 6379 (Redis), 4222/8222 (NATS) are free
+- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5010 (services), 5432 (Postgres), 6379 (Redis), 4222/8222 (NATS) are free
 - **HMR not firing** — on macOS/Windows, verify `CHOKIDAR_USEPOLLING=true` is set in container env (`pnpm run setup` writes it per-host since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) — it is **not** set on Linux, which uses native inotify instead)
 - **Slow builds** — ensure BuildKit is on: `export DOCKER_BUILDKIT=1`
 
