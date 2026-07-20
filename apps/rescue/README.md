@@ -2,7 +2,7 @@
 
 Rescue organization portal for the Adopt Don't Shop platform.
 
-See the full product spec: [docs/frontend/app-rescue-prd.md](../docs/frontend/app-rescue-prd.md).
+See the full product spec: [docs/frontend/app-rescue-prd.md](../../docs/frontend/app-rescue-prd.md).
 
 ## Stack
 
@@ -46,7 +46,7 @@ Or from this directory: `pnpm dev` — Vite serves on http://localhost:3000 (con
 ```
 src/
 ├── components/     Reusable UI components
-├── contexts/       React contexts (Analytics, Chat, Notifications, Permissions, Statsig)
+├── contexts/       React contexts (Chat, Statsig)
 ├── pages/          Route-level components
 ├── hooks/          Custom React hooks
 ├── services/       API clients and external services

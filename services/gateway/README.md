@@ -1,63 +1,75 @@
 # service.gateway
 
-BFF / API gateway for the microservices migration.
+The single REST + WebSocket edge in front of the ten domain gRPC services.
 
-## What this service is for
+## Responsibility
 
-Phase 0f stands the gateway up as a **strangler-fig start**: a Fastify
-pass-through proxy in front of the residual `service.backend`. Every
-`/api/*` request goes through here and gets forwarded to the monolith
-unchanged. Adding routes for extracted services (Phase 1+) is a
-per-PR Fastify plugin registration — `first-registered-wins` semantics
-mean a new service's prefix gets picked off before the catch-all
-proxy sees it.
+Authenticates every request (validates `Authorization: Bearer` via
+`service.auth.ValidateToken` and stamps server-derived `x-user-*` metadata,
+stripping any spoofed inbound headers), fans REST routes out to the right
+service over gRPC, terminates the Socket.IO connection and broadcasts NATS
+events to clients, enforces global rate limiting, and wraps each downstream
+client in a circuit breaker. A handful of small surfaces are served
+in-process (legal markdown, `/config`, analytics, dashboard composition,
+uploads, GDPR erasure kickoff). **No schema** — the gateway owns no Postgres
+tables.
 
-The end-state, once Phase 11 deletes the residual monolith:
+## Downstream gRPC clients
 
-```
-  /api/auth/*         → service.auth         (Phase 2)
-  /api/applications/* → service.applications (Phase 5)
-  /api/chat/*         → service.chat         (Phase 6)
-  /api/pets/*         → service.pets         (Phase 3)
-  …
-```
+`auth`, `notifications`, `pets`, `rescue`, `applications`, `chat`,
+`moderation`, `matching`, `audit`, `cms` — one client per service, addressed
+at `service-<name>:<grpcPort>` (`*_GRPC_URL` env vars, see Configuration
+below).
 
-For now it's just:
+## Route groups (`/api/v1/*`)
 
-```
-  /api/*              → service.backend (residual)
-  /health/simple      → owned by the gateway itself
-```
+`auth`, `sessions`, `field-permissions`, `users` → auth; `notifications`,
+`devices`, `email`, `broadcast` → notifications; `pets` → pets; `rescue`,
+`rescues` (public), `staff`/`foster`/`invitations` → rescue; `applications`,
+`application-documents` → applications; `chats` → chat; `moderation`,
+`admin/moderation`, `support` → moderation; `matching` → matching; `audit`,
+`reports` → audit; `cms` → cms. Gateway-folded (in-process): `legal`,
+`config`, `analytics`, `dashboard`, `uploads`, and
+`users/me/erasure-request` (GDPR). **There is no catch-all monolith proxy**
+— unowned `/api/*` paths return 404.
 
-## What's deliberately NOT here yet
+## gRPC RPCs
 
-- **WebSocket proxying.** Future `service.notifications` (Phase 1)
-  owns the WS spine. Forwarding sockets through `@fastify/http-proxy`
-  would couple the gateway to the monolith's socket lifecycle right
-  when we want the opposite.
-- **Auth gate (`ability.can(...)`).** Lands with `service.auth` in
-  Phase 2 — uses `@adopt-dont-shop/authz` against the principal
-  metadata the auth service supplies.
-- **gRPC translation.** No service speaks gRPC yet; the gateway's
-  REST → gRPC layer arrives when the first gRPC-speaking service
-  ships.
-- **Per-request access logs.** Disabled Fastify's built-in pino so it
-  doesn't double-log on top of OpenTelemetry's HTTP auto-instrumentation.
-  Per-route logging via `onResponse` hooks arrives with real routes.
+None — the gateway is a gRPC **client**, not a server. It exposes the
+REST/WS surface above plus the health + `/metrics` endpoints.
+
+## NATS subjects
+
+**Emits:** `gdpr.erasureRequested` (from
+`POST /api/v1/users/me/erasure-request`, kicking off the erasure saga).
+
+**Consumes (for WebSocket fan-out):** `notifications.created`,
+`notifications.dismissed`, `chat.messageCreated`, `chat.messageRead`,
+`chat.reactionAdded`, `chat.reactionRemoved`. It also ensures the
+`DOMAIN_EVENTS` JetStream stream exists at boot.
 
 ## Configuration
 
-| Env var                | Default                          | Purpose                                    |
-| ---------------------- | -------------------------------- | ------------------------------------------ |
-| `GATEWAY_PORT`         | `4000`                           | Port the gateway binds.                    |
-| `GATEWAY_HOST`         | `0.0.0.0`                        | Bind interface.                            |
-| `UPSTREAM_BACKEND_URL` | `http://service-backend:5000`    | URL of the residual monolith.              |
-| `NODE_ENV`             | `development`                    | Surfaces in `/health/simple` + log lines.  |
+| Env var                       | Default                        | Purpose                                                                        |
+| ----------------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
+| `GATEWAY_PORT`                | `4000`                         | Port the gateway binds.                                                        |
+| `GATEWAY_HOST`                | `0.0.0.0`                      | Bind interface.                                                                |
+| `NODE_ENV`                    | `development`                  | Surfaces in `/health/simple` + log lines.                                      |
+| `NOTIFICATIONS_GRPC_URL`      | `service-notifications:6001`   | Downstream gRPC address for `service.notifications`.                           |
+| `AUTH_GRPC_URL`               | `service-auth:6002`            | Downstream gRPC address for `service.auth`.                                    |
+| `PETS_GRPC_URL`               | `service-pets:6003`            | Downstream gRPC address for `service.pets`.                                    |
+| `RESCUE_GRPC_URL`             | `service-rescue:6004`          | Downstream gRPC address for `service.rescue`.                                  |
+| `APPLICATIONS_GRPC_URL`       | `service-applications:6005`    | Downstream gRPC address for `service.applications`.                            |
+| `CHAT_GRPC_URL`               | `service-chat:6006`            | Downstream gRPC address for `service.chat`.                                    |
+| `MODERATION_GRPC_URL`         | `service-moderation:6007`      | Downstream gRPC address for `service.moderation`.                              |
+| `MATCHING_GRPC_URL`           | `service-matching:6008`        | Downstream gRPC address for `service.matching`.                                |
+| `AUDIT_GRPC_URL`              | `service-audit:6009`           | Downstream gRPC address for `service.audit`.                                   |
+| `CMS_GRPC_URL`                | `service-cms:6010`             | Downstream gRPC address for `service.cms`.                                     |
 
 Plus all the standard observability env vars consumed by
 `@adopt-dont-shop/observability`: `OTEL_EXPORTER_OTLP_ENDPOINT`,
-`OTEL_SERVICE_NAME`, `SENTRY_DSN`, `LOG_LEVEL`, `LOKI_URL` — see
-that package's README.
+`OTEL_SERVICE_NAME`, `SENTRY_DSN`, `LOG_LEVEL`, `LOKI_URL` — see that
+package's README.
 
 ### gRPC resilience tunables
 
@@ -128,6 +140,30 @@ In degraded mode the limit reverts to per-replica behaviour. The gateway never c
 
 `gateway_rate_limit_hits_total{route}` — Counter exported on `/metrics`, incremented on every 429 response. The `route` label is the Fastify route template (e.g. `/api/v1/auth/login`).
 
+## Metrics (beyond the shared substrate)
+
+- `gateway_rate_limit_hits_total{route}` — counter, incremented on every 429
+  (`src/server.ts`).
+- `grpc_circuit_state{service}` — gauge, `0`=closed / `1`=half-open / `2`=open,
+  one per downstream service (`src/grpc-clients/resilience.ts`).
+
+Both feed the alerts in
+[`infra/prometheus/rules/gateway-resilience.yml`](../../infra/prometheus/rules/gateway-resilience.yml).
+
+## Dependencies
+
+`@adopt-dont-shop/{config-secrets, events, observability, proto,
+service-bootstrap, storage}` plus the generated clients for all ten services.
+No own database.
+
+## Testing strategy
+
+Vitest. Route handlers are tested against stubbed gRPC clients (the REST→gRPC
+translation + response adaptation), the authenticate middleware against a
+stub `ValidateToken`, the rate-limit + circuit-breaker behaviour directly,
+and the WS subscribers against a fake NATS — asserting header-stripping,
+401/404 paths, and event→socket fan-out without a live transport.
+
 ## Running
 
 ```bash
@@ -138,104 +174,3 @@ pnpm dev
 pnpm build
 pnpm start
 ```
-
-## Routing model
-
-`@fastify/http-proxy` mounts a catch-all under the `/api` prefix that
-forwards to `UPSTREAM_BACKEND_URL`. The prefix is preserved on the way
-through (`rewritePrefix: '/api'`) so the upstream sees the same path
-the client sent.
-
-When extracting a service, register its plugin BEFORE the catch-all in
-`createServer` so Fastify resolves the more specific prefix first.
-Concretely, in Phase 2 the order will be:
-
-```ts
-server.register(authRoutes, { prefix: '/api/auth' });   // new service
-server.register(httpProxy, { prefix: '/api', upstream }); // residual
-```
-
-The auth plugin handles `/api/auth/*`; everything else falls through
-to the monolith.
-
-## What this brings to the table for Phase 1
-
-- A stable place for `service.notifications` to terminate WebSockets
-  (gateway holds the socket; NATS fans events to it from the service).
-- A single edge for the future auth gate to live (gateway runs the
-  `ability.can` check; downstream services re-check via gRPC metadata
-  as defence-in-depth, matching the CAD pattern).
-- A natural strangler-fig boundary — extracting any service is "add a
-  route plugin to the gateway, delete the route from the monolith."
-
----
-
-## Canonical reference (ADS-817)
-
-### Responsibility
-
-The single REST/WebSocket edge in front of the gRPC services. It authenticates
-every request (validates `Authorization: Bearer` via `service.auth.ValidateToken`
-and stamps server-derived `x-user-*` metadata, stripping any spoofed inbound
-headers), fans REST routes out to the right service over gRPC, terminates the
-Socket.IO connection and broadcasts NATS events to clients, enforces global rate
-limiting, and wraps each downstream client in a circuit breaker. A handful of
-small surfaces are served in-process (legal markdown, `/config`, analytics,
-dashboard composition, uploads, GDPR erasure kickoff). **No schema** — the
-gateway owns no Postgres tables.
-
-### Downstream gRPC clients
-
-`auth`, `notifications`, `pets`, `rescue`, `applications`, `chat`, `moderation`,
-`matching`, `audit`, `cms` — one client per service, addressed at
-`service-<name>:<grpcPort>` (`*_GRPC_URL` env vars).
-
-### Route groups (`/api/v1/*`)
-
-`auth`, `sessions`, `field-permissions`, `users` → auth; `notifications`,
-`devices`, `email`, `broadcast` → notifications; `pets` → pets; `rescue`,
-`rescues` (public), `staff`/`foster`/`invitations` → rescue; `applications`,
-`application-documents` → applications; `chats` → chat; `moderation`,
-`admin/moderation`, `support` → moderation; `matching` → matching; `audit`,
-`reports` → audit; `cms` → cms. Gateway-folded (in-process): `legal`, `config`,
-`analytics`, `dashboard`, `uploads`, and `users/me/erasure-request` (GDPR).
-There is **no catch-all monolith proxy** — unowned `/api/*` paths return 404.
-
-### gRPC RPCs
-
-None — the gateway is a gRPC **client**, not a server. It exposes the REST/WS
-surface above plus the health + `/metrics` endpoints.
-
-### NATS subjects
-
-**Emits:** `gdpr.erasureRequested` (from `POST /api/v1/users/me/erasure-request`,
-kicking off the erasure saga).
-
-**Consumes (for WebSocket fan-out):** `notifications.created`,
-`notifications.dismissed`, `chat.messageCreated`, `chat.messageRead`,
-`chat.reactionAdded`, `chat.reactionRemoved`. It also ensures the
-`DOMAIN_EVENTS` JetStream stream exists at boot.
-
-### Metrics (beyond the shared substrate)
-
-- `gateway_rate_limit_hits_total{route}` — counter, incremented on every 429
-  (`src/server.ts`).
-- `grpc_circuit_state{service}` — gauge, `0`=closed / `1`=half-open / `2`=open,
-  one per downstream service (`src/grpc-clients/resilience.ts`).
-
-Both feed the alerts in
-[`infra/prometheus/rules/gateway-resilience.yml`](../../infra/prometheus/rules/gateway-resilience.yml).
-
-### Dependencies
-
-`@adopt-dont-shop/{config-secrets, events, observability, proto,
-service-bootstrap, storage}` plus the generated clients for all ten services. No
-own database.
-
-### Testing strategy
-
-Vitest. Route handlers are tested against stubbed gRPC clients (the REST→gRPC
-translation + response adaptation), the authenticate middleware against a stub
-`ValidateToken`, the rate-limit + circuit-breaker behaviour directly, and the WS
-subscribers against a fake NATS — asserting header-stripping, 401/404 paths, and
-event→socket fan-out without a live transport.

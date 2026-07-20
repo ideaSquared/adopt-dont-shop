@@ -2,9 +2,9 @@
 
 Moderation vertical — Phase 8 of the microservices migration.
 
-Owns the `moderation.*` schema (Report, ModeratorAction,
-ModerationEvidence, UserSanction, SupportTicket, SupportTicketResponse)
-and exposes `ModerationService` over gRPC. Cross-cutting reads via
+Owns the `moderation.*` schema (Report, ReportStatusTransition,
+ModeratorAction, ModerationEvidence, UserSanction, SupportTicket,
+SupportTicketResponse) and exposes `ModerationService` over gRPC. Cross-cutting reads via
 gRPC; consumes events (`chat.messageCreated`, `pets.created`,
 `applications.submitted`) for content scanning + auto-report triggers.
 

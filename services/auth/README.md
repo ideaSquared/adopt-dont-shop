@@ -2,10 +2,9 @@
 
 Auth vertical — Phase 2 of the microservices migration.
 
-Owns the `auth.*` schema (User, RefreshToken, RevokedToken, Role,
-Permission, UserRole, RolePermission, TwoFactorRecovery, DeviceToken,
-IpRule, UserConsent) and exposes `AuthService.{Login, Logout,
-RefreshToken, ValidateToken, GetMe, AssignRole}` over gRPC.
+Owns the `auth.*` schema and exposes `AuthService` over gRPC. See the
+canonical reference at the bottom of this file for the exact table + RPC
+lists — the rest of the doc is historical migration context.
 
 CAD Phase 4 equivalent — the auth pattern that brought CAD's gate
 online (Lucia + JWT + bcrypt + CASL ability serialisation), restated
@@ -205,8 +204,10 @@ the gateway validates on every request. Schema: `auth`.
 | `revoked_tokens` | JTI denylist for access + old refresh tokens. |
 | `user_privacy_prefs` | Per-user privacy preferences. |
 | `field_permissions` | Overrides to the default field-level access matrix. |
+| `ip_rules` | Admin-managed IP allow/deny rules. |
+| `user_invitations` | Staff / rescue invitation tokens. |
 
-Migrations: `services/auth/src/migrations/001`–`025`.
+Migrations: `services/auth/src/migrations/001`–`028`.
 
 ### gRPC RPCs
 
