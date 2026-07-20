@@ -16,7 +16,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
     # ADS-947: restore this run's coverage-summary.json files, saved by each
     # producer job's run-package-tests call under the matching exact key.

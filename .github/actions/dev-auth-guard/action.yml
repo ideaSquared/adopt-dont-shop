@@ -8,7 +8,6 @@ description: >-
 runs:
   using: 'composite'
   steps:
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
     # ADS-676: verify that dev-auth bypass patterns only appear inside
     # import.meta.env.DEV guards (which Vite replaces with `false` and

@@ -158,6 +158,8 @@ jobs:
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
     steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/checkout-and-setup
         with:
           download-lib-dist: 'false'
@@ -200,6 +202,8 @@ jobs:
         app: [client, admin, rescue]
 
     steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/run-package-tests
         with:
           filter: '@adopt-dont-shop/app.${{ matrix.app }}'
@@ -226,6 +230,8 @@ jobs:
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
     steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/run-package-tests
         with:
           filter: '@adopt-dont-shop/lib.*'
@@ -255,6 +261,8 @@ jobs:
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
     steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/run-package-tests
         with:
           filter: '@adopt-dont-shop/service.*'
@@ -285,6 +293,8 @@ jobs:
       PACT_DO_NOT_TRACK: 'true'
 
     steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/checkout-and-setup
 
       # Phase 1 — consumers write pact files to pacts/
@@ -320,6 +330,8 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/dev-auth-guard
 
   # ============================================================================
@@ -355,6 +367,8 @@ jobs:
       E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/e2e-suite
 
   # ============================================================================
@@ -377,6 +391,8 @@ jobs:
       actions: read
       pull-requests: write
     steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/coverage-report
         with:
           lib-dist-cache-hit: ${{ needs.build-libs.outputs.lib-dist-cache-hit }}
