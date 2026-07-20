@@ -1,0 +1,52 @@
+name: 'Dev Auth Guard'
+description: >-
+  ci.yml's dev-auth-guard job body (ADS-953): scans production frontend
+  source for dev-auth bypass patterns (dev_user / dev-token-) outside their
+  allowed DEV-gated locations (ADS-676). Extracted into a composite action
+  purely to shrink ci.yml — the job itself (name, needs, if-gating) stays in
+  ci.yml so its status-check identity is unchanged.
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+    # ADS-676: verify that dev-auth bypass patterns only appear inside
+    # import.meta.env.DEV guards (which Vite replaces with `false` and
+    # tree-shakes in production builds). Fail if any reference to
+    # dev_user / dev-token- appears outside lib.auth's DEV-gated
+    # AuthContext or the explicitly dev-only files below.
+    #
+    # Allowed locations (dev-only by design):
+    #   packages/lib.auth/src/contexts/AuthContext.tsx — DEV-gated
+    #   apps/*/src/components/dev/*                    — dev panels
+    #   apps/*/src/utils/devAuth.ts                     — dev utilities
+    #   apps/*/src/contexts/base/devUtils.ts            — dev utilities
+    #   **/*.test.* / **/*.spec.*                       — test files
+    - name: Scan source for ungated dev auth bypass patterns
+      shell: bash
+      run: |
+        # Find dev_user or dev-token- references in production source
+        # (exclude test files, dev-only directories, and the known
+        # DEV-gated AuthContext).
+        HITS=$(grep -rn 'dev_user\|dev-token-' \
+          apps/*/src/ packages/lib.*/src/ \
+          --include='*.ts' --include='*.tsx' \
+          --exclude='*.test.*' --exclude='*.spec.*' \
+          | grep -v '/components/dev/' \
+          | grep -v '/utils/devAuth' \
+          | grep -v '/contexts/base/devUtils' \
+          | grep -v 'AuthContext.tsx' \
+          || true)
+
+        if [ -n "$HITS" ]; then
+          echo "ERROR: Dev auth bypass patterns found outside allowed locations:"
+          echo "$HITS"
+          echo ""
+          echo "dev_user / dev-token- must only appear in:"
+          echo "  - packages/lib.auth/src/contexts/AuthContext.tsx (DEV-gated)"
+          echo "  - apps/*/src/components/dev/* (dev-only panels)"
+          echo "  - apps/*/src/utils/devAuth.ts (dev-only utilities)"
+          echo "  - Test files (*.test.*, *.spec.*)"
+          exit 1
+        fi
+        echo "All dev auth patterns are properly gated."

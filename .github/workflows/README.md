@@ -123,6 +123,28 @@ GitHub Releases themselves are produced by `release-please.yml` from conventiona
 
 ---
 
+## Composite actions used by `ci.yml` (ADS-953)
+
+`ci.yml`'s test jobs repeated the same checkout → setup-workspace → restore
+lib-dist → run-turbo-filter preamble. That's now centralised in
+`.github/actions/`, one edit point per contract change:
+
+| Action | Used by | Purpose |
+| ------ | ------- | ------- |
+| `setup-workspace` | `checkout-and-setup`, `e2e-suite` | Install Node + pnpm (Corepack), cache the pnpm store, install workspace deps. |
+| `checkout-and-setup` | `build-libs`, `run-package-tests`, `test-contracts` | Checkout + `setup-workspace`, plus an optional restore of the `packages/lib.*/dist` cache populated by `build-libs`. |
+| `run-package-tests` | `test-frontend`, `test-libs`, `test-services` | `checkout-and-setup` + lint/test(:coverage)/type-check via Turbo (and, for frontend apps, a `pnpm build` step), then uploads the junit results. |
+| `e2e-suite` | `test-e2e` | The full Playwright E2E body: image build, stack boot, suite run, teardown. |
+| `dev-auth-guard` | `dev-auth-guard` | Scans production source for ungated dev-auth bypass patterns. |
+
+These are composite actions, not `workflow_call` reusable workflows: a job
+that calls a reusable workflow gets its status-check name prefixed with the
+caller job's name (`<caller> / <callee>`), which would silently rename every
+check in this file. Composite actions splice their steps into the *same*
+job, so job names, `needs:`, and `if:` gating are unchanged — required for
+`ci-required` and the branch-protection checks in this repo to keep working
+across the refactor.
+
 ## Workflow Features
 
 ### 🚀 **Performance Optimizations**
