@@ -79,7 +79,9 @@ const sharedConfig = defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov', 'html'],
+      // ADS-947: json-summary is read by scripts/ci/coverage-delta.mjs to post
+      // the PR coverage-delta comment.
+      reporter: ['text', 'lcov', 'html', 'json-summary'],
       reportsDirectory: 'coverage',
       include: ['src/**/*.ts', 'src/**/*.tsx'],
       exclude: [
@@ -134,6 +136,13 @@ const sharedServiceConfig = defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     testTimeout: 10_000,
+    coverage: {
+      provider: 'v8',
+      // ADS-947: json-summary is read by scripts/ci/coverage-delta.mjs to
+      // post the PR coverage-delta comment.
+      reporter: ['text', 'json-summary'],
+      reportsDirectory: 'coverage',
+    },
   },
 });
 

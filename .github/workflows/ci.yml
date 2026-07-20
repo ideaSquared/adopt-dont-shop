@@ -149,6 +149,9 @@ jobs:
       needs.changes.outputs.libs == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      # ADS-947: surfaced as a CI-health signal on the coverage-report comment.
+      lib-dist-cache-hit: ${{ steps.cache-lib-dist.outputs.cache-hit }}
 
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -203,6 +206,7 @@ jobs:
           working-directory: 'apps/${{ matrix.app }}'
           run-build: 'true'
           upload-artifact-name: 'test-results-${{ matrix.app }}'
+          coverage-cache-key: 'coverage-current-${{ github.run_id }}-${{ matrix.app }}'
 
   # ============================================================================
   # SHARED LIBRARIES — lint/test/type-check the libs themselves
@@ -226,6 +230,7 @@ jobs:
         with:
           filter: '@adopt-dont-shop/lib.*'
           upload-artifact-name: 'test-results-libs'
+          coverage-cache-key: 'coverage-current-${{ github.run_id }}-libs'
 
   # ============================================================================
   # SERVICE TESTS — lint/test:coverage/type-check all service.* packages
@@ -254,6 +259,7 @@ jobs:
         with:
           filter: '@adopt-dont-shop/service.*'
           upload-artifact-name: 'test-results-services'
+          coverage-cache-key: 'coverage-current-${{ github.run_id }}-services'
 
   # ============================================================================
   # CONTRACT TESTS — consumer-driven Pact verification matrix (ADS-816).
@@ -350,6 +356,30 @@ jobs:
 
     steps:
       - uses: ./.github/actions/e2e-suite
+
+  # ============================================================================
+  # COVERAGE REPORT — ADS-947: sticky PR comment with per-package coverage
+  # delta vs main + this run's job timings. Purely informational: not in
+  # ci-required's needs, and continue-on-error so a script/API hiccup (e.g.
+  # a fork PR's read-only token) can never block merge.
+  # ============================================================================
+  coverage-report:
+    name: Coverage & Timing Report
+    needs: [build-libs, test-frontend, test-libs, test-services]
+    if: |
+      always() &&
+      (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: ./.github/actions/coverage-report
+        with:
+          lib-dist-cache-hit: ${{ needs.build-libs.outputs.lib-dist-cache-hit }}
 
   # ============================================================================
   # CI REQUIRED — single aggregator gate for branch protection. Branch

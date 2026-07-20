@@ -41,6 +41,14 @@ inputs:
     description: 'Path glob for the uploaded junit test-results artifact.'
     required: false
     default: '**/test-results/junit.xml'
+  coverage-cache-key:
+    description: >-
+      ADS-947: when set, cache every coverage-summary.json this job produced
+      (across apps/*, packages/*, services/*) under this exact key, so the
+      coverage-report job can restore this run's coverage without re-running
+      tests. Leave unset to skip (e.g. test-contracts has no coverage).
+    required: false
+    default: ''
 runs:
   using: 'composite'
   steps:
@@ -84,3 +92,15 @@ runs:
         name: ${{ inputs.upload-artifact-name }}
         path: ${{ inputs.upload-artifact-path }}
         retention-days: 7
+
+    # ADS-947: run-scoped, so it's always a cache miss and always saves —
+    # same pattern build-libs uses for lib-dist. coverage-report restores it
+    # by the exact same key.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: always() && inputs.coverage-cache-key != ''
+      with:
+        path: |
+          apps/*/coverage/coverage-summary.json
+          packages/*/coverage/coverage-summary.json
+          services/*/coverage/coverage-summary.json
+        key: ${{ inputs.coverage-cache-key }}

@@ -55,6 +55,8 @@ quick critical-path subset.
 
 **Triggers**: Push/PR to `main` or `develop` branches
 
+**Coverage & timing report (ADS-947)**: after `test-frontend`/`test-libs`/`test-services` finish, the `coverage-report` job posts a single sticky comment on the PR with per-package coverage delta vs `main` (only packages whose coverage changed) and this run's job timings — see `.github/actions/coverage-report`. It's purely informational (`continue-on-error: true`, not in `ci-required`'s needs) and degrades gracefully on forks, where the default `GITHUB_TOKEN` is read-only.
+
 ---
 
 ### 🔒 **Security Workflow** (`security.yml`)
@@ -136,6 +138,7 @@ lib-dist → run-turbo-filter preamble. That's now centralised in
 | `run-package-tests` | `test-frontend`, `test-libs`, `test-services` | `checkout-and-setup` + lint/test(:coverage)/type-check via Turbo (and, for frontend apps, a `pnpm build` step), then uploads the junit results. |
 | `e2e-suite` | `test-e2e` | The full Playwright E2E body: image build, stack boot, suite run, teardown. |
 | `dev-auth-guard` | `dev-auth-guard` | Scans production source for ungated dev-auth bypass patterns. |
+| `coverage-report` | `coverage-report` | ADS-947: posts/updates a sticky PR comment with per-package coverage delta vs `main` and this run's job timings. See `## Workflow Overview` below. |
 
 These are composite actions, not `workflow_call` reusable workflows: a job
 that calls a reusable workflow gets its status-check name prefixed with the

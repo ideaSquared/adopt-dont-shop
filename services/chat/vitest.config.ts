@@ -19,7 +19,9 @@ export default defineServiceConfig({
         'src/db/spam.ts',
         'src/**/index.ts',
       ],
-      reporter: ['text', 'lcov'],
+      // ADS-947: json-summary is read by scripts/ci/coverage-delta.mjs to
+      // post the PR coverage-delta comment.
+      reporter: ['text', 'lcov', 'json-summary'],
       // ratcheted to measured baseline (2026-06-16): the service owns its own
       // floor the same way lib.* packages ratchet against vitest.shared.config.
       // Measured: statements=92.44 branches=96.44 functions=90.69 lines=92.3
