@@ -59,6 +59,7 @@ const makeHandlers = (
   get: unimplemented,
   list: unimplemented,
   getStats: unimplemented,
+  countAdoptedAdopters: unimplemented,
   addDocument: unimplemented,
   listDocuments: unimplemented,
   removeDocument: unimplemented,
