@@ -39,7 +39,9 @@ import {
   type UpdateEventResponse,
 } from '@adopt-dont-shop/proto';
 
+import type { ApplicationsClient } from './applications-client.js';
 import { HandlerError, type HandlerDeps } from './handlers.js';
+import { principalToMetadata } from './principal.js';
 
 // ── Permissions ─────────────────────────────────────────────────────────
 
@@ -47,6 +49,29 @@ const EVENTS_READ: Permission = 'events.read' as Permission;
 const EVENTS_CREATE: Permission = 'events.create' as Permission;
 const EVENTS_UPDATE: Permission = 'events.update' as Permission;
 const EVENTS_DELETE: Permission = 'events.delete' as Permission;
+
+// ── Adoption attribution (ADS-941) ────────────────────────────────────────
+//
+// adoptionsFromEvent uses a "registered → later adopted" attribution
+// model: an adoption is attributed to event X when a user who
+// REGISTERED for event X (rescue.event_attendees — every registrant,
+// not just those who checked in) later has an application that reaches
+// APPROVED or ADOPTED status. Attribution is by adopter identity within
+// a bounded post-event window, not by any adoption↔event link table.
+//
+// The count is DISTINCT ADOPTERS, not applications — an adopter with
+// two qualifying applications after the event still counts once. The
+// proto field is named `adoptions_from_event`, and its own comment
+// ("how many adoptions were driven by this event") is satisfied either
+// way in the common case (one adopter, one adoption); we chose the
+// adopter-count reading because that's what the product decision this
+// ticket implements explicitly asked for.
+//
+// Window: 90 days after the event's start_date — a reasonable
+// adoption-cycle length (submit → review → home visit → decision).
+// Single named constant so it's easy to find and retune.
+const ATTRIBUTION_WINDOW_DAYS = 90;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // ── DB row types ────────────────────────────────────────────────────────
 
@@ -676,42 +701,93 @@ export async function checkInAttendee(
 
 // ── GetEventAnalytics ───────────────────────────────────────────────────
 
-export async function getEventAnalytics(
+// getEventAnalytics is a factory closing over the ApplicationsClient so the
+// gRPC server boot injects the real client and tests inject a stub. See
+// "Adoption attribution (ADS-941)" above for the counting rule. Direct port
+// of staff-foster-handlers.ts's makeCreateFosterPlacement pattern.
+export function makeGetEventAnalytics(
+  applicationsClient: ApplicationsClient
+): (
   deps: HandlerDeps,
   principal: Principal,
   req: GetEventAnalyticsRequest
-): Promise<GetEventAnalyticsResponse> {
-  if (!isSuperAdmin(principal) && !hasPermission(principal, EVENTS_READ)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${EVENTS_READ}' required`);
-  }
+) => Promise<GetEventAnalyticsResponse> {
+  return async (deps, principal, req) => {
+    if (!isSuperAdmin(principal) && !hasPermission(principal, EVENTS_READ)) {
+      throw new HandlerError('PERMISSION_DENIED', `'${EVENTS_READ}' required`);
+    }
 
-  const eventRes = await deps.pool.query<EventRow>(
-    `SELECT ${EVENT_SELECT} FROM rescue.events WHERE event_id = $1 AND deleted_at IS NULL`,
-    [req.eventId]
-  );
-  const row = eventRes.rows[0];
-  if (!row) {
-    throw new HandlerError('NOT_FOUND', `event ${req.eventId} not found`);
-  }
-  assertRescueAccess(principal, row.rescue_id, EVENTS_READ);
+    const eventRes = await deps.pool.query<EventRow>(
+      `SELECT ${EVENT_SELECT} FROM rescue.events WHERE event_id = $1 AND deleted_at IS NULL`,
+      [req.eventId]
+    );
+    const row = eventRes.rows[0];
+    if (!row) {
+      throw new HandlerError('NOT_FOUND', `event ${req.eventId} not found`);
+    }
+    assertRescueAccess(principal, row.rescue_id, EVENTS_READ);
 
-  const countRes = await deps.pool.query<{ total: string; checked_in: string }>(
-    `SELECT COUNT(*) AS total,
-            COUNT(*) FILTER (WHERE checked_in) AS checked_in
-       FROM rescue.event_attendees WHERE event_id = $1`,
-    [req.eventId]
-  );
-  const totalRegistrations = parseInt(countRes.rows[0]?.total ?? '0', 10);
-  const actualAttendance = parseInt(countRes.rows[0]?.checked_in ?? '0', 10);
-  const attendanceRate = totalRegistrations > 0 ? (actualAttendance / totalRegistrations) * 100 : 0;
+    const countRes = await deps.pool.query<{ total: string; checked_in: string }>(
+      `SELECT COUNT(*) AS total,
+              COUNT(*) FILTER (WHERE checked_in) AS checked_in
+         FROM rescue.event_attendees WHERE event_id = $1`,
+      [req.eventId]
+    );
+    const totalRegistrations = parseInt(countRes.rows[0]?.total ?? '0', 10);
+    const actualAttendance = parseInt(countRes.rows[0]?.checked_in ?? '0', 10);
+    const attendanceRate =
+      totalRegistrations > 0 ? (actualAttendance / totalRegistrations) * 100 : 0;
 
-  const analytics: RescueEventAnalytics = {
-    eventId: row.event_id,
-    totalRegistrations,
-    actualAttendance,
-    attendanceRate,
-    adoptionsFromEvent: 0,
+    const adoptionsFromEvent =
+      totalRegistrations > 0
+        ? await countAdoptionsFromEvent(deps, applicationsClient, principal, req.eventId, row)
+        : 0;
+
+    const analytics: RescueEventAnalytics = {
+      eventId: row.event_id,
+      totalRegistrations,
+      actualAttendance,
+      attendanceRate,
+      adoptionsFromEvent,
+    };
+
+    return { analytics };
   };
+}
 
-  return { analytics };
+// Resolves the event's registrant ids (every registrant, not just those
+// checked in — the attribution model is "registered → later adopted") and
+// asks service.applications how many of them have since adopted within the
+// window. Forwards the caller's identity so applications runs its own
+// applications.read gate.
+async function countAdoptionsFromEvent(
+  deps: HandlerDeps,
+  applicationsClient: ApplicationsClient,
+  principal: Principal,
+  eventId: string,
+  event: EventRow
+): Promise<number> {
+  const attendeeRes = await deps.pool.query<{ user_id: string }>(
+    `SELECT DISTINCT user_id FROM rescue.event_attendees WHERE event_id = $1`,
+    [eventId]
+  );
+  const adopterIds = attendeeRes.rows.map(r => r.user_id);
+  if (adopterIds.length === 0) {
+    return 0;
+  }
+
+  const createdAfter = event.start_date.toISOString();
+  const createdBefore = new Date(
+    event.start_date.getTime() + ATTRIBUTION_WINDOW_DAYS * MS_PER_DAY
+  ).toISOString();
+
+  try {
+    const res = await applicationsClient.countAdoptedAdopters(
+      { adopterIds, createdAfter, createdBefore },
+      principalToMetadata(principal)
+    );
+    return res.count;
+  } catch {
+    throw new HandlerError('INTERNAL', 'failed to resolve adoption attribution');
+  }
 }

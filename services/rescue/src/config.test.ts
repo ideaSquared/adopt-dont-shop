@@ -17,6 +17,7 @@ describe('loadConfig', () => {
     expect(config.schema).toBe('rescue');
     expect(config.natsUrl).toBe('nats://nats:4222');
     expect(config.petsGrpcUrl).toBe('service-pets:6003');
+    expect(config.applicationsGrpcUrl).toBe('service-applications:6005');
   });
 
   it('honours all env overrides when set', () => {
@@ -29,6 +30,7 @@ describe('loadConfig', () => {
       DATABASE_URL: 'postgres://prod:secret@db.example.com:5432/rescue',
       NATS_URL: 'nats://nats.internal:4222',
       PETS_GRPC_URL: 'pets.internal:6003',
+      APPLICATIONS_GRPC_URL: 'applications.internal:6005',
     });
 
     expect(config.port).toBe(5500);
@@ -39,6 +41,7 @@ describe('loadConfig', () => {
     expect(config.databaseUrl).toBe('postgres://prod:secret@db.example.com:5432/rescue');
     expect(config.natsUrl).toBe('nats://nats.internal:4222');
     expect(config.petsGrpcUrl).toBe('pets.internal:6003');
+    expect(config.applicationsGrpcUrl).toBe('applications.internal:6005');
   });
 
   it('rejects a non-numeric RESCUE_PORT', () => {
