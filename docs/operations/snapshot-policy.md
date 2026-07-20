@@ -21,9 +21,12 @@ production stack. The script:
 1. Acquires a logical dump via `docker compose exec database pg_dump`
    (no downtime; consistent snapshot using `--serializable-deferrable`).
 2. Compresses with `gzip -9`.
-3. Uploads to `s3://${BACKUP_BUCKET}/postgres/$(date -u +%Y/%m/%d)/dump.sql.gz`.
-4. Tags the object with `Class=tier1, Retention=30d` so the bucket lifecycle
-   policy auto-prunes after 30 days.
+3. Uploads to `s3://${BACKUP_BUCKET}/postgres/$(date -u +%Y/%m/%d/%H%M%S)/dump.sql.gz`
+   (one directory per snapshot — the HHMMSS suffix lets multiple daily runs
+   coexist).
+4. Sets S3 user-metadata `Class=tier1, Retention=30d` on the object. Lifecycle
+   pruning must be configured on the `postgres/` prefix — S3 lifecycle rules
+   cannot filter by user-metadata, so the metadata is descriptive only.
 
 ### Cron snippet
 

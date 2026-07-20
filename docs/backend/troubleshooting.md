@@ -21,16 +21,16 @@ LOG_LEVEL=debug pnpm dev
 
 ### Health Check Diagnostics
 
+The gateway exposes a single `/health/simple` liveness probe on port 4000
+(no aggregated / DB / detailed endpoint — the LB probe is liveness-only):
+
 ```bash
-# Basic health check
-curl http://localhost:5000/health
-
-# Detailed health check with service status
-curl http://localhost:5000/health/detailed
-
-# Database health check
-curl http://localhost:5000/health/db
+curl http://localhost:4000/health/simple
 ```
+
+To check a specific backing service, hit its own `/health/simple` on its
+container port (5001–5010) via `docker compose exec`, or inspect its
+container state directly with `docker compose ps`.
 
 ## Database Issues
 
@@ -119,43 +119,39 @@ echo $DB_HOST $DB_PORT $DB_NAME $DB_USER
 **Diagnostics:**
 
 ```bash
-# Check migration status (via custom Umzug runner)
-pnpm db:migrate:status
-
-# View migration history
-SELECT * FROM "SequelizeMeta";
+# View migration history (each service owns a pgmigrations table in its own schema)
+psql -c "SELECT name, run_on FROM auth.pgmigrations ORDER BY id DESC LIMIT 10;"
+# repeat with pets.pgmigrations / rescue.pgmigrations / … as needed
 
 # Check current database schema
-\d+ users
-\d+ pets
+\dn+                                     -- list schemas
+\dt+ auth.*                              -- tables in a schema
 ```
 
 **Solutions:**
 
 1. **Failed migration:**
 
-   ```bash
-   # Rollback last migration
-   pnpm db:migrate:undo
-
-   # Fix migration file and re-run
-   pnpm db:migrate
-   ```
+   There is **no `pnpm db:migrate:undo` script** — the shared runner in
+   `packages/db/src/migrate.ts` only runs migrations forward. See
+   [`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md)
+   paths B (write a corrective forward migration) and E (manual pgmigrations
+   surgery) for the actual recovery procedures.
 
 2. **Out of sync migrations:**
 
    ```bash
-   # Reset database (development only — run inside backend container)
+   # Reset database (development only — wipes ALL data)
    pnpm docker:reset
    pnpm docker:dev:detach
-   pnpm db:migrate
+   # Each service re-runs its own migrations on container start.
    ```
 
 3. **Manual migration fix:**
 
    ```sql
-   -- Remove migration record
-   DELETE FROM "SequelizeMeta" WHERE name = 'problematic-migration.js';
+   -- Remove migration record (per schema — each service owns its own table)
+   DELETE FROM auth.pgmigrations WHERE name = 'problematic-migration';
 
    -- Fix database manually
    ALTER TABLE users ADD COLUMN new_column VARCHAR(255);

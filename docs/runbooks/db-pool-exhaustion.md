@@ -17,20 +17,19 @@ otherwise `warning` (`P95LatencyHigh`).
 
 ## Pool config (current defaults)
 
-From the service's database connection config:
+Pool sizing and timeouts are **not env-tunable today** — they live in
+`TIMEOUT_DEFAULTS` in [`packages/db/src/client.ts`](../../packages/db/src/client.ts):
 
-| Env var                              | Default | Meaning                                   |
-| ------------------------------------ | ------- | ----------------------------------------- |
-| `DB_POOL_MAX`                        | `20`    | Max concurrent connections per replica    |
-| `DB_POOL_MIN`                        | `2`     | Min idle connections held                 |
-| `DB_POOL_ACQUIRE_MS`                 | `30000` | How long a request waits for a connection |
-| `DB_POOL_IDLE_MS`                    | `10000` | Idle connection eviction                  |
-| `DB_STATEMENT_TIMEOUT_MS`            | `30000` | Per-query ceiling                         |
-| `DB_LOCK_TIMEOUT_MS`                 | `10000` | Lock-wait ceiling                         |
-| `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS`  | `60000` | Kills idle-in-tx sessions                 |
+| Setting                    | Default   | Meaning                                                       |
+| -------------------------- | --------- | ------------------------------------------------------------- |
+| `connectionTimeoutMillis`  | `10_000`  | How long a request waits for a connection from the pool.      |
+| `idleTimeoutMillis`        | `30_000`  | Idle-connection eviction.                                     |
+| `statement_timeout`        | `30_000`  | Postgres session `statement_timeout` — per-query ceiling.     |
+| `query_timeout`            | `30_000`  | Client-side query timeout applied by node-postgres.           |
+| `max`                      | `10`      | pg default — the code does not override it.                   |
 
-Effective settings are logged at boot:
-`[db] pool max=20 min=2 acquireMs=30000 ...`
+`packages/db/src/client.ts` does not emit a `[db] pool …` log line at
+boot; there is no boot-time report of the effective values.
 
 ## Triage in 60 seconds
 
@@ -60,7 +59,7 @@ docker compose -f docker-compose.prod.yml exec -T database \
 | ------------------------------------------------------- | ------------------------------------ |
 | Many `idle in transaction` rows, `age` > 1m             | A handler is leaking a transaction   |
 | One query holding for minutes, others queued behind it  | Missing index / runaway report query |
-| `active` count == `DB_POOL_MAX * replicas`              | Traffic genuinely exceeds capacity   |
+| `active` count == `pool max × replicas × services`      | Traffic genuinely exceeds capacity   |
 | Many sessions holding the same table-level lock         | Migration / VACUUM FULL in flight    |
 
 Cross-check with the Grafana **Request volume** panel. If volume is
@@ -77,17 +76,18 @@ is up and tracking the saturation, capacity is the cause.
    ```
    Watch the `state` distribution drop back to mostly `idle`.
 
-2. **Bump the pool** (temporary; requires the affected service to
-   restart and pick up the new env):
-   ```bash
-   # Edit .env on the prod host
-   DB_POOL_MAX=40
-   docker compose -f docker-compose.prod.yml up -d service-<name>
-   ```
-   Do **not** exceed the Postgres `max_connections` ceiling
+2. **Bump the pool** — the pool `max` is currently **not env-tunable**;
+   it defaults to pg's built-in `10`. To raise it, edit
+   `TIMEOUT_DEFAULTS` in [`packages/db/src/client.ts`](../../packages/db/src/client.ts)
+   to set an explicit `max`, rebuild the affected service image, and
+   redeploy. Do **not** exceed the Postgres `max_connections` ceiling
    (typically 100 on a small managed instance). Every schema-owning
-   service holds up to `DB_POOL_MAX` connections; budget across all
-   of them and leave headroom for `psql` + the operator.
+   service holds up to `max` connections; budget across all of them
+   (auth, pets, rescue, applications, chat, notifications, moderation,
+   matching, cms, audit) and leave headroom for `psql` + the operator.
+   Because this requires a code change, it is rarely the fastest
+   mitigation — usually a targeted `pg_terminate_backend` or a
+   feature-flag flip is faster.
 
 3. **Disable a hot endpoint** — if a known feature is driving the
    load (e.g. a search endpoint hitting a missing index), flip its
@@ -100,10 +100,11 @@ is up and tracking the saturation, capacity is the cause.
 
 ## Verify
 
-- `pg_stat_activity` count returns to baseline (`active` <
-  `DB_POOL_MAX`).
+- `pg_stat_activity` `active` count returns to baseline (well below
+  each service's pool max).
 - p95 latency drops below 500ms; `P95LatencyHigh` resolves.
-- No new `acquire timeout` lines in the last 5 min of logs.
+- No new `acquire timeout` / `pool is draining` /
+  `timeout exceeded when trying to connect` lines in the last 5 min of logs.
 
 ## Capture
 
@@ -113,10 +114,6 @@ docker compose -f docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   -c "SELECT * FROM pg_stat_activity WHERE datname=current_database() AND state <> 'idle';" \
   > /tmp/pgstat-$(date +%s).txt
-
-# Pool config + boot env that was in effect on the affected service
-docker compose -f docker-compose.prod.yml logs service-<name> \
-  | grep '\[db\] pool' | tail -1
 ```
 
 The query snapshot is gone the moment you `pg_terminate_backend` —

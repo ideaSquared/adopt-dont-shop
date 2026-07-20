@@ -33,14 +33,19 @@ docker run --rm --name jaeger \
   jaegertracing/all-in-one:latest
 ```
 
-Then point the backend at it:
+Then point the stack at it:
 
 ```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 pnpm dev:backend
+# All services (gateway + microservices) — each boots its own OTel SDK
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 pnpm dev
+
+# Or a single service — set the endpoint before starting it
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
+  pnpm exec turbo dev --filter=@adopt-dont-shop/service.gateway
 ```
 
-Open <http://localhost:16686> and select the
-`adopt-dont-shop-backend` service.
+Open <http://localhost:16686>. Each service registers its own service
+name (`service.gateway`, `service.auth`, …).
 
 ## What gets instrumented
 
@@ -48,31 +53,22 @@ Open <http://localhost:16686> and select the
 instrumentation that ships in the bundle. The relevant ones for this
 service are:
 
-| Module        | Spans                                |
-|---------------|--------------------------------------|
-| `http`        | inbound + outbound HTTP              |
-| `express`     | route handlers + middleware          |
-| `pg`          | every SQL statement (Sequelize → pg) |
-| `ioredis`     | every Redis command                  |
-| `socket.io`   | server-side connection events        |
-| `undici`      | `fetch()` calls                      |
-| `winston`     | log-record attribution to a span     |
+| Module         | Spans                                                     |
+|----------------|-----------------------------------------------------------|
+| `http`         | inbound + outbound HTTP                                    |
+| `fastify`      | route handlers + hooks (gateway + each service)            |
+| `grpc`         | gRPC client + server calls between the gateway and services |
+| `pg`           | every SQL statement (direct via `@adopt-dont-shop/db`)     |
+| `ioredis`      | every Redis command                                        |
+| `socket.io`    | server-side connection events (gateway)                    |
+| `undici`       | `fetch()` calls                                            |
+| `winston`      | log-record attribution to a span                           |
 
 `@opentelemetry/instrumentation-fs` is **disabled** because it emits
 one span per `readFile` / `stat` and floods exporters with no
 operational signal. Override via the standard
 `OTEL_NODE_DISABLED_INSTRUMENTATIONS` /
 `OTEL_NODE_ENABLED_INSTRUMENTATIONS` env vars if you need it.
-
-### BullMQ — known gap
-
-There is no first-party OTel instrumentation for BullMQ in the
-auto-bundle. Redis traffic is still captured (BullMQ uses ioredis
-under the hood) so queue ops appear as `ioredis` spans — enough to
-debug latency but without job-level metadata. Custom instrumentation
-is out of scope for ADS-660; if job tracing is required, follow up
-with a manual `startSpan` wrapper around the queue's `process`
-callback.
 
 ## Trace flow
 
@@ -108,17 +104,15 @@ The SDK respects the standard env vars:
 - `OTEL_TRACES_SAMPLER_ARG` — ratio in `[0, 1]` for the ratio
   samplers.
 
-## Worker processes
+## Background work
 
-Background workers (`reports.worker`, `retention.job`,
-`legal-reminder.worker`, etc.) run in the same Node process as the
-HTTP server, so the single SDK boot inside `src/index.ts` covers
-them. The standalone `legal-reminder.cli.ts` CLI inherits the same
-import-time boot when run via `pnpm legal-reminder:run` because
-it imports from `src/workers/legal-reminder.worker` which transitively
-loads `src/instrumentation.ts` via the project boot path — for that
-CLI, traces require `OTEL_EXPORTER_OTLP_ENDPOINT` to be set in the
-shell that invokes it.
+There are no in-process worker daemons in the microservices — recurring
+work happens via NATS JetStream consumers (durable subscriptions started
+by `src/index.ts` in the owning service) and standalone `docker compose
+run` cron jobs configured in `docker-compose.yml`. Both inherit the
+per-service SDK boot, so their spans appear under the same service name
+as the HTTP surface. Standalone one-shot scripts need
+`OTEL_EXPORTER_OTLP_ENDPOINT` set in the shell that invokes them.
 
 ## Disabling
 

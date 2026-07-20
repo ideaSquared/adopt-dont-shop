@@ -8,9 +8,9 @@ The backend ships as a Docker image alongside three frontend images. Production 
 
 ### Runtime
 
-- **Node.js**: v22 (pinned in `.nvmrc` and `package.json` engines `>=22 <23`). The production images are `node:22-alpine` (each service ships its own `services/<name>/Dockerfile`).
+- **Node.js**: v22 (pinned in `.nvmrc` and `package.json` engines `>=22 <23`). All backend services share the top-level `Dockerfile.service` (parameterised via the `SERVICE` / `SERVICE_DIR` build args), built on `node:22-alpine`.
 - **PostgreSQL**: 16 with the **PostGIS** extension (`postgis/postgis:16-3.4` in `docker-compose.yml`). Location features depend on PostGIS — a plain Postgres install is not enough.
-- **Redis**: 7+ (`redis:7-alpine`) — used for sessions, BullMQ job queues, and rate-limiting.
+- **Redis**: 7+ (`redis:7-alpine`) — used by the gateway for the shared rate-limit store and by services for idempotency keys.
 
 ### Storage and external services
 
@@ -63,11 +63,14 @@ CORS_ORIGIN=https://adoptdontshop.example,https://admin.adoptdontshop.example
 ```bash
 JWT_EXPIRES_IN=1h          # default 1h
 JWT_REFRESH_EXPIRES_IN=7d  # default 7d
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-DB_POOL_MAX=10
-DB_POOL_MIN=2
+GATEWAY_RATE_LIMIT_MAX=100     # per-IP requests per window (default 100)
+GATEWAY_RATE_LIMIT_WINDOW="1 minute"  # any @lukeed/ms format
 ```
+
+> DB pool sizing is not env-tunable today — `packages/db/src/client.ts`
+> hardcodes the timeout defaults and delegates max-connection sizing to
+> pg's built-in default (10). If you need to change these, edit
+> `TIMEOUT_DEFAULTS` in `packages/db/src/client.ts` and redeploy.
 
 ## Deploy
 
@@ -105,12 +108,15 @@ For destructive or long migrations see [`docs/migrations/schema-equivalence-runb
 
 ## Health and observability
 
-- `GET /health` — basic liveness probe.
-- `GET /health/simple` — minimal probe (no DB touch).
-- `GET /health/ready` — readiness; checks DB + Redis.
-- Swagger UI at `/api/docs`.
+- `GET /health/simple` — the sole health endpoint the gateway exposes
+  (liveness only, no DB touch). Every backing service exposes the same
+  path on its own container port.
+- Swagger UI at `/docs` (served by `@fastify/swagger-ui` on the gateway,
+  with the raw OpenAPI JSON at `/openapi.json`).
+- `/metrics` — Prometheus text exposition on the gateway and each service.
 - Sentry init via `lib.observability` when `SENTRY_DSN` is set.
-- Logs are structured JSON (Winston). Aggregate via your platform of choice.
+- Logs are structured JSON. Aggregate via your platform of choice; a Loki
+  transport is enabled when `LOKI_URL` is set.
 
 ## See also
 

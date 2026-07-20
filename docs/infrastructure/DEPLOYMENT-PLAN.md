@@ -210,14 +210,13 @@ Auto-renewal handled by certbot container in gateway stack (renews every 12h via
 
 ### First deploy — baseline
 
-Migration `00-baseline` uses `sync({ force: true })` — **destructive**. For first prod deploy, create the SequelizeMeta table and mark baseline as already run:
-
-```sql
-CREATE TABLE IF NOT EXISTS "SequelizeMeta" (name VARCHAR(255) PRIMARY KEY);
-INSERT INTO "SequelizeMeta" VALUES ('00-baseline.js');
-```
-
-Then `pnpm migrate` will only run migrations 01+.
+There is no `00-baseline` migration and no `SequelizeMeta` table — those
+belonged to the deleted monolith. Each service now uses `node-pg-migrate`
+with per-service migrations numbered `001_*.ts` under
+`services/<name>/src/migrations/` and its own `pgmigrations` bookkeeping
+table inside its owning schema. On first boot, each service creates its
+`pgmigrations` table automatically and runs migrations `001+` forward.
+Nothing to seed by hand.
 
 ### Backups
 
@@ -250,7 +249,8 @@ echo "0 2 * * * deploy /opt/ads/backup.sh" >> /etc/crontab
 - [ ] Copy files to server (gateway, compose, etc.)
 - [ ] Create `.env` files on server for both environments
 - [ ] Start gateway: `cd /opt/ads/gateway && docker compose up -d`
-- [ ] Start prod stack: `cd /opt/ads/production && docker compose up -d` (uses `:latest` tag initially)
+- [ ] Set `DEPLOY_SHA=<git-sha>` in `/opt/ads/production/.env` first — every image line in `docker-compose.prod.yml` resolves as `${SERVICE_*_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}`, so `docker compose up` aborts with a hard error without it (there is **no `:latest` fallback**)
+- [ ] Start prod stack: `cd /opt/ads/production && docker compose up -d`
 - [ ] Wait for each schema-owning service to apply its own migrations on first boot (visible in `docker compose logs service-<name>`); the `pgmigrations` table per schema is created automatically
 - [ ] First deploy via workflow: `make staging`
 - [ ] Verify staging works end-to-end

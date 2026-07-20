@@ -54,7 +54,7 @@ development or staging environment.
 
 ### 2. Verify secrets are valid and distinct
 
-`validate-env.ts` enforces that all six secrets are present, at least 32 characters
+`validate-env.ts` enforces that all five secrets are present, at least 32 characters
 long, not a placeholder (`CHANGE_THIS…`), and distinct from each other. Run it against
 your production env file before deploying:
 
@@ -92,8 +92,8 @@ or secured ops log. At minimum: `date`, `rotated_by`, `reason`.
 
 | Trigger | Action |
 |---|---|
-| Initial production launch | Full rotation of all six application secrets |
-| Quarterly (~every 90 days) | Full rotation of all six application secrets |
+| Initial production launch | Full rotation of all five application secrets |
+| Quarterly (~every 90 days) | Full rotation of all five application secrets |
 | Suspected compromise | Immediate rotation of affected secret(s); full rotation if scope is unclear |
 | Team member off-boarding | Rotate any secret the person had access to |
 | Staging value detected in prod | Immediate full rotation |

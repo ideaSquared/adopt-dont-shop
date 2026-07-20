@@ -38,8 +38,12 @@ The `build-and-push` job:
    - Uploads the signature + cert + Rekor inclusion proof to GHCR (next
      to the image, as a `sha256-<digest>.sig` tag).
 
-Each of the four images (backend, app-client, app-admin, app-rescue) is
-signed individually.
+Each of the fourteen images built by `deploy.yml` is signed individually:
+the eleven `service-*` images (`service-gateway`, `service-auth`,
+`service-notifications`, `service-pets`, `service-rescue`,
+`service-applications`, `service-chat`, `service-moderation`,
+`service-matching`, `service-audit`, `service-cms`) and the three `app-*`
+images (`app-client`, `app-admin`, `app-rescue`).
 
 ## How verification works
 
@@ -62,7 +66,13 @@ To verify an image yourself (e.g. before bringing it up on a non-CI host):
 ```bash
 # Install cosign — see https://docs.sigstore.dev/cosign/installation
 SHA=<git-sha-you-want-to-verify>
-for image in backend app-client app-admin app-rescue; do
+IMAGES=(
+  service-gateway service-auth service-notifications service-pets
+  service-rescue service-applications service-chat service-moderation
+  service-matching service-audit service-cms
+  app-client app-admin app-rescue
+)
+for image in "${IMAGES[@]}"; do
   cosign verify \
     --certificate-identity-regexp '^https://github.com/ideaSquared/adopt-dont-shop/\.github/workflows/.+@refs/heads/main$' \
     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
