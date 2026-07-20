@@ -7,8 +7,8 @@ Matching vertical — Phase 9 of the microservices migration.
 Stateless recommender (CAD `service.dispatch` shape) — given a user,
 queries `service.pets` for candidates over gRPC, ranks by stored
 preferences + match-profile, returns top-K. Owns the `matching.*`
-schema (`SwipeSession`, `SwipeAction`). Absorbs the monolith's
-discovery + search + swipe modules.
+schema (`SwipeSession`, `SwipeAction`, `AdopterMatchProfile`). Absorbs
+the monolith's discovery + search + swipe modules.
 
 ## Location in the architecture
 

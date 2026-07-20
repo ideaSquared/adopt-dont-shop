@@ -121,23 +121,21 @@ Each service runs `pnpm db:migrate --if-present` on container boot
   `NOT NULL` constraint the old code does not populate, rollback will cause
   errors.
 
-**Before rolling back an image that ran migrations**, check whether the
-migration has a working `down()` method. If it does, and the schema change is
-incompatible, you must revert the migration first:
+**Before rolling back an image that ran migrations**, be aware that there is
+**no `pnpm db:migrate:undo` script** — the shared runner in
+`packages/db/src/migrate.ts` only runs migrations forward. If the forward
+migration is incompatible with the older binary, you cannot simply "undo" it
+on the deploy host. The options are:
 
-```bash
-# On the deploy host:
-docker compose -f docker-compose.prod.yml exec service-auth \
-  pnpm db:migrate:undo
-```
+1. Write a corrective forward migration that restores the shape the older
+   binary needs, ship it as a new hotfix release, and roll forward.
+2. Manually revert the schema change via psql on the deploy host, then flip
+   the `pgmigrations` row so the migration can be re-applied later.
 
-Then re-dispatch the rollback deploy. See
-[`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md) and
-[`docs/runbooks/deploy-rollback.md`](../runbooks/deploy-rollback.md) for
-detailed recovery paths.
-
-If the migration has no `down()` (forward-only), a clean image rollback is not
-possible — follow the migration-failure runbook.
+See [`docs/runbooks/deploy-rollback.md`](../runbooks/deploy-rollback.md)
+("Backward-compatible migration only" section) and
+[`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md)
+for detailed recovery paths.
 
 ## Available per-service tag variables
 

@@ -13,9 +13,11 @@
 
 ```bash
 # 1. Confirm the alert is still firing (not a stale page).
+#    The gateway exposes only the http_request_duration_seconds histogram
+#    (no http_requests_total counter). Grep the histogram's _count series.
 curl -s -H "Authorization: Bearer $METRICS_AUTH_TOKEN" \
   https://${PROD_HOSTNAME}/metrics \
-  | grep -E '^http_requests_total{.*status_code="5'
+  | grep -E '^http_request_duration_seconds_count{.*status_code="5'
 
 # 2. Which routes are bleeding? (last 30m of gateway access logs)
 docker compose -f docker-compose.prod.yml logs --since 30m service-gateway \
@@ -30,7 +32,7 @@ docker compose -f docker-compose.prod.yml logs --since 30m service-gateway \
 In Grafana, open the **Error rate by route** panel:
 
 ```promql
-sum by (route, status_code) (rate(http_requests_total{status_code=~"5.."}[5m]))
+sum by (route, status_code) (rate(http_request_duration_seconds_count{status_code=~"5.."}[5m]))
 ```
 
 The route with the highest rate is your starting point.

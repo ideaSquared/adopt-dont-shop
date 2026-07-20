@@ -1,9 +1,10 @@
 // gRPC handler implementations for MatchingService.
 //
-// Phase 9.3b — ships StartSession + EndSession + RecordSwipe +
-// ListSwipeHistory. Recommend + SearchPets follow once the service
-// gains a service.pets gRPC client (both RPCs need to read pet
-// candidates from the pets vertical).
+// This file ships StartSession + EndSession + RecordSwipe +
+// ListSwipeHistory. Recommend + SearchPets are implemented alongside
+// in recommend-handlers.ts and share the PetsClient wired in
+// server.ts — the "follows in a later phase" note that used to live
+// here is out of date.
 //
 // Discipline:
 //   - State-changing writes wrap @adopt-dont-shop/events.withTransaction

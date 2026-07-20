@@ -2,7 +2,7 @@
 
 Public adoption portal for pet adopters.
 
-See the full product spec: [docs/frontend/app-client-prd.md](../docs/frontend/app-client-prd.md).
+See the full product spec: [docs/frontend/app-client-prd.md](../../docs/frontend/app-client-prd.md).
 
 ## Quick Start
 

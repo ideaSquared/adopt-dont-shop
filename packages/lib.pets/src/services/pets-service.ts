@@ -44,7 +44,7 @@ const normalisePet = (raw: unknown): Pet => {
  * - Advanced search with 15+ filter types
  * - Pet data transformation (snake_case ↔ camelCase)
  * - PostGIS location handling
- * - Favorites management with localStorage caching
+ * - Favorites management via the backend API (no client-side cache)
  * - Pet reporting functionality
  * - Statistics and analytics
  */

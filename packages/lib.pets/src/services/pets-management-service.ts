@@ -2,9 +2,9 @@ import { ApiService, ApiResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData, PetStatus, PetsServiceConfig } from '../types';
 import { PETS_ENDPOINTS } from '../constants/endpoints';
 
-// Mirrors the backend's PetService.bulkUpdatePets return shape (see
-// service.backend/src/services/pet.service.ts). `errors` is a list of
-// per-pet failures so the UI can show partial-success summaries.
+// Mirrors the return shape of the pets service's bulk-update endpoint
+// (services/pets/). `errors` is a list of per-pet failures so the UI can
+// show partial-success summaries.
 export type BulkPetOperationResult = {
   successCount: number;
   failedCount: number;
@@ -19,11 +19,10 @@ export type BulkPetOperationResult = {
  *
  * Features:
  * - Full CRUD operations for pets
- * - Image upload and management
+ * - Image upload / removal
  * - Status updates and tracking
- * - Bulk operations support
- * - Medical history management
- * - Behavioral assessment tracking
+ * - Bulk status update + bulk archive
+ * - Per-rescue pet statistics
  */
 export class PetManagementService {
   private apiService: ApiService;

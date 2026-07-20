@@ -77,9 +77,8 @@ Match the symptom:
      config --volumes | grep redis_data)
    docker compose -f docker-compose.prod.yml up -d redis
    ```
-   Cost: rate-limit windows reset, in-flight BullMQ jobs lost,
-   namespace version stamps reset (full cache miss for ~minutes).
-   Acceptable in an outage.
+   Cost: rate-limit windows reset and namespace version stamps
+   reset (full cache miss for ~minutes). Acceptable in an outage.
 
 3. **If Redis is down for >5 min** — flip
    `APPLICATION_SETTINGS.maintenance_mode = true` to shed write

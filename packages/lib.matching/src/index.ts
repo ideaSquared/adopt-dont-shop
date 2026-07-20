@@ -2,9 +2,9 @@
  * @adopt-dont-shop/lib.matching
  *
  * Shared types for the AI/ML pet-adopter matching feature. Mirrors
- * the backend `service.backend/src/matching/types.ts` surface for
- * data crossing the API boundary (top-picks response, discovery
- * pet card, match profile read/write).
+ * the matching gRPC surface exposed by `services/matching` (MatchingV1
+ * proto in `@adopt-dont-shop/proto`) for data crossing the API boundary
+ * (top-picks response, discovery pet card, match profile read/write).
  */
 
 export const REASON_CHIP_KINDS = [

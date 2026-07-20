@@ -3,8 +3,8 @@
 Rescue vertical — Phase 4 of the microservices migration.
 
 Owns the `rescue.*` schema (Rescue, RescueSettings, StaffMember,
-Invitation, FosterPlacement, ApplicationQuestion) and exposes
-`RescueService` over gRPC.
+Invitation, FosterPlacement, ApplicationQuestion, Event, EventAttendee)
+and exposes `RescueService` over gRPC.
 
 Classical (no event sourcing — mostly CRUD with a few status
 transitions). The `staff_members` join row denormalises `user_id` +
@@ -172,6 +172,8 @@ foster pet ownership via a gRPC call to service.pets. Schema: `rescue`.
 | `invitations` | Pending staff invitations — email, token, expiry, used flag. |
 | `foster_placements` | Foster assignments — rescue, pet, foster user, dates, status. |
 | `application_questions` | Custom adoption-application questions a rescue defines. |
+| `events` | Adoption / community events a rescue hosts. |
+| `event_attendees` | Per-user attendance for a rescue event. |
 
 Migrations: `services/rescue/src/migrations/001`–`010`.
 

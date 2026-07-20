@@ -11,9 +11,10 @@ in the snapshot policy doc, it regenerates on its own.
 
 ## Before you start
 
-- Confirm you have the right dump. Snapshots are keyed by UTC date under
-  `s3://${BACKUP_BUCKET}/postgres/YYYY/MM/DD/dump.sql.gz` (Postgres) and
-  `s3://${BACKUP_BUCKET}/uploads/YYYY/MM/DD/` (uploads).
+- Confirm you have the right dump. Postgres snapshots are keyed by UTC
+  timestamp under `s3://${BACKUP_BUCKET}/postgres/YYYY/MM/DD/HHMMSS/dump.sql.gz`
+  (the HHMMSS subdirectory lets multiple daily runs coexist). Upload
+  snapshots live under `s3://${BACKUP_BUCKET}/uploads/YYYY/MM/DD/`.
 - Restoring Postgres from a full dump requires the target database to be
   empty (or you accept `pg_restore`/`psql` erroring on already-existing
   objects). For a same-environment disaster recovery this usually means
@@ -27,7 +28,11 @@ in the snapshot policy doc, it regenerates on its own.
 1. Download the target dump from S3:
 
    ```bash
-   aws s3 cp "s3://${BACKUP_BUCKET}/postgres/2026/07/18/dump.sql.gz" ./dump.sql.gz
+   # List available snapshots for a day first — one folder per HHMMSS run:
+   aws s3 ls "s3://${BACKUP_BUCKET}/postgres/2026/07/18/"
+
+   # Then download the specific one you want:
+   aws s3 cp "s3://${BACKUP_BUCKET}/postgres/2026/07/18/020000/dump.sql.gz" ./dump.sql.gz
    ```
 
 2. **Fresh environment / disaster recovery** — bring up an empty database

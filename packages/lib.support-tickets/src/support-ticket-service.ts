@@ -167,7 +167,11 @@ export class SupportTicketService {
   }
 
   /**
-   * Rate a ticket (helper method for satisfaction surveys)
+   * Rate a ticket (helper method for satisfaction surveys).
+   *
+   * NOTE: pending a dedicated rating endpoint on the backend, this
+   * closes the ticket as a side effect and stores the rating in
+   * `internalNotes`. Do not call on a ticket you still want open.
    */
   async rateTicket(ticketId: string, data: RateTicketRequest): Promise<SupportTicket> {
     // Note: This might need a specific endpoint on the backend

@@ -2,9 +2,10 @@
 
 The first stateful extraction of the Phase 1 migration. Owns
 **`notifications.*`** (Notification, DeviceToken, UserNotificationPrefs,
-EmailPreference, EmailQueue), exposes a gRPC API for create / list /
-dismiss, subscribes to NATS for cross-service fan-out, and feeds the
-gateway's WebSocket spine so connected clients see notifications live.
+EmailPreference, EmailQueue, EmailTemplate, ProcessedEvent), exposes a
+gRPC API for create / list / dismiss, subscribes to NATS for cross-service
+fan-out, and feeds the gateway's WebSocket spine so connected clients see
+notifications live.
 
 CAD Phase 1 equivalent — the same pattern that brought CAD's WebSocket
 spine online, restated for adopt-dont-shop's domain.

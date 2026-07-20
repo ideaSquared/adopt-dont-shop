@@ -157,8 +157,9 @@ The required checks that gate merge (all feed into the `ci-required` aggregator 
 3. **Frontend Tests (app.client / app.admin / app.rescue)** (`ci.yml` → `test-frontend` matrix, ×3) — lint + test + type-check + build per app.
 4. **Library Tests** (`ci.yml` → `test-libs`) — lint, test and type-check across every `lib.*`.
 5. **Service Tests** (`ci.yml` → `test-services`) — lint + test + type-check across every `services/*` package. Added in ADS-822 so zero-test services no longer merge green.
-6. **Dev-Auth Guard** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
-7. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
+6. **Contract Tests (Pact)** (`ci.yml` → `test-contracts`) — two-phase consumer-driven Pact verification (consumers write pact files, providers verify them). Gated on the `backend` path filter — frontend-only PRs skip it (treated as success). See [ADR 0005](./docs/adr/0005-pact-contract-tests.md) (ADS-816).
+7. **Dev-Auth Guard** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
+8. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
 
 Additional checks that run but are not part of `ci-required`:
 
@@ -168,7 +169,7 @@ Additional checks that run but are not part of `ci-required`:
 
 The Quality workflow's `pnpm outdated -r` step is informational (`continue-on-error: true`) and does not block merge.
 
-If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the seven `ci-required` checks above will not be merged.
+If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the eight `ci-required` checks above will not be merged.
 
 ## Code style
 

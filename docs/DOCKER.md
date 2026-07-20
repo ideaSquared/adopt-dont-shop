@@ -71,7 +71,7 @@ Result: 40-60% faster builds on warm cache, smaller layer graph.
 
 ### Security
 
-- Non-root users in all containers (`viteuser` for frontend apps, `appuser` for microservice containers).
+- Non-root users in all containers (`viteuser` for frontend apps, `svcuser` for microservice containers).
 - Nginx adds OWASP headers (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy).
 - Health checks on every service so orchestrators can detect bad state.
 - Production overlay (`docker-compose.prod.yml`) requires every secret as `${VAR:?error}` — no defaults, fails fast.
