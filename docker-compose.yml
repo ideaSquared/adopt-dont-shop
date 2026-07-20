@@ -32,6 +32,65 @@ x-service-deps: &ms-deps
   nats:
     condition: service_healthy
 
+x-service-defaults: &service-defaults
+  profiles: ['services', 'full']
+  restart: unless-stopped
+  depends_on: *ms-deps
+
+x-service-build: &service-build-defaults
+  context: .
+  dockerfile: Dockerfile.service
+  target: development
+
+x-app-build: &app-build-defaults
+  context: .
+  dockerfile: Dockerfile.app
+  target: development
+
+# Healthcheck timing standard (ADS-860): every service probes on a uniform
+# interval 10s / timeout 5s / retries 5 so Docker reports healthy promptly.
+# start_period varies by tier — infra 10s, application containers 40s.
+# Observability (loki/prometheus) probes on a slower 30s cadence.
+x-healthcheck-infra: &hc-infra-timing
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 10s
+
+x-healthcheck-standard: &hc-standard-timing
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 40s
+
+x-healthcheck-observability: &hc-observability-timing
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
+
+x-app-env: &app-env
+  NODE_ENV: ${NODE_ENV:-development}
+  DOCKER_ENV: 'true'
+  VITE_API_BASE_URL: ''
+  VITE_WS_BASE_URL: ws://localhost:4000
+  # File-watcher polling — only set on macOS/Windows (see ADS-766).
+  CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
+  CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
+  CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
+  NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
+
+x-app-common: &app-common
+  depends_on:
+    service-gateway:
+      condition: service_healthy
+      required: false
+  healthcheck:
+    <<: *hc-standard-timing
+    test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
+  mem_limit: 2g
+  memswap_limit: 2g
+
 services:
   # ============================================================================
   # CORE INFRASTRUCTURE
@@ -58,16 +117,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
-    # Healthcheck timing standard (ADS-860): every service probes on a uniform
-    # interval 10s / timeout 5s / retries 5 so Docker reports healthy promptly.
-    # start_period varies by tier — infra 10s, application containers 40s.
     healthcheck:
+      <<: *hc-infra-timing
       test:
         ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-adopt_user} -d ${POSTGRES_DB:-adopt_dont_shop_dev}']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   # NATS JetStream — async event bus between backend microservices.
   # Phase 0 foundation (ADS-microservices migration). Mirrors the CAD pattern:
@@ -85,11 +138,8 @@ services:
     volumes:
       - nats_data:/data
     healthcheck:
+      <<: *hc-infra-timing
       test: ['CMD-SHELL', 'wget -qO- http://localhost:8222/healthz | grep -q ok || exit 1']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   # Redis for caching and sessions
   redis:
@@ -108,11 +158,8 @@ services:
     command: >
       sh -c 'redis-server --appendonly yes --requirepass "$$(cat /run/secrets/redis_password)"'
     healthcheck:
+      <<: *hc-infra-timing
       test: ['CMD-SHELL', 'redis-cli -a "$$(cat /run/secrets/redis_password)" ping | grep -q PONG']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   # ============================================================================
   # LIB.TYPES WATCHER - Continuously compiles lib.types so the backend picks
@@ -142,9 +189,7 @@ services:
   app-admin:
     profiles: ["admin", "full"]
     build:
-      context: .
-      dockerfile: Dockerfile.app
-      target: development
+      <<: *app-build-defaults
       args:
         APP_NAME: admin
     ports:
@@ -155,35 +200,14 @@ services:
       - /app/node_modules
       - /app/apps/admin/node_modules
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      DOCKER_ENV: 'true'
-      VITE_API_BASE_URL: ''
-      VITE_WS_BASE_URL: ws://localhost:4000
-      # File-watcher polling — only set on macOS/Windows (see ADS-766).
-      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
-      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
-      CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
-      NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
-    depends_on:
-      service-gateway:
-        condition: service_healthy
-        required: false
-    healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-    mem_limit: 2g
-    memswap_limit: 2g
+      <<: *app-env
+    <<: *app-common
 
   # Client application - Public-facing adoption portal
   app-client:
     profiles: ["client", "full"]
     build:
-      context: .
-      dockerfile: Dockerfile.app
-      target: development
+      <<: *app-build-defaults
       args:
         APP_NAME: client
     ports:
@@ -194,35 +218,14 @@ services:
       - /app/node_modules
       - /app/apps/client/node_modules
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      DOCKER_ENV: 'true'
-      VITE_API_BASE_URL: ''
-      VITE_WS_BASE_URL: ws://localhost:4000
-      # File-watcher polling — only set on macOS/Windows (see ADS-766).
-      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
-      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
-      CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
-      NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
-    depends_on:
-      service-gateway:
-        condition: service_healthy
-        required: false
-    healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-    mem_limit: 2g
-    memswap_limit: 2g
+      <<: *app-env
+    <<: *app-common
 
   # Rescue application - Rescue organization portal
   app-rescue:
     profiles: ["rescue", "full"]
     build:
-      context: .
-      dockerfile: Dockerfile.app
-      target: development
+      <<: *app-build-defaults
       args:
         APP_NAME: rescue
     ports:
@@ -233,29 +236,10 @@ services:
       - /app/node_modules
       - /app/apps/rescue/node_modules
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      DOCKER_ENV: 'true'
-      VITE_API_BASE_URL: ''
-      VITE_WS_BASE_URL: ws://localhost:4000
-      # File-watcher polling — only set on macOS/Windows (see ADS-766).
-      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
-      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
-      CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
+      <<: *app-env
       WATCHPACK_POLLING: ${WATCHPACK_POLLING:-}
       FAST_REFRESH: true
-      NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
-    depends_on:
-      service-gateway:
-        condition: service_healthy
-        required: false
-    healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-    mem_limit: 2g
-    memswap_limit: 2g
+    <<: *app-common
 
   # ============================================================================
   # REVERSE PROXY
@@ -314,11 +298,8 @@ services:
       - loki_data:/loki
     restart: unless-stopped
     healthcheck:
+      <<: *hc-observability-timing
       test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1']
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
 
   prometheus:
     profiles: ["observability", "full"]
@@ -334,11 +315,8 @@ services:
       - '--web.enable-lifecycle'
     restart: unless-stopped
     healthcheck:
+      <<: *hc-observability-timing
       test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9090/-/ready || exit 1']
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
 
   grafana:
     profiles: ["observability", "full"]
@@ -381,9 +359,7 @@ services:
   service-gateway:
     profiles: ['services', 'full']
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.gateway'
         SERVICE_DIR: services/gateway
@@ -428,18 +404,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-notifications:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.notifications'
         SERVICE_DIR: services/notifications
@@ -447,21 +418,14 @@ services:
       <<: *ms-env
     ports:
       - '127.0.0.1:5001:5001'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-auth:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.auth'
         SERVICE_DIR: services/auth
@@ -473,21 +437,14 @@ services:
       ENCRYPTION_KEY: '${ENCRYPTION_KEY:?Error: ENCRYPTION_KEY required}'
     ports:
       - '127.0.0.1:5002:5002'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-pets:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.pets'
         SERVICE_DIR: services/pets
@@ -495,21 +452,14 @@ services:
       <<: *ms-env
     ports:
       - '127.0.0.1:5003:5003'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-rescue:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.rescue'
         SERVICE_DIR: services/rescue
@@ -517,21 +467,14 @@ services:
       <<: *ms-env
     ports:
       - '127.0.0.1:5004:5004'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-applications:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.applications'
         SERVICE_DIR: services/applications
@@ -540,21 +483,14 @@ services:
       PETS_GRPC_URL: service-pets:6003
     ports:
       - '127.0.0.1:5005:5005'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-chat:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.chat'
         SERVICE_DIR: services/chat
@@ -562,21 +498,14 @@ services:
       <<: *ms-env
     ports:
       - '127.0.0.1:5006:5006'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-moderation:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.moderation'
         SERVICE_DIR: services/moderation
@@ -584,21 +513,14 @@ services:
       <<: *ms-env
     ports:
       - '127.0.0.1:5007:5007'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-matching:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.matching'
         SERVICE_DIR: services/matching
@@ -607,21 +529,14 @@ services:
       PETS_GRPC_URL: service-pets:6003
     ports:
       - '127.0.0.1:5008:5008'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   service-audit:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.audit'
         SERVICE_DIR: services/audit
@@ -629,14 +544,9 @@ services:
       <<: *ms-env
     ports:
       - '127.0.0.1:5009:5009'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   # ADS-898: this block was missing entirely — service-cms existed in the
   # codebase (services/cms/), was wired into the gateway
@@ -644,11 +554,9 @@ services:
   # local dev container, so `pnpm docker:dev --profile full` never actually
   # started it. Found while writing docs/infrastructure/new-microservice.md.
   service-cms:
-    profiles: ['services', 'full']
+    <<: *service-defaults
     build:
-      context: .
-      dockerfile: Dockerfile.service
-      target: development
+      <<: *service-build-defaults
       args:
         SERVICE: '@adopt-dont-shop/service.cms'
         SERVICE_DIR: services/cms
@@ -656,14 +564,9 @@ services:
       <<: *ms-env
     ports:
       - '127.0.0.1:5010:5010'
-    depends_on: *ms-deps
-    restart: unless-stopped
     healthcheck:
+      <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/simple']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
 # ============================================================================
 # VOLUMES - Simplified to only what's needed

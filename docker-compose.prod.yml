@@ -80,6 +80,63 @@ x-service-env: &service-env
   # lose); the gateway signs with the same key.
   PRINCIPAL_SIGNING_KEY_FILE: /run/secrets/principal_signing_key
 
+# Healthcheck timing tiers (mirrors the dev docker-compose.yml ADS-860
+# standard): infra probes fast without a start_period (database) or with a
+# short one (redis/nats); the gRPC services get a longer start_period to
+# cover cold-start + migrations.
+x-healthcheck-infra: &hc-infra-timing
+  interval: 10s
+  timeout: 5s
+  retries: 5
+
+x-healthcheck-service: &hc-service-timing
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+
+# Every app-* container (nginx serving a built SPA, read-only rootfs
+# hardened tier) shares this exact shape — only image/container_name differ.
+x-app-common: &app-common
+  restart: always
+  volumes: []  # No volumes in production
+  # ADS-924: read-only root FS, matching the x-service-common hardened tier.
+  # nginx (unprivileged, UID 101) only needs these writable at runtime — the
+  # custom nginx.conf baked into Dockerfile.app has no `pid`/temp-path
+  # directives of its own, so it falls back to nginx's compiled-in defaults:
+  #   /tmp             — general scratch space
+  #   /var/run         — nginx.pid (default pid path)
+  #   /var/cache/nginx — client_temp/proxy_temp/fastcgi_temp/uwsgi_temp/scgi_temp
+  read_only: true
+  tmpfs:
+    - /tmp
+    - /var/run
+    - /var/cache/nginx
+  # ADS-701: nginx runs unprivileged and listens on 8080.
+  expose:
+    - "8080"
+  stdin_open: false
+  tty: false
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  healthcheck:
+    test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 60s
+  logging: *default-logging
+  deploy:
+    resources:
+      limits:
+        cpus: '0.5'
+        memory: 256m
+      reservations:
+        cpus: '0.1'
+        memory: 64m
+
 services:
   # Database - Production configuration
   database:
@@ -98,10 +155,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
+      <<: *hc-infra-timing
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
-      interval: 10s
-      timeout: 5s
-      retries: 5
     restart: always
     # Production: Don't expose database port to host
     ports: []
@@ -140,10 +195,8 @@ services:
     # this the backend may start before Redis is ready and crash on first
     # connection. [ADS-431]
     healthcheck:
+      <<: *hc-infra-timing
       test: ['CMD-SHELL', 'redis-cli -a "$$(cat /run/secrets/redis_password)" ping | grep -q PONG']
-      interval: 10s
-      timeout: 5s
-      retries: 5
       start_period: 10s
     cap_drop:
       - ALL
@@ -169,10 +222,8 @@ services:
     volumes:
       - nats_data:/data
     healthcheck:
+      <<: *hc-infra-timing
       test: ['CMD-SHELL', 'wget -qO- http://localhost:8222/healthz | grep -q ok || exit 1']
-      interval: 10s
-      timeout: 5s
-      retries: 5
       start_period: 10s
     cap_drop:
       - ALL
@@ -222,11 +273,8 @@ services:
     expose:
       - "4000"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
     # The gateway only needs NATS + the downstream services; it has no DB.
     depends_on:
       nats:
@@ -254,11 +302,8 @@ services:
     expose:
       - "5002"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-notifications:
     <<: *service-common
@@ -269,11 +314,8 @@ services:
     expose:
       - "5001"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-pets:
     <<: *service-common
@@ -284,11 +326,8 @@ services:
     expose:
       - "5003"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-rescue:
     <<: *service-common
@@ -299,11 +338,8 @@ services:
     expose:
       - "5004"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-applications:
     <<: *service-common
@@ -315,11 +351,8 @@ services:
     expose:
       - "5005"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-chat:
     <<: *service-common
@@ -330,11 +363,8 @@ services:
     expose:
       - "5006"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-moderation:
     <<: *service-common
@@ -345,11 +375,8 @@ services:
     expose:
       - "5007"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-matching:
     <<: *service-common
@@ -361,11 +388,8 @@ services:
     expose:
       - "5008"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-audit:
     <<: *service-common
@@ -376,11 +400,8 @@ services:
     expose:
       - "5009"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   service-cms:
     <<: *service-common
@@ -391,138 +412,24 @@ services:
     expose:
       - "5010"
     healthcheck:
+      <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/simple']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   # Frontend Apps - Production
   app-admin:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${APP_ADMIN_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_prod_admin
-    restart: always
-    volumes: []  # No volumes in production
-    # ADS-924: read-only root FS, matching the x-service-common hardened tier.
-    # nginx (unprivileged, UID 101) only needs these writable at runtime — the
-    # custom nginx.conf baked into Dockerfile.app has no `pid`/temp-path
-    # directives of its own, so it falls back to nginx's compiled-in defaults:
-    #   /tmp             — general scratch space
-    #   /var/run         — nginx.pid (default pid path)
-    #   /var/cache/nginx — client_temp/proxy_temp/fastcgi_temp/uwsgi_temp/scgi_temp
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/run
-      - /var/cache/nginx
-    # ADS-701: nginx runs unprivileged and listens on 8080.
-    expose:
-      - "8080"
-    stdin_open: false
-    tty: false
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256m
-        reservations:
-          cpus: '0.1'
-          memory: 64m
+    <<: *app-common
 
   app-client:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${APP_CLIENT_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_prod_client
-    restart: always
-    volumes: []  # No volumes in production
-    # ADS-924: read-only root FS, matching the x-service-common hardened tier.
-    # nginx (unprivileged, UID 101) only needs these writable at runtime — the
-    # custom nginx.conf baked into Dockerfile.app has no `pid`/temp-path
-    # directives of its own, so it falls back to nginx's compiled-in defaults:
-    #   /tmp             — general scratch space
-    #   /var/run         — nginx.pid (default pid path)
-    #   /var/cache/nginx — client_temp/proxy_temp/fastcgi_temp/uwsgi_temp/scgi_temp
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/run
-      - /var/cache/nginx
-    # ADS-701: nginx runs unprivileged and listens on 8080.
-    expose:
-      - "8080"
-    stdin_open: false
-    tty: false
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256m
-        reservations:
-          cpus: '0.1'
-          memory: 64m
+    <<: *app-common
 
   app-rescue:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${APP_RESCUE_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_prod_rescue
-    restart: always
-    volumes: []  # No volumes in production
-    # ADS-924: read-only root FS, matching the x-service-common hardened tier.
-    # nginx (unprivileged, UID 101) only needs these writable at runtime — the
-    # custom nginx.conf baked into Dockerfile.app has no `pid`/temp-path
-    # directives of its own, so it falls back to nginx's compiled-in defaults:
-    #   /tmp             — general scratch space
-    #   /var/run         — nginx.pid (default pid path)
-    #   /var/cache/nginx — client_temp/proxy_temp/fastcgi_temp/uwsgi_temp/scgi_temp
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/run
-      - /var/cache/nginx
-    # ADS-701: nginx runs unprivileged and listens on 8080.
-    expose:
-      - "8080"
-    stdin_open: false
-    tty: false
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256m
-        reservations:
-          cpus: '0.1'
-          memory: 64m
+    <<: *app-common
 
   # Per-stack nginx: routes traffic between backend/apps and serves /uploads
   # via auth_request to the backend. [ADS-422]

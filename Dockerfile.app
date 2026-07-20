@@ -115,10 +115,11 @@ RUN --mount=type=cache,id=pnpm-build-${APP_NAME},target=/home/viteuser/.pnpm-sto
 COPY --from=pruner --chown=viteuser:nodejs /app/out/full/ ./
 
 # turbo prune --docker doesn't copy root-level config files into out/full/.
-# Workspace tsconfigs extend ../tsconfig.base.json (ESM build) and lib.types
-# additionally extends ../tsconfig.cjs.base.json for its dual ESM+CJS build.
+# Workspace tsconfigs extend the root tier files (ADS-988: tsconfig.base.json
+# plus the lib/service tier bases; lib.types additionally extends
+# ../tsconfig.cjs.base.json for its dual ESM+CJS build).
 # Mirrors Dockerfile.service.
-COPY --chown=viteuser:nodejs tsconfig.base.json tsconfig.cjs.base.json ./
+COPY --chown=viteuser:nodejs tsconfig.base.json tsconfig.cjs.base.json tsconfig.lib.base.json tsconfig.service.base.json ./
 
 # Build libraries first, then the specific app using Turbo
 # Use cache mount for Turbo cache
