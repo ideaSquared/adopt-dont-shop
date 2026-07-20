@@ -31,7 +31,12 @@ export type SentryInitOptions = {
   release?: string;
   /** Sample rate for performance traces. Defaults to 0.1. */
   tracesSampleRate?: number;
-  /** Sample rate for replay sessions. Defaults to 0 (off). Caller may opt in after consent. */
+  /**
+   * Sample rate for replay sessions. Defaults to 0 (off). Session-replay
+   * content can carry PII, so callers must only raise this after
+   * analytics consent has been recorded — Sentry itself runs
+   * unconditionally per the class-level note below.
+   */
   replaysSessionSampleRate?: number;
   /** Replay sample rate when an error occurs. Defaults to 0. */
   replaysOnErrorSampleRate?: number;

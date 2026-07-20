@@ -15,11 +15,11 @@ export const ApplicationPrioritySchema = z.enum(APPLICATION_PRIORITIES);
 
 // ── ApplicationData sub-schemas ───────────────────────────────────────────────
 //
-// These schemas describe the `data` payload returned by the backend's
-// transformApplicationModel (service.backend/src/controllers/application.controller.ts).
-// Every field inside `data` is best-effort: the transform projects loose
-// application_answers rows into a frontend shape, so any individual field
-// may be missing depending on which answers the adopter has supplied.
+// These schemas describe the `data` payload returned by the applications
+// service (services/applications/) — the gRPC handlers project loose
+// `application_answers` rows into a frontend shape. Every field inside
+// `data` is best-effort: any individual field may be missing depending
+// on which answers the adopter has supplied.
 // Keep these schemas permissive — strict typing belongs at the form
 // validator, not at the read boundary.
 

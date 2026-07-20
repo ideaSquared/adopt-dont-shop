@@ -3,10 +3,12 @@ import { z } from 'zod';
 /**
  * ADS-105: Frontend Zod schemas for the analytics report builder.
  *
- * Mirrors the backend schemas in
- * `service.backend/src/schemas/reports.schema.ts`. Both files must
- * stay in sync — the backend is canonical for validation, this file
- * provides typed API responses + form validation in the builder UI.
+ * Mirrors the analytics/reports contract owned by `services/audit`
+ * (see `services/gateway/src/routes/reports.ts` and
+ * `services/audit/src/grpc/reports-handlers.ts`). Keep this file in
+ * sync with the backing service's request/response schemas — the
+ * service is canonical for validation; this file provides typed API
+ * responses + form validation in the builder UI.
  *
  * Per ADS-187 (lib.analytics should adopt schema-first), all new
  * report types are derived from these schemas via `z.infer`.

@@ -5,10 +5,11 @@ import type { ReportConfig } from '../schemas/reports';
 /**
  * ADS-105: React Query hooks (@tanstack/react-query v5) over the report API.
  *
- * Query keys: `['reports']` is the list, `['reports', id]` is the
- * single report, `['reports', id, 'execute']` is the executed payload.
- * Mutations invalidate the list key on success — single-report
- * fetches refetch on the next mount.
+ * Query keys: the list is `['reports', { includeArchived }]`, a single
+ * report is `['reports', id]`, an executed saved report is
+ * `['reports', id, 'execute']`, and templates are `['report-templates']`.
+ * Mutations invalidate the list key on success — single-report fetches
+ * refetch on the next mount.
  */
 
 const REPORTS_KEY = 'reports';

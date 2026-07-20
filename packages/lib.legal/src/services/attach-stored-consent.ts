@@ -8,8 +8,10 @@ import { readStoredConsent } from './cookie-consent-storage';
  * The cookie banner persists the user's choice to localStorage even when
  * they're not signed in. When `auth_session_authenticated` fires for the
  * first time per `(userId, cookiesVersion)`, we POST the stored choice
- * to /api/v1/privacy/consent so the audit log captures the decision
- * against the account.
+ * to /api/v1/privacy/cookies-consent (the cookies-only endpoint added
+ * in ADS-550 — NOT the general /privacy/consent endpoint, which would
+ * silently stamp ToS + Privacy re-acceptance the user never gave) so
+ * the audit log captures the decision against the account.
  *
  * Idempotency (ADS-555): a side-table keyed by userId remembers the
  * cookiesVersion last attached for each user. The previous shape held a

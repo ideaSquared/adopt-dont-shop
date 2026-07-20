@@ -219,7 +219,6 @@ export class SearchService {
    *
    * @param query - Partial search query
    * @param type - Type of suggestions ('pets', 'messages', 'all')
-   * @param options - Request options
    * @returns Promise<SearchSuggestion[]> - Search suggestions
    */
   async getSearchSuggestions(
@@ -246,7 +245,6 @@ export class SearchService {
    *
    * @param query - Search query
    * @param advancedOptions - Advanced search options
-   * @param options - Request options
    * @returns Promise<FacetedSearchResponse> - Faceted search results
    */
   async facetedSearch(

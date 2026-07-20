@@ -35,9 +35,8 @@ export const isDevelopmentMode = () => {
     // production-adjacent hosts like dev.example.com — removed intentionally.
     return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   }
-  // Case-insensitive match — matches isProductionLike() in
-  // service.backend/src/config/env.ts so a "Development" or "DEVELOPMENT"
-  // NODE_ENV doesn't silently disable dev tooling on the server side.
+  // Case-insensitive so a "Development" or "DEVELOPMENT" NODE_ENV
+  // doesn't silently disable dev tooling on the server side.
   return process.env.NODE_ENV?.trim().toLowerCase() === 'development';
 };
 
