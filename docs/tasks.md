@@ -13,11 +13,11 @@ the repo root with `pnpm <script>`.
 | Script | Command |
 | --- | --- |
 | `pnpm generate:attachments` | `node scripts/generate-test-attachments.js` |
+| `pnpm generate:dependency-docs` | `node scripts/generate-dependency-docs.mjs` |
 | `pnpm new-app` | `node scripts/create-new-app.js` |
 | `pnpm new-lib` | `node scripts/create-new-lib.js` |
 | `pnpm prepare` | `husky \|\| true` |
 | `pnpm secrets:generate` | `node scripts/generate-secrets.mjs` |
-| `pnpm setup` | `node scripts/bootstrap.mjs` |
 | `pnpm validate:env` | `tsx scripts/validate-env.ts` |
 
 ### Dev
@@ -26,7 +26,7 @@ the repo root with `pnpm <script>`.
 | --- | --- |
 | `pnpm dev` | `turbo run dev --parallel` |
 | `pnpm dev:apps` | `turbo run dev --filter='@adopt-dont-shop/app.*' --parallel` |
-| `pnpm dev:services` | `docker compose up -d database redis` |
+| `pnpm dev:services` | `node scripts/write-redis-secret.mjs && docker compose up -d database redis` |
 
 ### Build
 
@@ -41,6 +41,7 @@ the repo root with `pnpm <script>`.
 | Script | Command |
 | --- | --- |
 | `pnpm test` | `turbo run test` |
+| `pnpm test:changed` | `turbo run test -- --changed` |
 | `pnpm test:e2e` | `pnpm --filter @adopt-dont-shop/e2e test` |
 | `pnpm test:e2e:debug` | `pnpm --filter @adopt-dont-shop/e2e test:debug` |
 | `pnpm test:e2e:headed` | `pnpm --filter @adopt-dont-shop/e2e test:headed` |
@@ -49,14 +50,21 @@ the repo root with `pnpm <script>`.
 | `pnpm test:e2e:single` | `pnpm --filter @adopt-dont-shop/e2e test` |
 | `pnpm test:e2e:smoke` | `pnpm --filter @adopt-dont-shop/e2e test:smoke` |
 | `pnpm test:e2e:ui` | `pnpm --filter @adopt-dont-shop/e2e test:ui` |
+| `pnpm test:scripts` | `vitest run --config vitest.scripts.config.ts` |
+| `pnpm test:watch` | `turbo run test:watch --parallel --concurrency=1` |
 
 ### Quality
 
 | Script | Command |
 | --- | --- |
+| `pnpm check:docker-pinning` | `node scripts/check-docker-pinning.mjs` |
+| `pnpm check:docs-freshness` | `node scripts/check-docs-freshness.mjs` |
+| `pnpm check:docs-index` | `node scripts/check-docs-index.mjs` |
 | `pnpm check:docs-script-refs` | `node scripts/check-docs-script-references.mjs` |
 | `pnpm check:env-example` | `node scripts/check-env-example.mjs` |
 | `pnpm check:lib-tests` | `node scripts/check-lib-tests.mjs` |
+| `pnpm check:readmes` | `node scripts/check-readmes.mjs` |
+| `pnpm check:stories` | `node scripts/check-storybook-coverage.mjs` |
 | `pnpm check:workflow-paths` | `node scripts/check-workflow-paths.mjs` |
 | `pnpm check:workspaces` | `node scripts/check-workspace-consistency.mjs` |
 | `pnpm format` | `turbo run format && pnpm format:root` |
@@ -83,6 +91,10 @@ the repo root with `pnpm <script>`.
 | `pnpm docker:dev:rescue` | `node scripts/docker-dev.mjs --profile rescue` |
 | `pnpm docker:down` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down` |
 | `pnpm docker:logs` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f` |
+| `pnpm docker:logs:apps` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app-client app-admin app-rescue` |
+| `pnpm docker:logs:gateway` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-gateway` |
+| `pnpm docker:logs:infra` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f database redis nats` |
+| `pnpm docker:logs:services` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit` |
 | `pnpm docker:ps` | `docker compose ps` |
 | `pnpm docker:reset` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v` |
 | `pnpm docker:shell:db` | `docker compose exec database sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'` |
@@ -91,7 +103,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks
@@ -114,9 +126,14 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
+| `pnpm bootstrap` | `node scripts/bootstrap.mjs` |
 | `pnpm cache:status` | `node -e "const fs=require('fs');const f='.turbo/config.json';if(!fs.existsSync(f)){console.log('Turbo remote cache: NOT linked. Run: npx turbo login then npx turbo link (see docs/infrastructure/turbo-cache.md).');process.exit(0)}const c=JSON.parse(fs.readFileSync(f,'utf8'));console.log('Turbo remote cache: linked (team '+(c.teamslug\|\|c.teamid\|\|'unknown')+'). Run: turbo run build --summarize for per-run cache hit rates.')"` |
 | `pnpm clean` | `turbo run clean && rm -rf node_modules` |
+| `pnpm commands` | `node scripts/generate-task-index.mjs --help` |
 | `pnpm db:seed` | `node scripts/seed.mjs` |
+| `pnpm db:spam` | `node scripts/spam.mjs` |
+| `pnpm ratchet:coverage` | `node scripts/ratchet-coverage.mjs` |
+| `pnpm ratchet:stories-coverage` | `node scripts/check-storybook-coverage.mjs --ratchet` |
 | `pnpm tasks` | `node scripts/generate-task-index.mjs --print` |
 | `pnpm tasks:write` | `node scripts/generate-task-index.mjs` |
 
@@ -162,16 +179,18 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/lib.validation` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/observability` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/proto` | `build`, `check:fresh`, `clean`, `dev`, `format`, `format:check`, `generate`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/seed-faker` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service-bootstrap` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.applications` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.applications` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.audit` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.auth` | `build`, `clean`, `db:migrate`, `db:seed`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.chat` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.auth` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.chat` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.cms` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.gateway` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.gateway` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:consumer`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.matching` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.moderation` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.notifications` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.pets` | `build`, `clean`, `db:migrate`, `db:seed`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.rescue` | `build`, `clean`, `db:migrate`, `db:seed`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.notifications` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:consumer`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.pets` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.rescue` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/storage` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/test-utils` | `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |

@@ -1,7 +1,7 @@
 name: Onboarding Smoke Test
 
 # ADS-951: nothing in CI validated that the documented single-command
-# onboarding path (`pnpm setup` -> scripts/bootstrap.mjs) still works. Any
+# onboarding path (`pnpm bootstrap` -> scripts/bootstrap.mjs) still works. Any
 # change to bootstrap.mjs, .env.example, or workspace globs could silently
 # break a new contributor's first run, and we'd only find out when someone
 # got stuck.
@@ -49,7 +49,7 @@ jobs:
           node-version-file: '.nvmrc'
 
       # Mirrors the documented Quick Start (README.md): `corepack enable` so
-      # a bare `pnpm` resolves, then `pnpm setup`. bootstrap.mjs also
+      # a bare `pnpm` resolves, then `pnpm bootstrap`. bootstrap.mjs also
       # re-asserts corepack itself (ADS-894) as a defensive step for
       # contributors who skip this.
       - name: Enable Corepack (pnpm version pinned by package.json "packageManager")
@@ -57,27 +57,23 @@ jobs:
         env:
           COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
 
-      - name: Run pnpm setup non-interactively
-        # `pnpm run setup`, not `pnpm setup`: pnpm reserves `setup` as a
-        # built-in CLI command (`pnpm help setup` — configures PNPM_HOME), so
-        # the bare form silently runs that instead of the package.json
-        # script and never touches .env. This job's whole purpose is
-        # catching onboarding breakage, so it must invoke the actual
-        # bootstrap script — see the PR description for why the
-        # widely-documented `pnpm setup` invocation itself is a pre-existing
-        # bug out of scope for this change.
+      - name: Run pnpm bootstrap non-interactively
+        # The onboarding script is `pnpm bootstrap` (ADS-993 renamed it from
+        # `setup`, which pnpm reserves as a built-in CLI command that shadowed
+        # the package.json script). This job exercises the exact documented
+        # command so onboarding breakage is caught.
         #
         # --skip-playwright: the ~200MB browser download is exercised by
         # ci.yml's test-e2e job already; re-downloading it here just adds
         # wall-clock time without new signal.
         # --no-start: keep this job to the bootstrap-only slice (see header
         # comment) — never boots the docker dev stack.
-        run: pnpm run setup -- --skip-playwright --no-start
+        run: pnpm bootstrap -- --skip-playwright --no-start
 
       - name: Assert .env was created and is non-empty
         run: |
           if [ ! -s .env ]; then
-            echo "::error::pnpm setup did not create a non-empty .env file"
+            echo "::error::pnpm bootstrap did not create a non-empty .env file"
             exit 1
           fi
           echo "OK — .env created ($(wc -l < .env | tr -d ' ') lines)"
@@ -110,7 +106,7 @@ jobs:
             echo ''
             echo '| Step | Result |'
             echo '| --- | --- |'
-            echo "| \`pnpm setup -- --skip-playwright --no-start\` | ${{ job.status }} |"
+            echo "| \`pnpm bootstrap -- --skip-playwright --no-start\` | ${{ job.status }} |"
             echo '| .env created + non-empty | checked |'
             echo '| secrets generated (no placeholders) | checked |'
             echo '| `pnpm validate:env` | checked |'

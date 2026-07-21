@@ -58,7 +58,7 @@ docs: update API reference
 
 A Husky `commit-msg` hook runs [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional` to enforce this locally — non-conforming messages will be rejected before the commit is created. In an emergency you can bypass the hook with `git commit --no-verify`, but the CI commit-message check will still fail the PR.
 
-A `.gitmessage` template at the repo root prefills `git commit` with the conventional-commit format and a list of allowed types/scopes. `pnpm setup` wires it in automatically via `git config commit.template .gitmessage`; if you skipped setup, run that command yourself to enable it.
+A `.gitmessage` template at the repo root prefills `git commit` with the conventional-commit format and a list of allowed types/scopes. `pnpm bootstrap` wires it in automatically via `git config commit.template .gitmessage`; if you skipped setup, run that command yourself to enable it.
 
 ### TDD loop
 
@@ -106,7 +106,7 @@ pnpm exec turbo run test:coverage --filter='@adopt-dont-shop/lib.api'   # scope 
 
 #### Pre-push hook (ADS-732 / ADS-905)
 
-`.husky/pre-push` will run `ci:local:quick` automatically before every `git push`. The hook file itself defaults to off so a fresh `git clone` (without running `pnpm setup`) never surprises anyone — but `pnpm setup`'s interactive prompt defaults to **yes**, so answering with a bare Enter during onboarding enables it. Recommended for at least your first month. You can also toggle it manually once per checkout:
+`.husky/pre-push` will run `ci:local:quick` automatically before every `git push`. The hook file itself defaults to off so a fresh `git clone` (without running `pnpm bootstrap`) never surprises anyone — but `pnpm bootstrap`'s interactive prompt defaults to **yes**, so answering with a bare Enter during onboarding enables it. Recommended for at least your first month. You can also toggle it manually once per checkout:
 
 ```bash
 pnpm hooks:enable    # creates .husky/.prepush-enabled (gitignored)

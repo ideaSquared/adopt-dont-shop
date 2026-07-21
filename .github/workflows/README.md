@@ -7,7 +7,7 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 | File                       | Purpose                                                                                                |
 | -------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `ci.yml`                   | Main CI pipeline: workspace drift, change detection, backend / frontend / library tests, Playwright E2E. |
-| `onboarding-smoke.yml`     | Nightly + manual: exercises the documented `pnpm setup` onboarding path on a clean checkout (ADS-951).  |
+| `onboarding-smoke.yml`     | Nightly + manual: exercises the documented `pnpm bootstrap` onboarding path on a clean checkout (ADS-951).  |
 | `quality.yml`              | Code quality, formatting, type checking, dependency health.                                             |
 | `security.yml`             | Dependency audit and weekly security scans.                                                             |
 | `codeql.yml`               | GitHub CodeQL static analysis for JavaScript / TypeScript (ADS-498).                                    |

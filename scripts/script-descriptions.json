@@ -1,5 +1,5 @@
 {
-  "setup": "One-shot bootstrap: Node check, .env creation, secret generation, install, build libs, validate env (see docs/GETTING-STARTED.md). Note: run as `pnpm run setup` — bare `pnpm setup` invokes pnpm's own built-in command (ADS-993).",
+  "bootstrap": "One-shot onboarding: Node check, .env creation, secret generation, install, build libs, validate env (see docs/GETTING-STARTED.md). Run as `pnpm bootstrap`.",
   "prepare": "Husky git-hooks install (runs automatically after `pnpm install`).",
   "dev": "Run every workspace package's dev script via Turbo, in parallel (apps + gateway + services).",
   "dev:apps": "Run only the three frontend apps' dev servers (no backend, Docker, or DB).",
@@ -69,9 +69,9 @@
   "ratchet:stories-coverage": "Raise the persisted Storybook stories-coverage floor towards current measured coverage (never lowers it).",
   "generate:dependency-docs": "Regenerate docs/libraries/*-consumers.md and the docs/README.md library-consumer-lists block.",
   "test:scripts": "Run the Vitest suite for the repo-automation scripts themselves (scripts/*.test.mjs).",
-  "tasks": "Print the full categorised script index as a Markdown table (alias of the docs/tasks.md generator — see also `pnpm run help` for a terminal-friendly version).",
+  "tasks": "Print the full categorised script index as a Markdown table (alias of the docs/tasks.md generator — see also `pnpm commands` for a terminal-friendly version).",
   "tasks:write": "Regenerate docs/tasks.md from the current package.json scripts.",
-  "help": "Print every root script, grouped by category with a one-line description — the terminal-friendly discovery entry point (source: scripts/script-descriptions.json). Note: run as `pnpm run help` — bare `pnpm help` invokes pnpm's own built-in help command.",
+  "commands": "Print every root script, grouped by category with a one-line description — the terminal-friendly discovery entry point (source: scripts/script-descriptions.json). Run as `pnpm commands`.",
   "hooks:enable": "Enable the opt-in pre-push hook (runs ci:local:quick before every git push).",
   "hooks:disable": "Disable the pre-push hook.",
   "hooks:status": "Show whether the pre-push hook is currently enabled.",

@@ -10,14 +10,14 @@ A monorepo containing three React frontends, a Fastify API gateway fronting a fl
 
 ### Devcontainer / Codespaces (zero local setup)
 
-Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 22, runs `pnpm setup -- --skip-playwright` on first launch, and ships docker-in-docker so `pnpm docker:dev` works inside the container. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
+Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 22, runs `pnpm bootstrap -- --skip-playwright` on first launch, and ships docker-in-docker so `pnpm docker:dev` works inside the container. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
 
 For full local control (faster HMR, native Docker performance) follow the prerequisites below.
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22 <23`
-- [pnpm](https://pnpm.io/) — provided via Corepack. `pnpm setup` enables Corepack for you (ADS-894); if you'd rather do it yourself first, run `corepack enable` and the pinned version (`package.json` `"packageManager"`) is used automatically
+- [pnpm](https://pnpm.io/) — provided via Corepack. `pnpm bootstrap` enables Corepack for you (ADS-894); if you'd rather do it yourself first, run `corepack enable` and the pinned version (`package.json` `"packageManager"`) is used automatically
 - Prefer [asdf](https://asdf-vm.com/) or [mise](https://mise.jdx.dev/) instead of nvm/Corepack? The repo also ships a root [`.tool-versions`](./.tool-versions) pinning the same Node and pnpm versions as `.nvmrc` / `package.json` — run `asdf install` or `mise install` and both tools are provisioned automatically
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
 - [Git](https://git-scm.com/)
@@ -27,10 +27,10 @@ For full local control (faster HMR, native Docker performance) follow the prereq
 ```bash
 git clone https://github.com/ideaSquared/adopt-dont-shop.git
 cd adopt-dont-shop
-pnpm setup
+pnpm bootstrap
 ```
 
-That's it. `pnpm setup` is the one-shot bootstrap and it will:
+That's it. `pnpm bootstrap` is the one-shot bootstrap and it will:
 1. Verify Node.js v22
 2. Create `.env` from `.env.example` (if missing)
 3. **Generate fresh JWT / session / encryption secrets straight into `.env`** (won't overwrite existing values)
@@ -40,7 +40,7 @@ That's it. `pnpm setup` is the one-shot bootstrap and it will:
 7. Install Playwright browsers so `pnpm test:e2e` works out of the box (~200 MB download)
 8. Offer to start the docker dev stack and wait until the nginx edge `http://localhost/health` returns 200
 
-Skip the Playwright step with `pnpm setup -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `pnpm test:e2e:install`.
+Skip the Playwright step with `pnpm bootstrap -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `pnpm test:e2e:install`.
 
 Pass `--no-start` to skip the stack-start prompt (default when stdin is not a TTY, e.g. CI sandboxes), or `--start` to force it without prompting. All secrets — including `POSTGRES_PASSWORD` and `REDIS_PASSWORD` — are generated for you; you only need to add any third-party API keys you want in `.env`. If you accepted the prompt, the stack is already running on the URLs printed above.
 
@@ -113,7 +113,7 @@ adopt-dont-shop/
 
 ## Common Commands
 
-The root `package.json` defines ~70 scripts. `pnpm run help` prints all of
+The root `package.json` defines ~70 scripts. `pnpm commands` prints all of
 them, grouped by category with a one-line description — the fastest way to
 discover a command you don't already know (`pnpm run tasks` / `docs/tasks.md`
 has the full command bodies and per-package scripts too).
@@ -158,7 +158,7 @@ pnpm exec turbo test --filter=@adopt-dont-shop/service.gateway
 
 The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 
-- **Frontend apps** — Vite HMR, native inotify on Linux; polling (`CHOKIDAR_USEPOLLING=true`) on macOS/Windows only, set automatically by `pnpm run setup` since [ADS-766](https://linear.app/ideasquared/issue/ADS-766). Edits to `apps/*/src/**` and `packages/lib.*/src/**` reload in the browser within ~1-2 seconds.
+- **Frontend apps** — Vite HMR, native inotify on Linux; polling (`CHOKIDAR_USEPOLLING=true`) on macOS/Windows only, set automatically by `pnpm bootstrap` since [ADS-766](https://linear.app/ideasquared/issue/ADS-766). Edits to `apps/*/src/**` and `packages/lib.*/src/**` reload in the browser within ~1-2 seconds.
 - **Gateway + services** — `tsx watch` reloads each on edits to its `services/<name>/src/**` within ~1 second.
 - **lib.types** — the `lib-types-watcher` sidecar runs `tsc --watch` and writes to `dist/` continuously; the services pick up changes automatically via the workspace symlink.
 - **Other libraries** (`lib.api`, `lib.auth`, etc.) — Vite aliases point at their `src/` folders, so HMR picks up changes automatically.
@@ -181,9 +181,9 @@ POSTGRES_USER=adopt_user
 POSTGRES_PASSWORD=<strong password>
 POSTGRES_DB=adopt_dont_shop_dev
 
-JWT_SECRET=<auto-generated by pnpm setup>
-JWT_REFRESH_SECRET=<auto-generated by pnpm setup>
-SESSION_SECRET=<auto-generated by pnpm setup>
+JWT_SECRET=<auto-generated by pnpm bootstrap>
+JWT_REFRESH_SECRET=<auto-generated by pnpm bootstrap>
+SESSION_SECRET=<auto-generated by pnpm bootstrap>
 
 VITE_API_BASE_URL=        # empty in Docker (uses Vite proxy → nginx → gateway)
 VITE_WS_BASE_URL=ws://localhost:4000
@@ -243,7 +243,7 @@ pnpm docker:dev:build         # rebuild images from scratch
 Common issues:
 
 - **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5010 (services), 5432 (Postgres), 6379 (Redis), 4222/8222 (NATS) are free
-- **HMR not firing** — on macOS/Windows, verify `CHOKIDAR_USEPOLLING=true` is set in container env (`pnpm run setup` writes it per-host since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) — it is **not** set on Linux, which uses native inotify instead)
+- **HMR not firing** — on macOS/Windows, verify `CHOKIDAR_USEPOLLING=true` is set in container env (`pnpm bootstrap` writes it per-host since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) — it is **not** set on Linux, which uses native inotify instead)
 - **Slow builds** — ensure BuildKit is on: `export DOCKER_BUILDKIT=1`
 
 For everything else — migration failures, NATS startup races, nginx 502s, stale dev images, and more — see the [dev stack troubleshooting runbook](./docs/runbooks/dev-stack-troubleshooting.md).

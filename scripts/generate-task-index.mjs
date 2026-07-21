@@ -10,7 +10,7 @@
  *   node scripts/generate-task-index.mjs                # write docs/tasks.md
  *   node scripts/generate-task-index.mjs --print         # print the same Markdown to stdout (`pnpm run tasks`)
  *   node scripts/generate-task-index.mjs --help           # print a terminal-friendly categorised list with
- *                                                          # one-line descriptions, no file write (`pnpm run help`)
+ *                                                          # one-line descriptions, no file write (`pnpm commands`)
  *
  * The one-line descriptions used by --help live in one place —
  * scripts/script-descriptions.json — so there's a single source of truth
@@ -143,7 +143,7 @@ function readDescriptions() {
 }
 
 // Exported for scripts/check-docs-script-references.mjs: every root script
-// must have a one-line description, so `pnpm run help` is never missing an
+// must have a one-line description, so `pnpm commands` is never missing an
 // entry. Returns the list of undocumented script names (empty = OK).
 export function checkDescriptionsCoverage() {
   const rootPkg = readPkg(join(ROOT, 'package.json'));
@@ -151,7 +151,7 @@ export function checkDescriptionsCoverage() {
   return Object.keys(rootPkg.scripts || {}).filter(name => !descriptions[name]);
 }
 
-// Terminal-friendly categorised list with descriptions — what `pnpm run help` prints.
+// Terminal-friendly categorised list with descriptions — what `pnpm commands` prints.
 function renderHelp() {
   const rootPkg = readPkg(join(ROOT, 'package.json'));
   const descriptions = readDescriptions();

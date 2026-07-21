@@ -103,7 +103,7 @@ The dev stack is configured for HMR on Windows/macOS/Linux. Since [ADS-766](http
 | Backend services (`services/*/src/**`) | `tsx watch` (native fs events) | ~1s |
 | `lib.types/src/**` | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink | ~2-5s |
 
-`pnpm setup` auto-detects the host OS and appends the polling vars to `.env` on macOS/Windows. To verify per-container:
+`pnpm bootstrap` auto-detects the host OS and appends the polling vars to `.env` on macOS/Windows. To verify per-container:
 
 ```bash
 docker compose exec app-client env | grep CHOKIDAR    # Linux: empty. macOS/Windows: USEPOLLING=true ...
@@ -305,10 +305,10 @@ Fixes:
 
 ### Slow / No File Watching (Windows/macOS)
 
-Since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) polling is opt-in per host: `pnpm setup` writes `CHOKIDAR_USEPOLLING=true` to `.env` on macOS/Windows; Linux leaves it unset on purpose. If HMR misfires on macOS or Windows:
+Since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) polling is opt-in per host: `pnpm bootstrap` writes `CHOKIDAR_USEPOLLING=true` to `.env` on macOS/Windows; Linux leaves it unset on purpose. If HMR misfires on macOS or Windows:
 
 - Confirm the env var is set inside the container: `docker compose exec app-client env | grep CHOKIDAR`
-- If empty, re-run `pnpm setup` or copy the polling snippet from `docker-compose.override.yml.example` into a real `docker-compose.override.yml`
+- If empty, re-run `pnpm bootstrap` or copy the polling snippet from `docker-compose.override.yml.example` into a real `docker-compose.override.yml`
 - Reduce watch scope in the relevant `vite.config.ts`
 
 If HMR misfires on **Linux**, the cause is almost certainly not polling — check that the file system has inotify watches available (`cat /proc/sys/fs/inotify/max_user_watches`).
