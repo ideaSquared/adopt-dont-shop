@@ -270,6 +270,25 @@ Use the issue templates in [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/
 - [Bug report](./.github/ISSUE_TEMPLATE/bug_report.yml)
 - [Feature request](./.github/ISSUE_TEMPLATE/feature_request.yml)
 
+## Reviewing changes
+
+### PR preview deployments (ADS-950)
+
+Every PR that touches `apps/**` or `packages/lib.*/**` automatically gets three preview URLs posted as a comment. Each app is built against the shared staging API and deployed to GitHub Pages under a PR-specific path:
+
+| App | Preview URL pattern |
+|-----|---------------------|
+| app.client | `https://ideasquared.github.io/adopt-dont-shop/pr-previews/<PR>/client/` |
+| app.admin  | `https://ideasquared.github.io/adopt-dont-shop/pr-previews/<PR>/admin/`  |
+| app.rescue | `https://ideasquared.github.io/adopt-dont-shop/pr-previews/<PR>/rescue/` |
+
+The preview comment is updated in place on every push. Previews are removed automatically when the PR closes. The workflow source is `.github/workflows/preview.yml`.
+
+**Notes for reviewers:**
+- Auth flows run against the staging backend — use staging credentials.
+- Feature flags default to OFF (no `VITE_STATSIG_CLIENT_KEY` is set for preview builds).
+- Service worker / PWA caching is not active in preview builds.
+
 ## Reviewing & code ownership
 
 Code ownership is defined in [`.github/CODEOWNERS`](./.github/CODEOWNERS). All PRs require at least one approved review before merge.
