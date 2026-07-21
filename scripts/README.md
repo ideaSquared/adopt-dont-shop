@@ -6,7 +6,7 @@ Utility scripts referenced from the root `package.json` or mounted into containe
 
 | Script | Invoked via | Purpose |
 | --- | --- | --- |
-| `bootstrap.mjs` | `pnpm setup` | One-shot onboarding: checks Node, seeds `.env`, generates secrets, runs `pnpm install --frozen-lockfile`, builds libs, validates env, and installs Playwright browsers. Pass `-- --skip-playwright` to skip the ~200 MB browser download. |
+| `bootstrap.mjs` | `pnpm bootstrap` | One-shot onboarding: checks Node, seeds `.env`, generates secrets, runs `pnpm install --frozen-lockfile`, builds libs, validates env, and installs Playwright browsers. Pass `-- --skip-playwright` to skip the ~200 MB browser download. |
 | `generate-secrets.mjs` | `pnpm secrets:generate` | Print fresh JWT/session/CSRF/encryption secrets to append to `.env`. Pure Node — works on Windows/macOS/Linux without OpenSSL. |
 | `validate-env.ts` | `pnpm validate:env` | Check `.env` against the required-variable list and warn on missing/insecure values. Uses the shared Zod schema in `@adopt-dont-shop/lib.validation` so the CLI gate and the backend boot validator stay in lockstep. |
 | `check-lib-tests.mjs` | `pnpm check:lib-tests` | CI guard: fails when a `lib.*` package ships with zero test files. Allowlist lives inside the script. |

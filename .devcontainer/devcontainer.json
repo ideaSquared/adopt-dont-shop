@@ -20,7 +20,7 @@
     "5432": { "label": "postgres", "onAutoForward": "ignore" },
     "6379": { "label": "redis", "onAutoForward": "ignore" }
   },
-  "postCreateCommand": "corepack enable && pnpm setup -- --skip-playwright",
+  "postCreateCommand": "corepack enable && pnpm bootstrap -- --skip-playwright",
   "remoteUser": "node",
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096"

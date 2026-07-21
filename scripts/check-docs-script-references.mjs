@@ -17,7 +17,7 @@
  *
  * Also fails (ADS-949) if any root package.json script has no entry in
  * scripts/script-descriptions.json — that map is the single source of
- * truth `pnpm run help` reads, so an undocumented script would silently
+ * truth `pnpm commands` reads, so an undocumented script would silently
  * fall out of the discoverable list.
  *
  * Mirrors the no-dependency single-file style of scripts/check-*.mjs.
@@ -128,10 +128,33 @@ function main() {
     }
   }
 
+  // ADS-993: guard against the bare `pnpm setup` / `pnpm help` forms. Both are
+  // reserved pnpm built-in subcommands, so a bare invocation silently runs
+  // pnpm's own command instead of any package.json script. The onboarding
+  // script was renamed to `pnpm bootstrap` and the discovery script to
+  // `pnpm commands` precisely to escape this shadow; documenting the bare
+  // forms would re-break the very onboarding path this repo advertises. (The
+  // `pnpm run <name>` guard above cannot catch these — it only matches the
+  // explicit `run` form.)
+  const SHADOWED_BUILTIN_RE = /\bpnpm (setup|help)\b/g;
+  for (const file of docsToScan) {
+    const contents = readFileSync(file, 'utf8');
+    const seen = new Set();
+    let m;
+    while ((m = SHADOWED_BUILTIN_RE.exec(contents)) !== null) {
+      if (seen.has(m[1])) continue;
+      seen.add(m[1]);
+      const replacement = m[1] === 'setup' ? 'pnpm bootstrap' : 'pnpm commands';
+      failures.push(
+        `${relative(ROOT, file)}: uses the shadowed built-in form 'pnpm ${m[1]}' — use '${replacement}' (ADS-993)`
+      );
+    }
+  }
+
   const undocumented = checkDescriptionsCoverage();
   for (const name of undocumented) {
     failures.push(
-      `scripts/script-descriptions.json: missing a description for root script '${name}' (pnpm run help would omit it)`
+      `scripts/script-descriptions.json: missing a description for root script '${name}' (pnpm commands would omit it)`
     );
   }
 
