@@ -1,0 +1,12 @@
+# If you have discovered a security vulnerability in this service, we
+# appreciate your help disclosing it to us in a responsible manner.
+#
+# Please email reports to the address below. Coordinate disclosure
+# timing with the maintainers; we will acknowledge receipt within
+# 5 business days and aim to remediate critical issues promptly.
+Contact: mailto:security-reports@adoptdontshop.com
+Contact: mailto:security@adoptdontshop.com
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://adoptdontshop.com/.well-known/security.txt
+Policy: https://adoptdontshop.com/security

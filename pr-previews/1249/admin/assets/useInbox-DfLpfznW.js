@@ -1,0 +1,1 @@
+import{f as e,i as t,n,t as r}from"./query-vendor-BrTMSJd8.js";import{rt as i}from"./index-D6_L2FCP.js";var a=(t={})=>n({queryKey:[`inbox`,t],queryFn:()=>i.getItems(t),placeholderData:e,staleTime:15e3}),o=()=>{let e=t();return r({mutationFn:({itemId:e,source:t,assignedTo:n})=>i.assign(e,t,n),onSuccess:()=>{e.invalidateQueries({queryKey:[`inbox`]})}})};export{o as n,a as t};

@@ -1,0 +1,1 @@
+import{n as e}from"./index-Bvr4OjZa.js";var t=new class{async list(t={}){let n=t.status?{status:t.status}:void 0;return(await e.get(`/api/v1/foster/placements`,n)).data}async create(t){return(await e.post(`/api/v1/foster/placements`,t)).data}async end(t,n){return(await e.post(`/api/v1/foster/placements/${t}/end`,n)).data}};export{t};

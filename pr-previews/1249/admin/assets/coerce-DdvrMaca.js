@@ -1,0 +1,1 @@
+import{g as e,i as t}from"./api-service-VPSrqJWG.js";function n(n){return e(t,n)}export{n as t};

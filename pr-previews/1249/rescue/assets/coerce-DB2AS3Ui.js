@@ -1,0 +1,1 @@
+import{g as e,r as t}from"./api-service-Bz7rBeaL.js";function n(n){return e(t,n)}export{n as t};
