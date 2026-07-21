@@ -28,6 +28,9 @@ export type RescueConfig = {
   // service.pets gRPC address. createFosterPlacement resolves pet → rescue
   // here to reject a petId that doesn't belong to the placement's rescue.
   petsGrpcUrl: string;
+  // service.applications gRPC address. getEventAnalytics resolves
+  // registered-then-adopted attribution here (ADS-941).
+  applicationsGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 5004;
@@ -36,6 +39,7 @@ const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'rescue';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
+const DEFAULT_APPLICATIONS_GRPC_URL = 'service-applications:6005';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): RescueConfig => {
   const port = parsePort(env.RESCUE_PORT, DEFAULT_PORT, 'RESCUE_PORT');
@@ -52,5 +56,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): RescueConfig =
     schema: env.RESCUE_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
+    applicationsGrpcUrl: env.APPLICATIONS_GRPC_URL?.trim() || DEFAULT_APPLICATIONS_GRPC_URL,
   };
 };

@@ -55,11 +55,12 @@ import {
   createEvent,
   deleteEvent,
   getEvent,
-  getEventAnalytics,
   getEventAttendees,
   listEvents,
+  makeGetEventAnalytics,
   updateEvent,
 } from './event-handlers.js';
+import { createApplicationsClient, type ApplicationsClient } from './applications-client.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 
 export type CreateGrpcServerOptions = {
@@ -69,6 +70,10 @@ export type CreateGrpcServerOptions = {
   logger: Logger;
   // Injectable for tests; defaults to a real client at config.petsGrpcUrl.
   petsClient?: PetsClient;
+  // Injectable for tests; defaults to a real client at
+  // config.applicationsGrpcUrl. getEventAnalytics uses this for the
+  // registered-then-adopted attribution count (ADS-941).
+  applicationsClient?: ApplicationsClient;
 };
 
 export type { RunningGrpcServer };
@@ -77,6 +82,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
   const deps = { pool, nats };
   const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
+  const applicationsClient =
+    opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
   const server = new Server();
 
   server.addService(RescueV1.RescueServiceService, {
@@ -115,7 +122,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getEventAttendees: adapt(getEventAttendees, { deps, logger }),
     addEventAttendee: adapt(addEventAttendee, { deps, logger }),
     checkInAttendee: adapt(checkInAttendee, { deps, logger }),
-    getEventAnalytics: adapt(getEventAnalytics, { deps, logger }),
+    getEventAnalytics: adapt(makeGetEventAnalytics(applicationsClient), { deps, logger }),
   });
 
   logger.info('gRPC RescueService registered', {
@@ -166,9 +173,12 @@ export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
-  // Build + own the pets client here so it's closed on shutdown.
+  // Build + own the pets/applications clients here so they're closed on
+  // shutdown.
   const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
-  const server = createGrpcServer({ ...opts, petsClient });
+  const applicationsClient =
+    opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
+  const server = createGrpcServer({ ...opts, petsClient, applicationsClient });
   const running = await startGrpcServerShared(server, config, logger);
 
   return {
@@ -183,6 +193,11 @@ export const startGrpcServer = async (
             petsClient.close();
           } catch (closeErr) {
             logger.error('pets client close error', { err: closeErr });
+          }
+          try {
+            applicationsClient.close();
+          } catch (closeErr) {
+            logger.error('applications client close error', { err: closeErr });
           }
           resolve();
         });

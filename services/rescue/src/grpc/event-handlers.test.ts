@@ -6,6 +6,7 @@ import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
 import { RescueV1 } from '@adopt-dont-shop/proto';
 
+import type { ApplicationsClient } from './applications-client.js';
 import type { HandlerDeps } from './handlers.js';
 import {
   addEventAttendee,
@@ -13,9 +14,9 @@ import {
   createEvent,
   deleteEvent,
   getEvent,
-  getEventAnalytics,
   getEventAttendees,
   listEvents,
+  makeGetEventAnalytics,
   updateEvent,
 } from './event-handlers.js';
 
@@ -526,8 +527,20 @@ describe('checkInAttendee', () => {
 
 describe('getEventAnalytics', () => {
   let mocks: ReturnType<typeof makeMocks>;
+  let applicationsStub: {
+    countAdoptedAdopters: ReturnType<typeof vi.fn>;
+    close: ReturnType<typeof vi.fn>;
+  };
+  let getEventAnalytics: ReturnType<typeof makeGetEventAnalytics>;
+
   beforeEach(() => {
     mocks = makeMocks();
+    // Default: nobody from the candidate set has adopted.
+    applicationsStub = {
+      countAdoptedAdopters: vi.fn(async () => ({ count: 0 })),
+      close: vi.fn(),
+    };
+    getEventAnalytics = makeGetEventAnalytics(applicationsStub as unknown as ApplicationsClient);
   });
 
   it('rejects callers without events.read', async () => {
@@ -546,7 +559,8 @@ describe('getEventAnalytics', () => {
   it('returns 100% attendanceRate when all registrants checked in', async () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
-      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '1' }] });
+      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '1' }] })
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-attendee' }] });
     const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
     expect(res.analytics?.totalRegistrations).toBe(1);
     expect(res.analytics?.actualAttendance).toBe(1);
@@ -556,7 +570,10 @@ describe('getEventAnalytics', () => {
   it('returns 50% attendanceRate when half of registrants checked in', async () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [eventRow({ status: 'active' })] })
-      .mockResolvedValueOnce({ rows: [{ total: '2', checked_in: '1' }] });
+      .mockResolvedValueOnce({ rows: [{ total: '2', checked_in: '1' }] })
+      .mockResolvedValueOnce({
+        rows: [{ user_id: 'usr-attendee' }, { user_id: 'usr-other' }],
+      });
     const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
     expect(res.analytics?.totalRegistrations).toBe(2);
     expect(res.analytics?.actualAttendance).toBe(1);
@@ -571,6 +588,8 @@ describe('getEventAnalytics', () => {
     expect(res.analytics?.totalRegistrations).toBe(0);
     expect(res.analytics?.actualAttendance).toBe(0);
     expect(res.analytics?.attendanceRate).toBe(0);
+    // No registrants → no attribution lookup needed.
+    expect(applicationsStub.countAdoptedAdopters).not.toHaveBeenCalled();
   });
 
   it('rejects principal with events.read but no rescueId', async () => {
@@ -578,5 +597,65 @@ describe('getEventAnalytics', () => {
     await expect(
       getEventAnalytics(mocks.deps, STAFF_NO_RESCUE, { eventId: EVENT_ID })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  // ── adoptionsFromEvent — registered-then-adopted attribution (ADS-941) ──
+
+  it('resolves the registrant ids (not just checked-in attendees) and reports the adopted count', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({
+        rows: [eventRow({ status: 'completed', start_date: new Date('2026-07-01T10:00:00Z') })],
+      })
+      .mockResolvedValueOnce({ rows: [{ total: '2', checked_in: '1' }] })
+      .mockResolvedValueOnce({
+        rows: [{ user_id: 'usr-registrant-1' }, { user_id: 'usr-registrant-2' }],
+      });
+    applicationsStub.countAdoptedAdopters.mockResolvedValueOnce({ count: 2 });
+
+    const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
+
+    expect(res.analytics?.adoptionsFromEvent).toBe(2);
+    expect(applicationsStub.countAdoptedAdopters).toHaveBeenCalledTimes(1);
+    const [req] = applicationsStub.countAdoptedAdopters.mock.calls[0];
+    expect(req.adopterIds).toEqual(['usr-registrant-1', 'usr-registrant-2']);
+  });
+
+  it('queries a 90-day post-event window anchored on the event start date', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({
+        rows: [eventRow({ status: 'completed', start_date: new Date('2026-07-01T10:00:00Z') })],
+      })
+      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-registrant-1' }] });
+
+    await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
+
+    const [req] = applicationsStub.countAdoptedAdopters.mock.calls[0];
+    expect(req.createdAfter).toBe('2026-07-01T10:00:00.000Z');
+    expect(req.createdBefore).toBe('2026-09-29T10:00:00.000Z'); // +90 days
+  });
+
+  it('returns zero adoptions when nobody in the registrant set has adopted', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-registrant-1' }] });
+    applicationsStub.countAdoptedAdopters.mockResolvedValueOnce({ count: 0 });
+
+    const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
+
+    expect(res.analytics?.adoptionsFromEvent).toBe(0);
+  });
+
+  it('surfaces a downstream attribution failure as INTERNAL rather than silently reporting zero', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-registrant-1' }] });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 14 });
+
+    await expect(getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID })).rejects.toMatchObject(
+      { code: 'INTERNAL' }
+    );
   });
 });

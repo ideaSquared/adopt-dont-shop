@@ -370,6 +370,8 @@ export type {
   ListApplicationsResponse,
   GetStatsRequest,
   GetStatsResponse,
+  CountAdoptedAdoptersRequest,
+  CountAdoptedAdoptersResponse,
   Document,
   AddDocumentRequest,
   AddDocumentResponse,

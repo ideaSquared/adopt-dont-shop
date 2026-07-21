@@ -26,6 +26,7 @@ import {
   getApplicationDraft,
   saveApplicationDraft,
 } from './application-draft-handlers.js';
+import { countAdoptedAdopters } from './attribution-handlers.js';
 import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 import { addDocument, listDocuments, removeDocument } from './document-handlers.js';
@@ -79,6 +80,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     list: adapt(listApplications, { deps, logger }),
     // Stats (stats-handlers.ts)
     getStats: adapt(getStats, { deps, logger }),
+    // Cross-service attribution (attribution-handlers.ts)
+    countAdoptedAdopters: adapt(countAdoptedAdopters, { deps, logger }),
     // Document metadata (document-handlers.ts)
     addDocument: adapt(addDocument, { deps, logger }),
     listDocuments: adapt(listDocuments, { deps, logger }),
@@ -107,6 +110,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'get',
       'list',
       'getStats',
+      'countAdoptedAdopters',
       'addDocument',
       'listDocuments',
       'removeDocument',
