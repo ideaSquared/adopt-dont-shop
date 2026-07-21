@@ -1,19 +1,20 @@
 # @adopt-dont-shop/app.rescue
 
-Rescue organization portal for the Adopt Don't Shop platform.
+## Purpose
 
-See the full product spec: [docs/frontend/app-rescue-prd.md](../../docs/frontend/app-rescue-prd.md).
+The rescue organization portal — where rescue staff manage their pet
+listings, review and progress adoption applications, coordinate foster
+placements, and chat with adopters.
 
-## Stack
+## Location in the architecture
 
-- React 19 + TypeScript (strict)
-- Vite
-- vanilla-extract for styling (`*.css.ts` files)
-- Vitest + React Testing Library
-- ESLint + Prettier
-- Docker (multi-stage build for dev and prod)
-
-## Quick Start
+Full product spec: [docs/frontend/app-rescue-prd.md](../../docs/frontend/app-rescue-prd.md).
+Shares the app-shell pattern (routing, state, styling) described in
+[docs/frontend/technical-architecture.md](../../docs/frontend/technical-architecture.md)
+with `app.admin` and `app.client`. Built on React 19 + TypeScript (strict),
+Vite, and vanilla-extract styling (`*.css.ts`). Talks to the backend
+exclusively through `service.gateway` (port 4000) — see the root
+[README Access table](../../README.md#access) for local URLs.
 
 From the repo root:
 
@@ -28,7 +29,10 @@ pnpm dev:apps
 pnpm exec turbo dev --filter=@adopt-dont-shop/app.rescue
 ```
 
-Or from this directory: `pnpm dev` — Vite serves on http://localhost:3000 (container internal port; Docker maps it to 3002 externally).
+Or from this directory: `pnpm dev` — Vite serves on http://localhost:3000
+(container internal port; Docker maps it to 3002 externally). The root
+`docker-compose.yml` wires this app up automatically — no per-app commands
+needed.
 
 ## Scripts
 
@@ -41,22 +45,25 @@ Or from this directory: `pnpm dev` — Vite serves on http://localhost:3000 (con
 - `pnpm lint` / `lint:fix` — ESLint
 - `pnpm type-check` — TypeScript type check
 
-## Project Structure
+## Public surface
 
-```
-src/
-├── components/     Reusable UI components
-├── contexts/       React contexts (Chat, Statsig)
-├── pages/          Route-level components
-├── hooks/          Custom React hooks
-├── services/       API clients and external services
-├── utils/          Utility helpers
-├── types/          TypeScript type definitions
-├── App.tsx         Main App component
-├── main.tsx        Application entry point
-└── index.css       Global styles
-```
+Route tree lives under `src/pages/` (pet management, applications, foster,
+chat, settings), with `src/contexts/` holding the Chat and Statsig providers.
+See `src/App.tsx` for the router configuration.
 
-## Docker
+## Environment variables consumed
 
-The root `docker-compose.yml` wires this app up automatically — no per-app commands needed. The app container exposes port 3000 internally and is mapped to 3002 on the host.
+Shares the common frontend vars (`VITE_API_BASE_URL`, `VITE_WS_BASE_URL`)
+documented in [docs/env-reference.md](../../docs/env-reference.md) — this
+app defines no vars of its own beyond those.
+
+## Testing notes
+
+Vitest + React Testing Library, jsdom environment (repo-wide convention —
+see [CONTRIBUTING.md](../../CONTRIBUTING.md#test-dom-environment)). Tests
+are co-located next to source (`Component.tsx` + `Component.test.tsx`).
+
+## Ownership
+
+See [.github/CODEOWNERS](../../.github/CODEOWNERS) for the current owner
+of `/apps/`.
