@@ -94,6 +94,13 @@ jobs:
       - name: Verify docs reference only real pnpm scripts
         run: node scripts/check-docs-script-references.mjs
 
+      # ADS-946: workspace READMEs must carry the canonical template sections
+      # (docs/templates/README.{app,service,lib}.md). Warn-only for packages
+      # not yet backfilled; a hard failure for those in the guard's
+      # STRICT_PACKAGES set, so an enforced README can't regress.
+      - name: Verify workspace READMEs match the template
+        run: node scripts/check-readmes.mjs
+
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================
