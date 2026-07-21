@@ -43,7 +43,9 @@
 import type { Server as HttpServer } from 'node:http';
 
 import { Metadata } from '@grpc/grpc-js';
+import { getMetricsRegistry } from '@adopt-dont-shop/observability';
 import { createAdapter } from '@socket.io/redis-adapter';
+import { Counter } from 'prom-client';
 import { Server as IOServer, type Socket } from 'socket.io';
 import type { Logger } from 'winston';
 
@@ -66,6 +68,99 @@ type SocketAuthClient = Pick<AuthClient, 'validateToken'>;
 // comment on SocketRegistry for why a cross-replica Redis-backed cap isn't
 // worth the added complexity here.
 const MAX_SOCKETS_PER_USER = 10;
+
+// Pre-auth per-IP handshake rate limit (ADS-962). nginx already caps
+// /socket.io/ handshakes at the edge (deploy/gateway/nginx.conf, `socketio`
+// zone: 2 r/s, burst 10), but the gateway can be reached directly (internal
+// LB, a debug run without nginx), so this is defence-in-depth — the same
+// posture as the origin allowlist and per-user cap in this file. It runs
+// BEFORE the origin and auth checks so an unauthenticated flood is dropped
+// before it costs a gRPC ValidateToken round-trip. Fixed window, in process
+// (per replica) — consistent with the per-user cap's per-replica philosophy;
+// nginx is the cross-instance layer. 30 per 10 s mirrors nginx's effective
+// ceiling (2 r/s + burst 10) while leaving generous headroom for legitimate
+// reconnect storms (multiple tabs re-handshaking after a network blip).
+const MAX_HANDSHAKES_PER_WINDOW = 30;
+const HANDSHAKE_WINDOW_MS = 10_000;
+
+// Trip counter for the handshake rate limit, mirroring the sibling limiters'
+// trip counters in server.ts (login, invitation-accept). Lazily created and
+// registry-change-aware so repeated attachSocketServer/createServer calls in
+// Vitest suites don't throw "metric already registered".
+let _handshakeRejectEntry: { registryRef: object; counter: Counter } | null = null;
+
+const getOrCreateHandshakeRejectCounter = (): Counter => {
+  const reg = getMetricsRegistry();
+  if (_handshakeRejectEntry && _handshakeRejectEntry.registryRef === reg) {
+    return _handshakeRejectEntry.counter;
+  }
+  const counter = new Counter({
+    name: 'gateway_ws_handshake_ratelimit_rejects_total',
+    help: 'Total Socket.IO handshakes rejected by the per-IP pre-auth rate limit (ADS-962).',
+    registers: [reg],
+  });
+  _handshakeRejectEntry = { registryRef: reg, counter };
+  return counter;
+};
+
+export type HandshakeRateLimiter = { tryConsume: (ip: string) => boolean };
+
+// Fixed-window per-IP handshake limiter (ADS-962). Pure and in-process; one
+// instance lives per attachSocketServer call so there's no cross-replica or
+// cross-test shared state. `now` is injectable for deterministic tests.
+// Returns false once an IP has exhausted its allowance for the current window.
+export const createHandshakeRateLimiter = (opts: {
+  max: number;
+  windowMs: number;
+  now?: () => number;
+}): HandshakeRateLimiter => {
+  const { max, windowMs, now = Date.now } = opts;
+  const buckets = new Map<string, { count: number; resetAt: number }>();
+
+  const tryConsume = (ip: string): boolean => {
+    const t = now();
+    const bucket = buckets.get(ip);
+    if (!bucket || t >= bucket.resetAt) {
+      // Opportunistic sweep keeps the map bounded by the IPs active within a
+      // window, not all-time. A completed TCP+WS handshake means a real source
+      // IP, so the working set is small — this is a safety net, not hot path.
+      if (buckets.size > 10_000) {
+        for (const [key, b] of buckets) {
+          if (t >= b.resetAt) {
+            buckets.delete(key);
+          }
+        }
+      }
+      buckets.set(ip, { count: 1, resetAt: t + windowMs });
+      return true;
+    }
+    if (bucket.count >= max) {
+      return false;
+    }
+    bucket.count += 1;
+    return true;
+  };
+
+  return { tryConsume };
+};
+
+// The client IP for handshake rate-limit keying. nginx overwrites
+// X-Forwarded-For with the real connecting IP ($remote_addr, ADS-915), so
+// when the header is present the RIGHTMOST entry is the trustworthy hop —
+// mirroring the HTTP path's trustProxy:1. A client-prepended XFF is discarded
+// by nginx, and taking the rightmost entry also resists spoofing on a
+// direct-to-gateway path. Falls back to the raw socket address when there's
+// no proxy header (a direct connection).
+const handshakeClientIp = (socket: Socket): string => {
+  const xff = socket.handshake.headers['x-forwarded-for'];
+  if (typeof xff === 'string' && xff.length > 0) {
+    const last = xff.split(',').pop()?.trim();
+    if (last) {
+      return last;
+    }
+  }
+  return socket.handshake.address;
+};
 
 // The slim Redis pub/sub surface the @socket.io/redis-adapter broadcast path
 // uses. Parameters are intentionally widened (ioredis' publish/subscribe carry
@@ -105,6 +200,10 @@ export type AttachSocketServerOptions = {
   // replica that user is connected to. When omitted (single-replica dev /
   // tests) the server runs with the default in-process adapter.
   redisAdapter?: { pubClient: RedisAdapterClient; subClient: RedisAdapterClient };
+  // Pre-auth handshake rate-limit tuning (ADS-962). Defaults to the module
+  // constants; overridden in tests to exercise the rejection path without a
+  // real flood. A per-IP fixed-window cap — see MAX_HANDSHAKES_PER_WINDOW.
+  handshakeRateLimit?: { max: number; windowMs: number };
 };
 
 export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer => {
@@ -146,6 +245,32 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
   if (opts.redisAdapter) {
     io.adapter(createAdapter(opts.redisAdapter.pubClient, opts.redisAdapter.subClient));
   }
+
+  // Pre-auth per-IP handshake rate limit (ADS-962). Runs as the FIRST
+  // handshake middleware — before the origin allowlist and token validation —
+  // so a flood is rejected before it costs a gRPC ValidateToken round-trip.
+  // State is scoped to this attachSocketServer call (fresh per replica / per
+  // test), never module-global.
+  const { max: handshakeMax, windowMs: handshakeWindowMs } = opts.handshakeRateLimit ?? {
+    max: MAX_HANDSHAKES_PER_WINDOW,
+    windowMs: HANDSHAKE_WINDOW_MS,
+  };
+  const handshakeLimiter = createHandshakeRateLimiter({
+    max: handshakeMax,
+    windowMs: handshakeWindowMs,
+  });
+  const handshakeRejectsTotal = getOrCreateHandshakeRejectCounter();
+
+  io.use((socket, next) => {
+    const ip = handshakeClientIp(socket);
+    if (!handshakeLimiter.tryConsume(ip)) {
+      handshakeRejectsTotal.inc();
+      logger.warn('socket handshake rate limit exceeded', { ip });
+      next(new Error('rate limit exceeded'));
+      return;
+    }
+    next();
+  });
 
   io.use((socket, next) => {
     // Origin allowlist (ADS-843). A browser always sends an Origin on the WS

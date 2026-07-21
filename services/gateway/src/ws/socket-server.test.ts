@@ -14,6 +14,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { SocketRegistry } from './socket-registry.js';
 import {
   attachSocketServer,
+  createHandshakeRateLimiter,
   emitToUser,
   type AttachSocketServerOptions,
   type RedisAdapterClient,
@@ -513,5 +514,76 @@ describe('per-user connection cap (ADS-888)', () => {
 
     expect(flood.every(c => c.connected)).toBe(true);
     expect(registry.socketsFor('usr-at-cap')).toHaveLength(10);
+  });
+});
+
+describe('createHandshakeRateLimiter (ADS-962)', () => {
+  it('allows handshakes up to the cap within a window, then rejects', () => {
+    const limiter = createHandshakeRateLimiter({ max: 3, windowMs: 1000, now: () => 0 });
+
+    expect(limiter.tryConsume('1.2.3.4')).toBe(true);
+    expect(limiter.tryConsume('1.2.3.4')).toBe(true);
+    expect(limiter.tryConsume('1.2.3.4')).toBe(true);
+    expect(limiter.tryConsume('1.2.3.4')).toBe(false);
+  });
+
+  it('meters each IP independently', () => {
+    const limiter = createHandshakeRateLimiter({ max: 1, windowMs: 1000, now: () => 0 });
+
+    expect(limiter.tryConsume('1.1.1.1')).toBe(true);
+    expect(limiter.tryConsume('2.2.2.2')).toBe(true);
+    expect(limiter.tryConsume('1.1.1.1')).toBe(false);
+  });
+
+  it('replenishes the allowance once the window rolls over', () => {
+    let clock = 0;
+    const limiter = createHandshakeRateLimiter({ max: 1, windowMs: 1000, now: () => clock });
+
+    expect(limiter.tryConsume('1.2.3.4')).toBe(true);
+    expect(limiter.tryConsume('1.2.3.4')).toBe(false);
+
+    clock = 1000;
+    expect(limiter.tryConsume('1.2.3.4')).toBe(true);
+  });
+});
+
+describe('handshake rate limiting — pre-auth per-IP cap (ADS-962)', () => {
+  it('rejects handshakes from one IP once the per-window cap is exceeded', async () => {
+    const validateMock = vi.fn().mockResolvedValue(VALID_RES);
+    const { url } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+      handshakeRateLimit: { max: 2, windowMs: 60_000 },
+    });
+
+    // All three clients share the loopback source IP, so they draw from the
+    // same bucket. The first two are admitted; the third trips the cap.
+    const first = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(first)).toBe(true);
+    const second = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(second)).toBe(true);
+
+    const third = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(third)).toBe(false);
+  });
+
+  it('runs before token validation — a rate-limited handshake never hits the auth service', async () => {
+    const validateMock = vi.fn().mockResolvedValue(VALID_RES);
+    const { url } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+      handshakeRateLimit: { max: 2, windowMs: 60_000 },
+    });
+
+    const first = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(first)).toBe(true);
+    const second = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(second)).toBe(true);
+    const third = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(third)).toBe(false);
+
+    // The two admitted handshakes each validate their token; the rejected
+    // third is short-circuited by the limiter before the auth round-trip.
+    expect(validateMock).toHaveBeenCalledTimes(2);
   });
 });
