@@ -124,7 +124,9 @@
     "js-yaml": "Force js-yaml >=4.3.0 to patch the quadratic-CPU DoS via YAML merge-key chains (GHSA-52cp-r559-cp3m); the 4.x line is vulnerable below 4.3.0. Kept on 4.3.0 (not the 5.x latest) to stay API-compatible for transitive consumers. Do not downgrade below 4.3.0.",
     "shell-quote": "Force shell-quote >=1.9.0 to patch the quadratic-complexity DoS in parse() (GHSA-395f-4hp3-45gv, CWE-407); everything <=1.8.4 is vulnerable and 1.9.0 is the first published release above the range. Dev/build-chain transitive dependency. Do not downgrade below 1.9.0.",
     "protobufjs": "Force protobufjs >=7.6.5 to patch the infinite-loop DoS in .proto option parsing (GHSA-j3f2-48v5-ccww); the 7.5.0-7.6.4 range is vulnerable. Kept on the 7.6.5 patch (not the 8.x latest) to avoid a runtime major bump for @grpc/proto-loader / packages/proto consumers. Do not downgrade below 7.6.5.",
-    "dompurify": "Force dompurify >=3.4.11 to patch the permanent ALLOWED_ATTR pollution via setConfig() (GHSA-cmwh-pvxp-8882); <=3.4.10 is vulnerable. dompurify sanitises chat-attachment previews (lib.chat), so keeping it patched is defence-relevant, not just an audit-gate fix. Do not downgrade below 3.4.11."
+    "dompurify": "Force dompurify >=3.4.11 to patch the permanent ALLOWED_ATTR pollution via setConfig() (GHSA-cmwh-pvxp-8882); <=3.4.10 is vulnerable. dompurify sanitises chat-attachment previews (lib.chat), so keeping it patched is defence-relevant, not just an audit-gate fix. Do not downgrade below 3.4.11.",
+    "fast-uri": "Force fast-uri >=3.1.3 to patch the host-confusion via failed IDN canonicalization (GHSA-4c8g-83qw-93j6); the 3.0.0-3.1.2 range is vulnerable and 3.1.3 is the first patched 3.x release. fast-uri is a transitive dependency (fastify/ajv URI validation in the gateway + service toolchains), so the root-level override reaches the nested copies pnpm audit flags. Kept on the 3.1.3 patch (not the 4.x latest) to avoid a transitive major bump. Do not downgrade below 3.1.3.",
+    "@opentelemetry/propagator-jaeger": "Force @opentelemetry/propagator-jaeger >=2.9.0 to patch the JaegerPropagator DoS via unhandled exception on a malformed header (GHSA-45rx-2jwx-cxfr); everything <2.9.0 is vulnerable. Transitive via the @opentelemetry auto-instrumentations bundle used by @adopt-dont-shop/observability. Do not downgrade below 2.9.0."
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -157,7 +159,9 @@
       "js-yaml@>=4.0.0 <4.3.0": "4.3.0",
       "shell-quote@<1.9.0": "1.9.0",
       "protobufjs@>=7.5.0 <7.6.5": "7.6.5",
-      "dompurify@<3.4.11": "3.4.11"
+      "dompurify@<3.4.11": "3.4.11",
+      "fast-uri@>=3.0.0 <3.1.3": "3.1.3",
+      "@opentelemetry/propagator-jaeger@<2.9.0": "2.9.0"
     }
   },
   "engines": {
