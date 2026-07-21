@@ -1,0 +1,200 @@
+name: PR Preview
+
+# ADS-950: publish a static Vite build of each app on every PR that touches
+# frontend source, so reviewers can see visual changes without cloning the
+# branch. Previews live at:
+#   https://ideasquared.github.io/adopt-dont-shop/pr-previews/<PR>/<app>/
+# and are removed automatically when the PR closes.
+#
+# Assumption: GitHub Pages is configured to serve from the `gh-pages` branch.
+# The Storybook (deploy-storybook job in storybook.yml) and these previews
+# co-exist on that branch: Storybook at the root, previews under pr-previews/.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - 'apps/**'
+      - 'packages/lib.*/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Cancel an in-flight build for the same PR when a new commit is pushed.
+# `cancel-in-progress: false` for teardown so a close event is never dropped.
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # BUILD-AND-DEPLOY — build all three apps and push to the gh-pages branch.
+  # Each app's build sets --base and VITE_ROUTER_BASENAME so assets resolve and
+  # React Router navigates correctly under the pr-previews/<PR>/<app>/ path.
+  # ============================================================================
+  build-and-deploy:
+    name: Build & Deploy Preview
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      # Point preview builds at the shared staging gateway.
+      VITE_API_BASE_URL: https://api.staging.adoptdontshop.com
+      VITE_WS_BASE_URL: wss://api.staging.adoptdontshop.com
+      VITE_ENVIRONMENT: staging
+
+    steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: ./.github/actions/checkout-and-setup
+        with:
+          download-lib-dist: 'false'
+
+      - name: Build shared libraries
+        run: pnpm build:libs
+
+      - name: Build preview apps
+        run: |
+          for app in client admin rescue; do
+            BASE="/pr-previews/${PR_NUMBER}/${app}/"
+            echo "Building app.${app} with base ${BASE}"
+            # Pass --base so Vite writes absolute asset paths relative to the
+            # preview sub-path; VITE_ROUTER_BASENAME tells BrowserRouter the
+            # same prefix so React Router resolves routes correctly.
+            VITE_ROUTER_BASENAME="/pr-previews/${PR_NUMBER}/${app}" \
+              pnpm --filter "@adopt-dont-shop/app.${app}" exec \
+              vite build --base="${BASE}"
+            # Copy index.html → 404.html so GitHub Pages serves the SPA when a
+            # reviewer refreshes on a deep route.
+            cp "apps/${app}/dist/index.html" "apps/${app}/dist/404.html"
+          done
+
+      - name: Stash build artifacts outside the source tree
+        run: |
+          mkdir -p /tmp/preview-builds
+          for app in client admin rescue; do
+            cp -r "apps/${app}/dist" "/tmp/preview-builds/${app}"
+          done
+
+      - name: Deploy to gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch + checkout gh-pages, or create an orphan branch if absent.
+          git fetch origin gh-pages 2>/dev/null \
+            && git checkout gh-pages \
+            || { git checkout --orphan gh-pages; git rm -rf . 2>/dev/null || true; }
+
+          # Write this PR's preview files under pr-previews/<PR>/<app>/
+          mkdir -p "pr-previews/${PR_NUMBER}"
+          for app in client admin rescue; do
+            rm -rf "pr-previews/${PR_NUMBER}/${app}"
+            cp -r "/tmp/preview-builds/${app}" "pr-previews/${PR_NUMBER}/${app}"
+          done
+
+          # .nojekyll disables Jekyll processing so _-prefixed asset dirs work.
+          touch .nojekyll
+          git add pr-previews/ .nojekyll
+          git diff --cached --quiet && echo "Nothing changed — skipping push." && exit 0
+
+          git commit -m "preview: update PR #${PR_NUMBER}"
+
+          # Retry push: concurrent PR updates may race on the same branch.
+          for i in 1 2 3 4 5; do
+            git push origin gh-pages && break || {
+              [ "$i" -lt 5 ] || { echo "Push failed after 5 attempts"; exit 1; }
+              echo "Push attempt ${i} failed — rebasing and retrying in $((i * 2))s..."
+              git pull --rebase origin gh-pages 2>/dev/null || true
+              sleep $((i * 2))
+            }
+          done
+
+      - name: Post or update preview comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const pr = parseInt(process.env.PR_NUMBER, 10);
+            const sha = process.env.HEAD_SHA.slice(0, 7);
+            const base = `https://ideasquared.github.io/adopt-dont-shop/pr-previews/${pr}`;
+            const body = [
+              '<!-- ads-pr-preview -->',
+              '## Preview deployments',
+              '',
+              '| App | URL |',
+              '|-----|-----|',
+              `| app.client | ${base}/client/ |`,
+              `| app.admin  | ${base}/admin/  |`,
+              `| app.rescue | ${base}/rescue/ |`,
+              '',
+              `> Staging API · commit ${sha}`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+            });
+            const existing = comments.find(c => c.body?.includes('<!-- ads-pr-preview -->'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr,
+                body,
+              });
+            }
+
+  # ============================================================================
+  # TEARDOWN — remove the preview directory from gh-pages when the PR closes.
+  # ============================================================================
+  teardown:
+    name: Remove Preview
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Remove preview from gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Nothing to do if gh-pages doesn't exist yet.
+          git fetch origin gh-pages 2>/dev/null || exit 0
+          git checkout gh-pages
+
+          if [ ! -d "pr-previews/${PR_NUMBER}" ]; then
+            echo "No preview directory found for PR #${PR_NUMBER} — nothing to remove."
+            exit 0
+          fi
+
+          git rm -rf "pr-previews/${PR_NUMBER}"
+          git commit -m "preview: remove PR #${PR_NUMBER}"
+
+          for i in 1 2 3 4 5; do
+            git push origin gh-pages && break || {
+              [ "$i" -lt 5 ] || { echo "Push failed after 5 attempts"; exit 1; }
+              git pull --rebase origin gh-pages 2>/dev/null || true
+              sleep $((i * 2))
+            }
+          done

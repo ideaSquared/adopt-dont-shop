@@ -9,6 +9,9 @@ interface ImportMetaEnv {
   readonly VITE_APP_RELEASE?: string;
   // ADS-493: Statsig client key.
   readonly VITE_STATSIG_CLIENT_KEY?: string;
+  // ADS-950: set by the PR preview workflow so BrowserRouter uses the correct
+  // sub-path base when deployed under pr-previews/<PR>/admin/.
+  readonly VITE_ROUTER_BASENAME?: string;
   // more env variables...
 }
 

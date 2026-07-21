@@ -65,7 +65,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <PermissionsProvider service={permissionsService}>
               <ThemeProvider>
                 <ChatProvider>
-                  <BrowserRouter>
+                  <BrowserRouter basename={import.meta.env.VITE_ROUTER_BASENAME ?? '/'}>
                     <App />
                   </BrowserRouter>
                   <Toaster />
