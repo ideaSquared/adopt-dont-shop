@@ -21,12 +21,6 @@ permissions:
   contents: write
   pull-requests: write
 
-# Cancel an in-flight build for the same PR when a new commit is pushed.
-# `cancel-in-progress: false` for teardown so a close event is never dropped.
-concurrency:
-  group: pr-preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   # ============================================================================
   # BUILD-AND-DEPLOY — build all three apps and push to the gh-pages branch.
@@ -38,6 +32,10 @@ jobs:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Cancel in-flight builds for the same PR when a new commit arrives.
+    concurrency:
+      group: pr-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
 
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -84,31 +82,36 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Fetch + checkout gh-pages, or create an orphan branch if absent.
-          git fetch origin gh-pages 2>/dev/null \
-            && git checkout gh-pages \
-            || { git checkout --orphan gh-pages; git rm -rf . 2>/dev/null || true; }
+          # Use a worktree so the main workspace stays on the PR branch.
+          # Checking out gh-pages in-place would overwrite .github/actions/ and
+          # break the runner's post-step cleanup for local composite actions.
+          DEPLOY_DIR=/tmp/gh-pages-deploy
+          if git fetch origin gh-pages 2>/dev/null; then
+            git worktree add "$DEPLOY_DIR" gh-pages
+          else
+            git worktree add --orphan "$DEPLOY_DIR" gh-pages
+          fi
 
           # Write this PR's preview files under pr-previews/<PR>/<app>/
-          mkdir -p "pr-previews/${PR_NUMBER}"
+          mkdir -p "$DEPLOY_DIR/pr-previews/${PR_NUMBER}"
           for app in client admin rescue; do
-            rm -rf "pr-previews/${PR_NUMBER}/${app}"
-            cp -r "/tmp/preview-builds/${app}" "pr-previews/${PR_NUMBER}/${app}"
+            rm -rf "$DEPLOY_DIR/pr-previews/${PR_NUMBER}/${app}"
+            cp -r "/tmp/preview-builds/${app}" "$DEPLOY_DIR/pr-previews/${PR_NUMBER}/${app}"
           done
 
           # .nojekyll disables Jekyll processing so _-prefixed asset dirs work.
-          touch .nojekyll
-          git add pr-previews/ .nojekyll
-          git diff --cached --quiet && echo "Nothing changed — skipping push." && exit 0
+          touch "$DEPLOY_DIR/.nojekyll"
+          git -C "$DEPLOY_DIR" add pr-previews/ .nojekyll
+          git -C "$DEPLOY_DIR" diff --cached --quiet && echo "Nothing changed — skipping push." && exit 0
 
-          git commit -m "preview: update PR #${PR_NUMBER}"
+          git -C "$DEPLOY_DIR" commit -m "preview: update PR #${PR_NUMBER}"
 
           # Retry push: concurrent PR updates may race on the same branch.
           for i in 1 2 3 4 5; do
-            git push origin gh-pages && break || {
+            git -C "$DEPLOY_DIR" push origin HEAD:gh-pages && break || {
               [ "$i" -lt 5 ] || { echo "Push failed after 5 attempts"; exit 1; }
               echo "Push attempt ${i} failed — rebasing and retrying in $((i * 2))s..."
-              git pull --rebase origin gh-pages 2>/dev/null || true
+              git -C "$DEPLOY_DIR" pull --rebase origin gh-pages 2>/dev/null || true
               sleep $((i * 2))
             }
           done
@@ -136,12 +139,18 @@ jobs:
               `> Staging API · commit ${sha}`,
             ].join('\n');
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr,
-            });
-            const existing = comments.find(c => c.body?.includes('<!-- ads-pr-preview -->'));
+            let existing;
+            for (let page = 1; !existing; page++) {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr,
+                per_page: 100,
+                page,
+              });
+              existing = comments.find(c => c.body?.includes('<!-- ads-pr-preview -->'));
+              if (comments.length < 100) break;
+            }
 
             if (existing) {
               await github.rest.issues.updateComment({
@@ -167,6 +176,11 @@ jobs:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Don't cancel teardown — a close event must always run to completion so the
+    # preview directory is removed even if a build for the same PR was in flight.
+    concurrency:
+      group: pr-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
 
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
