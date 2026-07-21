@@ -3,7 +3,13 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ROOT_DIR, copyTemplateDir, log, registerWorkspace } from './lib/template-engine.mjs';
+import {
+  ROOT_DIR,
+  copyTemplateDir,
+  log,
+  registerWorkspace,
+  remindDevVolumesMount,
+} from './lib/template-engine.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, 'templates', 'app');
@@ -116,7 +122,12 @@ async function main() {
   }
 
   const templateConfig = TEMPLATES[template];
-  const appDir = path.join(ROOT_DIR, appName);
+  // App directories live under apps/ named WITHOUT the `app.` prefix
+  // (apps/admin, apps/client, …) while the package keeps the full
+  // `@adopt-dont-shop/app.<slug>` name. The CLI arg is the full `app.<slug>`.
+  const appSlug = appName.replace(/^app\./, '');
+  const appRelPath = path.join('apps', appSlug);
+  const appDir = path.join(ROOT_DIR, appRelPath);
 
   if (fs.existsSync(appDir) && !overwrite) {
     log(`❌ Error: App "${appName}" already exists. Use --overwrite to replace it.`, 'red');
@@ -162,16 +173,13 @@ async function main() {
     }
   }
 
-  try {
-    registerWorkspace(appName);
-  } catch (error) {
-    log(`⚠️  Warning: Could not update workspace package.json: ${error.message}`, 'yellow');
-  }
+  registerWorkspace(appRelPath);
 
-  printSuccess(appName, templateConfig);
+  printSuccess(appName, appRelPath, templateConfig);
+  remindDevVolumesMount(appRelPath);
 }
 
-function printSuccess(appName, templateConfig) {
+function printSuccess(appName, appRelPath, templateConfig) {
   log('', 'reset');
   log('🎉 Success!', 'green');
   log(`✨ Created React app: ${appName}`, 'bright');
@@ -183,7 +191,7 @@ function printSuccess(appName, templateConfig) {
   }
   log('', 'reset');
   log('📋 Next steps:', 'cyan');
-  log(`   cd ${appName}`, 'reset');
+  log(`   cd ${appRelPath}`, 'reset');
   log(`   pnpm install`, 'reset');
   log(`   pnpm dev`, 'reset');
   log('', 'reset');

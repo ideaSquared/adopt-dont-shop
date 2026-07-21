@@ -10,7 +10,7 @@ import {
   copyTemplateDir,
   log,
   registerWorkspace,
-  updateAppOptimizedDockerfile,
+  remindDevVolumesMount,
 } from './lib/template-engine.mjs';
 
 const execAsync = promisify(exec);
@@ -24,6 +24,7 @@ function parseArgs(argv) {
   }
 
   const useLibApi = args.includes('--with-api');
+  const skipInstall = args.includes('--skip-install');
   const typeArg = args.find(arg => arg.startsWith('--type='));
   const libType = typeArg ? typeArg.split('=')[1] : 'service';
   const positional = args.filter(arg => !arg.startsWith('--'));
@@ -33,6 +34,7 @@ function parseArgs(argv) {
     libDescription: positional[1],
     libType,
     useLibApi,
+    skipInstall,
   };
 }
 
@@ -116,7 +118,7 @@ async function main() {
     process.exit(1);
   }
 
-  const { libName, libType, useLibApi } = parsed;
+  const { libName, libType, useLibApi, skipInstall } = parsed;
   const libDescription =
     parsed.libDescription || `Shared ${libName} functionality for the pet adoption platform`;
 
@@ -130,7 +132,10 @@ async function main() {
     process.exit(1);
   }
 
-  const libDir = path.join(ROOT_DIR, `lib.${libName}`);
+  // Libraries live under packages/ as packages/lib.<name> (matching the
+  // `packages/*` workspace glob and every existing lib.* package).
+  const libRelPath = path.join('packages', `lib.${libName}`);
+  const libDir = path.join(ROOT_DIR, libRelPath);
   if (fs.existsSync(libDir)) {
     log(`❌ Library lib.${libName} already exists!`, 'red');
     process.exit(1);
@@ -161,16 +166,14 @@ async function main() {
       }
     }
 
-    registerWorkspace(`lib.${libName}`, {
-      [`dev:lib-${libName}`]: `turbo run dev --filter=@adopt-dont-shop/lib-${libName}`,
-      [`build:lib-${libName}`]: `turbo run build --filter=@adopt-dont-shop/lib-${libName}`,
-      [`test:lib-${libName}`]: `turbo run test --filter=@adopt-dont-shop/lib-${libName}`,
-    });
+    registerWorkspace(libRelPath);
 
-    updateAppOptimizedDockerfile(libName);
-    await installDependencies(libDir);
+    if (!skipInstall) {
+      await installDependencies(libDir);
+    }
 
     printSuccess(libName, libType);
+    remindDevVolumesMount(libRelPath);
   } catch (error) {
     log(`❌ Error creating library: ${error.message}`, 'red');
     process.exit(1);
@@ -182,7 +185,7 @@ function printSuccess(libName, libType) {
   log('🎉 Library created successfully!', 'green');
   log('', 'reset');
   log('📋 Next steps:', 'bright');
-  log(`   1. cd lib.${libName}`, 'cyan');
+  log(`   1. cd packages/lib.${libName}`, 'cyan');
   log('   2. pnpm dev     # Start development build', 'cyan');
   log('   3. pnpm test        # Run tests', 'cyan');
 

@@ -1,8 +1,10 @@
-import { FeatureFlagsService } from '@adopt-dont-shop/lib.feature-flags';
 import { createContext, useContext, ReactNode, useMemo, useState } from 'react';
 
+// lib.feature-flags is now hook-based (Statsig): use `useFeatureGate`,
+// `useDynamicConfig`, `useConfigValue` directly in components. This context is
+// a minimal scaffold stub for app-wide loading state; wire `isFeatureEnabled`
+// to a real source (or drop it in favour of the hooks) once your gates exist.
 interface FeatureFlagsContextType {
-  featureFlagsService: FeatureFlagsService;
   isFeatureEnabled: (flag: string) => Promise<boolean>;
   isLoading: boolean;
 }
@@ -23,29 +25,21 @@ interface FeatureFlagsProviderProps {
 
 export const FeatureFlagsProvider = ({ children }: FeatureFlagsProviderProps) => {
   const [isLoading] = useState(false);
-  
-  const featureFlagsService = useMemo(() => {
-    return new FeatureFlagsService({
-      apiUrl: import.meta.env.VITE_API_BASE_URL,
-      debug: import.meta.env.NODE_ENV === 'development'
-    });
-  }, []);
 
   const isFeatureEnabled = async (flag: string): Promise<boolean> => {
-    // Simplified implementation - can be enhanced when APIs are finalized
+    // Scaffold stub — replace with a real gate lookup (or the useFeatureGate
+    // hook) once your feature flags are defined.
     console.log(`Feature flag ${flag} checked - defaulting to false`);
     return false;
   };
 
-  const value = useMemo(() => ({
-    featureFlagsService,
-    isFeatureEnabled,
-    isLoading,
-  }), [featureFlagsService, isLoading]);
-
-  return (
-    <FeatureFlagsContext.Provider value={value}>
-      {children}
-    </FeatureFlagsContext.Provider>
+  const value = useMemo(
+    () => ({
+      isFeatureEnabled,
+      isLoading,
+    }),
+    [isLoading]
   );
+
+  return <FeatureFlagsContext.Provider value={value}>{children}</FeatureFlagsContext.Provider>;
 };
