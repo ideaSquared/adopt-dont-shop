@@ -161,8 +161,18 @@ re-verify this section whenever a provider changes.
 - **Email delivery:** Resend (transactional email API). `services/notifications`
   selects the provider via `EMAIL_PROVIDER`; production permits only `resend`
   (`console` and `ethereal` are dev/test-only sinks and are refused at boot in
-  production — ADS-549). Location / transfer mechanism / DPA link: _pending —
-  see ADS-992_. The `SMTP_HOST`, `SENDGRID_API_KEY`, and AWS SES variables in
+  production — ADS-549). The `resend` provider config
+  (`services/notifications/src/config.ts`) takes only `RESEND_API_KEY` /
+  `DEFAULT_FROM_EMAIL` — there is no region/location parameter, so Resend's
+  data-processing location cannot be derived from this codebase.
+  - Location: _To be confirmed by DPO / vendor-contracts owner — [ADS-992]_.
+    Resend, Inc. is a US-incorporated vendor; the specific data-processing
+    region(s) must come from their DPA/sub-processor list, not this repo.
+  - Transfer mechanism (SCCs / adequacy): _To be confirmed by DPO / vendor-contracts
+    owner — [ADS-992]_.
+  - DPA link: _To be confirmed by DPO / vendor-contracts owner — [ADS-992]_.
+
+  The `SMTP_HOST`, `SENDGRID_API_KEY`, and AWS SES variables in
   `.env.example` are reserved for a possible future provider switch and are
   **not** wired into any code path today — they are not sub-processors.
 - **SMS delivery:** Not implemented. `lib.validation` accepts an
@@ -174,9 +184,28 @@ re-verify this section whenever a provider changes.
 - **File storage:** AWS S3 via `@adopt-dont-shop/storage`'s `S3StorageProvider`,
   optionally fronted by an Amazon CloudFront distribution
   (`CLOUDFRONT_DOMAIN`). Selected with `STORAGE_PROVIDER=s3` (`S3_BUCKET_NAME`,
-  `S3_REGION`, default `us-east-1`). Location / transfer mechanism / DPA link:
-  _pending — see ADS-992_. Local disk storage (`STORAGE_PROVIDER=local`, the
-  dev/test default) involves no third-party sub-processor.
+  `S3_REGION`).
+  - Location: the example/default value shipped in `.env.example` and
+    `docs/env-reference.md` is `S3_REGION=us-east-1` (US East, N. Virginia).
+    That is a config default, not a confirmed production value — this repo
+    has no record of the region/account actually configured for the live
+    bucket. _Actual deployed bucket region and AWS account to be confirmed by
+    Infrastructure/DevOps — [ADS-992]_.
+  - Transfer mechanism (SCCs / adequacy): AWS incorporates its GDPR Data
+    Processing Addendum — which itself incorporates the EU Standard
+    Contractual Clauses / UK International Data Transfer Addendum for
+    transfers outside the UK/EEA — into the AWS Customer Agreement by
+    default for all customers; this is a standing AWS policy, not something
+    negotiated per-customer. _Confirmation that this addendum is in effect
+    for our AWS account (and the acceptance record) to be supplied by DPO /
+    vendor-contracts owner — [ADS-992]_.
+  - DPA link: _To be confirmed by DPO / vendor-contracts owner — [ADS-992]_.
+    AWS publishes its standard DPA via the AWS GDPR Center; the owner should
+    record the specific accepted version/link here rather than have this
+    doc infer one.
+
+  Local disk storage (`STORAGE_PROVIDER=local`, the dev/test default)
+  involves no third-party sub-processor.
 
 ## Review log
 
