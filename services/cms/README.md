@@ -1,118 +1,84 @@
 # service.cms
 
+## Purpose
+
 Content management for public-facing pages — help articles, blog posts, static
-pages — and navigation menus. CMS owns the content lifecycle (draft → published
-→ unpublished → archived) with per-edit version history, serves the **public**
+pages — and navigation menus. Owns the content lifecycle (draft → published →
+unpublished → archived) with per-edit version history, serves the **public**
 read surface unauthenticated, and gates all authoring behind `cms.*`
-permissions.
+permissions. Owns the `cms` schema.
 
-## Responsibility
+## Location in the architecture
 
-- Owns the `cms` Postgres schema: content rows (with version history) and
-  navigation-menu trees.
-- Public read API: list / get published content by slug — no auth.
-- Admin authoring: create / update / delete content, publish / unpublish /
-  archive, view + restore versions, and CRUD navigation menus.
-- Publishes content + menu lifecycle events on NATS for downstream consumers
-  (e.g. search indexing, cache invalidation) and participates in the GDPR
-  erasure saga.
+See [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../../docs/infrastructure/MICROSERVICES-STANDARDS.md)
+for the shared service boundaries / ownership model. Self-contained — **no**
+outbound cross-service gRPC calls. Publishes content + menu lifecycle events on
+NATS for downstream consumers (search indexing, cache invalidation). Depends on
+the shared backend packages `@adopt-dont-shop/{authz, config-secrets, db,
+events, lib.types, observability, proto, service-bootstrap}`.
 
-## Schema (`cms`)
+## Scripts
 
-| Table | Purpose |
-| --- | --- |
-| `cms_content` | Pages / blog posts / help articles. Holds status (`draft`/`published`/`archived`), slug, body, and per-edit version history. |
-| `cms_navigation_menus` | Navigation menu trees (nestable items). |
+```bash
+pnpm dev          # tsx watch — starts the HTTP + gRPC servers
+pnpm build        # tsc build
+pnpm start        # run the built server
+pnpm test         # Vitest (run mode)
+pnpm db:migrate   # run pending migrations (node-pg-migrate)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
+```
 
-Migrations: `services/cms/src/migrations/001_create_cms_content.ts`,
-`002_create_cms_navigation_menus.ts`, `003_cms_content_author_nullable.ts`.
+## REST / gRPC contract
 
-## gRPC RPCs
-
-`CmsService` (`packages/proto/proto/adopt_dont_shop/cms/v1/cms.proto`). Admin /
-super_admin short-circuit the permission check.
+HTTP surface: `/health/simple`. Everything else is gRPC `CmsService`
+(`packages/proto/proto/adopt_dont_shop/cms/v1/cms.proto`), proxied by the
+gateway under `/api/v1/cms/*`. Admin / `super_admin` short-circuit the
+permission check.
 
 | RPC | Permission |
 | --- | --- |
-| `ListPublicContent` | none (public) |
-| `GetPublicContentBySlug` | none (public) |
-| `ListContent` | `cms.content.read` |
-| `GetContent` | `cms.content.read` |
-| `GetContentBySlug` | `cms.content.read` |
+| `ListPublicContent` / `GetPublicContentBySlug` | none (public) |
+| `ListContent` / `GetContent` / `GetContentBySlug` / `GetVersionHistory` | `cms.content.read` |
 | `CreateContent` | `cms.content.create` |
-| `UpdateContent` | `cms.content.update` |
+| `UpdateContent` / `RestoreVersion` | `cms.content.update` |
 | `DeleteContent` | `cms.content.delete` |
-| `PublishContent` | `cms.content.publish` |
-| `UnpublishContent` | `cms.content.publish` |
-| `ArchiveContent` | `cms.content.publish` |
-| `GetVersionHistory` | `cms.content.read` |
-| `RestoreVersion` | `cms.content.update` |
-| `ListMenus` | `cms.menu.read` |
-| `GetMenu` | `cms.menu.read` |
+| `PublishContent` / `UnpublishContent` / `ArchiveContent` | `cms.content.publish` |
+| `ListMenus` / `GetMenu` | `cms.menu.read` |
 | `CreateMenu` | `cms.menu.create` |
 | `UpdateMenu` | `cms.menu.update` |
 | `DeleteMenu` | `cms.menu.delete` |
 
-## NATS subjects
+Schema (`cms`): `cms_content` (pages / posts / help articles with status +
+per-edit version history) and `cms_navigation_menus` (nestable menu trees).
+Migrations: `src/migrations/001`–`003`.
 
-All published after the DB transaction commits (publish-after-commit).
+**NATS** — emits (publish-after-commit): `cms.contentCreated`,
+`cms.contentUpdated`, `cms.contentDeleted`, `cms.contentPublished`,
+`cms.contentUnpublished`, `cms.contentArchived`, `cms.contentRestored`,
+`cms.menuCreated`, `cms.menuUpdated`, `cms.menuDeleted`. Consumes
+`gdpr.erasureRequested` (erases the user's CMS-authored rows, then publishes
+`gdpr.erasureCompleted`; durable `gdpr-cms`).
 
-**Emits:**
+## Environment variables consumed
 
-| Subject | When |
-| --- | --- |
-| `cms.contentCreated` | `CreateContent` |
-| `cms.contentUpdated` | `UpdateContent` |
-| `cms.contentDeleted` | `DeleteContent` |
-| `cms.contentPublished` | `PublishContent` |
-| `cms.contentUnpublished` | `UnpublishContent` |
-| `cms.contentArchived` | `ArchiveContent` |
-| `cms.contentRestored` | `RestoreVersion` |
-| `cms.menuCreated` | `CreateMenu` |
-| `cms.menuUpdated` | `UpdateMenu` |
-| `cms.menuDeleted` | `DeleteMenu` |
+`DATABASE_URL` is **required** (boot fails fast without it). `CMS_PORT`
+(5010), `CMS_GRPC_PORT` (6010), `CMS_HOST`, `CMS_SCHEMA` (`cms`), and
+`NATS_URL` have dev defaults, plus the standard
+`@adopt-dont-shop/observability` vars. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
-**Consumes:**
+## Testing notes
 
-| Subject | Effect |
-| --- | --- |
-| `gdpr.erasureRequested` | Erases the requesting user's CMS-authored rows in a transaction, then publishes `gdpr.erasureCompleted` (durable `gdpr-cms` consumer). |
+Vitest. Handlers are pure functions `(deps, principal, request) →
+Promise<response>` with the DB pool + NATS injected — assert every
+PERMISSION_DENIED / INVALID_ARGUMENT / NOT_FOUND path, the
+public-vs-authenticated split, version-history capture + restore, and
+publish-after-commit ordering (the event fires only after `COMMIT`). See
+[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+conventions.
 
-## Dependencies
+## Ownership
 
-Workspace packages: `@adopt-dont-shop/{authz, config-secrets, db, events,
-lib.types, observability, proto, service-bootstrap}`.
-
-Cross-service gRPC calls: **none** — CMS is self-contained.
-
-## Configuration
-
-| Env var | Default | Required | Purpose |
-| --- | --- | --- | --- |
-| `CMS_PORT` | `5010` | | HTTP port for `/health/simple`. |
-| `CMS_GRPC_PORT` | `6010` | | gRPC port `CmsService` binds. |
-| `CMS_HOST` | `0.0.0.0` | | Bind interface. |
-| `CMS_SCHEMA` | `cms` | | Postgres schema (override for parallel test DBs). |
-| `DATABASE_URL` | — | ✅ | Postgres connection string. |
-| `NATS_URL` | `nats://nats:4222` | | NATS bus URL. |
-| `NODE_ENV` | `development` | | Surfaces in health + logs. |
-
-Plus the standard observability env vars consumed by
-`@adopt-dont-shop/observability`.
-
-## Testing strategy
-
-Vitest (`pnpm test`). Handlers are pure functions `(deps, principal, request) →
-Promise<response>` with the DB pool + NATS injected, so tests assert behaviour
-directly: every PERMISSION_DENIED / INVALID_ARGUMENT / NOT_FOUND path, the
-public-vs-authenticated split, version-history capture + restore, and the
-publish-after-commit ordering (the event fires only after `COMMIT`). The gRPC
-adapter and NATS transport are thin and exercised at the edges.
-
-## Running
-
-```bash
-pnpm dev      # hot reload
-pnpm build && pnpm start
-pnpm db:migrate
-```
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/services/`.

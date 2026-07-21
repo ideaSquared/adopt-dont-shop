@@ -1,106 +1,64 @@
 # @adopt-dont-shop/lib.chat
 
-Real-time chat and messaging functionality built on Socket.IO.
+## Purpose
 
-Consumed as a workspace dependency. Reference with `"*"` in a package's `dependencies` — `pnpm install` at the repo root links it automatically.
+Real-time chat and messaging for the frontend apps, built on Socket.IO. Provides
+a `ChatService` client (REST + WebSocket), connection-status and unread-indicator
+React hooks, admin React Query hooks, and the message/conversation types.
 
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib.chat": "*"
-  }
-}
-```
+## Location in the architecture
 
-## Exports
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+libraries sit. Connects to the gateway's Socket.IO edge (which terminates the
+WebSocket and fans out `chat.*` events from
+[`service.chat`](../../services/chat/README.md)). `useUnreadConversations` is
+the single source of truth for unread badges across `app.client`, `app.rescue`,
+and `app.admin`, and must be called inside a `ChatProvider`.
 
-See `src/index.ts` for the authoritative list. Primary entry points:
-
-- **`ChatService`** — class-based client for REST + WebSocket messaging. Construct with a `ChatServiceConfig` or leave defaults.
-- **`useConnectionStatus(chatService)`** — React hook that tracks connect / reconnect / disconnect / error state.
-- **`useUnreadConversations()`** — React hook that returns `{ totalUnread, unreadByConversationId, markRead }`. Single source of truth for unread-message indicators across `app.client`, `app.rescue`, and `app.admin`. See [Unread indicators](#unread-indicators) below.
-- **Admin React Query hooks** — `useAdminChats`, `useAdminChatById`, `useAdminChatMessages`, `useAdminChatStats`, `useAdminSearchChats`, `useAdminChatMutations`.
-- **Types** — `Conversation`, `Message`, `Participant`, `MessageAttachment`, `TypingIndicator`, `MessageReaction`, `MessageReadReceipt`, `MessageDeliveryStatus`, `ReconnectionConfig`, `QueuedMessage`, plus response shapes (`BaseResponse`, `ErrorResponse`, `PaginatedResponse`).
-
-## Quick start
-
-```typescript
-import { ChatService, useConnectionStatus } from '@adopt-dont-shop/lib.chat';
-
-const chat = new ChatService({
-  socketUrl: import.meta.env.VITE_WS_BASE_URL,
-  debug: import.meta.env.DEV,
-  reconnection: { enabled: true, initialDelay: 1000, maxDelay: 30000, maxAttempts: 10 },
-  enableMessageQueue: true,
-  maxQueueSize: 50,
-});
-
-chat.connect(userId, authToken);
-
-chat.onMessage((message) => { /* … */ });
-chat.onTyping((typing) => { /* … */ });
-chat.onConnectionStatusChange((status) => { /* … */ });
-
-await chat.sendMessage(conversationId, 'Hello!');
-```
-
-Inside a React component:
-
-```tsx
-const { isConnected, isReconnecting, reconnectionAttempts } = useConnectionStatus(chat);
-```
-
-## Unread indicators
-
-`useUnreadConversations` is the single source of truth for unread-message badges across the apps. Wire `ChatProvider` once at the app root, then call the hook anywhere underneath.
-
-```tsx
-import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
-
-const { totalUnread, unreadByConversationId, markRead } = useUnreadConversations();
-
-// Aggregate header badge:
-<Badge count={totalUnread} />;
-
-// Per-conversation badge:
-const count = unreadByConversationId[conversationId] ?? 0;
-
-// Clear after the user opens a thread:
-await markRead(conversationId);
-```
-
-**Signature**
-
-```ts
-type UseUnreadConversationsResult = {
-  totalUnread: number;
-  unreadByConversationId: Readonly<Record<string, number>>;
-  markRead: (conversationId: string) => Promise<void>;
-};
-```
-
-**Real-time updates** — the hook reads `conversations` from `ChatProvider`, which is already kept in sync with the chat socket. New messages bump `unreadCount` on the affected conversation; the backend's `messages_read` event clears it. No polling, no manual refresh.
-
-**Cross-tab sync** — `markRead` posts a `{ type: 'mark-read', conversationId }` message to a `BroadcastChannel` named `adopt-dont-shop:chat:unread` (also exported as `UNREAD_BROADCAST_CHANNEL`). Other tabs of the same origin listen on the channel and mirror the local clear, so a badge cleared in one tab clears in every other open tab. In environments without `BroadcastChannel` the hook silently skips the broadcast — the in-tab state still updates normally.
-
-**Provider requirement** — must be called inside a `ChatProvider`. Without one it throws the same `useChat must be used within a ChatProvider` error as the rest of the library.
-
-## Scripts (from `lib.chat/`)
+## Scripts
 
 ```bash
-pnpm build           # tsc
-pnpm dev             # tsc --watch
-pnpm test                # vitest run
-pnpm test:watch
-pnpm test:coverage
-pnpm lint
-pnpm type-check
+pnpm dev          # tsc --watch
+pnpm build        # tsc build
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
 ```
 
-## Resources
+## Public API / exports
 
-- Source of truth for exports: [src/index.ts](./src/index.ts)
-- Service implementation: [src/services/chat-service.ts](./src/services/chat-service.ts)
+The canonical list lives in [`src/index.ts`](src/index.ts):
+
+- `ChatService` — class client constructed with `ChatServiceConfig`
+  (`socketUrl`, `reconnection`, `enableMessageQueue`, …); `connect`,
+  `sendMessage`, `onMessage` / `onTyping` / `onConnectionStatusChange`.
+- Hooks: `useConnectionStatus(chatService)`, `useUnreadConversations()`
+  (`{ totalUnread, unreadByConversationId, markRead }` — real-time via the
+  provider, cross-tab via the `UNREAD_BROADCAST_CHANNEL` `BroadcastChannel`),
+  and the admin React Query hooks (`useAdminChats`, `useAdminChatById`,
+  `useAdminChatMessages`, `useAdminChatStats`, `useAdminSearchChats`,
+  `useAdminChatMutations`).
+- Types: `Conversation`, `Message`, `Participant`, `MessageAttachment`,
+  `TypingIndicator`, `MessageReaction`, `MessageReadReceipt`,
+  `ReconnectionConfig`, `QueuedMessage`, plus response shapes.
+
+## Environment variables consumed
+
+None read directly — the `socketUrl` (typically `VITE_WS_BASE_URL`) is passed
+into `ChatServiceConfig` by the consuming app. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
+
+## Testing notes
+
+Vitest + React Testing Library — the service (reconnection, message queue) is
+tested against a mock socket, and the hooks with RTL under a `ChatProvider`. See
+[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+library-specific.
+
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.
 
 <!-- CONSUMERS:START (auto-generated by scripts/generate-dependency-docs.mjs — do not edit by hand) -->
 ## Consumers

@@ -1,64 +1,65 @@
 # @adopt-dont-shop/storage
 
-Config-injected file storage abstraction for backend microservices. A single
-`StorageProvider` contract backed by two implementations — local filesystem and
-S3 — extracted from `service.backend`'s storage service with no coupling to the
-monolith's global config, logger, or uuid helpers.
+## Purpose
 
-## Usage
+Config-injected file-storage abstraction for the backend microservices: a
+single `StorageProvider` contract backed by two implementations — local
+filesystem and S3 — extracted from `service.backend`'s storage service with no
+coupling to a global config, logger, or uuid helper. Malware/AV scanning is
+intentionally out of scope (a documented follow-up; wire a scan step in front of
+`uploadFile`).
 
-```ts
-import { createStorageProvider, type StorageConfig } from '@adopt-dont-shop/storage';
+This is a service-only shared package (not a `lib.*`) — used today by the
+gateway's uploads surface. See the decision tree in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md#where-does-my-code-go).
 
-const config: StorageConfig = {
-  provider: 's3', // or 'local'
-  local: { directory: 'uploads', publicPath: '/uploads' },
-  s3: {
-    bucket: process.env.S3_BUCKET_NAME,
-    region: process.env.S3_REGION,
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    cloudFrontDomain: process.env.CLOUDFRONT_DOMAIN,
-  },
-  // Optional: any object with info/warn/error. Defaults to a no-op.
-  logger: console,
-};
+## Location in the architecture
 
-const storage = createStorageProvider(config);
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+packages sit. The gateway constructs a provider from its own storage config and
+serves the `/api/v1/uploads/*` + signed-serve surface through it.
 
-const { url, filename, size } = await storage.uploadFile(
-  buffer,
-  'photo.jpg',
-  'image/jpeg',
-  'pets'
-);
+## Scripts
+
+```bash
+pnpm build        # tsc build
+pnpm dev          # tsc --watch
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
 ```
 
-## Contract
+## Public API / exports
 
-`StorageProvider` exposes `uploadFile`, `deleteFile`, `getFileInfo`, `getName`,
-`validateConfiguration`, `supportsSignedUrls`, and `getSignedUrl`.
+The canonical list lives in [`src/index.ts`](src/index.ts):
 
-- **Local** processes `image/*` content through sharp (resize >1920px, convert
-  to JPEG) and writes to disk under `<directory>/<category>/`. Non-image content
-  (e.g. `application/pdf`) is stored untouched. `supportsSignedUrls()` is
-  `false`; `getSignedUrl()` throws.
-- **S3** uploads with SSE-S3 and `Content-Disposition: attachment` for
-  non-image content, and mints short-lived signed URLs via the presigner.
-  `supportsSignedUrls()` is `true`.
+- `createStorageProvider(config)` + `StorageConfig` — factory selecting the
+  `local` or `s3` provider from injected config (no global import; logging via
+  an optional `{ info?, warn?, error? }`, default no-op).
+- `StorageProvider` contract: `uploadFile`, `deleteFile`, `getFileInfo`,
+  `getName`, `validateConfiguration`, `supportsSignedUrls`, `getSignedUrl`.
 
-## Decoupling notes
+Local processes `image/*` through sharp (resize >1920px → JPEG, pixel cap
+`100_000_000`), stores other content untouched, and does not support signed
+URLs. S3 uploads with SSE-S3 + `Content-Disposition: attachment` for non-image
+content and mints short-lived signed URLs.
 
-- Config is injected via `createStorageProvider(config)` — there is no global
-  config import.
-- Filenames use `node:crypto`'s `randomUUID()`.
-- Logging goes through an optional minimal logger (`{ info?, warn?, error? }`),
-  defaulting to a no-op.
-- The sharp pixel cap is a hard-coded `MAX_IMAGE_PIXELS = 100_000_000`.
+## Environment variables consumed
 
-## Out of scope: malware / AV scanning
+None directly — the caller passes `StorageConfig`. When using the S3 provider,
+callers typically source `S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, and `CLOUDFRONT_DOMAIN` into that config. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
-Antivirus scanning is **not** included in this package — the monolith's AV
-providers are intentionally not ported. Consumers (e.g. the gateway) use this
-package without AV for now. Wiring a scanning step in front of `uploadFile` is a
-documented follow-up.
+## Testing notes
+
+Vitest — the local provider is tested against a temp directory (image
+processing, non-image passthrough, signed-URL rejection); the S3 provider is
+tested with the AWS SDK client stubbed. See
+[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+conventions.
+
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.

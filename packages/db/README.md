@@ -1,51 +1,63 @@
 # @adopt-dont-shop/db
 
-Postgres client + migration runner for backend microservices.
+## Purpose
 
-Bakes in the four CAD-lesson fixes so every service that adds Postgres
-gets the working setup from day one:
+Postgres client + `node-pg-migrate` runner for the backend microservices. Bakes
+in the four CAD-lesson fixes so every service that adds Postgres gets a working
+setup from day one, plus the `schema`/`public` `search_path` for PostGIS
+compatibility.
 
-1. **`createSchema: true`** (CAD lesson #1) — the runner creates its
-   `pgmigrations` bookkeeping table inside the service schema; without
-   this, services crash-loop on first boot with
-   `schema "<x>" does not exist`.
-2. **Output-path discipline** (CAD lesson #2) — callers must point
-   `migrationsDir` at a path that resolves identically in dev (`tsx`)
-   and prod (bundled). The CAD fix was a `tsup` `entry:` remap to
-   `dist/migrations/<name>.js`; mirror that in any service that bundles.
-3. **`ignorePattern: '(\\..*|.*\\.map)'`** (CAD lesson #3) — without
-   this the runner's directory scan picks up `.js.map` sidecars and
-   tries to `import()` them, dying with `ERR_UNKNOWN_FILE_EXTENSION`.
-4. **Retry-with-linear-backoff** (CAD lesson #9) — `node-pg-migrate`
-   takes a database-wide advisory lock around `pgmigrations`. When N
-   services boot together, losers throw
-   _"Another migration is already running"_ and crash. The runner
-   doesn't expose a wait-for-lock option, so we retry up to 12 attempts
-   with a 250 ms × attempt backoff.
+This is a service-only shared package (not a `lib.*`) — imported by
+`services/*` boot + handlers. See the decision tree in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md#where-does-my-code-go).
 
-Plus the schema/public `search_path` for PostGIS compatibility
-(CAD lesson from PR #48 — without `public` on the path, `geography`
-types and the `<->` KNN operator are invisible).
+## Location in the architecture
 
-## Usage
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+packages sit. Every schema-owning service migrates through `runMigrations` at
+boot and queries through `createDbClient`; `@adopt-dont-shop/seed-faker` runs
+its bulk inserts over the same client.
 
-```ts
-import { createDbClient, runMigrations } from '@adopt-dont-shop/db';
+## Scripts
 
-// On boot:
-await runMigrations({
-  databaseUrl: process.env.DATABASE_URL!,
-  schema: 'pets',
-  migrationsDir: new URL('./migrations/', import.meta.url).pathname,
-});
-
-// In handlers:
-const db = createDbClient({
-  connectionString: process.env.DATABASE_URL,
-  schema: 'pets',
-});
-const result = await db.query('SELECT id FROM pets WHERE status = $1', ['available']);
+```bash
+pnpm build        # tsc build
+pnpm dev          # tsc --watch
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
 ```
 
-`search_path` is set automatically on every new connection — unqualified
-table refs resolve service-locally; PostGIS types stay reachable in `public`.
+## Public API / exports
+
+The canonical list lives in [`src/index.ts`](src/index.ts):
+
+- `createDbClient({ connectionString, schema })` — a pooled client that sets
+  `search_path` on every new connection (unqualified table refs resolve
+  service-locally; PostGIS types stay reachable in `public`).
+- `runMigrations({ databaseUrl, schema, migrationsDir })` — the migration
+  runner with the CAD-lesson fixes baked in.
+
+The four baked-in fixes: `createSchema: true` (runner creates its
+`pgmigrations` table inside the service schema — CAD #1); output-path
+discipline so `migrationsDir` resolves identically in dev/prod (CAD #2);
+`ignorePattern: '(\\..*|.*\\.map)'` so `.js.map` sidecars aren't `import()`ed
+(CAD #3); and retry-with-linear-backoff around `node-pg-migrate`'s
+database-wide advisory lock so services booting together don't crash (CAD #9,
+up to 12 attempts × 250 ms).
+
+## Environment variables consumed
+
+None directly — callers pass `databaseUrl` / `connectionString` (typically
+their own `DATABASE_URL`). See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the shared list.
+
+## Testing notes
+
+Vitest. See [`docs/backend/testing.md`](../../docs/backend/testing.md) for
+shared conventions.
+
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.

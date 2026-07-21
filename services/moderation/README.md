@@ -1,133 +1,94 @@
 # service.moderation
 
-Moderation vertical — Phase 8 of the microservices migration.
-
-Owns the `moderation.*` schema (Report, ReportStatusTransition,
-ModeratorAction, ModerationEvidence, UserSanction, SupportTicket,
-SupportTicketResponse) and exposes `ModerationService` over gRPC. Cross-cutting reads via
-gRPC; consumes events (`chat.messageCreated`, `pets.created`,
-`applications.submitted`) for content scanning + auto-report triggers.
-
-## What's shipped so far
-
-**Phase 8.1** — boot skeleton: `/health/simple` on `MODERATION_PORT`
-(default 5007), OpenTelemetry boot, env-validated config.
-
-**Phase 8.2** — `moderation.*` schema + migrations:
-- `001_create_reports.ts` — reports with polymorphic
-  (reported_entity_type, reported_entity_id).
-- `002_create_report_status_transitions.ts` — append-only history
-  feeding back into `reports.status`.
-- `003_install_report_status_propagation_trigger.ts` — AFTER
-  INSERT trigger that updates `reports.status` from
-  `to_status`; DB owns the invariant.
-- `004_create_moderator_actions.ts` — append-only history with
-  `acknowledged_at` folded in from monolith migration 08.
-- `005_create_moderation_evidence.ts` — polymorphic via
-  (parent_type, parent_id) where parent_type is the enum
-  discriminator.
-- `006_create_user_sanctions.ts` — append-only sanction history
-  with appeal + revocation columns and the
-  `(user_id, is_active, end_date)` hot-path compound idx.
-- `007_create_support_tickets.ts` — text[] tags with GIN idx,
-  status/priority/category enums.
-- `008_create_support_ticket_responses.ts` — paranoid with
-  `deleted_at` idx, intra-schema FK to support_tickets with
-  CASCADE.
-- Run via `pnpm db:migrate` (uses `@adopt-dont-shop/db` —
-  inherits all four CAD-lesson fixes).
-
-## What's NOT here yet
-
-- **Phase 8.3** — gRPC `ModerationService` (file-report, moderator
-  action, evidence upload, user sanction, support ticket).
-- **Phase 8.4** — NATS subscribers on `chat.messageCreated`,
-  `pets.created`, `applications.submitted`.
-- **Phase 8.5** — Gateway routes `/api/moderation/*`.
-- **Phase 8.6** — Cutover.
-
-## Configuration
-
-| Env var                | Default            | Required | Purpose                         |
-| ---------------------- | ------------------ | -------- | ------------------------------- |
-| `MODERATION_PORT`      | `5007`             |          | HTTP port for `/health/simple`. |
-| `MODERATION_GRPC_PORT` | `6007`             |          | gRPC port (Phase 8.3c).         |
-| `MODERATION_HOST`      | `0.0.0.0`          |          | Bind interface.                 |
-| `MODERATION_SCHEMA`    | `moderation`       |          | Postgres schema.                |
-| `DATABASE_URL`         | —                  | ✅       | Postgres connection string.     |
-| `NATS_URL`             | `nats://nats:4222` |          | NATS bus URL.                   |
-| `NODE_ENV`             | `development`      |          | Surfaces in health + logs.      |
-
----
-
-## Canonical reference (ADS-817)
-
-### Responsibility
+## Purpose
 
 Owns content moderation and user discipline: report filing, moderator
 assignment / resolution, logged moderator actions + evidence, user sanctions
 (warnings, restrictions, bans) + appeals, and support tickets. Subscribes to
 content events from other services to auto-scan and auto-file reports as the
-system user. Schema: `moderation`.
+system user. Owns the `moderation.*` schema.
 
-### Schema (`moderation`)
+## Location in the architecture
 
-| Table | Purpose |
-| --- | --- |
-| `reports` | User/staff/system-filed reports of violations. |
-| `report_status_transitions` | Report state-change audit. |
-| `moderator_actions` | Logged actions (warn, remove, suspend, ban, restrict). |
-| `moderation_evidence` | Polymorphic evidence attached to reports/actions. |
-| `user_sanctions` | Sanctions — warning / restriction / temporary or permanent ban. |
-| `support_tickets` | User support requests. |
-| `support_ticket_responses` | Staff + user responses on a ticket. |
+See [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../../docs/infrastructure/MICROSERVICES-STANDARDS.md)
+for the shared service boundaries / ownership model. No outbound cross-service
+gRPC calls (cross-cutting composition is done at the gateway); instead it
+consumes content events from other services. Depends on the shared backend
+packages `@adopt-dont-shop/{authz, config-secrets, db, events, lib.types,
+observability, proto, service-bootstrap}`.
 
-Migrations: `services/moderation/src/migrations/001`–`011` (003 installs a
-status-propagation trigger).
+## Scripts
 
-### gRPC RPCs
+```bash
+pnpm dev          # tsx watch — starts the HTTP + gRPC servers
+pnpm build        # tsc build
+pnpm start        # run the built server
+pnpm test         # Vitest (run mode)
+pnpm db:migrate   # run pending migrations (node-pg-migrate)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
+```
 
-`ModerationService`. `super_admin` / admin bypass.
+## REST / gRPC contract
+
+HTTP surface: `/health/simple`. Everything else is gRPC `ModerationService`
+(`packages/proto`), proxied by the gateway under `/api/v1/moderation/*`,
+`/api/v1/admin/{moderation,support}/*`, `/api/v1/admin/inbox`, and
+`/api/v1/support/*`. `super_admin` / admin bypass.
 
 | RPC | Permission |
 | --- | --- |
-| `FileReport` | authenticated (any user) |
-| `GetReport` | `moderation.reports.view` (reporter may read own) |
-| `ListReports` | `moderation.reports.view` |
-| `AssignReport` | `moderation.reports.manage` |
-| `ResolveReport` | `moderation.reports.manage` |
-| `LogModeratorAction` | `moderation.actions.manage` |
-| `ListModeratorActions` | `moderation.actions.manage` |
-| `AddEvidence` | `moderation.actions.manage` |
+| `FileReport` / `OpenSupportTicket` | authenticated (any user) |
+| `GetReport` / `ListReports` | `moderation.reports.view` (reporter may read own) |
+| `AssignReport` / `ResolveReport` | `moderation.reports.manage` |
+| `LogModeratorAction` / `ListModeratorActions` / `AddEvidence` | `moderation.actions.manage` |
 | `IssueSanction` | `moderation.sanctions.manage` |
 | `ListUserSanctions` | self-scoped; `moderation.sanctions.manage` for others |
 | `AppealSanction` | self-scoped (the sanctioned user) |
-| `OpenSupportTicket` | authenticated (any user) |
-| `GetSupportTicket` | owner, or `moderation.tickets.manage` |
+| `GetSupportTicket` / `RespondToTicket` | owner, or `moderation.tickets.manage` |
 | `ListSupportTickets` | self-scoped; `moderation.tickets.manage` for all |
-| `RespondToTicket` | owner, or `moderation.tickets.manage` |
 
-### NATS subjects
+Schema (`moderation`): `reports`, `report_status_transitions`,
+`moderator_actions`, `moderation_evidence` (polymorphic), `user_sanctions`,
+`support_tickets`, `support_ticket_responses`. Migrations:
+`src/migrations/001`–`011` (003 installs a status-propagation trigger).
 
-**Emits** (publish-after-commit): `moderation.reportFiled`,
+**NATS** — emits (publish-after-commit): `moderation.reportFiled`,
 `moderation.reportAssigned`, `moderation.reportResolved`,
 `moderation.actionLogged`, `moderation.sanctionIssued`,
-`moderation.sanctionAppealed`, `moderation.ticketOpened`. Plus
-`gdpr.erasureCompleted` as a saga participant.
+`moderation.sanctionAppealed`, `moderation.ticketOpened`; participates in the
+`gdpr.erasureCompleted` saga. Consumes `chat.messageCreated`, `pets.created`,
+`applications.submitted` (content scanning → auto-report), and
+`gdpr.erasureRequested` (durable `gdpr-moderation`).
 
-**Consumes:** `chat.messageCreated`, `pets.created`, `applications.submitted`
-(content scanning → auto-report), and `gdpr.erasureRequested` (durable
-`gdpr-moderation`).
+## Environment variables consumed
 
-### Dependencies
+`DATABASE_URL` is **required** (boot fails fast without it). `MODERATION_PORT`
+(5007), `MODERATION_GRPC_PORT` (6007), `MODERATION_HOST`, `MODERATION_SCHEMA`
+(`moderation`), and `NATS_URL` have dev defaults, plus the standard
+`@adopt-dont-shop/observability` vars. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
-`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
-proto, service-bootstrap}`. No cross-service gRPC calls (composition done at the
-gateway).
+## Testing notes
 
-### Testing strategy
+Vitest. Pure handlers split per surface (reports / actions+evidence /
+sanctions / tickets) with pool + NATS injected — assert each permission gate +
+self-scope exception, the report/sanction state machines, the content-scanner
+auto-report path, and publish-after-commit ordering. See
+[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+conventions.
 
-Vitest. Pure handlers split per surface (reports / actions+evidence / sanctions
-/ tickets) with pool + NATS injected — assert each permission gate + self-scope
-exception, the report/sanction state machines, the content-scanner auto-report
-path, and publish-after-commit ordering.
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/services/`.
+
+---
+
+## Migration history
+
+Moderation was the Phase 8 extraction: boot skeleton (8.1), the `moderation.*`
+schema with its status-propagation trigger (8.2), the gRPC `ModerationService`
+(8.3), the `chat.messageCreated` / `pets.created` / `applications.submitted`
+auto-scan subscribers (8.4), gateway routes (8.5), and the monolith cutover
+(8.6).

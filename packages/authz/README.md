@@ -1,92 +1,70 @@
 # @adopt-dont-shop/authz
 
-Backend-side authorisation helpers for the extracted microservices.
-**Mirrors adopt-dont-shop's existing permission-string model** — same
-`Permission` type from `lib.types`, same DB-driven Role → Permission
-chain, same `super_admin` short-circuit. No new vocabulary, no CASL.
+## Purpose
 
-## Why this package exists
+Backend-side authorisation helpers for the extracted microservices. **Mirrors
+adopt-dont-shop's existing permission-string model** — same `Permission` type
+from `lib.types`, same DB-driven Role → Permission chain, same `super_admin`
+short-circuit. No new vocabulary, no CASL. The frontend `PermissionsService`
+(in `lib.permissions`) asks the backend "does this user have permission X?";
+each extracted service needs the same answer locally without round-tripping the
+auth service every request — this package is that local, synchronous check.
 
-The frontend `PermissionsService` (in `lib.permissions`) calls the
-backend to ask "does this user have permission X?". Each extracted
-service (`services/auth`, `services/pets`, `services/rescue`, …) needs
-the same answer locally without round-tripping the auth service every
-request. This package is that local check.
+This is a service-only shared package (not a `lib.*`) — imported by
+`services/*` gRPC handlers. See the decision tree in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md#where-does-my-code-go).
 
-The principal arrives via gRPC metadata (`x-user-id`, `x-user-roles`,
-`x-user-permissions`, `x-rescue-id`) — populated at the gateway edge
-from the auth service's session lookup — and every downstream service
-runs `hasPermission(principal, '<perm>')` synchronously.
+## Location in the architecture
 
-## API
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+packages sit. The principal arrives via gRPC metadata (`x-user-id`,
+`x-user-roles`, `x-user-permissions`, `x-rescue-id`) — populated at the gateway
+edge from `service.auth`'s session lookup — and every downstream service runs
+`hasPermission(principal, '<perm>')` synchronously. `lib.types` owns the
+`Permission` / `UserRole` types (source of truth); `lib.permissions` owns the
+frontend-side services; this package is the backend complement, not a
+replacement.
 
-### `Principal`
+## Scripts
 
-```ts
-type Principal = {
-  userId: UserId;
-  roles: UserRole[];          // for super_admin short-circuit
-  permissions: Permission[];  // authoritative — sourced from DB
-  rescueId?: RescueId;        // tenant key for rescue_staff / admin
-};
+```bash
+pnpm build        # tsc build
+pnpm dev          # tsc --watch
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
 ```
 
-`permissions` is the authoritative source of truth. `roles` is only
-consulted for the `super_admin` platform-superuser short-circuit; every
-other gate runs against the permissions array.
+## Public API / exports
 
-### `hasPermission(principal, permission)`
+The canonical list lives in [`src/index.ts`](src/index.ts):
 
-Pure permission membership check. `super_admin` short-circuits.
+- `Principal` type — `{ userId, roles, permissions, rescueId? }`. `permissions`
+  is authoritative; `roles` is consulted only for the `super_admin`
+  short-circuit.
+- `hasPermission(principal, permission)` — pure membership check;
+  `super_admin` short-circuits.
+- `requirePermission(principal, permission, scope?)` — permission check plus an
+  optional tenant/owner scope (`{ rescueId?, userId? }`, logical AND); throws
+  when the permission is absent or a scope key doesn't match the principal's
+  own value.
 
-```ts
-hasPermission(principal, 'pets.update');       // true if 'pets.update' ∈ permissions
-hasPermission(superAdmin, 'admin.audit_logs'); // true regardless of permissions array
-```
+Intentionally **not** here: field-level masking (that's
+`lib.permissions/FieldPermissionsService`), permission discovery/mutation (the
+auth service's job), and role-hierarchy logic (roles are flat).
 
-### `requirePermission(principal, permission, scope?)`
+## Environment variables consumed
 
-Permission check + optional tenant/owner scope check.
+None — every check is pure over the passed-in `Principal`.
 
-```ts
-// Plain check — no scope:
-requirePermission(principal, 'admin.audit_logs');
+## Testing notes
 
-// Rescue-scoped: principal.rescueId must equal scope.rescueId
-requirePermission(principal, 'pets.update', { rescueId: pet.rescueId });
+Vitest — the checks are pure functions, so the suite asserts each
+permission/scope/`super_admin` path directly with hand-built principals. See
+[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+conventions.
 
-// Self-only: principal.userId must equal scope.userId
-requirePermission(principal, 'applications.read', { userId: app.adopterId });
+## Ownership
 
-// Both — logical AND
-requirePermission(principal, 'applications.approve', {
-  rescueId: app.rescueId,
-  userId: app.assignedReviewerId,
-});
-```
-
-Returns `true` when:
-- the principal has the `super_admin` role, OR
-- the permission is in the principal's permissions array AND every
-  supplied scope key matches the principal's own value.
-
-## Relationship to other packages
-
-- **`lib.types`** owns the `Permission` / `UserRole` types. Source of
-  truth.
-- **`lib.permissions`** owns the frontend-side service (`PermissionsService`,
-  `FieldPermissionsService`). Continues to exist; this package is the
-  backend complement, not a replacement.
-- **`service.auth`** (Phase 2 — not yet built) will build the
-  `permissions: Permission[]` array from the DB at login time and return
-  it in the session payload that flows downstream.
-
-## What's NOT here (intentionally)
-
-- **Field-level permissions.** `lib.permissions/FieldPermissionsService`
-  already handles per-field read/write masking via the `FieldPermission`
-  model. This package is action-level only.
-- **Permission discovery / mutation.** Listing or granting permissions is
-  the auth service's job — this package only *checks* them.
-- **Role hierarchy logic.** Roles are flat; the only role-aware rule is
-  the `super_admin` short-circuit.
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.

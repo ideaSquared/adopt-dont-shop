@@ -1,125 +1,73 @@
 # @adopt-dont-shop/observability
 
-Shared observability bootstrap for backend microservices.
+## Purpose
 
-**Mirrors `service.backend`'s existing telemetry stack** — same SDK
-versions, same env var contract, same redaction rules — with the
-service name parameterised so each extracted service gets the
-identical instrumentation with one call.
+Shared observability bootstrap for the backend microservices — OpenTelemetry
+(OTLP/HTTP), Sentry (Node + profiling), and a Winston logger with optional Loki
+shipping, plus PII/secret redaction. The service name is parameterised so every
+extracted service gets the identical telemetry stack (same SDK versions, env
+contract, and redaction rules) with one call.
 
-## API
+This is a service-only shared package (not a `lib.*`) — the canonical backend
+observability surface. See the decision tree in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md#where-does-my-code-go).
 
-### `initializeOpenTelemetry({ serviceName, serviceVersion? })`
+## Location in the architecture
 
-Starts the OpenTelemetry Node SDK with OTLP/HTTP exporter and the auto-
-instrumentations bundle (HTTP, Express, pg, ioredis, socket.io, undici,
-Winston). `@opentelemetry/instrumentation-fs` is explicitly disabled —
-it emits a span per `readFile` / `stat` which multiplies trace volume
-by ~100×.
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+packages sit. Every service under `services/*` wires this into its thin
+`src/instrumentation.ts` (the `--import` target), and reads its Prometheus
+registry via `getMetricsRegistry`. The gateway's rate-limit and WS-handshake
+counters register here. (`lib.observability` is the separate frontend-side
+equivalent.)
 
-**Boot order constraint:** must be invoked from a file loaded via
-Node's `--import` flag so the auto-instrumentations can hook the
-HTTP / pg / ioredis modules BEFORE those are first imported. Each
-extracted service has its own thin `src/instrumentation.ts` that calls
-this and IS the `--import` target.
+## Scripts
 
-```ts
-// services/auth/src/instrumentation.ts
-import { initializeOpenTelemetry } from '@adopt-dont-shop/observability';
-initializeOpenTelemetry({ serviceName: 'service.auth' });
+```bash
+pnpm build        # tsc build
+pnpm dev          # tsc --watch
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
 ```
 
-```jsonc
-// services/auth/package.json
-"scripts": {
-  "dev": "tsx --import ./src/instrumentation.ts ./src/index.ts"
-}
-```
+## Public API / exports
 
-Behaviour:
-- **No collector configured** (`OTEL_EXPORTER_OTLP_ENDPOINT` unset) →
-  silent no-op. Service boots normally with no traces.
-- **Set** → SDK starts; `OTEL_SERVICE_NAME` env var still wins so
-  operators can override per-deploy without code changes.
-- **No-throw contract**: a misconfigured exporter degrades to "no
-  traces" rather than wedging boot.
+The canonical list lives in [`src/index.ts`](src/index.ts):
 
-### `initializeSentry({ serviceName, logger? })`
+- `initializeOpenTelemetry({ serviceName, serviceVersion? })` — starts the OTel
+  Node SDK (OTLP/HTTP + auto-instrumentations; `fs` instrumentation disabled).
+  Must be invoked from a `--import` target so it hooks HTTP/pg/ioredis before
+  they're imported. Silent no-op when `OTEL_EXPORTER_OTLP_ENDPOINT` is unset;
+  no-throw so a misconfigured exporter degrades to "no traces".
+- `initializeSentry({ serviceName, logger? })` + `redactSentryEvent` — Sentry
+  with profiling, enabled only when `SENTRY_DSN` is set and `NODE_ENV` is
+  production/staging; stamps the active trace/span id and redacts secrets in
+  `beforeSend`.
+- `createLogger({ serviceName, logLevel? })` — Winston logger (console always;
+  Loki when `LOKI_URL` is set), with `serviceName` stamped on every line.
+- `getMetricsRegistry` / `registerMetrics` — the shared Prometheus registry +
+  `/metrics` wiring.
+- `redactSecretFields`, `REDACTED`, `SECRET_KEY_PATTERN`, `redactUrl`,
+  `registerRequestId` — redaction + request-id helpers.
 
-Initializes the `@sentry/node` SDK with profiling integration.
+## Environment variables consumed
 
-- Only enabled when `SENTRY_DSN` is set AND `NODE_ENV` is `production`
-  or `staging`. Silent no-op otherwise.
-- `tracesSampleRate` + `profilesSampleRate`: 1.0 in dev, 0.1 in
-  production.
-- Every event gets the active OpenTelemetry `trace_id` / `span_id`
-  stamped on `event.contexts.trace` and `event.tags.trace_id` so a
-  Sentry exception pivots to the matching distributed trace.
-- `beforeSend` runs `redactSentryEvent` — strips `authorization` /
-  `cookie` headers, redacts secret-shaped keys (`password`, `token`,
-  `secret`, `api_key`, `authorization`) recursively from
-  `request.data` and breadcrumb data, collapses UUIDs + numeric IDs
-  in URLs to `:id`.
-- `ValidationError`s are dropped before sending — they're caller bugs,
-  not service bugs.
+All optional — the bootstraps silently no-op when unset:
+`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME` (overrides `serviceName`),
+`OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`, `SENTRY_DSN`,
+`SENTRY_RELEASE`, `HOSTNAME`, `NODE_ENV`, `LOG_LEVEL`, `LOKI_URL`. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
-### `redactSentryEvent(event)`
+## Testing notes
 
-Exported separately so the redaction logic can be unit-tested in
-isolation. The Sentry SDK's `beforeSend` hook calls this; no callers
-should need to call it directly.
+Vitest. The redaction logic (`redactSentryEvent`, `redactSecretFields`) is
+exported separately so it's unit-tested in isolation; the bootstraps are tested
+for their no-op / no-throw contracts. See
+[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+conventions.
 
-### `createLogger({ serviceName, logLevel? })`
+## Ownership
 
-Returns a Winston logger with the console transport always wired and
-the Loki transport added when `LOKI_URL` is set. Label cardinality
-matches `service.backend`'s logger so Grafana queries across services
-work without changes.
-
-```ts
-import { createLogger } from '@adopt-dont-shop/observability';
-
-const logger = createLogger({ serviceName: 'service.gateway' });
-logger.info('booted', { port: 4000 });
-```
-
-- `logLevel` priority: `opts.logLevel` → `LOG_LEVEL` env → `debug` in
-  development / `info` everywhere else.
-- `serviceName` is stamped as `defaultMeta.service` on every line AND
-  as the Loki `service` label.
-
-### What this package does NOT include (yet)
-
-- **`AsyncLocalStorage` correlation-id stamping.** Coupled to each
-  service's request-context middleware. Callers attach
-  `correlationId` / `traceparent` to log payloads as fields when they
-  have them.
-
-Note: PII / secret redaction of log and telemetry payloads IS included —
-`redactSecretFields`, `REDACTED`, `SECRET_KEY_PATTERN` are exported from
-`src/index.ts` (the recursive redactor is in `src/redact.ts` and matches
-`password|token|secret|otp|authorization|cookie|api[_-]?key`).
-- **`loggerHelpers` bundle** (`logRequest`, `logAuth`, `logBusiness`,
-  `logSecurity`, …). Middleware concerns — they live with each
-  service's own request pipeline.
-
-## Environment variables
-
-All optional. The bootstraps silently no-op when unset.
-
-| Variable                       | Owner          | Purpose                                                                 |
-| ------------------------------ | -------------- | ----------------------------------------------------------------------- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`  | OpenTelemetry  | Collector endpoint. Unset → SDK doesn't start.                          |
-| `OTEL_SERVICE_NAME`            | OpenTelemetry  | Overrides `opts.serviceName`. Operators set per-deploy.                 |
-| `OTEL_TRACES_SAMPLER`          | OpenTelemetry  | Read by the SDK directly (e.g. `parentbased_traceidratio`).             |
-| `OTEL_TRACES_SAMPLER_ARG`      | OpenTelemetry  | Ratio for ratio-based samplers (0–1).                                   |
-| `SENTRY_DSN`                   | Sentry         | Backend DSN. Unset → Sentry disabled.                                   |
-| `SENTRY_RELEASE`               | Sentry         | Optional release tag. Usually set by CI/CD.                             |
-| `HOSTNAME`                     | Sentry         | Overrides the `serverName` (falls back to `opts.serviceName`).          |
-| `NODE_ENV`                     | Sentry, Logger | `production` / `staging` enable Sentry; `development` enables debug log.|
-| `LOG_LEVEL`                    | Logger         | `error` / `warn` / `info` / `http` / `debug` / `silly`.                 |
-| `LOKI_URL`                     | Logger         | When set, ships logs to Loki via `winston-loki`.                        |
-
-## Used by
-
-Every extracted service under `services/*` (gateway, auth, pets, rescue, applications, chat, notifications, moderation, matching, cms, audit) wires this package into its `src/instrumentation.ts`. The monolith it was originally extracted from has been removed; this package is now the canonical observability surface for the whole backend.
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.

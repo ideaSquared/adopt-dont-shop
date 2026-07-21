@@ -1,160 +1,98 @@
 # service.applications
 
-Applications vertical — Phase 5 of the microservices migration.
-
-**The deepest extraction — CAD Phase 2 equivalent.** Owns the
-`applications.*` schema (Application, ApplicationDraft, ApplicationAnswer,
-ApplicationTimelineEntry, HomeVisit, Reference) and exposes
-`ApplicationService` over gRPC.
-
-Event-sourced — the application state machine
-(`draft → submitted → under_review → home_visit_scheduled →
-home_visit_completed → approved | rejected | withdrawn → adopted`)
-drives multiple downstream consumers (notifications, moderation,
-audit), and "how did we get here?" is a real product question for
-adopters and rescue staff. Pure `apply`/`fold` domain + Postgres event
-store + publish-after-commit on `applications.*` events.
-
-## What's shipped so far
-
-**Phase 5.1** — boot skeleton:
-- `src/index.ts` starts a Fastify server on `APPLICATIONS_PORT`
-  (default 5005), wires `/health/simple`.
-- `src/instrumentation.ts` boots OpenTelemetry via
-  `@adopt-dont-shop/observability` with
-  `serviceName: 'service.applications'`.
-- `src/config.ts` env validation. Hard-requires `DATABASE_URL` so
-  misconfiguration fails fast at boot rather than at first request.
-- `src/server.ts` `createServer({ config, logger? })`.
-
-**Phase 5.2** — pure event-sourced application domain:
-- `src/domain/types.ts` — `ApplicationState`, `ApplicationEvent`
-  union (10 event types, one per command), `ApplicationCommand`
-  union, `DomainError` with 4 codes
-  (`ILLEGAL_TRANSITION` / `CONCURRENCY` / `INVALID_INPUT` /
-  `MISSING_AGGREGATE`).
-- `src/domain/apply.ts` — `apply(state, event)` pure reducer +
-  `fold(events)` replay convenience + `INITIAL_STATE` sentinel. Same
-  function runs at command time and hydration time so replay = live
-  write.
-- `src/domain/commands.ts` — `handle(state, command)` per-command
-  invariant checks. Each command emits 0+ events; the gRPC handler
-  in Phase 5.3b is the only thing that wraps this with DB writes
-  and NATS publishes. Optimistic-concurrency check (`expectedVersion`
-  vs `state.version`) on the draft-write commands.
-- 47 tests across apply (per-event field stamping, immutability,
-  fold-equals-event-by-event-apply) and commands (legal transitions,
-  illegal-transition rejection, MISSING_AGGREGATE guard for non-
-  StartDraft commands against INITIAL_STATE, the under_review
-  self-loop for saveDraftAnswers, idempotent startReview, optimistic
-  concurrency).
-
-**Phase 5.3a** — proto + grpc-js stubs (lands in `@adopt-dont-shop/proto`):
-- `proto/adopt_dont_shop/applications/v1/application.proto` defines
-  `ApplicationService.{StartDraft, SaveDraftAnswers, SubmitDraft,
-  StartReview, ScheduleHomeVisit, CompleteHomeVisit, Approve,
-  Reject, Withdraw, MarkAdopted, Get, List}` + `Application`,
-  `TimelineEntry` messages + `ApplicationStatus` (×9) /
-  `HomeVisitOutcome` (×3) enums.
-
-> The Phase 5.x rolling status that used to live here is no longer accurate — the schema, event store, gRPC handlers, and gateway routes all shipped. See the **Canonical reference** at the bottom of this README for the authoritative current state.
-
-## Configuration
-
-| Env var                  | Default            | Required | Purpose                                                                  |
-| ------------------------ | ------------------ | -------- | ------------------------------------------------------------------------ |
-| `APPLICATIONS_PORT`      | `5005`             |          | HTTP port for `/health/simple`.                                          |
-| `APPLICATIONS_GRPC_PORT` | `6005`             |          | gRPC port `ApplicationService` will bind (Phase 5.3c).                   |
-| `APPLICATIONS_HOST`      | `0.0.0.0`          |          | Bind interface (both HTTP + gRPC).                                       |
-| `APPLICATIONS_SCHEMA`    | `applications`     |          | Postgres schema. Override for parallel test DBs.                         |
-| `DATABASE_URL`           | —                  | ✅       | Postgres connection string. Same physical Postgres as `service.backend`. |
-| `NATS_URL`               | `nats://nats:4222` |          | NATS bus URL.                                                            |
-| `NODE_ENV`               | `development`      |          | Surfaces in health + logs.                                               |
-
-Plus the standard observability env vars consumed by
-`@adopt-dont-shop/observability`.
-
-## Running
-
-```bash
-# Dev — hot reload, OTel SDK loaded via --import
-pnpm dev
-
-# Production build
-pnpm build
-pnpm start
-```
-
----
-
-## Canonical reference (ADS-817)
-
-### Responsibility
+## Purpose
 
 Owns the event-sourced adoption-application lifecycle: draft → submit → review
 → home visit → approve / reject / withdraw / mark-adopted, plus document
 attachments. Each application is an aggregate in a Postgres event store with a
 denormalised read-model projection; every state change publishes an
-`applications.*` event. Schema: `applications`.
+`applications.*` event. Owns the `applications.*` schema. This is the deepest
+extraction (CAD Phase 2 equivalent) — the state machine drives multiple
+downstream consumers (notifications, moderation, audit) and "how did we get
+here?" is a real product question, so the event log is the source of truth.
 
-### Schema (`applications`)
+## Location in the architecture
 
-| Table | Purpose |
-| --- | --- |
-| `application_events` | Append-only event store (the source of truth). |
-| `applications` | Denormalised read-model projection. |
-| `application_status_transitions` | Status-change audit trail. |
-| `home_visits` | Home-visit scheduling + outcome. |
-| `home_visit_status_transitions` | Home-visit status audit. |
-| `application_drafts` | In-progress draft persistence. |
-| `application_documents` | Metadata for files attached to an application. |
+See [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../../docs/infrastructure/MICROSERVICES-STANDARDS.md)
+for the shared service boundaries / ownership model. Cross-service gRPC: calls
+**service.pets** (`PETS_GRPC_URL`) in `StartDraft` to resolve a pet's owning
+rescue. Depends on the shared backend packages `@adopt-dont-shop/{authz,
+config-secrets, db, events, lib.types, observability, proto,
+service-bootstrap}`.
 
-Migrations: `services/applications/src/migrations/001`–`009` (006 installs a
-home-visit status-propagation trigger).
+## Scripts
 
-### gRPC RPCs
+```bash
+pnpm dev          # tsx watch — starts the HTTP + gRPC servers
+pnpm build        # tsc build
+pnpm start        # run the built server
+pnpm test         # Vitest (run mode)
+pnpm db:migrate   # run pending migrations (node-pg-migrate)
+pnpm db:seed      # seed dev data
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
+```
 
-`ApplicationService`. Scope is owner (adopter) or `rescue_id`; `super_admin`
-bypasses.
+## REST / gRPC contract
+
+HTTP surface: `/health/simple`. Everything else is gRPC `ApplicationService`
+(`packages/proto`), proxied by the gateway under `/api/v1/applications/*`.
+Scope is owner (adopter) or `rescue_id`; `super_admin` bypasses.
 
 | RPC | Permission |
 | --- | --- |
 | `StartDraft` | `applications.create` (resolves pet → rescue via pets gRPC) |
-| `SaveDraftAnswers` | `applications.update` (owner/rescue scope) |
-| `SubmitDraft` | `applications.update` (owner/rescue scope) |
-| `StartReview` | `applications.process` (rescue scope) |
-| `ScheduleHomeVisit` | `applications.process` (rescue scope) |
-| `CompleteHomeVisit` | `applications.process` (rescue scope) |
-| `Approve` | `applications.approve` (rescue scope) |
+| `SaveDraftAnswers` / `SubmitDraft` / `Withdraw` | `applications.update` (owner/rescue scope) |
+| `StartReview` / `ScheduleHomeVisit` / `CompleteHomeVisit` | `applications.process` (rescue scope) |
+| `Approve` / `MarkAdopted` | `applications.approve` (rescue scope) |
 | `Reject` | `applications.reject` (rescue scope) |
-| `Withdraw` | `applications.update` (owner/rescue scope) |
-| `MarkAdopted` | `applications.approve` (rescue scope) |
-| `Get` | `applications.view` (owner/rescue scope) |
-| `List` | `applications.view` (scope-pinned) |
-| `GetStats` | `applications.view` |
-| `AddDocument` | `applications.update` (rescue scope) |
-| `ListDocuments` | `applications.view` (owner/rescue scope) |
-| `RemoveDocument` | `applications.update` (rescue scope) |
+| `Get` / `List` / `GetStats` / `ListDocuments` | `applications.view` (scope-pinned) |
+| `AddDocument` / `RemoveDocument` | `applications.update` (rescue scope) |
 
-### NATS subjects
+Schema (`applications`): `application_events` (append-only event store — the
+source of truth), `applications` (read-model projection),
+`application_status_transitions`, `home_visits`,
+`home_visit_status_transitions`, `application_drafts`, `application_documents`.
+Migrations: `src/migrations/001`–`009`.
 
-**Emits** (publish-after-commit): `applications.draftCreated`,
+**NATS** — emits (publish-after-commit): `applications.draftCreated`,
 `applications.draftUpdated`, `applications.submitted`,
 `applications.reviewStarted`, `applications.homeVisitScheduled`,
 `applications.homeVisitCompleted`, `applications.approved`,
-`applications.rejected`, `applications.withdrawn`, `applications.adopted`. Plus
-`gdpr.erasureCompleted` as a saga participant.
+`applications.rejected`, `applications.withdrawn`, `applications.adopted`;
+participates in the `gdpr.erasureCompleted` saga. Consumes
+`gdpr.erasureRequested` (durable `gdpr-applications`).
 
-**Consumes:** `gdpr.erasureRequested` (durable `gdpr-applications`).
+## Environment variables consumed
 
-### Dependencies
+`DATABASE_URL` is **required** (boot fails fast without it). `APPLICATIONS_PORT`
+(5005), `APPLICATIONS_GRPC_PORT` (6005), `APPLICATIONS_HOST`,
+`APPLICATIONS_SCHEMA` (`applications`), `PETS_GRPC_URL`, and `NATS_URL` have dev
+defaults, plus the standard `@adopt-dont-shop/observability` vars. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
-`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
-proto, service-bootstrap}`. Cross-service gRPC: calls **service.pets**
-(`PETS_GRPC_URL`) in `StartDraft` to resolve a pet's owning rescue.
+## Testing notes
 
-### Testing strategy
+Vitest. The domain is a pure `apply`/`fold` reducer with a separate
+command layer (`handle(state, command)` → 0+ events), so the bulk of the suite
+runs with no I/O — asserting each lifecycle transition (valid + invalid),
+optimistic-concurrency (`expectedVersion` vs `state.version`), the event-store →
+read-model projection, permission/scope enforcement, and publish-after-commit
+ordering. See [`docs/backend/testing.md`](../../docs/backend/testing.md) for
+shared conventions.
 
-Vitest. Pure handlers over the event store + projection — assert each lifecycle
-transition (valid + invalid), permission/scope enforcement, the event-store →
-read-model projection, document add/remove, and publish-after-commit ordering.
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/services/`.
+
+---
+
+## Migration history
+
+Applications was the Phase 5 extraction (the deepest — CAD Phase 2 equivalent),
+landed incrementally: a boot skeleton (5.1), the pure event-sourced domain —
+`apply`/`fold` reducer + per-command invariant checks with the same function
+running at command time and hydration time so replay equals live write (5.2) —
+then the proto stubs, gRPC handlers wrapping the domain with DB writes + NATS
+publishes, and the gateway routes (5.3+).
