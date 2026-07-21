@@ -51,7 +51,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (credentials: LoginRequest) => {
     try {
       const response = await authService.login(credentials);
-      localStorage.setItem('authToken', response.token);
+      // Post-ADS-919 the token pair rides home as HttpOnly cookies; the
+      // access token is only present in the body for legacy/dev flows.
+      if (response.tokens?.accessToken) {
+        localStorage.setItem('authToken', response.tokens.accessToken);
+      }
       setUser(response.user);
     } catch (error) {
       console.error('Login failed:', error);

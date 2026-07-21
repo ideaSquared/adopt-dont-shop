@@ -3,7 +3,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, '..', '..');
+// Repo root. Overridable via ADS_GENERATOR_ROOT so the generator smoke tests
+// can run the real generators into a throwaway temp dir instead of the repo.
+const ROOT_DIR = process.env.ADS_GENERATOR_ROOT
+  ? path.resolve(process.env.ADS_GENERATOR_ROOT)
+  : path.resolve(__dirname, '..', '..');
 
 // ANSI color codes for console output
 export const colors = {
@@ -77,56 +81,73 @@ export function copyTemplateDir(srcDir, destDir, vars, options = {}) {
   return written;
 }
 
-/**
- * Update the root package.json: insert `workspaceEntry` into the workspaces
- * array (sorted, deduped) and apply additional script entries.
- */
-export function registerWorkspace(workspaceEntry, extraScripts = {}) {
-  const packageJsonPath = path.join(ROOT_DIR, 'package.json');
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-
-  if (!packageJson.workspaces.includes(workspaceEntry)) {
-    packageJson.workspaces.push(workspaceEntry);
-    packageJson.workspaces.sort();
-  }
-
-  for (const [name, value] of Object.entries(extraScripts)) {
-    packageJson.scripts[name] = value;
-  }
-
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-  log(`📦 Updated root package.json with ${workspaceEntry}`, 'green');
+// Pure: does the pnpm-workspace manifest already match `workspaceRelPath`
+// (either an exact entry or a `<parent>/*` | `<parent>/**` glob)? Exported so
+// the generator smoke tests can assert the registration logic directly.
+export function isWorkspaceCovered(manifestText, workspaceRelPath) {
+  const parent = path.dirname(workspaceRelPath); // 'apps' | 'packages' | ...
+  const globs = [...manifestText.matchAll(/^\s*-\s*'([^']+)'/gm)].map(m => m[1]);
+  return globs.some(g => g === workspaceRelPath || g === `${parent}/*` || g === `${parent}/**`);
 }
 
 /**
- * Insert a `COPY lib.<name>/ ./lib.<name>/` line into Dockerfile.app
- * after the last existing such line. Skips silently when the dockerfile or
- * marker is missing.
+ * Ensure a newly-generated workspace is discoverable by pnpm.
+ *
+ * This repo uses pnpm workspaces (pnpm-workspace.yaml), not npm/yarn
+ * `package.json` "workspaces". The manifest globs `apps/*` and `packages/*`
+ * already cover every generated app (apps/<name>) and lib (packages/lib.<name>),
+ * so registration is normally a no-op: pnpm picks the new package up on the
+ * next install with no manifest edit. We only append a glob when the target's
+ * parent directory isn't already matched — a genuinely new top-level location.
+ *
+ * `workspaceRelPath` is the new package's path relative to the repo root,
+ * e.g. `apps/dashboard` or `packages/lib.chat`.
  */
-export function updateAppOptimizedDockerfile(libName) {
-  const dockerfilePath = path.join(ROOT_DIR, 'Dockerfile.app');
-  if (!fs.existsSync(dockerfilePath)) {
+export function registerWorkspace(workspaceRelPath) {
+  const manifestPath = path.join(ROOT_DIR, 'pnpm-workspace.yaml');
+  let manifest;
+  try {
+    manifest = fs.readFileSync(manifestPath, 'utf8');
+  } catch {
+    log(`⚠️  pnpm-workspace.yaml not found — add ${workspaceRelPath} to it manually`, 'yellow');
     return;
   }
 
-  let content = fs.readFileSync(dockerfilePath, 'utf8');
-  const newLine = `COPY lib.${libName}/ ./lib.${libName}/`;
+  const parent = path.dirname(workspaceRelPath); // 'apps' | 'packages' | ...
 
-  const libCopyRegex = /COPY lib\.[^/]+\/ \.\/lib\.[^/]+\/$/gm;
-  const matches = [...content.matchAll(libCopyRegex)];
-
-  if (matches.length === 0) {
-    log(`⚠️  Could not find library copy section in Dockerfile.app`, 'yellow');
-    log(`💡 Manually add: ${newLine}`, 'cyan');
+  if (isWorkspaceCovered(manifest, workspaceRelPath)) {
+    log(
+      `📦 pnpm-workspace.yaml already covers ${parent}/* — ${workspaceRelPath} is registered`,
+      'green'
+    );
     return;
   }
 
-  const last = matches[matches.length - 1];
-  const insertIndex = last.index + last[0].length;
-  content = content.slice(0, insertIndex) + '\n' + newLine + content.slice(insertIndex);
+  // Append the new parent glob under the `packages:` list.
+  const glob = `${parent}/*`;
+  const updated = manifest.replace(/(packages:\s*\n)/, `$1  - '${glob}'\n`);
+  fs.writeFileSync(manifestPath, updated);
+  log(`📦 Added '${glob}' to pnpm-workspace.yaml for ${workspaceRelPath}`, 'green');
+}
 
-  fs.writeFileSync(dockerfilePath, content);
-  log(`🐳 Updated Dockerfile.app with lib.${libName}`, 'green');
+/**
+ * Print a reminder that a new workspace package needs a node_modules mount in
+ * docker-compose.dev.yml's x-dev-volumes anchor. The ADS-987 drift guard
+ * (scripts/check-workspace-consistency.mjs) fails CI otherwise, and the dev
+ * container silently shadows the package's deps until it's added.
+ */
+export function remindDevVolumesMount(workspaceRelPath) {
+  log('', 'reset');
+  log('🐳 One manual step for the Docker dev stack:', 'cyan');
+  log(
+    `   Add a mount for ${workspaceRelPath} to docker-compose.dev.yml's x-dev-volumes anchor:`,
+    'reset'
+  );
+  log(`     - /app/${workspaceRelPath}/node_modules`, 'yellow');
+  log(
+    '   (scripts/check-workspace-consistency.mjs / `pnpm check:workspaces` enforces this.)',
+    'reset'
+  );
 }
 
 export { ROOT_DIR };
