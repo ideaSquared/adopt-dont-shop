@@ -1,96 +1,70 @@
-# `@adopt-dont-shop/lib.components`
+# @adopt-dont-shop/lib.components
 
-Shared React component library and design system. Built with vanilla-extract (`.css.ts`) and bundled by Vite. Used by `app.client`, `app.admin`, and `app.rescue`.
+## Purpose
 
-## Install (workspace)
+The shared React component library and design system. Built with vanilla-extract
+(`.css.ts`) and bundled by Vite — theme provider + tokens, foundation/layout/
+form/feedback/navigation components, and shared hooks. Used by `app.client`,
+`app.admin`, and `app.rescue`.
 
-Apps in this monorepo depend on it via `"@adopt-dont-shop/lib.components": "*"` in their `package.json` — no install command needed.
+## Location in the architecture
 
-## Quick start
-
-```tsx
-import { ThemeProvider, Button, Card, TextInput } from '@adopt-dont-shop/lib.components';
-import '@adopt-dont-shop/lib.components/styles';
-
-export function App() {
-  return (
-    <ThemeProvider>
-      <Card>
-        <TextInput label="Email" />
-        <Button variant="primary">Submit</Button>
-      </Card>
-    </ThemeProvider>
-  );
-}
-```
-
-## Exports
-
-The canonical list lives in [`src/index.ts`](./src/index.ts). Public surface, grouped:
-
-- **Theme**: `ThemeProvider`, `useTheme`, `darkTheme`, `lightTheme`, `vars`
-- **Foundation**: `Avatar`, `Badge`, `Button`, `DateTime`, `Heading`, `Spinner`, `DotSpinner`, `Text`
-- **Layout**: `Container`, `Stack`, `Card` (+ `CardHeader`/`CardContent`/`CardFooter`)
-- **Form**: `CheckboxInput`, `SelectInput`, `TextInput`, `TextArea`, `Input`, `FileUpload`
-- **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `Toast` / `ToastContainer`
-- **Navigation**: `Breadcrumbs`, `Footer`, `Header`, `Navbar`
-- **Hooks**: `useConfirm`, `useToast`
-
-Component-level READMEs live next to the source (e.g. `src/components/ui/Toast/README.md`).
-
-## Structure
-
-```
-lib.components/src/
-├── components/
-│   ├── ui/          # Core UI: Button, Input, Card, Alert, Modal, Toast, ...
-│   ├── form/        # Form inputs: TextInput, CheckboxInput, SelectInput, FileUpload
-│   ├── layout/      # Container, Stack
-│   ├── data/        # ListGroup, Table
-│   └── navigation/  # Breadcrumbs, Header, Footer, Navbar
-├── hooks/           # useConfirm, useToast
-├── utils/           # cn(), shared helpers
-├── styles/          # theme + ThemeProvider (vanilla-extract)
-├── types/           # shared component prop types
-└── index.ts         # public entry point
-```
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+libraries sit. This is the design-system leaf every app renders through; theme
+tokens are exported as `vars` and consumed by app-level `.css.ts` files (see the
+`design-tokens` guidance). The component catalogue is published to Storybook at
+[ideasquared.github.io/adopt-dont-shop](https://ideasquared.github.io/adopt-dont-shop/)
+on every push to `main` that touches this package
+([`storybook.yml`](../../.github/workflows/storybook.yml)).
 
 ## Scripts
 
 ```bash
 pnpm dev               # vite build --watch
 pnpm build             # vite build (lib + theme bundle)
-pnpm test              # vitest run
-pnpm storybook         # storybook dev server on :6006
-pnpm build-storybook   # static storybook build
+pnpm test              # Vitest (run mode)
+pnpm storybook         # Storybook dev server on :6006
+pnpm build-storybook   # static Storybook build
+pnpm lint              # ESLint
+pnpm type-check        # TypeScript type-check
 ```
 
-## Component library / Storybook
+## Public API / exports
 
-Browse the deployed component catalogue at
-**[ideasquared.github.io/adopt-dont-shop](https://ideasquared.github.io/adopt-dont-shop/)**
-— published to GitHub Pages on every push to `main` that touches this
-package (see [`.github/workflows/storybook.yml`](../../.github/workflows/storybook.yml)).
+The canonical list lives in [`src/index.ts`](src/index.ts), grouped:
 
-To run it locally instead:
+- **Theme**: `ThemeProvider`, `useTheme`, `darkTheme`, `lightTheme`, `vars`.
+- **Foundation**: `Avatar`, `Badge`, `Button`, `DateTime`, `Heading`,
+  `Spinner`, `DotSpinner`, `Text`.
+- **Layout**: `Container`, `Stack`, `Card` (+ `CardHeader` / `CardContent` /
+  `CardFooter`).
+- **Form**: `CheckboxInput`, `SelectInput`, `TextInput`, `TextArea`, `Input`,
+  `FileUpload`.
+- **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `Toast` / `ToastContainer`.
+- **Navigation**: `Breadcrumbs`, `Footer`, `Header`, `Navbar`.
+- **Hooks**: `useConfirm`, `useToast`.
 
-```bash
-pnpm storybook          # dev server, live-reloads on :6006
-pnpm build-storybook    # static build → storybook-static/ (what CI deploys)
-```
+Styles are imported via `@adopt-dont-shop/lib.components/styles`. Each component
+owns its directory (`*.tsx`, `*.css.ts`, `*.test.tsx`, and where present
+`*.stories.tsx`); use `cn()` from `src/utils/cn.ts` to merge class strings.
 
-Stories live next to the component they document — `Button.tsx` +
-`Button.stories.tsx` — so a story is easy to find and easy to keep in sync.
-Not every component has one yet (see [ADS-956](https://linear.app/ideasquared/issue/ADS-956/nightly-storybook-stories-coverage-report-for-libcomponents)
-for the tracked coverage gap); adding a `*.stories.tsx` alongside any new
-`src/components/ui/` primitive is the convention going forward.
+## Environment variables consumed
 
-## Conventions
+None.
 
-- Each component owns its directory with `*.tsx`, `*.css.ts`, `*.test.tsx`, and (where present) `*.stories.tsx`.
-- Use the `cn()` utility from `src/utils/cn.ts` to merge class strings.
-- Theme values come from `vars` (vanilla-extract) — don't hardcode colours.
-- Forwarded refs where the underlying element makes sense as a ref target.
+## Testing notes
+
+Vitest + React Testing Library, co-located with each component
+(`*.test.tsx`). Storybook stories (`*.stories.tsx`) live next to the component;
+coverage is tracked in
+[ADS-956](https://linear.app/ideasquared/issue/ADS-956). See
+[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+library-specific, and the `accessibility` guidance for component a11y.
+
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.
 
 <!-- CONSUMERS:START (auto-generated by scripts/generate-dependency-docs.mjs — do not edit by hand) -->
 ## Consumers

@@ -6,12 +6,12 @@
  * canonical section headings defined in docs/templates/README.{app,service,lib}.md
  * and reports which are missing.
  *
- * Mixed mode (per ADS-946): a workspace listed in STRICT_PACKAGES is a hard
- * failure (exit 1) if its README drifts from the template; every other
- * workspace is warn-only so existing packages that haven't been backfilled
- * yet don't block CI. Bring a README up to the template, then add its dir to
- * STRICT_PACKAGES to enforce it going forward. This guard runs in CI's
- * workspace-drift job, so a strict regression fails the build.
+ * Fail-on-drift (ADS-946 complete): every apps/services/packages workspace is
+ * enforced — a README that drifts from the template is a hard failure (exit 1).
+ * The backfill is done, so there is no warn tier by default. A workspace can be
+ * temporarily downgraded to a warning by listing it in WARN_ONLY_PACKAGES
+ * (e.g. a brand-new package mid-backfill); that list is empty today. This guard
+ * runs in CI's workspace-drift job, so any drift fails the build.
  *
  * Mirrors the no-dependency single-file style of scripts/check-*.mjs.
  */
@@ -38,24 +38,10 @@ const FAMILY_HEADINGS = {
   packages: [...SHARED_HEADINGS, '## Public API / exports'],
 };
 
-// Workspaces backfilled to the template and enforced as a hard failure if
-// they regress. Enforcement is opt-in per package (see the module comment):
-// this first strict set is the three React apps plus the previously
-// undocumented shared packages. The remaining services + libs stay warn-only
-// until their (substantial, hand-written) READMEs are restructured to the
-// canonical headings in follow-ups.
-const STRICT_PACKAGES = [
-  'apps/admin',
-  'apps/client',
-  'apps/rescue',
-  'packages/config-secrets',
-  'packages/eslint-config-base',
-  'packages/eslint-config-node',
-  'packages/eslint-config-react',
-  'packages/seed-faker',
-  'packages/service-bootstrap',
-  'packages/test-utils',
-];
+// Workspaces temporarily exempted from the hard-fail — drift here prints a
+// warning instead of failing the build. Use only for a package mid-backfill;
+// empty now that every workspace matches the template (ADS-946).
+const WARN_ONLY_PACKAGES = [];
 
 function listPackageDirs(family) {
   const familyDir = join(ROOT, family);
@@ -93,7 +79,7 @@ function main() {
       const { missing } = checkReadme(dir, headings);
       if (missing.length === 0) continue;
 
-      const isStrict = STRICT_PACKAGES.includes(relDir);
+      const isStrict = !WARN_ONLY_PACKAGES.includes(relDir);
       const label = isStrict ? 'FAIL' : 'warn';
       console.log(`${label}  ${relDir}/README.md missing: ${missing.join(', ')}`);
       if (isStrict) failCount++;

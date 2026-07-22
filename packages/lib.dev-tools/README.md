@@ -1,79 +1,61 @@
 # @adopt-dont-shop/lib.dev-tools
 
-Development-only utilities for the Adopt Don't Shop apps: seeded-user login panels, Ethereal mail preview credentials, and environment guards. The library is designed to be tree-shaken out of production bundles via the `DevOnly` wrapper and `isDevelopmentMode()` guard.
+## Purpose
 
-Consumed as a workspace dependency:
+Development-only utilities for the apps: seeded-user login panels, Ethereal mail
+preview credentials, and environment guards. Designed to be tree-shaken out of
+production bundles via the `DevOnly` wrapper and the `isDevelopmentMode()` guard.
 
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib.dev-tools": "*"
-  }
-}
-```
+## Location in the architecture
 
-## Exports
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+libraries sit. Consumed by the apps' dev headers; the `exports` field resolves
+to `./src/index.ts` under the `development` condition (hot-reload in dev via
+Vite) and to `./dist/index.js` in production.
 
-See [src/index.ts](./src/index.ts) for the authoritative list.
-
-### Components
-
-- **`DevPanelComponent`** — dev-user quick-switcher panel. Required props: `title: string` and `authContext: DevPanelAuthContext` (your auth's `user`, `login`, `logout`, `isAuthenticated`). Optional `seededUsers?: DevUser[]` to override the built-in list.
-- **`EtherealCredentialsPanel`** — shows the per-session Ethereal SMTP credentials backend issues when `EMAIL_PROVIDER=ethereal`.
-- **`DevOnly`** — wraps children and only renders them when `isDevelopmentMode()` is true. Accepts an optional `fallback`.
-
-### Hooks
-
-- **`useSeededUsers()`** — React Query hook returning seeded dev users from the backend.
-- **`useEtherealCredentials()`** — React Query hook returning the backend's current Ethereal preview credentials.
-
-### Seeded-user data
-
-- **`seededDevUsers`** — static list of dev accounts
-- **`SEEDED_PASSWORD`** — shared password for every seeded account
-- **`getAllDevUsers`**, **`getAdminUsers`**, **`getRescueUsers`**, **`getAdopterUsers`**, **`getDevUsersByType(type)`** — filtered accessors
-
-### Environment guards
-
-- **`isDevelopmentMode()`** — in the browser, true only when `window.location.hostname` is exactly `localhost` or `127.0.0.1`. The previous `*dev*` substring match was removed intentionally because it would have exposed dev tooling on production-adjacent hosts like `dev.example.com`. On the server it falls back to `NODE_ENV === 'development'`.
-
-## Quick start
-
-```tsx
-import { DevOnly, DevPanelComponent, useSeededUsers } from '@adopt-dont-shop/lib.dev-tools';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
-
-export function DevHeader() {
-  const { user, login, logout, isAuthenticated } = useAuth();
-  const { data: users } = useSeededUsers();
-
-  return (
-    <DevOnly>
-      <DevPanelComponent
-        title="Dev panel"
-        authContext={{ user, login, logout, isAuthenticated }}
-        seededUsers={users}
-      />
-    </DevOnly>
-  );
-}
-```
-
-## Scripts (from `lib.dev-tools/`)
+## Scripts
 
 ```bash
-pnpm build           # tsc
-pnpm dev             # tsc --watch
-pnpm test                # vitest run
-pnpm test:watch
-pnpm test:coverage
-pnpm lint
-pnpm type-check
+pnpm dev          # tsc --watch
+pnpm build        # tsc build
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
 ```
 
-## Notes
+## Public API / exports
 
-The `exports` field resolves to `./src/index.ts` under the `development` condition (picked up by Vite) and to `./dist/index.js` in production. That's why the library hot-reloads without a build in dev but still publishes built output for production bundles.
+The canonical list lives in [`src/index.ts`](src/index.ts):
+
+- **Components**: `DevPanelComponent` (dev-user quick-switcher; needs `title` +
+  `authContext`), `EtherealCredentialsPanel` (per-session Ethereal SMTP creds
+  when `EMAIL_PROVIDER=ethereal`), `DevOnly` (renders children only when
+  `isDevelopmentMode()`).
+- **Hooks**: `useSeededUsers()`, `useEtherealCredentials()` (React Query).
+- **Seeded-user data**: `seededDevUsers`, `SEEDED_PASSWORD`, and the filtered
+  accessors (`getAllDevUsers`, `getAdminUsers`, `getRescueUsers`,
+  `getAdopterUsers`, `getDevUsersByType`).
+- **Guard**: `isDevelopmentMode()` — in the browser, true only when the hostname
+  is exactly `localhost` / `127.0.0.1` (the old `*dev*` substring match was
+  removed so it can't expose tooling on `dev.example.com`); on the server,
+  `NODE_ENV === 'development'`.
+
+## Environment variables consumed
+
+Reads `NODE_ENV` (server-side `isDevelopmentMode()` fallback). See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
+
+## Testing notes
+
+Vitest + React Testing Library — the `isDevelopmentMode()` hostname logic (the
+security-relevant guard) is tested directly, and the panels/hooks with RTL
+against a mocked API. See [`docs/frontend/testing.md`](../../docs/testing.md)
+for anything not library-specific.
+
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.
 
 <!-- CONSUMERS:START (auto-generated by scripts/generate-dependency-docs.mjs — do not edit by hand) -->
 ## Consumers

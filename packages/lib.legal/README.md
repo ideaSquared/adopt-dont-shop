@@ -1,74 +1,64 @@
 # @adopt-dont-shop/lib.legal
 
-Legal re-acceptance modal, cookie banner, and consent service shared by every frontend app. Centralises the user-facing flows around our Terms of Service, Privacy Policy, and Cookies Policy so the three apps don't drift out of sync.
+## Purpose
 
-## What it ships
+The legal re-acceptance modal, cookie banner, and consent service shared by
+every frontend app. Centralises the user-facing flows around the Terms of
+Service, Privacy Policy, and Cookies Policy so `app.client`, `app.admin`, and
+`app.rescue` don't drift out of sync.
 
-### Components
+## Location in the architecture
 
-- **`LegalReacceptanceModal`** — hard-blocks the app after login when the current ToS / Privacy version is newer than what the user last accepted. Mount it once near the root of `app.client`, `app.admin`, and `app.rescue`. Non-dismissable; the user must tick each pending document and submit before continuing.
-- **`CookieBanner`** + `useCookieConsent` — bottom-anchored on-page banner that lets the user pick **Accept all** (analytics on) or **Essentials only** (analytics off, the default). Persists the choice in `localStorage` (`legal-consent-v1`) and, for signed-in users, POSTs it to `/api/v1/privacy/consent` so the audit log captures it.
-- **`ManageCookiesLink`** — small footer link that re-opens the banner so users can change their mind later.
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+libraries sit. Depends on `lib.api`, `lib.auth`, `lib.components`, and
+[`lib.observability`](../lib.observability/README.md) — the cookie banner flips
+that package's analytics-consent gate so Sentry replay / Statsig auto-capture
+respect the choice on the same tab without a reload. Backs onto the gateway's
+`/api/v1/legal/*` and `/api/v1/privacy/consent` routes. Policy copy lives under
+[`docs/legal/`](../../docs/legal).
 
-### Service
-
-`legal-service` is a thin Zod-validated wrapper around three backend endpoints:
-
-- `fetchPendingReacceptance()` → `GET /api/v1/legal/pending-reacceptance`
-- `fetchCookiesVersion()` → `GET /api/v1/legal/cookies` (just the version string)
-- `recordReacceptance(input)` → `POST /api/v1/privacy/consent`
-
-`PendingReacceptanceItemSchema`, `PendingReacceptanceResponseSchema`, and the corresponding `z.infer<>` types are exported so callers can compose on top.
-
-### Cookie-consent storage helpers
-
-- `readStoredConsent()` / `writeStoredConsent()` / `clearStoredConsent()` — typed access to the `legal-consent-v1` localStorage entry (`StoredCookieConsentSchema` validates it).
-- `attachStoredCookieConsent()` — call this on first sign-in to replay an anonymous user's locally-stored choice against their account.
-- `COOKIE_CONSENT_STORAGE_KEY` is exported in case a consumer needs to clear it directly.
-
-## Quick start
-
-```tsx
-import {
-  LegalReacceptanceModal,
-  CookieBanner,
-  ManageCookiesLink,
-} from '@adopt-dont-shop/lib.legal';
-
-export const AppShell = () => (
-  <>
-    <LegalReacceptanceModal />
-    <CookieBanner />
-    <Routes>{/* … */}</Routes>
-    <Footer>
-      <ManageCookiesLink />
-    </Footer>
-  </>
-);
-```
-
-On sign-in flows, call `attachStoredCookieConsent()` after authentication completes so anonymous consent is migrated to the new account.
-
-## Dependencies
-
-Workspace packages: `lib.api`, `lib.auth`, `lib.components`, `lib.observability`. The banner flips the analytics consent gate in `lib.observability` so Sentry replay / Statsig auto-capture respect the choice on the same tab without a reload.
-
-## Development
+## Scripts
 
 ```bash
-pnpm exec turbo build --filter=@adopt-dont-shop/lib.legal
-pnpm exec turbo test  --filter=@adopt-dont-shop/lib.legal
-pnpm exec turbo lint  --filter=@adopt-dont-shop/lib.legal
+pnpm dev          # build --watch
+pnpm build        # production build
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
 ```
 
-Or from `lib.legal/`: `pnpm build`, `pnpm test`, `pnpm lint`.
+## Public API / exports
 
-## See also
+The canonical list lives in [`src/index.ts`](src/index.ts):
 
-- [docs/legal/cookies.md](../docs/legal/cookies.md) — cookies-policy copy and category definitions
-- [docs/legal/privacy.md](../docs/legal/privacy.md) — privacy policy
-- [docs/legal/terms.md](../docs/legal/terms.md) — terms of service
-- [`lib.observability`](../lib.observability/README.md) — the analytics-consent gate the banner toggles
+- **Components**: `LegalReacceptanceModal` (non-dismissable post-login gate when
+  ToS/Privacy version is newer than last accepted), `CookieBanner` +
+  `useCookieConsent` (Accept-all vs Essentials-only, persisted to
+  `legal-consent-v1` and POSTed to `/api/v1/privacy/consent` for signed-in
+  users), `ManageCookiesLink`.
+- **Service**: `legal-service` — Zod-validated `fetchPendingReacceptance()`,
+  `fetchCookiesVersion()`, `recordReacceptance()`, plus the
+  `PendingReacceptance*Schema` types.
+- **Consent storage helpers**: `readStoredConsent` / `writeStoredConsent` /
+  `clearStoredConsent`, `attachStoredCookieConsent()` (migrate an anonymous
+  choice to a new account on sign-in), `COOKIE_CONSENT_STORAGE_KEY`.
+
+## Environment variables consumed
+
+None directly — reaches the backend through the shared `lib.api` client. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
+
+## Testing notes
+
+Vitest + React Testing Library — the modal gating, banner consent flows +
+localStorage persistence, and the Zod-validated service are tested with RTL and
+a mocked API. See [`docs/frontend/testing.md`](../../docs/testing.md) for
+anything not library-specific.
+
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.
 
 <!-- CONSUMERS:START (auto-generated by scripts/generate-dependency-docs.mjs — do not edit by hand) -->
 ## Consumers

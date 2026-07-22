@@ -1,74 +1,63 @@
 # @adopt-dont-shop/lib.observability
 
-Frontend observability helpers shared by `app.client`, `app.admin`, and `app.rescue`. Wraps Sentry init, a Web Vitals reporter, and the analytics-consent gate so the three apps don't reimplement them.
+## Purpose
 
-## What it ships
+Frontend observability helpers shared by `app.client`, `app.admin`, and
+`app.rescue`: Sentry init, a Web Vitals reporter, and the analytics-consent gate
+— so the three apps don't reimplement them. (This is the frontend counterpart
+to the backend [`@adopt-dont-shop/observability`](../observability/README.md).)
 
-### Sentry
+## Location in the architecture
 
-- `initSentry(options: SentryInitOptions)` — initialise Sentry for one app. Safe to call when `dsn` is empty (logs a warning, skips). Sentry is classified as **strictly necessary** for service reliability and runs unconditionally — do **not** gate it on `hasAnalyticsConsent()`. Replay sample rates default to `0` so identifiable session content stays off until callers explicitly opt in.
-- `captureException(error, context?)` / `captureMessage(message, level?)` — thin re-exports of `@sentry/react`.
-- `SentryInitOptions` type covers DSN, app name (`'admin' | 'client' | 'rescue'`), environment, release, trace sample rate, and replay sample rates.
+See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
+libraries sit. Each app calls the init helpers once at bootstrap; the cookie
+banner in [`lib.legal`](../lib.legal/README.md) owns the consent UI and toggles
+the analytics gate here. Sentry feeds alerting per
+[`docs/observability-alerting.md`](../../docs/observability-alerting.md).
 
-### Web Vitals
-
-- `reportWebVitals(reporter)` — subscribes to CLS, INP, LCP, TTFB, and FCP via the `web-vitals` package and forwards each measurement to the supplied reporter. Designed to be called once during app bootstrap.
-- `WebVitalMetric` / `WebVitalsReporter` types describe the payload (name, value, rating, id, delta).
-
-### Analytics consent gate
-
-A minimal localStorage-backed switch for analytics SDKs (Statsig auto-capture, session replay). Sentry is **out of scope** for this gate — see above.
-
-- `hasAnalyticsConsent(): boolean` — read current state (defaults to denied / `false`).
-- `setAnalyticsConsent('granted' | 'denied' | 'unknown')` — write the choice. `'unknown'` clears storage. Dispatches an `ads:analytics-consent-change` custom event so same-tab listeners can react immediately (the native `storage` event only fires across tabs).
-- `subscribeToAnalyticsConsent(listener)` — subscribe to consent changes; returns an unsubscribe function. Listens to both the custom event and the cross-tab `storage` event.
-- `ANALYTICS_CONSENT_STORAGE_KEY` — the localStorage key (`ads:analytics-consent`), exported for tests and direct clearing.
-
-## Quick start
-
-```ts
-// In each app's entry point (e.g. app.client/src/main.tsx):
-import {
-  initSentry,
-  reportWebVitals,
-  hasAnalyticsConsent,
-} from '@adopt-dont-shop/lib.observability';
-
-initSentry({
-  dsn: import.meta.env.VITE_SENTRY_DSN,
-  appName: 'client',
-  environment: import.meta.env.MODE,
-  release: import.meta.env.VITE_BUILD_SHA,
-});
-
-reportWebVitals((metric) => {
-  // ship to wherever — Sentry metrics, /api/v1/web-vitals, console, …
-  console.log(metric.name, metric.value, metric.rating);
-});
-
-// Later, in an analytics SDK bootstrap:
-if (hasAnalyticsConsent()) {
-  initStatsigAutoCapture();
-}
-```
-
-The cookie banner in [`lib.legal`](../lib.legal/README.md) calls `setAnalyticsConsent` for you when the user picks **Accept all** / **Essentials only**.
-
-## Development
+## Scripts
 
 ```bash
-pnpm exec turbo build --filter=@adopt-dont-shop/lib.observability
-pnpm exec turbo test  --filter=@adopt-dont-shop/lib.observability
-pnpm exec turbo lint  --filter=@adopt-dont-shop/lib.observability
+pnpm dev          # build --watch
+pnpm build        # production build
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
 ```
 
-Or from `lib.observability/`: `pnpm build`, `pnpm test`, `pnpm lint`.
+## Public API / exports
 
-## See also
+The canonical list lives in [`src/index.ts`](src/index.ts):
 
-- [`lib.legal`](../lib.legal/README.md) — cookie banner that owns the consent UI and toggles this gate
-- [`docs/legal/cookies.md`](../../docs/legal/cookies.md) — cookie category definitions; explains why Sentry is exempt
-- [`docs/observability-alerting.md`](../../docs/observability-alerting.md) — how Sentry events feed alerting
+- **Sentry**: `initSentry(options)` (safe no-op on empty DSN; classified
+  strictly-necessary and run unconditionally — not gated on analytics consent;
+  replay sample rates default to `0`), `captureException`, `captureMessage`,
+  `SentryInitOptions`.
+- **Web Vitals**: `reportWebVitals(reporter)` (CLS / INP / LCP / TTFB / FCP via
+  `web-vitals`), `WebVitalMetric`, `WebVitalsReporter`.
+- **Analytics consent gate** (localStorage-backed; Sentry is out of scope):
+  `hasAnalyticsConsent()`, `setAnalyticsConsent('granted' | 'denied' |
+  'unknown')` (dispatches `ads:analytics-consent-change` for same-tab
+  listeners), `subscribeToAnalyticsConsent(listener)`,
+  `ANALYTICS_CONSENT_STORAGE_KEY`.
+
+## Environment variables consumed
+
+None read directly — each app passes `VITE_SENTRY_DSN` / `VITE_BUILD_SHA` /
+`MODE` into `initSentry`. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
+
+## Testing notes
+
+Vitest — the consent gate (storage + same-tab/cross-tab events), the Web Vitals
+subscription, and the Sentry no-op-on-empty-DSN path are tested directly. See
+[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+library-specific.
+
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.
 
 <!-- CONSUMERS:START (auto-generated by scripts/generate-dependency-docs.mjs — do not edit by hand) -->
 ## Consumers
