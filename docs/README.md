@@ -54,7 +54,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [ADR 0005 — Pact contract tests](./adr/0005-pact-contract-tests.md) — contract-testing model for gateway ↔ service boundaries
 - [ADR — sticky sessions for Socket.IO](./architecture/adr-socket-sticky-sessions.md) — connection-cap mitigation for the WebSocket edge
 - [Frontend technical architecture](./frontend/technical-architecture.md) — app shells, routing, state, styling
-- [Matching system scope](./matching-system-scope.md) — implementation state, scoring design, and remaining gaps for the pet-adopter matchmaking subsystem
+- [Matching system scope](./matching-system-scope.md) — implementation state, scoring design, and remaining gaps for the pet-adopter matchmaking subsystem (supersedes the frontend recommendations plan)
 - [Backend implementation guide](./backend/implementation-guide.md) — gateway routes → gRPC handlers → services wiring
 - [Backend service PRD](./backend/service-backend-prd.md) — backend product requirements (architecture section is historical — see banner at the top)
 - [Backend deployment](./backend/deployment.md) — how the backend is built and shipped
@@ -73,7 +73,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Rescue app PRD](./frontend/app-rescue-prd.md) — rescue organization app requirements
 - [Admin app PRD](./frontend/app-admin-prd.md) — admin dashboard requirements
 - [Frontend implementation plan](./frontend/implementation-plan.md) — phased rescue-app delivery plan
-- [Frontend recommendations plan](./frontend/recommendations-plan.md) — UX/recommendation surfaces roadmap
+- [Frontend recommendations plan](./frontend/recommendations-plan.md) — _superseded_: pre-implementation roadmap for the matching/recommendation system (see matching system scope above)
 - [React Native + Expo mobile exploration](./frontend/react-native-mobile-migration.md) — exploratory analysis for a future native mobile app
 - [Design tokens](../DESIGN_TOKENS.md) — vanilla-extract theme tokens reference
 - [Accessibility](./ACCESSIBILITY.md) — WCAG targets, testing checklist, screen-reader notes
