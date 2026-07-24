@@ -120,7 +120,7 @@ The eight gaps below are all schema columns or proto fields that exist in the da
 
 ### 3. Distance filtering stored but pets have no location data
 
-**Gap:** `max_distance_km` is stored and surfaced to the adopter via `GetMatchProfile`, but the `Pet` proto message (`packages/proto/proto/adopt_dont_shop/pets/v1/pets.proto`) has no location coordinates. The distance dimension from the original recommendations plan cannot be implemented without adding latitude/longitude to the pets schema.
+**Gap:** `max_distance_km` is stored and surfaced to the adopter via `GetMatchProfile`, but the `Pet` proto message (`packages/proto/proto/adopt_dont_shop/pets/v1/pet.proto`) has no location coordinates. The distance dimension from the original recommendations plan cannot be implemented without adding latitude/longitude to the pets schema.
 
 **Impact:** Adopters who set a distance preference get no filtering benefit. The field is visible in the UI but inert.
 
