@@ -37,7 +37,7 @@ The matching microservice owns the `matching.*` Postgres schema and exposes a fu
 
 **Match profile (`GetMatchProfile` / `UpsertMatchProfile`)**
 - Stores per-adopter preferences: `preferred_types`, `preferred_sizes`, `preferred_age_groups`, `preferred_energy`, `preferred_temperament`, `lifestyle`, `max_distance_km`, `open_to_special_needs`, `allergies`, `notify_new_matches`, `min_notification_score`.
-- Upsert is partial-update safe (set\_\* booleans distinguish "clear" from "not provided").
+- Upsert is partial-update safe (`set_*` booleans distinguish "clear" from "not provided").
 
 **Search and history**
 - `SearchPets` — filter-driven search, distinct from preference-driven recommendation.
