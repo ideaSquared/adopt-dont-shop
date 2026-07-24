@@ -54,6 +54,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [ADR 0005 — Pact contract tests](./adr/0005-pact-contract-tests.md) — contract-testing model for gateway ↔ service boundaries
 - [ADR — sticky sessions for Socket.IO](./architecture/adr-socket-sticky-sessions.md) — connection-cap mitigation for the WebSocket edge
 - [Frontend technical architecture](./frontend/technical-architecture.md) — app shells, routing, state, styling
+- [Matching system scope](./matching-system-scope.md) — implementation state, scoring design, and remaining gaps for the pet-adopter matchmaking subsystem
 - [Backend implementation guide](./backend/implementation-guide.md) — gateway routes → gRPC handlers → services wiring
 - [Backend service PRD](./backend/service-backend-prd.md) — backend product requirements (architecture section is historical — see banner at the top)
 - [Backend deployment](./backend/deployment.md) — how the backend is built and shipped
