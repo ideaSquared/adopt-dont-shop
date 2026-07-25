@@ -3,7 +3,7 @@ import { useChat } from '@/contexts/ChatContext';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { ChatWindow, ConnectionStatusBanner, ConversationList } from '@adopt-dont-shop/lib.chat';
 import { useEffect, useRef } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router';
 import * as styles from './ChatPage.css';
 
 export function ChatPage() {

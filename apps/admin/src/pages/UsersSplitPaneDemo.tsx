@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { Heading, SplitPaneDetail, Text } from '@adopt-dont-shop/lib.components';
 
 import { useUsers } from '../hooks';

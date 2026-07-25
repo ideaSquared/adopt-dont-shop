@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MdArrowForward, MdClose, MdFavorite, MdInfo, MdSwipe } from 'react-icons/md';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as styles from './SwipeOnboarding.css';
 
 interface SwipeOnboardingProps {

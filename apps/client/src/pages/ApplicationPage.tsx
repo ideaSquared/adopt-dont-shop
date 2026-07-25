@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { Alert, Button, Spinner, toast } from '@adopt-dont-shop/lib.components';
 import * as styles from './ApplicationPage.css';
 import { useAuth } from '@adopt-dont-shop/lib.auth';

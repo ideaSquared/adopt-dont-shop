@@ -7,7 +7,7 @@ import {
   MdOutlineSettings,
   MdPersonOutline,
 } from 'react-icons/md';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { Avatar } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import * as styles from './NavUserMenu.css';

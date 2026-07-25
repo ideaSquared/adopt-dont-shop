@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/lib.applications",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Adoption application workflow and document management",
   "type": "module",

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as styles from '../ChatDetailModal.css';
 import { type Conversation } from '@adopt-dont-shop/lib.chat';
 import { FiInfo, FiClock, FiUsers, FiMessageSquare } from 'react-icons/fi';

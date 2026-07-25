@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { Heading, Text, Input, toast, useDebouncedValue } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiPackage, FiArrowLeft } from 'react-icons/fi';
 import clsx from 'clsx';

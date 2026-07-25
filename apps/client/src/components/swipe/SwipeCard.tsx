@@ -14,7 +14,7 @@ import {
   MdRefresh,
   MdStar,
 } from 'react-icons/md';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { resolveFileUrl } from '../../utils/fileUtils';
 import * as styles from './SwipeCard.css';
 

@@ -8,7 +8,7 @@ import { petService, PaginatedResponse, Pet } from '@/services';
 import { Button, Container, SelectInput } from '@adopt-dont-shop/lib.components';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import * as styles from './SearchPage.css';
 import { SORT_OPTIONS } from './searchOptions';
 import { SearchFilters } from './SearchFilters';

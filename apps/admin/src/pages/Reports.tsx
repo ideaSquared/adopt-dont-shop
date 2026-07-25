@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { FiPlus } from 'react-icons/fi';
 import { useReports, useReportTemplates } from '@adopt-dont-shop/lib.analytics';

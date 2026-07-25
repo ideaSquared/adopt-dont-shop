@@ -1,5 +1,5 @@
 import { ReactNode, lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
 import { permissionsService } from '@/services/libraryServices';

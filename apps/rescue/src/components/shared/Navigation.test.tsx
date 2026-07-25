@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { render, screen, within } from '@testing-library/react';
 import type { Permission } from '@adopt-dont-shop/lib.permissions';
 

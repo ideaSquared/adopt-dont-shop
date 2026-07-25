@@ -10,7 +10,7 @@ import { Button, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.c
 import { CHAT_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import * as styles from './Communication.css';
 
 // ADS-583: "resolved" maps to the backend's `archived` status. The backend's

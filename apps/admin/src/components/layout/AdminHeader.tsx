@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { FiUser, FiLogOut, FiSettings, FiChevronDown, FiMenu } from 'react-icons/fi';
 import * as styles from './AdminHeader.css';

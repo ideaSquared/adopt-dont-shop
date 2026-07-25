@@ -9,7 +9,7 @@ import {
 } from '@adopt-dont-shop/lib.components';
 import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { matchingService } from '@/services';
 import { resolveFileUrl } from '@/utils/fileUtils';
 import * as styles from './TopPicksPage.css';

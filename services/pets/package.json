@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/service.pets",
   "version": "0.1.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "private": true,
   "description": "Pets service — Phase 3 extraction. Owns the pets.* schema (Pet, PetMedia, Breed, UserFavorite, Rating, PetStatusTransition) and exposes gRPC PetService over a status state machine (available → reserved → adopted → unavailable, plus deceased / returned). Pet state transitions are event-sourced — pure apply/fold domain + publish-after-commit on pets.statusChanged. Phase 3.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",

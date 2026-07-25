@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useStatsig } from '@/hooks/useStatsig';
 import {

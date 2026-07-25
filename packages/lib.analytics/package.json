@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/lib.analytics",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "User behavior tracking and analytics for adoption insights",
   "type": "module",

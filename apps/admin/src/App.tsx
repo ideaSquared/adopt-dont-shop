@@ -1,5 +1,5 @@
 import React, { ReactNode, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router';
 import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';

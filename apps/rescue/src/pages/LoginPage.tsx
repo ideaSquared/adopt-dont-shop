@@ -1,6 +1,6 @@
 import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib.auth';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import * as styles from './LoginPage.css';
 
 type LocationState = {

@@ -14,7 +14,7 @@ import {
   useUnreadConversations,
   type Conversation,
 } from '@adopt-dont-shop/lib.chat';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as styles from './UnreadMessagesPanel.css';
 
 const MAX_VISIBLE_UNREAD = 5;

@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/eslint-config-base",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Shared ESLint configuration for TypeScript packages",
   "main": "index.js",

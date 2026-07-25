@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import * as styles from './AnonymousSwipePaywallModal.css';
 
 export type AnonymousSwipePaywallModalProps = {

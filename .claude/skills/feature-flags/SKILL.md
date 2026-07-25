@@ -92,7 +92,7 @@ default, not a blank screen.
 ### Gated route
 
 ```typescript
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 
 const ReportsRoute = () => {
   const enabled = useFeatureGate(KNOWN_GATES.REPORTS_V2);

@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => ({
         external: [
           'react',
           'react-dom',
-          'react-router-dom',
+          'react-router',
           'styled-components',
           '@radix-ui/react-tooltip',
           '@radix-ui/react-dropdown-menu',
@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => ({
           globals: {
             react: 'React',
             'react-dom': 'ReactDOM',
-            'react-router-dom': 'ReactRouterDOM',
+            'react-router': 'ReactRouter',
             'styled-components': 'styled',
             '@radix-ui/react-tooltip': 'RadixTooltip',
             '@radix-ui/react-dropdown-menu': 'RadixDropdownMenu',

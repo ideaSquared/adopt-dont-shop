@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import { useAuth, usePermissions } from '@adopt-dont-shop/lib.auth';
 import type { Permission } from '@adopt-dont-shop/lib.permissions';
 import { Logo } from '@adopt-dont-shop/lib.components';

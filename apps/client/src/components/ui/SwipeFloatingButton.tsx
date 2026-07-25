@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MdClose, MdSwipe } from 'react-icons/md';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import * as styles from './SwipeFloatingButton.css';
 
 interface SwipeFloatingButtonProps {

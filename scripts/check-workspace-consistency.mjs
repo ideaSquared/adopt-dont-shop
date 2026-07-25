@@ -497,7 +497,7 @@ function checkDevVolumesDrift(apps, packages, services) {
 const TEMPLATE_TRACKED_DEPS = [
   'react',
   'react-dom',
-  'react-router-dom',
+  'react-router',
   'typescript',
   'eslint',
   'vitest',

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { formatStatusName } from '../../utils/statusUtils';
 import { useStaff } from '../../hooks/useStaff';

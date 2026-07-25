@@ -8,9 +8,11 @@
   "license": "MIT",
   "type": "module",
   "style": "dist/adopt-dont-shop-components.css",
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "exports": {
     ".": {
@@ -101,6 +103,6 @@
   "peerDependencies": {
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.16.0"
+    "react-router": "^8.3.0"
   }
 }

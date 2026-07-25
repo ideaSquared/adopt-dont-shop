@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/eslint-config-node",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Shared ESLint configuration for Node.js backend services",
   "main": "index.js",

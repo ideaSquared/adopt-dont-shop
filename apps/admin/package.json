@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/app.admin",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Admin dashboard React application for platform management",
   "license": "MIT",
@@ -51,7 +51,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-icons": "^5.6.0",
-    "react-router-dom": "^7.18.0",
+    "react-router": "^8.3.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

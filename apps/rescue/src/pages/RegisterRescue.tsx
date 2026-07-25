@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import * as styles from './RegisterRescue.css';

@@ -1,7 +1,7 @@
 import { authService } from '@/services';
 import { Alert, Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import * as styles from './VerifyEmailPage.css';
 
 type VerificationStatus = 'verifying' | 'success' | 'error' | 'expired';

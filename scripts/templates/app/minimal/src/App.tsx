@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router';
 import { HomePage } from '@/pages/HomePage';
 import { DevLoginPanel } from '@/components/dev/DevLoginPanel';
 import { Footer } from '@adopt-dont-shop/lib.components';

@@ -5,7 +5,7 @@ import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
 import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, petService, Application, Pet } from '@/services';
 import { resolveFileUrl } from '../utils/fileUtils';

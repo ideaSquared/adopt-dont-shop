@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation, type LinkProps } from 'react-router-dom';
+import { Link, useLocation, type LinkProps } from 'react-router';
 import * as styles from './NavLink.css';
 
 export type NavLinkProps = Omit<LinkProps, 'to'> & {

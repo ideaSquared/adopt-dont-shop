@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/lib.legal",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Legal re-acceptance modal and consent service shared by every app",
   "type": "module",

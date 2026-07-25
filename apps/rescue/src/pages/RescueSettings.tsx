@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import clsx from 'clsx';
 import { useAuth, useHasPermission, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { ThemeToggle, toast } from '@adopt-dont-shop/lib.components';

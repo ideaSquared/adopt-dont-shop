@@ -2,7 +2,7 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Alert, Button, Card, Spinner } from '@adopt-dont-shop/lib.components';
 import type { AdopterLifestyle } from '@adopt-dont-shop/lib.matching';
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router';
 import { matchingService } from '@/services';
 import * as styles from './OnboardingWizardPage.css';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { MdClose, MdFavorite, MdPerson } from 'react-icons/md';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as styles from './LoginPromptModal.css';
 
 interface LoginPromptModalProps {

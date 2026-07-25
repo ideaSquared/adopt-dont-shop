@@ -14,7 +14,7 @@ import {
   MdPhone,
   MdVerified,
 } from 'react-icons/md';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { AdoptionPoliciesDisplay } from '@/components/rescue/AdoptionPoliciesDisplay';
 import * as styles from './RescueDetailsPage.css';
 

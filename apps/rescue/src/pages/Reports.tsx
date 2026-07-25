@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Heading, Text } from '@adopt-dont-shop/lib.components';
 import { useReports, useReportTemplates } from '@adopt-dont-shop/lib.analytics';
 import * as styles from './Reports.css';
