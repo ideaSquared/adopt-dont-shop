@@ -107,9 +107,9 @@ Frontend apps include:
     "@adopt-dont-shop/lib.api": "workspace:*",
     "@adopt-dont-shop/lib.auth": "workspace:*",
     "@adopt-dont-shop/lib.validation": "workspace:*",
-    "react": "^18.2.0",
+    "react": "^19.2.7",
     "react-router": "^8.3.0",
-    "@tanstack/react-query": "^4.x"
+    "@tanstack/react-query": "^5.101.0"
   }
 }
 ```
