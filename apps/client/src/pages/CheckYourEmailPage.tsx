@@ -1,7 +1,7 @@
 import { authService } from '@/services';
 import { Alert, Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import * as styles from './CheckYourEmailPage.css';
 
 export const CheckYourEmailPage: React.FC = () => {

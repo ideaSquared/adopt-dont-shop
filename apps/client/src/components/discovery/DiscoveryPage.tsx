@@ -16,7 +16,7 @@ import {
 } from '@/utils/anonSwipeBudget';
 import { useStatsig } from '@/hooks/useStatsig';
 import { MdWarning } from 'react-icons/md';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import * as styles from './DiscoveryPage.css';
 import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';

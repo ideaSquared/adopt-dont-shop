@@ -4,7 +4,7 @@ import { captureException, initSentry, reportWebVitals } from '@adopt-dont-shop/
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import App from './App';
 import { StatsigWrapper } from './contexts/StatsigContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';

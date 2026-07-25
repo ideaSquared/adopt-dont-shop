@@ -18,7 +18,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor } from '../test-utils';
 import userEvent from '@testing-library/user-event';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router';
 import Moderation from '../pages/Moderation';
 import type { Report, ReportSeverity, ReportStatus } from '@adopt-dont-shop/lib.moderation';
 

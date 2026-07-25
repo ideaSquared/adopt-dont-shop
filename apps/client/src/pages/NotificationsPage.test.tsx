@@ -7,7 +7,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 
 const mockIsAuthenticated = { value: true };

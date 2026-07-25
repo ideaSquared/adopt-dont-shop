@@ -3,7 +3,7 @@ import { petService, Pet } from '@/services';
 import { Alert, Container } from '@adopt-dont-shop/lib.components';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { PetCard } from '../components/PetCard';
 import { useFavorites } from '../contexts/FavoritesContext';
 import * as styles from './FavoritesPage.css';

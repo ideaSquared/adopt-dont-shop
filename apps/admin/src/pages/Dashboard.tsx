@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import clsx from 'clsx';
 import { Heading, Stack, Text } from '@adopt-dont-shop/lib.components';
 import { useReports } from '@adopt-dont-shop/lib.moderation';

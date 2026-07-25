@@ -9,7 +9,7 @@ import { petService, Pet } from '@/services';
 import { Button } from '@adopt-dont-shop/lib.components';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as styles from './HomePage.css';
 
 export const HomePage: React.FC = () => {

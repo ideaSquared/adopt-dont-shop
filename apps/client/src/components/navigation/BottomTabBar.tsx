@@ -1,6 +1,6 @@
 import React from 'react';
 import { MdChat, MdFavoriteBorder, MdOutlineSearch, MdStarBorder, MdSwipe } from 'react-icons/md';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import { Badge } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';

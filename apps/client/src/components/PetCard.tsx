@@ -5,7 +5,7 @@ import { Pet } from '@/services';
 import { Badge, Button, Card, PetImage } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder, MdLocationOn } from 'react-icons/md';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { resolveFileUrl } from '../utils/fileUtils';
 import { LoginPromptModal } from './modals/LoginPromptModal';
 import * as styles from './PetCard.css';

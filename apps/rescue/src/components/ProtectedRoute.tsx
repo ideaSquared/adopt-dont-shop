@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Text, Card } from '@adopt-dont-shop/lib.components';
 import * as styles from './ProtectedRoute.css';

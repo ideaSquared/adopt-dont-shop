@@ -13,7 +13,7 @@
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 
 // ADS-644: ApplicationReview now renders cross-link <Link>s and calls
 // fosterService.list to find the pet's active foster placement. Stub the

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router';
 import { Container, Spinner } from '@adopt-dont-shop/lib.components';
 import { SafeHtml } from '@/components/SafeHtml';
 import { cmsPublicService, type PublicContent } from '@/services/cmsService';

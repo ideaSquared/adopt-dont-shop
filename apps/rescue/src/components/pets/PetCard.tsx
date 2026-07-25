@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';

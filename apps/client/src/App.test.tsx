@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
@@ -33,11 +33,11 @@ vi.mock('@/contexts/FavoritesContext', () => ({
 // AppShell pulls in heavy navigation/chat dependencies; replace it with a
 // minimal pass-through that renders the nested route via <Outlet />.
 vi.mock('./components/layout/AppShell', async () => {
-  const { Outlet } = await import('react-router-dom');
+  const { Outlet } = await import('react-router');
   return { AppShell: () => <Outlet /> };
 });
 vi.mock('./components/layout/PublicAuthLayout', async () => {
-  const { Outlet } = await import('react-router-dom');
+  const { Outlet } = await import('react-router');
   return { PublicAuthLayout: () => <Outlet /> };
 });
 

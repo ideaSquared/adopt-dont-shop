@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import clsx from 'clsx';
 
 import { footer, footerContainer, footerText, footerLinks, footerLink } from './Footer.css';

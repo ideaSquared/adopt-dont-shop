@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router';
 import { Footer, InstallPwaBanner, SkipLink } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AppNavbar } from '@/components/navigation/AppNavbar';

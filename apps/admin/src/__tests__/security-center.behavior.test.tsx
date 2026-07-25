@@ -15,7 +15,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders, screen } from '../test-utils';
 import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 

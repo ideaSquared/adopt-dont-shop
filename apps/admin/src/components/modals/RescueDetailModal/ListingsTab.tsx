@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { DateTime, Skeleton } from '@adopt-dont-shop/lib.components';
 import * as styles from '../RescueDetailModal.css';
 import { petService, type AdminPet } from '@/services/petService';

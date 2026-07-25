@@ -16,7 +16,7 @@ export default defineConfig({
       external: [
         'react',
         'react-dom',
-        'react-router-dom',
+        'react-router',
         'styled-components',
         '@radix-ui/react-tooltip',
         '@radix-ui/react-dropdown-menu',

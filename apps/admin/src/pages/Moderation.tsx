@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router';
 import { Input, toast, useDebouncedValue } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiAlertTriangle, FiCheckCircle, FiEye, FiShield } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';

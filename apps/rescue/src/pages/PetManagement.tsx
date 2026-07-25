@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router';
 import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
 import { PetListSkeleton } from '../components/skeletons';
 import {

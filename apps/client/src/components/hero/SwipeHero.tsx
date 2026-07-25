@@ -1,6 +1,6 @@
 import React from 'react';
 import { MdAutoFixHigh, MdFlashOn, MdSearch, MdSwipe, MdTrendingUp } from 'react-icons/md';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import * as styles from './SwipeHero.css';
 

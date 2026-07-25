@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import { useAuth, usePermissions } from '@adopt-dont-shop/lib.auth';
 import type { Permission } from '@adopt-dont-shop/lib.permissions';
 import { ADMIN_USER_TYPES } from '@/types';

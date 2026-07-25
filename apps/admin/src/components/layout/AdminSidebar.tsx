@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router';
 import { Logo } from '@adopt-dont-shop/lib.components';
 import * as styles from './AdminSidebar.css';
 import { useMyInboxCount } from '../../hooks/useMyInboxCount';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import clsx from 'clsx';
 import { invitationService } from '../services/libraryServices';
 import * as styles from './AcceptInvitation.css';

@@ -1,6 +1,6 @@
 import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib.auth';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router';
 import * as styles from './LoginPage.css';
 
 // Reject absolute URLs, protocol-relative (//), backslash variants (/\),

@@ -13,7 +13,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderWithProviders } from '../test-utils';

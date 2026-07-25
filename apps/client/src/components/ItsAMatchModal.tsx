@@ -1,5 +1,5 @@
 import { Modal } from '@adopt-dont-shop/lib.components';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as styles from './ItsAMatchModal.css';
 
 // ADS-633: Tinder-style "It's a Match!" celebration shown when the rescue

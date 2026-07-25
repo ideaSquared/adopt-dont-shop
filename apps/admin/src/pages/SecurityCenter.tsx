@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
 import {

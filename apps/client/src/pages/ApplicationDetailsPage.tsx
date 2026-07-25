@@ -5,7 +5,7 @@ import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { WithdrawApplicationModal } from '../components/application';
 import * as styles from './ApplicationDetailsPage.css';
 
