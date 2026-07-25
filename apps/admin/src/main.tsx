@@ -84,7 +84,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         >
           <StatsigWrapper>
             <ThemeProvider>
-              <BrowserRouter>
+              <BrowserRouter basename={import.meta.env.VITE_ROUTER_BASENAME ?? '/'}>
                 <App />
               </BrowserRouter>
               <Toaster />
