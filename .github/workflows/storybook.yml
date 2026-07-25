@@ -57,23 +57,75 @@ jobs:
       - run: pnpm build-storybook
         if: steps.cache-storybook.outputs.cache-hit != 'true'
         working-directory: packages/lib.components
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
-        if: github.ref == 'refs/heads/main'
-        with:
-          path: packages/lib.components/storybook-static
 
   deploy-storybook:
-    name: Deploy to GitHub Pages
+    name: Deploy Storybook to GitHub Pages
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build-storybook
     if: github.ref == 'refs/heads/main'
+    # ADS-950: serialise Storybook deploys so they don't race with each other
+    # (concurrent pushes to the same gh-pages root would produce conflicts).
+    # PR preview deploys (preview.yml) write to pr-previews/<PR>/ — a disjoint
+    # path — so they don't share this concurrency group.
+    concurrency:
+      group: gh-pages-storybook
+      cancel-in-progress: false
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      contents: write
     steps:
-      - uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128  # v5.0.0
-        id: deployment
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      # Restore the storybook-static directory built (or cache-hit) above.
+      - name: Restore Storybook build
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        with:
+          path: packages/lib.components/storybook-static
+          key: storybook-${{ runner.os }}-${{ hashFiles('packages/lib.components/**') }}
+
+      - name: Push Storybook to gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          STORYBOOK="packages/lib.components/storybook-static"
+
+          # Stash the build before switching branches.
+          cp -r "$STORYBOOK" /tmp/storybook-build
+
+          # Checkout gh-pages (create an orphan if it doesn't exist yet).
+          git fetch origin gh-pages 2>/dev/null \
+            && git checkout gh-pages \
+            || { git checkout --orphan gh-pages; git rm -rf . 2>/dev/null || true; }
+
+          # Preserve the pr-previews/ directory written by preview.yml.
+          if [ -d pr-previews ]; then
+            cp -r pr-previews /tmp/pr-previews-backup
+          fi
+
+          # Clear the root (preserving .git and pr-previews) then copy Storybook.
+          find . -maxdepth 1 ! -name '.git' ! -name 'pr-previews' ! -name '.' \
+            -exec rm -rf {} + 2>/dev/null || true
+          cp -r /tmp/storybook-build/. .
+
+          # Restore pr-previews/.
+          if [ -d /tmp/pr-previews-backup ]; then
+            cp -r /tmp/pr-previews-backup/. pr-previews
+          fi
+
+          # .nojekyll disables Jekyll so _-prefixed Storybook asset dirs work.
+          touch .nojekyll
+          git add -A
+          git diff --cached --quiet && echo "Nothing changed — skipping push." && exit 0
+
+          git commit -m "deploy: storybook"
+
+          # Retry push for the (rare) case a PR preview push just landed.
+          for i in 1 2 3 4 5; do
+            git push origin gh-pages && break || {
+              [ "$i" -lt 5 ] || { echo "Push failed after 5 attempts"; exit 1; }
+              echo "Push attempt ${i} failed — rebasing and retrying in $((i * 2))s..."
+              git pull --rebase origin gh-pages 2>/dev/null || true
+              sleep $((i * 2))
+            }
+          done
