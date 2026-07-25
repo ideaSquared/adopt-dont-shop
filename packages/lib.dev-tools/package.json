@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/lib.dev-tools",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Development tools and utilities for the Adopt Don't Shop platform",
   "type": "module",

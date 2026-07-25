@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/lib.types",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Shared TypeScript types, permission constants, and default configurations. Zero dependencies - safe for both frontend and backend.",
   "type": "module",

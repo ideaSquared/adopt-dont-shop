@@ -12,14 +12,14 @@
 # the install-layer cache whenever ANY lib changed, even libs the app does
 # not depend on. Adding a new lib now requires zero Dockerfile edits.
 
-ARG NODE_VERSION=22.15.1
-# Pinned by digest (matches node:22.15.1-slim at the time of pinning) so a
+ARG NODE_VERSION=22.23.1
+# Pinned by digest (matches node:22.23.1-slim at the time of pinning) so a
 # rebuild can't silently pull a different image. Renovate's docker manager
 # (pinDigests: true in renovate.json) keeps this current — bump NODE_VERSION
 # and the digest together when it opens a PR. If NODE_VERSION is overridden
 # without updating the digest, the build fails closed on a manifest mismatch
 # rather than silently resolving an unpinned image. [ADS-960]
-FROM node:${NODE_VERSION}-slim@sha256:ec318fe0dc46b56bcc1ca42a202738aeb4f3e347a7b4dd9f9f1df12ea7aa385a AS base
+FROM node:${NODE_VERSION}-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3 AS base
 
 WORKDIR /app
 

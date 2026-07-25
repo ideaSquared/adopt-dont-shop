@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/lib.search",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Advanced search functionality",
   "type": "module",

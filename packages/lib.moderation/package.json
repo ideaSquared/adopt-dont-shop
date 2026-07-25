@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/lib.moderation",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Content moderation and reporting functionality",
   "type": "module",

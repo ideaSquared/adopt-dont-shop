@@ -120,13 +120,17 @@
     "react": "react and react-dom are pinned to the same exact version (not a `^19.2.x` range) because npm's deduper can otherwise hoist a different react-dom patch to the root than react (e.g. react 19.2.7 / react-dom 19.2.6), which trips react-dom's `react`/`react-dom` exact-version-match guard and crashes every React test. The `react-zdog` nested override keeps that subtree on react 18, which it requires. Bump react and react-dom together when updating React.",
     "undici": "Force undici >=7.28.0 to patch the TLS certificate-validation bypass (GHSA-vmh5-mc38-953g). undici is a transitive dependency (jsdom > undici in the React apps' test toolchain), so the root-level override is the only way to reach the nested copy that `pnpm audit` flags. Do not downgrade below 7.28.0.",
     "underscore": "Force underscore >=1.13.8 to patch the unbounded-recursion DoS in _.flatten / _.isEqual (GHSA-qpx9-hpmf-5gmw). underscore is a dev-only transitive dependency (@pact-foundation/pact > @pact-foundation/pact-core > underscore in the contract-test toolchain), so the root-level override is the only way to reach the nested copy that `pnpm audit` flags. Do not downgrade below 1.13.8.",
-    "brace-expansion": "Patch the exponential-time-expansion DoS in brace-expansion (GHSA-3jxr-9vmj-r5cp). The advisory spans three disjoint ranges across the major lines the tree resolves (1.x <1.1.16, 2.x <2.1.2, 3.x-5.x <5.0.7), so each vulnerable range is overridden to its own nearest patched release rather than force-collapsing every transitive copy to one major. Transitive via many build/glob tools (minimatch etc.). Do not lower the patched targets.",
+    "brace-expansion": "Patch the unbounded-expansion OOM-crash DoS in brace-expansion (GHSA-mh99-v99m-4gvg), which supersedes the earlier GHSA-3jxr-9vmj-r5cp range-split fix. The new advisory marks every release <=5.0.7 vulnerable across ALL major lines (1.x, 2.x, 5.x) with 5.0.8 the only patched version, so — unlike before — there is no patched 1.x/2.x to keep the majors separate; a single `<5.0.8` override collapses every transitive copy to 5.0.8. brace-expansion's `expand()` API is stable across majors (minimatch etc. work unchanged). Do not lower below 5.0.8.",
     "js-yaml": "Force js-yaml >=4.3.0 to patch the quadratic-CPU DoS via YAML merge-key chains (GHSA-52cp-r559-cp3m); the 4.x line is vulnerable below 4.3.0. Kept on 4.3.0 (not the 5.x latest) to stay API-compatible for transitive consumers. Do not downgrade below 4.3.0.",
     "shell-quote": "Force shell-quote >=1.9.0 to patch the quadratic-complexity DoS in parse() (GHSA-395f-4hp3-45gv, CWE-407); everything <=1.8.4 is vulnerable and 1.9.0 is the first published release above the range. Dev/build-chain transitive dependency. Do not downgrade below 1.9.0.",
     "protobufjs": "Force protobufjs >=7.6.5 to patch the infinite-loop DoS in .proto option parsing (GHSA-j3f2-48v5-ccww); the 7.5.0-7.6.4 range is vulnerable. Kept on the 7.6.5 patch (not the 8.x latest) to avoid a runtime major bump for @grpc/proto-loader / packages/proto consumers. Do not downgrade below 7.6.5.",
     "dompurify": "Force dompurify >=3.4.11 to patch the permanent ALLOWED_ATTR pollution via setConfig() (GHSA-cmwh-pvxp-8882); <=3.4.10 is vulnerable. dompurify sanitises chat-attachment previews (lib.chat), so keeping it patched is defence-relevant, not just an audit-gate fix. Do not downgrade below 3.4.11.",
-    "fast-uri": "Force fast-uri >=3.1.3 to patch the host-confusion via failed IDN canonicalization (GHSA-4c8g-83qw-93j6); the 3.0.0-3.1.2 range is vulnerable and 3.1.3 is the first patched 3.x release. fast-uri is a transitive dependency (fastify/ajv URI validation in the gateway + service toolchains), so the root-level override reaches the nested copies pnpm audit flags. Kept on the 3.1.3 patch (not the 4.x latest) to avoid a transitive major bump. Do not downgrade below 3.1.3.",
-    "@opentelemetry/propagator-jaeger": "Force @opentelemetry/propagator-jaeger >=2.9.0 to patch the JaegerPropagator DoS via unhandled exception on a malformed header (GHSA-45rx-2jwx-cxfr); everything <2.9.0 is vulnerable. Transitive via the @opentelemetry auto-instrumentations bundle used by @adopt-dont-shop/observability. Do not downgrade below 2.9.0."
+    "fast-uri": "Force fast-uri >=3.1.4 to patch the host-confusion advisories: the literal-backslash authority-delimiter bypass (GHSA-v2hh-gcrm-f6hx, vulnerable <=3.1.3) supersedes the earlier failed-IDN-canonicalization one (GHSA-4c8g-83qw-93j6) that the previous 3.1.3 pin covered. fast-uri is transitive (fastify/ajv URI validation in the gateway + service toolchains), so the root-level override reaches the nested copies pnpm audit flags. Kept on the 3.1.4 patch (not the 4.x latest) to avoid a transitive major bump. Do not downgrade below 3.1.4.",
+    "@opentelemetry/propagator-jaeger": "Force @opentelemetry/propagator-jaeger >=2.9.0 to patch the JaegerPropagator DoS via unhandled exception on a malformed header (GHSA-45rx-2jwx-cxfr); everything <2.9.0 is vulnerable. Transitive via the @opentelemetry auto-instrumentations bundle used by @adopt-dont-shop/observability. Do not downgrade below 2.9.0.",
+    "svgo": "Force svgo >=3.3.4 to patch the removeScripts-plugin bypass that leaves some executable scripts intact (GHSA-2p49-hgcm-8545); the 3.0.0-3.3.3 range is vulnerable and 3.3.4 is the first patched 3.x release. Transitive via the frontend build toolchain (vite/@vitejs assets). Kept on 3.3.4 (not the 4.x latest) to avoid a transitive major bump. Do not downgrade below 3.3.4.",
+    "postcss": "Force postcss >=8.5.18 to patch the source-map path-traversal arbitrary .map file disclosure (GHSA-r28c-9q8g-f849); everything <=8.5.17 is vulnerable. Transitive via the vanilla-extract / vite CSS pipeline. Do not downgrade below 8.5.18.",
+    "find-my-way": "Force find-my-way >=9.7.0 to patch the HTTP/2 DDoS (GHSA-c96f-x56v-gq3h); everything <=9.6.0 is vulnerable and 9.7.0 is the first patched release (no 9.6.1 was published). Transitive via fastify's router in the gateway + services. Do not downgrade below 9.7.0.",
+    "@fastify/static": "Force @fastify/static >=10.1.2 to patch the route-guard-bypass path traversal (GHSA-83w8-p2f5-377r) and the non-canonical-URL authorization bypass (GHSA-8pvw-jcv7-9cmj); everything <=10.1.0 is vulnerable and there is NO patched 9.x, so the fix requires the 10.x major. It is transitive via @fastify/swagger-ui (which declares @fastify/static ^9.1.2); v10 needs fastify 5, which the gateway already runs (^5.8.5), and swagger-ui only uses it to serve its own fixed-prefix bundled assets, so the override is verified against the gateway's openapi/swagger tests. Do not downgrade below 10.1.2."
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -153,19 +157,21 @@
       "ws@>=8.0.0 <8.21.0": "8.21.0",
       "undici@>=7.23.0 <7.28.0": "^7.28.0",
       "underscore": "^1.13.8",
-      "brace-expansion@<1.1.16": "1.1.16",
-      "brace-expansion@>=2.0.0 <2.1.2": "2.1.2",
-      "brace-expansion@>=3.0.0 <5.0.7": "5.0.7",
+      "brace-expansion@<5.0.8": "5.0.8",
       "js-yaml@>=4.0.0 <4.3.0": "4.3.0",
       "shell-quote@<1.9.0": "1.9.0",
       "protobufjs@>=7.5.0 <7.6.5": "7.6.5",
       "dompurify@<3.4.11": "3.4.11",
-      "fast-uri@>=3.0.0 <3.1.3": "3.1.3",
-      "@opentelemetry/propagator-jaeger@<2.9.0": "2.9.0"
+      "fast-uri@>=3.0.0 <3.1.4": "3.1.4",
+      "@opentelemetry/propagator-jaeger@<2.9.0": "2.9.0",
+      "svgo@>=3.0.0 <3.3.4": "3.3.4",
+      "postcss@<8.5.18": "8.5.18",
+      "find-my-way@<9.7.0": "9.7.0",
+      "@fastify/static@<10.1.2": "10.1.2"
     }
   },
   "engines": {
-    "node": ">=22.0.0 <23.0.0",
+    "node": ">=22.22.0 <23.0.0",
     "pnpm": ">=10.0.0"
   }
 }

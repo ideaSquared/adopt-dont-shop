@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/lib.notifications",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.22.0"
   },
   "description": "Real-time notification system for user alerts and updates",
   "type": "module",
