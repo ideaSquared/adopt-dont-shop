@@ -27,6 +27,37 @@ const GATE_SEVERITIES = new Set(['high', 'critical']);
 const BATCH_SIZE = 200;
 const MAX_RETRIES = 3;
 
+// GHSA IDs that are known-unfixable by pnpm.overrides alone and are temporarily
+// excluded from the blocking gate. They are still PRINTED for visibility.
+// Each exemption must include the reason and a resolution plan. Remove an entry
+// the moment a fixable patched version exists (i.e. the override can reach it).
+//
+// Current exemptions:
+//   GHSA-mh99-v99m-4gvg  brace-expansion OOM DoS — patched only in 5.0.8; no
+//     1.1.x/2.1.x release exists beyond 1.1.16/2.1.2. 1.x/2.x consumers
+//     (minimatch@3, minimatch@5/9) cannot be safely force-bumped to 5.x without
+//     API compatibility audit. Unblock when upstream ships 1.1.17 / 2.1.3.
+//
+//   GHSA-83w8-p2f5-377r  @fastify/static route-guard bypass — patched only in
+//     10.1.2 (major version from 9.x). @fastify/swagger-ui@6.x pins ^9.1.2, so
+//     there is no 9.x patch available. Unblock when @fastify/swagger-ui releases
+//     a version compatible with @fastify/static 10.x.
+//
+//   GHSA-qwww-vcr4-c8h2  react-router RSC CSRF — advisory range >=7.12.0 <8.3.0.
+//     This project uses Vite SPA + BrowserRouter with no React Server Components,
+//     so the RSC code path is never executed. Unblock when the apps are migrated
+//     to react-router 8.x.
+const EXEMPTED_GHSA_IDS = new Set([
+  'ghsa-mh99-v99m-4gvg',
+  'ghsa-83w8-p2f5-377r',
+  'ghsa-qwww-vcr4-c8h2',
+]);
+
+const ghsaIdFromUrl = (url) => {
+  const m = String(url ?? '').match(/GHSA-[\w-]+$/i);
+  return m ? m[0].toLowerCase() : null;
+};
+
 // Extract name -> Set(versions) from the `packages:` section of the v9
 // lockfile. Keys look like `'@scope/name@1.2.3':` or `'name@1.2.3':`, with an
 // occasional `(peerdep@x)` suffix on the version that we strip.
@@ -138,7 +169,9 @@ const writeSummary = (findings) => {
       (a, b) => (order[a.severity] ?? 5) - (order[b.severity] ?? 5)
     );
     for (const f of sorted) {
-      lines.push(`| ${f.severity} | \`${f.name}\` | ${f.version} | [${f.title}](${f.url}) |`);
+      const ghsa = ghsaIdFromUrl(f.url);
+      const exemptNote = ghsa && EXEMPTED_GHSA_IDS.has(ghsa) ? ' *(exempted)*' : '';
+      lines.push(`| ${f.severity}${exemptNote} | \`${f.name}\` | ${f.version} | [${f.title}](${f.url}) |`);
     }
   }
   const body = `${lines.join('\n')}\n`;
@@ -163,7 +196,9 @@ const main = async () => {
   const findings = collectFindings(advisoriesByName, versionsByName);
   writeSummary(findings);
 
-  const blocking = findings.filter((f) => GATE_SEVERITIES.has(f.severity));
+  const blocking = findings.filter(
+    (f) => GATE_SEVERITIES.has(f.severity) && !EXEMPTED_GHSA_IDS.has(ghsaIdFromUrl(f.url))
+  );
   if (blocking.length > 0) {
     const unique = new Set(blocking.map((f) => `${f.name}@${f.version}`));
     console.error(

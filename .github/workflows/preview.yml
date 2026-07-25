@@ -87,9 +87,15 @@ jobs:
           # break the runner's post-step cleanup for local composite actions.
           DEPLOY_DIR=/tmp/gh-pages-deploy
           if git fetch origin gh-pages 2>/dev/null; then
-            git worktree add "$DEPLOY_DIR" gh-pages
+            # gh-pages exists remotely. -B creates or resets the local branch to
+            # the fetched remote ref so git worktree add has a valid local target.
+            git worktree add -B gh-pages "$DEPLOY_DIR" origin/gh-pages
           else
-            git worktree add --orphan "$DEPLOY_DIR" gh-pages
+            # First deployment: create a detached worktree then switch to an orphan
+            # gh-pages inside it (avoids the non-standard --orphan worktree flag).
+            git worktree add --detach "$DEPLOY_DIR"
+            git -C "$DEPLOY_DIR" checkout --orphan gh-pages
+            git -C "$DEPLOY_DIR" rm -rf . 2>/dev/null || true
           fi
 
           # Write this PR's preview files under pr-previews/<PR>/<app>/
