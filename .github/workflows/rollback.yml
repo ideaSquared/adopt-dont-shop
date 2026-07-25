@@ -59,7 +59,8 @@ jobs:
           # the grep, which legitimately returns 1 when the header is absent
           # (fine-grained PAT).
           RESPONSE_HEADERS=$(curl -fsSI \
-            -H "Authorization: token $GHCR_TOKEN" \
+            -H "Authorization: Bearer $GHCR_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
             -H "User-Agent: adopt-dont-shop-deploy/1.0" \
             https://api.github.com/)
           SCOPES=$(echo "$RESPONSE_HEADERS" | grep -i '^x-oauth-scopes:' | sed 's/^[^:]*: *//' | tr -d '\r' || true)
