@@ -64,9 +64,13 @@ jobs:
             echo "Ensure it has Packages: read permission only (ADS-671)."
           else
             echo "Token scopes: $SCOPES"
+            # Split on commas and trim whitespace so each element is one scope.
+            # grep -qx requires an exact full-line match, preventing false positives
+            # from scopes that merely contain a bad name (e.g. public_repo, repo:status).
+            SCOPE_LIST=$(echo "$SCOPES" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             BAD=""
             for SCOPE in "write:packages" "delete:packages" "repo"; do
-              if echo "$SCOPES" | grep -q "$SCOPE"; then
+              if echo "$SCOPE_LIST" | grep -qx "$SCOPE"; then
                 BAD="$BAD $SCOPE"
               fi
             done
