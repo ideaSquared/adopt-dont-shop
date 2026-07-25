@@ -541,11 +541,15 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
           set -euo pipefail
-          SCOPES=$(curl -fsSI \
+          # Run curl separately so a network/auth failure exits the step rather
+          # than being swallowed by || true. The || true below only applies to
+          # the grep, which legitimately returns 1 when the header is absent
+          # (fine-grained PAT).
+          RESPONSE_HEADERS=$(curl -fsSI \
             -H "Authorization: token $GHCR_TOKEN" \
             -H "User-Agent: adopt-dont-shop-deploy/1.0" \
-            https://api.github.com/ \
-            | grep -i '^x-oauth-scopes:' | sed 's/^[^:]*: *//' | tr -d '\r' || true)
+            https://api.github.com/)
+          SCOPES=$(echo "$RESPONSE_HEADERS" | grep -i '^x-oauth-scopes:' | sed 's/^[^:]*: *//' | tr -d '\r' || true)
           if [ -z "$SCOPES" ]; then
             echo "GHCR_TOKEN is a fine-grained PAT (X-OAuth-Scopes absent)."
             echo "Ensure it has Packages: read permission only (ADS-671)."
