@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="AdoptDontShop">
+  <defs>
+    <filter id="ds" x="-20%" y="-15%" width="140%" height="135%">
+      <feDropShadow dx="0" dy="2" stdDeviation="1.6" flood-color="#0F172A" flood-opacity="0.16"></feDropShadow>
+    </filter>
+  </defs>
+  <g filter="url(#ds)">
+    <path d="M50 10 C 53 10, 55 11, 57 13 L 88 42 C 90 44, 91 46, 91 49 L 91 84 C 91 88, 87 92, 83 92 L 17 92 C 13 92, 9 88, 9 84 L 9 49 C 9 46, 10 44, 12 42 L 43 13 C 45 11, 47 10, 50 10 Z" fill="#F43F5E"></path>
+    <ellipse cx="32" cy="62" rx="5.5" ry="7" fill="#FFFFFF" transform="rotate(-18 32 62)"></ellipse>
+    <ellipse cx="43" cy="55" rx="5.5" ry="7.5" fill="#FFFFFF" transform="rotate(-6 43 55)"></ellipse>
+    <ellipse cx="57" cy="55" rx="5.5" ry="7.5" fill="#FFFFFF" transform="rotate(6 57 55)"></ellipse>
+    <ellipse cx="68" cy="62" rx="5.5" ry="7" fill="#FFFFFF" transform="rotate(18 68 62)"></ellipse>
+    <path d="M50 67 C 40 67, 33 73, 33 80 C 33 86, 41 89, 50 89 C 59 89, 67 86, 67 80 C 67 73, 60 67, 50 67 Z" fill="#FFFFFF"></path>
+  </g>
+</svg>
