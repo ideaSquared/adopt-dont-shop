@@ -47,6 +47,36 @@ jobs:
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
+      # ADS-671: Verify GHCR_TOKEN is scoped to read:packages only before
+      # shipping it to the rollback host. See deploy.yml for rationale.
+      - name: Verify GHCR_TOKEN scope
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          SCOPES=$(curl -fsSI \
+            -H "Authorization: token $GHCR_TOKEN" \
+            -H "User-Agent: adopt-dont-shop-deploy/1.0" \
+            https://api.github.com/ \
+            | grep -i '^x-oauth-scopes:' | sed 's/^[^:]*: *//' | tr -d '\r' || true)
+          if [ -z "$SCOPES" ]; then
+            echo "GHCR_TOKEN is a fine-grained PAT (X-OAuth-Scopes absent)."
+            echo "Ensure it has Packages: read permission only (ADS-671)."
+          else
+            echo "Token scopes: $SCOPES"
+            BAD=""
+            for SCOPE in "write:packages" "delete:packages" "repo"; do
+              if echo "$SCOPES" | grep -q "$SCOPE"; then
+                BAD="$BAD $SCOPE"
+              fi
+            done
+            if [ -n "$BAD" ]; then
+              echo "::error::GHCR_TOKEN has excessive scope(s):$BAD (ADS-671). Rotate to a read:packages-only token."
+              exit 1
+            fi
+            echo "GHCR_TOKEN scope OK — no write:packages, delete:packages, or repo scope."
+          fi
+
       # ADS-670: pin SSH host fingerprint to prevent MitM.
       # ADS-671: GHCR_TOKEN must be scoped `read:packages` only — it is used
       # exclusively for `docker pull` during rollback. Passed via envs (not
