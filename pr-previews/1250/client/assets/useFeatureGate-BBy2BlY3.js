@@ -1,1 +1,0 @@
-import{i as e}from"./rolldown-runtime-aKtaBQYM.js";import{xn as t}from"./chat-lib-DqvYw3R2.js";import{o as n}from"./index-BJswC005.js";var r=n(),i=e(t(),1),a=e=>{let{client:t}=(0,i.useContext)(r.StatsigContext);return t?{value:t.checkGate(e)}:{value:!1}};export{a as t};
