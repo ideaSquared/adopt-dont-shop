@@ -38,14 +38,8 @@ const MAX_RETRIES = 3;
 //     (minimatch@3, minimatch@5/9) cannot be safely force-bumped to 5.x without
 //     API compatibility audit. Unblock when upstream ships 1.1.17 / 2.1.3.
 //
-//   GHSA-83w8-p2f5-377r  @fastify/static route-guard bypass — patched only in
-//     10.1.2 (major version from 9.x). @fastify/swagger-ui@6.x pins ^9.1.2, so
-//     there is no 9.x patch available. Unblock when @fastify/swagger-ui releases
-//     a version compatible with @fastify/static 10.x.
-//
 const EXEMPTED_GHSA_IDS = new Set([
   'ghsa-mh99-v99m-4gvg',
-  'ghsa-83w8-p2f5-377r',
 ]);
 
 const ghsaIdFromUrl = (url) => {
