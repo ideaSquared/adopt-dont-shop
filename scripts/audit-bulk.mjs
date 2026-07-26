@@ -43,14 +43,9 @@ const MAX_RETRIES = 3;
 //     there is no 9.x patch available. Unblock when @fastify/swagger-ui releases
 //     a version compatible with @fastify/static 10.x.
 //
-//   GHSA-qwww-vcr4-c8h2  react-router RSC CSRF — advisory range >=7.12.0 <8.3.0.
-//     This project uses Vite SPA + BrowserRouter with no React Server Components,
-//     so the RSC code path is never executed. Unblock when the apps are migrated
-//     to react-router 8.x.
 const EXEMPTED_GHSA_IDS = new Set([
   'ghsa-mh99-v99m-4gvg',
   'ghsa-83w8-p2f5-377r',
-  'ghsa-qwww-vcr4-c8h2',
 ]);
 
 const ghsaIdFromUrl = (url) => {
