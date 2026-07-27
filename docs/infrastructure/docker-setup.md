@@ -2,7 +2,7 @@
 
 This document explains how to set up and run the Adopt Don't Shop application using Docker, along with common troubleshooting solutions.
 
-> **Canonical quick-start:** the fastest path is `pnpm setup` followed by `pnpm docker:dev`
+> **Canonical quick-start:** the fastest path is `pnpm bootstrap` followed by `pnpm docker:dev`
 > (see the root [README](../../README.md)). This guide focuses on the architecture overview
 > and troubleshooting. The stack is now a Fastify **gateway** plus gRPC microservices — the
 > old single `service.backend` monolith has been removed.
@@ -55,7 +55,7 @@ Modern browsers automatically resolve `*.localhost` subdomains to `127.0.0.1`, s
    cd adopt-dont-shop
 
    # One-time setup: creates .env, generates secrets, installs deps
-   pnpm setup
+   pnpm bootstrap
 
    # Start the full dev stack (preflight checks + HMR)
    pnpm docker:dev

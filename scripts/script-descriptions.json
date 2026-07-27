@@ -1,5 +1,5 @@
 {
-  "setup": "One-shot bootstrap: Node check, .env creation, secret generation, install, build libs, validate env (see docs/GETTING-STARTED.md). Note: run as `pnpm run setup` — bare `pnpm setup` invokes pnpm's own built-in command (ADS-993).",
+  "bootstrap": "One-shot bootstrap: Node check, .env creation, secret generation, install, build libs, validate env (see docs/GETTING-STARTED.md).",
   "prepare": "Husky git-hooks install (runs automatically after `pnpm install`).",
   "dev": "Run every workspace package's dev script via Turbo, in parallel (apps + gateway + services).",
   "dev:apps": "Run only the three frontend apps' dev servers (no backend, Docker, or DB).",

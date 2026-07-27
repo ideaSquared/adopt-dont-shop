@@ -129,7 +129,7 @@ function checkEnv() {
   step('Checking .env');
   const envPath = join(ROOT, '.env');
   if (!existsSync(envPath)) {
-    fail('.env not found. Run `pnpm setup` (or copy .env.example) first.');
+    fail('.env not found. Run `pnpm bootstrap` (or copy .env.example) first.');
     process.exit(1);
   }
   const contents = readFileSync(envPath, 'utf8');

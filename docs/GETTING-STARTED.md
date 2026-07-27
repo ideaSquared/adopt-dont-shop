@@ -18,10 +18,10 @@ section instead, it does steps 1-2 for you.
 ```bash
 git clone https://github.com/ideaSquared/adopt-dont-shop.git
 cd adopt-dont-shop
-pnpm setup
+pnpm bootstrap
 ```
 
-`pnpm setup` enables Corepack, creates `.env` from `.env.example`, generates
+`pnpm bootstrap` enables Corepack, creates `.env` from `.env.example`, generates
 fresh JWT/session/encryption secrets into it, and installs every
 workspace dependency. It'll also prompt you about the opt-in pre-push hook
 (answering yes is recommended for your first month) — see

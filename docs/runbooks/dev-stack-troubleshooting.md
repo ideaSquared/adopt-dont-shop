@@ -277,7 +277,7 @@ docker compose exec app-client env | grep CHOKIDAR    # macOS/Windows should sho
 ```
 
 **Fix.** On macOS/Windows, confirm the polling vars made it into `.env`
-(`pnpm run setup` writes them per-host — see ADS-766); on Linux this should
+(`pnpm bootstrap` writes them per-host — see ADS-766); on Linux this should
 never be the cause since native inotify is used. If polling is already
 correct and HMR still doesn't fire, check the Vite dev server logs for the
 app in question (`docker compose logs app-client`) for a "file watcher
@@ -288,7 +288,7 @@ limit reached" style error.
 ### 10. `.env` missing a required var
 
 **Diagnosis.** This happens when `.env` was hand-created (copied from
-`.env.example`) instead of going through `pnpm run setup`, which auto-generates
+`.env.example`) instead of going through `pnpm bootstrap`, which auto-generates
 the application secrets. `pnpm docker:dev`'s preflight checks a subset of
 these (`POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`,
 `GF_SECURITY_ADMIN_PASSWORD`) and fails fast with the missing key names.
@@ -301,7 +301,7 @@ pnpm validate:env
 **Fix.**
 
 ```bash
-pnpm run setup       # safe to re-run; only fills placeholder values, never overwrites real ones
+pnpm bootstrap       # safe to re-run; only fills placeholder values, never overwrites real ones
 # or, narrower:
 pnpm secrets:generate >> .env
 ```

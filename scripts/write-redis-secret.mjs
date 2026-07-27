@@ -16,7 +16,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export function writeRedisPasswordSecret() {
   const envPath = join(ROOT, '.env');
   if (!existsSync(envPath)) {
-    throw new Error('.env not found. Run `pnpm setup` (or copy .env.example) first.');
+    throw new Error('.env not found. Run `pnpm bootstrap` (or copy .env.example) first.');
   }
   const contents = readFileSync(envPath, 'utf8');
   const password = (contents.match(/^REDIS_PASSWORD=(.*)$/m) || [])[1]?.trim();

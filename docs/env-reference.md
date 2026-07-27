@@ -3,7 +3,7 @@
 Full reference for every environment variable the stack reads, grouped by
 domain. The root [`.env.example`](../.env.example) only carries the
 essentials — the ~15 vars a new contributor actually has to look at
-(`pnpm run setup` auto-generates the rest). Everything below either has a
+(`pnpm bootstrap` auto-generates the rest). Everything below either has a
 working dev default already applied by the code, or only matters once you
 touch that specific subsystem or deploy to production.
 
@@ -69,7 +69,7 @@ DB_SSL_MODE=disable
 Beyond the auto-generated block (`JWT_SECRET`, `JWT_REFRESH_SECRET`,
 `SESSION_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`,
 `JWT_REPORT_SHARE_SECRET`, `REDIS_PASSWORD`, `GF_SECURITY_ADMIN_PASSWORD` —
-all in `.env.example`, all filled in by `pnpm run setup` / `pnpm secrets:generate`):
+all in `.env.example`, all filled in by `pnpm bootstrap` / `pnpm secrets:generate`):
 
 ```env
 JWT_EXPIRES_IN=1h
@@ -334,7 +334,7 @@ LEGAL_REMINDER_CRON_DRY_RUN=false
 ## Grafana
 
 `GF_SECURITY_ADMIN_PASSWORD` is in `.env.example`'s auto-generated-secrets
-block (`pnpm secrets:generate` / `pnpm run setup` fill it in — Compose refuses
+block (`pnpm secrets:generate` / `pnpm bootstrap` fill it in — Compose refuses
 to start Grafana without it, ADS-968).
 
 ```env
@@ -380,7 +380,7 @@ EXPOSE_API_DOCS=true
 ## Dev-only file watching
 
 ```env
-# Docker file watching (Windows/Mac). `pnpm run setup` writes these
+# Docker file watching (Windows/Mac). `pnpm bootstrap` writes these
 # automatically per-host since ADS-766 — Linux uses native inotify and
 # leaves them unset on purpose.
 # CHOKIDAR_USEPOLLING=true

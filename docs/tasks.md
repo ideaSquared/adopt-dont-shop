@@ -17,7 +17,7 @@ the repo root with `pnpm <script>`.
 | `pnpm new-lib` | `node scripts/create-new-lib.js` |
 | `pnpm prepare` | `husky \|\| true` |
 | `pnpm secrets:generate` | `node scripts/generate-secrets.mjs` |
-| `pnpm setup` | `node scripts/bootstrap.mjs` |
+| `pnpm bootstrap` | `node scripts/bootstrap.mjs` |
 | `pnpm validate:env` | `tsx scripts/validate-env.ts` |
 
 ### Dev
