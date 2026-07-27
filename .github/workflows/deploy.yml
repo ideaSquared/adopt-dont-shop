@@ -530,6 +530,49 @@ jobs:
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
+      # ADS-671: Verify GHCR_TOKEN is scoped to read:packages only before
+      # shipping it to the deploy host. Classic PATs expose granted scopes via
+      # X-OAuth-Scopes; fine-grained PATs omit the header (resource-scoped) and
+      # get a logged advisory instead. Either way, write:packages / repo scope
+      # causes an immediate failure so an over-privileged token is caught here
+      # rather than silently landing on the server.
+      - name: Verify GHCR_TOKEN scope
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Run curl separately so a network/auth failure exits the step rather
+          # than being swallowed by || true. The || true below only applies to
+          # the grep, which legitimately returns 1 when the header is absent
+          # (fine-grained PAT).
+          RESPONSE_HEADERS=$(curl -fsSI \
+            -H "Authorization: Bearer $GHCR_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "User-Agent: adopt-dont-shop-deploy/1.0" \
+            https://api.github.com/)
+          SCOPES=$(echo "$RESPONSE_HEADERS" | grep -i '^x-oauth-scopes:' | sed 's/^[^:]*: *//' | tr -d '\r' || true)
+          if [ -z "$SCOPES" ]; then
+            echo "GHCR_TOKEN is a fine-grained PAT (X-OAuth-Scopes absent)."
+            echo "Ensure it has Packages: read permission only (ADS-671)."
+          else
+            echo "Token scopes: $SCOPES"
+            # Split on commas and trim whitespace so each element is one scope.
+            # grep -qx requires an exact full-line match, preventing false positives
+            # from scopes that merely contain a bad name (e.g. public_repo, repo:status).
+            SCOPE_LIST=$(echo "$SCOPES" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            BAD=""
+            for SCOPE in "write:packages" "delete:packages" "repo"; do
+              if echo "$SCOPE_LIST" | grep -qx "$SCOPE"; then
+                BAD="$BAD $SCOPE"
+              fi
+            done
+            if [ -n "$BAD" ]; then
+              echo "::error::GHCR_TOKEN has excessive scope(s):$BAD (ADS-671). Rotate to a read:packages-only token."
+              exit 1
+            fi
+            echo "GHCR_TOKEN scope OK — no write:packages, delete:packages, or repo scope."
+          fi
+
       # ADS-670: SSH host fingerprint pinned to prevent MitM during deploy.
       # Compute on the host and store as HETZNER_HOST_FINGERPRINT secret:
       #   ssh-keyscan -t ed25519,rsa $HOST | ssh-keygen -lf - | awk '{print $2}'
