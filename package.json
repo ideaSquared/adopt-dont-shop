@@ -130,7 +130,6 @@
     "postcss": "Force postcss >=8.5.18 to patch the path traversal via sourceMappingURL auto-loading (GHSA-r28c-9q8g-f849); <=8.5.17 is vulnerable. postcss is a transitive build-time dependency of every Vite-based app and lib. Do not downgrade below 8.5.18.",
     "find-my-way": "Force find-my-way >=9.7.0 to patch the HTTP/2 DDoS via algorithmic complexity (GHSA-c96f-x56v-gq3h); <=9.6.0 is vulnerable. find-my-way is a transitive dependency of fastify (used in all microservices). The override is a patch-level bump within the 9.x line. Do not downgrade below 9.7.0.",
     "@fastify/static": "Force @fastify/static >=10.1.2 to patch the route-guard-bypass path traversal (GHSA-83w8-p2f5-377r) and the non-canonical-URL authorization bypass (GHSA-8pvw-jcv7-9cmj); everything <=10.1.0 is vulnerable and there is NO patched 9.x, so the fix requires the 10.x major. It is transitive via @fastify/swagger-ui (which declares @fastify/static ^9.1.2); v10 needs fastify 5, which the gateway already runs (^5.8.5), and swagger-ui only uses it to serve its own fixed-prefix bundled assets, so the override is verified against the gateway's openapi/swagger tests. Do not downgrade below 10.1.2.",
-    "react-router": "Force react-router >=7.18.1 as a backstop for any transitive copy still on the 7.x line (patches GHSA-chx6-hx7r-mcp5 DDoS, GHSA-337j-9hxr-rhxg constructor injection, GHSA-h8fp-f39c-q6mh XSS, GHSA-wrjc-x8rr-h8h6 open redirect, all fixed in 7.18.0). The apps + lib.components now depend on react-router ^8.3.0 directly (react-router-dom removed), which resolves outside this override's range and fully fixes GHSA-qwww-vcr4-c8h2 (RSC CSRF) too. Do not downgrade below 7.18.1.",
     "@opentelemetry/propagator-jaeger": "Force @opentelemetry/propagator-jaeger >=2.9.0 to patch the JaegerPropagator DoS via unhandled exception on a malformed header (GHSA-45rx-2jwx-cxfr); everything <2.9.0 is vulnerable. Transitive via the @opentelemetry auto-instrumentations bundle used by @adopt-dont-shop/observability. Do not downgrade below 2.9.0."
   },
   "pnpm": {
@@ -169,7 +168,6 @@
       "postcss@<=8.5.17": "8.5.23",
       "find-my-way@<=9.6.0": "9.7.0",
       "brace-expansion@>=3.0.0 <5.0.8": "5.0.8",
-      "react-router@>=6.0.0 <7.18.1": "7.18.1",
       "@fastify/static@<10.1.2": "10.1.2",
       "@opentelemetry/propagator-jaeger@<2.9.0": "2.9.0"
     }
