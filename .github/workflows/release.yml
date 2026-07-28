@@ -9,6 +9,15 @@ name: Release
 #
 # Branch protection must require the CI workflow to pass before merging to main
 # so that by the time workflow_run fires, tests have already passed.
+#
+# workflow_run is a privileged trigger: it runs with this repo's secrets even
+# when the CI run that triggered it came from a fork PR. The `branches: [main]`
+# filter below only matches the *head branch name in the triggering run*, which
+# for a fork PR is a branch in the attacker's fork — trivially named `main`. The
+# `guard` job is what actually keeps this safe: it additionally requires the
+# triggering run's event to be `push` and its head repository to be this repo,
+# so a fork-originated `pull_request` run (however its branch is named) can
+# never reach the secret-bearing build jobs. [ADS-1013]
 on:
   workflow_run:
     workflows: [CI]
@@ -47,7 +56,10 @@ jobs:
     if: >
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     steps:
       - name: CI passed
         run: echo "CI passed — proceeding with release"
