@@ -59,12 +59,23 @@ runs:
     - name: Lint, test and type-check
       if: inputs.working-directory == ''
       shell: bash
+      # ADS-1014: TURBO_TOKEN is scoped to only this step (not job-level env)
+      # so it's never in scope for the pnpm install / build steps above that
+      # run PR-supplied lifecycle scripts and config. Withheld entirely on
+      # pull_request — PR runs pay full cache misses rather than exposing a
+      # write-capable token to untrusted code.
+      env:
+        TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+        TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
       run: |
         pnpm exec turbo run lint ${{ inputs.run-coverage == 'true' && 'test:coverage' || 'test' }} type-check --filter='${{ inputs.filter }}'
 
     - name: Lint
       if: inputs.working-directory != ''
       shell: bash
+      env:
+        TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+        TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
       run: pnpm exec turbo run lint --filter='${{ inputs.filter }}'
 
     - name: Test (with coverage thresholds)
@@ -76,6 +87,9 @@ runs:
     - name: Type check
       if: inputs.working-directory != ''
       shell: bash
+      env:
+        TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+        TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
       run: pnpm exec turbo run type-check --filter='${{ inputs.filter }}'
 
     - name: Build
