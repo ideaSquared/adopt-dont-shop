@@ -187,7 +187,7 @@ jobs:
         # this job (via checkout-and-setup) never had it in scope, and this
         # step itself can't leak a write-capable token to a PR build.
         env:
-          TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: pnpm build:libs
       # ADS-909: downstream jobs restore this same actions/cache entry
@@ -220,7 +220,7 @@ jobs:
           coverage-cache-key: 'coverage-current-${{ github.run_id }}-${{ matrix.app }}'
           # ADS-1014: gated here, not inside the composite — composite
           # actions can't reference `secrets` directly.
-          turbo-token: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+          turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
           turbo-team: ${{ secrets.TURBO_TEAM }}
 
   # ============================================================================
@@ -244,7 +244,7 @@ jobs:
           filter: '@adopt-dont-shop/lib.*'
           upload-artifact-name: 'test-results-libs'
           coverage-cache-key: 'coverage-current-${{ github.run_id }}-libs'
-          turbo-token: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+          turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
           turbo-team: ${{ secrets.TURBO_TEAM }}
 
   # ============================================================================
@@ -273,7 +273,7 @@ jobs:
           filter: '@adopt-dont-shop/service.*'
           upload-artifact-name: 'test-results-services'
           coverage-cache-key: 'coverage-current-${{ github.run_id }}-services'
-          turbo-token: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+          turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
           turbo-team: ${{ secrets.TURBO_TEAM }}
 
   # ============================================================================
