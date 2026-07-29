@@ -1,0 +1,1 @@
+import{l as e,n as t,t as n}from"./parseISO-DlMXA3nm.js";function r(r,i=`Unknown`){if(!r)return i;try{let a=typeof r==`string`&&r.includes(`T`)?n(r):new Date(r);return e(a)?t(a,{addSuffix:!0}):i}catch{return i}}export{r as t};
