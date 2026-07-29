@@ -72,7 +72,7 @@ describe('exportToCSV', () => {
         { Name: 'Rex', Age: '3', Nick: 'Rexy' },
         { Name: 'Mittens', Age: '', Nick: '' },
       ],
-      { header: true }
+      { header: true, escapeFormulae: true }
     );
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(clickSpy).toHaveBeenCalledOnce();
