@@ -8,6 +8,7 @@ covered by automated tests in this repository.
 | Runner   | Where it lives                                  | What it covers                                     |
 | -------- | ----------------------------------------------- | -------------------------------------------------- |
 | Vitest   | every `services/*`, `app.*`, and `lib.*`        | Behaviour-driven tests for services, components, libraries |
+| Vitest   | `scripts/` (`pnpm test:scripts`)                | The repo's own DX guard-scripts (see below) |
 | Playwright | `e2e/`                                          | Cross-app integration journeys against the docker-compose stack |
 
 Each backend service owns its own `vitest.config.ts` under
@@ -56,6 +57,18 @@ that come up most often:
   context.
 - 100% coverage of behaviour is the aspiration, but coverage thresholds
   (see `vitest.config.ts`) define the *enforced* floor.
+
+## `scripts/` test guard
+
+`scripts/` holds the repo's own enforcement — `check-workspace-consistency.mjs`,
+`check-docker-pinning.mjs`, `check-docs-freshness.mjs`, the `new-app`/`new-lib`
+generators, and their shared libs. These are tested by a dedicated Vitest
+project (`vitest.scripts.config.ts`, run via `pnpm test:scripts`) since
+`scripts/` is not a pnpm workspace and `turbo run test` never reaches it. CI
+runs it in the `workspace-drift` job before the guard-script steps, and
+`pnpm ci:local` includes it too — a regression here fails open (a guard
+silently stops catching what it was meant to catch), so it must run
+everywhere the guards do.
 
 ## `lib.*` test guard
 
