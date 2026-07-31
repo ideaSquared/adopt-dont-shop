@@ -36,7 +36,7 @@ export const exportToCSV = <T>(data: T[], columns: ExportColumn<T>[], filename: 
     }, {})
   );
 
-  const csv = Papa.unparse(rows, { header: true });
+  const csv = Papa.unparse(rows, { header: true, escapeFormulae: true });
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   triggerDownload(blob, `${filename}.csv`);
 };
