@@ -134,6 +134,10 @@ jobs:
       - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706  # v4.0.2
         id: filter
         with:
+          # ADS-1030: the repo-wide root configs every package extends must
+          # trigger the heavy jobs. The old `tsconfig.json` entry matched no
+          # file (the real ones are tsconfig.base.json / *.base.json → glob),
+          # so a PR touching only a shared config compiled and tested nothing.
           filters: |
             backend:
               - 'services/**'
@@ -141,22 +145,35 @@ jobs:
               - 'pacts/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
-              - 'tsconfig.json'
+              - 'tsconfig*.json'
               - 'turbo.json'
+              - 'vitest.shared.config.ts'
+              - 'vitest.workspace.ts'
+              - 'eslint.config.js'
+              - '.prettierrc'
             frontend:
               - 'apps/**'
               - 'packages/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
-              - 'tsconfig.json'
+              - 'tsconfig*.json'
               - 'turbo.json'
               - 'vite.shared.config.ts'
+              - 'vitest.shared.config.ts'
+              - 'vitest.workspace.ts'
+              - 'eslint.config.js'
+              - '.prettierrc'
             libs:
               - 'packages/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
-              - 'tsconfig.json'
+              - 'tsconfig*.json'
               - 'turbo.json'
+              - 'vite.shared.config.ts'
+              - 'vitest.shared.config.ts'
+              - 'vitest.workspace.ts'
+              - 'eslint.config.js'
+              - '.prettierrc'
 
   # ============================================================================
   # BUILD-LIBS — single source of truth for compiled lib.*/dist artifacts
