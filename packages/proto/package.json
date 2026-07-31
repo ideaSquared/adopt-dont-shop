@@ -34,8 +34,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"proto/**/*.proto\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
+    "format": "prettier --write \"src/*.ts\" \"proto/**/*.proto\"",
+    "format:check": "prettier --check \"src/*.ts\"",
     "type-check": "tsc --noEmit",
     "check:fresh": "node scripts/check-generated-fresh.mjs"
   },

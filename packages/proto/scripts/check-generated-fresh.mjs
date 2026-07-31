@@ -9,15 +9,33 @@
  * `tools/scripts/check-proto-fresh.mjs`.
  */
 import { execSync } from 'node:child_process';
-import { mkdtempSync, rmSync, cpSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, cpSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = join(PKG_ROOT, '..', '..');
-const BUF_BIN = join(REPO_ROOT, 'node_modules', '.bin', 'buf');
-const TS_PROTO_BIN = join(REPO_ROOT, 'node_modules', '.bin', 'protoc-gen-ts_proto');
+
+// pnpm's isolated (non-hoisted) layout installs @bufbuild/buf and ts-proto as
+// dependencies of *this* package, so their bins live under
+// packages/proto/node_modules/.bin — NOT the repo root. Resolve the package
+// copy first and fall back to the root only for a hoisted layout. (The old
+// root-only path exited 127 on every clean install.)
+const resolveBin = name => {
+  const local = join(PKG_ROOT, 'node_modules', '.bin', name);
+  if (existsSync(local)) return local;
+  const root = join(REPO_ROOT, 'node_modules', '.bin', name);
+  if (existsSync(root)) return root;
+  console.error(
+    `Could not find the \`${name}\` binary in packages/proto/node_modules/.bin ` +
+      `or the repo root. Run \`pnpm install\` and retry.`,
+  );
+  process.exit(1);
+};
+
+const BUF_BIN = resolveBin('buf');
+const TS_PROTO_BIN = resolveBin('protoc-gen-ts_proto');
 
 const tmp = mkdtempSync(join(tmpdir(), 'proto-fresh-'));
 try {

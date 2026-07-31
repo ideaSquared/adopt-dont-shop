@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/audit/v1/audit.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.audit.v1';
+export const protobufPackage = "adopt_dont_shop.audit.v1";
 
 export enum AuditOutcome {
   AUDIT_OUTCOME_UNSPECIFIED = 0,
@@ -43,19 +43,19 @@ export enum AuditOutcome {
 export function auditOutcomeFromJSON(object: any): AuditOutcome {
   switch (object) {
     case 0:
-    case 'AUDIT_OUTCOME_UNSPECIFIED':
+    case "AUDIT_OUTCOME_UNSPECIFIED":
       return AuditOutcome.AUDIT_OUTCOME_UNSPECIFIED;
     case 1:
-    case 'AUDIT_OUTCOME_SUCCESS':
+    case "AUDIT_OUTCOME_SUCCESS":
       return AuditOutcome.AUDIT_OUTCOME_SUCCESS;
     case 2:
-    case 'AUDIT_OUTCOME_DENIED':
+    case "AUDIT_OUTCOME_DENIED":
       return AuditOutcome.AUDIT_OUTCOME_DENIED;
     case 3:
-    case 'AUDIT_OUTCOME_FAILURE':
+    case "AUDIT_OUTCOME_FAILURE":
       return AuditOutcome.AUDIT_OUTCOME_FAILURE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return AuditOutcome.UNRECOGNIZED;
   }
@@ -64,16 +64,16 @@ export function auditOutcomeFromJSON(object: any): AuditOutcome {
 export function auditOutcomeToJSON(object: AuditOutcome): string {
   switch (object) {
     case AuditOutcome.AUDIT_OUTCOME_UNSPECIFIED:
-      return 'AUDIT_OUTCOME_UNSPECIFIED';
+      return "AUDIT_OUTCOME_UNSPECIFIED";
     case AuditOutcome.AUDIT_OUTCOME_SUCCESS:
-      return 'AUDIT_OUTCOME_SUCCESS';
+      return "AUDIT_OUTCOME_SUCCESS";
     case AuditOutcome.AUDIT_OUTCOME_DENIED:
-      return 'AUDIT_OUTCOME_DENIED';
+      return "AUDIT_OUTCOME_DENIED";
     case AuditOutcome.AUDIT_OUTCOME_FAILURE:
-      return 'AUDIT_OUTCOME_FAILURE';
+      return "AUDIT_OUTCOME_FAILURE";
     case AuditOutcome.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -90,25 +90,25 @@ export enum ReportTemplateCategory {
 export function reportTemplateCategoryFromJSON(object: any): ReportTemplateCategory {
   switch (object) {
     case 0:
-    case 'REPORT_TEMPLATE_CATEGORY_UNSPECIFIED':
+    case "REPORT_TEMPLATE_CATEGORY_UNSPECIFIED":
       return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_UNSPECIFIED;
     case 1:
-    case 'REPORT_TEMPLATE_CATEGORY_ADOPTION':
+    case "REPORT_TEMPLATE_CATEGORY_ADOPTION":
       return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_ADOPTION;
     case 2:
-    case 'REPORT_TEMPLATE_CATEGORY_ENGAGEMENT':
+    case "REPORT_TEMPLATE_CATEGORY_ENGAGEMENT":
       return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_ENGAGEMENT;
     case 3:
-    case 'REPORT_TEMPLATE_CATEGORY_OPERATIONS':
+    case "REPORT_TEMPLATE_CATEGORY_OPERATIONS":
       return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_OPERATIONS;
     case 4:
-    case 'REPORT_TEMPLATE_CATEGORY_FUNDRAISING':
+    case "REPORT_TEMPLATE_CATEGORY_FUNDRAISING":
       return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_FUNDRAISING;
     case 5:
-    case 'REPORT_TEMPLATE_CATEGORY_CUSTOM':
+    case "REPORT_TEMPLATE_CATEGORY_CUSTOM":
       return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_CUSTOM;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ReportTemplateCategory.UNRECOGNIZED;
   }
@@ -117,20 +117,20 @@ export function reportTemplateCategoryFromJSON(object: any): ReportTemplateCateg
 export function reportTemplateCategoryToJSON(object: ReportTemplateCategory): string {
   switch (object) {
     case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_UNSPECIFIED:
-      return 'REPORT_TEMPLATE_CATEGORY_UNSPECIFIED';
+      return "REPORT_TEMPLATE_CATEGORY_UNSPECIFIED";
     case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_ADOPTION:
-      return 'REPORT_TEMPLATE_CATEGORY_ADOPTION';
+      return "REPORT_TEMPLATE_CATEGORY_ADOPTION";
     case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_ENGAGEMENT:
-      return 'REPORT_TEMPLATE_CATEGORY_ENGAGEMENT';
+      return "REPORT_TEMPLATE_CATEGORY_ENGAGEMENT";
     case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_OPERATIONS:
-      return 'REPORT_TEMPLATE_CATEGORY_OPERATIONS';
+      return "REPORT_TEMPLATE_CATEGORY_OPERATIONS";
     case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_FUNDRAISING:
-      return 'REPORT_TEMPLATE_CATEGORY_FUNDRAISING';
+      return "REPORT_TEMPLATE_CATEGORY_FUNDRAISING";
     case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_CUSTOM:
-      return 'REPORT_TEMPLATE_CATEGORY_CUSTOM';
+      return "REPORT_TEMPLATE_CATEGORY_CUSTOM";
     case ReportTemplateCategory.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -145,19 +145,19 @@ export enum ReportScheduleFormat {
 export function reportScheduleFormatFromJSON(object: any): ReportScheduleFormat {
   switch (object) {
     case 0:
-    case 'REPORT_SCHEDULE_FORMAT_UNSPECIFIED':
+    case "REPORT_SCHEDULE_FORMAT_UNSPECIFIED":
       return ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_UNSPECIFIED;
     case 1:
-    case 'REPORT_SCHEDULE_FORMAT_PDF':
+    case "REPORT_SCHEDULE_FORMAT_PDF":
       return ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF;
     case 2:
-    case 'REPORT_SCHEDULE_FORMAT_CSV':
+    case "REPORT_SCHEDULE_FORMAT_CSV":
       return ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_CSV;
     case 3:
-    case 'REPORT_SCHEDULE_FORMAT_INLINE_HTML':
+    case "REPORT_SCHEDULE_FORMAT_INLINE_HTML":
       return ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_INLINE_HTML;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ReportScheduleFormat.UNRECOGNIZED;
   }
@@ -166,16 +166,16 @@ export function reportScheduleFormatFromJSON(object: any): ReportScheduleFormat 
 export function reportScheduleFormatToJSON(object: ReportScheduleFormat): string {
   switch (object) {
     case ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_UNSPECIFIED:
-      return 'REPORT_SCHEDULE_FORMAT_UNSPECIFIED';
+      return "REPORT_SCHEDULE_FORMAT_UNSPECIFIED";
     case ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF:
-      return 'REPORT_SCHEDULE_FORMAT_PDF';
+      return "REPORT_SCHEDULE_FORMAT_PDF";
     case ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_CSV:
-      return 'REPORT_SCHEDULE_FORMAT_CSV';
+      return "REPORT_SCHEDULE_FORMAT_CSV";
     case ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_INLINE_HTML:
-      return 'REPORT_SCHEDULE_FORMAT_INLINE_HTML';
+      return "REPORT_SCHEDULE_FORMAT_INLINE_HTML";
     case ReportScheduleFormat.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -189,16 +189,16 @@ export enum ReportSharePermission {
 export function reportSharePermissionFromJSON(object: any): ReportSharePermission {
   switch (object) {
     case 0:
-    case 'REPORT_SHARE_PERMISSION_UNSPECIFIED':
+    case "REPORT_SHARE_PERMISSION_UNSPECIFIED":
       return ReportSharePermission.REPORT_SHARE_PERMISSION_UNSPECIFIED;
     case 1:
-    case 'REPORT_SHARE_PERMISSION_VIEW':
+    case "REPORT_SHARE_PERMISSION_VIEW":
       return ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW;
     case 2:
-    case 'REPORT_SHARE_PERMISSION_EDIT':
+    case "REPORT_SHARE_PERMISSION_EDIT":
       return ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ReportSharePermission.UNRECOGNIZED;
   }
@@ -207,14 +207,14 @@ export function reportSharePermissionFromJSON(object: any): ReportSharePermissio
 export function reportSharePermissionToJSON(object: ReportSharePermission): string {
   switch (object) {
     case ReportSharePermission.REPORT_SHARE_PERMISSION_UNSPECIFIED:
-      return 'REPORT_SHARE_PERMISSION_UNSPECIFIED';
+      return "REPORT_SHARE_PERMISSION_UNSPECIFIED";
     case ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW:
-      return 'REPORT_SHARE_PERMISSION_VIEW';
+      return "REPORT_SHARE_PERMISSION_VIEW";
     case ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT:
-      return 'REPORT_SHARE_PERMISSION_EDIT';
+      return "REPORT_SHARE_PERMISSION_EDIT";
     case ReportSharePermission.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -233,7 +233,9 @@ export interface GdprErasureRequest {
    * least one service never acked. NULL while in-flight or completed/failed
    * normally.
    */
-  timedOutAt?: string | undefined;
+  timedOutAt?:
+    | string
+    | undefined;
   /**
    * ADS-830 — number of times the sweep has re-published
    * gdpr.erasureRequested for erroring services. 0 = never retried.
@@ -276,7 +278,9 @@ export interface AuditEvent {
    * the trail stays readable when the user is gone.
    */
   actorUserId?: string | undefined;
-  actorEmailSnapshot?: string | undefined;
+  actorEmailSnapshot?:
+    | string
+    | undefined;
   /** Action name within the aggregate's domain. */
   action: string;
   outcome: AuditOutcome;
@@ -306,22 +310,34 @@ export interface QueryRequest {
    * Opaque base64-JSON keyset cursor over (occurred_at, event_id)
    * for stable pagination across new inserts.
    */
-  cursor?: string | undefined;
+  cursor?:
+    | string
+    | undefined;
   /** Defaults to 50, max 200. */
   limit: number;
   /**
    * Filters — each empty value means "no filter on this dimension".
    * Filter by producing service ('service.auth', etc.).
    */
-  service?: string | undefined;
+  service?:
+    | string
+    | undefined;
   /** Filter by full NATS subject. */
-  subject?: string | undefined;
+  subject?:
+    | string
+    | undefined;
   /** Filter to events triggered by a specific user. */
-  actorUserId?: string | undefined;
+  actorUserId?:
+    | string
+    | undefined;
   /** Filter by outcome. */
-  outcome?: AuditOutcome | undefined;
+  outcome?:
+    | AuditOutcome
+    | undefined;
   /** Inclusive lower bound on occurred_at. */
-  occurredAtFrom?: string | undefined;
+  occurredAtFrom?:
+    | string
+    | undefined;
   /** Exclusive upper bound on occurred_at. */
   occurredAtTo?: string | undefined;
 }
@@ -351,7 +367,9 @@ export interface SavedReport {
   rescueId?: string | undefined;
   templateId?: string | undefined;
   name: string;
-  description?: string | undefined;
+  description?:
+    | string
+    | undefined;
   /**
    * JSON-stringified ReportConfig blob. SPA owns the schema; service
    * persists as-is so new widget types don't need a migration here.
@@ -498,7 +516,9 @@ export interface CreateReportShareRequest {
 }
 
 export interface CreateReportShareResponse {
-  share?: ReportShare | undefined;
+  share?:
+    | ReportShare
+    | undefined;
   /**
    * Plaintext token — present ONLY in this response. Only its hash is
    * persisted, so it cannot be recovered later.
@@ -508,14 +528,14 @@ export interface CreateReportShareResponse {
 
 function createBaseGdprErasureRequest(): GdprErasureRequest {
   return {
-    correlationId: '',
-    userId: '',
+    correlationId: "",
+    userId: "",
     reason: undefined,
-    requestedAt: '',
-    completionsJson: '',
+    requestedAt: "",
+    completionsJson: "",
     completedAt: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
     timedOutAt: undefined,
     retryCount: 0,
   };
@@ -523,28 +543,28 @@ function createBaseGdprErasureRequest(): GdprErasureRequest {
 
 export const GdprErasureRequest: MessageFns<GdprErasureRequest> = {
   encode(message: GdprErasureRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.correlationId !== '') {
+    if (message.correlationId !== "") {
       writer.uint32(10).string(message.correlationId);
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(18).string(message.userId);
     }
     if (message.reason !== undefined) {
       writer.uint32(26).string(message.reason);
     }
-    if (message.requestedAt !== '') {
+    if (message.requestedAt !== "") {
       writer.uint32(34).string(message.requestedAt);
     }
-    if (message.completionsJson !== '') {
+    if (message.completionsJson !== "") {
       writer.uint32(42).string(message.completionsJson);
     }
     if (message.completedAt !== undefined) {
       writer.uint32(50).string(message.completedAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(58).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(66).string(message.updatedAt);
     }
     if (message.timedOutAt !== undefined) {
@@ -657,76 +677,76 @@ export const GdprErasureRequest: MessageFns<GdprErasureRequest> = {
       correlationId: isSet(object.correlationId)
         ? globalThis.String(object.correlationId)
         : isSet(object.correlation_id)
-          ? globalThis.String(object.correlation_id)
-          : '',
+        ? globalThis.String(object.correlation_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
       requestedAt: isSet(object.requestedAt)
         ? globalThis.String(object.requestedAt)
         : isSet(object.requested_at)
-          ? globalThis.String(object.requested_at)
-          : '',
+        ? globalThis.String(object.requested_at)
+        : "",
       completionsJson: isSet(object.completionsJson)
         ? globalThis.String(object.completionsJson)
         : isSet(object.completions_json)
-          ? globalThis.String(object.completions_json)
-          : '',
+        ? globalThis.String(object.completions_json)
+        : "",
       completedAt: isSet(object.completedAt)
         ? globalThis.String(object.completedAt)
         : isSet(object.completed_at)
-          ? globalThis.String(object.completed_at)
-          : undefined,
+        ? globalThis.String(object.completed_at)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
       timedOutAt: isSet(object.timedOutAt)
         ? globalThis.String(object.timedOutAt)
         : isSet(object.timed_out_at)
-          ? globalThis.String(object.timed_out_at)
-          : undefined,
+        ? globalThis.String(object.timed_out_at)
+        : undefined,
       retryCount: isSet(object.retryCount)
         ? globalThis.Number(object.retryCount)
         : isSet(object.retry_count)
-          ? globalThis.Number(object.retry_count)
-          : 0,
+        ? globalThis.Number(object.retry_count)
+        : 0,
     };
   },
 
   toJSON(message: GdprErasureRequest): unknown {
     const obj: any = {};
-    if (message.correlationId !== '') {
+    if (message.correlationId !== "") {
       obj.correlationId = message.correlationId;
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.reason !== undefined) {
       obj.reason = message.reason;
     }
-    if (message.requestedAt !== '') {
+    if (message.requestedAt !== "") {
       obj.requestedAt = message.requestedAt;
     }
-    if (message.completionsJson !== '') {
+    if (message.completionsJson !== "") {
       obj.completionsJson = message.completionsJson;
     }
     if (message.completedAt !== undefined) {
       obj.completedAt = message.completedAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     if (message.timedOutAt !== undefined) {
@@ -743,14 +763,14 @@ export const GdprErasureRequest: MessageFns<GdprErasureRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GdprErasureRequest>, I>>(object: I): GdprErasureRequest {
     const message = createBaseGdprErasureRequest();
-    message.correlationId = object.correlationId ?? '';
-    message.userId = object.userId ?? '';
+    message.correlationId = object.correlationId ?? "";
+    message.userId = object.userId ?? "";
     message.reason = object.reason ?? undefined;
-    message.requestedAt = object.requestedAt ?? '';
-    message.completionsJson = object.completionsJson ?? '';
+    message.requestedAt = object.requestedAt ?? "";
+    message.completionsJson = object.completionsJson ?? "";
     message.completedAt = object.completedAt ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     message.timedOutAt = object.timedOutAt ?? undefined;
     message.retryCount = object.retryCount ?? 0;
     return message;
@@ -758,15 +778,12 @@ export const GdprErasureRequest: MessageFns<GdprErasureRequest> = {
 };
 
 function createBaseGetGdprErasureRequestRequest(): GetGdprErasureRequestRequest {
-  return { correlationId: '' };
+  return { correlationId: "" };
 }
 
 export const GetGdprErasureRequestRequest: MessageFns<GetGdprErasureRequestRequest> = {
-  encode(
-    message: GetGdprErasureRequestRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.correlationId !== '') {
+  encode(message: GetGdprErasureRequestRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.correlationId !== "") {
       writer.uint32(10).string(message.correlationId);
     }
     return writer;
@@ -801,29 +818,25 @@ export const GetGdprErasureRequestRequest: MessageFns<GetGdprErasureRequestReque
       correlationId: isSet(object.correlationId)
         ? globalThis.String(object.correlationId)
         : isSet(object.correlation_id)
-          ? globalThis.String(object.correlation_id)
-          : '',
+        ? globalThis.String(object.correlation_id)
+        : "",
     };
   },
 
   toJSON(message: GetGdprErasureRequestRequest): unknown {
     const obj: any = {};
-    if (message.correlationId !== '') {
+    if (message.correlationId !== "") {
       obj.correlationId = message.correlationId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetGdprErasureRequestRequest>, I>>(
-    base?: I
-  ): GetGdprErasureRequestRequest {
+  create<I extends Exact<DeepPartial<GetGdprErasureRequestRequest>, I>>(base?: I): GetGdprErasureRequestRequest {
     return GetGdprErasureRequestRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetGdprErasureRequestRequest>, I>>(
-    object: I
-  ): GetGdprErasureRequestRequest {
+  fromPartial<I extends Exact<DeepPartial<GetGdprErasureRequestRequest>, I>>(object: I): GetGdprErasureRequestRequest {
     const message = createBaseGetGdprErasureRequestRequest();
-    message.correlationId = object.correlationId ?? '';
+    message.correlationId = object.correlationId ?? "";
     return message;
   },
 };
@@ -833,10 +846,7 @@ function createBaseGetGdprErasureRequestResponse(): GetGdprErasureRequestRespons
 }
 
 export const GetGdprErasureRequestResponse: MessageFns<GetGdprErasureRequestResponse> = {
-  encode(
-    message: GetGdprErasureRequestResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetGdprErasureRequestResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.request !== undefined) {
       GdprErasureRequest.encode(message.request, writer.uint32(10).fork()).join();
     }
@@ -868,9 +878,7 @@ export const GetGdprErasureRequestResponse: MessageFns<GetGdprErasureRequestResp
   },
 
   fromJSON(object: any): GetGdprErasureRequestResponse {
-    return {
-      request: isSet(object.request) ? GdprErasureRequest.fromJSON(object.request) : undefined,
-    };
+    return { request: isSet(object.request) ? GdprErasureRequest.fromJSON(object.request) : undefined };
   },
 
   toJSON(message: GetGdprErasureRequestResponse): unknown {
@@ -881,37 +889,34 @@ export const GetGdprErasureRequestResponse: MessageFns<GetGdprErasureRequestResp
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetGdprErasureRequestResponse>, I>>(
-    base?: I
-  ): GetGdprErasureRequestResponse {
+  create<I extends Exact<DeepPartial<GetGdprErasureRequestResponse>, I>>(base?: I): GetGdprErasureRequestResponse {
     return GetGdprErasureRequestResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetGdprErasureRequestResponse>, I>>(
-    object: I
+    object: I,
   ): GetGdprErasureRequestResponse {
     const message = createBaseGetGdprErasureRequestResponse();
-    message.request =
-      object.request !== undefined && object.request !== null
-        ? GdprErasureRequest.fromPartial(object.request)
-        : undefined;
+    message.request = (object.request !== undefined && object.request !== null)
+      ? GdprErasureRequest.fromPartial(object.request)
+      : undefined;
     return message;
   },
 };
 
 function createBaseAuditEvent(): AuditEvent {
   return {
-    eventId: '',
-    service: '',
-    subject: '',
-    aggregateType: '',
-    aggregateId: '',
+    eventId: "",
+    service: "",
+    subject: "",
+    aggregateType: "",
+    aggregateId: "",
     actorUserId: undefined,
     actorEmailSnapshot: undefined,
-    action: '',
+    action: "",
     outcome: 0,
-    occurredAt: '',
-    recordedAt: '',
-    payloadJson: '',
+    occurredAt: "",
+    recordedAt: "",
+    payloadJson: "",
     ipAddress: undefined,
     userAgent: undefined,
   };
@@ -919,19 +924,19 @@ function createBaseAuditEvent(): AuditEvent {
 
 export const AuditEvent: MessageFns<AuditEvent> = {
   encode(message: AuditEvent, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.eventId !== '') {
+    if (message.eventId !== "") {
       writer.uint32(10).string(message.eventId);
     }
-    if (message.service !== '') {
+    if (message.service !== "") {
       writer.uint32(18).string(message.service);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       writer.uint32(26).string(message.subject);
     }
-    if (message.aggregateType !== '') {
+    if (message.aggregateType !== "") {
       writer.uint32(34).string(message.aggregateType);
     }
-    if (message.aggregateId !== '') {
+    if (message.aggregateId !== "") {
       writer.uint32(42).string(message.aggregateId);
     }
     if (message.actorUserId !== undefined) {
@@ -940,19 +945,19 @@ export const AuditEvent: MessageFns<AuditEvent> = {
     if (message.actorEmailSnapshot !== undefined) {
       writer.uint32(58).string(message.actorEmailSnapshot);
     }
-    if (message.action !== '') {
+    if (message.action !== "") {
       writer.uint32(66).string(message.action);
     }
     if (message.outcome !== 0) {
       writer.uint32(72).int32(message.outcome);
     }
-    if (message.occurredAt !== '') {
+    if (message.occurredAt !== "") {
       writer.uint32(82).string(message.occurredAt);
     }
-    if (message.recordedAt !== '') {
+    if (message.recordedAt !== "") {
       writer.uint32(90).string(message.recordedAt);
     }
-    if (message.payloadJson !== '') {
+    if (message.payloadJson !== "") {
       writer.uint32(98).string(message.payloadJson);
     }
     if (message.ipAddress !== undefined) {
@@ -1097,75 +1102,75 @@ export const AuditEvent: MessageFns<AuditEvent> = {
       eventId: isSet(object.eventId)
         ? globalThis.String(object.eventId)
         : isSet(object.event_id)
-          ? globalThis.String(object.event_id)
-          : '',
-      service: isSet(object.service) ? globalThis.String(object.service) : '',
-      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
+        ? globalThis.String(object.event_id)
+        : "",
+      service: isSet(object.service) ? globalThis.String(object.service) : "",
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : "",
       aggregateType: isSet(object.aggregateType)
         ? globalThis.String(object.aggregateType)
         : isSet(object.aggregate_type)
-          ? globalThis.String(object.aggregate_type)
-          : '',
+        ? globalThis.String(object.aggregate_type)
+        : "",
       aggregateId: isSet(object.aggregateId)
         ? globalThis.String(object.aggregateId)
         : isSet(object.aggregate_id)
-          ? globalThis.String(object.aggregate_id)
-          : '',
+        ? globalThis.String(object.aggregate_id)
+        : "",
       actorUserId: isSet(object.actorUserId)
         ? globalThis.String(object.actorUserId)
         : isSet(object.actor_user_id)
-          ? globalThis.String(object.actor_user_id)
-          : undefined,
+        ? globalThis.String(object.actor_user_id)
+        : undefined,
       actorEmailSnapshot: isSet(object.actorEmailSnapshot)
         ? globalThis.String(object.actorEmailSnapshot)
         : isSet(object.actor_email_snapshot)
-          ? globalThis.String(object.actor_email_snapshot)
-          : undefined,
-      action: isSet(object.action) ? globalThis.String(object.action) : '',
+        ? globalThis.String(object.actor_email_snapshot)
+        : undefined,
+      action: isSet(object.action) ? globalThis.String(object.action) : "",
       outcome: isSet(object.outcome) ? auditOutcomeFromJSON(object.outcome) : 0,
       occurredAt: isSet(object.occurredAt)
         ? globalThis.String(object.occurredAt)
         : isSet(object.occurred_at)
-          ? globalThis.String(object.occurred_at)
-          : '',
+        ? globalThis.String(object.occurred_at)
+        : "",
       recordedAt: isSet(object.recordedAt)
         ? globalThis.String(object.recordedAt)
         : isSet(object.recorded_at)
-          ? globalThis.String(object.recorded_at)
-          : '',
+        ? globalThis.String(object.recorded_at)
+        : "",
       payloadJson: isSet(object.payloadJson)
         ? globalThis.String(object.payloadJson)
         : isSet(object.payload_json)
-          ? globalThis.String(object.payload_json)
-          : '',
+        ? globalThis.String(object.payload_json)
+        : "",
       ipAddress: isSet(object.ipAddress)
         ? globalThis.String(object.ipAddress)
         : isSet(object.ip_address)
-          ? globalThis.String(object.ip_address)
-          : undefined,
+        ? globalThis.String(object.ip_address)
+        : undefined,
       userAgent: isSet(object.userAgent)
         ? globalThis.String(object.userAgent)
         : isSet(object.user_agent)
-          ? globalThis.String(object.user_agent)
-          : undefined,
+        ? globalThis.String(object.user_agent)
+        : undefined,
     };
   },
 
   toJSON(message: AuditEvent): unknown {
     const obj: any = {};
-    if (message.eventId !== '') {
+    if (message.eventId !== "") {
       obj.eventId = message.eventId;
     }
-    if (message.service !== '') {
+    if (message.service !== "") {
       obj.service = message.service;
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       obj.subject = message.subject;
     }
-    if (message.aggregateType !== '') {
+    if (message.aggregateType !== "") {
       obj.aggregateType = message.aggregateType;
     }
-    if (message.aggregateId !== '') {
+    if (message.aggregateId !== "") {
       obj.aggregateId = message.aggregateId;
     }
     if (message.actorUserId !== undefined) {
@@ -1174,19 +1179,19 @@ export const AuditEvent: MessageFns<AuditEvent> = {
     if (message.actorEmailSnapshot !== undefined) {
       obj.actorEmailSnapshot = message.actorEmailSnapshot;
     }
-    if (message.action !== '') {
+    if (message.action !== "") {
       obj.action = message.action;
     }
     if (message.outcome !== 0) {
       obj.outcome = auditOutcomeToJSON(message.outcome);
     }
-    if (message.occurredAt !== '') {
+    if (message.occurredAt !== "") {
       obj.occurredAt = message.occurredAt;
     }
-    if (message.recordedAt !== '') {
+    if (message.recordedAt !== "") {
       obj.recordedAt = message.recordedAt;
     }
-    if (message.payloadJson !== '') {
+    if (message.payloadJson !== "") {
       obj.payloadJson = message.payloadJson;
     }
     if (message.ipAddress !== undefined) {
@@ -1203,18 +1208,18 @@ export const AuditEvent: MessageFns<AuditEvent> = {
   },
   fromPartial<I extends Exact<DeepPartial<AuditEvent>, I>>(object: I): AuditEvent {
     const message = createBaseAuditEvent();
-    message.eventId = object.eventId ?? '';
-    message.service = object.service ?? '';
-    message.subject = object.subject ?? '';
-    message.aggregateType = object.aggregateType ?? '';
-    message.aggregateId = object.aggregateId ?? '';
+    message.eventId = object.eventId ?? "";
+    message.service = object.service ?? "";
+    message.subject = object.subject ?? "";
+    message.aggregateType = object.aggregateType ?? "";
+    message.aggregateId = object.aggregateId ?? "";
     message.actorUserId = object.actorUserId ?? undefined;
     message.actorEmailSnapshot = object.actorEmailSnapshot ?? undefined;
-    message.action = object.action ?? '';
+    message.action = object.action ?? "";
     message.outcome = object.outcome ?? 0;
-    message.occurredAt = object.occurredAt ?? '';
-    message.recordedAt = object.recordedAt ?? '';
-    message.payloadJson = object.payloadJson ?? '';
+    message.occurredAt = object.occurredAt ?? "";
+    message.recordedAt = object.recordedAt ?? "";
+    message.payloadJson = object.payloadJson ?? "";
     message.ipAddress = object.ipAddress ?? undefined;
     message.userAgent = object.userAgent ?? undefined;
     return message;
@@ -1352,19 +1357,19 @@ export const QueryRequest: MessageFns<QueryRequest> = {
       actorUserId: isSet(object.actorUserId)
         ? globalThis.String(object.actorUserId)
         : isSet(object.actor_user_id)
-          ? globalThis.String(object.actor_user_id)
-          : undefined,
+        ? globalThis.String(object.actor_user_id)
+        : undefined,
       outcome: isSet(object.outcome) ? auditOutcomeFromJSON(object.outcome) : undefined,
       occurredAtFrom: isSet(object.occurredAtFrom)
         ? globalThis.String(object.occurredAtFrom)
         : isSet(object.occurred_at_from)
-          ? globalThis.String(object.occurred_at_from)
-          : undefined,
+        ? globalThis.String(object.occurred_at_from)
+        : undefined,
       occurredAtTo: isSet(object.occurredAtTo)
         ? globalThis.String(object.occurredAtTo)
         : isSet(object.occurred_at_to)
-          ? globalThis.String(object.occurred_at_to)
-          : undefined,
+        ? globalThis.String(object.occurred_at_to)
+        : undefined,
     };
   },
 
@@ -1463,21 +1468,19 @@ export const QueryResponse: MessageFns<QueryResponse> = {
 
   fromJSON(object: any): QueryResponse {
     return {
-      events: globalThis.Array.isArray(object?.events)
-        ? object.events.map((e: any) => AuditEvent.fromJSON(e))
-        : [],
+      events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => AuditEvent.fromJSON(e)) : [],
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: QueryResponse): unknown {
     const obj: any = {};
     if (message.events?.length) {
-      obj.events = message.events.map(e => AuditEvent.toJSON(e));
+      obj.events = message.events.map((e) => AuditEvent.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -1490,22 +1493,22 @@ export const QueryResponse: MessageFns<QueryResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<QueryResponse>, I>>(object: I): QueryResponse {
     const message = createBaseQueryResponse();
-    message.events = object.events?.map(e => AuditEvent.fromPartial(e)) || [];
+    message.events = object.events?.map((e) => AuditEvent.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
 };
 
 function createBaseGetByTargetRequest(): GetByTargetRequest {
-  return { aggregateType: '', aggregateId: '', cursor: undefined, limit: 0 };
+  return { aggregateType: "", aggregateId: "", cursor: undefined, limit: 0 };
 }
 
 export const GetByTargetRequest: MessageFns<GetByTargetRequest> = {
   encode(message: GetByTargetRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.aggregateType !== '') {
+    if (message.aggregateType !== "") {
       writer.uint32(10).string(message.aggregateType);
     }
-    if (message.aggregateId !== '') {
+    if (message.aggregateId !== "") {
       writer.uint32(18).string(message.aggregateId);
     }
     if (message.cursor !== undefined) {
@@ -1570,13 +1573,13 @@ export const GetByTargetRequest: MessageFns<GetByTargetRequest> = {
       aggregateType: isSet(object.aggregateType)
         ? globalThis.String(object.aggregateType)
         : isSet(object.aggregate_type)
-          ? globalThis.String(object.aggregate_type)
-          : '',
+        ? globalThis.String(object.aggregate_type)
+        : "",
       aggregateId: isSet(object.aggregateId)
         ? globalThis.String(object.aggregateId)
         : isSet(object.aggregate_id)
-          ? globalThis.String(object.aggregate_id)
-          : '',
+        ? globalThis.String(object.aggregate_id)
+        : "",
       cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : undefined,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
@@ -1584,10 +1587,10 @@ export const GetByTargetRequest: MessageFns<GetByTargetRequest> = {
 
   toJSON(message: GetByTargetRequest): unknown {
     const obj: any = {};
-    if (message.aggregateType !== '') {
+    if (message.aggregateType !== "") {
       obj.aggregateType = message.aggregateType;
     }
-    if (message.aggregateId !== '') {
+    if (message.aggregateId !== "") {
       obj.aggregateId = message.aggregateId;
     }
     if (message.cursor !== undefined) {
@@ -1604,8 +1607,8 @@ export const GetByTargetRequest: MessageFns<GetByTargetRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetByTargetRequest>, I>>(object: I): GetByTargetRequest {
     const message = createBaseGetByTargetRequest();
-    message.aggregateType = object.aggregateType ?? '';
-    message.aggregateId = object.aggregateId ?? '';
+    message.aggregateType = object.aggregateType ?? "";
+    message.aggregateId = object.aggregateId ?? "";
     message.cursor = object.cursor ?? undefined;
     message.limit = object.limit ?? 0;
     return message;
@@ -1661,21 +1664,19 @@ export const GetByTargetResponse: MessageFns<GetByTargetResponse> = {
 
   fromJSON(object: any): GetByTargetResponse {
     return {
-      events: globalThis.Array.isArray(object?.events)
-        ? object.events.map((e: any) => AuditEvent.fromJSON(e))
-        : [],
+      events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => AuditEvent.fromJSON(e)) : [],
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: GetByTargetResponse): unknown {
     const obj: any = {};
     if (message.events?.length) {
-      obj.events = message.events.map(e => AuditEvent.toJSON(e));
+      obj.events = message.events.map((e) => AuditEvent.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -1686,11 +1687,9 @@ export const GetByTargetResponse: MessageFns<GetByTargetResponse> = {
   create<I extends Exact<DeepPartial<GetByTargetResponse>, I>>(base?: I): GetByTargetResponse {
     return GetByTargetResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetByTargetResponse>, I>>(
-    object: I
-  ): GetByTargetResponse {
+  fromPartial<I extends Exact<DeepPartial<GetByTargetResponse>, I>>(object: I): GetByTargetResponse {
     const message = createBaseGetByTargetResponse();
-    message.events = object.events?.map(e => AuditEvent.fromPartial(e)) || [];
+    message.events = object.events?.map((e) => AuditEvent.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
@@ -1698,25 +1697,25 @@ export const GetByTargetResponse: MessageFns<GetByTargetResponse> = {
 
 function createBaseSavedReport(): SavedReport {
   return {
-    savedReportId: '',
-    userId: '',
+    savedReportId: "",
+    userId: "",
     rescueId: undefined,
     templateId: undefined,
-    name: '',
+    name: "",
     description: undefined,
-    configJson: '',
+    configJson: "",
     isArchived: false,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const SavedReport: MessageFns<SavedReport> = {
   encode(message: SavedReport, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       writer.uint32(10).string(message.savedReportId);
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(18).string(message.userId);
     }
     if (message.rescueId !== undefined) {
@@ -1725,22 +1724,22 @@ export const SavedReport: MessageFns<SavedReport> = {
     if (message.templateId !== undefined) {
       writer.uint32(34).string(message.templateId);
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(42).string(message.name);
     }
     if (message.description !== undefined) {
       writer.uint32(50).string(message.description);
     }
-    if (message.configJson !== '') {
+    if (message.configJson !== "") {
       writer.uint32(58).string(message.configJson);
     }
     if (message.isArchived !== false) {
       writer.uint32(64).bool(message.isArchived);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(74).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(82).string(message.updatedAt);
     }
     return writer;
@@ -1847,54 +1846,54 @@ export const SavedReport: MessageFns<SavedReport> = {
       savedReportId: isSet(object.savedReportId)
         ? globalThis.String(object.savedReportId)
         : isSet(object.saved_report_id)
-          ? globalThis.String(object.saved_report_id)
-          : '',
+        ? globalThis.String(object.saved_report_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : undefined,
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
+        ? globalThis.String(object.template_id)
+        : undefined,
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       configJson: isSet(object.configJson)
         ? globalThis.String(object.configJson)
         : isSet(object.config_json)
-          ? globalThis.String(object.config_json)
-          : '',
+        ? globalThis.String(object.config_json)
+        : "",
       isArchived: isSet(object.isArchived)
         ? globalThis.Boolean(object.isArchived)
         : isSet(object.is_archived)
-          ? globalThis.Boolean(object.is_archived)
-          : false,
+        ? globalThis.Boolean(object.is_archived)
+        : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: SavedReport): unknown {
     const obj: any = {};
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       obj.savedReportId = message.savedReportId;
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.rescueId !== undefined) {
@@ -1903,22 +1902,22 @@ export const SavedReport: MessageFns<SavedReport> = {
     if (message.templateId !== undefined) {
       obj.templateId = message.templateId;
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
       obj.description = message.description;
     }
-    if (message.configJson !== '') {
+    if (message.configJson !== "") {
       obj.configJson = message.configJson;
     }
     if (message.isArchived !== false) {
       obj.isArchived = message.isArchived;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -1929,40 +1928,40 @@ export const SavedReport: MessageFns<SavedReport> = {
   },
   fromPartial<I extends Exact<DeepPartial<SavedReport>, I>>(object: I): SavedReport {
     const message = createBaseSavedReport();
-    message.savedReportId = object.savedReportId ?? '';
-    message.userId = object.userId ?? '';
+    message.savedReportId = object.savedReportId ?? "";
+    message.userId = object.userId ?? "";
     message.rescueId = object.rescueId ?? undefined;
     message.templateId = object.templateId ?? undefined;
-    message.name = object.name ?? '';
+    message.name = object.name ?? "";
     message.description = object.description ?? undefined;
-    message.configJson = object.configJson ?? '';
+    message.configJson = object.configJson ?? "";
     message.isArchived = object.isArchived ?? false;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseReportTemplate(): ReportTemplate {
   return {
-    templateId: '',
-    name: '',
+    templateId: "",
+    name: "",
     description: undefined,
     category: 0,
-    configJson: '',
+    configJson: "",
     isSystem: false,
     rescueId: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const ReportTemplate: MessageFns<ReportTemplate> = {
   encode(message: ReportTemplate, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.templateId !== '') {
+    if (message.templateId !== "") {
       writer.uint32(10).string(message.templateId);
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(18).string(message.name);
     }
     if (message.description !== undefined) {
@@ -1971,7 +1970,7 @@ export const ReportTemplate: MessageFns<ReportTemplate> = {
     if (message.category !== 0) {
       writer.uint32(32).int32(message.category);
     }
-    if (message.configJson !== '') {
+    if (message.configJson !== "") {
       writer.uint32(42).string(message.configJson);
     }
     if (message.isSystem !== false) {
@@ -1980,10 +1979,10 @@ export const ReportTemplate: MessageFns<ReportTemplate> = {
     if (message.rescueId !== undefined) {
       writer.uint32(58).string(message.rescueId);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(66).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(74).string(message.updatedAt);
     }
     return writer;
@@ -2082,45 +2081,45 @@ export const ReportTemplate: MessageFns<ReportTemplate> = {
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : '',
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
+        ? globalThis.String(object.template_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       category: isSet(object.category) ? reportTemplateCategoryFromJSON(object.category) : 0,
       configJson: isSet(object.configJson)
         ? globalThis.String(object.configJson)
         : isSet(object.config_json)
-          ? globalThis.String(object.config_json)
-          : '',
+        ? globalThis.String(object.config_json)
+        : "",
       isSystem: isSet(object.isSystem)
         ? globalThis.Boolean(object.isSystem)
         : isSet(object.is_system)
-          ? globalThis.Boolean(object.is_system)
-          : false,
+        ? globalThis.Boolean(object.is_system)
+        : false,
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: ReportTemplate): unknown {
     const obj: any = {};
-    if (message.templateId !== '') {
+    if (message.templateId !== "") {
       obj.templateId = message.templateId;
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
@@ -2129,7 +2128,7 @@ export const ReportTemplate: MessageFns<ReportTemplate> = {
     if (message.category !== 0) {
       obj.category = reportTemplateCategoryToJSON(message.category);
     }
-    if (message.configJson !== '') {
+    if (message.configJson !== "") {
       obj.configJson = message.configJson;
     }
     if (message.isSystem !== false) {
@@ -2138,10 +2137,10 @@ export const ReportTemplate: MessageFns<ReportTemplate> = {
     if (message.rescueId !== undefined) {
       obj.rescueId = message.rescueId;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -2152,15 +2151,15 @@ export const ReportTemplate: MessageFns<ReportTemplate> = {
   },
   fromPartial<I extends Exact<DeepPartial<ReportTemplate>, I>>(object: I): ReportTemplate {
     const message = createBaseReportTemplate();
-    message.templateId = object.templateId ?? '';
-    message.name = object.name ?? '';
+    message.templateId = object.templateId ?? "";
+    message.name = object.name ?? "";
     message.description = object.description ?? undefined;
     message.category = object.category ?? 0;
-    message.configJson = object.configJson ?? '';
+    message.configJson = object.configJson ?? "";
     message.isSystem = object.isSystem ?? false;
     message.rescueId = object.rescueId ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -2170,10 +2169,7 @@ function createBaseListSavedReportsRequest(): ListSavedReportsRequest {
 }
 
 export const ListSavedReportsRequest: MessageFns<ListSavedReportsRequest> = {
-  encode(
-    message: ListSavedReportsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListSavedReportsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.rescueId !== undefined) {
       writer.uint32(10).string(message.rescueId);
     }
@@ -2242,13 +2238,13 @@ export const ListSavedReportsRequest: MessageFns<ListSavedReportsRequest> = {
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
       isArchived: isSet(object.isArchived)
         ? globalThis.Boolean(object.isArchived)
         : isSet(object.is_archived)
-          ? globalThis.Boolean(object.is_archived)
-          : undefined,
+        ? globalThis.Boolean(object.is_archived)
+        : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
@@ -2271,14 +2267,10 @@ export const ListSavedReportsRequest: MessageFns<ListSavedReportsRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListSavedReportsRequest>, I>>(
-    base?: I
-  ): ListSavedReportsRequest {
+  create<I extends Exact<DeepPartial<ListSavedReportsRequest>, I>>(base?: I): ListSavedReportsRequest {
     return ListSavedReportsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListSavedReportsRequest>, I>>(
-    object: I
-  ): ListSavedReportsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListSavedReportsRequest>, I>>(object: I): ListSavedReportsRequest {
     const message = createBaseListSavedReportsRequest();
     message.rescueId = object.rescueId ?? undefined;
     message.isArchived = object.isArchived ?? undefined;
@@ -2293,10 +2285,7 @@ function createBaseListSavedReportsResponse(): ListSavedReportsResponse {
 }
 
 export const ListSavedReportsResponse: MessageFns<ListSavedReportsResponse> = {
-  encode(
-    message: ListSavedReportsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListSavedReportsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.reports) {
       SavedReport.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -2362,23 +2351,21 @@ export const ListSavedReportsResponse: MessageFns<ListSavedReportsResponse> = {
 
   fromJSON(object: any): ListSavedReportsResponse {
     return {
-      reports: globalThis.Array.isArray(object?.reports)
-        ? object.reports.map((e: any) => SavedReport.fromJSON(e))
-        : [],
+      reports: globalThis.Array.isArray(object?.reports) ? object.reports.map((e: any) => SavedReport.fromJSON(e)) : [],
       total: isSet(object.total) ? globalThis.Number(object.total) : 0,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       totalPages: isSet(object.totalPages)
         ? globalThis.Number(object.totalPages)
         : isSet(object.total_pages)
-          ? globalThis.Number(object.total_pages)
-          : 0,
+        ? globalThis.Number(object.total_pages)
+        : 0,
     };
   },
 
   toJSON(message: ListSavedReportsResponse): unknown {
     const obj: any = {};
     if (message.reports?.length) {
-      obj.reports = message.reports.map(e => SavedReport.toJSON(e));
+      obj.reports = message.reports.map((e) => SavedReport.toJSON(e));
     }
     if (message.total !== 0) {
       obj.total = Math.round(message.total);
@@ -2392,16 +2379,12 @@ export const ListSavedReportsResponse: MessageFns<ListSavedReportsResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListSavedReportsResponse>, I>>(
-    base?: I
-  ): ListSavedReportsResponse {
+  create<I extends Exact<DeepPartial<ListSavedReportsResponse>, I>>(base?: I): ListSavedReportsResponse {
     return ListSavedReportsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListSavedReportsResponse>, I>>(
-    object: I
-  ): ListSavedReportsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListSavedReportsResponse>, I>>(object: I): ListSavedReportsResponse {
     const message = createBaseListSavedReportsResponse();
-    message.reports = object.reports?.map(e => SavedReport.fromPartial(e)) || [];
+    message.reports = object.reports?.map((e) => SavedReport.fromPartial(e)) || [];
     message.total = object.total ?? 0;
     message.page = object.page ?? 0;
     message.totalPages = object.totalPages ?? 0;
@@ -2410,12 +2393,12 @@ export const ListSavedReportsResponse: MessageFns<ListSavedReportsResponse> = {
 };
 
 function createBaseGetSavedReportRequest(): GetSavedReportRequest {
-  return { savedReportId: '' };
+  return { savedReportId: "" };
 }
 
 export const GetSavedReportRequest: MessageFns<GetSavedReportRequest> = {
   encode(message: GetSavedReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       writer.uint32(10).string(message.savedReportId);
     }
     return writer;
@@ -2450,14 +2433,14 @@ export const GetSavedReportRequest: MessageFns<GetSavedReportRequest> = {
       savedReportId: isSet(object.savedReportId)
         ? globalThis.String(object.savedReportId)
         : isSet(object.saved_report_id)
-          ? globalThis.String(object.saved_report_id)
-          : '',
+        ? globalThis.String(object.saved_report_id)
+        : "",
     };
   },
 
   toJSON(message: GetSavedReportRequest): unknown {
     const obj: any = {};
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       obj.savedReportId = message.savedReportId;
     }
     return obj;
@@ -2466,11 +2449,9 @@ export const GetSavedReportRequest: MessageFns<GetSavedReportRequest> = {
   create<I extends Exact<DeepPartial<GetSavedReportRequest>, I>>(base?: I): GetSavedReportRequest {
     return GetSavedReportRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetSavedReportRequest>, I>>(
-    object: I
-  ): GetSavedReportRequest {
+  fromPartial<I extends Exact<DeepPartial<GetSavedReportRequest>, I>>(object: I): GetSavedReportRequest {
     const message = createBaseGetSavedReportRequest();
-    message.savedReportId = object.savedReportId ?? '';
+    message.savedReportId = object.savedReportId ?? "";
     return message;
   },
 };
@@ -2523,39 +2504,25 @@ export const GetSavedReportResponse: MessageFns<GetSavedReportResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetSavedReportResponse>, I>>(
-    base?: I
-  ): GetSavedReportResponse {
+  create<I extends Exact<DeepPartial<GetSavedReportResponse>, I>>(base?: I): GetSavedReportResponse {
     return GetSavedReportResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetSavedReportResponse>, I>>(
-    object: I
-  ): GetSavedReportResponse {
+  fromPartial<I extends Exact<DeepPartial<GetSavedReportResponse>, I>>(object: I): GetSavedReportResponse {
     const message = createBaseGetSavedReportResponse();
-    message.report =
-      object.report !== undefined && object.report !== null
-        ? SavedReport.fromPartial(object.report)
-        : undefined;
+    message.report = (object.report !== undefined && object.report !== null)
+      ? SavedReport.fromPartial(object.report)
+      : undefined;
     return message;
   },
 };
 
 function createBaseCreateSavedReportRequest(): CreateSavedReportRequest {
-  return {
-    name: '',
-    description: undefined,
-    rescueId: undefined,
-    templateId: undefined,
-    configJson: '',
-  };
+  return { name: "", description: undefined, rescueId: undefined, templateId: undefined, configJson: "" };
 }
 
 export const CreateSavedReportRequest: MessageFns<CreateSavedReportRequest> = {
-  encode(
-    message: CreateSavedReportRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.name !== '') {
+  encode(message: CreateSavedReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
     if (message.description !== undefined) {
@@ -2567,7 +2534,7 @@ export const CreateSavedReportRequest: MessageFns<CreateSavedReportRequest> = {
     if (message.templateId !== undefined) {
       writer.uint32(34).string(message.templateId);
     }
-    if (message.configJson !== '') {
+    if (message.configJson !== "") {
       writer.uint32(42).string(message.configJson);
     }
     return writer;
@@ -2631,29 +2598,29 @@ export const CreateSavedReportRequest: MessageFns<CreateSavedReportRequest> = {
 
   fromJSON(object: any): CreateSavedReportRequest {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : undefined,
+        ? globalThis.String(object.template_id)
+        : undefined,
       configJson: isSet(object.configJson)
         ? globalThis.String(object.configJson)
         : isSet(object.config_json)
-          ? globalThis.String(object.config_json)
-          : '',
+        ? globalThis.String(object.config_json)
+        : "",
     };
   },
 
   toJSON(message: CreateSavedReportRequest): unknown {
     const obj: any = {};
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
@@ -2665,26 +2632,22 @@ export const CreateSavedReportRequest: MessageFns<CreateSavedReportRequest> = {
     if (message.templateId !== undefined) {
       obj.templateId = message.templateId;
     }
-    if (message.configJson !== '') {
+    if (message.configJson !== "") {
       obj.configJson = message.configJson;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateSavedReportRequest>, I>>(
-    base?: I
-  ): CreateSavedReportRequest {
+  create<I extends Exact<DeepPartial<CreateSavedReportRequest>, I>>(base?: I): CreateSavedReportRequest {
     return CreateSavedReportRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateSavedReportRequest>, I>>(
-    object: I
-  ): CreateSavedReportRequest {
+  fromPartial<I extends Exact<DeepPartial<CreateSavedReportRequest>, I>>(object: I): CreateSavedReportRequest {
     const message = createBaseCreateSavedReportRequest();
-    message.name = object.name ?? '';
+    message.name = object.name ?? "";
     message.description = object.description ?? undefined;
     message.rescueId = object.rescueId ?? undefined;
     message.templateId = object.templateId ?? undefined;
-    message.configJson = object.configJson ?? '';
+    message.configJson = object.configJson ?? "";
     return message;
   },
 };
@@ -2694,10 +2657,7 @@ function createBaseCreateSavedReportResponse(): CreateSavedReportResponse {
 }
 
 export const CreateSavedReportResponse: MessageFns<CreateSavedReportResponse> = {
-  encode(
-    message: CreateSavedReportResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: CreateSavedReportResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.report !== undefined) {
       SavedReport.encode(message.report, writer.uint32(10).fork()).join();
     }
@@ -2740,39 +2700,25 @@ export const CreateSavedReportResponse: MessageFns<CreateSavedReportResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateSavedReportResponse>, I>>(
-    base?: I
-  ): CreateSavedReportResponse {
+  create<I extends Exact<DeepPartial<CreateSavedReportResponse>, I>>(base?: I): CreateSavedReportResponse {
     return CreateSavedReportResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateSavedReportResponse>, I>>(
-    object: I
-  ): CreateSavedReportResponse {
+  fromPartial<I extends Exact<DeepPartial<CreateSavedReportResponse>, I>>(object: I): CreateSavedReportResponse {
     const message = createBaseCreateSavedReportResponse();
-    message.report =
-      object.report !== undefined && object.report !== null
-        ? SavedReport.fromPartial(object.report)
-        : undefined;
+    message.report = (object.report !== undefined && object.report !== null)
+      ? SavedReport.fromPartial(object.report)
+      : undefined;
     return message;
   },
 };
 
 function createBaseUpdateSavedReportRequest(): UpdateSavedReportRequest {
-  return {
-    savedReportId: '',
-    name: undefined,
-    description: undefined,
-    configJson: undefined,
-    isArchived: undefined,
-  };
+  return { savedReportId: "", name: undefined, description: undefined, configJson: undefined, isArchived: undefined };
 }
 
 export const UpdateSavedReportRequest: MessageFns<UpdateSavedReportRequest> = {
-  encode(
-    message: UpdateSavedReportRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.savedReportId !== '') {
+  encode(message: UpdateSavedReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.savedReportId !== "") {
       writer.uint32(10).string(message.savedReportId);
     }
     if (message.name !== undefined) {
@@ -2851,26 +2797,26 @@ export const UpdateSavedReportRequest: MessageFns<UpdateSavedReportRequest> = {
       savedReportId: isSet(object.savedReportId)
         ? globalThis.String(object.savedReportId)
         : isSet(object.saved_report_id)
-          ? globalThis.String(object.saved_report_id)
-          : '',
+        ? globalThis.String(object.saved_report_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : undefined,
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       configJson: isSet(object.configJson)
         ? globalThis.String(object.configJson)
         : isSet(object.config_json)
-          ? globalThis.String(object.config_json)
-          : undefined,
+        ? globalThis.String(object.config_json)
+        : undefined,
       isArchived: isSet(object.isArchived)
         ? globalThis.Boolean(object.isArchived)
         : isSet(object.is_archived)
-          ? globalThis.Boolean(object.is_archived)
-          : undefined,
+        ? globalThis.Boolean(object.is_archived)
+        : undefined,
     };
   },
 
   toJSON(message: UpdateSavedReportRequest): unknown {
     const obj: any = {};
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       obj.savedReportId = message.savedReportId;
     }
     if (message.name !== undefined) {
@@ -2888,16 +2834,12 @@ export const UpdateSavedReportRequest: MessageFns<UpdateSavedReportRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdateSavedReportRequest>, I>>(
-    base?: I
-  ): UpdateSavedReportRequest {
+  create<I extends Exact<DeepPartial<UpdateSavedReportRequest>, I>>(base?: I): UpdateSavedReportRequest {
     return UpdateSavedReportRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateSavedReportRequest>, I>>(
-    object: I
-  ): UpdateSavedReportRequest {
+  fromPartial<I extends Exact<DeepPartial<UpdateSavedReportRequest>, I>>(object: I): UpdateSavedReportRequest {
     const message = createBaseUpdateSavedReportRequest();
-    message.savedReportId = object.savedReportId ?? '';
+    message.savedReportId = object.savedReportId ?? "";
     message.name = object.name ?? undefined;
     message.description = object.description ?? undefined;
     message.configJson = object.configJson ?? undefined;
@@ -2911,10 +2853,7 @@ function createBaseUpdateSavedReportResponse(): UpdateSavedReportResponse {
 }
 
 export const UpdateSavedReportResponse: MessageFns<UpdateSavedReportResponse> = {
-  encode(
-    message: UpdateSavedReportResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpdateSavedReportResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.report !== undefined) {
       SavedReport.encode(message.report, writer.uint32(10).fork()).join();
     }
@@ -2957,33 +2896,25 @@ export const UpdateSavedReportResponse: MessageFns<UpdateSavedReportResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdateSavedReportResponse>, I>>(
-    base?: I
-  ): UpdateSavedReportResponse {
+  create<I extends Exact<DeepPartial<UpdateSavedReportResponse>, I>>(base?: I): UpdateSavedReportResponse {
     return UpdateSavedReportResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateSavedReportResponse>, I>>(
-    object: I
-  ): UpdateSavedReportResponse {
+  fromPartial<I extends Exact<DeepPartial<UpdateSavedReportResponse>, I>>(object: I): UpdateSavedReportResponse {
     const message = createBaseUpdateSavedReportResponse();
-    message.report =
-      object.report !== undefined && object.report !== null
-        ? SavedReport.fromPartial(object.report)
-        : undefined;
+    message.report = (object.report !== undefined && object.report !== null)
+      ? SavedReport.fromPartial(object.report)
+      : undefined;
     return message;
   },
 };
 
 function createBaseDeleteSavedReportRequest(): DeleteSavedReportRequest {
-  return { savedReportId: '' };
+  return { savedReportId: "" };
 }
 
 export const DeleteSavedReportRequest: MessageFns<DeleteSavedReportRequest> = {
-  encode(
-    message: DeleteSavedReportRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.savedReportId !== '') {
+  encode(message: DeleteSavedReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.savedReportId !== "") {
       writer.uint32(10).string(message.savedReportId);
     }
     return writer;
@@ -3018,29 +2949,25 @@ export const DeleteSavedReportRequest: MessageFns<DeleteSavedReportRequest> = {
       savedReportId: isSet(object.savedReportId)
         ? globalThis.String(object.savedReportId)
         : isSet(object.saved_report_id)
-          ? globalThis.String(object.saved_report_id)
-          : '',
+        ? globalThis.String(object.saved_report_id)
+        : "",
     };
   },
 
   toJSON(message: DeleteSavedReportRequest): unknown {
     const obj: any = {};
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       obj.savedReportId = message.savedReportId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeleteSavedReportRequest>, I>>(
-    base?: I
-  ): DeleteSavedReportRequest {
+  create<I extends Exact<DeepPartial<DeleteSavedReportRequest>, I>>(base?: I): DeleteSavedReportRequest {
     return DeleteSavedReportRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteSavedReportRequest>, I>>(
-    object: I
-  ): DeleteSavedReportRequest {
+  fromPartial<I extends Exact<DeepPartial<DeleteSavedReportRequest>, I>>(object: I): DeleteSavedReportRequest {
     const message = createBaseDeleteSavedReportRequest();
-    message.savedReportId = object.savedReportId ?? '';
+    message.savedReportId = object.savedReportId ?? "";
     return message;
   },
 };
@@ -3050,10 +2977,7 @@ function createBaseDeleteSavedReportResponse(): DeleteSavedReportResponse {
 }
 
 export const DeleteSavedReportResponse: MessageFns<DeleteSavedReportResponse> = {
-  encode(
-    message: DeleteSavedReportResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: DeleteSavedReportResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.deleted !== false) {
       writer.uint32(8).bool(message.deleted);
     }
@@ -3096,14 +3020,10 @@ export const DeleteSavedReportResponse: MessageFns<DeleteSavedReportResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeleteSavedReportResponse>, I>>(
-    base?: I
-  ): DeleteSavedReportResponse {
+  create<I extends Exact<DeepPartial<DeleteSavedReportResponse>, I>>(base?: I): DeleteSavedReportResponse {
     return DeleteSavedReportResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteSavedReportResponse>, I>>(
-    object: I
-  ): DeleteSavedReportResponse {
+  fromPartial<I extends Exact<DeepPartial<DeleteSavedReportResponse>, I>>(object: I): DeleteSavedReportResponse {
     const message = createBaseDeleteSavedReportResponse();
     message.deleted = object.deleted ?? false;
     return message;
@@ -3115,10 +3035,7 @@ function createBaseListReportTemplatesRequest(): ListReportTemplatesRequest {
 }
 
 export const ListReportTemplatesRequest: MessageFns<ListReportTemplatesRequest> = {
-  encode(
-    message: ListReportTemplatesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListReportTemplatesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.category !== 0) {
       writer.uint32(8).int32(message.category);
     }
@@ -3177,13 +3094,13 @@ export const ListReportTemplatesRequest: MessageFns<ListReportTemplatesRequest> 
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
       systemOnly: isSet(object.systemOnly)
         ? globalThis.Boolean(object.systemOnly)
         : isSet(object.system_only)
-          ? globalThis.Boolean(object.system_only)
-          : undefined,
+        ? globalThis.Boolean(object.system_only)
+        : undefined,
     };
   },
 
@@ -3201,14 +3118,10 @@ export const ListReportTemplatesRequest: MessageFns<ListReportTemplatesRequest> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListReportTemplatesRequest>, I>>(
-    base?: I
-  ): ListReportTemplatesRequest {
+  create<I extends Exact<DeepPartial<ListReportTemplatesRequest>, I>>(base?: I): ListReportTemplatesRequest {
     return ListReportTemplatesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListReportTemplatesRequest>, I>>(
-    object: I
-  ): ListReportTemplatesRequest {
+  fromPartial<I extends Exact<DeepPartial<ListReportTemplatesRequest>, I>>(object: I): ListReportTemplatesRequest {
     const message = createBaseListReportTemplatesRequest();
     message.category = object.category ?? 0;
     message.rescueId = object.rescueId ?? undefined;
@@ -3222,10 +3135,7 @@ function createBaseListReportTemplatesResponse(): ListReportTemplatesResponse {
 }
 
 export const ListReportTemplatesResponse: MessageFns<ListReportTemplatesResponse> = {
-  encode(
-    message: ListReportTemplatesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListReportTemplatesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.templates) {
       ReportTemplate.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -3267,35 +3177,28 @@ export const ListReportTemplatesResponse: MessageFns<ListReportTemplatesResponse
   toJSON(message: ListReportTemplatesResponse): unknown {
     const obj: any = {};
     if (message.templates?.length) {
-      obj.templates = message.templates.map(e => ReportTemplate.toJSON(e));
+      obj.templates = message.templates.map((e) => ReportTemplate.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListReportTemplatesResponse>, I>>(
-    base?: I
-  ): ListReportTemplatesResponse {
+  create<I extends Exact<DeepPartial<ListReportTemplatesResponse>, I>>(base?: I): ListReportTemplatesResponse {
     return ListReportTemplatesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListReportTemplatesResponse>, I>>(
-    object: I
-  ): ListReportTemplatesResponse {
+  fromPartial<I extends Exact<DeepPartial<ListReportTemplatesResponse>, I>>(object: I): ListReportTemplatesResponse {
     const message = createBaseListReportTemplatesResponse();
-    message.templates = object.templates?.map(e => ReportTemplate.fromPartial(e)) || [];
+    message.templates = object.templates?.map((e) => ReportTemplate.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseReportScheduleRecipient(): ReportScheduleRecipient {
-  return { email: '', userId: undefined };
+  return { email: "", userId: undefined };
 }
 
 export const ReportScheduleRecipient: MessageFns<ReportScheduleRecipient> = {
-  encode(
-    message: ReportScheduleRecipient,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.email !== '') {
+  encode(message: ReportScheduleRecipient, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
     if (message.userId !== undefined) {
@@ -3338,18 +3241,18 @@ export const ReportScheduleRecipient: MessageFns<ReportScheduleRecipient> = {
 
   fromJSON(object: any): ReportScheduleRecipient {
     return {
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
     };
   },
 
   toJSON(message: ReportScheduleRecipient): unknown {
     const obj: any = {};
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
     if (message.userId !== undefined) {
@@ -3358,16 +3261,12 @@ export const ReportScheduleRecipient: MessageFns<ReportScheduleRecipient> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ReportScheduleRecipient>, I>>(
-    base?: I
-  ): ReportScheduleRecipient {
+  create<I extends Exact<DeepPartial<ReportScheduleRecipient>, I>>(base?: I): ReportScheduleRecipient {
     return ReportScheduleRecipient.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ReportScheduleRecipient>, I>>(
-    object: I
-  ): ReportScheduleRecipient {
+  fromPartial<I extends Exact<DeepPartial<ReportScheduleRecipient>, I>>(object: I): ReportScheduleRecipient {
     const message = createBaseReportScheduleRecipient();
-    message.email = object.email ?? '';
+    message.email = object.email ?? "";
     message.userId = object.userId ?? undefined;
     return message;
   },
@@ -3375,10 +3274,10 @@ export const ReportScheduleRecipient: MessageFns<ReportScheduleRecipient> = {
 
 function createBaseReportSchedule(): ReportSchedule {
   return {
-    scheduleId: '',
-    savedReportId: '',
-    cron: '',
-    timezone: '',
+    scheduleId: "",
+    savedReportId: "",
+    cron: "",
+    timezone: "",
     recipients: [],
     format: 0,
     isEnabled: false,
@@ -3386,23 +3285,23 @@ function createBaseReportSchedule(): ReportSchedule {
     nextRunAt: undefined,
     lastStatus: undefined,
     lastError: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const ReportSchedule: MessageFns<ReportSchedule> = {
   encode(message: ReportSchedule, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.scheduleId !== '') {
+    if (message.scheduleId !== "") {
       writer.uint32(10).string(message.scheduleId);
     }
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       writer.uint32(18).string(message.savedReportId);
     }
-    if (message.cron !== '') {
+    if (message.cron !== "") {
       writer.uint32(26).string(message.cron);
     }
-    if (message.timezone !== '') {
+    if (message.timezone !== "") {
       writer.uint32(34).string(message.timezone);
     }
     for (const v of message.recipients) {
@@ -3426,10 +3325,10 @@ export const ReportSchedule: MessageFns<ReportSchedule> = {
     if (message.lastError !== undefined) {
       writer.uint32(90).string(message.lastError);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(98).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(106).string(message.updatedAt);
     }
     return writer;
@@ -3560,15 +3459,15 @@ export const ReportSchedule: MessageFns<ReportSchedule> = {
       scheduleId: isSet(object.scheduleId)
         ? globalThis.String(object.scheduleId)
         : isSet(object.schedule_id)
-          ? globalThis.String(object.schedule_id)
-          : '',
+        ? globalThis.String(object.schedule_id)
+        : "",
       savedReportId: isSet(object.savedReportId)
         ? globalThis.String(object.savedReportId)
         : isSet(object.saved_report_id)
-          ? globalThis.String(object.saved_report_id)
-          : '',
-      cron: isSet(object.cron) ? globalThis.String(object.cron) : '',
-      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : '',
+        ? globalThis.String(object.saved_report_id)
+        : "",
+      cron: isSet(object.cron) ? globalThis.String(object.cron) : "",
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
       recipients: globalThis.Array.isArray(object?.recipients)
         ? object.recipients.map((e: any) => ReportScheduleRecipient.fromJSON(e))
         : [],
@@ -3576,57 +3475,57 @@ export const ReportSchedule: MessageFns<ReportSchedule> = {
       isEnabled: isSet(object.isEnabled)
         ? globalThis.Boolean(object.isEnabled)
         : isSet(object.is_enabled)
-          ? globalThis.Boolean(object.is_enabled)
-          : false,
+        ? globalThis.Boolean(object.is_enabled)
+        : false,
       lastRunAt: isSet(object.lastRunAt)
         ? globalThis.String(object.lastRunAt)
         : isSet(object.last_run_at)
-          ? globalThis.String(object.last_run_at)
-          : undefined,
+        ? globalThis.String(object.last_run_at)
+        : undefined,
       nextRunAt: isSet(object.nextRunAt)
         ? globalThis.String(object.nextRunAt)
         : isSet(object.next_run_at)
-          ? globalThis.String(object.next_run_at)
-          : undefined,
+        ? globalThis.String(object.next_run_at)
+        : undefined,
       lastStatus: isSet(object.lastStatus)
         ? globalThis.String(object.lastStatus)
         : isSet(object.last_status)
-          ? globalThis.String(object.last_status)
-          : undefined,
+        ? globalThis.String(object.last_status)
+        : undefined,
       lastError: isSet(object.lastError)
         ? globalThis.String(object.lastError)
         : isSet(object.last_error)
-          ? globalThis.String(object.last_error)
-          : undefined,
+        ? globalThis.String(object.last_error)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: ReportSchedule): unknown {
     const obj: any = {};
-    if (message.scheduleId !== '') {
+    if (message.scheduleId !== "") {
       obj.scheduleId = message.scheduleId;
     }
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       obj.savedReportId = message.savedReportId;
     }
-    if (message.cron !== '') {
+    if (message.cron !== "") {
       obj.cron = message.cron;
     }
-    if (message.timezone !== '') {
+    if (message.timezone !== "") {
       obj.timezone = message.timezone;
     }
     if (message.recipients?.length) {
-      obj.recipients = message.recipients.map(e => ReportScheduleRecipient.toJSON(e));
+      obj.recipients = message.recipients.map((e) => ReportScheduleRecipient.toJSON(e));
     }
     if (message.format !== 0) {
       obj.format = reportScheduleFormatToJSON(message.format);
@@ -3646,10 +3545,10 @@ export const ReportSchedule: MessageFns<ReportSchedule> = {
     if (message.lastError !== undefined) {
       obj.lastError = message.lastError;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -3660,43 +3559,33 @@ export const ReportSchedule: MessageFns<ReportSchedule> = {
   },
   fromPartial<I extends Exact<DeepPartial<ReportSchedule>, I>>(object: I): ReportSchedule {
     const message = createBaseReportSchedule();
-    message.scheduleId = object.scheduleId ?? '';
-    message.savedReportId = object.savedReportId ?? '';
-    message.cron = object.cron ?? '';
-    message.timezone = object.timezone ?? '';
-    message.recipients = object.recipients?.map(e => ReportScheduleRecipient.fromPartial(e)) || [];
+    message.scheduleId = object.scheduleId ?? "";
+    message.savedReportId = object.savedReportId ?? "";
+    message.cron = object.cron ?? "";
+    message.timezone = object.timezone ?? "";
+    message.recipients = object.recipients?.map((e) => ReportScheduleRecipient.fromPartial(e)) || [];
     message.format = object.format ?? 0;
     message.isEnabled = object.isEnabled ?? false;
     message.lastRunAt = object.lastRunAt ?? undefined;
     message.nextRunAt = object.nextRunAt ?? undefined;
     message.lastStatus = object.lastStatus ?? undefined;
     message.lastError = object.lastError ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseUpsertReportScheduleRequest(): UpsertReportScheduleRequest {
-  return {
-    savedReportId: '',
-    cron: '',
-    timezone: undefined,
-    recipients: [],
-    format: 0,
-    isEnabled: undefined,
-  };
+  return { savedReportId: "", cron: "", timezone: undefined, recipients: [], format: 0, isEnabled: undefined };
 }
 
 export const UpsertReportScheduleRequest: MessageFns<UpsertReportScheduleRequest> = {
-  encode(
-    message: UpsertReportScheduleRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.savedReportId !== '') {
+  encode(message: UpsertReportScheduleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.savedReportId !== "") {
       writer.uint32(10).string(message.savedReportId);
     }
-    if (message.cron !== '') {
+    if (message.cron !== "") {
       writer.uint32(18).string(message.cron);
     }
     if (message.timezone !== undefined) {
@@ -3783,9 +3672,9 @@ export const UpsertReportScheduleRequest: MessageFns<UpsertReportScheduleRequest
       savedReportId: isSet(object.savedReportId)
         ? globalThis.String(object.savedReportId)
         : isSet(object.saved_report_id)
-          ? globalThis.String(object.saved_report_id)
-          : '',
-      cron: isSet(object.cron) ? globalThis.String(object.cron) : '',
+        ? globalThis.String(object.saved_report_id)
+        : "",
+      cron: isSet(object.cron) ? globalThis.String(object.cron) : "",
       timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
       recipients: globalThis.Array.isArray(object?.recipients)
         ? object.recipients.map((e: any) => ReportScheduleRecipient.fromJSON(e))
@@ -3794,24 +3683,24 @@ export const UpsertReportScheduleRequest: MessageFns<UpsertReportScheduleRequest
       isEnabled: isSet(object.isEnabled)
         ? globalThis.Boolean(object.isEnabled)
         : isSet(object.is_enabled)
-          ? globalThis.Boolean(object.is_enabled)
-          : undefined,
+        ? globalThis.Boolean(object.is_enabled)
+        : undefined,
     };
   },
 
   toJSON(message: UpsertReportScheduleRequest): unknown {
     const obj: any = {};
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       obj.savedReportId = message.savedReportId;
     }
-    if (message.cron !== '') {
+    if (message.cron !== "") {
       obj.cron = message.cron;
     }
     if (message.timezone !== undefined) {
       obj.timezone = message.timezone;
     }
     if (message.recipients?.length) {
-      obj.recipients = message.recipients.map(e => ReportScheduleRecipient.toJSON(e));
+      obj.recipients = message.recipients.map((e) => ReportScheduleRecipient.toJSON(e));
     }
     if (message.format !== 0) {
       obj.format = reportScheduleFormatToJSON(message.format);
@@ -3822,19 +3711,15 @@ export const UpsertReportScheduleRequest: MessageFns<UpsertReportScheduleRequest
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpsertReportScheduleRequest>, I>>(
-    base?: I
-  ): UpsertReportScheduleRequest {
+  create<I extends Exact<DeepPartial<UpsertReportScheduleRequest>, I>>(base?: I): UpsertReportScheduleRequest {
     return UpsertReportScheduleRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpsertReportScheduleRequest>, I>>(
-    object: I
-  ): UpsertReportScheduleRequest {
+  fromPartial<I extends Exact<DeepPartial<UpsertReportScheduleRequest>, I>>(object: I): UpsertReportScheduleRequest {
     const message = createBaseUpsertReportScheduleRequest();
-    message.savedReportId = object.savedReportId ?? '';
-    message.cron = object.cron ?? '';
+    message.savedReportId = object.savedReportId ?? "";
+    message.cron = object.cron ?? "";
     message.timezone = object.timezone ?? undefined;
-    message.recipients = object.recipients?.map(e => ReportScheduleRecipient.fromPartial(e)) || [];
+    message.recipients = object.recipients?.map((e) => ReportScheduleRecipient.fromPartial(e)) || [];
     message.format = object.format ?? 0;
     message.isEnabled = object.isEnabled ?? undefined;
     return message;
@@ -3846,10 +3731,7 @@ function createBaseUpsertReportScheduleResponse(): UpsertReportScheduleResponse 
 }
 
 export const UpsertReportScheduleResponse: MessageFns<UpsertReportScheduleResponse> = {
-  encode(
-    message: UpsertReportScheduleResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpsertReportScheduleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.schedule !== undefined) {
       ReportSchedule.encode(message.schedule, writer.uint32(10).fork()).join();
     }
@@ -3881,9 +3763,7 @@ export const UpsertReportScheduleResponse: MessageFns<UpsertReportScheduleRespon
   },
 
   fromJSON(object: any): UpsertReportScheduleResponse {
-    return {
-      schedule: isSet(object.schedule) ? ReportSchedule.fromJSON(object.schedule) : undefined,
-    };
+    return { schedule: isSet(object.schedule) ? ReportSchedule.fromJSON(object.schedule) : undefined };
   },
 
   toJSON(message: UpsertReportScheduleResponse): unknown {
@@ -3894,44 +3774,39 @@ export const UpsertReportScheduleResponse: MessageFns<UpsertReportScheduleRespon
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpsertReportScheduleResponse>, I>>(
-    base?: I
-  ): UpsertReportScheduleResponse {
+  create<I extends Exact<DeepPartial<UpsertReportScheduleResponse>, I>>(base?: I): UpsertReportScheduleResponse {
     return UpsertReportScheduleResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpsertReportScheduleResponse>, I>>(
-    object: I
-  ): UpsertReportScheduleResponse {
+  fromPartial<I extends Exact<DeepPartial<UpsertReportScheduleResponse>, I>>(object: I): UpsertReportScheduleResponse {
     const message = createBaseUpsertReportScheduleResponse();
-    message.schedule =
-      object.schedule !== undefined && object.schedule !== null
-        ? ReportSchedule.fromPartial(object.schedule)
-        : undefined;
+    message.schedule = (object.schedule !== undefined && object.schedule !== null)
+      ? ReportSchedule.fromPartial(object.schedule)
+      : undefined;
     return message;
   },
 };
 
 function createBaseReportShare(): ReportShare {
   return {
-    shareId: '',
-    savedReportId: '',
-    shareType: '',
+    shareId: "",
+    savedReportId: "",
+    shareType: "",
     permission: 0,
     expiresAt: undefined,
     revokedAt: undefined,
-    createdAt: '',
+    createdAt: "",
   };
 }
 
 export const ReportShare: MessageFns<ReportShare> = {
   encode(message: ReportShare, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.shareId !== '') {
+    if (message.shareId !== "") {
       writer.uint32(10).string(message.shareId);
     }
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       writer.uint32(18).string(message.savedReportId);
     }
-    if (message.shareType !== '') {
+    if (message.shareType !== "") {
       writer.uint32(26).string(message.shareType);
     }
     if (message.permission !== 0) {
@@ -3943,7 +3818,7 @@ export const ReportShare: MessageFns<ReportShare> = {
     if (message.revokedAt !== undefined) {
       writer.uint32(50).string(message.revokedAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(58).string(message.createdAt);
     }
     return writer;
@@ -4026,46 +3901,46 @@ export const ReportShare: MessageFns<ReportShare> = {
       shareId: isSet(object.shareId)
         ? globalThis.String(object.shareId)
         : isSet(object.share_id)
-          ? globalThis.String(object.share_id)
-          : '',
+        ? globalThis.String(object.share_id)
+        : "",
       savedReportId: isSet(object.savedReportId)
         ? globalThis.String(object.savedReportId)
         : isSet(object.saved_report_id)
-          ? globalThis.String(object.saved_report_id)
-          : '',
+        ? globalThis.String(object.saved_report_id)
+        : "",
       shareType: isSet(object.shareType)
         ? globalThis.String(object.shareType)
         : isSet(object.share_type)
-          ? globalThis.String(object.share_type)
-          : '',
+        ? globalThis.String(object.share_type)
+        : "",
       permission: isSet(object.permission) ? reportSharePermissionFromJSON(object.permission) : 0,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : undefined,
+        ? globalThis.String(object.expires_at)
+        : undefined,
       revokedAt: isSet(object.revokedAt)
         ? globalThis.String(object.revokedAt)
         : isSet(object.revoked_at)
-          ? globalThis.String(object.revoked_at)
-          : undefined,
+        ? globalThis.String(object.revoked_at)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
     };
   },
 
   toJSON(message: ReportShare): unknown {
     const obj: any = {};
-    if (message.shareId !== '') {
+    if (message.shareId !== "") {
       obj.shareId = message.shareId;
     }
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       obj.savedReportId = message.savedReportId;
     }
-    if (message.shareType !== '') {
+    if (message.shareType !== "") {
       obj.shareType = message.shareType;
     }
     if (message.permission !== 0) {
@@ -4077,7 +3952,7 @@ export const ReportShare: MessageFns<ReportShare> = {
     if (message.revokedAt !== undefined) {
       obj.revokedAt = message.revokedAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
     return obj;
@@ -4088,27 +3963,24 @@ export const ReportShare: MessageFns<ReportShare> = {
   },
   fromPartial<I extends Exact<DeepPartial<ReportShare>, I>>(object: I): ReportShare {
     const message = createBaseReportShare();
-    message.shareId = object.shareId ?? '';
-    message.savedReportId = object.savedReportId ?? '';
-    message.shareType = object.shareType ?? '';
+    message.shareId = object.shareId ?? "";
+    message.savedReportId = object.savedReportId ?? "";
+    message.shareType = object.shareType ?? "";
     message.permission = object.permission ?? 0;
     message.expiresAt = object.expiresAt ?? undefined;
     message.revokedAt = object.revokedAt ?? undefined;
-    message.createdAt = object.createdAt ?? '';
+    message.createdAt = object.createdAt ?? "";
     return message;
   },
 };
 
 function createBaseCreateReportShareRequest(): CreateReportShareRequest {
-  return { savedReportId: '', permission: 0, expiresAt: undefined };
+  return { savedReportId: "", permission: 0, expiresAt: undefined };
 }
 
 export const CreateReportShareRequest: MessageFns<CreateReportShareRequest> = {
-  encode(
-    message: CreateReportShareRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.savedReportId !== '') {
+  encode(message: CreateReportShareRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.savedReportId !== "") {
       writer.uint32(10).string(message.savedReportId);
     }
     if (message.permission !== 0) {
@@ -4165,20 +4037,20 @@ export const CreateReportShareRequest: MessageFns<CreateReportShareRequest> = {
       savedReportId: isSet(object.savedReportId)
         ? globalThis.String(object.savedReportId)
         : isSet(object.saved_report_id)
-          ? globalThis.String(object.saved_report_id)
-          : '',
+        ? globalThis.String(object.saved_report_id)
+        : "",
       permission: isSet(object.permission) ? reportSharePermissionFromJSON(object.permission) : 0,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : undefined,
+        ? globalThis.String(object.expires_at)
+        : undefined,
     };
   },
 
   toJSON(message: CreateReportShareRequest): unknown {
     const obj: any = {};
-    if (message.savedReportId !== '') {
+    if (message.savedReportId !== "") {
       obj.savedReportId = message.savedReportId;
     }
     if (message.permission !== 0) {
@@ -4190,16 +4062,12 @@ export const CreateReportShareRequest: MessageFns<CreateReportShareRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateReportShareRequest>, I>>(
-    base?: I
-  ): CreateReportShareRequest {
+  create<I extends Exact<DeepPartial<CreateReportShareRequest>, I>>(base?: I): CreateReportShareRequest {
     return CreateReportShareRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateReportShareRequest>, I>>(
-    object: I
-  ): CreateReportShareRequest {
+  fromPartial<I extends Exact<DeepPartial<CreateReportShareRequest>, I>>(object: I): CreateReportShareRequest {
     const message = createBaseCreateReportShareRequest();
-    message.savedReportId = object.savedReportId ?? '';
+    message.savedReportId = object.savedReportId ?? "";
     message.permission = object.permission ?? 0;
     message.expiresAt = object.expiresAt ?? undefined;
     return message;
@@ -4207,18 +4075,15 @@ export const CreateReportShareRequest: MessageFns<CreateReportShareRequest> = {
 };
 
 function createBaseCreateReportShareResponse(): CreateReportShareResponse {
-  return { share: undefined, token: '' };
+  return { share: undefined, token: "" };
 }
 
 export const CreateReportShareResponse: MessageFns<CreateReportShareResponse> = {
-  encode(
-    message: CreateReportShareResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: CreateReportShareResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.share !== undefined) {
       ReportShare.encode(message.share, writer.uint32(10).fork()).join();
     }
-    if (message.token !== '') {
+    if (message.token !== "") {
       writer.uint32(18).string(message.token);
     }
     return writer;
@@ -4259,7 +4124,7 @@ export const CreateReportShareResponse: MessageFns<CreateReportShareResponse> = 
   fromJSON(object: any): CreateReportShareResponse {
     return {
       share: isSet(object.share) ? ReportShare.fromJSON(object.share) : undefined,
-      token: isSet(object.token) ? globalThis.String(object.token) : '',
+      token: isSet(object.token) ? globalThis.String(object.token) : "",
     };
   },
 
@@ -4268,26 +4133,21 @@ export const CreateReportShareResponse: MessageFns<CreateReportShareResponse> = 
     if (message.share !== undefined) {
       obj.share = ReportShare.toJSON(message.share);
     }
-    if (message.token !== '') {
+    if (message.token !== "") {
       obj.token = message.token;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateReportShareResponse>, I>>(
-    base?: I
-  ): CreateReportShareResponse {
+  create<I extends Exact<DeepPartial<CreateReportShareResponse>, I>>(base?: I): CreateReportShareResponse {
     return CreateReportShareResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateReportShareResponse>, I>>(
-    object: I
-  ): CreateReportShareResponse {
+  fromPartial<I extends Exact<DeepPartial<CreateReportShareResponse>, I>>(object: I): CreateReportShareResponse {
     const message = createBaseCreateReportShareResponse();
-    message.share =
-      object.share !== undefined && object.share !== null
-        ? ReportShare.fromPartial(object.share)
-        : undefined;
-    message.token = object.token ?? '';
+    message.share = (object.share !== undefined && object.share !== null)
+      ? ReportShare.fromPartial(object.share)
+      : undefined;
+    message.token = object.token ?? "";
     return message;
   },
 };
@@ -4312,14 +4172,12 @@ export const AuditQueryServiceService = {
    * cursor on (occurred_at, event_id) tuple.
    */
   query: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/Query' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/Query" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: QueryRequest): Buffer =>
-      Buffer.from(QueryRequest.encode(value).finish()),
+    requestSerialize: (value: QueryRequest): Buffer => Buffer.from(QueryRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): QueryRequest => QueryRequest.decode(value),
-    responseSerialize: (value: QueryResponse): Buffer =>
-      Buffer.from(QueryResponse.encode(value).finish()),
+    responseSerialize: (value: QueryResponse): Buffer => Buffer.from(QueryResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): QueryResponse => QueryResponse.decode(value),
   },
   /**
@@ -4331,14 +4189,12 @@ export const AuditQueryServiceService = {
    * notifications.*, moderation.* events tied to it).
    */
   getByTarget: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/GetByTarget' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/GetByTarget" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetByTargetRequest): Buffer =>
-      Buffer.from(GetByTargetRequest.encode(value).finish()),
+    requestSerialize: (value: GetByTargetRequest): Buffer => Buffer.from(GetByTargetRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetByTargetRequest => GetByTargetRequest.decode(value),
-    responseSerialize: (value: GetByTargetResponse): Buffer =>
-      Buffer.from(GetByTargetResponse.encode(value).finish()),
+    responseSerialize: (value: GetByTargetResponse): Buffer => Buffer.from(GetByTargetResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetByTargetResponse => GetByTargetResponse.decode(value),
   },
   /**
@@ -4350,100 +4206,86 @@ export const AuditQueryServiceService = {
    *   doesn't have :any.
    */
   listSavedReports: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/ListSavedReports' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/ListSavedReports" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListSavedReportsRequest): Buffer =>
       Buffer.from(ListSavedReportsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListSavedReportsRequest =>
-      ListSavedReportsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListSavedReportsRequest => ListSavedReportsRequest.decode(value),
     responseSerialize: (value: ListSavedReportsResponse): Buffer =>
       Buffer.from(ListSavedReportsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListSavedReportsResponse =>
-      ListSavedReportsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListSavedReportsResponse => ListSavedReportsResponse.decode(value),
   },
   getSavedReport: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/GetSavedReport' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/GetSavedReport" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetSavedReportRequest): Buffer =>
       Buffer.from(GetSavedReportRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetSavedReportRequest =>
-      GetSavedReportRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetSavedReportRequest => GetSavedReportRequest.decode(value),
     responseSerialize: (value: GetSavedReportResponse): Buffer =>
       Buffer.from(GetSavedReportResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetSavedReportResponse =>
-      GetSavedReportResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetSavedReportResponse => GetSavedReportResponse.decode(value),
   },
   createSavedReport: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/CreateSavedReport' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/CreateSavedReport" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: CreateSavedReportRequest): Buffer =>
       Buffer.from(CreateSavedReportRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateSavedReportRequest =>
-      CreateSavedReportRequest.decode(value),
+    requestDeserialize: (value: Buffer): CreateSavedReportRequest => CreateSavedReportRequest.decode(value),
     responseSerialize: (value: CreateSavedReportResponse): Buffer =>
       Buffer.from(CreateSavedReportResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateSavedReportResponse =>
-      CreateSavedReportResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateSavedReportResponse => CreateSavedReportResponse.decode(value),
   },
   updateSavedReport: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/UpdateSavedReport' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/UpdateSavedReport" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpdateSavedReportRequest): Buffer =>
       Buffer.from(UpdateSavedReportRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpdateSavedReportRequest =>
-      UpdateSavedReportRequest.decode(value),
+    requestDeserialize: (value: Buffer): UpdateSavedReportRequest => UpdateSavedReportRequest.decode(value),
     responseSerialize: (value: UpdateSavedReportResponse): Buffer =>
       Buffer.from(UpdateSavedReportResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdateSavedReportResponse =>
-      UpdateSavedReportResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpdateSavedReportResponse => UpdateSavedReportResponse.decode(value),
   },
   deleteSavedReport: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/DeleteSavedReport' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/DeleteSavedReport" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: DeleteSavedReportRequest): Buffer =>
       Buffer.from(DeleteSavedReportRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): DeleteSavedReportRequest =>
-      DeleteSavedReportRequest.decode(value),
+    requestDeserialize: (value: Buffer): DeleteSavedReportRequest => DeleteSavedReportRequest.decode(value),
     responseSerialize: (value: DeleteSavedReportResponse): Buffer =>
       Buffer.from(DeleteSavedReportResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DeleteSavedReportResponse =>
-      DeleteSavedReportResponse.decode(value),
+    responseDeserialize: (value: Buffer): DeleteSavedReportResponse => DeleteSavedReportResponse.decode(value),
   },
   /** Templates are seed/migration-owned. Read-only here. */
   listReportTemplates: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/ListReportTemplates' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/ListReportTemplates" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListReportTemplatesRequest): Buffer =>
       Buffer.from(ListReportTemplatesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListReportTemplatesRequest =>
-      ListReportTemplatesRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListReportTemplatesRequest => ListReportTemplatesRequest.decode(value),
     responseSerialize: (value: ListReportTemplatesResponse): Buffer =>
       Buffer.from(ListReportTemplatesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListReportTemplatesResponse =>
-      ListReportTemplatesResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListReportTemplatesResponse => ListReportTemplatesResponse.decode(value),
   },
   /**
    * Create-or-replace the recurring delivery schedule for a saved
    * report (one schedule per report). Permission: reports.update[:any].
    */
   upsertReportSchedule: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/UpsertReportSchedule' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/UpsertReportSchedule" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpsertReportScheduleRequest): Buffer =>
       Buffer.from(UpsertReportScheduleRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpsertReportScheduleRequest =>
-      UpsertReportScheduleRequest.decode(value),
+    requestDeserialize: (value: Buffer): UpsertReportScheduleRequest => UpsertReportScheduleRequest.decode(value),
     responseSerialize: (value: UpsertReportScheduleResponse): Buffer =>
       Buffer.from(UpsertReportScheduleResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpsertReportScheduleResponse =>
-      UpsertReportScheduleResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpsertReportScheduleResponse => UpsertReportScheduleResponse.decode(value),
   },
   /**
    * Mint a token-link share for a saved report. The plaintext token is
@@ -4451,17 +4293,15 @@ export const AuditQueryServiceService = {
    * Permission: reports.update[:any].
    */
   createReportShare: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/CreateReportShare' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/CreateReportShare" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: CreateReportShareRequest): Buffer =>
       Buffer.from(CreateReportShareRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateReportShareRequest =>
-      CreateReportShareRequest.decode(value),
+    requestDeserialize: (value: Buffer): CreateReportShareRequest => CreateReportShareRequest.decode(value),
     responseSerialize: (value: CreateReportShareResponse): Buffer =>
       Buffer.from(CreateReportShareResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateReportShareResponse =>
-      CreateReportShareResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateReportShareResponse => CreateReportShareResponse.decode(value),
   },
   /**
    * GDPR saga status. Returns a single row from
@@ -4470,17 +4310,15 @@ export const AuditQueryServiceService = {
    * self-ownership (the requesting user reads their own row).
    */
   getGdprErasureRequest: {
-    path: '/adopt_dont_shop.audit.v1.AuditQueryService/GetGdprErasureRequest' as const,
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/GetGdprErasureRequest" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetGdprErasureRequestRequest): Buffer =>
       Buffer.from(GetGdprErasureRequestRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetGdprErasureRequestRequest =>
-      GetGdprErasureRequestRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetGdprErasureRequestRequest => GetGdprErasureRequestRequest.decode(value),
     responseSerialize: (value: GetGdprErasureRequestResponse): Buffer =>
       Buffer.from(GetGdprErasureRequestResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetGdprErasureRequestResponse =>
-      GetGdprErasureRequestResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetGdprErasureRequestResponse => GetGdprErasureRequestResponse.decode(value),
   },
 } as const;
 
@@ -4533,10 +4371,7 @@ export interface AuditQueryServiceServer extends UntypedServiceImplementation {
    * the saga hasn't been requested. Gated on admin.gdpr.read OR
    * self-ownership (the requesting user reads their own row).
    */
-  getGdprErasureRequest: handleUnaryCall<
-    GetGdprErasureRequestRequest,
-    GetGdprErasureRequestResponse
-  >;
+  getGdprErasureRequest: handleUnaryCall<GetGdprErasureRequestRequest, GetGdprErasureRequestResponse>;
 }
 
 export interface AuditQueryServiceClient extends Client {
@@ -4548,18 +4383,18 @@ export interface AuditQueryServiceClient extends Client {
    */
   query(
     request: QueryRequest,
-    callback: (error: ServiceError | null, response: QueryResponse) => void
+    callback: (error: ServiceError | null, response: QueryResponse) => void,
   ): ClientUnaryCall;
   query(
     request: QueryRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: QueryResponse) => void
+    callback: (error: ServiceError | null, response: QueryResponse) => void,
   ): ClientUnaryCall;
   query(
     request: QueryRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: QueryResponse) => void
+    callback: (error: ServiceError | null, response: QueryResponse) => void,
   ): ClientUnaryCall;
   /**
    * "Show me everything that happened to aggregate X" — the most
@@ -4571,18 +4406,18 @@ export interface AuditQueryServiceClient extends Client {
    */
   getByTarget(
     request: GetByTargetRequest,
-    callback: (error: ServiceError | null, response: GetByTargetResponse) => void
+    callback: (error: ServiceError | null, response: GetByTargetResponse) => void,
   ): ClientUnaryCall;
   getByTarget(
     request: GetByTargetRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetByTargetResponse) => void
+    callback: (error: ServiceError | null, response: GetByTargetResponse) => void,
   ): ClientUnaryCall;
   getByTarget(
     request: GetByTargetRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetByTargetResponse) => void
+    callback: (error: ServiceError | null, response: GetByTargetResponse) => void,
   ): ClientUnaryCall;
   /**
    * --- Saved reports admin -------------------------------------------
@@ -4594,94 +4429,94 @@ export interface AuditQueryServiceClient extends Client {
    */
   listSavedReports(
     request: ListSavedReportsRequest,
-    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void
+    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void,
   ): ClientUnaryCall;
   listSavedReports(
     request: ListSavedReportsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void
+    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void,
   ): ClientUnaryCall;
   listSavedReports(
     request: ListSavedReportsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void
+    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void,
   ): ClientUnaryCall;
   getSavedReport(
     request: GetSavedReportRequest,
-    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void
-  ): ClientUnaryCall;
-  getSavedReport(
-    request: GetSavedReportRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void,
   ): ClientUnaryCall;
   getSavedReport(
     request: GetSavedReportRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void,
+  ): ClientUnaryCall;
+  getSavedReport(
+    request: GetSavedReportRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void,
   ): ClientUnaryCall;
   createSavedReport(
     request: CreateSavedReportRequest,
-    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void,
   ): ClientUnaryCall;
   createSavedReport(
     request: CreateSavedReportRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void,
   ): ClientUnaryCall;
   createSavedReport(
     request: CreateSavedReportRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void,
   ): ClientUnaryCall;
   updateSavedReport(
     request: UpdateSavedReportRequest,
-    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void,
   ): ClientUnaryCall;
   updateSavedReport(
     request: UpdateSavedReportRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void,
   ): ClientUnaryCall;
   updateSavedReport(
     request: UpdateSavedReportRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void,
   ): ClientUnaryCall;
   deleteSavedReport(
     request: DeleteSavedReportRequest,
-    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void,
   ): ClientUnaryCall;
   deleteSavedReport(
     request: DeleteSavedReportRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void,
   ): ClientUnaryCall;
   deleteSavedReport(
     request: DeleteSavedReportRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void
+    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void,
   ): ClientUnaryCall;
   /** Templates are seed/migration-owned. Read-only here. */
   listReportTemplates(
     request: ListReportTemplatesRequest,
-    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void
+    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void,
   ): ClientUnaryCall;
   listReportTemplates(
     request: ListReportTemplatesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void
+    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void,
   ): ClientUnaryCall;
   listReportTemplates(
     request: ListReportTemplatesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void
+    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Create-or-replace the recurring delivery schedule for a saved
@@ -4689,18 +4524,18 @@ export interface AuditQueryServiceClient extends Client {
    */
   upsertReportSchedule(
     request: UpsertReportScheduleRequest,
-    callback: (error: ServiceError | null, response: UpsertReportScheduleResponse) => void
+    callback: (error: ServiceError | null, response: UpsertReportScheduleResponse) => void,
   ): ClientUnaryCall;
   upsertReportSchedule(
     request: UpsertReportScheduleRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpsertReportScheduleResponse) => void
+    callback: (error: ServiceError | null, response: UpsertReportScheduleResponse) => void,
   ): ClientUnaryCall;
   upsertReportSchedule(
     request: UpsertReportScheduleRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpsertReportScheduleResponse) => void
+    callback: (error: ServiceError | null, response: UpsertReportScheduleResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mint a token-link share for a saved report. The plaintext token is
@@ -4709,18 +4544,18 @@ export interface AuditQueryServiceClient extends Client {
    */
   createReportShare(
     request: CreateReportShareRequest,
-    callback: (error: ServiceError | null, response: CreateReportShareResponse) => void
+    callback: (error: ServiceError | null, response: CreateReportShareResponse) => void,
   ): ClientUnaryCall;
   createReportShare(
     request: CreateReportShareRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateReportShareResponse) => void
+    callback: (error: ServiceError | null, response: CreateReportShareResponse) => void,
   ): ClientUnaryCall;
   createReportShare(
     request: CreateReportShareRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateReportShareResponse) => void
+    callback: (error: ServiceError | null, response: CreateReportShareResponse) => void,
   ): ClientUnaryCall;
   /**
    * GDPR saga status. Returns a single row from
@@ -4730,49 +4565,40 @@ export interface AuditQueryServiceClient extends Client {
    */
   getGdprErasureRequest(
     request: GetGdprErasureRequestRequest,
-    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void
+    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void,
   ): ClientUnaryCall;
   getGdprErasureRequest(
     request: GetGdprErasureRequestRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void
+    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void,
   ): ClientUnaryCall;
   getGdprErasureRequest(
     request: GetGdprErasureRequestRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void
+    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void,
   ): ClientUnaryCall;
 }
 
 export const AuditQueryServiceClient = makeGenericClientConstructor(
   AuditQueryServiceService,
-  'adopt_dont_shop.audit.v1.AuditQueryService'
+  "adopt_dont_shop.audit.v1.AuditQueryService",
 ) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): AuditQueryServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): AuditQueryServiceClient;
   service: typeof AuditQueryServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

@@ -96,6 +96,12 @@ jobs:
       - name: Verify docs reference only real pnpm scripts
         run: node scripts/check-docs-script-references.mjs
 
+      # ADS-1027: fail if packages/proto's committed ts-proto output no longer
+      # matches `buf generate` — otherwise any `pnpm build` silently dirties the
+      # tree. The guard regenerates into a tmpdir and diffs.
+      - name: Verify generated proto is in sync with .proto sources
+        run: pnpm check:proto-fresh
+
       # ADS-946: workspace READMEs must carry the canonical template sections
       # (docs/templates/README.{app,service,lib}.md). Warn-only for packages
       # not yet backfilled; a hard failure for those in the guard's
