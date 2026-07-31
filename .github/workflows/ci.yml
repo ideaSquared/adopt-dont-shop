@@ -162,10 +162,6 @@ jobs:
       # ADS-947: surfaced as a CI-health signal on the coverage-report comment.
       lib-dist-cache-hit: ${{ steps.cache-lib-dist.outputs.cache-hit }}
 
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-
     steps:
       # Local composite actions can only load after the repo is checked out.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -187,6 +183,14 @@ jobs:
 
       - name: Build shared libraries
         if: steps.cache-lib-dist.outputs.cache-hit != 'true'
+        # ADS-1014: step-scoped, not job-level env — this is the only step in
+        # the job that invokes turbo. Withheld entirely on pull_request so a
+        # PR-supplied vitest.config.ts / postinstall script run earlier in
+        # this job (via checkout-and-setup) never had it in scope, and this
+        # step itself can't leak a write-capable token to a PR build.
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: pnpm build:libs
       # ADS-909: downstream jobs restore this same actions/cache entry
       # (see .github/actions/checkout-and-setup) rather than downloading an
@@ -200,10 +204,6 @@ jobs:
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
     strategy:
       fail-fast: false
@@ -220,6 +220,10 @@ jobs:
           run-build: 'true'
           upload-artifact-name: 'test-results-${{ matrix.app }}'
           coverage-cache-key: 'coverage-current-${{ github.run_id }}-${{ matrix.app }}'
+          # ADS-1014: gated here, not inside the composite — composite
+          # actions can't reference `secrets` directly.
+          turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          turbo-team: ${{ secrets.TURBO_TEAM }}
 
   # ============================================================================
   # SHARED LIBRARIES — lint/test/type-check the libs themselves
@@ -234,10 +238,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-
     steps:
       # Local composite actions can only load after the repo is checked out.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -246,6 +246,8 @@ jobs:
           filter: '@adopt-dont-shop/lib.*'
           upload-artifact-name: 'test-results-libs'
           coverage-cache-key: 'coverage-current-${{ github.run_id }}-libs'
+          turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          turbo-team: ${{ secrets.TURBO_TEAM }}
 
   # ============================================================================
   # SERVICE TESTS — lint/test:coverage/type-check all service.* packages
@@ -265,10 +267,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-
     steps:
       # Local composite actions can only load after the repo is checked out.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -277,6 +275,8 @@ jobs:
           filter: '@adopt-dont-shop/service.*'
           upload-artifact-name: 'test-results-services'
           coverage-cache-key: 'coverage-current-${{ github.run_id }}-services'
+          turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          turbo-team: ${{ secrets.TURBO_TEAM }}
 
   # ============================================================================
   # CONTRACT TESTS — consumer-driven Pact verification matrix (ADS-816).
@@ -296,9 +296,10 @@ jobs:
     timeout-minutes: 15
 
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
       # Suppress Pact telemetry in CI.
+      # ADS-1014: no TURBO_TOKEN here — this job's steps below call vitest
+      # directly (test:contracts:consumer/provider), never `turbo run`, so
+      # the token served no purpose and was pure unnecessary exposure.
       PACT_DO_NOT_TRACK: 'true'
 
     steps:
@@ -367,12 +368,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    # ADS-1014: no TURBO_TOKEN here — this job's steps build/run via docker
+    # compose and `pnpm test:e2e` directly, never `turbo run`, so the token
+    # served no purpose and was pure unnecessary exposure to the compose
+    # build (which executes PR-supplied Dockerfiles and install scripts).
     env:
       CI: true
       DOCKER_BUILDKIT: 1
       COMPOSE_DOCKER_CLI_BUILD: 1
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
       E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:

@@ -1,7 +1,8 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "remoteCache": {
-    "enabled": true
+    "enabled": true,
+    "signature": true
   },
   "globalDependencies": ["**/.env.*local", ".prettierrc", ".prettierignore", ".editorconfig"],
   "globalEnv": ["NODE_ENV", "CI", "DOCKER"],
