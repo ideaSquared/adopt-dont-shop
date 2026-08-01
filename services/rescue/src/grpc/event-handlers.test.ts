@@ -540,7 +540,15 @@ describe('getEventAnalytics', () => {
       countAdoptedAdopters: vi.fn(async () => ({ count: 0 })),
       close: vi.fn(),
     };
-    getEventAnalytics = makeGetEventAnalytics(applicationsStub as unknown as ApplicationsClient);
+    const logger = {
+      warn: vi.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
+    } as unknown as Parameters<typeof makeGetEventAnalytics>[1];
+    getEventAnalytics = makeGetEventAnalytics(
+      applicationsStub as unknown as ApplicationsClient,
+      logger
+    );
   });
 
   it('rejects callers without events.read', async () => {

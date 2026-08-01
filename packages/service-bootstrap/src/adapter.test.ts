@@ -108,6 +108,7 @@ describe('adapt — error code mapping (canonical CODE_TO_GRPC table)', () => {
     ['NOT_FOUND', status.NOT_FOUND],
     ['ALREADY_EXISTS', status.ALREADY_EXISTS],
     ['FAILED_PRECONDITION', status.FAILED_PRECONDITION],
+    ['UNAVAILABLE', status.UNAVAILABLE],
     ['INTERNAL', status.INTERNAL],
   ] as const)('HandlerError("%s") → gRPC status %i', async (code, grpcCode) => {
     const handler = vi.fn(async () => {

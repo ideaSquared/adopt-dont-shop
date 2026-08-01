@@ -11,10 +11,11 @@
 
 import { randomUUID } from 'node:crypto';
 
+import type { Logger } from 'winston';
+
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import type { Permission } from '@adopt-dont-shop/lib.types';
-import { createLogger } from '@adopt-dont-shop/observability';
 import {
   RescueV1,
   type AddEventAttendeeRequest,
@@ -85,8 +86,6 @@ const ATTRIBUTION_MIN_COHORT = 20;
 const GRPC_DEADLINE_EXCEEDED = 4;
 const GRPC_PERMISSION_DENIED = 7;
 const GRPC_UNAVAILABLE = 14;
-
-const logger = createLogger({ serviceName: 'service.rescue' });
 
 // ── DB row types ────────────────────────────────────────────────────────
 
@@ -721,7 +720,8 @@ export async function checkInAttendee(
 // "Adoption attribution (ADS-941)" above for the counting rule. Direct port
 // of staff-foster-handlers.ts's makeCreateFosterPlacement pattern.
 export function makeGetEventAnalytics(
-  applicationsClient: ApplicationsClient
+  applicationsClient: ApplicationsClient,
+  logger: Logger
 ): (
   deps: HandlerDeps,
   principal: Principal,
@@ -755,7 +755,14 @@ export function makeGetEventAnalytics(
 
     const adoptionsFromEvent =
       totalRegistrations > 0
-        ? await countAdoptionsFromEvent(deps, applicationsClient, principal, req.eventId, row)
+        ? await countAdoptionsFromEvent(
+            deps,
+            applicationsClient,
+            principal,
+            req.eventId,
+            row,
+            logger
+          )
         : 0;
 
     const analytics: RescueEventAnalytics = {
@@ -788,7 +795,8 @@ async function countAdoptionsFromEvent(
   applicationsClient: ApplicationsClient,
   principal: Principal,
   eventId: string,
-  event: EventRow
+  event: EventRow,
+  logger: Logger
 ): Promise<number> {
   const attendeeRes = await deps.pool.query<{ user_id: string }>(
     `SELECT DISTINCT user_id FROM rescue.event_attendees WHERE event_id = $1`,
