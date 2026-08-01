@@ -66,6 +66,44 @@ function clampLimit(raw: number): number {
   return Math.min(Math.trunc(raw), MAX_LIMIT);
 }
 
+// Ticket identity-field validation (ADS-1017). user_email / user_name are
+// written verbatim into the support_tickets row, the moderation.ticketOpened
+// event, and the staff inbox, so they must not carry a CRLF / control-char
+// header-injection payload, and user_email must be a plausibly-real, bounded
+// address rather than arbitrary attacker text.
+const MAX_EMAIL_LENGTH = 254; // RFC 5321 forward-path limit.
+const MAX_NAME_LENGTH = 200;
+// C0 controls (incl. CR U+000D / LF U+000A), DEL, and C1 controls — reject so a
+// CRLF header-injection payload can't ride through into anything that later
+// composes headers from these fields.
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/;
+// Pragmatic single-line email shape: non-space/@ local, @, dotted domain.
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateTicketEmail(email: string): void {
+  if (email.length > MAX_EMAIL_LENGTH) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_email exceeds the maximum length');
+  }
+  if (CONTROL_CHARS.test(email)) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_email contains control characters');
+  }
+  if (!EMAIL_SHAPE.test(email)) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_email is not a valid email address');
+  }
+}
+
+function validateTicketName(name: string | undefined): void {
+  if (name === undefined || name === '') {
+    return;
+  }
+  if (name.length > MAX_NAME_LENGTH) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_name exceeds the maximum length');
+  }
+  if (CONTROL_CHARS.test(name)) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_name contains control characters');
+  }
+}
+
 // --- OpenSupportTicket -----------------------------------------------
 
 export async function openSupportTicket(
@@ -91,18 +129,27 @@ export async function openSupportTicket(
     throw new HandlerError('INVALID_ARGUMENT', 'category is required');
   }
 
+  // Reject a malformed / control-char-bearing user_email or user_name before
+  // it reaches the row, the ticketOpened event, or the staff inbox (ADS-1017).
+  validateTicketEmail(req.userEmail);
+  validateTicketName(req.userName);
+
   const priorityDb = ticketPriorityToDb(req.priority);
   const categoryDb = ticketCategoryToDb(req.category);
-  // Identity is always derived from the authenticated principal — a
-  // caller-supplied user_id is trusted ONLY when the caller holds
-  // MODERATION_TICKETS_MANAGE (staff opening a ticket on a user's
-  // behalf during support-agent-assisted intake). Anyone else passing
-  // a user_id that doesn't match their own is rejected outright rather
-  // than silently overridden, so the caller finds out immediately
-  // instead of assuming the impersonation succeeded. (ADS-917: a
-  // caller-supplied user_id previously won unconditionally, letting
-  // any authenticated user forge another user's identity onto the
-  // ticket row and the moderation.ticketOpened audit event.)
+  // user_id is derived from the authenticated principal: a caller-supplied
+  // user_id is trusted ONLY when the caller holds MODERATION_TICKETS_MANAGE
+  // (staff opening a ticket on a user's behalf during support-agent-assisted
+  // intake). Anyone else passing a user_id that doesn't match their own is
+  // rejected outright rather than silently overridden. (ADS-917: a
+  // caller-supplied user_id previously won unconditionally.)
+  //
+  // user_email / user_name are NOT yet identity-bound (ADS-1017): they are
+  // validated above but still taken from the request, because binding them to
+  // the principal's verified account requires resolving the principal's email
+  // of record via the auth service — moderation has no auth client wired, the
+  // same gap ADS-1008 hit. Until that shared capability exists, a support
+  // agent must treat user_email as claimed, not verified. See the ticket for
+  // the deferred identity-binding follow-up.
   const canProxy = requirePermission(principal, MODERATION_TICKETS_MANAGE);
   if (
     !canProxy &&
