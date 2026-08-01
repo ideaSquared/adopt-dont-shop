@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  checkNoEmitTaskOutputs,
   checkTemplateDepDrift,
   checkToolVersionsDrift,
   computeExpectedDevVolumeMounts,
@@ -110,6 +111,37 @@ describe('checkTemplateDepDrift (ADS-980)', () => {
   it('ignores dependencies the root does not track at all', () => {
     const templatePkg = { dependencies: { 'left-pad': '^1.0.0' } };
     expect(checkTemplateDepDrift('scripts/templates/lib/utility/package.json', templatePkg, rootPkg)).toEqual([]);
+  });
+});
+
+describe('checkNoEmitTaskOutputs (ADS-1000)', () => {
+  it('flags a --noEmit task that declares dist/ outputs', () => {
+    const turboConfig = {
+      tasks: {
+        'type-check': { dependsOn: ['^build'], outputs: ['**/.tsbuildinfo', 'dist/**/*.d.ts'] },
+      },
+    };
+    const failures = checkNoEmitTaskOutputs(turboConfig);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain("'type-check' task declares dist/ output(s)");
+  });
+
+  it('passes when the --noEmit task declares no dist/ outputs', () => {
+    const turboConfig = {
+      tasks: {
+        'type-check': { dependsOn: ['^build'], outputs: [] },
+      },
+    };
+    expect(checkNoEmitTaskOutputs(turboConfig)).toEqual([]);
+  });
+
+  it('ignores a task with no configured outputs at all', () => {
+    const turboConfig = { tasks: { 'type-check': { dependsOn: ['^build'] } } };
+    expect(checkNoEmitTaskOutputs(turboConfig)).toEqual([]);
+  });
+
+  it('ignores tasks not present in turbo.json', () => {
+    expect(checkNoEmitTaskOutputs({ tasks: {} })).toEqual([]);
   });
 });
 
