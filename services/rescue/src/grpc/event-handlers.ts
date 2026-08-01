@@ -72,6 +72,10 @@ const EVENTS_DELETE: Permission = 'events.delete' as Permission;
 // Single named constant so it's easy to find and retune.
 const ATTRIBUTION_WINDOW_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+// Mirrors service.applications' CountAdoptedAdopters k-anonymity floor
+// (MIN_COHORT_SIZE, ADS-1006). Kept in sync by value rather than imported —
+// services do not depend on each other's source.
+const ATTRIBUTION_MIN_COHORT = 20;
 
 // ── DB row types ────────────────────────────────────────────────────────
 
@@ -772,7 +776,11 @@ async function countAdoptionsFromEvent(
     [eventId]
   );
   const adopterIds = attendeeRes.rows.map(r => r.user_id);
-  if (adopterIds.length === 0) {
+  // service.applications enforces a k-anonymity cohort floor on the
+  // attribution count (ADS-1006) so it can never become a per-user oracle.
+  // Below that floor the RPC would reject with INVALID_ARGUMENT, so skip the
+  // call: small events degrade to a 0 attribution count rather than failing.
+  if (adopterIds.length < ATTRIBUTION_MIN_COHORT) {
     return 0;
   }
 
