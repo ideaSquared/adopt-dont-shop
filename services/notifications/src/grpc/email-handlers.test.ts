@@ -195,6 +195,64 @@ describe('sendEmail', () => {
     expect(res.alreadyQueued).toBe(false);
   });
 
+  // ── ADS-1008: bind user_id to to_email so suppression can't be bypassed ──
+
+  const authClientReturning = (email: string | undefined) => ({
+    adminGetUser: vi.fn(async () => ({ user: email === undefined ? undefined : { email } })),
+  });
+
+  it('rejects when the supplied user_id does not own to_email (suppression bypass)', async () => {
+    // user_id names a different, non-suppressed user than the recipient
+    // address — exactly the vector that let an opted-out / blacklisted
+    // address be reached.
+    const authClient = authClientReturning('someone-else@example.com');
+    const deps = { ...mocks.deps, authClient } as unknown as typeof mocks.deps;
+    await expect(
+      sendEmail(deps, SYSTEM_PRINCIPAL, {
+        ...BASE_SEND_REQ,
+        toEmail: 'jane@example.com',
+        userId: 'usr-adopter',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(authClient.adminGetUser).toHaveBeenCalledWith({ userId: 'usr-adopter' });
+  });
+
+  it('rejects when the named user_id is unknown to auth', async () => {
+    const authClient = authClientReturning(undefined);
+    const deps = { ...mocks.deps, authClient } as unknown as typeof mocks.deps;
+    await expect(
+      sendEmail(deps, SYSTEM_PRINCIPAL, {
+        ...BASE_SEND_REQ,
+        toEmail: 'jane@example.com',
+        userId: 'usr-ghost',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('dispatches when the user_id owns to_email (case-insensitive match)', async () => {
+    const authClient = authClientReturning('Jane@Example.com');
+    const deps = { ...mocks.deps, authClient } as unknown as typeof mocks.deps;
+    mocks.clientScript.push({ rows: [{ email_id: 'queued-bound' }] }); // INSERT
+    const res = await sendEmail(deps, SYSTEM_PRINCIPAL, {
+      ...BASE_SEND_REQ,
+      toEmail: 'jane@example.com',
+      userId: 'usr-adopter',
+    });
+    expect(res.alreadyQueued).toBe(false);
+    expect(realClientQueries(mocks)).toEqual(['INSERT']);
+  });
+
+  it('skips the binding check when no auth client is configured (dev/test)', async () => {
+    // mocks.deps has no authClient — the send proceeds without the check.
+    mocks.clientScript.push({ rows: [{ email_id: 'queued-noauth' }] }); // INSERT
+    const res = await sendEmail(mocks.deps, SYSTEM_PRINCIPAL, {
+      ...BASE_SEND_REQ,
+      toEmail: 'jane@example.com',
+      userId: 'usr-adopter',
+    });
+    expect(res.alreadyQueued).toBe(false);
+  });
+
   it('rejects when template_data_json is not a JSON object', async () => {
     await expect(
       sendEmail(mocks.deps, SYSTEM_PRINCIPAL, {

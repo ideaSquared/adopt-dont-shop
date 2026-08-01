@@ -49,11 +49,12 @@ export type CreateGrpcServerOptions = {
   pool: Pool;
   nats: NatsConnection;
   logger: Logger;
-  // Optional cross-service client for cohort lookups. Only the Broadcast
-  // RPC reads it; wiring it in production happens from index.ts. Smoke
-  // tests + unit tests can omit it — Broadcast will return INTERNAL when
-  // the wiring is missing, which is the correct signal.
-  authClient?: import('./handlers.js').AuthCohortClient;
+  // Optional cross-service client. Broadcast reads listUserIdsByCohort;
+  // SendEmail reads adminGetUser to bind user_id → to_email (ADS-1008).
+  // Wiring it in production happens from index.ts. Smoke tests + unit tests
+  // can omit it — Broadcast returns INTERNAL when the wiring is missing, and
+  // SendEmail skips the binding check.
+  authClient?: import('./handlers.js').AuthCohortClient & import('./auth-client.js').AuthUserClient;
 };
 
 export type { RunningGrpcServer };
@@ -87,7 +88,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       deps: { pool, nats },
       logger,
     }),
-    sendEmail: adapt(sendEmail, { deps: { pool, nats }, logger }),
+    sendEmail: adapt(sendEmail, { deps: { pool, nats, authClient }, logger }),
     getEmailPreferences: adapt(getEmailPreferences, { deps: { pool, nats }, logger }),
     updateEmailPreferences: adapt(updateEmailPreferences, { deps: { pool, nats }, logger }),
     registerDeviceToken: adapt(registerDeviceTokenHandler, { deps: { pool, nats }, logger }),
