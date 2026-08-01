@@ -16,6 +16,23 @@ import {
   unregisterDeviceTokenHandler,
 } from './device-token-handlers.js';
 
+// RegisterDeviceToken runs registerDeviceToken inside withTransaction; the mock
+// runs the callback against a client whose query is the scripted pool mock.
+vi.mock('@adopt-dont-shop/events', async () => {
+  const actual =
+    await vi.importActual<typeof import('@adopt-dont-shop/events')>('@adopt-dont-shop/events');
+  return {
+    ...actual,
+    withTransaction: async (
+      deps: { pool: { query: ReturnType<typeof vi.fn> } },
+      fn: (scope: {
+        client: { query: ReturnType<typeof vi.fn> };
+        publish: ReturnType<typeof vi.fn>;
+      }) => Promise<unknown>
+    ) => fn({ client: { query: deps.pool.query }, publish: vi.fn() }),
+  };
+});
+
 // --- Fixtures + mocks ------------------------------------------------
 
 const ADOPTER_PRINCIPAL: Principal = {
@@ -69,13 +86,16 @@ const makeMocks = () => {
     }),
     connect: vi.fn(),
   };
+  const logger = { warn: vi.fn(), info: vi.fn(), error: vi.fn() };
   return {
     pool: pool as unknown as Pool,
     poolMock: pool,
     poolScript,
+    logger,
     deps: {
       pool: pool as unknown as Pool,
       nats: {} as unknown as NatsConnection,
+      logger: logger as unknown as import('winston').Logger,
     },
   };
 };
@@ -175,6 +195,42 @@ describe('registerDeviceTokenHandler', () => {
     });
 
     expect(res.token?.userId).toBe('usr-target');
+  });
+
+  it('transfers a token already active under another user instead of duplicating it', async () => {
+    // Sequence: SELECT by device_token → the token is active under usr-other →
+    // soft-delete that row (UPDATE) → INSERT the new mapping under usr-adopter.
+    mocks.poolScript.push({
+      rows: [tokenRowFixture({ token_id: 'dt-old', user_id: 'usr-other' })],
+    });
+    mocks.poolScript.push({ rows: [] }); // soft-delete UPDATE
+    mocks.poolScript.push({
+      rows: [tokenRowFixture({ token_id: 'dt-new', user_id: 'usr-adopter' })],
+    });
+
+    const res = await registerDeviceTokenHandler(mocks.deps, ADOPTER_PRINCIPAL, BASE_REGISTER);
+
+    // A takeover is a fresh mapping, not a refresh of the other user's row.
+    expect(res.alreadyRegistered).toBe(false);
+    expect(res.token?.userId).toBe('usr-adopter');
+    // Three queries ran (lookup, soft-delete, insert) — the prior row was
+    // unregistered rather than left as a second active mapping.
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(3);
+    // The transfer is audited at warn with both user ids (not the raw token).
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
+      'device token reassigned to a different user',
+      expect.objectContaining({ previousUserId: 'usr-other', newUserId: 'usr-adopter' })
+    );
+  });
+
+  it('does not log a takeover on the normal same-user refresh path', async () => {
+    mocks.poolScript.push({ rows: [tokenRowFixture()] }); // SELECT (usr-adopter)
+    mocks.poolScript.push({ rows: [tokenRowFixture()] }); // UPDATE refresh
+
+    const res = await registerDeviceTokenHandler(mocks.deps, ADOPTER_PRINCIPAL, BASE_REGISTER);
+
+    expect(res.alreadyRegistered).toBe(true);
+    expect(mocks.logger.warn).not.toHaveBeenCalled();
   });
 });
 

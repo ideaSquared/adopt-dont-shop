@@ -91,7 +91,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     sendEmail: adapt(sendEmail, { deps: { pool, nats, authClient }, logger }),
     getEmailPreferences: adapt(getEmailPreferences, { deps: { pool, nats }, logger }),
     updateEmailPreferences: adapt(updateEmailPreferences, { deps: { pool, nats }, logger }),
-    registerDeviceToken: adapt(registerDeviceTokenHandler, { deps: { pool, nats }, logger }),
+    registerDeviceToken: adapt(registerDeviceTokenHandler, {
+      deps: { pool, nats, logger },
+      logger,
+    }),
     unregisterDeviceToken: adapt(unregisterDeviceTokenHandler, { deps: { pool, nats }, logger }),
     listDeviceTokens: adapt(listDeviceTokensHandler, { deps: { pool, nats }, logger }),
     listEmailTemplates: adapt(listEmailTemplates, { deps: { pool, nats }, logger }),

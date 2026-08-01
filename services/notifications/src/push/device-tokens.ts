@@ -31,27 +31,39 @@ export type RegisterDeviceTokenInput = {
   deviceInfo?: Record<string, unknown>;
 };
 
-// Upsert by (user_id, device_token). The partial unique index
-// `device_tokens_user_token_unique` enforces the uniqueness while
-// permitting historical soft-deleted rows.
+// Register a device token under `input.userId`, treating the token as
+// globally unique to a single active mapping (ADS-1010).
 //
-// Returns the row + a flag indicating whether the registration was
-// new (false → call refreshed an existing row's last_used_at).
+// The lookup keys on `device_token` alone, not `(user_id, device_token)`, so a
+// token already active under a DIFFERENT user is detected. A device genuinely
+// changing hands is the common legitimate case, so the prior mapping is
+// soft-deleted (transferred) rather than left to duplicate — a duplicate would
+// let one physical device receive two users' notifications and survive the
+// prior owner's GDPR erasure. `device_tokens_active_token_unique` enforces the
+// single-active-mapping invariant at the database level.
+//
+// Returns the row, an `alreadyRegistered` flag (true → the same user's row was
+// refreshed in place), and `replacedUserId` when a different user's mapping was
+// taken over (so the caller can audit the transfer). Run inside a transaction:
+// the takeover is a soft-delete followed by an insert.
 export const registerDeviceToken = async (
   conn: DbConn,
   input: RegisterDeviceTokenInput
-): Promise<{ row: DeviceTokenRow; alreadyRegistered: boolean }> => {
-  // Look up first so we can report alreadyRegistered accurately.
+): Promise<{ row: DeviceTokenRow; alreadyRegistered: boolean; replacedUserId?: string }> => {
+  // Look up by device_token alone so a token owned by another user is seen.
   const existing = await conn.query<DeviceTokenRow>(
     `
     SELECT * FROM device_tokens
-    WHERE user_id = $1 AND device_token = $2 AND deleted_at IS NULL
+    WHERE device_token = $1 AND deleted_at IS NULL
     LIMIT 1
     `,
-    [input.userId, input.deviceToken]
+    [input.deviceToken]
   );
+  const current = existing.rows[0];
 
-  if (existing.rows[0]) {
+  // Same user re-registering their own token → refresh in place (normal path,
+  // unchanged behaviour, alreadyRegistered = true).
+  if (current && current.user_id === input.userId) {
     const refreshed = await conn.query<DeviceTokenRow>(
       `
       UPDATE device_tokens
@@ -65,13 +77,30 @@ export const registerDeviceToken = async (
       RETURNING *
       `,
       [
-        existing.rows[0].token_id,
+        current.token_id,
         input.appVersion ?? null,
         input.deviceInfo ? JSON.stringify(input.deviceInfo) : null,
         input.platform,
       ]
     );
     return { row: refreshed.rows[0], alreadyRegistered: true };
+  }
+
+  // Token currently mapped to a DIFFERENT user → transfer it: soft-delete the
+  // prior mapping so at most one active row per device_token survives.
+  let replacedUserId: string | undefined;
+  if (current) {
+    await conn.query(
+      `
+      UPDATE device_tokens
+      SET status     = 'inactive',
+          deleted_at = COALESCE(deleted_at, now()),
+          updated_at = now()
+      WHERE token_id = $1
+      `,
+      [current.token_id]
+    );
+    replacedUserId = current.user_id;
   }
 
   const inserted = await conn.query<DeviceTokenRow>(
@@ -97,7 +126,7 @@ export const registerDeviceToken = async (
       JSON.stringify(input.deviceInfo ?? {}),
     ]
   );
-  return { row: inserted.rows[0], alreadyRegistered: false };
+  return { row: inserted.rows[0], alreadyRegistered: false, replacedUserId };
 };
 
 // Soft-delete by token_id. Idempotent — a second call returns the
