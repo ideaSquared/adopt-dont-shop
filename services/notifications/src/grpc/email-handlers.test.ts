@@ -146,6 +146,13 @@ describe('sendEmail', () => {
 
   beforeEach(() => {
     mocks = makeMocks();
+    // Default wiring: an auth client whose record for the caller-supplied
+    // user_id matches BASE_SEND_REQ.toEmail, so the ADS-1008 binding passes on
+    // the happy path. Tests exercising the bypass override deps.authClient.
+    mocks.deps = {
+      ...mocks.deps,
+      authClient: { adminGetUser: vi.fn(async () => ({ user: { email: 'jane@example.com' } })) },
+    } as unknown as typeof mocks.deps;
   });
 
   afterEach(() => {
@@ -242,13 +249,29 @@ describe('sendEmail', () => {
     expect(realClientQueries(mocks)).toEqual(['INSERT']);
   });
 
-  it('skips the binding check when no auth client is configured (dev/test)', async () => {
-    // mocks.deps has no authClient — the send proceeds without the check.
-    mocks.clientScript.push({ rows: [{ email_id: 'queued-noauth' }] }); // INSERT
-    const res = await sendEmail(mocks.deps, SYSTEM_PRINCIPAL, {
+  it('fails closed when a user_id is supplied but no auth client is wired', async () => {
+    // Security control must not depend on optional wiring: a misconfigured
+    // deploy that can't verify the binding refuses the send rather than
+    // reopening the bypass.
+    const deps = { pool: mocks.poolMock, nats: mocks.natsMock } as unknown as typeof mocks.deps;
+    await expect(
+      sendEmail(deps, SYSTEM_PRINCIPAL, {
+        ...BASE_SEND_REQ,
+        toEmail: 'jane@example.com',
+        userId: 'usr-adopter',
+      })
+    ).rejects.toMatchObject({ code: 'INTERNAL' });
+  });
+
+  it('needs no auth client when the send carries no user_id', async () => {
+    // Nothing to bind — a user_id-less transactional send proceeds. (Marketing
+    // still requires a user_id via the check above.)
+    const deps = { pool: mocks.poolMock, nats: mocks.natsMock } as unknown as typeof mocks.deps;
+    mocks.clientScript.push({ rows: [{ email_id: 'queued-nouser' }] }); // INSERT
+    const res = await sendEmail(deps, SYSTEM_PRINCIPAL, {
       ...BASE_SEND_REQ,
       toEmail: 'jane@example.com',
-      userId: 'usr-adopter',
+      userId: '',
     });
     expect(res.alreadyQueued).toBe(false);
   });

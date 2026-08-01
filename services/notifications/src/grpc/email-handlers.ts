@@ -140,7 +140,9 @@ const stripHeaderOpt = (s: string | undefined): string | undefined =>
 
 // Reuses HandlerDeps so the shared adapt() wiring passes the same deps object.
 // deps.authClient?.adminGetUser binds the recipient identity to the address
-// being mailed (ADS-1008); when unwired (dev/test) the check is skipped.
+// being mailed (ADS-1008). A send that carries a user_id but reaches a
+// deployment with no auth client wired fails closed (INTERNAL) rather than
+// skipping the binding.
 export type SendEmailDeps = HandlerDeps;
 
 // Normalise an address for comparison — trim + lowercase. Enough to bind a
@@ -228,9 +230,17 @@ export async function sendEmail(
   // not to_email, so a user_id that does NOT own to_email would let a caller
   // reach an opted-out or bounce-blacklisted address by naming an unrelated,
   // non-suppressed user. Require the supplied user_id's email of record to
-  // equal to_email; skip only when no auth client is configured (dev/test).
-  const adminGetUser = deps.authClient?.adminGetUser;
-  if (req.userId && adminGetUser) {
+  // equal to_email. This is a security control, so it fails CLOSED: if a
+  // user_id is supplied but no auth client is wired to verify it, refuse the
+  // send rather than let a misconfigured deploy reopen the bypass.
+  if (req.userId) {
+    const adminGetUser = deps.authClient?.adminGetUser;
+    if (!adminGetUser) {
+      throw new HandlerError(
+        'INTERNAL',
+        'cannot verify recipient identity: auth client unavailable'
+      );
+    }
     await assertUserOwnsAddress(adminGetUser, req.userId, req.toEmail);
   }
 
