@@ -281,6 +281,32 @@ jobs:
           turbo-team: ${{ secrets.TURBO_TEAM }}
 
   # ============================================================================
+  # PACKAGE TESTS — lint/test:coverage/type-check the service-side shared
+  # packages under packages/ that are NOT lib.* (authz, db, events, proto,
+  # observability, …). ADS-1029: these matched none of test-libs (lib.*),
+  # test-services (service.*) or test-frontend (app.*), so 35 test files ran in
+  # CI zero times. Mirrors test-libs; gated on the same libs/backend filters.
+  # ============================================================================
+  test-packages:
+    name: Package Tests
+    needs: [changes, build-libs]
+    if: needs.changes.outputs.libs == 'true' || needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/run-package-tests
+        with:
+          filter: './packages/*'
+          additional-filter: '!@adopt-dont-shop/lib.*'
+          upload-artifact-name: 'test-results-packages'
+          coverage-cache-key: 'coverage-current-${{ github.run_id }}-packages'
+          turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          turbo-team: ${{ secrets.TURBO_TEAM }}
+
+  # ============================================================================
   # SERVICE TESTS — lint/test:coverage/type-check all service.* packages
   # (ADS-822, coverage added in ADS-831). Mirrors test-libs in structure.
   #
@@ -459,6 +485,7 @@ jobs:
       - build-libs
       - test-frontend
       - test-libs
+      - test-packages
       - test-services
       - test-contracts
       - dev-auth-guard

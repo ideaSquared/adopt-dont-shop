@@ -665,6 +665,118 @@ function checkToolVersions(rootPkg) {
   return checkToolVersionsDrift(nvmrc, rootPkg.packageManager, toolVersions);
 }
 
+// ADS-1029: every workspace package that ships tests must be reachable by at
+// least one of ci.yml's Turbo test filters — otherwise its tests run in CI
+// zero times, as ten packages/* did before the test-packages job existed. The
+// functions below parse the filters CI passes to the run-package-tests
+// composite and assert coverage, so a newly-added package that escapes every
+// filter fails the guard instead of silently merging untested.
+
+const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Convert a Turbo glob (supports `*` and `{a,b,c}`) to an anchored RegExp.
+// `star` is the replacement for `*` — `[^/]+` for path selectors (a segment
+// must exist), `[^/]*` for name selectors.
+function globToRegExp(glob, star) {
+  let out = '';
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === '*') {
+      out += star;
+    } else if (c === '{') {
+      const end = glob.indexOf('}', i);
+      const alts = glob.slice(i + 1, end).split(',');
+      out += '(' + alts.map(a => escapeRe(a.trim())).join('|') + ')';
+      i = end;
+    } else {
+      out += escapeRe(c);
+    }
+  }
+  return new RegExp(`^${out}$`);
+}
+
+// Does a Turbo filter select this package? Path selectors (`./packages/*`)
+// match the package directory; name selectors match the package name.
+export function filterMatches(filter, pkg) {
+  if (filter.startsWith('./')) {
+    return globToRegExp(filter.slice(2), '[^/]+').test(pkg.dir);
+  }
+  return globToRegExp(filter, '[^/]*').test(pkg.name);
+}
+
+// Expand a `${{ matrix.<key> }}` reference in a filter into the concrete values
+// declared by that job's `matrix.<key>: [a, b, c]` list.
+function expandMatrix(filter, ciYaml) {
+  const ref = filter.match(/\$\{\{\s*matrix\.(\w+)\s*\}\}/);
+  if (!ref) return [filter];
+  const list = ciYaml.match(new RegExp(`${ref[1]}:\\s*\\[([^\\]]+)\\]`));
+  if (!list) return [filter];
+  return list[1].split(',').map(v => filter.replace(ref[0], v.trim()));
+}
+
+// Parse ci.yml into per-job filter groups. Each run-package-tests usage
+// contributes one group: its `filter:` (plus a non-negated `additional-filter:`)
+// are includes; a `!`-prefixed `additional-filter:` is an exclude.
+export function extractCiFilterGroups(ciYaml) {
+  const groups = [];
+  let current = null;
+  for (const line of ciYaml.split('\n')) {
+    const f = line.match(/^\s*filter:\s*'([^']+)'/);
+    if (f) {
+      current = { includes: [...expandMatrix(f[1], ciYaml)], excludes: [] };
+      groups.push(current);
+      continue;
+    }
+    const af = line.match(/^\s*additional-filter:\s*'([^']+)'/);
+    if (af && current) {
+      const value = af[1];
+      const bucket = value.startsWith('!') ? current.excludes : current.includes;
+      bucket.push(...expandMatrix(value.replace(/^!/, ''), ciYaml));
+    }
+  }
+  return groups;
+}
+
+// A package is reachable if some group includes it and doesn't exclude it.
+export function findUncoveredPackages(pkgs, groups) {
+  return pkgs.filter(
+    pkg =>
+      !groups.some(
+        g =>
+          g.includes.some(f => filterMatches(f, pkg)) &&
+          !g.excludes.some(f => filterMatches(f, pkg))
+      )
+  );
+}
+
+// Collect every workspace package that ships a `test` script, as { name, dir }.
+function listTestablePackages() {
+  const bases = ['apps', 'packages', 'services'];
+  const pkgs = [];
+  for (const base of bases) {
+    for (const entry of readdirSync(join(ROOT, base), { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const manifestPath = join(ROOT, base, entry.name, 'package.json');
+      if (!existsSync(manifestPath)) continue;
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      const scripts = manifest.scripts ?? {};
+      if (!scripts.test && !scripts['test:coverage']) continue;
+      pkgs.push({ name: manifest.name, dir: `${base}/${entry.name}` });
+    }
+  }
+  return pkgs;
+}
+
+function checkCiFilterReachability() {
+  const ciYaml = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
+  const groups = extractCiFilterGroups(ciYaml);
+  return findUncoveredPackages(listTestablePackages(), groups).map(
+    pkg =>
+      `[ci.yml] ${pkg.name} (${pkg.dir}) ships tests but matches no CI test filter — ` +
+      `it is never linted, tested or type-checked on a PR. Add it to a test job's Turbo filter.`
+  );
+}
+
 function main() {
   const libs = listLibs();
   const apps = listApps();
@@ -798,6 +910,9 @@ function main() {
   // 12. Every service vitest.config.ts must import the shared helper (ADS-985)
   failures.push(...checkServiceVitestConfig(services));
 
+  // ADS-1029: every testable package must be reachable by a CI test filter.
+  failures.push(...checkCiFilterReachability());
+
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');
     for (const w of warnings) {
@@ -821,4 +936,6 @@ function main() {
   process.exit(1);
 }
 
-main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}
