@@ -42,7 +42,11 @@ function discoverProjects(
 export default defineConfig({
   test: {
     projects: [
-      ...discoverProjects('packages', '', name => name.startsWith('lib.')),
+      // ADS-1029: every packages/* with a vitest.config.ts, not just lib.* —
+      // the service-side shared packages (authz, db, events, proto, …) were
+      // omitted from the aggregated run and the VS Code Vitest panel. Their
+      // basenames don't collide with the app./service. prefixed names.
+      ...discoverProjects('packages', ''),
       ...discoverProjects('apps', 'app.'),
       ...discoverProjects('services', 'service.'),
     ],

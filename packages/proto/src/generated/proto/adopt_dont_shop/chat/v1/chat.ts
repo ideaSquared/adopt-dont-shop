@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/chat/v1/chat.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.chat.v1';
+export const protobufPackage = "adopt_dont_shop.chat.v1";
 
 /**
  * Chat mirrors the chat.chats row plus the participant ids. Last
@@ -88,7 +88,9 @@ export interface OpenChatRequest {
 }
 
 export interface OpenChatResponse {
-  chat?: Chat | undefined;
+  chat?:
+    | Chat
+    | undefined;
   /**
    * True when this call created the chat; false when an existing
    * row was returned (idempotency signal).
@@ -108,7 +110,9 @@ export interface SendMessageResponse {
 export interface ListMessagesRequest {
   chatId: string;
   /** Opaque base64-JSON keyset cursor. */
-  cursor?: string | undefined;
+  cursor?:
+    | string
+    | undefined;
   /** Defaults to 50, max 200 — chat history is naturally chunkier. */
   limit: number;
 }
@@ -189,7 +193,9 @@ export interface SearchChatsRequest {
  * renders this as a search result card.
  */
 export interface SearchChatHit {
-  chat?: Chat | undefined;
+  chat?:
+    | Chat
+    | undefined;
   /**
    * The matching message preview. Present only when at least one
    * message in the chat matched — when this is unset, the chat row
@@ -250,23 +256,23 @@ export interface DeleteChatResponse {
 
 function createBaseChat(): Chat {
   return {
-    chatId: '',
-    applicationId: '',
+    chatId: "",
+    applicationId: "",
     participantUserIds: [],
     lastMessagePreview: undefined,
     lastMessageAt: undefined,
     lastMessageSenderId: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const Chat: MessageFns<Chat> = {
   encode(message: Chat, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       writer.uint32(10).string(message.chatId);
     }
-    if (message.applicationId !== '') {
+    if (message.applicationId !== "") {
       writer.uint32(18).string(message.applicationId);
     }
     for (const v of message.participantUserIds) {
@@ -281,10 +287,10 @@ export const Chat: MessageFns<Chat> = {
     if (message.lastMessageSenderId !== undefined) {
       writer.uint32(50).string(message.lastMessageSenderId);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(58).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(66).string(message.updatedAt);
     }
     return writer;
@@ -375,52 +381,52 @@ export const Chat: MessageFns<Chat> = {
       chatId: isSet(object.chatId)
         ? globalThis.String(object.chatId)
         : isSet(object.chat_id)
-          ? globalThis.String(object.chat_id)
-          : '',
+        ? globalThis.String(object.chat_id)
+        : "",
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-          ? globalThis.String(object.application_id)
-          : '',
+        ? globalThis.String(object.application_id)
+        : "",
       participantUserIds: globalThis.Array.isArray(object?.participantUserIds)
         ? object.participantUserIds.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.participant_user_ids)
-          ? object.participant_user_ids.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.participant_user_ids.map((e: any) => globalThis.String(e))
+        : [],
       lastMessagePreview: isSet(object.lastMessagePreview)
         ? globalThis.String(object.lastMessagePreview)
         : isSet(object.last_message_preview)
-          ? globalThis.String(object.last_message_preview)
-          : undefined,
+        ? globalThis.String(object.last_message_preview)
+        : undefined,
       lastMessageAt: isSet(object.lastMessageAt)
         ? globalThis.String(object.lastMessageAt)
         : isSet(object.last_message_at)
-          ? globalThis.String(object.last_message_at)
-          : undefined,
+        ? globalThis.String(object.last_message_at)
+        : undefined,
       lastMessageSenderId: isSet(object.lastMessageSenderId)
         ? globalThis.String(object.lastMessageSenderId)
         : isSet(object.last_message_sender_id)
-          ? globalThis.String(object.last_message_sender_id)
-          : undefined,
+        ? globalThis.String(object.last_message_sender_id)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: Chat): unknown {
     const obj: any = {};
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       obj.chatId = message.chatId;
     }
-    if (message.applicationId !== '') {
+    if (message.applicationId !== "") {
       obj.applicationId = message.applicationId;
     }
     if (message.participantUserIds?.length) {
@@ -435,10 +441,10 @@ export const Chat: MessageFns<Chat> = {
     if (message.lastMessageSenderId !== undefined) {
       obj.lastMessageSenderId = message.lastMessageSenderId;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -449,43 +455,43 @@ export const Chat: MessageFns<Chat> = {
   },
   fromPartial<I extends Exact<DeepPartial<Chat>, I>>(object: I): Chat {
     const message = createBaseChat();
-    message.chatId = object.chatId ?? '';
-    message.applicationId = object.applicationId ?? '';
-    message.participantUserIds = object.participantUserIds?.map(e => e) || [];
+    message.chatId = object.chatId ?? "";
+    message.applicationId = object.applicationId ?? "";
+    message.participantUserIds = object.participantUserIds?.map((e) => e) || [];
     message.lastMessagePreview = object.lastMessagePreview ?? undefined;
     message.lastMessageAt = object.lastMessageAt ?? undefined;
     message.lastMessageSenderId = object.lastMessageSenderId ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseMessage(): Message {
   return {
-    messageId: '',
-    chatId: '',
-    senderUserId: '',
-    body: '',
+    messageId: "",
+    chatId: "",
+    senderUserId: "",
+    body: "",
     reactions: [],
     editedAt: undefined,
     deletedAt: undefined,
-    createdAt: '',
+    createdAt: "",
   };
 }
 
 export const Message: MessageFns<Message> = {
   encode(message: Message, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.messageId !== '') {
+    if (message.messageId !== "") {
       writer.uint32(10).string(message.messageId);
     }
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       writer.uint32(18).string(message.chatId);
     }
-    if (message.senderUserId !== '') {
+    if (message.senderUserId !== "") {
       writer.uint32(26).string(message.senderUserId);
     }
-    if (message.body !== '') {
+    if (message.body !== "") {
       writer.uint32(34).string(message.body);
     }
     for (const v of message.reactions) {
@@ -497,7 +503,7 @@ export const Message: MessageFns<Message> = {
     if (message.deletedAt !== undefined) {
       writer.uint32(58).string(message.deletedAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(66).string(message.createdAt);
     }
     return writer;
@@ -588,56 +594,56 @@ export const Message: MessageFns<Message> = {
       messageId: isSet(object.messageId)
         ? globalThis.String(object.messageId)
         : isSet(object.message_id)
-          ? globalThis.String(object.message_id)
-          : '',
+        ? globalThis.String(object.message_id)
+        : "",
       chatId: isSet(object.chatId)
         ? globalThis.String(object.chatId)
         : isSet(object.chat_id)
-          ? globalThis.String(object.chat_id)
-          : '',
+        ? globalThis.String(object.chat_id)
+        : "",
       senderUserId: isSet(object.senderUserId)
         ? globalThis.String(object.senderUserId)
         : isSet(object.sender_user_id)
-          ? globalThis.String(object.sender_user_id)
-          : '',
-      body: isSet(object.body) ? globalThis.String(object.body) : '',
+        ? globalThis.String(object.sender_user_id)
+        : "",
+      body: isSet(object.body) ? globalThis.String(object.body) : "",
       reactions: globalThis.Array.isArray(object?.reactions)
         ? object.reactions.map((e: any) => MessageReaction.fromJSON(e))
         : [],
       editedAt: isSet(object.editedAt)
         ? globalThis.String(object.editedAt)
         : isSet(object.edited_at)
-          ? globalThis.String(object.edited_at)
-          : undefined,
+        ? globalThis.String(object.edited_at)
+        : undefined,
       deletedAt: isSet(object.deletedAt)
         ? globalThis.String(object.deletedAt)
         : isSet(object.deleted_at)
-          ? globalThis.String(object.deleted_at)
-          : undefined,
+        ? globalThis.String(object.deleted_at)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
     };
   },
 
   toJSON(message: Message): unknown {
     const obj: any = {};
-    if (message.messageId !== '') {
+    if (message.messageId !== "") {
       obj.messageId = message.messageId;
     }
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       obj.chatId = message.chatId;
     }
-    if (message.senderUserId !== '') {
+    if (message.senderUserId !== "") {
       obj.senderUserId = message.senderUserId;
     }
-    if (message.body !== '') {
+    if (message.body !== "") {
       obj.body = message.body;
     }
     if (message.reactions?.length) {
-      obj.reactions = message.reactions.map(e => MessageReaction.toJSON(e));
+      obj.reactions = message.reactions.map((e) => MessageReaction.toJSON(e));
     }
     if (message.editedAt !== undefined) {
       obj.editedAt = message.editedAt;
@@ -645,7 +651,7 @@ export const Message: MessageFns<Message> = {
     if (message.deletedAt !== undefined) {
       obj.deletedAt = message.deletedAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
     return obj;
@@ -656,25 +662,25 @@ export const Message: MessageFns<Message> = {
   },
   fromPartial<I extends Exact<DeepPartial<Message>, I>>(object: I): Message {
     const message = createBaseMessage();
-    message.messageId = object.messageId ?? '';
-    message.chatId = object.chatId ?? '';
-    message.senderUserId = object.senderUserId ?? '';
-    message.body = object.body ?? '';
-    message.reactions = object.reactions?.map(e => MessageReaction.fromPartial(e)) || [];
+    message.messageId = object.messageId ?? "";
+    message.chatId = object.chatId ?? "";
+    message.senderUserId = object.senderUserId ?? "";
+    message.body = object.body ?? "";
+    message.reactions = object.reactions?.map((e) => MessageReaction.fromPartial(e)) || [];
     message.editedAt = object.editedAt ?? undefined;
     message.deletedAt = object.deletedAt ?? undefined;
-    message.createdAt = object.createdAt ?? '';
+    message.createdAt = object.createdAt ?? "";
     return message;
   },
 };
 
 function createBaseMessageReaction(): MessageReaction {
-  return { emoji: '', userIds: [] };
+  return { emoji: "", userIds: [] };
 }
 
 export const MessageReaction: MessageFns<MessageReaction> = {
   encode(message: MessageReaction, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.emoji !== '') {
+    if (message.emoji !== "") {
       writer.uint32(10).string(message.emoji);
     }
     for (const v of message.userIds) {
@@ -717,18 +723,18 @@ export const MessageReaction: MessageFns<MessageReaction> = {
 
   fromJSON(object: any): MessageReaction {
     return {
-      emoji: isSet(object.emoji) ? globalThis.String(object.emoji) : '',
+      emoji: isSet(object.emoji) ? globalThis.String(object.emoji) : "",
       userIds: globalThis.Array.isArray(object?.userIds)
         ? object.userIds.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.user_ids)
-          ? object.user_ids.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.user_ids.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
   toJSON(message: MessageReaction): unknown {
     const obj: any = {};
-    if (message.emoji !== '') {
+    if (message.emoji !== "") {
       obj.emoji = message.emoji;
     }
     if (message.userIds?.length) {
@@ -742,25 +748,25 @@ export const MessageReaction: MessageFns<MessageReaction> = {
   },
   fromPartial<I extends Exact<DeepPartial<MessageReaction>, I>>(object: I): MessageReaction {
     const message = createBaseMessageReaction();
-    message.emoji = object.emoji ?? '';
-    message.userIds = object.userIds?.map(e => e) || [];
+    message.emoji = object.emoji ?? "";
+    message.userIds = object.userIds?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseOpenChatRequest(): OpenChatRequest {
-  return { applicationId: '', otherUserId: '', rescueId: '' };
+  return { applicationId: "", otherUserId: "", rescueId: "" };
 }
 
 export const OpenChatRequest: MessageFns<OpenChatRequest> = {
   encode(message: OpenChatRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== '') {
+    if (message.applicationId !== "") {
       writer.uint32(10).string(message.applicationId);
     }
-    if (message.otherUserId !== '') {
+    if (message.otherUserId !== "") {
       writer.uint32(18).string(message.otherUserId);
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(26).string(message.rescueId);
     }
     return writer;
@@ -811,30 +817,30 @@ export const OpenChatRequest: MessageFns<OpenChatRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-          ? globalThis.String(object.application_id)
-          : '',
+        ? globalThis.String(object.application_id)
+        : "",
       otherUserId: isSet(object.otherUserId)
         ? globalThis.String(object.otherUserId)
         : isSet(object.other_user_id)
-          ? globalThis.String(object.other_user_id)
-          : '',
+        ? globalThis.String(object.other_user_id)
+        : "",
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
     };
   },
 
   toJSON(message: OpenChatRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== '') {
+    if (message.applicationId !== "") {
       obj.applicationId = message.applicationId;
     }
-    if (message.otherUserId !== '') {
+    if (message.otherUserId !== "") {
       obj.otherUserId = message.otherUserId;
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
     return obj;
@@ -845,9 +851,9 @@ export const OpenChatRequest: MessageFns<OpenChatRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<OpenChatRequest>, I>>(object: I): OpenChatRequest {
     const message = createBaseOpenChatRequest();
-    message.applicationId = object.applicationId ?? '';
-    message.otherUserId = object.otherUserId ?? '';
-    message.rescueId = object.rescueId ?? '';
+    message.applicationId = object.applicationId ?? "";
+    message.otherUserId = object.otherUserId ?? "";
+    message.rescueId = object.rescueId ?? "";
     return message;
   },
 };
@@ -922,23 +928,22 @@ export const OpenChatResponse: MessageFns<OpenChatResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<OpenChatResponse>, I>>(object: I): OpenChatResponse {
     const message = createBaseOpenChatResponse();
-    message.chat =
-      object.chat !== undefined && object.chat !== null ? Chat.fromPartial(object.chat) : undefined;
+    message.chat = (object.chat !== undefined && object.chat !== null) ? Chat.fromPartial(object.chat) : undefined;
     message.created = object.created ?? false;
     return message;
   },
 };
 
 function createBaseSendMessageRequest(): SendMessageRequest {
-  return { chatId: '', body: '' };
+  return { chatId: "", body: "" };
 }
 
 export const SendMessageRequest: MessageFns<SendMessageRequest> = {
   encode(message: SendMessageRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       writer.uint32(10).string(message.chatId);
     }
-    if (message.body !== '') {
+    if (message.body !== "") {
       writer.uint32(18).string(message.body);
     }
     return writer;
@@ -981,18 +986,18 @@ export const SendMessageRequest: MessageFns<SendMessageRequest> = {
       chatId: isSet(object.chatId)
         ? globalThis.String(object.chatId)
         : isSet(object.chat_id)
-          ? globalThis.String(object.chat_id)
-          : '',
-      body: isSet(object.body) ? globalThis.String(object.body) : '',
+        ? globalThis.String(object.chat_id)
+        : "",
+      body: isSet(object.body) ? globalThis.String(object.body) : "",
     };
   },
 
   toJSON(message: SendMessageRequest): unknown {
     const obj: any = {};
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       obj.chatId = message.chatId;
     }
-    if (message.body !== '') {
+    if (message.body !== "") {
       obj.body = message.body;
     }
     return obj;
@@ -1003,8 +1008,8 @@ export const SendMessageRequest: MessageFns<SendMessageRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<SendMessageRequest>, I>>(object: I): SendMessageRequest {
     const message = createBaseSendMessageRequest();
-    message.chatId = object.chatId ?? '';
-    message.body = object.body ?? '';
+    message.chatId = object.chatId ?? "";
+    message.body = object.body ?? "";
     return message;
   },
 };
@@ -1060,25 +1065,22 @@ export const SendMessageResponse: MessageFns<SendMessageResponse> = {
   create<I extends Exact<DeepPartial<SendMessageResponse>, I>>(base?: I): SendMessageResponse {
     return SendMessageResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SendMessageResponse>, I>>(
-    object: I
-  ): SendMessageResponse {
+  fromPartial<I extends Exact<DeepPartial<SendMessageResponse>, I>>(object: I): SendMessageResponse {
     const message = createBaseSendMessageResponse();
-    message.message =
-      object.message !== undefined && object.message !== null
-        ? Message.fromPartial(object.message)
-        : undefined;
+    message.message = (object.message !== undefined && object.message !== null)
+      ? Message.fromPartial(object.message)
+      : undefined;
     return message;
   },
 };
 
 function createBaseListMessagesRequest(): ListMessagesRequest {
-  return { chatId: '', cursor: undefined, limit: 0 };
+  return { chatId: "", cursor: undefined, limit: 0 };
 }
 
 export const ListMessagesRequest: MessageFns<ListMessagesRequest> = {
   encode(message: ListMessagesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       writer.uint32(10).string(message.chatId);
     }
     if (message.cursor !== undefined) {
@@ -1135,8 +1137,8 @@ export const ListMessagesRequest: MessageFns<ListMessagesRequest> = {
       chatId: isSet(object.chatId)
         ? globalThis.String(object.chatId)
         : isSet(object.chat_id)
-          ? globalThis.String(object.chat_id)
-          : '',
+        ? globalThis.String(object.chat_id)
+        : "",
       cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : undefined,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
@@ -1144,7 +1146,7 @@ export const ListMessagesRequest: MessageFns<ListMessagesRequest> = {
 
   toJSON(message: ListMessagesRequest): unknown {
     const obj: any = {};
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       obj.chatId = message.chatId;
     }
     if (message.cursor !== undefined) {
@@ -1159,11 +1161,9 @@ export const ListMessagesRequest: MessageFns<ListMessagesRequest> = {
   create<I extends Exact<DeepPartial<ListMessagesRequest>, I>>(base?: I): ListMessagesRequest {
     return ListMessagesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListMessagesRequest>, I>>(
-    object: I
-  ): ListMessagesRequest {
+  fromPartial<I extends Exact<DeepPartial<ListMessagesRequest>, I>>(object: I): ListMessagesRequest {
     const message = createBaseListMessagesRequest();
-    message.chatId = object.chatId ?? '';
+    message.chatId = object.chatId ?? "";
     message.cursor = object.cursor ?? undefined;
     message.limit = object.limit ?? 0;
     return message;
@@ -1219,21 +1219,19 @@ export const ListMessagesResponse: MessageFns<ListMessagesResponse> = {
 
   fromJSON(object: any): ListMessagesResponse {
     return {
-      messages: globalThis.Array.isArray(object?.messages)
-        ? object.messages.map((e: any) => Message.fromJSON(e))
-        : [],
+      messages: globalThis.Array.isArray(object?.messages) ? object.messages.map((e: any) => Message.fromJSON(e)) : [],
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: ListMessagesResponse): unknown {
     const obj: any = {};
     if (message.messages?.length) {
-      obj.messages = message.messages.map(e => Message.toJSON(e));
+      obj.messages = message.messages.map((e) => Message.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -1244,11 +1242,9 @@ export const ListMessagesResponse: MessageFns<ListMessagesResponse> = {
   create<I extends Exact<DeepPartial<ListMessagesResponse>, I>>(base?: I): ListMessagesResponse {
     return ListMessagesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListMessagesResponse>, I>>(
-    object: I
-  ): ListMessagesResponse {
+  fromPartial<I extends Exact<DeepPartial<ListMessagesResponse>, I>>(object: I): ListMessagesResponse {
     const message = createBaseListMessagesResponse();
-    message.messages = object.messages?.map(e => Message.fromPartial(e)) || [];
+    message.messages = object.messages?.map((e) => Message.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
@@ -1319,8 +1315,8 @@ export const ListChatsRequest: MessageFns<ListChatsRequest> = {
       unreadOnly: isSet(object.unreadOnly)
         ? globalThis.Boolean(object.unreadOnly)
         : isSet(object.unread_only)
-          ? globalThis.Boolean(object.unread_only)
-          : false,
+        ? globalThis.Boolean(object.unread_only)
+        : false,
     };
   },
 
@@ -1399,21 +1395,19 @@ export const ListChatsResponse: MessageFns<ListChatsResponse> = {
 
   fromJSON(object: any): ListChatsResponse {
     return {
-      chats: globalThis.Array.isArray(object?.chats)
-        ? object.chats.map((e: any) => Chat.fromJSON(e))
-        : [],
+      chats: globalThis.Array.isArray(object?.chats) ? object.chats.map((e: any) => Chat.fromJSON(e)) : [],
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: ListChatsResponse): unknown {
     const obj: any = {};
     if (message.chats?.length) {
-      obj.chats = message.chats.map(e => Chat.toJSON(e));
+      obj.chats = message.chats.map((e) => Chat.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -1426,22 +1420,22 @@ export const ListChatsResponse: MessageFns<ListChatsResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<ListChatsResponse>, I>>(object: I): ListChatsResponse {
     const message = createBaseListChatsResponse();
-    message.chats = object.chats?.map(e => Chat.fromPartial(e)) || [];
+    message.chats = object.chats?.map((e) => Chat.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
 };
 
 function createBaseMarkReadRequest(): MarkReadRequest {
-  return { chatId: '', upToMessageId: '' };
+  return { chatId: "", upToMessageId: "" };
 }
 
 export const MarkReadRequest: MessageFns<MarkReadRequest> = {
   encode(message: MarkReadRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       writer.uint32(10).string(message.chatId);
     }
-    if (message.upToMessageId !== '') {
+    if (message.upToMessageId !== "") {
       writer.uint32(18).string(message.upToMessageId);
     }
     return writer;
@@ -1484,22 +1478,22 @@ export const MarkReadRequest: MessageFns<MarkReadRequest> = {
       chatId: isSet(object.chatId)
         ? globalThis.String(object.chatId)
         : isSet(object.chat_id)
-          ? globalThis.String(object.chat_id)
-          : '',
+        ? globalThis.String(object.chat_id)
+        : "",
       upToMessageId: isSet(object.upToMessageId)
         ? globalThis.String(object.upToMessageId)
         : isSet(object.up_to_message_id)
-          ? globalThis.String(object.up_to_message_id)
-          : '',
+        ? globalThis.String(object.up_to_message_id)
+        : "",
     };
   },
 
   toJSON(message: MarkReadRequest): unknown {
     const obj: any = {};
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       obj.chatId = message.chatId;
     }
-    if (message.upToMessageId !== '') {
+    if (message.upToMessageId !== "") {
       obj.upToMessageId = message.upToMessageId;
     }
     return obj;
@@ -1510,19 +1504,19 @@ export const MarkReadRequest: MessageFns<MarkReadRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<MarkReadRequest>, I>>(object: I): MarkReadRequest {
     const message = createBaseMarkReadRequest();
-    message.chatId = object.chatId ?? '';
-    message.upToMessageId = object.upToMessageId ?? '';
+    message.chatId = object.chatId ?? "";
+    message.upToMessageId = object.upToMessageId ?? "";
     return message;
   },
 };
 
 function createBaseMarkReadResponse(): MarkReadResponse {
-  return { upToMessageId: '' };
+  return { upToMessageId: "" };
 }
 
 export const MarkReadResponse: MessageFns<MarkReadResponse> = {
   encode(message: MarkReadResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.upToMessageId !== '') {
+    if (message.upToMessageId !== "") {
       writer.uint32(10).string(message.upToMessageId);
     }
     return writer;
@@ -1557,14 +1551,14 @@ export const MarkReadResponse: MessageFns<MarkReadResponse> = {
       upToMessageId: isSet(object.upToMessageId)
         ? globalThis.String(object.upToMessageId)
         : isSet(object.up_to_message_id)
-          ? globalThis.String(object.up_to_message_id)
-          : '',
+        ? globalThis.String(object.up_to_message_id)
+        : "",
     };
   },
 
   toJSON(message: MarkReadResponse): unknown {
     const obj: any = {};
-    if (message.upToMessageId !== '') {
+    if (message.upToMessageId !== "") {
       obj.upToMessageId = message.upToMessageId;
     }
     return obj;
@@ -1575,21 +1569,21 @@ export const MarkReadResponse: MessageFns<MarkReadResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<MarkReadResponse>, I>>(object: I): MarkReadResponse {
     const message = createBaseMarkReadResponse();
-    message.upToMessageId = object.upToMessageId ?? '';
+    message.upToMessageId = object.upToMessageId ?? "";
     return message;
   },
 };
 
 function createBaseReactRequest(): ReactRequest {
-  return { messageId: '', emoji: '', remove: false };
+  return { messageId: "", emoji: "", remove: false };
 }
 
 export const ReactRequest: MessageFns<ReactRequest> = {
   encode(message: ReactRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.messageId !== '') {
+    if (message.messageId !== "") {
       writer.uint32(10).string(message.messageId);
     }
-    if (message.emoji !== '') {
+    if (message.emoji !== "") {
       writer.uint32(18).string(message.emoji);
     }
     if (message.remove !== false) {
@@ -1643,19 +1637,19 @@ export const ReactRequest: MessageFns<ReactRequest> = {
       messageId: isSet(object.messageId)
         ? globalThis.String(object.messageId)
         : isSet(object.message_id)
-          ? globalThis.String(object.message_id)
-          : '',
-      emoji: isSet(object.emoji) ? globalThis.String(object.emoji) : '',
+        ? globalThis.String(object.message_id)
+        : "",
+      emoji: isSet(object.emoji) ? globalThis.String(object.emoji) : "",
       remove: isSet(object.remove) ? globalThis.Boolean(object.remove) : false,
     };
   },
 
   toJSON(message: ReactRequest): unknown {
     const obj: any = {};
-    if (message.messageId !== '') {
+    if (message.messageId !== "") {
       obj.messageId = message.messageId;
     }
-    if (message.emoji !== '') {
+    if (message.emoji !== "") {
       obj.emoji = message.emoji;
     }
     if (message.remove !== false) {
@@ -1669,8 +1663,8 @@ export const ReactRequest: MessageFns<ReactRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<ReactRequest>, I>>(object: I): ReactRequest {
     const message = createBaseReactRequest();
-    message.messageId = object.messageId ?? '';
-    message.emoji = object.emoji ?? '';
+    message.messageId = object.messageId ?? "";
+    message.emoji = object.emoji ?? "";
     message.remove = object.remove ?? false;
     return message;
   },
@@ -1729,21 +1723,20 @@ export const ReactResponse: MessageFns<ReactResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<ReactResponse>, I>>(object: I): ReactResponse {
     const message = createBaseReactResponse();
-    message.message =
-      object.message !== undefined && object.message !== null
-        ? Message.fromPartial(object.message)
-        : undefined;
+    message.message = (object.message !== undefined && object.message !== null)
+      ? Message.fromPartial(object.message)
+      : undefined;
     return message;
   },
 };
 
 function createBaseSearchChatsRequest(): SearchChatsRequest {
-  return { query: '', page: 0, limit: 0, rescueId: undefined };
+  return { query: "", page: 0, limit: 0, rescueId: undefined };
 }
 
 export const SearchChatsRequest: MessageFns<SearchChatsRequest> = {
   encode(message: SearchChatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.query !== '') {
+    if (message.query !== "") {
       writer.uint32(10).string(message.query);
     }
     if (message.page !== 0) {
@@ -1808,20 +1801,20 @@ export const SearchChatsRequest: MessageFns<SearchChatsRequest> = {
 
   fromJSON(object: any): SearchChatsRequest {
     return {
-      query: isSet(object.query) ? globalThis.String(object.query) : '',
+      query: isSet(object.query) ? globalThis.String(object.query) : "",
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
     };
   },
 
   toJSON(message: SearchChatsRequest): unknown {
     const obj: any = {};
-    if (message.query !== '') {
+    if (message.query !== "") {
       obj.query = message.query;
     }
     if (message.page !== 0) {
@@ -1841,7 +1834,7 @@ export const SearchChatsRequest: MessageFns<SearchChatsRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<SearchChatsRequest>, I>>(object: I): SearchChatsRequest {
     const message = createBaseSearchChatsRequest();
-    message.query = object.query ?? '';
+    message.query = object.query ?? "";
     message.page = object.page ?? 0;
     message.limit = object.limit ?? 0;
     message.rescueId = object.rescueId ?? undefined;
@@ -1919,12 +1912,10 @@ export const SearchChatHit: MessageFns<SearchChatHit> = {
   },
   fromPartial<I extends Exact<DeepPartial<SearchChatHit>, I>>(object: I): SearchChatHit {
     const message = createBaseSearchChatHit();
-    message.chat =
-      object.chat !== undefined && object.chat !== null ? Chat.fromPartial(object.chat) : undefined;
-    message.match =
-      object.match !== undefined && object.match !== null
-        ? Message.fromPartial(object.match)
-        : undefined;
+    message.chat = (object.chat !== undefined && object.chat !== null) ? Chat.fromPartial(object.chat) : undefined;
+    message.match = (object.match !== undefined && object.match !== null)
+      ? Message.fromPartial(object.match)
+      : undefined;
     return message;
   },
 };
@@ -2000,9 +1991,7 @@ export const SearchChatsResponse: MessageFns<SearchChatsResponse> = {
 
   fromJSON(object: any): SearchChatsResponse {
     return {
-      hits: globalThis.Array.isArray(object?.hits)
-        ? object.hits.map((e: any) => SearchChatHit.fromJSON(e))
-        : [],
+      hits: globalThis.Array.isArray(object?.hits) ? object.hits.map((e: any) => SearchChatHit.fromJSON(e)) : [],
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
       total: isSet(object.total) ? globalThis.Number(object.total) : 0,
@@ -2012,7 +2001,7 @@ export const SearchChatsResponse: MessageFns<SearchChatsResponse> = {
   toJSON(message: SearchChatsResponse): unknown {
     const obj: any = {};
     if (message.hits?.length) {
-      obj.hits = message.hits.map(e => SearchChatHit.toJSON(e));
+      obj.hits = message.hits.map((e) => SearchChatHit.toJSON(e));
     }
     if (message.page !== 0) {
       obj.page = Math.round(message.page);
@@ -2029,11 +2018,9 @@ export const SearchChatsResponse: MessageFns<SearchChatsResponse> = {
   create<I extends Exact<DeepPartial<SearchChatsResponse>, I>>(base?: I): SearchChatsResponse {
     return SearchChatsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SearchChatsResponse>, I>>(
-    object: I
-  ): SearchChatsResponse {
+  fromPartial<I extends Exact<DeepPartial<SearchChatsResponse>, I>>(object: I): SearchChatsResponse {
     const message = createBaseSearchChatsResponse();
-    message.hits = object.hits?.map(e => SearchChatHit.fromPartial(e)) || [];
+    message.hits = object.hits?.map((e) => SearchChatHit.fromPartial(e)) || [];
     message.page = object.page ?? 0;
     message.limit = object.limit ?? 0;
     message.total = object.total ?? 0;
@@ -2042,15 +2029,12 @@ export const SearchChatsResponse: MessageFns<SearchChatsResponse> = {
 };
 
 function createBaseGetChatUnreadCountRequest(): GetChatUnreadCountRequest {
-  return { chatId: '' };
+  return { chatId: "" };
 }
 
 export const GetChatUnreadCountRequest: MessageFns<GetChatUnreadCountRequest> = {
-  encode(
-    message: GetChatUnreadCountRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.chatId !== '') {
+  encode(message: GetChatUnreadCountRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chatId !== "") {
       writer.uint32(10).string(message.chatId);
     }
     return writer;
@@ -2085,29 +2069,25 @@ export const GetChatUnreadCountRequest: MessageFns<GetChatUnreadCountRequest> = 
       chatId: isSet(object.chatId)
         ? globalThis.String(object.chatId)
         : isSet(object.chat_id)
-          ? globalThis.String(object.chat_id)
-          : '',
+        ? globalThis.String(object.chat_id)
+        : "",
     };
   },
 
   toJSON(message: GetChatUnreadCountRequest): unknown {
     const obj: any = {};
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       obj.chatId = message.chatId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetChatUnreadCountRequest>, I>>(
-    base?: I
-  ): GetChatUnreadCountRequest {
+  create<I extends Exact<DeepPartial<GetChatUnreadCountRequest>, I>>(base?: I): GetChatUnreadCountRequest {
     return GetChatUnreadCountRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetChatUnreadCountRequest>, I>>(
-    object: I
-  ): GetChatUnreadCountRequest {
+  fromPartial<I extends Exact<DeepPartial<GetChatUnreadCountRequest>, I>>(object: I): GetChatUnreadCountRequest {
     const message = createBaseGetChatUnreadCountRequest();
-    message.chatId = object.chatId ?? '';
+    message.chatId = object.chatId ?? "";
     return message;
   },
 };
@@ -2117,10 +2097,7 @@ function createBaseGetChatUnreadCountResponse(): GetChatUnreadCountResponse {
 }
 
 export const GetChatUnreadCountResponse: MessageFns<GetChatUnreadCountResponse> = {
-  encode(
-    message: GetChatUnreadCountResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetChatUnreadCountResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.unreadCount !== 0) {
       writer.uint32(8).uint32(message.unreadCount);
     }
@@ -2156,8 +2133,8 @@ export const GetChatUnreadCountResponse: MessageFns<GetChatUnreadCountResponse> 
       unreadCount: isSet(object.unreadCount)
         ? globalThis.Number(object.unreadCount)
         : isSet(object.unread_count)
-          ? globalThis.Number(object.unread_count)
-          : 0,
+        ? globalThis.Number(object.unread_count)
+        : 0,
     };
   },
 
@@ -2169,14 +2146,10 @@ export const GetChatUnreadCountResponse: MessageFns<GetChatUnreadCountResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetChatUnreadCountResponse>, I>>(
-    base?: I
-  ): GetChatUnreadCountResponse {
+  create<I extends Exact<DeepPartial<GetChatUnreadCountResponse>, I>>(base?: I): GetChatUnreadCountResponse {
     return GetChatUnreadCountResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetChatUnreadCountResponse>, I>>(
-    object: I
-  ): GetChatUnreadCountResponse {
+  fromPartial<I extends Exact<DeepPartial<GetChatUnreadCountResponse>, I>>(object: I): GetChatUnreadCountResponse {
     const message = createBaseGetChatUnreadCountResponse();
     message.unreadCount = object.unreadCount ?? 0;
     return message;
@@ -2184,12 +2157,12 @@ export const GetChatUnreadCountResponse: MessageFns<GetChatUnreadCountResponse> 
 };
 
 function createBaseDeleteMessageRequest(): DeleteMessageRequest {
-  return { messageId: '', reason: undefined };
+  return { messageId: "", reason: undefined };
 }
 
 export const DeleteMessageRequest: MessageFns<DeleteMessageRequest> = {
   encode(message: DeleteMessageRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.messageId !== '') {
+    if (message.messageId !== "") {
       writer.uint32(10).string(message.messageId);
     }
     if (message.reason !== undefined) {
@@ -2235,15 +2208,15 @@ export const DeleteMessageRequest: MessageFns<DeleteMessageRequest> = {
       messageId: isSet(object.messageId)
         ? globalThis.String(object.messageId)
         : isSet(object.message_id)
-          ? globalThis.String(object.message_id)
-          : '',
+        ? globalThis.String(object.message_id)
+        : "",
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: DeleteMessageRequest): unknown {
     const obj: any = {};
-    if (message.messageId !== '') {
+    if (message.messageId !== "") {
       obj.messageId = message.messageId;
     }
     if (message.reason !== undefined) {
@@ -2255,11 +2228,9 @@ export const DeleteMessageRequest: MessageFns<DeleteMessageRequest> = {
   create<I extends Exact<DeepPartial<DeleteMessageRequest>, I>>(base?: I): DeleteMessageRequest {
     return DeleteMessageRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteMessageRequest>, I>>(
-    object: I
-  ): DeleteMessageRequest {
+  fromPartial<I extends Exact<DeepPartial<DeleteMessageRequest>, I>>(object: I): DeleteMessageRequest {
     const message = createBaseDeleteMessageRequest();
-    message.messageId = object.messageId ?? '';
+    message.messageId = object.messageId ?? "";
     message.reason = object.reason ?? undefined;
     return message;
   },
@@ -2316,25 +2287,22 @@ export const DeleteMessageResponse: MessageFns<DeleteMessageResponse> = {
   create<I extends Exact<DeepPartial<DeleteMessageResponse>, I>>(base?: I): DeleteMessageResponse {
     return DeleteMessageResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteMessageResponse>, I>>(
-    object: I
-  ): DeleteMessageResponse {
+  fromPartial<I extends Exact<DeepPartial<DeleteMessageResponse>, I>>(object: I): DeleteMessageResponse {
     const message = createBaseDeleteMessageResponse();
-    message.message =
-      object.message !== undefined && object.message !== null
-        ? Message.fromPartial(object.message)
-        : undefined;
+    message.message = (object.message !== undefined && object.message !== null)
+      ? Message.fromPartial(object.message)
+      : undefined;
     return message;
   },
 };
 
 function createBaseGetChatRequest(): GetChatRequest {
-  return { chatId: '' };
+  return { chatId: "" };
 }
 
 export const GetChatRequest: MessageFns<GetChatRequest> = {
   encode(message: GetChatRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       writer.uint32(10).string(message.chatId);
     }
     return writer;
@@ -2369,14 +2337,14 @@ export const GetChatRequest: MessageFns<GetChatRequest> = {
       chatId: isSet(object.chatId)
         ? globalThis.String(object.chatId)
         : isSet(object.chat_id)
-          ? globalThis.String(object.chat_id)
-          : '',
+        ? globalThis.String(object.chat_id)
+        : "",
     };
   },
 
   toJSON(message: GetChatRequest): unknown {
     const obj: any = {};
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       obj.chatId = message.chatId;
     }
     return obj;
@@ -2387,7 +2355,7 @@ export const GetChatRequest: MessageFns<GetChatRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetChatRequest>, I>>(object: I): GetChatRequest {
     const message = createBaseGetChatRequest();
-    message.chatId = object.chatId ?? '';
+    message.chatId = object.chatId ?? "";
     return message;
   },
 };
@@ -2445,19 +2413,18 @@ export const GetChatResponse: MessageFns<GetChatResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetChatResponse>, I>>(object: I): GetChatResponse {
     const message = createBaseGetChatResponse();
-    message.chat =
-      object.chat !== undefined && object.chat !== null ? Chat.fromPartial(object.chat) : undefined;
+    message.chat = (object.chat !== undefined && object.chat !== null) ? Chat.fromPartial(object.chat) : undefined;
     return message;
   },
 };
 
 function createBaseDeleteChatRequest(): DeleteChatRequest {
-  return { chatId: '', reason: undefined };
+  return { chatId: "", reason: undefined };
 }
 
 export const DeleteChatRequest: MessageFns<DeleteChatRequest> = {
   encode(message: DeleteChatRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       writer.uint32(10).string(message.chatId);
     }
     if (message.reason !== undefined) {
@@ -2503,15 +2470,15 @@ export const DeleteChatRequest: MessageFns<DeleteChatRequest> = {
       chatId: isSet(object.chatId)
         ? globalThis.String(object.chatId)
         : isSet(object.chat_id)
-          ? globalThis.String(object.chat_id)
-          : '',
+        ? globalThis.String(object.chat_id)
+        : "",
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: DeleteChatRequest): unknown {
     const obj: any = {};
-    if (message.chatId !== '') {
+    if (message.chatId !== "") {
       obj.chatId = message.chatId;
     }
     if (message.reason !== undefined) {
@@ -2525,7 +2492,7 @@ export const DeleteChatRequest: MessageFns<DeleteChatRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<DeleteChatRequest>, I>>(object: I): DeleteChatRequest {
     const message = createBaseDeleteChatRequest();
-    message.chatId = object.chatId ?? '';
+    message.chatId = object.chatId ?? "";
     message.reason = object.reason ?? undefined;
     return message;
   },
@@ -2584,8 +2551,7 @@ export const DeleteChatResponse: MessageFns<DeleteChatResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<DeleteChatResponse>, I>>(object: I): DeleteChatResponse {
     const message = createBaseDeleteChatResponse();
-    message.chat =
-      object.chat !== undefined && object.chat !== null ? Chat.fromPartial(object.chat) : undefined;
+    message.chat = (object.chat !== undefined && object.chat !== null) ? Chat.fromPartial(object.chat) : undefined;
     return message;
   },
 };
@@ -2614,14 +2580,12 @@ export const ChatServiceService = {
    * existing chat. Publishes chat.created on first creation.
    */
   openChat: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/OpenChat' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/OpenChat" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: OpenChatRequest): Buffer =>
-      Buffer.from(OpenChatRequest.encode(value).finish()),
+    requestSerialize: (value: OpenChatRequest): Buffer => Buffer.from(OpenChatRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): OpenChatRequest => OpenChatRequest.decode(value),
-    responseSerialize: (value: OpenChatResponse): Buffer =>
-      Buffer.from(OpenChatResponse.encode(value).finish()),
+    responseSerialize: (value: OpenChatResponse): Buffer => Buffer.from(OpenChatResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): OpenChatResponse => OpenChatResponse.decode(value),
   },
   /**
@@ -2630,14 +2594,12 @@ export const ChatServiceService = {
    * fans this to the other participant's open sockets.
    */
   sendMessage: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/SendMessage' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/SendMessage" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: SendMessageRequest): Buffer =>
-      Buffer.from(SendMessageRequest.encode(value).finish()),
+    requestSerialize: (value: SendMessageRequest): Buffer => Buffer.from(SendMessageRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): SendMessageRequest => SendMessageRequest.decode(value),
-    responseSerialize: (value: SendMessageResponse): Buffer =>
-      Buffer.from(SendMessageResponse.encode(value).finish()),
+    responseSerialize: (value: SendMessageResponse): Buffer => Buffer.from(SendMessageResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SendMessageResponse => SendMessageResponse.decode(value),
   },
   /**
@@ -2645,30 +2607,26 @@ export const ChatServiceService = {
    * Caller MUST be a participant or super_admin.
    */
   listMessages: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/ListMessages' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/ListMessages" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListMessagesRequest): Buffer =>
-      Buffer.from(ListMessagesRequest.encode(value).finish()),
+    requestSerialize: (value: ListMessagesRequest): Buffer => Buffer.from(ListMessagesRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListMessagesRequest => ListMessagesRequest.decode(value),
     responseSerialize: (value: ListMessagesResponse): Buffer =>
       Buffer.from(ListMessagesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListMessagesResponse =>
-      ListMessagesResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListMessagesResponse => ListMessagesResponse.decode(value),
   },
   /**
    * List the chats the calling principal participates in (the SPA
    * chat picker).
    */
   listChats: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/ListChats' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/ListChats" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListChatsRequest): Buffer =>
-      Buffer.from(ListChatsRequest.encode(value).finish()),
+    requestSerialize: (value: ListChatsRequest): Buffer => Buffer.from(ListChatsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListChatsRequest => ListChatsRequest.decode(value),
-    responseSerialize: (value: ListChatsResponse): Buffer =>
-      Buffer.from(ListChatsResponse.encode(value).finish()),
+    responseSerialize: (value: ListChatsResponse): Buffer => Buffer.from(ListChatsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListChatsResponse => ListChatsResponse.decode(value),
   },
   /**
@@ -2676,14 +2634,12 @@ export const ChatServiceService = {
    * Publishes chat.messageRead.
    */
   markRead: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/MarkRead' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/MarkRead" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: MarkReadRequest): Buffer =>
-      Buffer.from(MarkReadRequest.encode(value).finish()),
+    requestSerialize: (value: MarkReadRequest): Buffer => Buffer.from(MarkReadRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): MarkReadRequest => MarkReadRequest.decode(value),
-    responseSerialize: (value: MarkReadResponse): Buffer =>
-      Buffer.from(MarkReadResponse.encode(value).finish()),
+    responseSerialize: (value: MarkReadResponse): Buffer => Buffer.from(MarkReadResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): MarkReadResponse => MarkReadResponse.decode(value),
   },
   /**
@@ -2692,14 +2648,12 @@ export const ChatServiceService = {
    * Idempotent. Publishes chat.reactionAdded or chat.reactionRemoved.
    */
   react: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/React' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/React" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ReactRequest): Buffer =>
-      Buffer.from(ReactRequest.encode(value).finish()),
+    requestSerialize: (value: ReactRequest): Buffer => Buffer.from(ReactRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ReactRequest => ReactRequest.decode(value),
-    responseSerialize: (value: ReactResponse): Buffer =>
-      Buffer.from(ReactResponse.encode(value).finish()),
+    responseSerialize: (value: ReactResponse): Buffer => Buffer.from(ReactResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ReactResponse => ReactResponse.decode(value),
   },
   /**
@@ -2711,14 +2665,12 @@ export const ChatServiceService = {
    * search is a separate admin RPC).
    */
   searchChats: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/SearchChats' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/SearchChats" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: SearchChatsRequest): Buffer =>
-      Buffer.from(SearchChatsRequest.encode(value).finish()),
+    requestSerialize: (value: SearchChatsRequest): Buffer => Buffer.from(SearchChatsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): SearchChatsRequest => SearchChatsRequest.decode(value),
-    responseSerialize: (value: SearchChatsResponse): Buffer =>
-      Buffer.from(SearchChatsResponse.encode(value).finish()),
+    responseSerialize: (value: SearchChatsResponse): Buffer => Buffer.from(SearchChatsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SearchChatsResponse => SearchChatsResponse.decode(value),
   },
   /**
@@ -2728,17 +2680,15 @@ export const ChatServiceService = {
    * membership (or super_admin).
    */
   getChatUnreadCount: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/GetChatUnreadCount' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/GetChatUnreadCount" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetChatUnreadCountRequest): Buffer =>
       Buffer.from(GetChatUnreadCountRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetChatUnreadCountRequest =>
-      GetChatUnreadCountRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetChatUnreadCountRequest => GetChatUnreadCountRequest.decode(value),
     responseSerialize: (value: GetChatUnreadCountResponse): Buffer =>
       Buffer.from(GetChatUnreadCountResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetChatUnreadCountResponse =>
-      GetChatUnreadCountResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetChatUnreadCountResponse => GetChatUnreadCountResponse.decode(value),
   },
   /**
    * Soft-delete a message. Caller MUST be the message's sender OR
@@ -2749,16 +2699,14 @@ export const ChatServiceService = {
    * Publishes chat.messageDeleted.
    */
   deleteMessage: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/DeleteMessage' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/DeleteMessage" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: DeleteMessageRequest): Buffer =>
-      Buffer.from(DeleteMessageRequest.encode(value).finish()),
+    requestSerialize: (value: DeleteMessageRequest): Buffer => Buffer.from(DeleteMessageRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): DeleteMessageRequest => DeleteMessageRequest.decode(value),
     responseSerialize: (value: DeleteMessageResponse): Buffer =>
       Buffer.from(DeleteMessageResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DeleteMessageResponse =>
-      DeleteMessageResponse.decode(value),
+    responseDeserialize: (value: Buffer): DeleteMessageResponse => DeleteMessageResponse.decode(value),
   },
   /**
    * Fetch a chat by id. Returns the canonical Chat row + participant
@@ -2766,14 +2714,12 @@ export const ChatServiceService = {
    * super_admin; non-participants get NOT_FOUND (no enumeration).
    */
   getChat: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/GetChat' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/GetChat" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetChatRequest): Buffer =>
-      Buffer.from(GetChatRequest.encode(value).finish()),
+    requestSerialize: (value: GetChatRequest): Buffer => Buffer.from(GetChatRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetChatRequest => GetChatRequest.decode(value),
-    responseSerialize: (value: GetChatResponse): Buffer =>
-      Buffer.from(GetChatResponse.encode(value).finish()),
+    responseSerialize: (value: GetChatResponse): Buffer => Buffer.from(GetChatResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetChatResponse => GetChatResponse.decode(value),
   },
   /**
@@ -2783,14 +2729,12 @@ export const ChatServiceService = {
    * with the participant list for WS fan-out.
    */
   deleteChat: {
-    path: '/adopt_dont_shop.chat.v1.ChatService/DeleteChat' as const,
+    path: "/adopt_dont_shop.chat.v1.ChatService/DeleteChat" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: DeleteChatRequest): Buffer =>
-      Buffer.from(DeleteChatRequest.encode(value).finish()),
+    requestSerialize: (value: DeleteChatRequest): Buffer => Buffer.from(DeleteChatRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): DeleteChatRequest => DeleteChatRequest.decode(value),
-    responseSerialize: (value: DeleteChatResponse): Buffer =>
-      Buffer.from(DeleteChatResponse.encode(value).finish()),
+    responseSerialize: (value: DeleteChatResponse): Buffer => Buffer.from(DeleteChatResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteChatResponse => DeleteChatResponse.decode(value),
   },
 } as const;
@@ -2879,18 +2823,18 @@ export interface ChatServiceClient extends Client {
    */
   openChat(
     request: OpenChatRequest,
-    callback: (error: ServiceError | null, response: OpenChatResponse) => void
+    callback: (error: ServiceError | null, response: OpenChatResponse) => void,
   ): ClientUnaryCall;
   openChat(
     request: OpenChatRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: OpenChatResponse) => void
+    callback: (error: ServiceError | null, response: OpenChatResponse) => void,
   ): ClientUnaryCall;
   openChat(
     request: OpenChatRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: OpenChatResponse) => void
+    callback: (error: ServiceError | null, response: OpenChatResponse) => void,
   ): ClientUnaryCall;
   /**
    * Send a text message into an existing chat. Publishes
@@ -2899,18 +2843,18 @@ export interface ChatServiceClient extends Client {
    */
   sendMessage(
     request: SendMessageRequest,
-    callback: (error: ServiceError | null, response: SendMessageResponse) => void
+    callback: (error: ServiceError | null, response: SendMessageResponse) => void,
   ): ClientUnaryCall;
   sendMessage(
     request: SendMessageRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SendMessageResponse) => void
+    callback: (error: ServiceError | null, response: SendMessageResponse) => void,
   ): ClientUnaryCall;
   sendMessage(
     request: SendMessageRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SendMessageResponse) => void
+    callback: (error: ServiceError | null, response: SendMessageResponse) => void,
   ): ClientUnaryCall;
   /**
    * List the recent messages for a chat with keyset pagination.
@@ -2918,18 +2862,18 @@ export interface ChatServiceClient extends Client {
    */
   listMessages(
     request: ListMessagesRequest,
-    callback: (error: ServiceError | null, response: ListMessagesResponse) => void
+    callback: (error: ServiceError | null, response: ListMessagesResponse) => void,
   ): ClientUnaryCall;
   listMessages(
     request: ListMessagesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListMessagesResponse) => void
+    callback: (error: ServiceError | null, response: ListMessagesResponse) => void,
   ): ClientUnaryCall;
   listMessages(
     request: ListMessagesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListMessagesResponse) => void
+    callback: (error: ServiceError | null, response: ListMessagesResponse) => void,
   ): ClientUnaryCall;
   /**
    * List the chats the calling principal participates in (the SPA
@@ -2937,18 +2881,18 @@ export interface ChatServiceClient extends Client {
    */
   listChats(
     request: ListChatsRequest,
-    callback: (error: ServiceError | null, response: ListChatsResponse) => void
+    callback: (error: ServiceError | null, response: ListChatsResponse) => void,
   ): ClientUnaryCall;
   listChats(
     request: ListChatsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListChatsResponse) => void
+    callback: (error: ServiceError | null, response: ListChatsResponse) => void,
   ): ClientUnaryCall;
   listChats(
     request: ListChatsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListChatsResponse) => void
+    callback: (error: ServiceError | null, response: ListChatsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mark a message as read by the calling principal. Idempotent.
@@ -2956,18 +2900,18 @@ export interface ChatServiceClient extends Client {
    */
   markRead(
     request: MarkReadRequest,
-    callback: (error: ServiceError | null, response: MarkReadResponse) => void
+    callback: (error: ServiceError | null, response: MarkReadResponse) => void,
   ): ClientUnaryCall;
   markRead(
     request: MarkReadRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: MarkReadResponse) => void
+    callback: (error: ServiceError | null, response: MarkReadResponse) => void,
   ): ClientUnaryCall;
   markRead(
     request: MarkReadRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: MarkReadResponse) => void
+    callback: (error: ServiceError | null, response: MarkReadResponse) => void,
   ): ClientUnaryCall;
   /**
    * Add or remove a reaction (emoji) on a message. The presence of
@@ -2976,18 +2920,18 @@ export interface ChatServiceClient extends Client {
    */
   react(
     request: ReactRequest,
-    callback: (error: ServiceError | null, response: ReactResponse) => void
+    callback: (error: ServiceError | null, response: ReactResponse) => void,
   ): ClientUnaryCall;
   react(
     request: ReactRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ReactResponse) => void
+    callback: (error: ServiceError | null, response: ReactResponse) => void,
   ): ClientUnaryCall;
   react(
     request: ReactRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ReactResponse) => void
+    callback: (error: ServiceError | null, response: ReactResponse) => void,
   ): ClientUnaryCall;
   /**
    * Full-text search across the calling principal's chats. Matches on
@@ -2999,18 +2943,18 @@ export interface ChatServiceClient extends Client {
    */
   searchChats(
     request: SearchChatsRequest,
-    callback: (error: ServiceError | null, response: SearchChatsResponse) => void
+    callback: (error: ServiceError | null, response: SearchChatsResponse) => void,
   ): ClientUnaryCall;
   searchChats(
     request: SearchChatsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SearchChatsResponse) => void
+    callback: (error: ServiceError | null, response: SearchChatsResponse) => void,
   ): ClientUnaryCall;
   searchChats(
     request: SearchChatsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SearchChatsResponse) => void
+    callback: (error: ServiceError | null, response: SearchChatsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Per-chat unread count for the calling principal. Counts messages
@@ -3020,18 +2964,18 @@ export interface ChatServiceClient extends Client {
    */
   getChatUnreadCount(
     request: GetChatUnreadCountRequest,
-    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void
+    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void,
   ): ClientUnaryCall;
   getChatUnreadCount(
     request: GetChatUnreadCountRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void
+    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void,
   ): ClientUnaryCall;
   getChatUnreadCount(
     request: GetChatUnreadCountRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void
+    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void,
   ): ClientUnaryCall;
   /**
    * Soft-delete a message. Caller MUST be the message's sender OR
@@ -3043,18 +2987,18 @@ export interface ChatServiceClient extends Client {
    */
   deleteMessage(
     request: DeleteMessageRequest,
-    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void
+    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void,
   ): ClientUnaryCall;
   deleteMessage(
     request: DeleteMessageRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void
+    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void,
   ): ClientUnaryCall;
   deleteMessage(
     request: DeleteMessageRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void
+    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void,
   ): ClientUnaryCall;
   /**
    * Fetch a chat by id. Returns the canonical Chat row + participant
@@ -3063,18 +3007,18 @@ export interface ChatServiceClient extends Client {
    */
   getChat(
     request: GetChatRequest,
-    callback: (error: ServiceError | null, response: GetChatResponse) => void
+    callback: (error: ServiceError | null, response: GetChatResponse) => void,
   ): ClientUnaryCall;
   getChat(
     request: GetChatRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetChatResponse) => void
+    callback: (error: ServiceError | null, response: GetChatResponse) => void,
   ): ClientUnaryCall;
   getChat(
     request: GetChatRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetChatResponse) => void
+    callback: (error: ServiceError | null, response: GetChatResponse) => void,
   ): ClientUnaryCall;
   /**
    * Soft-delete a chat (sets deleted_at). Caller MUST be a participant
@@ -3084,49 +3028,40 @@ export interface ChatServiceClient extends Client {
    */
   deleteChat(
     request: DeleteChatRequest,
-    callback: (error: ServiceError | null, response: DeleteChatResponse) => void
+    callback: (error: ServiceError | null, response: DeleteChatResponse) => void,
   ): ClientUnaryCall;
   deleteChat(
     request: DeleteChatRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteChatResponse) => void
+    callback: (error: ServiceError | null, response: DeleteChatResponse) => void,
   ): ClientUnaryCall;
   deleteChat(
     request: DeleteChatRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteChatResponse) => void
+    callback: (error: ServiceError | null, response: DeleteChatResponse) => void,
   ): ClientUnaryCall;
 }
 
 export const ChatServiceClient = makeGenericClientConstructor(
   ChatServiceService,
-  'adopt_dont_shop.chat.v1.ChatService'
+  "adopt_dont_shop.chat.v1.ChatService",
 ) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): ChatServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): ChatServiceClient;
   service: typeof ChatServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

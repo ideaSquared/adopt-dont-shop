@@ -17,12 +17,13 @@
  * Run via `node scripts/check-workflow-paths.mjs` or as part of the
  * workspace-drift job in ci.yml.
  */
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = join(ROOT, '.github', 'workflow-source-paths.yml');
+const WORKFLOWS_DIR = join(ROOT, '.github', 'workflows');
 
 function parseCanonicalSource(yaml) {
   // Tiny ad-hoc parser — the source file is intentionally simple so we
@@ -140,6 +141,64 @@ function eqSet(a, b) {
   return A.every((v, i) => v === B[i]);
 }
 
+// ADS-1030: a literal (non-glob) path entry that matches no file on disk is a
+// bug — the filter it lives in silently gates nothing (as `tsconfig.json` did:
+// no such file exists at the root, so a shared-config change ran zero jobs).
+// Glob patterns are skipped; only exact paths are asserted to exist.
+const GLOB_METACHARS = /[*?[\]{}!]/;
+
+export const isGlobPattern = pattern => GLOB_METACHARS.test(pattern);
+
+// Collect every list item from `paths:`, `paths-ignore:` and (dorny
+// paths-filter) `filters:` blocks in a workflow file. Sub-keys inside a
+// `filters:` block (e.g. `backend:`) are not list items and are ignored; only
+// their `- 'glob'` entries are collected. Returns globs and literals alike.
+export function collectFilterPaths(yaml) {
+  const lines = yaml.split('\n');
+  const items = [];
+  let blockIndent = -1; // indent of the enclosing paths/filters key; -1 = outside
+  const asBlockKey = line => line.match(/^(\s*)(?:paths|paths-ignore|filters):\s*\|?\s*$/);
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    if (!line.trim()) continue;
+    const indent = line.length - line.trimStart().length;
+    if (blockIndent < 0) {
+      const key = asBlockKey(line);
+      if (key) blockIndent = key[1].length;
+      continue;
+    }
+    if (indent <= blockIndent) {
+      // Dedent closes the block; this same line may open the next one.
+      blockIndent = -1;
+      const key = asBlockKey(line);
+      if (key) blockIndent = key[1].length;
+      continue;
+    }
+    const item = line.match(/^\s*-\s+['"]?(.+?)['"]?\s*$/);
+    if (item) items.push(item[1]);
+  }
+  return items;
+}
+
+// Given the collected path items, return the literal ones that don't resolve
+// to a file or directory under `root`.
+export function missingLiteralPaths(items, root) {
+  return items.filter(p => !isGlobPattern(p) && !existsSync(join(root, p)));
+}
+
+// Scan every workflow file and report [{ workflow, path }] for each literal
+// path that matches nothing on disk.
+export function findMissingWorkflowPaths(workflowsDir = WORKFLOWS_DIR, root = ROOT) {
+  const failures = [];
+  for (const file of readdirSync(workflowsDir).filter(f => /\.ya?ml$/.test(f))) {
+    const items = collectFilterPaths(readFileSync(join(workflowsDir, file), 'utf8'));
+    for (const missing of missingLiteralPaths(items, root)) {
+      failures.push({ workflow: join('.github', 'workflows', file), path: missing });
+    }
+  }
+  return failures;
+}
+
 function main() {
   const source = parseCanonicalSource(readFileSync(SOURCE, 'utf8'));
   const failures = [];
@@ -173,8 +232,21 @@ function main() {
     }
   }
 
+  // ADS-1030: every literal path in any workflow's paths/filters block must
+  // exist, or the filter silently gates nothing.
+  const missingPaths = findMissingWorkflowPaths();
+  for (const { workflow, path } of missingPaths) {
+    failures.push(
+      `[${workflow}] filter path \`${path}\` matches no file or directory — ` +
+        `it silently gates nothing. Fix the path or make it a glob.`,
+    );
+  }
+
   if (failures.length === 0) {
-    console.log('OK — workflow path filters match .github/workflow-source-paths.yml.');
+    console.log(
+      'OK — workflow path filters match .github/workflow-source-paths.yml, ' +
+        'and every literal filter path exists.',
+    );
     return;
   }
   console.error('Workflow path-filter drift detected:');
@@ -185,4 +257,6 @@ function main() {
   process.exit(1);
 }
 
-main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}

@@ -96,6 +96,20 @@ jobs:
       - name: Verify docs reference only real pnpm scripts
         run: node scripts/check-docs-script-references.mjs
 
+      # ADS-1028: prettier formatting was enforced only by the lint-staged
+      # pre-commit hook, which --no-verify, web-UI and agent commits all bypass
+      # — so formatting drift reached main invisibly. Gate every PR on it here
+      # (pnpm format:check runs prettier, Turbo-cached, ~10s warm). This job has
+      # no path filter and is already in ci-required's needs.
+      - name: Verify formatting (prettier)
+        run: pnpm format:check
+
+      # ADS-1027: fail if packages/proto's committed ts-proto output no longer
+      # matches `buf generate` — otherwise any `pnpm build` silently dirties the
+      # tree. The guard regenerates into a tmpdir and diffs.
+      - name: Verify generated proto is in sync with .proto sources
+        run: pnpm check:proto-fresh
+
       # ADS-946: workspace READMEs must carry the canonical template sections
       # (docs/templates/README.{app,service,lib}.md). Warn-only for packages
       # not yet backfilled; a hard failure for those in the guard's
@@ -120,6 +134,10 @@ jobs:
       - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706  # v4.0.2
         id: filter
         with:
+          # ADS-1030: the repo-wide root configs every package extends must
+          # trigger the heavy jobs. The old `tsconfig.json` entry matched no
+          # file (the real ones are tsconfig.base.json / *.base.json → glob),
+          # so a PR touching only a shared config compiled and tested nothing.
           filters: |
             backend:
               - 'services/**'
@@ -127,22 +145,35 @@ jobs:
               - 'pacts/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
-              - 'tsconfig.json'
+              - 'tsconfig*.json'
               - 'turbo.json'
+              - 'vitest.shared.config.ts'
+              - 'vitest.workspace.ts'
+              - 'eslint.config.js'
+              - '.prettierrc'
             frontend:
               - 'apps/**'
               - 'packages/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
-              - 'tsconfig.json'
+              - 'tsconfig*.json'
               - 'turbo.json'
               - 'vite.shared.config.ts'
+              - 'vitest.shared.config.ts'
+              - 'vitest.workspace.ts'
+              - 'eslint.config.js'
+              - '.prettierrc'
             libs:
               - 'packages/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
-              - 'tsconfig.json'
+              - 'tsconfig*.json'
               - 'turbo.json'
+              - 'vite.shared.config.ts'
+              - 'vitest.shared.config.ts'
+              - 'vitest.workspace.ts'
+              - 'eslint.config.js'
+              - '.prettierrc'
 
   # ============================================================================
   # BUILD-LIBS — single source of truth for compiled lib.*/dist artifacts
@@ -246,6 +277,32 @@ jobs:
           filter: '@adopt-dont-shop/lib.*'
           upload-artifact-name: 'test-results-libs'
           coverage-cache-key: 'coverage-current-${{ github.run_id }}-libs'
+          turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          turbo-team: ${{ secrets.TURBO_TEAM }}
+
+  # ============================================================================
+  # PACKAGE TESTS — lint/test:coverage/type-check the service-side shared
+  # packages under packages/ that are NOT lib.* (authz, db, events, proto,
+  # observability, …). ADS-1029: these matched none of test-libs (lib.*),
+  # test-services (service.*) or test-frontend (app.*), so 35 test files ran in
+  # CI zero times. Mirrors test-libs; gated on the same libs/backend filters.
+  # ============================================================================
+  test-packages:
+    name: Package Tests
+    needs: [changes, build-libs]
+    if: needs.changes.outputs.libs == 'true' || needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/run-package-tests
+        with:
+          filter: './packages/*'
+          additional-filter: '!@adopt-dont-shop/lib.*'
+          upload-artifact-name: 'test-results-packages'
+          coverage-cache-key: 'coverage-current-${{ github.run_id }}-packages'
           turbo-token: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
           turbo-team: ${{ secrets.TURBO_TEAM }}
 
@@ -428,6 +485,7 @@ jobs:
       - build-libs
       - test-frontend
       - test-libs
+      - test-packages
       - test-services
       - test-contracts
       - dev-auth-guard

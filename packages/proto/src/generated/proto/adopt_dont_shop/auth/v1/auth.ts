@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/auth/v1/auth.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.auth.v1';
+export const protobufPackage = "adopt_dont_shop.auth.v1";
 
 /**
  * UserRole values mirror the auth.user_type Postgres enum AND
@@ -40,28 +40,28 @@ export enum UserRole {
 export function userRoleFromJSON(object: any): UserRole {
   switch (object) {
     case 0:
-    case 'USER_ROLE_UNSPECIFIED':
+    case "USER_ROLE_UNSPECIFIED":
       return UserRole.USER_ROLE_UNSPECIFIED;
     case 1:
-    case 'USER_ROLE_ADOPTER':
+    case "USER_ROLE_ADOPTER":
       return UserRole.USER_ROLE_ADOPTER;
     case 2:
-    case 'USER_ROLE_RESCUE_STAFF':
+    case "USER_ROLE_RESCUE_STAFF":
       return UserRole.USER_ROLE_RESCUE_STAFF;
     case 3:
-    case 'USER_ROLE_ADMIN':
+    case "USER_ROLE_ADMIN":
       return UserRole.USER_ROLE_ADMIN;
     case 4:
-    case 'USER_ROLE_MODERATOR':
+    case "USER_ROLE_MODERATOR":
       return UserRole.USER_ROLE_MODERATOR;
     case 5:
-    case 'USER_ROLE_SUPER_ADMIN':
+    case "USER_ROLE_SUPER_ADMIN":
       return UserRole.USER_ROLE_SUPER_ADMIN;
     case 6:
-    case 'USER_ROLE_SUPPORT_AGENT':
+    case "USER_ROLE_SUPPORT_AGENT":
       return UserRole.USER_ROLE_SUPPORT_AGENT;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return UserRole.UNRECOGNIZED;
   }
@@ -70,22 +70,22 @@ export function userRoleFromJSON(object: any): UserRole {
 export function userRoleToJSON(object: UserRole): string {
   switch (object) {
     case UserRole.USER_ROLE_UNSPECIFIED:
-      return 'USER_ROLE_UNSPECIFIED';
+      return "USER_ROLE_UNSPECIFIED";
     case UserRole.USER_ROLE_ADOPTER:
-      return 'USER_ROLE_ADOPTER';
+      return "USER_ROLE_ADOPTER";
     case UserRole.USER_ROLE_RESCUE_STAFF:
-      return 'USER_ROLE_RESCUE_STAFF';
+      return "USER_ROLE_RESCUE_STAFF";
     case UserRole.USER_ROLE_ADMIN:
-      return 'USER_ROLE_ADMIN';
+      return "USER_ROLE_ADMIN";
     case UserRole.USER_ROLE_MODERATOR:
-      return 'USER_ROLE_MODERATOR';
+      return "USER_ROLE_MODERATOR";
     case UserRole.USER_ROLE_SUPER_ADMIN:
-      return 'USER_ROLE_SUPER_ADMIN';
+      return "USER_ROLE_SUPER_ADMIN";
     case UserRole.USER_ROLE_SUPPORT_AGENT:
-      return 'USER_ROLE_SUPPORT_AGENT';
+      return "USER_ROLE_SUPPORT_AGENT";
     case UserRole.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -106,25 +106,25 @@ export enum UserStatus {
 export function userStatusFromJSON(object: any): UserStatus {
   switch (object) {
     case 0:
-    case 'USER_STATUS_UNSPECIFIED':
+    case "USER_STATUS_UNSPECIFIED":
       return UserStatus.USER_STATUS_UNSPECIFIED;
     case 1:
-    case 'USER_STATUS_ACTIVE':
+    case "USER_STATUS_ACTIVE":
       return UserStatus.USER_STATUS_ACTIVE;
     case 2:
-    case 'USER_STATUS_INACTIVE':
+    case "USER_STATUS_INACTIVE":
       return UserStatus.USER_STATUS_INACTIVE;
     case 3:
-    case 'USER_STATUS_SUSPENDED':
+    case "USER_STATUS_SUSPENDED":
       return UserStatus.USER_STATUS_SUSPENDED;
     case 4:
-    case 'USER_STATUS_PENDING_VERIFICATION':
+    case "USER_STATUS_PENDING_VERIFICATION":
       return UserStatus.USER_STATUS_PENDING_VERIFICATION;
     case 5:
-    case 'USER_STATUS_DEACTIVATED':
+    case "USER_STATUS_DEACTIVATED":
       return UserStatus.USER_STATUS_DEACTIVATED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return UserStatus.UNRECOGNIZED;
   }
@@ -133,20 +133,20 @@ export function userStatusFromJSON(object: any): UserStatus {
 export function userStatusToJSON(object: UserStatus): string {
   switch (object) {
     case UserStatus.USER_STATUS_UNSPECIFIED:
-      return 'USER_STATUS_UNSPECIFIED';
+      return "USER_STATUS_UNSPECIFIED";
     case UserStatus.USER_STATUS_ACTIVE:
-      return 'USER_STATUS_ACTIVE';
+      return "USER_STATUS_ACTIVE";
     case UserStatus.USER_STATUS_INACTIVE:
-      return 'USER_STATUS_INACTIVE';
+      return "USER_STATUS_INACTIVE";
     case UserStatus.USER_STATUS_SUSPENDED:
-      return 'USER_STATUS_SUSPENDED';
+      return "USER_STATUS_SUSPENDED";
     case UserStatus.USER_STATUS_PENDING_VERIFICATION:
-      return 'USER_STATUS_PENDING_VERIFICATION';
+      return "USER_STATUS_PENDING_VERIFICATION";
     case UserStatus.USER_STATUS_DEACTIVATED:
-      return 'USER_STATUS_DEACTIVATED';
+      return "USER_STATUS_DEACTIVATED";
     case UserStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -161,19 +161,19 @@ export enum ProfileVisibility {
 export function profileVisibilityFromJSON(object: any): ProfileVisibility {
   switch (object) {
     case 0:
-    case 'PROFILE_VISIBILITY_UNSPECIFIED':
+    case "PROFILE_VISIBILITY_UNSPECIFIED":
       return ProfileVisibility.PROFILE_VISIBILITY_UNSPECIFIED;
     case 1:
-    case 'PROFILE_VISIBILITY_PUBLIC':
+    case "PROFILE_VISIBILITY_PUBLIC":
       return ProfileVisibility.PROFILE_VISIBILITY_PUBLIC;
     case 2:
-    case 'PROFILE_VISIBILITY_RESCUES_ONLY':
+    case "PROFILE_VISIBILITY_RESCUES_ONLY":
       return ProfileVisibility.PROFILE_VISIBILITY_RESCUES_ONLY;
     case 3:
-    case 'PROFILE_VISIBILITY_PRIVATE':
+    case "PROFILE_VISIBILITY_PRIVATE":
       return ProfileVisibility.PROFILE_VISIBILITY_PRIVATE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ProfileVisibility.UNRECOGNIZED;
   }
@@ -182,16 +182,16 @@ export function profileVisibilityFromJSON(object: any): ProfileVisibility {
 export function profileVisibilityToJSON(object: ProfileVisibility): string {
   switch (object) {
     case ProfileVisibility.PROFILE_VISIBILITY_UNSPECIFIED:
-      return 'PROFILE_VISIBILITY_UNSPECIFIED';
+      return "PROFILE_VISIBILITY_UNSPECIFIED";
     case ProfileVisibility.PROFILE_VISIBILITY_PUBLIC:
-      return 'PROFILE_VISIBILITY_PUBLIC';
+      return "PROFILE_VISIBILITY_PUBLIC";
     case ProfileVisibility.PROFILE_VISIBILITY_RESCUES_ONLY:
-      return 'PROFILE_VISIBILITY_RESCUES_ONLY';
+      return "PROFILE_VISIBILITY_RESCUES_ONLY";
     case ProfileVisibility.PROFILE_VISIBILITY_PRIVATE:
-      return 'PROFILE_VISIBILITY_PRIVATE';
+      return "PROFILE_VISIBILITY_PRIVATE";
     case ProfileVisibility.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -205,16 +205,16 @@ export enum IpRuleType {
 export function ipRuleTypeFromJSON(object: any): IpRuleType {
   switch (object) {
     case 0:
-    case 'IP_RULE_TYPE_UNSPECIFIED':
+    case "IP_RULE_TYPE_UNSPECIFIED":
       return IpRuleType.IP_RULE_TYPE_UNSPECIFIED;
     case 1:
-    case 'IP_RULE_TYPE_ALLOW':
+    case "IP_RULE_TYPE_ALLOW":
       return IpRuleType.IP_RULE_TYPE_ALLOW;
     case 2:
-    case 'IP_RULE_TYPE_BLOCK':
+    case "IP_RULE_TYPE_BLOCK":
       return IpRuleType.IP_RULE_TYPE_BLOCK;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return IpRuleType.UNRECOGNIZED;
   }
@@ -223,14 +223,14 @@ export function ipRuleTypeFromJSON(object: any): IpRuleType {
 export function ipRuleTypeToJSON(object: IpRuleType): string {
   switch (object) {
     case IpRuleType.IP_RULE_TYPE_UNSPECIFIED:
-      return 'IP_RULE_TYPE_UNSPECIFIED';
+      return "IP_RULE_TYPE_UNSPECIFIED";
     case IpRuleType.IP_RULE_TYPE_ALLOW:
-      return 'IP_RULE_TYPE_ALLOW';
+      return "IP_RULE_TYPE_ALLOW";
     case IpRuleType.IP_RULE_TYPE_BLOCK:
-      return 'IP_RULE_TYPE_BLOCK';
+      return "IP_RULE_TYPE_BLOCK";
     case IpRuleType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -249,19 +249,19 @@ export enum FieldAccessLevel {
 export function fieldAccessLevelFromJSON(object: any): FieldAccessLevel {
   switch (object) {
     case 0:
-    case 'FIELD_ACCESS_LEVEL_UNSPECIFIED':
+    case "FIELD_ACCESS_LEVEL_UNSPECIFIED":
       return FieldAccessLevel.FIELD_ACCESS_LEVEL_UNSPECIFIED;
     case 1:
-    case 'FIELD_ACCESS_LEVEL_NONE':
+    case "FIELD_ACCESS_LEVEL_NONE":
       return FieldAccessLevel.FIELD_ACCESS_LEVEL_NONE;
     case 2:
-    case 'FIELD_ACCESS_LEVEL_READ':
+    case "FIELD_ACCESS_LEVEL_READ":
       return FieldAccessLevel.FIELD_ACCESS_LEVEL_READ;
     case 3:
-    case 'FIELD_ACCESS_LEVEL_WRITE':
+    case "FIELD_ACCESS_LEVEL_WRITE":
       return FieldAccessLevel.FIELD_ACCESS_LEVEL_WRITE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return FieldAccessLevel.UNRECOGNIZED;
   }
@@ -270,16 +270,16 @@ export function fieldAccessLevelFromJSON(object: any): FieldAccessLevel {
 export function fieldAccessLevelToJSON(object: FieldAccessLevel): string {
   switch (object) {
     case FieldAccessLevel.FIELD_ACCESS_LEVEL_UNSPECIFIED:
-      return 'FIELD_ACCESS_LEVEL_UNSPECIFIED';
+      return "FIELD_ACCESS_LEVEL_UNSPECIFIED";
     case FieldAccessLevel.FIELD_ACCESS_LEVEL_NONE:
-      return 'FIELD_ACCESS_LEVEL_NONE';
+      return "FIELD_ACCESS_LEVEL_NONE";
     case FieldAccessLevel.FIELD_ACCESS_LEVEL_READ:
-      return 'FIELD_ACCESS_LEVEL_READ';
+      return "FIELD_ACCESS_LEVEL_READ";
     case FieldAccessLevel.FIELD_ACCESS_LEVEL_WRITE:
-      return 'FIELD_ACCESS_LEVEL_WRITE';
+      return "FIELD_ACCESS_LEVEL_WRITE";
     case FieldAccessLevel.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -299,22 +299,22 @@ export enum FieldPermissionResource {
 export function fieldPermissionResourceFromJSON(object: any): FieldPermissionResource {
   switch (object) {
     case 0:
-    case 'FIELD_PERMISSION_RESOURCE_UNSPECIFIED':
+    case "FIELD_PERMISSION_RESOURCE_UNSPECIFIED":
       return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_UNSPECIFIED;
     case 1:
-    case 'FIELD_PERMISSION_RESOURCE_USERS':
+    case "FIELD_PERMISSION_RESOURCE_USERS":
       return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS;
     case 2:
-    case 'FIELD_PERMISSION_RESOURCE_PETS':
+    case "FIELD_PERMISSION_RESOURCE_PETS":
       return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_PETS;
     case 3:
-    case 'FIELD_PERMISSION_RESOURCE_APPLICATIONS':
+    case "FIELD_PERMISSION_RESOURCE_APPLICATIONS":
       return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_APPLICATIONS;
     case 4:
-    case 'FIELD_PERMISSION_RESOURCE_RESCUES':
+    case "FIELD_PERMISSION_RESOURCE_RESCUES":
       return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_RESCUES;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return FieldPermissionResource.UNRECOGNIZED;
   }
@@ -323,18 +323,18 @@ export function fieldPermissionResourceFromJSON(object: any): FieldPermissionRes
 export function fieldPermissionResourceToJSON(object: FieldPermissionResource): string {
   switch (object) {
     case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_UNSPECIFIED:
-      return 'FIELD_PERMISSION_RESOURCE_UNSPECIFIED';
+      return "FIELD_PERMISSION_RESOURCE_UNSPECIFIED";
     case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS:
-      return 'FIELD_PERMISSION_RESOURCE_USERS';
+      return "FIELD_PERMISSION_RESOURCE_USERS";
     case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_PETS:
-      return 'FIELD_PERMISSION_RESOURCE_PETS';
+      return "FIELD_PERMISSION_RESOURCE_PETS";
     case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_APPLICATIONS:
-      return 'FIELD_PERMISSION_RESOURCE_APPLICATIONS';
+      return "FIELD_PERMISSION_RESOURCE_APPLICATIONS";
     case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_RESCUES:
-      return 'FIELD_PERMISSION_RESOURCE_RESCUES';
+      return "FIELD_PERMISSION_RESOURCE_RESCUES";
     case FieldPermissionResource.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -381,7 +381,9 @@ export interface User {
   timezone?: string | undefined;
   language?: string | undefined;
   country?: string | undefined;
-  city?: string | undefined;
+  city?:
+    | string
+    | undefined;
   /** RFC 3339 timestamps. */
   lastLoginAt?: string | undefined;
   createdAt: string;
@@ -410,13 +412,17 @@ export interface LoginRequest {
    * Populated by the gateway from the inbound HTTP request.
    */
   ipAddress?: string | undefined;
-  userAgent?: string | undefined;
+  userAgent?:
+    | string
+    | undefined;
   /**
    * The 6-digit TOTP code, supplied on the SECOND login call when the
    * account has 2FA enabled. Absent on the first call (the service then
    * answers with two_factor_required).
    */
-  twoFactorToken?: string | undefined;
+  twoFactorToken?:
+    | string
+    | undefined;
   /**
    * A single-use backup/recovery code, accepted in place of
    * two_factor_token on the second login call. Mutually exclusive with
@@ -427,7 +433,9 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   user?: User | undefined;
-  tokens?: TokenPair | undefined;
+  tokens?:
+    | TokenPair
+    | undefined;
   /**
    * Flattened permissions snapshot at login time. The gateway caches
    * this for the lifetime of the access token; ValidateToken is the
@@ -484,7 +492,9 @@ export interface ValidateTokenRequest {
 }
 
 export interface ValidateTokenResponse {
-  principal?: Principal | undefined;
+  principal?:
+    | Principal
+    | undefined;
   /**
    * Access-token expiry (RFC 3339) — the gateway uses this to decide
    * whether to cache the ValidateToken result or hit the service again.
@@ -497,7 +507,8 @@ export interface ValidateTokenResponse {
  * (x-user-id). Kept as an explicit message so the RPC signature
  * stays stable if future fields (e.g. `include_settings`) appear.
  */
-export interface GetMeRequest {}
+export interface GetMeRequest {
+}
 
 export interface GetMeResponse {
   user?: User | undefined;
@@ -530,15 +541,21 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
-  phoneNumber?: string | undefined;
+  phoneNumber?:
+    | string
+    | undefined;
   /**
    * Default 'adopter' if omitted — adopters self-register; staff are
    * invited via the rescue vertical's InviteStaff flow.
    */
-  userType?: UserRole | undefined;
+  userType?:
+    | UserRole
+    | undefined;
   /** Audit / login provenance — same fields as LoginRequest. */
   ipAddress?: string | undefined;
-  userAgent?: string | undefined;
+  userAgent?:
+    | string
+    | undefined;
   /**
    * T&Cs + privacy must be accepted on the form before the row is
    * created. terms_accepted_at / privacy_policy_accepted_at are
@@ -549,7 +566,9 @@ export interface RegisterRequest {
 }
 
 export interface RegisterResponse {
-  user?: User | undefined;
+  user?:
+    | User
+    | undefined;
   /**
    * The freshly-minted token pair (the SPA logs the user straight in
    * — verification is a follow-up step the user can complete from the
@@ -571,7 +590,9 @@ export interface ProvisionInvitedUserResponse {
    * The resolved user (created or pre-existing). user_id is the field
    * the caller needs to attach staff membership.
    */
-  user?: User | undefined;
+  user?:
+    | User
+    | undefined;
   /**
    * True when this call created the row; false when the email already
    * had an account and was attached as-is.
@@ -646,10 +667,15 @@ export interface ChangePasswordResponse {
   ok: boolean;
 }
 
-export interface SetupTwoFactorRequest {}
+export interface SetupTwoFactorRequest {
+}
 
 export interface SetupTwoFactorResponse {
-  /** Base32 TOTP secret the client shows to the user for QR / manual entry. */
+  /**
+   * Base32 TOTP secret the client shows to the user (for QR / manual entry).
+   * The server now persists this server-side; the client does NOT re-submit it
+   * to EnableTwoFactor (ADS-963).
+   */
   secret: string;
   /** otpauth:// provisioning URI for QR rendering. */
   otpauthUrl: string;
@@ -657,11 +683,13 @@ export interface SetupTwoFactorResponse {
 
 export interface EnableTwoFactorRequest {
   /**
-   * @deprecated Ignored by the server (ADS-963). The server reads the pending
-   * secret stored during SetupTwoFactor instead of trusting a client-supplied
-   * value. Kept for wire compatibility only.
+   * DEPRECATED (ADS-963): this field is ignored by the server. The server
+   * reads the pending secret it stored during SetupTwoFactor instead of
+   * trusting a client-supplied value. Kept for wire compatibility.
+   *
+   * @deprecated
    */
-  secret?: string | undefined;
+  secret: string;
   /** The current TOTP code proving the user has their authenticator app set up. */
   token: string;
 }
@@ -745,7 +773,8 @@ export interface Session {
  * Self-scoped — no user_id field. Cross-user listing has no current
  * use case; admin tooling would call a different (future) RPC.
  */
-export interface ListSessionsRequest {}
+export interface ListSessionsRequest {
+}
 
 export interface ListSessionsResponse {
   sessions: Session[];
@@ -789,7 +818,9 @@ export interface GetPrivacyPreferencesResponse {
 }
 
 export interface UpdatePrivacyPreferencesRequest {
-  userId?: string | undefined;
+  userId?:
+    | string
+    | undefined;
   /**
    * Only set fields are written — scalars get the proto3 optional
    * presence treatment (set_* discipline; absent leaves the column
@@ -816,14 +847,20 @@ export interface ResetPrivacyPreferencesResponse {
 
 export interface SearchUsersRequest {
   /** Free-text search across first_name / last_name / email (ILIKE). */
-  search?: string | undefined;
+  search?:
+    | string
+    | undefined;
   /** Optional filters. UNSPECIFIED = no filter. */
   statusFilter: UserStatus;
   userTypeFilter: UserRole;
-  emailVerified?: boolean | undefined;
+  emailVerified?:
+    | boolean
+    | undefined;
   /** ISO-8601 created-at range. */
   createdFrom?: string | undefined;
-  createdTo?: string | undefined;
+  createdTo?:
+    | string
+    | undefined;
   /** 1-indexed page + size (default 20, max 100). */
   page: number;
   limit: number;
@@ -920,9 +957,13 @@ export interface ExportUserDataRequest {
 }
 
 export interface ExportUserDataResponse {
-  user?: User | undefined;
+  user?:
+    | User
+    | undefined;
   /** Absent when the user has no privacy-preferences row yet. */
-  privacyPreferences?: PrivacyPreferences | undefined;
+  privacyPreferences?:
+    | PrivacyPreferences
+    | undefined;
   /** RFC 3339 timestamp the snapshot was taken. */
   exportedAt: string;
 }
@@ -938,7 +979,8 @@ export interface RequestAccountDeletionResponse {
   deletionScheduledFor: string;
 }
 
-export interface GetUserStatisticsRequest {}
+export interface GetUserStatisticsRequest {
+}
 
 export interface UserStatusCount {
   status: UserStatus;
@@ -1066,7 +1108,8 @@ export interface IpRule {
   updatedAt: string;
 }
 
-export interface ListIpRulesRequest {}
+export interface ListIpRulesRequest {
+}
 
 export interface ListIpRulesResponse {
   rules: IpRule[];
@@ -1087,7 +1130,8 @@ export interface DeleteIpRuleRequest {
   ipRuleId: string;
 }
 
-export interface DeleteIpRuleResponse {}
+export interface DeleteIpRuleResponse {
+}
 
 /**
  * A single stored override row. role is a free-text string (matches the
@@ -1104,7 +1148,8 @@ export interface FieldPermission {
   updatedAt: string;
 }
 
-export interface GetFieldPermissionDefaultsRequest {}
+export interface GetFieldPermissionDefaultsRequest {
+}
 
 /**
  * `defaults_json` is the full FieldPermissionConfig encoded as JSON so
@@ -1201,7 +1246,9 @@ export interface ListUserIdsByCohortRequest {
    */
   statuses: UserStatus[];
   /** When true, only include users whose email is verified. */
-  emailVerified?: boolean | undefined;
+  emailVerified?:
+    | boolean
+    | undefined;
   /** 1-based page index. */
   page: number;
   /** Page size; clamped server-side. */
@@ -1216,12 +1263,12 @@ export interface ListUserIdsByCohortResponse {
 }
 
 function createBasePrincipal(): Principal {
-  return { userId: '', roles: [], permissions: [], rescueId: undefined };
+  return { userId: "", roles: [], permissions: [], rescueId: undefined };
 }
 
 export const Principal: MessageFns<Principal> = {
   encode(message: Principal, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     writer.uint32(18).fork();
@@ -1301,29 +1348,27 @@ export const Principal: MessageFns<Principal> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
-      roles: globalThis.Array.isArray(object?.roles)
-        ? object.roles.map((e: any) => userRoleFromJSON(e))
-        : [],
+        ? globalThis.String(object.user_id)
+        : "",
+      roles: globalThis.Array.isArray(object?.roles) ? object.roles.map((e: any) => userRoleFromJSON(e)) : [],
       permissions: globalThis.Array.isArray(object?.permissions)
         ? object.permissions.map((e: any) => globalThis.String(e))
         : [],
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
     };
   },
 
   toJSON(message: Principal): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.roles?.length) {
-      obj.roles = message.roles.map(e => userRoleToJSON(e));
+      obj.roles = message.roles.map((e) => userRoleToJSON(e));
     }
     if (message.permissions?.length) {
       obj.permissions = message.permissions;
@@ -1339,9 +1384,9 @@ export const Principal: MessageFns<Principal> = {
   },
   fromPartial<I extends Exact<DeepPartial<Principal>, I>>(object: I): Principal {
     const message = createBasePrincipal();
-    message.userId = object.userId ?? '';
-    message.roles = object.roles?.map(e => e) || [];
-    message.permissions = object.permissions?.map(e => e) || [];
+    message.userId = object.userId ?? "";
+    message.roles = object.roles?.map((e) => e) || [];
+    message.permissions = object.permissions?.map((e) => e) || [];
     message.rescueId = object.rescueId ?? undefined;
     return message;
   },
@@ -1349,8 +1394,8 @@ export const Principal: MessageFns<Principal> = {
 
 function createBaseUser(): User {
   return {
-    userId: '',
-    email: '',
+    userId: "",
+    email: "",
     firstName: undefined,
     lastName: undefined,
     userType: 0,
@@ -1365,17 +1410,17 @@ function createBaseUser(): User {
     country: undefined,
     city: undefined,
     lastLoginAt: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const User: MessageFns<User> = {
   encode(message: User, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(18).string(message.email);
     }
     if (message.firstName !== undefined) {
@@ -1420,10 +1465,10 @@ export const User: MessageFns<User> = {
     if (message.lastLoginAt !== undefined) {
       writer.uint32(130).string(message.lastLoginAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(138).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(146).string(message.updatedAt);
     }
     return writer;
@@ -1594,45 +1639,45 @@ export const User: MessageFns<User> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
+        ? globalThis.String(object.user_id)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
       firstName: isSet(object.firstName)
         ? globalThis.String(object.firstName)
         : isSet(object.first_name)
-          ? globalThis.String(object.first_name)
-          : undefined,
+        ? globalThis.String(object.first_name)
+        : undefined,
       lastName: isSet(object.lastName)
         ? globalThis.String(object.lastName)
         : isSet(object.last_name)
-          ? globalThis.String(object.last_name)
-          : undefined,
+        ? globalThis.String(object.last_name)
+        : undefined,
       userType: isSet(object.userType)
         ? userRoleFromJSON(object.userType)
         : isSet(object.user_type)
-          ? userRoleFromJSON(object.user_type)
-          : 0,
+        ? userRoleFromJSON(object.user_type)
+        : 0,
       status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
       emailVerified: isSet(object.emailVerified)
         ? globalThis.Boolean(object.emailVerified)
         : isSet(object.email_verified)
-          ? globalThis.Boolean(object.email_verified)
-          : false,
+        ? globalThis.Boolean(object.email_verified)
+        : false,
       phoneVerified: isSet(object.phoneVerified)
         ? globalThis.Boolean(object.phoneVerified)
         : isSet(object.phone_verified)
-          ? globalThis.Boolean(object.phone_verified)
-          : false,
+        ? globalThis.Boolean(object.phone_verified)
+        : false,
       twoFactorEnabled: isSet(object.twoFactorEnabled)
         ? globalThis.Boolean(object.twoFactorEnabled)
         : isSet(object.two_factor_enabled)
-          ? globalThis.Boolean(object.two_factor_enabled)
-          : false,
+        ? globalThis.Boolean(object.two_factor_enabled)
+        : false,
       profileImageUrl: isSet(object.profileImageUrl)
         ? globalThis.String(object.profileImageUrl)
         : isSet(object.profile_image_url)
-          ? globalThis.String(object.profile_image_url)
-          : undefined,
+        ? globalThis.String(object.profile_image_url)
+        : undefined,
       bio: isSet(object.bio) ? globalThis.String(object.bio) : undefined,
       timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
       language: isSet(object.language) ? globalThis.String(object.language) : undefined,
@@ -1641,27 +1686,27 @@ export const User: MessageFns<User> = {
       lastLoginAt: isSet(object.lastLoginAt)
         ? globalThis.String(object.lastLoginAt)
         : isSet(object.last_login_at)
-          ? globalThis.String(object.last_login_at)
-          : undefined,
+        ? globalThis.String(object.last_login_at)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: User): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
     if (message.firstName !== undefined) {
@@ -1706,10 +1751,10 @@ export const User: MessageFns<User> = {
     if (message.lastLoginAt !== undefined) {
       obj.lastLoginAt = message.lastLoginAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -1720,8 +1765,8 @@ export const User: MessageFns<User> = {
   },
   fromPartial<I extends Exact<DeepPartial<User>, I>>(object: I): User {
     const message = createBaseUser();
-    message.userId = object.userId ?? '';
-    message.email = object.email ?? '';
+    message.userId = object.userId ?? "";
+    message.email = object.email ?? "";
     message.firstName = object.firstName ?? undefined;
     message.lastName = object.lastName ?? undefined;
     message.userType = object.userType ?? 0;
@@ -1736,28 +1781,28 @@ export const User: MessageFns<User> = {
     message.country = object.country ?? undefined;
     message.city = object.city ?? undefined;
     message.lastLoginAt = object.lastLoginAt ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseTokenPair(): TokenPair {
-  return { accessToken: '', refreshToken: '', accessExpiresAt: '', refreshExpiresAt: '' };
+  return { accessToken: "", refreshToken: "", accessExpiresAt: "", refreshExpiresAt: "" };
 }
 
 export const TokenPair: MessageFns<TokenPair> = {
   encode(message: TokenPair, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.accessToken !== '') {
+    if (message.accessToken !== "") {
       writer.uint32(10).string(message.accessToken);
     }
-    if (message.refreshToken !== '') {
+    if (message.refreshToken !== "") {
       writer.uint32(18).string(message.refreshToken);
     }
-    if (message.accessExpiresAt !== '') {
+    if (message.accessExpiresAt !== "") {
       writer.uint32(26).string(message.accessExpiresAt);
     }
-    if (message.refreshExpiresAt !== '') {
+    if (message.refreshExpiresAt !== "") {
       writer.uint32(34).string(message.refreshExpiresAt);
     }
     return writer;
@@ -1816,38 +1861,38 @@ export const TokenPair: MessageFns<TokenPair> = {
       accessToken: isSet(object.accessToken)
         ? globalThis.String(object.accessToken)
         : isSet(object.access_token)
-          ? globalThis.String(object.access_token)
-          : '',
+        ? globalThis.String(object.access_token)
+        : "",
       refreshToken: isSet(object.refreshToken)
         ? globalThis.String(object.refreshToken)
         : isSet(object.refresh_token)
-          ? globalThis.String(object.refresh_token)
-          : '',
+        ? globalThis.String(object.refresh_token)
+        : "",
       accessExpiresAt: isSet(object.accessExpiresAt)
         ? globalThis.String(object.accessExpiresAt)
         : isSet(object.access_expires_at)
-          ? globalThis.String(object.access_expires_at)
-          : '',
+        ? globalThis.String(object.access_expires_at)
+        : "",
       refreshExpiresAt: isSet(object.refreshExpiresAt)
         ? globalThis.String(object.refreshExpiresAt)
         : isSet(object.refresh_expires_at)
-          ? globalThis.String(object.refresh_expires_at)
-          : '',
+        ? globalThis.String(object.refresh_expires_at)
+        : "",
     };
   },
 
   toJSON(message: TokenPair): unknown {
     const obj: any = {};
-    if (message.accessToken !== '') {
+    if (message.accessToken !== "") {
       obj.accessToken = message.accessToken;
     }
-    if (message.refreshToken !== '') {
+    if (message.refreshToken !== "") {
       obj.refreshToken = message.refreshToken;
     }
-    if (message.accessExpiresAt !== '') {
+    if (message.accessExpiresAt !== "") {
       obj.accessExpiresAt = message.accessExpiresAt;
     }
-    if (message.refreshExpiresAt !== '') {
+    if (message.refreshExpiresAt !== "") {
       obj.refreshExpiresAt = message.refreshExpiresAt;
     }
     return obj;
@@ -1858,18 +1903,18 @@ export const TokenPair: MessageFns<TokenPair> = {
   },
   fromPartial<I extends Exact<DeepPartial<TokenPair>, I>>(object: I): TokenPair {
     const message = createBaseTokenPair();
-    message.accessToken = object.accessToken ?? '';
-    message.refreshToken = object.refreshToken ?? '';
-    message.accessExpiresAt = object.accessExpiresAt ?? '';
-    message.refreshExpiresAt = object.refreshExpiresAt ?? '';
+    message.accessToken = object.accessToken ?? "";
+    message.refreshToken = object.refreshToken ?? "";
+    message.accessExpiresAt = object.accessExpiresAt ?? "";
+    message.refreshExpiresAt = object.refreshExpiresAt ?? "";
     return message;
   },
 };
 
 function createBaseLoginRequest(): LoginRequest {
   return {
-    email: '',
-    password: '',
+    email: "",
+    password: "",
     ipAddress: undefined,
     userAgent: undefined,
     twoFactorToken: undefined,
@@ -1879,10 +1924,10 @@ function createBaseLoginRequest(): LoginRequest {
 
 export const LoginRequest: MessageFns<LoginRequest> = {
   encode(message: LoginRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
-    if (message.password !== '') {
+    if (message.password !== "") {
       writer.uint32(18).string(message.password);
     }
     if (message.ipAddress !== undefined) {
@@ -1966,37 +2011,37 @@ export const LoginRequest: MessageFns<LoginRequest> = {
 
   fromJSON(object: any): LoginRequest {
     return {
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
-      password: isSet(object.password) ? globalThis.String(object.password) : '',
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
       ipAddress: isSet(object.ipAddress)
         ? globalThis.String(object.ipAddress)
         : isSet(object.ip_address)
-          ? globalThis.String(object.ip_address)
-          : undefined,
+        ? globalThis.String(object.ip_address)
+        : undefined,
       userAgent: isSet(object.userAgent)
         ? globalThis.String(object.userAgent)
         : isSet(object.user_agent)
-          ? globalThis.String(object.user_agent)
-          : undefined,
+        ? globalThis.String(object.user_agent)
+        : undefined,
       twoFactorToken: isSet(object.twoFactorToken)
         ? globalThis.String(object.twoFactorToken)
         : isSet(object.two_factor_token)
-          ? globalThis.String(object.two_factor_token)
-          : undefined,
+        ? globalThis.String(object.two_factor_token)
+        : undefined,
       backupCode: isSet(object.backupCode)
         ? globalThis.String(object.backupCode)
         : isSet(object.backup_code)
-          ? globalThis.String(object.backup_code)
-          : undefined,
+        ? globalThis.String(object.backup_code)
+        : undefined,
     };
   },
 
   toJSON(message: LoginRequest): unknown {
     const obj: any = {};
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
-    if (message.password !== '') {
+    if (message.password !== "") {
       obj.password = message.password;
     }
     if (message.ipAddress !== undefined) {
@@ -2019,8 +2064,8 @@ export const LoginRequest: MessageFns<LoginRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<LoginRequest>, I>>(object: I): LoginRequest {
     const message = createBaseLoginRequest();
-    message.email = object.email ?? '';
-    message.password = object.password ?? '';
+    message.email = object.email ?? "";
+    message.password = object.password ?? "";
     message.ipAddress = object.ipAddress ?? undefined;
     message.userAgent = object.userAgent ?? undefined;
     message.twoFactorToken = object.twoFactorToken ?? undefined;
@@ -2137,18 +2182,18 @@ export const LoginResponse: MessageFns<LoginResponse> = {
       twoFactorRequired: isSet(object.twoFactorRequired)
         ? globalThis.Boolean(object.twoFactorRequired)
         : isSet(object.two_factor_required)
-          ? globalThis.Boolean(object.two_factor_required)
-          : false,
+        ? globalThis.Boolean(object.two_factor_required)
+        : false,
       emailVerificationRequired: isSet(object.emailVerificationRequired)
         ? globalThis.Boolean(object.emailVerificationRequired)
         : isSet(object.email_verification_required)
-          ? globalThis.Boolean(object.email_verification_required)
-          : false,
+        ? globalThis.Boolean(object.email_verification_required)
+        : false,
       backupCodesExhausted: isSet(object.backupCodesExhausted)
         ? globalThis.Boolean(object.backupCodesExhausted)
         : isSet(object.backup_codes_exhausted)
-          ? globalThis.Boolean(object.backup_codes_exhausted)
-          : false,
+        ? globalThis.Boolean(object.backup_codes_exhausted)
+        : false,
     };
   },
 
@@ -2180,13 +2225,11 @@ export const LoginResponse: MessageFns<LoginResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<LoginResponse>, I>>(object: I): LoginResponse {
     const message = createBaseLoginResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
-    message.tokens =
-      object.tokens !== undefined && object.tokens !== null
-        ? TokenPair.fromPartial(object.tokens)
-        : undefined;
-    message.permissions = object.permissions?.map(e => e) || [];
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
+    message.tokens = (object.tokens !== undefined && object.tokens !== null)
+      ? TokenPair.fromPartial(object.tokens)
+      : undefined;
+    message.permissions = object.permissions?.map((e) => e) || [];
     message.twoFactorRequired = object.twoFactorRequired ?? false;
     message.emailVerificationRequired = object.emailVerificationRequired ?? false;
     message.backupCodesExhausted = object.backupCodesExhausted ?? false;
@@ -2195,12 +2238,12 @@ export const LoginResponse: MessageFns<LoginResponse> = {
 };
 
 function createBaseLogoutRequest(): LogoutRequest {
-  return { refreshToken: '' };
+  return { refreshToken: "" };
 }
 
 export const LogoutRequest: MessageFns<LogoutRequest> = {
   encode(message: LogoutRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.refreshToken !== '') {
+    if (message.refreshToken !== "") {
       writer.uint32(10).string(message.refreshToken);
     }
     return writer;
@@ -2235,14 +2278,14 @@ export const LogoutRequest: MessageFns<LogoutRequest> = {
       refreshToken: isSet(object.refreshToken)
         ? globalThis.String(object.refreshToken)
         : isSet(object.refresh_token)
-          ? globalThis.String(object.refresh_token)
-          : '',
+        ? globalThis.String(object.refresh_token)
+        : "",
     };
   },
 
   toJSON(message: LogoutRequest): unknown {
     const obj: any = {};
-    if (message.refreshToken !== '') {
+    if (message.refreshToken !== "") {
       obj.refreshToken = message.refreshToken;
     }
     return obj;
@@ -2253,7 +2296,7 @@ export const LogoutRequest: MessageFns<LogoutRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<LogoutRequest>, I>>(object: I): LogoutRequest {
     const message = createBaseLogoutRequest();
-    message.refreshToken = object.refreshToken ?? '';
+    message.refreshToken = object.refreshToken ?? "";
     return message;
   },
 };
@@ -2317,12 +2360,12 @@ export const LogoutResponse: MessageFns<LogoutResponse> = {
 };
 
 function createBaseRefreshTokenRequest(): RefreshTokenRequest {
-  return { refreshToken: '' };
+  return { refreshToken: "" };
 }
 
 export const RefreshTokenRequest: MessageFns<RefreshTokenRequest> = {
   encode(message: RefreshTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.refreshToken !== '') {
+    if (message.refreshToken !== "") {
       writer.uint32(10).string(message.refreshToken);
     }
     return writer;
@@ -2357,14 +2400,14 @@ export const RefreshTokenRequest: MessageFns<RefreshTokenRequest> = {
       refreshToken: isSet(object.refreshToken)
         ? globalThis.String(object.refreshToken)
         : isSet(object.refresh_token)
-          ? globalThis.String(object.refresh_token)
-          : '',
+        ? globalThis.String(object.refresh_token)
+        : "",
     };
   },
 
   toJSON(message: RefreshTokenRequest): unknown {
     const obj: any = {};
-    if (message.refreshToken !== '') {
+    if (message.refreshToken !== "") {
       obj.refreshToken = message.refreshToken;
     }
     return obj;
@@ -2373,11 +2416,9 @@ export const RefreshTokenRequest: MessageFns<RefreshTokenRequest> = {
   create<I extends Exact<DeepPartial<RefreshTokenRequest>, I>>(base?: I): RefreshTokenRequest {
     return RefreshTokenRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RefreshTokenRequest>, I>>(
-    object: I
-  ): RefreshTokenRequest {
+  fromPartial<I extends Exact<DeepPartial<RefreshTokenRequest>, I>>(object: I): RefreshTokenRequest {
     const message = createBaseRefreshTokenRequest();
-    message.refreshToken = object.refreshToken ?? '';
+    message.refreshToken = object.refreshToken ?? "";
     return message;
   },
 };
@@ -2433,25 +2474,22 @@ export const RefreshTokenResponse: MessageFns<RefreshTokenResponse> = {
   create<I extends Exact<DeepPartial<RefreshTokenResponse>, I>>(base?: I): RefreshTokenResponse {
     return RefreshTokenResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RefreshTokenResponse>, I>>(
-    object: I
-  ): RefreshTokenResponse {
+  fromPartial<I extends Exact<DeepPartial<RefreshTokenResponse>, I>>(object: I): RefreshTokenResponse {
     const message = createBaseRefreshTokenResponse();
-    message.tokens =
-      object.tokens !== undefined && object.tokens !== null
-        ? TokenPair.fromPartial(object.tokens)
-        : undefined;
+    message.tokens = (object.tokens !== undefined && object.tokens !== null)
+      ? TokenPair.fromPartial(object.tokens)
+      : undefined;
     return message;
   },
 };
 
 function createBaseValidateTokenRequest(): ValidateTokenRequest {
-  return { accessToken: '' };
+  return { accessToken: "" };
 }
 
 export const ValidateTokenRequest: MessageFns<ValidateTokenRequest> = {
   encode(message: ValidateTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.accessToken !== '') {
+    if (message.accessToken !== "") {
       writer.uint32(10).string(message.accessToken);
     }
     return writer;
@@ -2486,14 +2524,14 @@ export const ValidateTokenRequest: MessageFns<ValidateTokenRequest> = {
       accessToken: isSet(object.accessToken)
         ? globalThis.String(object.accessToken)
         : isSet(object.access_token)
-          ? globalThis.String(object.access_token)
-          : '',
+        ? globalThis.String(object.access_token)
+        : "",
     };
   },
 
   toJSON(message: ValidateTokenRequest): unknown {
     const obj: any = {};
-    if (message.accessToken !== '') {
+    if (message.accessToken !== "") {
       obj.accessToken = message.accessToken;
     }
     return obj;
@@ -2502,17 +2540,15 @@ export const ValidateTokenRequest: MessageFns<ValidateTokenRequest> = {
   create<I extends Exact<DeepPartial<ValidateTokenRequest>, I>>(base?: I): ValidateTokenRequest {
     return ValidateTokenRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ValidateTokenRequest>, I>>(
-    object: I
-  ): ValidateTokenRequest {
+  fromPartial<I extends Exact<DeepPartial<ValidateTokenRequest>, I>>(object: I): ValidateTokenRequest {
     const message = createBaseValidateTokenRequest();
-    message.accessToken = object.accessToken ?? '';
+    message.accessToken = object.accessToken ?? "";
     return message;
   },
 };
 
 function createBaseValidateTokenResponse(): ValidateTokenResponse {
-  return { principal: undefined, expiresAt: '' };
+  return { principal: undefined, expiresAt: "" };
 }
 
 export const ValidateTokenResponse: MessageFns<ValidateTokenResponse> = {
@@ -2520,7 +2556,7 @@ export const ValidateTokenResponse: MessageFns<ValidateTokenResponse> = {
     if (message.principal !== undefined) {
       Principal.encode(message.principal, writer.uint32(10).fork()).join();
     }
-    if (message.expiresAt !== '') {
+    if (message.expiresAt !== "") {
       writer.uint32(18).string(message.expiresAt);
     }
     return writer;
@@ -2564,8 +2600,8 @@ export const ValidateTokenResponse: MessageFns<ValidateTokenResponse> = {
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : '',
+        ? globalThis.String(object.expires_at)
+        : "",
     };
   },
 
@@ -2574,7 +2610,7 @@ export const ValidateTokenResponse: MessageFns<ValidateTokenResponse> = {
     if (message.principal !== undefined) {
       obj.principal = Principal.toJSON(message.principal);
     }
-    if (message.expiresAt !== '') {
+    if (message.expiresAt !== "") {
       obj.expiresAt = message.expiresAt;
     }
     return obj;
@@ -2583,15 +2619,12 @@ export const ValidateTokenResponse: MessageFns<ValidateTokenResponse> = {
   create<I extends Exact<DeepPartial<ValidateTokenResponse>, I>>(base?: I): ValidateTokenResponse {
     return ValidateTokenResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ValidateTokenResponse>, I>>(
-    object: I
-  ): ValidateTokenResponse {
+  fromPartial<I extends Exact<DeepPartial<ValidateTokenResponse>, I>>(object: I): ValidateTokenResponse {
     const message = createBaseValidateTokenResponse();
-    message.principal =
-      object.principal !== undefined && object.principal !== null
-        ? Principal.fromPartial(object.principal)
-        : undefined;
-    message.expiresAt = object.expiresAt ?? '';
+    message.principal = (object.principal !== undefined && object.principal !== null)
+      ? Principal.fromPartial(object.principal)
+      : undefined;
+    message.expiresAt = object.expiresAt ?? "";
     return message;
   },
 };
@@ -2723,17 +2756,15 @@ export const GetMeResponse: MessageFns<GetMeResponse> = {
   fromJSON(object: any): GetMeResponse {
     return {
       user: isSet(object.user) ? User.fromJSON(object.user) : undefined,
-      roles: globalThis.Array.isArray(object?.roles)
-        ? object.roles.map((e: any) => userRoleFromJSON(e))
-        : [],
+      roles: globalThis.Array.isArray(object?.roles) ? object.roles.map((e: any) => userRoleFromJSON(e)) : [],
       permissions: globalThis.Array.isArray(object?.permissions)
         ? object.permissions.map((e: any) => globalThis.String(e))
         : [],
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
     };
   },
 
@@ -2743,7 +2774,7 @@ export const GetMeResponse: MessageFns<GetMeResponse> = {
       obj.user = User.toJSON(message.user);
     }
     if (message.roles?.length) {
-      obj.roles = message.roles.map(e => userRoleToJSON(e));
+      obj.roles = message.roles.map((e) => userRoleToJSON(e));
     }
     if (message.permissions?.length) {
       obj.permissions = message.permissions;
@@ -2759,22 +2790,21 @@ export const GetMeResponse: MessageFns<GetMeResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetMeResponse>, I>>(object: I): GetMeResponse {
     const message = createBaseGetMeResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
-    message.roles = object.roles?.map(e => e) || [];
-    message.permissions = object.permissions?.map(e => e) || [];
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
+    message.roles = object.roles?.map((e) => e) || [];
+    message.permissions = object.permissions?.map((e) => e) || [];
     message.rescueId = object.rescueId ?? undefined;
     return message;
   },
 };
 
 function createBaseAssignRoleRequest(): AssignRoleRequest {
-  return { targetUserId: '', role: 0, reason: undefined };
+  return { targetUserId: "", role: 0, reason: undefined };
 }
 
 export const AssignRoleRequest: MessageFns<AssignRoleRequest> = {
   encode(message: AssignRoleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.targetUserId !== '') {
+    if (message.targetUserId !== "") {
       writer.uint32(10).string(message.targetUserId);
     }
     if (message.role !== 0) {
@@ -2831,8 +2861,8 @@ export const AssignRoleRequest: MessageFns<AssignRoleRequest> = {
       targetUserId: isSet(object.targetUserId)
         ? globalThis.String(object.targetUserId)
         : isSet(object.target_user_id)
-          ? globalThis.String(object.target_user_id)
-          : '',
+        ? globalThis.String(object.target_user_id)
+        : "",
       role: isSet(object.role) ? userRoleFromJSON(object.role) : 0,
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
@@ -2840,7 +2870,7 @@ export const AssignRoleRequest: MessageFns<AssignRoleRequest> = {
 
   toJSON(message: AssignRoleRequest): unknown {
     const obj: any = {};
-    if (message.targetUserId !== '') {
+    if (message.targetUserId !== "") {
       obj.targetUserId = message.targetUserId;
     }
     if (message.role !== 0) {
@@ -2857,7 +2887,7 @@ export const AssignRoleRequest: MessageFns<AssignRoleRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<AssignRoleRequest>, I>>(object: I): AssignRoleRequest {
     const message = createBaseAssignRoleRequest();
-    message.targetUserId = object.targetUserId ?? '';
+    message.targetUserId = object.targetUserId ?? "";
     message.role = object.role ?? 0;
     message.reason = object.reason ?? undefined;
     return message;
@@ -2913,17 +2943,13 @@ export const AssignRoleResponse: MessageFns<AssignRoleResponse> = {
   },
 
   fromJSON(object: any): AssignRoleResponse {
-    return {
-      roles: globalThis.Array.isArray(object?.roles)
-        ? object.roles.map((e: any) => userRoleFromJSON(e))
-        : [],
-    };
+    return { roles: globalThis.Array.isArray(object?.roles) ? object.roles.map((e: any) => userRoleFromJSON(e)) : [] };
   },
 
   toJSON(message: AssignRoleResponse): unknown {
     const obj: any = {};
     if (message.roles?.length) {
-      obj.roles = message.roles.map(e => userRoleToJSON(e));
+      obj.roles = message.roles.map((e) => userRoleToJSON(e));
     }
     return obj;
   },
@@ -2933,17 +2959,17 @@ export const AssignRoleResponse: MessageFns<AssignRoleResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<AssignRoleResponse>, I>>(object: I): AssignRoleResponse {
     const message = createBaseAssignRoleResponse();
-    message.roles = object.roles?.map(e => e) || [];
+    message.roles = object.roles?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseRegisterRequest(): RegisterRequest {
   return {
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
     phoneNumber: undefined,
     userType: undefined,
     ipAddress: undefined,
@@ -2955,16 +2981,16 @@ function createBaseRegisterRequest(): RegisterRequest {
 
 export const RegisterRequest: MessageFns<RegisterRequest> = {
   encode(message: RegisterRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
-    if (message.password !== '') {
+    if (message.password !== "") {
       writer.uint32(18).string(message.password);
     }
-    if (message.firstName !== '') {
+    if (message.firstName !== "") {
       writer.uint32(26).string(message.firstName);
     }
-    if (message.lastName !== '') {
+    if (message.lastName !== "") {
       writer.uint32(34).string(message.lastName);
     }
     if (message.phoneNumber !== undefined) {
@@ -3086,63 +3112,63 @@ export const RegisterRequest: MessageFns<RegisterRequest> = {
 
   fromJSON(object: any): RegisterRequest {
     return {
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
-      password: isSet(object.password) ? globalThis.String(object.password) : '',
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
       firstName: isSet(object.firstName)
         ? globalThis.String(object.firstName)
         : isSet(object.first_name)
-          ? globalThis.String(object.first_name)
-          : '',
+        ? globalThis.String(object.first_name)
+        : "",
       lastName: isSet(object.lastName)
         ? globalThis.String(object.lastName)
         : isSet(object.last_name)
-          ? globalThis.String(object.last_name)
-          : '',
+        ? globalThis.String(object.last_name)
+        : "",
       phoneNumber: isSet(object.phoneNumber)
         ? globalThis.String(object.phoneNumber)
         : isSet(object.phone_number)
-          ? globalThis.String(object.phone_number)
-          : undefined,
+        ? globalThis.String(object.phone_number)
+        : undefined,
       userType: isSet(object.userType)
         ? userRoleFromJSON(object.userType)
         : isSet(object.user_type)
-          ? userRoleFromJSON(object.user_type)
-          : undefined,
+        ? userRoleFromJSON(object.user_type)
+        : undefined,
       ipAddress: isSet(object.ipAddress)
         ? globalThis.String(object.ipAddress)
         : isSet(object.ip_address)
-          ? globalThis.String(object.ip_address)
-          : undefined,
+        ? globalThis.String(object.ip_address)
+        : undefined,
       userAgent: isSet(object.userAgent)
         ? globalThis.String(object.userAgent)
         : isSet(object.user_agent)
-          ? globalThis.String(object.user_agent)
-          : undefined,
+        ? globalThis.String(object.user_agent)
+        : undefined,
       termsAccepted: isSet(object.termsAccepted)
         ? globalThis.Boolean(object.termsAccepted)
         : isSet(object.terms_accepted)
-          ? globalThis.Boolean(object.terms_accepted)
-          : false,
+        ? globalThis.Boolean(object.terms_accepted)
+        : false,
       privacyPolicyAccepted: isSet(object.privacyPolicyAccepted)
         ? globalThis.Boolean(object.privacyPolicyAccepted)
         : isSet(object.privacy_policy_accepted)
-          ? globalThis.Boolean(object.privacy_policy_accepted)
-          : false,
+        ? globalThis.Boolean(object.privacy_policy_accepted)
+        : false,
     };
   },
 
   toJSON(message: RegisterRequest): unknown {
     const obj: any = {};
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
-    if (message.password !== '') {
+    if (message.password !== "") {
       obj.password = message.password;
     }
-    if (message.firstName !== '') {
+    if (message.firstName !== "") {
       obj.firstName = message.firstName;
     }
-    if (message.lastName !== '') {
+    if (message.lastName !== "") {
       obj.lastName = message.lastName;
     }
     if (message.phoneNumber !== undefined) {
@@ -3171,10 +3197,10 @@ export const RegisterRequest: MessageFns<RegisterRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<RegisterRequest>, I>>(object: I): RegisterRequest {
     const message = createBaseRegisterRequest();
-    message.email = object.email ?? '';
-    message.password = object.password ?? '';
-    message.firstName = object.firstName ?? '';
-    message.lastName = object.lastName ?? '';
+    message.email = object.email ?? "";
+    message.password = object.password ?? "";
+    message.firstName = object.firstName ?? "";
+    message.lastName = object.lastName ?? "";
     message.phoneNumber = object.phoneNumber ?? undefined;
     message.userType = object.userType ?? undefined;
     message.ipAddress = object.ipAddress ?? undefined;
@@ -3272,36 +3298,31 @@ export const RegisterResponse: MessageFns<RegisterResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<RegisterResponse>, I>>(object: I): RegisterResponse {
     const message = createBaseRegisterResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
-    message.tokens =
-      object.tokens !== undefined && object.tokens !== null
-        ? TokenPair.fromPartial(object.tokens)
-        : undefined;
-    message.permissions = object.permissions?.map(e => e) || [];
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
+    message.tokens = (object.tokens !== undefined && object.tokens !== null)
+      ? TokenPair.fromPartial(object.tokens)
+      : undefined;
+    message.permissions = object.permissions?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseProvisionInvitedUserRequest(): ProvisionInvitedUserRequest {
-  return { email: '', password: '', firstName: '', lastName: '' };
+  return { email: "", password: "", firstName: "", lastName: "" };
 }
 
 export const ProvisionInvitedUserRequest: MessageFns<ProvisionInvitedUserRequest> = {
-  encode(
-    message: ProvisionInvitedUserRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.email !== '') {
+  encode(message: ProvisionInvitedUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
-    if (message.password !== '') {
+    if (message.password !== "") {
       writer.uint32(18).string(message.password);
     }
-    if (message.firstName !== '') {
+    if (message.firstName !== "") {
       writer.uint32(26).string(message.firstName);
     }
-    if (message.lastName !== '') {
+    if (message.lastName !== "") {
       writer.uint32(34).string(message.lastName);
     }
     return writer;
@@ -3357,51 +3378,47 @@ export const ProvisionInvitedUserRequest: MessageFns<ProvisionInvitedUserRequest
 
   fromJSON(object: any): ProvisionInvitedUserRequest {
     return {
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
-      password: isSet(object.password) ? globalThis.String(object.password) : '',
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
       firstName: isSet(object.firstName)
         ? globalThis.String(object.firstName)
         : isSet(object.first_name)
-          ? globalThis.String(object.first_name)
-          : '',
+        ? globalThis.String(object.first_name)
+        : "",
       lastName: isSet(object.lastName)
         ? globalThis.String(object.lastName)
         : isSet(object.last_name)
-          ? globalThis.String(object.last_name)
-          : '',
+        ? globalThis.String(object.last_name)
+        : "",
     };
   },
 
   toJSON(message: ProvisionInvitedUserRequest): unknown {
     const obj: any = {};
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
-    if (message.password !== '') {
+    if (message.password !== "") {
       obj.password = message.password;
     }
-    if (message.firstName !== '') {
+    if (message.firstName !== "") {
       obj.firstName = message.firstName;
     }
-    if (message.lastName !== '') {
+    if (message.lastName !== "") {
       obj.lastName = message.lastName;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ProvisionInvitedUserRequest>, I>>(
-    base?: I
-  ): ProvisionInvitedUserRequest {
+  create<I extends Exact<DeepPartial<ProvisionInvitedUserRequest>, I>>(base?: I): ProvisionInvitedUserRequest {
     return ProvisionInvitedUserRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ProvisionInvitedUserRequest>, I>>(
-    object: I
-  ): ProvisionInvitedUserRequest {
+  fromPartial<I extends Exact<DeepPartial<ProvisionInvitedUserRequest>, I>>(object: I): ProvisionInvitedUserRequest {
     const message = createBaseProvisionInvitedUserRequest();
-    message.email = object.email ?? '';
-    message.password = object.password ?? '';
-    message.firstName = object.firstName ?? '';
-    message.lastName = object.lastName ?? '';
+    message.email = object.email ?? "";
+    message.password = object.password ?? "";
+    message.firstName = object.firstName ?? "";
+    message.lastName = object.lastName ?? "";
     return message;
   },
 };
@@ -3411,10 +3428,7 @@ function createBaseProvisionInvitedUserResponse(): ProvisionInvitedUserResponse 
 }
 
 export const ProvisionInvitedUserResponse: MessageFns<ProvisionInvitedUserResponse> = {
-  encode(
-    message: ProvisionInvitedUserResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ProvisionInvitedUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.user !== undefined) {
       User.encode(message.user, writer.uint32(10).fork()).join();
     }
@@ -3474,29 +3488,24 @@ export const ProvisionInvitedUserResponse: MessageFns<ProvisionInvitedUserRespon
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ProvisionInvitedUserResponse>, I>>(
-    base?: I
-  ): ProvisionInvitedUserResponse {
+  create<I extends Exact<DeepPartial<ProvisionInvitedUserResponse>, I>>(base?: I): ProvisionInvitedUserResponse {
     return ProvisionInvitedUserResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ProvisionInvitedUserResponse>, I>>(
-    object: I
-  ): ProvisionInvitedUserResponse {
+  fromPartial<I extends Exact<DeepPartial<ProvisionInvitedUserResponse>, I>>(object: I): ProvisionInvitedUserResponse {
     const message = createBaseProvisionInvitedUserResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     message.created = object.created ?? false;
     return message;
   },
 };
 
 function createBaseVerifyEmailRequest(): VerifyEmailRequest {
-  return { verificationToken: '' };
+  return { verificationToken: "" };
 }
 
 export const VerifyEmailRequest: MessageFns<VerifyEmailRequest> = {
   encode(message: VerifyEmailRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.verificationToken !== '') {
+    if (message.verificationToken !== "") {
       writer.uint32(10).string(message.verificationToken);
     }
     return writer;
@@ -3531,14 +3540,14 @@ export const VerifyEmailRequest: MessageFns<VerifyEmailRequest> = {
       verificationToken: isSet(object.verificationToken)
         ? globalThis.String(object.verificationToken)
         : isSet(object.verification_token)
-          ? globalThis.String(object.verification_token)
-          : '',
+        ? globalThis.String(object.verification_token)
+        : "",
     };
   },
 
   toJSON(message: VerifyEmailRequest): unknown {
     const obj: any = {};
-    if (message.verificationToken !== '') {
+    if (message.verificationToken !== "") {
       obj.verificationToken = message.verificationToken;
     }
     return obj;
@@ -3549,7 +3558,7 @@ export const VerifyEmailRequest: MessageFns<VerifyEmailRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<VerifyEmailRequest>, I>>(object: I): VerifyEmailRequest {
     const message = createBaseVerifyEmailRequest();
-    message.verificationToken = object.verificationToken ?? '';
+    message.verificationToken = object.verificationToken ?? "";
     return message;
   },
 };
@@ -3605,26 +3614,20 @@ export const VerifyEmailResponse: MessageFns<VerifyEmailResponse> = {
   create<I extends Exact<DeepPartial<VerifyEmailResponse>, I>>(base?: I): VerifyEmailResponse {
     return VerifyEmailResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<VerifyEmailResponse>, I>>(
-    object: I
-  ): VerifyEmailResponse {
+  fromPartial<I extends Exact<DeepPartial<VerifyEmailResponse>, I>>(object: I): VerifyEmailResponse {
     const message = createBaseVerifyEmailResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseResendVerificationRequest(): ResendVerificationRequest {
-  return { email: '' };
+  return { email: "" };
 }
 
 export const ResendVerificationRequest: MessageFns<ResendVerificationRequest> = {
-  encode(
-    message: ResendVerificationRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.email !== '') {
+  encode(message: ResendVerificationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
     return writer;
@@ -3655,27 +3658,23 @@ export const ResendVerificationRequest: MessageFns<ResendVerificationRequest> = 
   },
 
   fromJSON(object: any): ResendVerificationRequest {
-    return { email: isSet(object.email) ? globalThis.String(object.email) : '' };
+    return { email: isSet(object.email) ? globalThis.String(object.email) : "" };
   },
 
   toJSON(message: ResendVerificationRequest): unknown {
     const obj: any = {};
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ResendVerificationRequest>, I>>(
-    base?: I
-  ): ResendVerificationRequest {
+  create<I extends Exact<DeepPartial<ResendVerificationRequest>, I>>(base?: I): ResendVerificationRequest {
     return ResendVerificationRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ResendVerificationRequest>, I>>(
-    object: I
-  ): ResendVerificationRequest {
+  fromPartial<I extends Exact<DeepPartial<ResendVerificationRequest>, I>>(object: I): ResendVerificationRequest {
     const message = createBaseResendVerificationRequest();
-    message.email = object.email ?? '';
+    message.email = object.email ?? "";
     return message;
   },
 };
@@ -3685,10 +3684,7 @@ function createBaseResendVerificationResponse(): ResendVerificationResponse {
 }
 
 export const ResendVerificationResponse: MessageFns<ResendVerificationResponse> = {
-  encode(
-    message: ResendVerificationResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ResendVerificationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.ok !== false) {
       writer.uint32(8).bool(message.ok);
     }
@@ -3731,14 +3727,10 @@ export const ResendVerificationResponse: MessageFns<ResendVerificationResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ResendVerificationResponse>, I>>(
-    base?: I
-  ): ResendVerificationResponse {
+  create<I extends Exact<DeepPartial<ResendVerificationResponse>, I>>(base?: I): ResendVerificationResponse {
     return ResendVerificationResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ResendVerificationResponse>, I>>(
-    object: I
-  ): ResendVerificationResponse {
+  fromPartial<I extends Exact<DeepPartial<ResendVerificationResponse>, I>>(object: I): ResendVerificationResponse {
     const message = createBaseResendVerificationResponse();
     message.ok = object.ok ?? false;
     return message;
@@ -3746,12 +3738,12 @@ export const ResendVerificationResponse: MessageFns<ResendVerificationResponse> 
 };
 
 function createBaseForgotPasswordRequest(): ForgotPasswordRequest {
-  return { email: '' };
+  return { email: "" };
 }
 
 export const ForgotPasswordRequest: MessageFns<ForgotPasswordRequest> = {
   encode(message: ForgotPasswordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
     return writer;
@@ -3782,12 +3774,12 @@ export const ForgotPasswordRequest: MessageFns<ForgotPasswordRequest> = {
   },
 
   fromJSON(object: any): ForgotPasswordRequest {
-    return { email: isSet(object.email) ? globalThis.String(object.email) : '' };
+    return { email: isSet(object.email) ? globalThis.String(object.email) : "" };
   },
 
   toJSON(message: ForgotPasswordRequest): unknown {
     const obj: any = {};
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
     return obj;
@@ -3796,11 +3788,9 @@ export const ForgotPasswordRequest: MessageFns<ForgotPasswordRequest> = {
   create<I extends Exact<DeepPartial<ForgotPasswordRequest>, I>>(base?: I): ForgotPasswordRequest {
     return ForgotPasswordRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ForgotPasswordRequest>, I>>(
-    object: I
-  ): ForgotPasswordRequest {
+  fromPartial<I extends Exact<DeepPartial<ForgotPasswordRequest>, I>>(object: I): ForgotPasswordRequest {
     const message = createBaseForgotPasswordRequest();
-    message.email = object.email ?? '';
+    message.email = object.email ?? "";
     return message;
   },
 };
@@ -3853,14 +3843,10 @@ export const ForgotPasswordResponse: MessageFns<ForgotPasswordResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ForgotPasswordResponse>, I>>(
-    base?: I
-  ): ForgotPasswordResponse {
+  create<I extends Exact<DeepPartial<ForgotPasswordResponse>, I>>(base?: I): ForgotPasswordResponse {
     return ForgotPasswordResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ForgotPasswordResponse>, I>>(
-    object: I
-  ): ForgotPasswordResponse {
+  fromPartial<I extends Exact<DeepPartial<ForgotPasswordResponse>, I>>(object: I): ForgotPasswordResponse {
     const message = createBaseForgotPasswordResponse();
     message.ok = object.ok ?? false;
     return message;
@@ -3868,15 +3854,15 @@ export const ForgotPasswordResponse: MessageFns<ForgotPasswordResponse> = {
 };
 
 function createBaseResetPasswordRequest(): ResetPasswordRequest {
-  return { resetToken: '', newPassword: '' };
+  return { resetToken: "", newPassword: "" };
 }
 
 export const ResetPasswordRequest: MessageFns<ResetPasswordRequest> = {
   encode(message: ResetPasswordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.resetToken !== '') {
+    if (message.resetToken !== "") {
       writer.uint32(10).string(message.resetToken);
     }
-    if (message.newPassword !== '') {
+    if (message.newPassword !== "") {
       writer.uint32(18).string(message.newPassword);
     }
     return writer;
@@ -3919,22 +3905,22 @@ export const ResetPasswordRequest: MessageFns<ResetPasswordRequest> = {
       resetToken: isSet(object.resetToken)
         ? globalThis.String(object.resetToken)
         : isSet(object.reset_token)
-          ? globalThis.String(object.reset_token)
-          : '',
+        ? globalThis.String(object.reset_token)
+        : "",
       newPassword: isSet(object.newPassword)
         ? globalThis.String(object.newPassword)
         : isSet(object.new_password)
-          ? globalThis.String(object.new_password)
-          : '',
+        ? globalThis.String(object.new_password)
+        : "",
     };
   },
 
   toJSON(message: ResetPasswordRequest): unknown {
     const obj: any = {};
-    if (message.resetToken !== '') {
+    if (message.resetToken !== "") {
       obj.resetToken = message.resetToken;
     }
-    if (message.newPassword !== '') {
+    if (message.newPassword !== "") {
       obj.newPassword = message.newPassword;
     }
     return obj;
@@ -3943,12 +3929,10 @@ export const ResetPasswordRequest: MessageFns<ResetPasswordRequest> = {
   create<I extends Exact<DeepPartial<ResetPasswordRequest>, I>>(base?: I): ResetPasswordRequest {
     return ResetPasswordRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ResetPasswordRequest>, I>>(
-    object: I
-  ): ResetPasswordRequest {
+  fromPartial<I extends Exact<DeepPartial<ResetPasswordRequest>, I>>(object: I): ResetPasswordRequest {
     const message = createBaseResetPasswordRequest();
-    message.resetToken = object.resetToken ?? '';
-    message.newPassword = object.newPassword ?? '';
+    message.resetToken = object.resetToken ?? "";
+    message.newPassword = object.newPassword ?? "";
     return message;
   },
 };
@@ -4004,9 +3988,7 @@ export const ResetPasswordResponse: MessageFns<ResetPasswordResponse> = {
   create<I extends Exact<DeepPartial<ResetPasswordResponse>, I>>(base?: I): ResetPasswordResponse {
     return ResetPasswordResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ResetPasswordResponse>, I>>(
-    object: I
-  ): ResetPasswordResponse {
+  fromPartial<I extends Exact<DeepPartial<ResetPasswordResponse>, I>>(object: I): ResetPasswordResponse {
     const message = createBaseResetPasswordResponse();
     message.ok = object.ok ?? false;
     return message;
@@ -4014,18 +3996,15 @@ export const ResetPasswordResponse: MessageFns<ResetPasswordResponse> = {
 };
 
 function createBaseRedeemInvitationRequest(): RedeemInvitationRequest {
-  return { invitationToken: '', newPassword: '' };
+  return { invitationToken: "", newPassword: "" };
 }
 
 export const RedeemInvitationRequest: MessageFns<RedeemInvitationRequest> = {
-  encode(
-    message: RedeemInvitationRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.invitationToken !== '') {
+  encode(message: RedeemInvitationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.invitationToken !== "") {
       writer.uint32(10).string(message.invitationToken);
     }
-    if (message.newPassword !== '') {
+    if (message.newPassword !== "") {
       writer.uint32(18).string(message.newPassword);
     }
     return writer;
@@ -4068,38 +4047,34 @@ export const RedeemInvitationRequest: MessageFns<RedeemInvitationRequest> = {
       invitationToken: isSet(object.invitationToken)
         ? globalThis.String(object.invitationToken)
         : isSet(object.invitation_token)
-          ? globalThis.String(object.invitation_token)
-          : '',
+        ? globalThis.String(object.invitation_token)
+        : "",
       newPassword: isSet(object.newPassword)
         ? globalThis.String(object.newPassword)
         : isSet(object.new_password)
-          ? globalThis.String(object.new_password)
-          : '',
+        ? globalThis.String(object.new_password)
+        : "",
     };
   },
 
   toJSON(message: RedeemInvitationRequest): unknown {
     const obj: any = {};
-    if (message.invitationToken !== '') {
+    if (message.invitationToken !== "") {
       obj.invitationToken = message.invitationToken;
     }
-    if (message.newPassword !== '') {
+    if (message.newPassword !== "") {
       obj.newPassword = message.newPassword;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RedeemInvitationRequest>, I>>(
-    base?: I
-  ): RedeemInvitationRequest {
+  create<I extends Exact<DeepPartial<RedeemInvitationRequest>, I>>(base?: I): RedeemInvitationRequest {
     return RedeemInvitationRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RedeemInvitationRequest>, I>>(
-    object: I
-  ): RedeemInvitationRequest {
+  fromPartial<I extends Exact<DeepPartial<RedeemInvitationRequest>, I>>(object: I): RedeemInvitationRequest {
     const message = createBaseRedeemInvitationRequest();
-    message.invitationToken = object.invitationToken ?? '';
-    message.newPassword = object.newPassword ?? '';
+    message.invitationToken = object.invitationToken ?? "";
+    message.newPassword = object.newPassword ?? "";
     return message;
   },
 };
@@ -4109,10 +4084,7 @@ function createBaseRedeemInvitationResponse(): RedeemInvitationResponse {
 }
 
 export const RedeemInvitationResponse: MessageFns<RedeemInvitationResponse> = {
-  encode(
-    message: RedeemInvitationResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RedeemInvitationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.user !== undefined) {
       User.encode(message.user, writer.uint32(10).fork()).join();
     }
@@ -4155,31 +4127,26 @@ export const RedeemInvitationResponse: MessageFns<RedeemInvitationResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RedeemInvitationResponse>, I>>(
-    base?: I
-  ): RedeemInvitationResponse {
+  create<I extends Exact<DeepPartial<RedeemInvitationResponse>, I>>(base?: I): RedeemInvitationResponse {
     return RedeemInvitationResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RedeemInvitationResponse>, I>>(
-    object: I
-  ): RedeemInvitationResponse {
+  fromPartial<I extends Exact<DeepPartial<RedeemInvitationResponse>, I>>(object: I): RedeemInvitationResponse {
     const message = createBaseRedeemInvitationResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseChangePasswordRequest(): ChangePasswordRequest {
-  return { currentPassword: '', newPassword: '' };
+  return { currentPassword: "", newPassword: "" };
 }
 
 export const ChangePasswordRequest: MessageFns<ChangePasswordRequest> = {
   encode(message: ChangePasswordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.currentPassword !== '') {
+    if (message.currentPassword !== "") {
       writer.uint32(10).string(message.currentPassword);
     }
-    if (message.newPassword !== '') {
+    if (message.newPassword !== "") {
       writer.uint32(18).string(message.newPassword);
     }
     return writer;
@@ -4222,22 +4189,22 @@ export const ChangePasswordRequest: MessageFns<ChangePasswordRequest> = {
       currentPassword: isSet(object.currentPassword)
         ? globalThis.String(object.currentPassword)
         : isSet(object.current_password)
-          ? globalThis.String(object.current_password)
-          : '',
+        ? globalThis.String(object.current_password)
+        : "",
       newPassword: isSet(object.newPassword)
         ? globalThis.String(object.newPassword)
         : isSet(object.new_password)
-          ? globalThis.String(object.new_password)
-          : '',
+        ? globalThis.String(object.new_password)
+        : "",
     };
   },
 
   toJSON(message: ChangePasswordRequest): unknown {
     const obj: any = {};
-    if (message.currentPassword !== '') {
+    if (message.currentPassword !== "") {
       obj.currentPassword = message.currentPassword;
     }
-    if (message.newPassword !== '') {
+    if (message.newPassword !== "") {
       obj.newPassword = message.newPassword;
     }
     return obj;
@@ -4246,12 +4213,10 @@ export const ChangePasswordRequest: MessageFns<ChangePasswordRequest> = {
   create<I extends Exact<DeepPartial<ChangePasswordRequest>, I>>(base?: I): ChangePasswordRequest {
     return ChangePasswordRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ChangePasswordRequest>, I>>(
-    object: I
-  ): ChangePasswordRequest {
+  fromPartial<I extends Exact<DeepPartial<ChangePasswordRequest>, I>>(object: I): ChangePasswordRequest {
     const message = createBaseChangePasswordRequest();
-    message.currentPassword = object.currentPassword ?? '';
-    message.newPassword = object.newPassword ?? '';
+    message.currentPassword = object.currentPassword ?? "";
+    message.newPassword = object.newPassword ?? "";
     return message;
   },
 };
@@ -4304,14 +4269,10 @@ export const ChangePasswordResponse: MessageFns<ChangePasswordResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ChangePasswordResponse>, I>>(
-    base?: I
-  ): ChangePasswordResponse {
+  create<I extends Exact<DeepPartial<ChangePasswordResponse>, I>>(base?: I): ChangePasswordResponse {
     return ChangePasswordResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ChangePasswordResponse>, I>>(
-    object: I
-  ): ChangePasswordResponse {
+  fromPartial<I extends Exact<DeepPartial<ChangePasswordResponse>, I>>(object: I): ChangePasswordResponse {
     const message = createBaseChangePasswordResponse();
     message.ok = object.ok ?? false;
     return message;
@@ -4362,15 +4323,15 @@ export const SetupTwoFactorRequest: MessageFns<SetupTwoFactorRequest> = {
 };
 
 function createBaseSetupTwoFactorResponse(): SetupTwoFactorResponse {
-  return { secret: '', otpauthUrl: '' };
+  return { secret: "", otpauthUrl: "" };
 }
 
 export const SetupTwoFactorResponse: MessageFns<SetupTwoFactorResponse> = {
   encode(message: SetupTwoFactorResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.secret !== '') {
+    if (message.secret !== "") {
       writer.uint32(10).string(message.secret);
     }
-    if (message.otpauthUrl !== '') {
+    if (message.otpauthUrl !== "") {
       writer.uint32(18).string(message.otpauthUrl);
     }
     return writer;
@@ -4410,51 +4371,47 @@ export const SetupTwoFactorResponse: MessageFns<SetupTwoFactorResponse> = {
 
   fromJSON(object: any): SetupTwoFactorResponse {
     return {
-      secret: isSet(object.secret) ? globalThis.String(object.secret) : '',
+      secret: isSet(object.secret) ? globalThis.String(object.secret) : "",
       otpauthUrl: isSet(object.otpauthUrl)
         ? globalThis.String(object.otpauthUrl)
         : isSet(object.otpauth_url)
-          ? globalThis.String(object.otpauth_url)
-          : '',
+        ? globalThis.String(object.otpauth_url)
+        : "",
     };
   },
 
   toJSON(message: SetupTwoFactorResponse): unknown {
     const obj: any = {};
-    if (message.secret !== '') {
+    if (message.secret !== "") {
       obj.secret = message.secret;
     }
-    if (message.otpauthUrl !== '') {
+    if (message.otpauthUrl !== "") {
       obj.otpauthUrl = message.otpauthUrl;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<SetupTwoFactorResponse>, I>>(
-    base?: I
-  ): SetupTwoFactorResponse {
+  create<I extends Exact<DeepPartial<SetupTwoFactorResponse>, I>>(base?: I): SetupTwoFactorResponse {
     return SetupTwoFactorResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SetupTwoFactorResponse>, I>>(
-    object: I
-  ): SetupTwoFactorResponse {
+  fromPartial<I extends Exact<DeepPartial<SetupTwoFactorResponse>, I>>(object: I): SetupTwoFactorResponse {
     const message = createBaseSetupTwoFactorResponse();
-    message.secret = object.secret ?? '';
-    message.otpauthUrl = object.otpauthUrl ?? '';
+    message.secret = object.secret ?? "";
+    message.otpauthUrl = object.otpauthUrl ?? "";
     return message;
   },
 };
 
 function createBaseEnableTwoFactorRequest(): EnableTwoFactorRequest {
-  return { token: '' };
+  return { secret: "", token: "" };
 }
 
 export const EnableTwoFactorRequest: MessageFns<EnableTwoFactorRequest> = {
   encode(message: EnableTwoFactorRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.secret !== undefined && message.secret !== '') {
+    if (message.secret !== "") {
       writer.uint32(10).string(message.secret);
     }
-    if (message.token !== '') {
+    if (message.token !== "") {
       writer.uint32(18).string(message.token);
     }
     return writer;
@@ -4494,33 +4451,29 @@ export const EnableTwoFactorRequest: MessageFns<EnableTwoFactorRequest> = {
 
   fromJSON(object: any): EnableTwoFactorRequest {
     return {
-      secret: isSet(object.secret) ? globalThis.String(object.secret) : undefined,
-      token: isSet(object.token) ? globalThis.String(object.token) : '',
+      secret: isSet(object.secret) ? globalThis.String(object.secret) : "",
+      token: isSet(object.token) ? globalThis.String(object.token) : "",
     };
   },
 
   toJSON(message: EnableTwoFactorRequest): unknown {
     const obj: any = {};
-    if (message.secret !== undefined && message.secret !== '') {
+    if (message.secret !== "") {
       obj.secret = message.secret;
     }
-    if (message.token !== '') {
+    if (message.token !== "") {
       obj.token = message.token;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<EnableTwoFactorRequest>, I>>(
-    base?: I
-  ): EnableTwoFactorRequest {
+  create<I extends Exact<DeepPartial<EnableTwoFactorRequest>, I>>(base?: I): EnableTwoFactorRequest {
     return EnableTwoFactorRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<EnableTwoFactorRequest>, I>>(
-    object: I
-  ): EnableTwoFactorRequest {
+  fromPartial<I extends Exact<DeepPartial<EnableTwoFactorRequest>, I>>(object: I): EnableTwoFactorRequest {
     const message = createBaseEnableTwoFactorRequest();
-    message.secret = object.secret ?? undefined;
-    message.token = object.token ?? '';
+    message.secret = object.secret ?? "";
+    message.token = object.token ?? "";
     return message;
   },
 };
@@ -4530,10 +4483,7 @@ function createBaseEnableTwoFactorResponse(): EnableTwoFactorResponse {
 }
 
 export const EnableTwoFactorResponse: MessageFns<EnableTwoFactorResponse> = {
-  encode(
-    message: EnableTwoFactorResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: EnableTwoFactorResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.enabled !== false) {
       writer.uint32(8).bool(message.enabled);
     }
@@ -4581,8 +4531,8 @@ export const EnableTwoFactorResponse: MessageFns<EnableTwoFactorResponse> = {
       backupCodes: globalThis.Array.isArray(object?.backupCodes)
         ? object.backupCodes.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.backup_codes)
-          ? object.backup_codes.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.backup_codes.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -4597,31 +4547,24 @@ export const EnableTwoFactorResponse: MessageFns<EnableTwoFactorResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<EnableTwoFactorResponse>, I>>(
-    base?: I
-  ): EnableTwoFactorResponse {
+  create<I extends Exact<DeepPartial<EnableTwoFactorResponse>, I>>(base?: I): EnableTwoFactorResponse {
     return EnableTwoFactorResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<EnableTwoFactorResponse>, I>>(
-    object: I
-  ): EnableTwoFactorResponse {
+  fromPartial<I extends Exact<DeepPartial<EnableTwoFactorResponse>, I>>(object: I): EnableTwoFactorResponse {
     const message = createBaseEnableTwoFactorResponse();
     message.enabled = object.enabled ?? false;
-    message.backupCodes = object.backupCodes?.map(e => e) || [];
+    message.backupCodes = object.backupCodes?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseDisableTwoFactorRequest(): DisableTwoFactorRequest {
-  return { token: '' };
+  return { token: "" };
 }
 
 export const DisableTwoFactorRequest: MessageFns<DisableTwoFactorRequest> = {
-  encode(
-    message: DisableTwoFactorRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.token !== '') {
+  encode(message: DisableTwoFactorRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.token !== "") {
       writer.uint32(10).string(message.token);
     }
     return writer;
@@ -4652,27 +4595,23 @@ export const DisableTwoFactorRequest: MessageFns<DisableTwoFactorRequest> = {
   },
 
   fromJSON(object: any): DisableTwoFactorRequest {
-    return { token: isSet(object.token) ? globalThis.String(object.token) : '' };
+    return { token: isSet(object.token) ? globalThis.String(object.token) : "" };
   },
 
   toJSON(message: DisableTwoFactorRequest): unknown {
     const obj: any = {};
-    if (message.token !== '') {
+    if (message.token !== "") {
       obj.token = message.token;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DisableTwoFactorRequest>, I>>(
-    base?: I
-  ): DisableTwoFactorRequest {
+  create<I extends Exact<DeepPartial<DisableTwoFactorRequest>, I>>(base?: I): DisableTwoFactorRequest {
     return DisableTwoFactorRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DisableTwoFactorRequest>, I>>(
-    object: I
-  ): DisableTwoFactorRequest {
+  fromPartial<I extends Exact<DeepPartial<DisableTwoFactorRequest>, I>>(object: I): DisableTwoFactorRequest {
     const message = createBaseDisableTwoFactorRequest();
-    message.token = object.token ?? '';
+    message.token = object.token ?? "";
     return message;
   },
 };
@@ -4682,10 +4621,7 @@ function createBaseDisableTwoFactorResponse(): DisableTwoFactorResponse {
 }
 
 export const DisableTwoFactorResponse: MessageFns<DisableTwoFactorResponse> = {
-  encode(
-    message: DisableTwoFactorResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: DisableTwoFactorResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.disabled !== false) {
       writer.uint32(8).bool(message.disabled);
     }
@@ -4728,14 +4664,10 @@ export const DisableTwoFactorResponse: MessageFns<DisableTwoFactorResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DisableTwoFactorResponse>, I>>(
-    base?: I
-  ): DisableTwoFactorResponse {
+  create<I extends Exact<DeepPartial<DisableTwoFactorResponse>, I>>(base?: I): DisableTwoFactorResponse {
     return DisableTwoFactorResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DisableTwoFactorResponse>, I>>(
-    object: I
-  ): DisableTwoFactorResponse {
+  fromPartial<I extends Exact<DeepPartial<DisableTwoFactorResponse>, I>>(object: I): DisableTwoFactorResponse {
     const message = createBaseDisableTwoFactorResponse();
     message.disabled = object.disabled ?? false;
     return message;
@@ -4743,15 +4675,12 @@ export const DisableTwoFactorResponse: MessageFns<DisableTwoFactorResponse> = {
 };
 
 function createBaseRegenerateBackupCodesRequest(): RegenerateBackupCodesRequest {
-  return { token: '' };
+  return { token: "" };
 }
 
 export const RegenerateBackupCodesRequest: MessageFns<RegenerateBackupCodesRequest> = {
-  encode(
-    message: RegenerateBackupCodesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.token !== '') {
+  encode(message: RegenerateBackupCodesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.token !== "") {
       writer.uint32(10).string(message.token);
     }
     return writer;
@@ -4782,27 +4711,23 @@ export const RegenerateBackupCodesRequest: MessageFns<RegenerateBackupCodesReque
   },
 
   fromJSON(object: any): RegenerateBackupCodesRequest {
-    return { token: isSet(object.token) ? globalThis.String(object.token) : '' };
+    return { token: isSet(object.token) ? globalThis.String(object.token) : "" };
   },
 
   toJSON(message: RegenerateBackupCodesRequest): unknown {
     const obj: any = {};
-    if (message.token !== '') {
+    if (message.token !== "") {
       obj.token = message.token;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RegenerateBackupCodesRequest>, I>>(
-    base?: I
-  ): RegenerateBackupCodesRequest {
+  create<I extends Exact<DeepPartial<RegenerateBackupCodesRequest>, I>>(base?: I): RegenerateBackupCodesRequest {
     return RegenerateBackupCodesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RegenerateBackupCodesRequest>, I>>(
-    object: I
-  ): RegenerateBackupCodesRequest {
+  fromPartial<I extends Exact<DeepPartial<RegenerateBackupCodesRequest>, I>>(object: I): RegenerateBackupCodesRequest {
     const message = createBaseRegenerateBackupCodesRequest();
-    message.token = object.token ?? '';
+    message.token = object.token ?? "";
     return message;
   },
 };
@@ -4812,10 +4737,7 @@ function createBaseRegenerateBackupCodesResponse(): RegenerateBackupCodesRespons
 }
 
 export const RegenerateBackupCodesResponse: MessageFns<RegenerateBackupCodesResponse> = {
-  encode(
-    message: RegenerateBackupCodesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegenerateBackupCodesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.backupCodes) {
       writer.uint32(10).string(v!);
     }
@@ -4851,8 +4773,8 @@ export const RegenerateBackupCodesResponse: MessageFns<RegenerateBackupCodesResp
       backupCodes: globalThis.Array.isArray(object?.backupCodes)
         ? object.backupCodes.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.backup_codes)
-          ? object.backup_codes.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.backup_codes.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -4864,16 +4786,14 @@ export const RegenerateBackupCodesResponse: MessageFns<RegenerateBackupCodesResp
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RegenerateBackupCodesResponse>, I>>(
-    base?: I
-  ): RegenerateBackupCodesResponse {
+  create<I extends Exact<DeepPartial<RegenerateBackupCodesResponse>, I>>(base?: I): RegenerateBackupCodesResponse {
     return RegenerateBackupCodesResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<RegenerateBackupCodesResponse>, I>>(
-    object: I
+    object: I,
   ): RegenerateBackupCodesResponse {
     const message = createBaseRegenerateBackupCodesResponse();
-    message.backupCodes = object.backupCodes?.map(e => e) || [];
+    message.backupCodes = object.backupCodes?.map((e) => e) || [];
     return message;
   },
 };
@@ -5041,18 +4961,18 @@ export const UpdateAccountRequest: MessageFns<UpdateAccountRequest> = {
       firstName: isSet(object.firstName)
         ? globalThis.String(object.firstName)
         : isSet(object.first_name)
-          ? globalThis.String(object.first_name)
-          : undefined,
+        ? globalThis.String(object.first_name)
+        : undefined,
       lastName: isSet(object.lastName)
         ? globalThis.String(object.lastName)
         : isSet(object.last_name)
-          ? globalThis.String(object.last_name)
-          : undefined,
+        ? globalThis.String(object.last_name)
+        : undefined,
       phoneNumber: isSet(object.phoneNumber)
         ? globalThis.String(object.phoneNumber)
         : isSet(object.phone_number)
-          ? globalThis.String(object.phone_number)
-          : undefined,
+        ? globalThis.String(object.phone_number)
+        : undefined,
       bio: isSet(object.bio) ? globalThis.String(object.bio) : undefined,
       timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
       language: isSet(object.language) ? globalThis.String(object.language) : undefined,
@@ -5061,18 +4981,18 @@ export const UpdateAccountRequest: MessageFns<UpdateAccountRequest> = {
       addressLine1: isSet(object.addressLine1)
         ? globalThis.String(object.addressLine1)
         : isSet(object.address_line_1)
-          ? globalThis.String(object.address_line_1)
-          : undefined,
+        ? globalThis.String(object.address_line_1)
+        : undefined,
       addressLine2: isSet(object.addressLine2)
         ? globalThis.String(object.addressLine2)
         : isSet(object.address_line_2)
-          ? globalThis.String(object.address_line_2)
-          : undefined,
+        ? globalThis.String(object.address_line_2)
+        : undefined,
       postalCode: isSet(object.postalCode)
         ? globalThis.String(object.postalCode)
         : isSet(object.postal_code)
-          ? globalThis.String(object.postal_code)
-          : undefined,
+        ? globalThis.String(object.postal_code)
+        : undefined,
     };
   },
 
@@ -5117,9 +5037,7 @@ export const UpdateAccountRequest: MessageFns<UpdateAccountRequest> = {
   create<I extends Exact<DeepPartial<UpdateAccountRequest>, I>>(base?: I): UpdateAccountRequest {
     return UpdateAccountRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateAccountRequest>, I>>(
-    object: I
-  ): UpdateAccountRequest {
+  fromPartial<I extends Exact<DeepPartial<UpdateAccountRequest>, I>>(object: I): UpdateAccountRequest {
     const message = createBaseUpdateAccountRequest();
     message.firstName = object.firstName ?? undefined;
     message.lastName = object.lastName ?? undefined;
@@ -5187,32 +5105,29 @@ export const UpdateAccountResponse: MessageFns<UpdateAccountResponse> = {
   create<I extends Exact<DeepPartial<UpdateAccountResponse>, I>>(base?: I): UpdateAccountResponse {
     return UpdateAccountResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateAccountResponse>, I>>(
-    object: I
-  ): UpdateAccountResponse {
+  fromPartial<I extends Exact<DeepPartial<UpdateAccountResponse>, I>>(object: I): UpdateAccountResponse {
     const message = createBaseUpdateAccountResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseSession(): Session {
-  return { sessionId: '', familyId: '', expiresAt: '', createdAt: '' };
+  return { sessionId: "", familyId: "", expiresAt: "", createdAt: "" };
 }
 
 export const Session: MessageFns<Session> = {
   encode(message: Session, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       writer.uint32(10).string(message.sessionId);
     }
-    if (message.familyId !== '') {
+    if (message.familyId !== "") {
       writer.uint32(18).string(message.familyId);
     }
-    if (message.expiresAt !== '') {
+    if (message.expiresAt !== "") {
       writer.uint32(26).string(message.expiresAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(34).string(message.createdAt);
     }
     return writer;
@@ -5271,38 +5186,38 @@ export const Session: MessageFns<Session> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-          ? globalThis.String(object.session_id)
-          : '',
+        ? globalThis.String(object.session_id)
+        : "",
       familyId: isSet(object.familyId)
         ? globalThis.String(object.familyId)
         : isSet(object.family_id)
-          ? globalThis.String(object.family_id)
-          : '',
+        ? globalThis.String(object.family_id)
+        : "",
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : '',
+        ? globalThis.String(object.expires_at)
+        : "",
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
     };
   },
 
   toJSON(message: Session): unknown {
     const obj: any = {};
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       obj.sessionId = message.sessionId;
     }
-    if (message.familyId !== '') {
+    if (message.familyId !== "") {
       obj.familyId = message.familyId;
     }
-    if (message.expiresAt !== '') {
+    if (message.expiresAt !== "") {
       obj.expiresAt = message.expiresAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
     return obj;
@@ -5313,10 +5228,10 @@ export const Session: MessageFns<Session> = {
   },
   fromPartial<I extends Exact<DeepPartial<Session>, I>>(object: I): Session {
     const message = createBaseSession();
-    message.sessionId = object.sessionId ?? '';
-    message.familyId = object.familyId ?? '';
-    message.expiresAt = object.expiresAt ?? '';
-    message.createdAt = object.createdAt ?? '';
+    message.sessionId = object.sessionId ?? "";
+    message.familyId = object.familyId ?? "";
+    message.expiresAt = object.expiresAt ?? "";
+    message.createdAt = object.createdAt ?? "";
     return message;
   },
 };
@@ -5402,16 +5317,14 @@ export const ListSessionsResponse: MessageFns<ListSessionsResponse> = {
 
   fromJSON(object: any): ListSessionsResponse {
     return {
-      sessions: globalThis.Array.isArray(object?.sessions)
-        ? object.sessions.map((e: any) => Session.fromJSON(e))
-        : [],
+      sessions: globalThis.Array.isArray(object?.sessions) ? object.sessions.map((e: any) => Session.fromJSON(e)) : [],
     };
   },
 
   toJSON(message: ListSessionsResponse): unknown {
     const obj: any = {};
     if (message.sessions?.length) {
-      obj.sessions = message.sessions.map(e => Session.toJSON(e));
+      obj.sessions = message.sessions.map((e) => Session.toJSON(e));
     }
     return obj;
   },
@@ -5419,22 +5332,20 @@ export const ListSessionsResponse: MessageFns<ListSessionsResponse> = {
   create<I extends Exact<DeepPartial<ListSessionsResponse>, I>>(base?: I): ListSessionsResponse {
     return ListSessionsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListSessionsResponse>, I>>(
-    object: I
-  ): ListSessionsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListSessionsResponse>, I>>(object: I): ListSessionsResponse {
     const message = createBaseListSessionsResponse();
-    message.sessions = object.sessions?.map(e => Session.fromPartial(e)) || [];
+    message.sessions = object.sessions?.map((e) => Session.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseRevokeSessionRequest(): RevokeSessionRequest {
-  return { sessionId: '' };
+  return { sessionId: "" };
 }
 
 export const RevokeSessionRequest: MessageFns<RevokeSessionRequest> = {
   encode(message: RevokeSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -5469,14 +5380,14 @@ export const RevokeSessionRequest: MessageFns<RevokeSessionRequest> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-          ? globalThis.String(object.session_id)
-          : '',
+        ? globalThis.String(object.session_id)
+        : "",
     };
   },
 
   toJSON(message: RevokeSessionRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       obj.sessionId = message.sessionId;
     }
     return obj;
@@ -5485,22 +5396,20 @@ export const RevokeSessionRequest: MessageFns<RevokeSessionRequest> = {
   create<I extends Exact<DeepPartial<RevokeSessionRequest>, I>>(base?: I): RevokeSessionRequest {
     return RevokeSessionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RevokeSessionRequest>, I>>(
-    object: I
-  ): RevokeSessionRequest {
+  fromPartial<I extends Exact<DeepPartial<RevokeSessionRequest>, I>>(object: I): RevokeSessionRequest {
     const message = createBaseRevokeSessionRequest();
-    message.sessionId = object.sessionId ?? '';
+    message.sessionId = object.sessionId ?? "";
     return message;
   },
 };
 
 function createBaseRevokeSessionResponse(): RevokeSessionResponse {
-  return { sessionId: '' };
+  return { sessionId: "" };
 }
 
 export const RevokeSessionResponse: MessageFns<RevokeSessionResponse> = {
   encode(message: RevokeSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -5535,14 +5444,14 @@ export const RevokeSessionResponse: MessageFns<RevokeSessionResponse> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-          ? globalThis.String(object.session_id)
-          : '',
+        ? globalThis.String(object.session_id)
+        : "",
     };
   },
 
   toJSON(message: RevokeSessionResponse): unknown {
     const obj: any = {};
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       obj.sessionId = message.sessionId;
     }
     return obj;
@@ -5551,31 +5460,29 @@ export const RevokeSessionResponse: MessageFns<RevokeSessionResponse> = {
   create<I extends Exact<DeepPartial<RevokeSessionResponse>, I>>(base?: I): RevokeSessionResponse {
     return RevokeSessionResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RevokeSessionResponse>, I>>(
-    object: I
-  ): RevokeSessionResponse {
+  fromPartial<I extends Exact<DeepPartial<RevokeSessionResponse>, I>>(object: I): RevokeSessionResponse {
     const message = createBaseRevokeSessionResponse();
-    message.sessionId = object.sessionId ?? '';
+    message.sessionId = object.sessionId ?? "";
     return message;
   },
 };
 
 function createBasePrivacyPreferences(): PrivacyPreferences {
   return {
-    userId: '',
+    userId: "",
     profileVisibility: 0,
     showLastSeen: false,
     showLocation: false,
     allowSearchIndexing: false,
     allowDataExport: false,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const PrivacyPreferences: MessageFns<PrivacyPreferences> = {
   encode(message: PrivacyPreferences, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.profileVisibility !== 0) {
@@ -5593,10 +5500,10 @@ export const PrivacyPreferences: MessageFns<PrivacyPreferences> = {
     if (message.allowDataExport !== false) {
       writer.uint32(48).bool(message.allowDataExport);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(58).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(66).string(message.updatedAt);
     }
     return writer;
@@ -5687,49 +5594,49 @@ export const PrivacyPreferences: MessageFns<PrivacyPreferences> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       profileVisibility: isSet(object.profileVisibility)
         ? profileVisibilityFromJSON(object.profileVisibility)
         : isSet(object.profile_visibility)
-          ? profileVisibilityFromJSON(object.profile_visibility)
-          : 0,
+        ? profileVisibilityFromJSON(object.profile_visibility)
+        : 0,
       showLastSeen: isSet(object.showLastSeen)
         ? globalThis.Boolean(object.showLastSeen)
         : isSet(object.show_last_seen)
-          ? globalThis.Boolean(object.show_last_seen)
-          : false,
+        ? globalThis.Boolean(object.show_last_seen)
+        : false,
       showLocation: isSet(object.showLocation)
         ? globalThis.Boolean(object.showLocation)
         : isSet(object.show_location)
-          ? globalThis.Boolean(object.show_location)
-          : false,
+        ? globalThis.Boolean(object.show_location)
+        : false,
       allowSearchIndexing: isSet(object.allowSearchIndexing)
         ? globalThis.Boolean(object.allowSearchIndexing)
         : isSet(object.allow_search_indexing)
-          ? globalThis.Boolean(object.allow_search_indexing)
-          : false,
+        ? globalThis.Boolean(object.allow_search_indexing)
+        : false,
       allowDataExport: isSet(object.allowDataExport)
         ? globalThis.Boolean(object.allowDataExport)
         : isSet(object.allow_data_export)
-          ? globalThis.Boolean(object.allow_data_export)
-          : false,
+        ? globalThis.Boolean(object.allow_data_export)
+        : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: PrivacyPreferences): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.profileVisibility !== 0) {
@@ -5747,10 +5654,10 @@ export const PrivacyPreferences: MessageFns<PrivacyPreferences> = {
     if (message.allowDataExport !== false) {
       obj.allowDataExport = message.allowDataExport;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -5761,14 +5668,14 @@ export const PrivacyPreferences: MessageFns<PrivacyPreferences> = {
   },
   fromPartial<I extends Exact<DeepPartial<PrivacyPreferences>, I>>(object: I): PrivacyPreferences {
     const message = createBasePrivacyPreferences();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.profileVisibility = object.profileVisibility ?? 0;
     message.showLastSeen = object.showLastSeen ?? false;
     message.showLocation = object.showLocation ?? false;
     message.allowSearchIndexing = object.allowSearchIndexing ?? false;
     message.allowDataExport = object.allowDataExport ?? false;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -5778,10 +5685,7 @@ function createBaseGetPrivacyPreferencesRequest(): GetPrivacyPreferencesRequest 
 }
 
 export const GetPrivacyPreferencesRequest: MessageFns<GetPrivacyPreferencesRequest> = {
-  encode(
-    message: GetPrivacyPreferencesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetPrivacyPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -5817,8 +5721,8 @@ export const GetPrivacyPreferencesRequest: MessageFns<GetPrivacyPreferencesReque
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
     };
   },
 
@@ -5830,14 +5734,10 @@ export const GetPrivacyPreferencesRequest: MessageFns<GetPrivacyPreferencesReque
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetPrivacyPreferencesRequest>, I>>(
-    base?: I
-  ): GetPrivacyPreferencesRequest {
+  create<I extends Exact<DeepPartial<GetPrivacyPreferencesRequest>, I>>(base?: I): GetPrivacyPreferencesRequest {
     return GetPrivacyPreferencesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetPrivacyPreferencesRequest>, I>>(
-    object: I
-  ): GetPrivacyPreferencesRequest {
+  fromPartial<I extends Exact<DeepPartial<GetPrivacyPreferencesRequest>, I>>(object: I): GetPrivacyPreferencesRequest {
     const message = createBaseGetPrivacyPreferencesRequest();
     message.userId = object.userId ?? undefined;
     return message;
@@ -5849,10 +5749,7 @@ function createBaseGetPrivacyPreferencesResponse(): GetPrivacyPreferencesRespons
 }
 
 export const GetPrivacyPreferencesResponse: MessageFns<GetPrivacyPreferencesResponse> = {
-  encode(
-    message: GetPrivacyPreferencesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetPrivacyPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.preferences !== undefined) {
       PrivacyPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
     }
@@ -5884,11 +5781,7 @@ export const GetPrivacyPreferencesResponse: MessageFns<GetPrivacyPreferencesResp
   },
 
   fromJSON(object: any): GetPrivacyPreferencesResponse {
-    return {
-      preferences: isSet(object.preferences)
-        ? PrivacyPreferences.fromJSON(object.preferences)
-        : undefined,
-    };
+    return { preferences: isSet(object.preferences) ? PrivacyPreferences.fromJSON(object.preferences) : undefined };
   },
 
   toJSON(message: GetPrivacyPreferencesResponse): unknown {
@@ -5899,19 +5792,16 @@ export const GetPrivacyPreferencesResponse: MessageFns<GetPrivacyPreferencesResp
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetPrivacyPreferencesResponse>, I>>(
-    base?: I
-  ): GetPrivacyPreferencesResponse {
+  create<I extends Exact<DeepPartial<GetPrivacyPreferencesResponse>, I>>(base?: I): GetPrivacyPreferencesResponse {
     return GetPrivacyPreferencesResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetPrivacyPreferencesResponse>, I>>(
-    object: I
+    object: I,
   ): GetPrivacyPreferencesResponse {
     const message = createBaseGetPrivacyPreferencesResponse();
-    message.preferences =
-      object.preferences !== undefined && object.preferences !== null
-        ? PrivacyPreferences.fromPartial(object.preferences)
-        : undefined;
+    message.preferences = (object.preferences !== undefined && object.preferences !== null)
+      ? PrivacyPreferences.fromPartial(object.preferences)
+      : undefined;
     return message;
   },
 };
@@ -5928,10 +5818,7 @@ function createBaseUpdatePrivacyPreferencesRequest(): UpdatePrivacyPreferencesRe
 }
 
 export const UpdatePrivacyPreferencesRequest: MessageFns<UpdatePrivacyPreferencesRequest> = {
-  encode(
-    message: UpdatePrivacyPreferencesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpdatePrivacyPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -6022,33 +5909,33 @@ export const UpdatePrivacyPreferencesRequest: MessageFns<UpdatePrivacyPreference
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       profileVisibility: isSet(object.profileVisibility)
         ? profileVisibilityFromJSON(object.profileVisibility)
         : isSet(object.profile_visibility)
-          ? profileVisibilityFromJSON(object.profile_visibility)
-          : 0,
+        ? profileVisibilityFromJSON(object.profile_visibility)
+        : 0,
       showLastSeen: isSet(object.showLastSeen)
         ? globalThis.Boolean(object.showLastSeen)
         : isSet(object.show_last_seen)
-          ? globalThis.Boolean(object.show_last_seen)
-          : undefined,
+        ? globalThis.Boolean(object.show_last_seen)
+        : undefined,
       showLocation: isSet(object.showLocation)
         ? globalThis.Boolean(object.showLocation)
         : isSet(object.show_location)
-          ? globalThis.Boolean(object.show_location)
-          : undefined,
+        ? globalThis.Boolean(object.show_location)
+        : undefined,
       allowSearchIndexing: isSet(object.allowSearchIndexing)
         ? globalThis.Boolean(object.allowSearchIndexing)
         : isSet(object.allow_search_indexing)
-          ? globalThis.Boolean(object.allow_search_indexing)
-          : undefined,
+        ? globalThis.Boolean(object.allow_search_indexing)
+        : undefined,
       allowDataExport: isSet(object.allowDataExport)
         ? globalThis.Boolean(object.allowDataExport)
         : isSet(object.allow_data_export)
-          ? globalThis.Boolean(object.allow_data_export)
-          : undefined,
+        ? globalThis.Boolean(object.allow_data_export)
+        : undefined,
     };
   },
 
@@ -6075,13 +5962,11 @@ export const UpdatePrivacyPreferencesRequest: MessageFns<UpdatePrivacyPreference
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdatePrivacyPreferencesRequest>, I>>(
-    base?: I
-  ): UpdatePrivacyPreferencesRequest {
+  create<I extends Exact<DeepPartial<UpdatePrivacyPreferencesRequest>, I>>(base?: I): UpdatePrivacyPreferencesRequest {
     return UpdatePrivacyPreferencesRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<UpdatePrivacyPreferencesRequest>, I>>(
-    object: I
+    object: I,
   ): UpdatePrivacyPreferencesRequest {
     const message = createBaseUpdatePrivacyPreferencesRequest();
     message.userId = object.userId ?? undefined;
@@ -6099,10 +5984,7 @@ function createBaseUpdatePrivacyPreferencesResponse(): UpdatePrivacyPreferencesR
 }
 
 export const UpdatePrivacyPreferencesResponse: MessageFns<UpdatePrivacyPreferencesResponse> = {
-  encode(
-    message: UpdatePrivacyPreferencesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpdatePrivacyPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.preferences !== undefined) {
       PrivacyPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
     }
@@ -6134,11 +6016,7 @@ export const UpdatePrivacyPreferencesResponse: MessageFns<UpdatePrivacyPreferenc
   },
 
   fromJSON(object: any): UpdatePrivacyPreferencesResponse {
-    return {
-      preferences: isSet(object.preferences)
-        ? PrivacyPreferences.fromJSON(object.preferences)
-        : undefined,
-    };
+    return { preferences: isSet(object.preferences) ? PrivacyPreferences.fromJSON(object.preferences) : undefined };
   },
 
   toJSON(message: UpdatePrivacyPreferencesResponse): unknown {
@@ -6150,18 +6028,17 @@ export const UpdatePrivacyPreferencesResponse: MessageFns<UpdatePrivacyPreferenc
   },
 
   create<I extends Exact<DeepPartial<UpdatePrivacyPreferencesResponse>, I>>(
-    base?: I
+    base?: I,
   ): UpdatePrivacyPreferencesResponse {
     return UpdatePrivacyPreferencesResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<UpdatePrivacyPreferencesResponse>, I>>(
-    object: I
+    object: I,
   ): UpdatePrivacyPreferencesResponse {
     const message = createBaseUpdatePrivacyPreferencesResponse();
-    message.preferences =
-      object.preferences !== undefined && object.preferences !== null
-        ? PrivacyPreferences.fromPartial(object.preferences)
-        : undefined;
+    message.preferences = (object.preferences !== undefined && object.preferences !== null)
+      ? PrivacyPreferences.fromPartial(object.preferences)
+      : undefined;
     return message;
   },
 };
@@ -6171,10 +6048,7 @@ function createBaseResetPrivacyPreferencesRequest(): ResetPrivacyPreferencesRequ
 }
 
 export const ResetPrivacyPreferencesRequest: MessageFns<ResetPrivacyPreferencesRequest> = {
-  encode(
-    message: ResetPrivacyPreferencesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ResetPrivacyPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -6210,8 +6084,8 @@ export const ResetPrivacyPreferencesRequest: MessageFns<ResetPrivacyPreferencesR
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
     };
   },
 
@@ -6223,13 +6097,11 @@ export const ResetPrivacyPreferencesRequest: MessageFns<ResetPrivacyPreferencesR
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ResetPrivacyPreferencesRequest>, I>>(
-    base?: I
-  ): ResetPrivacyPreferencesRequest {
+  create<I extends Exact<DeepPartial<ResetPrivacyPreferencesRequest>, I>>(base?: I): ResetPrivacyPreferencesRequest {
     return ResetPrivacyPreferencesRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<ResetPrivacyPreferencesRequest>, I>>(
-    object: I
+    object: I,
   ): ResetPrivacyPreferencesRequest {
     const message = createBaseResetPrivacyPreferencesRequest();
     message.userId = object.userId ?? undefined;
@@ -6242,10 +6114,7 @@ function createBaseResetPrivacyPreferencesResponse(): ResetPrivacyPreferencesRes
 }
 
 export const ResetPrivacyPreferencesResponse: MessageFns<ResetPrivacyPreferencesResponse> = {
-  encode(
-    message: ResetPrivacyPreferencesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ResetPrivacyPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.preferences !== undefined) {
       PrivacyPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
     }
@@ -6277,11 +6146,7 @@ export const ResetPrivacyPreferencesResponse: MessageFns<ResetPrivacyPreferences
   },
 
   fromJSON(object: any): ResetPrivacyPreferencesResponse {
-    return {
-      preferences: isSet(object.preferences)
-        ? PrivacyPreferences.fromJSON(object.preferences)
-        : undefined,
-    };
+    return { preferences: isSet(object.preferences) ? PrivacyPreferences.fromJSON(object.preferences) : undefined };
   },
 
   toJSON(message: ResetPrivacyPreferencesResponse): unknown {
@@ -6292,19 +6157,16 @@ export const ResetPrivacyPreferencesResponse: MessageFns<ResetPrivacyPreferences
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ResetPrivacyPreferencesResponse>, I>>(
-    base?: I
-  ): ResetPrivacyPreferencesResponse {
+  create<I extends Exact<DeepPartial<ResetPrivacyPreferencesResponse>, I>>(base?: I): ResetPrivacyPreferencesResponse {
     return ResetPrivacyPreferencesResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<ResetPrivacyPreferencesResponse>, I>>(
-    object: I
+    object: I,
   ): ResetPrivacyPreferencesResponse {
     const message = createBaseResetPrivacyPreferencesResponse();
-    message.preferences =
-      object.preferences !== undefined && object.preferences !== null
-        ? PrivacyPreferences.fromPartial(object.preferences)
-        : undefined;
+    message.preferences = (object.preferences !== undefined && object.preferences !== null)
+      ? PrivacyPreferences.fromPartial(object.preferences)
+      : undefined;
     return message;
   },
 };
@@ -6461,40 +6323,40 @@ export const SearchUsersRequest: MessageFns<SearchUsersRequest> = {
       statusFilter: isSet(object.statusFilter)
         ? userStatusFromJSON(object.statusFilter)
         : isSet(object.status_filter)
-          ? userStatusFromJSON(object.status_filter)
-          : 0,
+        ? userStatusFromJSON(object.status_filter)
+        : 0,
       userTypeFilter: isSet(object.userTypeFilter)
         ? userRoleFromJSON(object.userTypeFilter)
         : isSet(object.user_type_filter)
-          ? userRoleFromJSON(object.user_type_filter)
-          : 0,
+        ? userRoleFromJSON(object.user_type_filter)
+        : 0,
       emailVerified: isSet(object.emailVerified)
         ? globalThis.Boolean(object.emailVerified)
         : isSet(object.email_verified)
-          ? globalThis.Boolean(object.email_verified)
-          : undefined,
+        ? globalThis.Boolean(object.email_verified)
+        : undefined,
       createdFrom: isSet(object.createdFrom)
         ? globalThis.String(object.createdFrom)
         : isSet(object.created_from)
-          ? globalThis.String(object.created_from)
-          : undefined,
+        ? globalThis.String(object.created_from)
+        : undefined,
       createdTo: isSet(object.createdTo)
         ? globalThis.String(object.createdTo)
         : isSet(object.created_to)
-          ? globalThis.String(object.created_to)
-          : undefined,
+        ? globalThis.String(object.created_to)
+        : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
       sortBy: isSet(object.sortBy)
         ? globalThis.String(object.sortBy)
         : isSet(object.sort_by)
-          ? globalThis.String(object.sort_by)
-          : undefined,
+        ? globalThis.String(object.sort_by)
+        : undefined,
       sortOrder: isSet(object.sortOrder)
         ? globalThis.String(object.sortOrder)
         : isSet(object.sort_order)
-          ? globalThis.String(object.sort_order)
-          : undefined,
+        ? globalThis.String(object.sort_order)
+        : undefined,
     };
   },
 
@@ -6623,23 +6485,21 @@ export const SearchUsersResponse: MessageFns<SearchUsersResponse> = {
 
   fromJSON(object: any): SearchUsersResponse {
     return {
-      users: globalThis.Array.isArray(object?.users)
-        ? object.users.map((e: any) => User.fromJSON(e))
-        : [],
+      users: globalThis.Array.isArray(object?.users) ? object.users.map((e: any) => User.fromJSON(e)) : [],
       total: isSet(object.total) ? globalThis.Number(object.total) : 0,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       totalPages: isSet(object.totalPages)
         ? globalThis.Number(object.totalPages)
         : isSet(object.total_pages)
-          ? globalThis.Number(object.total_pages)
-          : 0,
+        ? globalThis.Number(object.total_pages)
+        : 0,
     };
   },
 
   toJSON(message: SearchUsersResponse): unknown {
     const obj: any = {};
     if (message.users?.length) {
-      obj.users = message.users.map(e => User.toJSON(e));
+      obj.users = message.users.map((e) => User.toJSON(e));
     }
     if (message.total !== 0) {
       obj.total = Math.round(message.total);
@@ -6656,11 +6516,9 @@ export const SearchUsersResponse: MessageFns<SearchUsersResponse> = {
   create<I extends Exact<DeepPartial<SearchUsersResponse>, I>>(base?: I): SearchUsersResponse {
     return SearchUsersResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SearchUsersResponse>, I>>(
-    object: I
-  ): SearchUsersResponse {
+  fromPartial<I extends Exact<DeepPartial<SearchUsersResponse>, I>>(object: I): SearchUsersResponse {
     const message = createBaseSearchUsersResponse();
-    message.users = object.users?.map(e => User.fromPartial(e)) || [];
+    message.users = object.users?.map((e) => User.fromPartial(e)) || [];
     message.total = object.total ?? 0;
     message.page = object.page ?? 0;
     message.totalPages = object.totalPages ?? 0;
@@ -6669,12 +6527,12 @@ export const SearchUsersResponse: MessageFns<SearchUsersResponse> = {
 };
 
 function createBaseAdminGetUserRequest(): AdminGetUserRequest {
-  return { userId: '' };
+  return { userId: "" };
 }
 
 export const AdminGetUserRequest: MessageFns<AdminGetUserRequest> = {
   encode(message: AdminGetUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     return writer;
@@ -6709,14 +6567,14 @@ export const AdminGetUserRequest: MessageFns<AdminGetUserRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
     };
   },
 
   toJSON(message: AdminGetUserRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     return obj;
@@ -6725,11 +6583,9 @@ export const AdminGetUserRequest: MessageFns<AdminGetUserRequest> = {
   create<I extends Exact<DeepPartial<AdminGetUserRequest>, I>>(base?: I): AdminGetUserRequest {
     return AdminGetUserRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminGetUserRequest>, I>>(
-    object: I
-  ): AdminGetUserRequest {
+  fromPartial<I extends Exact<DeepPartial<AdminGetUserRequest>, I>>(object: I): AdminGetUserRequest {
     const message = createBaseAdminGetUserRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     return message;
   },
 };
@@ -6785,30 +6641,20 @@ export const AdminGetUserResponse: MessageFns<AdminGetUserResponse> = {
   create<I extends Exact<DeepPartial<AdminGetUserResponse>, I>>(base?: I): AdminGetUserResponse {
     return AdminGetUserResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminGetUserResponse>, I>>(
-    object: I
-  ): AdminGetUserResponse {
+  fromPartial<I extends Exact<DeepPartial<AdminGetUserResponse>, I>>(object: I): AdminGetUserResponse {
     const message = createBaseAdminGetUserResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseAdminUpdateUserRequest(): AdminUpdateUserRequest {
-  return {
-    userId: '',
-    status: 0,
-    userType: 0,
-    emailVerified: undefined,
-    firstName: undefined,
-    lastName: undefined,
-  };
+  return { userId: "", status: 0, userType: 0, emailVerified: undefined, firstName: undefined, lastName: undefined };
 }
 
 export const AdminUpdateUserRequest: MessageFns<AdminUpdateUserRequest> = {
   encode(message: AdminUpdateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.status !== 0) {
@@ -6898,35 +6744,35 @@ export const AdminUpdateUserRequest: MessageFns<AdminUpdateUserRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
       userType: isSet(object.userType)
         ? userRoleFromJSON(object.userType)
         : isSet(object.user_type)
-          ? userRoleFromJSON(object.user_type)
-          : 0,
+        ? userRoleFromJSON(object.user_type)
+        : 0,
       emailVerified: isSet(object.emailVerified)
         ? globalThis.Boolean(object.emailVerified)
         : isSet(object.email_verified)
-          ? globalThis.Boolean(object.email_verified)
-          : undefined,
+        ? globalThis.Boolean(object.email_verified)
+        : undefined,
       firstName: isSet(object.firstName)
         ? globalThis.String(object.firstName)
         : isSet(object.first_name)
-          ? globalThis.String(object.first_name)
-          : undefined,
+        ? globalThis.String(object.first_name)
+        : undefined,
       lastName: isSet(object.lastName)
         ? globalThis.String(object.lastName)
         : isSet(object.last_name)
-          ? globalThis.String(object.last_name)
-          : undefined,
+        ? globalThis.String(object.last_name)
+        : undefined,
     };
   },
 
   toJSON(message: AdminUpdateUserRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.status !== 0) {
@@ -6947,16 +6793,12 @@ export const AdminUpdateUserRequest: MessageFns<AdminUpdateUserRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminUpdateUserRequest>, I>>(
-    base?: I
-  ): AdminUpdateUserRequest {
+  create<I extends Exact<DeepPartial<AdminUpdateUserRequest>, I>>(base?: I): AdminUpdateUserRequest {
     return AdminUpdateUserRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminUpdateUserRequest>, I>>(
-    object: I
-  ): AdminUpdateUserRequest {
+  fromPartial<I extends Exact<DeepPartial<AdminUpdateUserRequest>, I>>(object: I): AdminUpdateUserRequest {
     const message = createBaseAdminUpdateUserRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.status = object.status ?? 0;
     message.userType = object.userType ?? 0;
     message.emailVerified = object.emailVerified ?? undefined;
@@ -6971,10 +6813,7 @@ function createBaseAdminUpdateUserResponse(): AdminUpdateUserResponse {
 }
 
 export const AdminUpdateUserResponse: MessageFns<AdminUpdateUserResponse> = {
-  encode(
-    message: AdminUpdateUserResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AdminUpdateUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.user !== undefined) {
       User.encode(message.user, writer.uint32(10).fork()).join();
     }
@@ -7017,34 +6856,29 @@ export const AdminUpdateUserResponse: MessageFns<AdminUpdateUserResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminUpdateUserResponse>, I>>(
-    base?: I
-  ): AdminUpdateUserResponse {
+  create<I extends Exact<DeepPartial<AdminUpdateUserResponse>, I>>(base?: I): AdminUpdateUserResponse {
     return AdminUpdateUserResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminUpdateUserResponse>, I>>(
-    object: I
-  ): AdminUpdateUserResponse {
+  fromPartial<I extends Exact<DeepPartial<AdminUpdateUserResponse>, I>>(object: I): AdminUpdateUserResponse {
     const message = createBaseAdminUpdateUserResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseAdminCreateUserRequest(): AdminCreateUserRequest {
-  return { email: '', firstName: '', lastName: '', userType: 0, sendInvitation: false };
+  return { email: "", firstName: "", lastName: "", userType: 0, sendInvitation: false };
 }
 
 export const AdminCreateUserRequest: MessageFns<AdminCreateUserRequest> = {
   encode(message: AdminCreateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(10).string(message.email);
     }
-    if (message.firstName !== '') {
+    if (message.firstName !== "") {
       writer.uint32(18).string(message.firstName);
     }
-    if (message.lastName !== '') {
+    if (message.lastName !== "") {
       writer.uint32(26).string(message.lastName);
     }
     if (message.userType !== 0) {
@@ -7114,39 +6948,39 @@ export const AdminCreateUserRequest: MessageFns<AdminCreateUserRequest> = {
 
   fromJSON(object: any): AdminCreateUserRequest {
     return {
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
       firstName: isSet(object.firstName)
         ? globalThis.String(object.firstName)
         : isSet(object.first_name)
-          ? globalThis.String(object.first_name)
-          : '',
+        ? globalThis.String(object.first_name)
+        : "",
       lastName: isSet(object.lastName)
         ? globalThis.String(object.lastName)
         : isSet(object.last_name)
-          ? globalThis.String(object.last_name)
-          : '',
+        ? globalThis.String(object.last_name)
+        : "",
       userType: isSet(object.userType)
         ? userRoleFromJSON(object.userType)
         : isSet(object.user_type)
-          ? userRoleFromJSON(object.user_type)
-          : 0,
+        ? userRoleFromJSON(object.user_type)
+        : 0,
       sendInvitation: isSet(object.sendInvitation)
         ? globalThis.Boolean(object.sendInvitation)
         : isSet(object.send_invitation)
-          ? globalThis.Boolean(object.send_invitation)
-          : false,
+        ? globalThis.Boolean(object.send_invitation)
+        : false,
     };
   },
 
   toJSON(message: AdminCreateUserRequest): unknown {
     const obj: any = {};
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
-    if (message.firstName !== '') {
+    if (message.firstName !== "") {
       obj.firstName = message.firstName;
     }
-    if (message.lastName !== '') {
+    if (message.lastName !== "") {
       obj.lastName = message.lastName;
     }
     if (message.userType !== 0) {
@@ -7158,18 +6992,14 @@ export const AdminCreateUserRequest: MessageFns<AdminCreateUserRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminCreateUserRequest>, I>>(
-    base?: I
-  ): AdminCreateUserRequest {
+  create<I extends Exact<DeepPartial<AdminCreateUserRequest>, I>>(base?: I): AdminCreateUserRequest {
     return AdminCreateUserRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminCreateUserRequest>, I>>(
-    object: I
-  ): AdminCreateUserRequest {
+  fromPartial<I extends Exact<DeepPartial<AdminCreateUserRequest>, I>>(object: I): AdminCreateUserRequest {
     const message = createBaseAdminCreateUserRequest();
-    message.email = object.email ?? '';
-    message.firstName = object.firstName ?? '';
-    message.lastName = object.lastName ?? '';
+    message.email = object.email ?? "";
+    message.firstName = object.firstName ?? "";
+    message.lastName = object.lastName ?? "";
     message.userType = object.userType ?? 0;
     message.sendInvitation = object.sendInvitation ?? false;
     return message;
@@ -7181,10 +7011,7 @@ function createBaseAdminCreateUserResponse(): AdminCreateUserResponse {
 }
 
 export const AdminCreateUserResponse: MessageFns<AdminCreateUserResponse> = {
-  encode(
-    message: AdminCreateUserResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AdminCreateUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.user !== undefined) {
       User.encode(message.user, writer.uint32(10).fork()).join();
     }
@@ -7227,28 +7054,23 @@ export const AdminCreateUserResponse: MessageFns<AdminCreateUserResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminCreateUserResponse>, I>>(
-    base?: I
-  ): AdminCreateUserResponse {
+  create<I extends Exact<DeepPartial<AdminCreateUserResponse>, I>>(base?: I): AdminCreateUserResponse {
     return AdminCreateUserResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminCreateUserResponse>, I>>(
-    object: I
-  ): AdminCreateUserResponse {
+  fromPartial<I extends Exact<DeepPartial<AdminCreateUserResponse>, I>>(object: I): AdminCreateUserResponse {
     const message = createBaseAdminCreateUserResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseDeactivateUserRequest(): DeactivateUserRequest {
-  return { userId: '', reason: undefined };
+  return { userId: "", reason: undefined };
 }
 
 export const DeactivateUserRequest: MessageFns<DeactivateUserRequest> = {
   encode(message: DeactivateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.reason !== undefined) {
@@ -7294,15 +7116,15 @@ export const DeactivateUserRequest: MessageFns<DeactivateUserRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: DeactivateUserRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.reason !== undefined) {
@@ -7314,11 +7136,9 @@ export const DeactivateUserRequest: MessageFns<DeactivateUserRequest> = {
   create<I extends Exact<DeepPartial<DeactivateUserRequest>, I>>(base?: I): DeactivateUserRequest {
     return DeactivateUserRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeactivateUserRequest>, I>>(
-    object: I
-  ): DeactivateUserRequest {
+  fromPartial<I extends Exact<DeepPartial<DeactivateUserRequest>, I>>(object: I): DeactivateUserRequest {
     const message = createBaseDeactivateUserRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.reason = object.reason ?? undefined;
     return message;
   },
@@ -7372,28 +7192,23 @@ export const DeactivateUserResponse: MessageFns<DeactivateUserResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeactivateUserResponse>, I>>(
-    base?: I
-  ): DeactivateUserResponse {
+  create<I extends Exact<DeepPartial<DeactivateUserResponse>, I>>(base?: I): DeactivateUserResponse {
     return DeactivateUserResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeactivateUserResponse>, I>>(
-    object: I
-  ): DeactivateUserResponse {
+  fromPartial<I extends Exact<DeepPartial<DeactivateUserResponse>, I>>(object: I): DeactivateUserResponse {
     const message = createBaseDeactivateUserResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseReactivateUserRequest(): ReactivateUserRequest {
-  return { userId: '' };
+  return { userId: "" };
 }
 
 export const ReactivateUserRequest: MessageFns<ReactivateUserRequest> = {
   encode(message: ReactivateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     return writer;
@@ -7428,14 +7243,14 @@ export const ReactivateUserRequest: MessageFns<ReactivateUserRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
     };
   },
 
   toJSON(message: ReactivateUserRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     return obj;
@@ -7444,11 +7259,9 @@ export const ReactivateUserRequest: MessageFns<ReactivateUserRequest> = {
   create<I extends Exact<DeepPartial<ReactivateUserRequest>, I>>(base?: I): ReactivateUserRequest {
     return ReactivateUserRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ReactivateUserRequest>, I>>(
-    object: I
-  ): ReactivateUserRequest {
+  fromPartial<I extends Exact<DeepPartial<ReactivateUserRequest>, I>>(object: I): ReactivateUserRequest {
     const message = createBaseReactivateUserRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     return message;
   },
 };
@@ -7501,31 +7314,23 @@ export const ReactivateUserResponse: MessageFns<ReactivateUserResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ReactivateUserResponse>, I>>(
-    base?: I
-  ): ReactivateUserResponse {
+  create<I extends Exact<DeepPartial<ReactivateUserResponse>, I>>(base?: I): ReactivateUserResponse {
     return ReactivateUserResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ReactivateUserResponse>, I>>(
-    object: I
-  ): ReactivateUserResponse {
+  fromPartial<I extends Exact<DeepPartial<ReactivateUserResponse>, I>>(object: I): ReactivateUserResponse {
     const message = createBaseReactivateUserResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseAdminResetPasswordRequest(): AdminResetPasswordRequest {
-  return { userId: '' };
+  return { userId: "" };
 }
 
 export const AdminResetPasswordRequest: MessageFns<AdminResetPasswordRequest> = {
-  encode(
-    message: AdminResetPasswordRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: AdminResetPasswordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     return writer;
@@ -7560,43 +7365,36 @@ export const AdminResetPasswordRequest: MessageFns<AdminResetPasswordRequest> = 
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
     };
   },
 
   toJSON(message: AdminResetPasswordRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminResetPasswordRequest>, I>>(
-    base?: I
-  ): AdminResetPasswordRequest {
+  create<I extends Exact<DeepPartial<AdminResetPasswordRequest>, I>>(base?: I): AdminResetPasswordRequest {
     return AdminResetPasswordRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminResetPasswordRequest>, I>>(
-    object: I
-  ): AdminResetPasswordRequest {
+  fromPartial<I extends Exact<DeepPartial<AdminResetPasswordRequest>, I>>(object: I): AdminResetPasswordRequest {
     const message = createBaseAdminResetPasswordRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     return message;
   },
 };
 
 function createBaseAdminResetPasswordResponse(): AdminResetPasswordResponse {
-  return { temporaryPassword: '' };
+  return { temporaryPassword: "" };
 }
 
 export const AdminResetPasswordResponse: MessageFns<AdminResetPasswordResponse> = {
-  encode(
-    message: AdminResetPasswordResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.temporaryPassword !== '') {
+  encode(message: AdminResetPasswordResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.temporaryPassword !== "") {
       writer.uint32(10).string(message.temporaryPassword);
     }
     return writer;
@@ -7631,40 +7429,36 @@ export const AdminResetPasswordResponse: MessageFns<AdminResetPasswordResponse> 
       temporaryPassword: isSet(object.temporaryPassword)
         ? globalThis.String(object.temporaryPassword)
         : isSet(object.temporary_password)
-          ? globalThis.String(object.temporary_password)
-          : '',
+        ? globalThis.String(object.temporary_password)
+        : "",
     };
   },
 
   toJSON(message: AdminResetPasswordResponse): unknown {
     const obj: any = {};
-    if (message.temporaryPassword !== '') {
+    if (message.temporaryPassword !== "") {
       obj.temporaryPassword = message.temporaryPassword;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminResetPasswordResponse>, I>>(
-    base?: I
-  ): AdminResetPasswordResponse {
+  create<I extends Exact<DeepPartial<AdminResetPasswordResponse>, I>>(base?: I): AdminResetPasswordResponse {
     return AdminResetPasswordResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminResetPasswordResponse>, I>>(
-    object: I
-  ): AdminResetPasswordResponse {
+  fromPartial<I extends Exact<DeepPartial<AdminResetPasswordResponse>, I>>(object: I): AdminResetPasswordResponse {
     const message = createBaseAdminResetPasswordResponse();
-    message.temporaryPassword = object.temporaryPassword ?? '';
+    message.temporaryPassword = object.temporaryPassword ?? "";
     return message;
   },
 };
 
 function createBaseExportUserDataRequest(): ExportUserDataRequest {
-  return { userId: '' };
+  return { userId: "" };
 }
 
 export const ExportUserDataRequest: MessageFns<ExportUserDataRequest> = {
   encode(message: ExportUserDataRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     return writer;
@@ -7699,14 +7493,14 @@ export const ExportUserDataRequest: MessageFns<ExportUserDataRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
     };
   },
 
   toJSON(message: ExportUserDataRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     return obj;
@@ -7715,17 +7509,15 @@ export const ExportUserDataRequest: MessageFns<ExportUserDataRequest> = {
   create<I extends Exact<DeepPartial<ExportUserDataRequest>, I>>(base?: I): ExportUserDataRequest {
     return ExportUserDataRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ExportUserDataRequest>, I>>(
-    object: I
-  ): ExportUserDataRequest {
+  fromPartial<I extends Exact<DeepPartial<ExportUserDataRequest>, I>>(object: I): ExportUserDataRequest {
     const message = createBaseExportUserDataRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     return message;
   },
 };
 
 function createBaseExportUserDataResponse(): ExportUserDataResponse {
-  return { user: undefined, privacyPreferences: undefined, exportedAt: '' };
+  return { user: undefined, privacyPreferences: undefined, exportedAt: "" };
 }
 
 export const ExportUserDataResponse: MessageFns<ExportUserDataResponse> = {
@@ -7736,7 +7528,7 @@ export const ExportUserDataResponse: MessageFns<ExportUserDataResponse> = {
     if (message.privacyPreferences !== undefined) {
       PrivacyPreferences.encode(message.privacyPreferences, writer.uint32(18).fork()).join();
     }
-    if (message.exportedAt !== '') {
+    if (message.exportedAt !== "") {
       writer.uint32(26).string(message.exportedAt);
     }
     return writer;
@@ -7788,13 +7580,13 @@ export const ExportUserDataResponse: MessageFns<ExportUserDataResponse> = {
       privacyPreferences: isSet(object.privacyPreferences)
         ? PrivacyPreferences.fromJSON(object.privacyPreferences)
         : isSet(object.privacy_preferences)
-          ? PrivacyPreferences.fromJSON(object.privacy_preferences)
-          : undefined,
+        ? PrivacyPreferences.fromJSON(object.privacy_preferences)
+        : undefined,
       exportedAt: isSet(object.exportedAt)
         ? globalThis.String(object.exportedAt)
         : isSet(object.exported_at)
-          ? globalThis.String(object.exported_at)
-          : '',
+        ? globalThis.String(object.exported_at)
+        : "",
     };
   },
 
@@ -7806,42 +7598,33 @@ export const ExportUserDataResponse: MessageFns<ExportUserDataResponse> = {
     if (message.privacyPreferences !== undefined) {
       obj.privacyPreferences = PrivacyPreferences.toJSON(message.privacyPreferences);
     }
-    if (message.exportedAt !== '') {
+    if (message.exportedAt !== "") {
       obj.exportedAt = message.exportedAt;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ExportUserDataResponse>, I>>(
-    base?: I
-  ): ExportUserDataResponse {
+  create<I extends Exact<DeepPartial<ExportUserDataResponse>, I>>(base?: I): ExportUserDataResponse {
     return ExportUserDataResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ExportUserDataResponse>, I>>(
-    object: I
-  ): ExportUserDataResponse {
+  fromPartial<I extends Exact<DeepPartial<ExportUserDataResponse>, I>>(object: I): ExportUserDataResponse {
     const message = createBaseExportUserDataResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
-    message.privacyPreferences =
-      object.privacyPreferences !== undefined && object.privacyPreferences !== null
-        ? PrivacyPreferences.fromPartial(object.privacyPreferences)
-        : undefined;
-    message.exportedAt = object.exportedAt ?? '';
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
+    message.privacyPreferences = (object.privacyPreferences !== undefined && object.privacyPreferences !== null)
+      ? PrivacyPreferences.fromPartial(object.privacyPreferences)
+      : undefined;
+    message.exportedAt = object.exportedAt ?? "";
     return message;
   },
 };
 
 function createBaseRequestAccountDeletionRequest(): RequestAccountDeletionRequest {
-  return { userId: '', reason: undefined };
+  return { userId: "", reason: undefined };
 }
 
 export const RequestAccountDeletionRequest: MessageFns<RequestAccountDeletionRequest> = {
-  encode(
-    message: RequestAccountDeletionRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: RequestAccountDeletionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.reason !== undefined) {
@@ -7887,15 +7670,15 @@ export const RequestAccountDeletionRequest: MessageFns<RequestAccountDeletionReq
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: RequestAccountDeletionRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.reason !== undefined) {
@@ -7904,31 +7687,26 @@ export const RequestAccountDeletionRequest: MessageFns<RequestAccountDeletionReq
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RequestAccountDeletionRequest>, I>>(
-    base?: I
-  ): RequestAccountDeletionRequest {
+  create<I extends Exact<DeepPartial<RequestAccountDeletionRequest>, I>>(base?: I): RequestAccountDeletionRequest {
     return RequestAccountDeletionRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<RequestAccountDeletionRequest>, I>>(
-    object: I
+    object: I,
   ): RequestAccountDeletionRequest {
     const message = createBaseRequestAccountDeletionRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.reason = object.reason ?? undefined;
     return message;
   },
 };
 
 function createBaseRequestAccountDeletionResponse(): RequestAccountDeletionResponse {
-  return { deletionScheduledFor: '' };
+  return { deletionScheduledFor: "" };
 }
 
 export const RequestAccountDeletionResponse: MessageFns<RequestAccountDeletionResponse> = {
-  encode(
-    message: RequestAccountDeletionResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.deletionScheduledFor !== '') {
+  encode(message: RequestAccountDeletionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.deletionScheduledFor !== "") {
       writer.uint32(10).string(message.deletionScheduledFor);
     }
     return writer;
@@ -7963,29 +7741,27 @@ export const RequestAccountDeletionResponse: MessageFns<RequestAccountDeletionRe
       deletionScheduledFor: isSet(object.deletionScheduledFor)
         ? globalThis.String(object.deletionScheduledFor)
         : isSet(object.deletion_scheduled_for)
-          ? globalThis.String(object.deletion_scheduled_for)
-          : '',
+        ? globalThis.String(object.deletion_scheduled_for)
+        : "",
     };
   },
 
   toJSON(message: RequestAccountDeletionResponse): unknown {
     const obj: any = {};
-    if (message.deletionScheduledFor !== '') {
+    if (message.deletionScheduledFor !== "") {
       obj.deletionScheduledFor = message.deletionScheduledFor;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RequestAccountDeletionResponse>, I>>(
-    base?: I
-  ): RequestAccountDeletionResponse {
+  create<I extends Exact<DeepPartial<RequestAccountDeletionResponse>, I>>(base?: I): RequestAccountDeletionResponse {
     return RequestAccountDeletionResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<RequestAccountDeletionResponse>, I>>(
-    object: I
+    object: I,
   ): RequestAccountDeletionResponse {
     const message = createBaseRequestAccountDeletionResponse();
-    message.deletionScheduledFor = object.deletionScheduledFor ?? '';
+    message.deletionScheduledFor = object.deletionScheduledFor ?? "";
     return message;
   },
 };
@@ -8024,14 +7800,10 @@ export const GetUserStatisticsRequest: MessageFns<GetUserStatisticsRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserStatisticsRequest>, I>>(
-    base?: I
-  ): GetUserStatisticsRequest {
+  create<I extends Exact<DeepPartial<GetUserStatisticsRequest>, I>>(base?: I): GetUserStatisticsRequest {
     return GetUserStatisticsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserStatisticsRequest>, I>>(
-    _: I
-  ): GetUserStatisticsRequest {
+  fromPartial<I extends Exact<DeepPartial<GetUserStatisticsRequest>, I>>(_: I): GetUserStatisticsRequest {
     const message = createBaseGetUserStatisticsRequest();
     return message;
   },
@@ -8165,8 +7937,8 @@ export const UserTypeCount: MessageFns<UserTypeCount> = {
       userType: isSet(object.userType)
         ? userRoleFromJSON(object.userType)
         : isSet(object.user_type)
-          ? userRoleFromJSON(object.user_type)
-          : 0,
+        ? userRoleFromJSON(object.user_type)
+        : 0,
       count: isSet(object.count) ? globalThis.Number(object.count) : 0,
     };
   },
@@ -8198,10 +7970,7 @@ function createBaseGetUserStatisticsResponse(): GetUserStatisticsResponse {
 }
 
 export const GetUserStatisticsResponse: MessageFns<GetUserStatisticsResponse> = {
-  encode(
-    message: GetUserStatisticsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetUserStatisticsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.total !== 0) {
       writer.uint32(8).uint32(message.total);
     }
@@ -8283,18 +8052,18 @@ export const GetUserStatisticsResponse: MessageFns<GetUserStatisticsResponse> = 
       newThisMonth: isSet(object.newThisMonth)
         ? globalThis.Number(object.newThisMonth)
         : isSet(object.new_this_month)
-          ? globalThis.Number(object.new_this_month)
-          : 0,
+        ? globalThis.Number(object.new_this_month)
+        : 0,
       byStatus: globalThis.Array.isArray(object?.byStatus)
         ? object.byStatus.map((e: any) => UserStatusCount.fromJSON(e))
         : globalThis.Array.isArray(object?.by_status)
-          ? object.by_status.map((e: any) => UserStatusCount.fromJSON(e))
-          : [],
+        ? object.by_status.map((e: any) => UserStatusCount.fromJSON(e))
+        : [],
       byType: globalThis.Array.isArray(object?.byType)
         ? object.byType.map((e: any) => UserTypeCount.fromJSON(e))
         : globalThis.Array.isArray(object?.by_type)
-          ? object.by_type.map((e: any) => UserTypeCount.fromJSON(e))
-          : [],
+        ? object.by_type.map((e: any) => UserTypeCount.fromJSON(e))
+        : [],
     };
   },
 
@@ -8310,42 +8079,35 @@ export const GetUserStatisticsResponse: MessageFns<GetUserStatisticsResponse> = 
       obj.newThisMonth = Math.round(message.newThisMonth);
     }
     if (message.byStatus?.length) {
-      obj.byStatus = message.byStatus.map(e => UserStatusCount.toJSON(e));
+      obj.byStatus = message.byStatus.map((e) => UserStatusCount.toJSON(e));
     }
     if (message.byType?.length) {
-      obj.byType = message.byType.map(e => UserTypeCount.toJSON(e));
+      obj.byType = message.byType.map((e) => UserTypeCount.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserStatisticsResponse>, I>>(
-    base?: I
-  ): GetUserStatisticsResponse {
+  create<I extends Exact<DeepPartial<GetUserStatisticsResponse>, I>>(base?: I): GetUserStatisticsResponse {
     return GetUserStatisticsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserStatisticsResponse>, I>>(
-    object: I
-  ): GetUserStatisticsResponse {
+  fromPartial<I extends Exact<DeepPartial<GetUserStatisticsResponse>, I>>(object: I): GetUserStatisticsResponse {
     const message = createBaseGetUserStatisticsResponse();
     message.total = object.total ?? 0;
     message.verified = object.verified ?? 0;
     message.newThisMonth = object.newThisMonth ?? 0;
-    message.byStatus = object.byStatus?.map(e => UserStatusCount.fromPartial(e)) || [];
-    message.byType = object.byType?.map(e => UserTypeCount.fromPartial(e)) || [];
+    message.byStatus = object.byStatus?.map((e) => UserStatusCount.fromPartial(e)) || [];
+    message.byType = object.byType?.map((e) => UserTypeCount.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseGetUserPermissionsRequest(): GetUserPermissionsRequest {
-  return { userId: '' };
+  return { userId: "" };
 }
 
 export const GetUserPermissionsRequest: MessageFns<GetUserPermissionsRequest> = {
-  encode(
-    message: GetUserPermissionsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: GetUserPermissionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     return writer;
@@ -8380,29 +8142,25 @@ export const GetUserPermissionsRequest: MessageFns<GetUserPermissionsRequest> = 
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
     };
   },
 
   toJSON(message: GetUserPermissionsRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserPermissionsRequest>, I>>(
-    base?: I
-  ): GetUserPermissionsRequest {
+  create<I extends Exact<DeepPartial<GetUserPermissionsRequest>, I>>(base?: I): GetUserPermissionsRequest {
     return GetUserPermissionsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserPermissionsRequest>, I>>(
-    object: I
-  ): GetUserPermissionsRequest {
+  fromPartial<I extends Exact<DeepPartial<GetUserPermissionsRequest>, I>>(object: I): GetUserPermissionsRequest {
     const message = createBaseGetUserPermissionsRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     return message;
   },
 };
@@ -8412,10 +8170,7 @@ function createBaseGetUserPermissionsResponse(): GetUserPermissionsResponse {
 }
 
 export const GetUserPermissionsResponse: MessageFns<GetUserPermissionsResponse> = {
-  encode(
-    message: GetUserPermissionsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetUserPermissionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.permissions) {
       writer.uint32(10).string(v!);
     }
@@ -8462,16 +8217,12 @@ export const GetUserPermissionsResponse: MessageFns<GetUserPermissionsResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserPermissionsResponse>, I>>(
-    base?: I
-  ): GetUserPermissionsResponse {
+  create<I extends Exact<DeepPartial<GetUserPermissionsResponse>, I>>(base?: I): GetUserPermissionsResponse {
     return GetUserPermissionsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserPermissionsResponse>, I>>(
-    object: I
-  ): GetUserPermissionsResponse {
+  fromPartial<I extends Exact<DeepPartial<GetUserPermissionsResponse>, I>>(object: I): GetUserPermissionsResponse {
     const message = createBaseGetUserPermissionsResponse();
-    message.permissions = object.permissions?.map(e => e) || [];
+    message.permissions = object.permissions?.map((e) => e) || [];
     return message;
   },
 };
@@ -8550,14 +8301,14 @@ export const BulkUpdateUsersRequest: MessageFns<BulkUpdateUsersRequest> = {
       userIds: globalThis.Array.isArray(object?.userIds)
         ? object.userIds.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.user_ids)
-          ? object.user_ids.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.user_ids.map((e: any) => globalThis.String(e))
+        : [],
       status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
       userType: isSet(object.userType)
         ? userRoleFromJSON(object.userType)
         : isSet(object.user_type)
-          ? userRoleFromJSON(object.user_type)
-          : 0,
+        ? userRoleFromJSON(object.user_type)
+        : 0,
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
@@ -8579,16 +8330,12 @@ export const BulkUpdateUsersRequest: MessageFns<BulkUpdateUsersRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<BulkUpdateUsersRequest>, I>>(
-    base?: I
-  ): BulkUpdateUsersRequest {
+  create<I extends Exact<DeepPartial<BulkUpdateUsersRequest>, I>>(base?: I): BulkUpdateUsersRequest {
     return BulkUpdateUsersRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<BulkUpdateUsersRequest>, I>>(
-    object: I
-  ): BulkUpdateUsersRequest {
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUsersRequest>, I>>(object: I): BulkUpdateUsersRequest {
     const message = createBaseBulkUpdateUsersRequest();
-    message.userIds = object.userIds?.map(e => e) || [];
+    message.userIds = object.userIds?.map((e) => e) || [];
     message.status = object.status ?? 0;
     message.userType = object.userType ?? 0;
     message.reason = object.reason ?? undefined;
@@ -8597,12 +8344,12 @@ export const BulkUpdateUsersRequest: MessageFns<BulkUpdateUsersRequest> = {
 };
 
 function createBaseBulkUpdateUserResult(): BulkUpdateUserResult {
-  return { userId: '', success: false, error: undefined };
+  return { userId: "", success: false, error: undefined };
 }
 
 export const BulkUpdateUserResult: MessageFns<BulkUpdateUserResult> = {
   encode(message: BulkUpdateUserResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.success !== false) {
@@ -8659,8 +8406,8 @@ export const BulkUpdateUserResult: MessageFns<BulkUpdateUserResult> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
       error: isSet(object.error) ? globalThis.String(object.error) : undefined,
     };
@@ -8668,7 +8415,7 @@ export const BulkUpdateUserResult: MessageFns<BulkUpdateUserResult> = {
 
   toJSON(message: BulkUpdateUserResult): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.success !== false) {
@@ -8683,11 +8430,9 @@ export const BulkUpdateUserResult: MessageFns<BulkUpdateUserResult> = {
   create<I extends Exact<DeepPartial<BulkUpdateUserResult>, I>>(base?: I): BulkUpdateUserResult {
     return BulkUpdateUserResult.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<BulkUpdateUserResult>, I>>(
-    object: I
-  ): BulkUpdateUserResult {
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUserResult>, I>>(object: I): BulkUpdateUserResult {
     const message = createBaseBulkUpdateUserResult();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.success = object.success ?? false;
     message.error = object.error ?? undefined;
     return message;
@@ -8699,10 +8444,7 @@ function createBaseBulkUpdateUsersResponse(): BulkUpdateUsersResponse {
 }
 
 export const BulkUpdateUsersResponse: MessageFns<BulkUpdateUsersResponse> = {
-  encode(
-    message: BulkUpdateUsersResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: BulkUpdateUsersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.successCount !== 0) {
       writer.uint32(8).uint32(message.successCount);
     }
@@ -8760,13 +8502,13 @@ export const BulkUpdateUsersResponse: MessageFns<BulkUpdateUsersResponse> = {
       successCount: isSet(object.successCount)
         ? globalThis.Number(object.successCount)
         : isSet(object.success_count)
-          ? globalThis.Number(object.success_count)
-          : 0,
+        ? globalThis.Number(object.success_count)
+        : 0,
       failedCount: isSet(object.failedCount)
         ? globalThis.Number(object.failedCount)
         : isSet(object.failed_count)
-          ? globalThis.Number(object.failed_count)
-          : 0,
+        ? globalThis.Number(object.failed_count)
+        : 0,
       results: globalThis.Array.isArray(object?.results)
         ? object.results.map((e: any) => BulkUpdateUserResult.fromJSON(e))
         : [],
@@ -8782,52 +8524,48 @@ export const BulkUpdateUsersResponse: MessageFns<BulkUpdateUsersResponse> = {
       obj.failedCount = Math.round(message.failedCount);
     }
     if (message.results?.length) {
-      obj.results = message.results.map(e => BulkUpdateUserResult.toJSON(e));
+      obj.results = message.results.map((e) => BulkUpdateUserResult.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<BulkUpdateUsersResponse>, I>>(
-    base?: I
-  ): BulkUpdateUsersResponse {
+  create<I extends Exact<DeepPartial<BulkUpdateUsersResponse>, I>>(base?: I): BulkUpdateUsersResponse {
     return BulkUpdateUsersResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<BulkUpdateUsersResponse>, I>>(
-    object: I
-  ): BulkUpdateUsersResponse {
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUsersResponse>, I>>(object: I): BulkUpdateUsersResponse {
     const message = createBaseBulkUpdateUsersResponse();
     message.successCount = object.successCount ?? 0;
     message.failedCount = object.failedCount ?? 0;
-    message.results = object.results?.map(e => BulkUpdateUserResult.fromPartial(e)) || [];
+    message.results = object.results?.map((e) => BulkUpdateUserResult.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseAdminSessionInfo(): AdminSessionInfo {
   return {
-    sessionId: '',
-    familyId: '',
-    userId: '',
-    email: '',
+    sessionId: "",
+    familyId: "",
+    userId: "",
+    email: "",
     firstName: undefined,
     lastName: undefined,
-    expiresAt: '',
-    createdAt: '',
+    expiresAt: "",
+    createdAt: "",
   };
 }
 
 export const AdminSessionInfo: MessageFns<AdminSessionInfo> = {
   encode(message: AdminSessionInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       writer.uint32(10).string(message.sessionId);
     }
-    if (message.familyId !== '') {
+    if (message.familyId !== "") {
       writer.uint32(18).string(message.familyId);
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(26).string(message.userId);
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(34).string(message.email);
     }
     if (message.firstName !== undefined) {
@@ -8836,10 +8574,10 @@ export const AdminSessionInfo: MessageFns<AdminSessionInfo> = {
     if (message.lastName !== undefined) {
       writer.uint32(50).string(message.lastName);
     }
-    if (message.expiresAt !== '') {
+    if (message.expiresAt !== "") {
       writer.uint32(58).string(message.expiresAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(66).string(message.createdAt);
     }
     return writer;
@@ -8930,54 +8668,54 @@ export const AdminSessionInfo: MessageFns<AdminSessionInfo> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-          ? globalThis.String(object.session_id)
-          : '',
+        ? globalThis.String(object.session_id)
+        : "",
       familyId: isSet(object.familyId)
         ? globalThis.String(object.familyId)
         : isSet(object.family_id)
-          ? globalThis.String(object.family_id)
-          : '',
+        ? globalThis.String(object.family_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
+        ? globalThis.String(object.user_id)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
       firstName: isSet(object.firstName)
         ? globalThis.String(object.firstName)
         : isSet(object.first_name)
-          ? globalThis.String(object.first_name)
-          : undefined,
+        ? globalThis.String(object.first_name)
+        : undefined,
       lastName: isSet(object.lastName)
         ? globalThis.String(object.lastName)
         : isSet(object.last_name)
-          ? globalThis.String(object.last_name)
-          : undefined,
+        ? globalThis.String(object.last_name)
+        : undefined,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : '',
+        ? globalThis.String(object.expires_at)
+        : "",
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
     };
   },
 
   toJSON(message: AdminSessionInfo): unknown {
     const obj: any = {};
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       obj.sessionId = message.sessionId;
     }
-    if (message.familyId !== '') {
+    if (message.familyId !== "") {
       obj.familyId = message.familyId;
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
     if (message.firstName !== undefined) {
@@ -8986,10 +8724,10 @@ export const AdminSessionInfo: MessageFns<AdminSessionInfo> = {
     if (message.lastName !== undefined) {
       obj.lastName = message.lastName;
     }
-    if (message.expiresAt !== '') {
+    if (message.expiresAt !== "") {
       obj.expiresAt = message.expiresAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
     return obj;
@@ -9000,14 +8738,14 @@ export const AdminSessionInfo: MessageFns<AdminSessionInfo> = {
   },
   fromPartial<I extends Exact<DeepPartial<AdminSessionInfo>, I>>(object: I): AdminSessionInfo {
     const message = createBaseAdminSessionInfo();
-    message.sessionId = object.sessionId ?? '';
-    message.familyId = object.familyId ?? '';
-    message.userId = object.userId ?? '';
-    message.email = object.email ?? '';
+    message.sessionId = object.sessionId ?? "";
+    message.familyId = object.familyId ?? "";
+    message.userId = object.userId ?? "";
+    message.email = object.email ?? "";
     message.firstName = object.firstName ?? undefined;
     message.lastName = object.lastName ?? undefined;
-    message.expiresAt = object.expiresAt ?? '';
-    message.createdAt = object.createdAt ?? '';
+    message.expiresAt = object.expiresAt ?? "";
+    message.createdAt = object.createdAt ?? "";
     return message;
   },
 };
@@ -9017,10 +8755,7 @@ function createBaseAdminListSessionsRequest(): AdminListSessionsRequest {
 }
 
 export const AdminListSessionsRequest: MessageFns<AdminListSessionsRequest> = {
-  encode(
-    message: AdminListSessionsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AdminListSessionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -9078,8 +8813,8 @@ export const AdminListSessionsRequest: MessageFns<AdminListSessionsRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
@@ -9099,14 +8834,10 @@ export const AdminListSessionsRequest: MessageFns<AdminListSessionsRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminListSessionsRequest>, I>>(
-    base?: I
-  ): AdminListSessionsRequest {
+  create<I extends Exact<DeepPartial<AdminListSessionsRequest>, I>>(base?: I): AdminListSessionsRequest {
     return AdminListSessionsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminListSessionsRequest>, I>>(
-    object: I
-  ): AdminListSessionsRequest {
+  fromPartial<I extends Exact<DeepPartial<AdminListSessionsRequest>, I>>(object: I): AdminListSessionsRequest {
     const message = createBaseAdminListSessionsRequest();
     message.userId = object.userId ?? undefined;
     message.page = object.page ?? 0;
@@ -9120,10 +8851,7 @@ function createBaseAdminListSessionsResponse(): AdminListSessionsResponse {
 }
 
 export const AdminListSessionsResponse: MessageFns<AdminListSessionsResponse> = {
-  encode(
-    message: AdminListSessionsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AdminListSessionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.sessions) {
       AdminSessionInfo.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -9197,15 +8925,15 @@ export const AdminListSessionsResponse: MessageFns<AdminListSessionsResponse> = 
       totalPages: isSet(object.totalPages)
         ? globalThis.Number(object.totalPages)
         : isSet(object.total_pages)
-          ? globalThis.Number(object.total_pages)
-          : 0,
+        ? globalThis.Number(object.total_pages)
+        : 0,
     };
   },
 
   toJSON(message: AdminListSessionsResponse): unknown {
     const obj: any = {};
     if (message.sessions?.length) {
-      obj.sessions = message.sessions.map(e => AdminSessionInfo.toJSON(e));
+      obj.sessions = message.sessions.map((e) => AdminSessionInfo.toJSON(e));
     }
     if (message.total !== 0) {
       obj.total = Math.round(message.total);
@@ -9219,16 +8947,12 @@ export const AdminListSessionsResponse: MessageFns<AdminListSessionsResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminListSessionsResponse>, I>>(
-    base?: I
-  ): AdminListSessionsResponse {
+  create<I extends Exact<DeepPartial<AdminListSessionsResponse>, I>>(base?: I): AdminListSessionsResponse {
     return AdminListSessionsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminListSessionsResponse>, I>>(
-    object: I
-  ): AdminListSessionsResponse {
+  fromPartial<I extends Exact<DeepPartial<AdminListSessionsResponse>, I>>(object: I): AdminListSessionsResponse {
     const message = createBaseAdminListSessionsResponse();
-    message.sessions = object.sessions?.map(e => AdminSessionInfo.fromPartial(e)) || [];
+    message.sessions = object.sessions?.map((e) => AdminSessionInfo.fromPartial(e)) || [];
     message.total = object.total ?? 0;
     message.page = object.page ?? 0;
     message.totalPages = object.totalPages ?? 0;
@@ -9237,15 +8961,12 @@ export const AdminListSessionsResponse: MessageFns<AdminListSessionsResponse> = 
 };
 
 function createBaseAdminRevokeSessionRequest(): AdminRevokeSessionRequest {
-  return { sessionId: '' };
+  return { sessionId: "" };
 }
 
 export const AdminRevokeSessionRequest: MessageFns<AdminRevokeSessionRequest> = {
-  encode(
-    message: AdminRevokeSessionRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.sessionId !== '') {
+  encode(message: AdminRevokeSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.sessionId !== "") {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -9280,43 +9001,36 @@ export const AdminRevokeSessionRequest: MessageFns<AdminRevokeSessionRequest> = 
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-          ? globalThis.String(object.session_id)
-          : '',
+        ? globalThis.String(object.session_id)
+        : "",
     };
   },
 
   toJSON(message: AdminRevokeSessionRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       obj.sessionId = message.sessionId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminRevokeSessionRequest>, I>>(
-    base?: I
-  ): AdminRevokeSessionRequest {
+  create<I extends Exact<DeepPartial<AdminRevokeSessionRequest>, I>>(base?: I): AdminRevokeSessionRequest {
     return AdminRevokeSessionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminRevokeSessionRequest>, I>>(
-    object: I
-  ): AdminRevokeSessionRequest {
+  fromPartial<I extends Exact<DeepPartial<AdminRevokeSessionRequest>, I>>(object: I): AdminRevokeSessionRequest {
     const message = createBaseAdminRevokeSessionRequest();
-    message.sessionId = object.sessionId ?? '';
+    message.sessionId = object.sessionId ?? "";
     return message;
   },
 };
 
 function createBaseAdminRevokeSessionResponse(): AdminRevokeSessionResponse {
-  return { sessionId: '' };
+  return { sessionId: "" };
 }
 
 export const AdminRevokeSessionResponse: MessageFns<AdminRevokeSessionResponse> = {
-  encode(
-    message: AdminRevokeSessionResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.sessionId !== '') {
+  encode(message: AdminRevokeSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.sessionId !== "") {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -9351,43 +9065,36 @@ export const AdminRevokeSessionResponse: MessageFns<AdminRevokeSessionResponse> 
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-          ? globalThis.String(object.session_id)
-          : '',
+        ? globalThis.String(object.session_id)
+        : "",
     };
   },
 
   toJSON(message: AdminRevokeSessionResponse): unknown {
     const obj: any = {};
-    if (message.sessionId !== '') {
+    if (message.sessionId !== "") {
       obj.sessionId = message.sessionId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminRevokeSessionResponse>, I>>(
-    base?: I
-  ): AdminRevokeSessionResponse {
+  create<I extends Exact<DeepPartial<AdminRevokeSessionResponse>, I>>(base?: I): AdminRevokeSessionResponse {
     return AdminRevokeSessionResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminRevokeSessionResponse>, I>>(
-    object: I
-  ): AdminRevokeSessionResponse {
+  fromPartial<I extends Exact<DeepPartial<AdminRevokeSessionResponse>, I>>(object: I): AdminRevokeSessionResponse {
     const message = createBaseAdminRevokeSessionResponse();
-    message.sessionId = object.sessionId ?? '';
+    message.sessionId = object.sessionId ?? "";
     return message;
   },
 };
 
 function createBaseAdminRevokeAllUserSessionsRequest(): AdminRevokeAllUserSessionsRequest {
-  return { userId: '' };
+  return { userId: "" };
 }
 
 export const AdminRevokeAllUserSessionsRequest: MessageFns<AdminRevokeAllUserSessionsRequest> = {
-  encode(
-    message: AdminRevokeAllUserSessionsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: AdminRevokeAllUserSessionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     return writer;
@@ -9422,29 +9129,29 @@ export const AdminRevokeAllUserSessionsRequest: MessageFns<AdminRevokeAllUserSes
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
     };
   },
 
   toJSON(message: AdminRevokeAllUserSessionsRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<AdminRevokeAllUserSessionsRequest>, I>>(
-    base?: I
+    base?: I,
   ): AdminRevokeAllUserSessionsRequest {
     return AdminRevokeAllUserSessionsRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<AdminRevokeAllUserSessionsRequest>, I>>(
-    object: I
+    object: I,
   ): AdminRevokeAllUserSessionsRequest {
     const message = createBaseAdminRevokeAllUserSessionsRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     return message;
   },
 };
@@ -9454,10 +9161,7 @@ function createBaseAdminRevokeAllUserSessionsResponse(): AdminRevokeAllUserSessi
 }
 
 export const AdminRevokeAllUserSessionsResponse: MessageFns<AdminRevokeAllUserSessionsResponse> = {
-  encode(
-    message: AdminRevokeAllUserSessionsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AdminRevokeAllUserSessionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.revokedCount !== 0) {
       writer.uint32(8).uint32(message.revokedCount);
     }
@@ -9493,8 +9197,8 @@ export const AdminRevokeAllUserSessionsResponse: MessageFns<AdminRevokeAllUserSe
       revokedCount: isSet(object.revokedCount)
         ? globalThis.Number(object.revokedCount)
         : isSet(object.revoked_count)
-          ? globalThis.Number(object.revoked_count)
-          : 0,
+        ? globalThis.Number(object.revoked_count)
+        : 0,
     };
   },
 
@@ -9507,12 +9211,12 @@ export const AdminRevokeAllUserSessionsResponse: MessageFns<AdminRevokeAllUserSe
   },
 
   create<I extends Exact<DeepPartial<AdminRevokeAllUserSessionsResponse>, I>>(
-    base?: I
+    base?: I,
   ): AdminRevokeAllUserSessionsResponse {
     return AdminRevokeAllUserSessionsResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<AdminRevokeAllUserSessionsResponse>, I>>(
-    object: I
+    object: I,
   ): AdminRevokeAllUserSessionsResponse {
     const message = createBaseAdminRevokeAllUserSessionsResponse();
     message.revokedCount = object.revokedCount ?? 0;
@@ -9521,15 +9225,12 @@ export const AdminRevokeAllUserSessionsResponse: MessageFns<AdminRevokeAllUserSe
 };
 
 function createBaseAdminLockAccountRequest(): AdminLockAccountRequest {
-  return { userId: '', reason: undefined };
+  return { userId: "", reason: undefined };
 }
 
 export const AdminLockAccountRequest: MessageFns<AdminLockAccountRequest> = {
-  encode(
-    message: AdminLockAccountRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: AdminLockAccountRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.reason !== undefined) {
@@ -9575,15 +9276,15 @@ export const AdminLockAccountRequest: MessageFns<AdminLockAccountRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: AdminLockAccountRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.reason !== undefined) {
@@ -9592,16 +9293,12 @@ export const AdminLockAccountRequest: MessageFns<AdminLockAccountRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminLockAccountRequest>, I>>(
-    base?: I
-  ): AdminLockAccountRequest {
+  create<I extends Exact<DeepPartial<AdminLockAccountRequest>, I>>(base?: I): AdminLockAccountRequest {
     return AdminLockAccountRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminLockAccountRequest>, I>>(
-    object: I
-  ): AdminLockAccountRequest {
+  fromPartial<I extends Exact<DeepPartial<AdminLockAccountRequest>, I>>(object: I): AdminLockAccountRequest {
     const message = createBaseAdminLockAccountRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.reason = object.reason ?? undefined;
     return message;
   },
@@ -9612,10 +9309,7 @@ function createBaseAdminLockAccountResponse(): AdminLockAccountResponse {
 }
 
 export const AdminLockAccountResponse: MessageFns<AdminLockAccountResponse> = {
-  encode(
-    message: AdminLockAccountResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AdminLockAccountResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.user !== undefined) {
       User.encode(message.user, writer.uint32(10).fork()).join();
     }
@@ -9658,31 +9352,23 @@ export const AdminLockAccountResponse: MessageFns<AdminLockAccountResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminLockAccountResponse>, I>>(
-    base?: I
-  ): AdminLockAccountResponse {
+  create<I extends Exact<DeepPartial<AdminLockAccountResponse>, I>>(base?: I): AdminLockAccountResponse {
     return AdminLockAccountResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminLockAccountResponse>, I>>(
-    object: I
-  ): AdminLockAccountResponse {
+  fromPartial<I extends Exact<DeepPartial<AdminLockAccountResponse>, I>>(object: I): AdminLockAccountResponse {
     const message = createBaseAdminLockAccountResponse();
-    message.user =
-      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
 
 function createBaseAdminUnlockAccountRequest(): AdminUnlockAccountRequest {
-  return { userId: '' };
+  return { userId: "" };
 }
 
 export const AdminUnlockAccountRequest: MessageFns<AdminUnlockAccountRequest> = {
-  encode(
-    message: AdminUnlockAccountRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: AdminUnlockAccountRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     return writer;
@@ -9717,29 +9403,25 @@ export const AdminUnlockAccountRequest: MessageFns<AdminUnlockAccountRequest> = 
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
     };
   },
 
   toJSON(message: AdminUnlockAccountRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminUnlockAccountRequest>, I>>(
-    base?: I
-  ): AdminUnlockAccountRequest {
+  create<I extends Exact<DeepPartial<AdminUnlockAccountRequest>, I>>(base?: I): AdminUnlockAccountRequest {
     return AdminUnlockAccountRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminUnlockAccountRequest>, I>>(
-    object: I
-  ): AdminUnlockAccountRequest {
+  fromPartial<I extends Exact<DeepPartial<AdminUnlockAccountRequest>, I>>(object: I): AdminUnlockAccountRequest {
     const message = createBaseAdminUnlockAccountRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     return message;
   },
 };
@@ -9749,10 +9431,7 @@ function createBaseAdminUnlockAccountResponse(): AdminUnlockAccountResponse {
 }
 
 export const AdminUnlockAccountResponse: MessageFns<AdminUnlockAccountResponse> = {
-  encode(
-    message: AdminUnlockAccountResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: AdminUnlockAccountResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.wasLocked !== false) {
       writer.uint32(8).bool(message.wasLocked);
     }
@@ -9788,8 +9467,8 @@ export const AdminUnlockAccountResponse: MessageFns<AdminUnlockAccountResponse> 
       wasLocked: isSet(object.wasLocked)
         ? globalThis.Boolean(object.wasLocked)
         : isSet(object.was_locked)
-          ? globalThis.Boolean(object.was_locked)
-          : false,
+        ? globalThis.Boolean(object.was_locked)
+        : false,
     };
   },
 
@@ -9801,14 +9480,10 @@ export const AdminUnlockAccountResponse: MessageFns<AdminUnlockAccountResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AdminUnlockAccountResponse>, I>>(
-    base?: I
-  ): AdminUnlockAccountResponse {
+  create<I extends Exact<DeepPartial<AdminUnlockAccountResponse>, I>>(base?: I): AdminUnlockAccountResponse {
     return AdminUnlockAccountResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AdminUnlockAccountResponse>, I>>(
-    object: I
-  ): AdminUnlockAccountResponse {
+  fromPartial<I extends Exact<DeepPartial<AdminUnlockAccountResponse>, I>>(object: I): AdminUnlockAccountResponse {
     const message = createBaseAdminUnlockAccountResponse();
     message.wasLocked = object.wasLocked ?? false;
     return message;
@@ -9817,27 +9492,27 @@ export const AdminUnlockAccountResponse: MessageFns<AdminUnlockAccountResponse> 
 
 function createBaseIpRule(): IpRule {
   return {
-    ipRuleId: '',
+    ipRuleId: "",
     type: 0,
-    cidr: '',
+    cidr: "",
     label: undefined,
     isActive: false,
     expiresAt: undefined,
     createdBy: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const IpRule: MessageFns<IpRule> = {
   encode(message: IpRule, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.ipRuleId !== '') {
+    if (message.ipRuleId !== "") {
       writer.uint32(10).string(message.ipRuleId);
     }
     if (message.type !== 0) {
       writer.uint32(16).int32(message.type);
     }
-    if (message.cidr !== '') {
+    if (message.cidr !== "") {
       writer.uint32(26).string(message.cidr);
     }
     if (message.label !== undefined) {
@@ -9852,10 +9527,10 @@ export const IpRule: MessageFns<IpRule> = {
     if (message.createdBy !== undefined) {
       writer.uint32(58).string(message.createdBy);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(66).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(74).string(message.updatedAt);
     }
     return writer;
@@ -9954,48 +9629,48 @@ export const IpRule: MessageFns<IpRule> = {
       ipRuleId: isSet(object.ipRuleId)
         ? globalThis.String(object.ipRuleId)
         : isSet(object.ip_rule_id)
-          ? globalThis.String(object.ip_rule_id)
-          : '',
+        ? globalThis.String(object.ip_rule_id)
+        : "",
       type: isSet(object.type) ? ipRuleTypeFromJSON(object.type) : 0,
-      cidr: isSet(object.cidr) ? globalThis.String(object.cidr) : '',
+      cidr: isSet(object.cidr) ? globalThis.String(object.cidr) : "",
       label: isSet(object.label) ? globalThis.String(object.label) : undefined,
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : false,
+        ? globalThis.Boolean(object.is_active)
+        : false,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : undefined,
+        ? globalThis.String(object.expires_at)
+        : undefined,
       createdBy: isSet(object.createdBy)
         ? globalThis.String(object.createdBy)
         : isSet(object.created_by)
-          ? globalThis.String(object.created_by)
-          : undefined,
+        ? globalThis.String(object.created_by)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: IpRule): unknown {
     const obj: any = {};
-    if (message.ipRuleId !== '') {
+    if (message.ipRuleId !== "") {
       obj.ipRuleId = message.ipRuleId;
     }
     if (message.type !== 0) {
       obj.type = ipRuleTypeToJSON(message.type);
     }
-    if (message.cidr !== '') {
+    if (message.cidr !== "") {
       obj.cidr = message.cidr;
     }
     if (message.label !== undefined) {
@@ -10010,10 +9685,10 @@ export const IpRule: MessageFns<IpRule> = {
     if (message.createdBy !== undefined) {
       obj.createdBy = message.createdBy;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -10024,15 +9699,15 @@ export const IpRule: MessageFns<IpRule> = {
   },
   fromPartial<I extends Exact<DeepPartial<IpRule>, I>>(object: I): IpRule {
     const message = createBaseIpRule();
-    message.ipRuleId = object.ipRuleId ?? '';
+    message.ipRuleId = object.ipRuleId ?? "";
     message.type = object.type ?? 0;
-    message.cidr = object.cidr ?? '';
+    message.cidr = object.cidr ?? "";
     message.label = object.label ?? undefined;
     message.isActive = object.isActive ?? false;
     message.expiresAt = object.expiresAt ?? undefined;
     message.createdBy = object.createdBy ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -10117,17 +9792,13 @@ export const ListIpRulesResponse: MessageFns<ListIpRulesResponse> = {
   },
 
   fromJSON(object: any): ListIpRulesResponse {
-    return {
-      rules: globalThis.Array.isArray(object?.rules)
-        ? object.rules.map((e: any) => IpRule.fromJSON(e))
-        : [],
-    };
+    return { rules: globalThis.Array.isArray(object?.rules) ? object.rules.map((e: any) => IpRule.fromJSON(e)) : [] };
   },
 
   toJSON(message: ListIpRulesResponse): unknown {
     const obj: any = {};
     if (message.rules?.length) {
-      obj.rules = message.rules.map(e => IpRule.toJSON(e));
+      obj.rules = message.rules.map((e) => IpRule.toJSON(e));
     }
     return obj;
   },
@@ -10135,17 +9806,15 @@ export const ListIpRulesResponse: MessageFns<ListIpRulesResponse> = {
   create<I extends Exact<DeepPartial<ListIpRulesResponse>, I>>(base?: I): ListIpRulesResponse {
     return ListIpRulesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListIpRulesResponse>, I>>(
-    object: I
-  ): ListIpRulesResponse {
+  fromPartial<I extends Exact<DeepPartial<ListIpRulesResponse>, I>>(object: I): ListIpRulesResponse {
     const message = createBaseListIpRulesResponse();
-    message.rules = object.rules?.map(e => IpRule.fromPartial(e)) || [];
+    message.rules = object.rules?.map((e) => IpRule.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseCreateIpRuleRequest(): CreateIpRuleRequest {
-  return { type: 0, cidr: '', label: undefined, expiresAt: undefined };
+  return { type: 0, cidr: "", label: undefined, expiresAt: undefined };
 }
 
 export const CreateIpRuleRequest: MessageFns<CreateIpRuleRequest> = {
@@ -10153,7 +9822,7 @@ export const CreateIpRuleRequest: MessageFns<CreateIpRuleRequest> = {
     if (message.type !== 0) {
       writer.uint32(8).int32(message.type);
     }
-    if (message.cidr !== '') {
+    if (message.cidr !== "") {
       writer.uint32(18).string(message.cidr);
     }
     if (message.label !== undefined) {
@@ -10216,13 +9885,13 @@ export const CreateIpRuleRequest: MessageFns<CreateIpRuleRequest> = {
   fromJSON(object: any): CreateIpRuleRequest {
     return {
       type: isSet(object.type) ? ipRuleTypeFromJSON(object.type) : 0,
-      cidr: isSet(object.cidr) ? globalThis.String(object.cidr) : '',
+      cidr: isSet(object.cidr) ? globalThis.String(object.cidr) : "",
       label: isSet(object.label) ? globalThis.String(object.label) : undefined,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : undefined,
+        ? globalThis.String(object.expires_at)
+        : undefined,
     };
   },
 
@@ -10231,7 +9900,7 @@ export const CreateIpRuleRequest: MessageFns<CreateIpRuleRequest> = {
     if (message.type !== 0) {
       obj.type = ipRuleTypeToJSON(message.type);
     }
-    if (message.cidr !== '') {
+    if (message.cidr !== "") {
       obj.cidr = message.cidr;
     }
     if (message.label !== undefined) {
@@ -10246,12 +9915,10 @@ export const CreateIpRuleRequest: MessageFns<CreateIpRuleRequest> = {
   create<I extends Exact<DeepPartial<CreateIpRuleRequest>, I>>(base?: I): CreateIpRuleRequest {
     return CreateIpRuleRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateIpRuleRequest>, I>>(
-    object: I
-  ): CreateIpRuleRequest {
+  fromPartial<I extends Exact<DeepPartial<CreateIpRuleRequest>, I>>(object: I): CreateIpRuleRequest {
     const message = createBaseCreateIpRuleRequest();
     message.type = object.type ?? 0;
-    message.cidr = object.cidr ?? '';
+    message.cidr = object.cidr ?? "";
     message.label = object.label ?? undefined;
     message.expiresAt = object.expiresAt ?? undefined;
     return message;
@@ -10309,25 +9976,20 @@ export const CreateIpRuleResponse: MessageFns<CreateIpRuleResponse> = {
   create<I extends Exact<DeepPartial<CreateIpRuleResponse>, I>>(base?: I): CreateIpRuleResponse {
     return CreateIpRuleResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateIpRuleResponse>, I>>(
-    object: I
-  ): CreateIpRuleResponse {
+  fromPartial<I extends Exact<DeepPartial<CreateIpRuleResponse>, I>>(object: I): CreateIpRuleResponse {
     const message = createBaseCreateIpRuleResponse();
-    message.rule =
-      object.rule !== undefined && object.rule !== null
-        ? IpRule.fromPartial(object.rule)
-        : undefined;
+    message.rule = (object.rule !== undefined && object.rule !== null) ? IpRule.fromPartial(object.rule) : undefined;
     return message;
   },
 };
 
 function createBaseDeleteIpRuleRequest(): DeleteIpRuleRequest {
-  return { ipRuleId: '' };
+  return { ipRuleId: "" };
 }
 
 export const DeleteIpRuleRequest: MessageFns<DeleteIpRuleRequest> = {
   encode(message: DeleteIpRuleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.ipRuleId !== '') {
+    if (message.ipRuleId !== "") {
       writer.uint32(10).string(message.ipRuleId);
     }
     return writer;
@@ -10362,14 +10024,14 @@ export const DeleteIpRuleRequest: MessageFns<DeleteIpRuleRequest> = {
       ipRuleId: isSet(object.ipRuleId)
         ? globalThis.String(object.ipRuleId)
         : isSet(object.ip_rule_id)
-          ? globalThis.String(object.ip_rule_id)
-          : '',
+        ? globalThis.String(object.ip_rule_id)
+        : "",
     };
   },
 
   toJSON(message: DeleteIpRuleRequest): unknown {
     const obj: any = {};
-    if (message.ipRuleId !== '') {
+    if (message.ipRuleId !== "") {
       obj.ipRuleId = message.ipRuleId;
     }
     return obj;
@@ -10378,11 +10040,9 @@ export const DeleteIpRuleRequest: MessageFns<DeleteIpRuleRequest> = {
   create<I extends Exact<DeepPartial<DeleteIpRuleRequest>, I>>(base?: I): DeleteIpRuleRequest {
     return DeleteIpRuleRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteIpRuleRequest>, I>>(
-    object: I
-  ): DeleteIpRuleRequest {
+  fromPartial<I extends Exact<DeepPartial<DeleteIpRuleRequest>, I>>(object: I): DeleteIpRuleRequest {
     const message = createBaseDeleteIpRuleRequest();
-    message.ipRuleId = object.ipRuleId ?? '';
+    message.ipRuleId = object.ipRuleId ?? "";
     return message;
   },
 };
@@ -10431,15 +10091,7 @@ export const DeleteIpRuleResponse: MessageFns<DeleteIpRuleResponse> = {
 };
 
 function createBaseFieldPermission(): FieldPermission {
-  return {
-    fieldPermissionId: 0,
-    resource: 0,
-    fieldName: '',
-    role: '',
-    accessLevel: 0,
-    createdAt: '',
-    updatedAt: '',
-  };
+  return { fieldPermissionId: 0, resource: 0, fieldName: "", role: "", accessLevel: 0, createdAt: "", updatedAt: "" };
 }
 
 export const FieldPermission: MessageFns<FieldPermission> = {
@@ -10450,19 +10102,19 @@ export const FieldPermission: MessageFns<FieldPermission> = {
     if (message.resource !== 0) {
       writer.uint32(16).int32(message.resource);
     }
-    if (message.fieldName !== '') {
+    if (message.fieldName !== "") {
       writer.uint32(26).string(message.fieldName);
     }
-    if (message.role !== '') {
+    if (message.role !== "") {
       writer.uint32(34).string(message.role);
     }
     if (message.accessLevel !== 0) {
       writer.uint32(40).int32(message.accessLevel);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(50).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(58).string(message.updatedAt);
     }
     return writer;
@@ -10545,30 +10197,30 @@ export const FieldPermission: MessageFns<FieldPermission> = {
       fieldPermissionId: isSet(object.fieldPermissionId)
         ? globalThis.Number(object.fieldPermissionId)
         : isSet(object.field_permission_id)
-          ? globalThis.Number(object.field_permission_id)
-          : 0,
+        ? globalThis.Number(object.field_permission_id)
+        : 0,
       resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
       fieldName: isSet(object.fieldName)
         ? globalThis.String(object.fieldName)
         : isSet(object.field_name)
-          ? globalThis.String(object.field_name)
-          : '',
-      role: isSet(object.role) ? globalThis.String(object.role) : '',
+        ? globalThis.String(object.field_name)
+        : "",
+      role: isSet(object.role) ? globalThis.String(object.role) : "",
       accessLevel: isSet(object.accessLevel)
         ? fieldAccessLevelFromJSON(object.accessLevel)
         : isSet(object.access_level)
-          ? fieldAccessLevelFromJSON(object.access_level)
-          : 0,
+        ? fieldAccessLevelFromJSON(object.access_level)
+        : 0,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
@@ -10580,19 +10232,19 @@ export const FieldPermission: MessageFns<FieldPermission> = {
     if (message.resource !== 0) {
       obj.resource = fieldPermissionResourceToJSON(message.resource);
     }
-    if (message.fieldName !== '') {
+    if (message.fieldName !== "") {
       obj.fieldName = message.fieldName;
     }
-    if (message.role !== '') {
+    if (message.role !== "") {
       obj.role = message.role;
     }
     if (message.accessLevel !== 0) {
       obj.accessLevel = fieldAccessLevelToJSON(message.accessLevel);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -10605,11 +10257,11 @@ export const FieldPermission: MessageFns<FieldPermission> = {
     const message = createBaseFieldPermission();
     message.fieldPermissionId = object.fieldPermissionId ?? 0;
     message.resource = object.resource ?? 0;
-    message.fieldName = object.fieldName ?? '';
-    message.role = object.role ?? '';
+    message.fieldName = object.fieldName ?? "";
+    message.role = object.role ?? "";
     message.accessLevel = object.accessLevel ?? 0;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -10619,10 +10271,7 @@ function createBaseGetFieldPermissionDefaultsRequest(): GetFieldPermissionDefaul
 }
 
 export const GetFieldPermissionDefaultsRequest: MessageFns<GetFieldPermissionDefaultsRequest> = {
-  encode(
-    _: GetFieldPermissionDefaultsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(_: GetFieldPermissionDefaultsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     return writer;
   },
 
@@ -10652,12 +10301,12 @@ export const GetFieldPermissionDefaultsRequest: MessageFns<GetFieldPermissionDef
   },
 
   create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsRequest>, I>>(
-    base?: I
+    base?: I,
   ): GetFieldPermissionDefaultsRequest {
     return GetFieldPermissionDefaultsRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsRequest>, I>>(
-    _: I
+    _: I,
   ): GetFieldPermissionDefaultsRequest {
     const message = createBaseGetFieldPermissionDefaultsRequest();
     return message;
@@ -10665,15 +10314,12 @@ export const GetFieldPermissionDefaultsRequest: MessageFns<GetFieldPermissionDef
 };
 
 function createBaseGetFieldPermissionDefaultsResponse(): GetFieldPermissionDefaultsResponse {
-  return { defaultsJson: '' };
+  return { defaultsJson: "" };
 }
 
 export const GetFieldPermissionDefaultsResponse: MessageFns<GetFieldPermissionDefaultsResponse> = {
-  encode(
-    message: GetFieldPermissionDefaultsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.defaultsJson !== '') {
+  encode(message: GetFieldPermissionDefaultsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.defaultsJson !== "") {
       writer.uint32(10).string(message.defaultsJson);
     }
     return writer;
@@ -10708,512 +10354,471 @@ export const GetFieldPermissionDefaultsResponse: MessageFns<GetFieldPermissionDe
       defaultsJson: isSet(object.defaultsJson)
         ? globalThis.String(object.defaultsJson)
         : isSet(object.defaults_json)
-          ? globalThis.String(object.defaults_json)
-          : '',
+        ? globalThis.String(object.defaults_json)
+        : "",
     };
   },
 
   toJSON(message: GetFieldPermissionDefaultsResponse): unknown {
     const obj: any = {};
-    if (message.defaultsJson !== '') {
+    if (message.defaultsJson !== "") {
       obj.defaultsJson = message.defaultsJson;
     }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsResponse>, I>>(
-    base?: I
+    base?: I,
   ): GetFieldPermissionDefaultsResponse {
     return GetFieldPermissionDefaultsResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsResponse>, I>>(
-    object: I
+    object: I,
   ): GetFieldPermissionDefaultsResponse {
     const message = createBaseGetFieldPermissionDefaultsResponse();
-    message.defaultsJson = object.defaultsJson ?? '';
+    message.defaultsJson = object.defaultsJson ?? "";
     return message;
   },
 };
 
 function createBaseGetFieldPermissionDefaultsForRoleRequest(): GetFieldPermissionDefaultsForRoleRequest {
-  return { resource: 0, role: '' };
+  return { resource: 0, role: "" };
 }
 
-export const GetFieldPermissionDefaultsForRoleRequest: MessageFns<GetFieldPermissionDefaultsForRoleRequest> =
-  {
-    encode(
-      message: GetFieldPermissionDefaultsForRoleRequest,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.resource !== 0) {
-        writer.uint32(8).int32(message.resource);
-      }
-      if (message.role !== '') {
-        writer.uint32(18).string(message.role);
-      }
-      return writer;
-    },
+export const GetFieldPermissionDefaultsForRoleRequest: MessageFns<GetFieldPermissionDefaultsForRoleRequest> = {
+  encode(message: GetFieldPermissionDefaultsForRoleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.resource !== 0) {
+      writer.uint32(8).int32(message.resource);
+    }
+    if (message.role !== "") {
+      writer.uint32(18).string(message.role);
+    }
+    return writer;
+  },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number
-    ): GetFieldPermissionDefaultsForRoleRequest {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseGetFieldPermissionDefaultsForRoleRequest();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 8) {
-              break;
-            }
-
-            message.resource = reader.int32() as any;
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): GetFieldPermissionDefaultsForRoleRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetFieldPermissionDefaultsForRoleRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
           }
-          case 2: {
-            if (tag !== 18) {
-              break;
-            }
 
-            message.role = reader.string();
-            continue;
+          message.resource = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
           }
+
+          message.role = reader.string();
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): GetFieldPermissionDefaultsForRoleRequest {
-      return {
-        resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
-        role: isSet(object.role) ? globalThis.String(object.role) : '',
-      };
-    },
-
-    toJSON(message: GetFieldPermissionDefaultsForRoleRequest): unknown {
-      const obj: any = {};
-      if (message.resource !== 0) {
-        obj.resource = fieldPermissionResourceToJSON(message.resource);
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      if (message.role !== '') {
-        obj.role = message.role;
-      }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleRequest>, I>>(
-      base?: I
-    ): GetFieldPermissionDefaultsForRoleRequest {
-      return GetFieldPermissionDefaultsForRoleRequest.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleRequest>, I>>(
-      object: I
-    ): GetFieldPermissionDefaultsForRoleRequest {
-      const message = createBaseGetFieldPermissionDefaultsForRoleRequest();
-      message.resource = object.resource ?? 0;
-      message.role = object.role ?? '';
-      return message;
-    },
-  };
+  fromJSON(object: any): GetFieldPermissionDefaultsForRoleRequest {
+    return {
+      resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+      role: isSet(object.role) ? globalThis.String(object.role) : "",
+    };
+  },
+
+  toJSON(message: GetFieldPermissionDefaultsForRoleRequest): unknown {
+    const obj: any = {};
+    if (message.resource !== 0) {
+      obj.resource = fieldPermissionResourceToJSON(message.resource);
+    }
+    if (message.role !== "") {
+      obj.role = message.role;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleRequest>, I>>(
+    base?: I,
+  ): GetFieldPermissionDefaultsForRoleRequest {
+    return GetFieldPermissionDefaultsForRoleRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleRequest>, I>>(
+    object: I,
+  ): GetFieldPermissionDefaultsForRoleRequest {
+    const message = createBaseGetFieldPermissionDefaultsForRoleRequest();
+    message.resource = object.resource ?? 0;
+    message.role = object.role ?? "";
+    return message;
+  },
+};
 
 function createBaseGetFieldPermissionDefaultsForRoleResponse(): GetFieldPermissionDefaultsForRoleResponse {
-  return { accessMapJson: '' };
+  return { accessMapJson: "" };
 }
 
-export const GetFieldPermissionDefaultsForRoleResponse: MessageFns<GetFieldPermissionDefaultsForRoleResponse> =
-  {
-    encode(
-      message: GetFieldPermissionDefaultsForRoleResponse,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.accessMapJson !== '') {
-        writer.uint32(10).string(message.accessMapJson);
-      }
-      return writer;
-    },
+export const GetFieldPermissionDefaultsForRoleResponse: MessageFns<GetFieldPermissionDefaultsForRoleResponse> = {
+  encode(message: GetFieldPermissionDefaultsForRoleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.accessMapJson !== "") {
+      writer.uint32(10).string(message.accessMapJson);
+    }
+    return writer;
+  },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number
-    ): GetFieldPermissionDefaultsForRoleResponse {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseGetFieldPermissionDefaultsForRoleResponse();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.accessMapJson = reader.string();
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): GetFieldPermissionDefaultsForRoleResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetFieldPermissionDefaultsForRoleResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
           }
+
+          message.accessMapJson = reader.string();
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): GetFieldPermissionDefaultsForRoleResponse {
-      return {
-        accessMapJson: isSet(object.accessMapJson)
-          ? globalThis.String(object.accessMapJson)
-          : isSet(object.access_map_json)
-            ? globalThis.String(object.access_map_json)
-            : '',
-      };
-    },
-
-    toJSON(message: GetFieldPermissionDefaultsForRoleResponse): unknown {
-      const obj: any = {};
-      if (message.accessMapJson !== '') {
-        obj.accessMapJson = message.accessMapJson;
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleResponse>, I>>(
-      base?: I
-    ): GetFieldPermissionDefaultsForRoleResponse {
-      return GetFieldPermissionDefaultsForRoleResponse.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleResponse>, I>>(
-      object: I
-    ): GetFieldPermissionDefaultsForRoleResponse {
-      const message = createBaseGetFieldPermissionDefaultsForRoleResponse();
-      message.accessMapJson = object.accessMapJson ?? '';
-      return message;
-    },
-  };
+  fromJSON(object: any): GetFieldPermissionDefaultsForRoleResponse {
+    return {
+      accessMapJson: isSet(object.accessMapJson)
+        ? globalThis.String(object.accessMapJson)
+        : isSet(object.access_map_json)
+        ? globalThis.String(object.access_map_json)
+        : "",
+    };
+  },
+
+  toJSON(message: GetFieldPermissionDefaultsForRoleResponse): unknown {
+    const obj: any = {};
+    if (message.accessMapJson !== "") {
+      obj.accessMapJson = message.accessMapJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleResponse>, I>>(
+    base?: I,
+  ): GetFieldPermissionDefaultsForRoleResponse {
+    return GetFieldPermissionDefaultsForRoleResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleResponse>, I>>(
+    object: I,
+  ): GetFieldPermissionDefaultsForRoleResponse {
+    const message = createBaseGetFieldPermissionDefaultsForRoleResponse();
+    message.accessMapJson = object.accessMapJson ?? "";
+    return message;
+  },
+};
 
 function createBaseListFieldPermissionOverridesRequest(): ListFieldPermissionOverridesRequest {
   return { resource: 0 };
 }
 
-export const ListFieldPermissionOverridesRequest: MessageFns<ListFieldPermissionOverridesRequest> =
-  {
-    encode(
-      message: ListFieldPermissionOverridesRequest,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.resource !== 0) {
-        writer.uint32(8).int32(message.resource);
-      }
-      return writer;
-    },
+export const ListFieldPermissionOverridesRequest: MessageFns<ListFieldPermissionOverridesRequest> = {
+  encode(message: ListFieldPermissionOverridesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.resource !== 0) {
+      writer.uint32(8).int32(message.resource);
+    }
+    return writer;
+  },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): ListFieldPermissionOverridesRequest {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseListFieldPermissionOverridesRequest();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 8) {
-              break;
-            }
-
-            message.resource = reader.int32() as any;
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFieldPermissionOverridesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFieldPermissionOverridesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
           }
+
+          message.resource = reader.int32() as any;
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): ListFieldPermissionOverridesRequest {
-      return {
-        resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
-      };
-    },
-
-    toJSON(message: ListFieldPermissionOverridesRequest): unknown {
-      const obj: any = {};
-      if (message.resource !== 0) {
-        obj.resource = fieldPermissionResourceToJSON(message.resource);
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<ListFieldPermissionOverridesRequest>, I>>(
-      base?: I
-    ): ListFieldPermissionOverridesRequest {
-      return ListFieldPermissionOverridesRequest.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesRequest>, I>>(
-      object: I
-    ): ListFieldPermissionOverridesRequest {
-      const message = createBaseListFieldPermissionOverridesRequest();
-      message.resource = object.resource ?? 0;
-      return message;
-    },
-  };
+  fromJSON(object: any): ListFieldPermissionOverridesRequest {
+    return { resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0 };
+  },
+
+  toJSON(message: ListFieldPermissionOverridesRequest): unknown {
+    const obj: any = {};
+    if (message.resource !== 0) {
+      obj.resource = fieldPermissionResourceToJSON(message.resource);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFieldPermissionOverridesRequest>, I>>(
+    base?: I,
+  ): ListFieldPermissionOverridesRequest {
+    return ListFieldPermissionOverridesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesRequest>, I>>(
+    object: I,
+  ): ListFieldPermissionOverridesRequest {
+    const message = createBaseListFieldPermissionOverridesRequest();
+    message.resource = object.resource ?? 0;
+    return message;
+  },
+};
 
 function createBaseListFieldPermissionOverridesResponse(): ListFieldPermissionOverridesResponse {
   return { overrides: [] };
 }
 
-export const ListFieldPermissionOverridesResponse: MessageFns<ListFieldPermissionOverridesResponse> =
-  {
-    encode(
-      message: ListFieldPermissionOverridesResponse,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      for (const v of message.overrides) {
-        FieldPermission.encode(v!, writer.uint32(10).fork()).join();
-      }
-      return writer;
-    },
+export const ListFieldPermissionOverridesResponse: MessageFns<ListFieldPermissionOverridesResponse> = {
+  encode(message: ListFieldPermissionOverridesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.overrides) {
+      FieldPermission.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number
-    ): ListFieldPermissionOverridesResponse {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseListFieldPermissionOverridesResponse();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.overrides.push(FieldPermission.decode(reader, reader.uint32()));
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFieldPermissionOverridesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFieldPermissionOverridesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
           }
+
+          message.overrides.push(FieldPermission.decode(reader, reader.uint32()));
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): ListFieldPermissionOverridesResponse {
-      return {
-        overrides: globalThis.Array.isArray(object?.overrides)
-          ? object.overrides.map((e: any) => FieldPermission.fromJSON(e))
-          : [],
-      };
-    },
-
-    toJSON(message: ListFieldPermissionOverridesResponse): unknown {
-      const obj: any = {};
-      if (message.overrides?.length) {
-        obj.overrides = message.overrides.map(e => FieldPermission.toJSON(e));
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<ListFieldPermissionOverridesResponse>, I>>(
-      base?: I
-    ): ListFieldPermissionOverridesResponse {
-      return ListFieldPermissionOverridesResponse.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesResponse>, I>>(
-      object: I
-    ): ListFieldPermissionOverridesResponse {
-      const message = createBaseListFieldPermissionOverridesResponse();
-      message.overrides = object.overrides?.map(e => FieldPermission.fromPartial(e)) || [];
-      return message;
-    },
-  };
+  fromJSON(object: any): ListFieldPermissionOverridesResponse {
+    return {
+      overrides: globalThis.Array.isArray(object?.overrides)
+        ? object.overrides.map((e: any) => FieldPermission.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListFieldPermissionOverridesResponse): unknown {
+    const obj: any = {};
+    if (message.overrides?.length) {
+      obj.overrides = message.overrides.map((e) => FieldPermission.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFieldPermissionOverridesResponse>, I>>(
+    base?: I,
+  ): ListFieldPermissionOverridesResponse {
+    return ListFieldPermissionOverridesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesResponse>, I>>(
+    object: I,
+  ): ListFieldPermissionOverridesResponse {
+    const message = createBaseListFieldPermissionOverridesResponse();
+    message.overrides = object.overrides?.map((e) => FieldPermission.fromPartial(e)) || [];
+    return message;
+  },
+};
 
 function createBaseListFieldPermissionOverridesForRoleRequest(): ListFieldPermissionOverridesForRoleRequest {
-  return { resource: 0, role: '' };
+  return { resource: 0, role: "" };
 }
 
-export const ListFieldPermissionOverridesForRoleRequest: MessageFns<ListFieldPermissionOverridesForRoleRequest> =
-  {
-    encode(
-      message: ListFieldPermissionOverridesForRoleRequest,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.resource !== 0) {
-        writer.uint32(8).int32(message.resource);
-      }
-      if (message.role !== '') {
-        writer.uint32(18).string(message.role);
-      }
-      return writer;
-    },
+export const ListFieldPermissionOverridesForRoleRequest: MessageFns<ListFieldPermissionOverridesForRoleRequest> = {
+  encode(message: ListFieldPermissionOverridesForRoleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.resource !== 0) {
+      writer.uint32(8).int32(message.resource);
+    }
+    if (message.role !== "") {
+      writer.uint32(18).string(message.role);
+    }
+    return writer;
+  },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number
-    ): ListFieldPermissionOverridesForRoleRequest {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseListFieldPermissionOverridesForRoleRequest();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 8) {
-              break;
-            }
-
-            message.resource = reader.int32() as any;
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFieldPermissionOverridesForRoleRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFieldPermissionOverridesForRoleRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
           }
-          case 2: {
-            if (tag !== 18) {
-              break;
-            }
 
-            message.role = reader.string();
-            continue;
+          message.resource = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
           }
+
+          message.role = reader.string();
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): ListFieldPermissionOverridesForRoleRequest {
-      return {
-        resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
-        role: isSet(object.role) ? globalThis.String(object.role) : '',
-      };
-    },
-
-    toJSON(message: ListFieldPermissionOverridesForRoleRequest): unknown {
-      const obj: any = {};
-      if (message.resource !== 0) {
-        obj.resource = fieldPermissionResourceToJSON(message.resource);
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      if (message.role !== '') {
-        obj.role = message.role;
-      }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleRequest>, I>>(
-      base?: I
-    ): ListFieldPermissionOverridesForRoleRequest {
-      return ListFieldPermissionOverridesForRoleRequest.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleRequest>, I>>(
-      object: I
-    ): ListFieldPermissionOverridesForRoleRequest {
-      const message = createBaseListFieldPermissionOverridesForRoleRequest();
-      message.resource = object.resource ?? 0;
-      message.role = object.role ?? '';
-      return message;
-    },
-  };
+  fromJSON(object: any): ListFieldPermissionOverridesForRoleRequest {
+    return {
+      resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+      role: isSet(object.role) ? globalThis.String(object.role) : "",
+    };
+  },
+
+  toJSON(message: ListFieldPermissionOverridesForRoleRequest): unknown {
+    const obj: any = {};
+    if (message.resource !== 0) {
+      obj.resource = fieldPermissionResourceToJSON(message.resource);
+    }
+    if (message.role !== "") {
+      obj.role = message.role;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleRequest>, I>>(
+    base?: I,
+  ): ListFieldPermissionOverridesForRoleRequest {
+    return ListFieldPermissionOverridesForRoleRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleRequest>, I>>(
+    object: I,
+  ): ListFieldPermissionOverridesForRoleRequest {
+    const message = createBaseListFieldPermissionOverridesForRoleRequest();
+    message.resource = object.resource ?? 0;
+    message.role = object.role ?? "";
+    return message;
+  },
+};
 
 function createBaseListFieldPermissionOverridesForRoleResponse(): ListFieldPermissionOverridesForRoleResponse {
   return { overrides: [] };
 }
 
-export const ListFieldPermissionOverridesForRoleResponse: MessageFns<ListFieldPermissionOverridesForRoleResponse> =
-  {
-    encode(
-      message: ListFieldPermissionOverridesForRoleResponse,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      for (const v of message.overrides) {
-        FieldPermission.encode(v!, writer.uint32(10).fork()).join();
-      }
-      return writer;
-    },
+export const ListFieldPermissionOverridesForRoleResponse: MessageFns<ListFieldPermissionOverridesForRoleResponse> = {
+  encode(
+    message: ListFieldPermissionOverridesForRoleResponse,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    for (const v of message.overrides) {
+      FieldPermission.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number
-    ): ListFieldPermissionOverridesForRoleResponse {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseListFieldPermissionOverridesForRoleResponse();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.overrides.push(FieldPermission.decode(reader, reader.uint32()));
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFieldPermissionOverridesForRoleResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFieldPermissionOverridesForRoleResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
           }
+
+          message.overrides.push(FieldPermission.decode(reader, reader.uint32()));
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): ListFieldPermissionOverridesForRoleResponse {
-      return {
-        overrides: globalThis.Array.isArray(object?.overrides)
-          ? object.overrides.map((e: any) => FieldPermission.fromJSON(e))
-          : [],
-      };
-    },
-
-    toJSON(message: ListFieldPermissionOverridesForRoleResponse): unknown {
-      const obj: any = {};
-      if (message.overrides?.length) {
-        obj.overrides = message.overrides.map(e => FieldPermission.toJSON(e));
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleResponse>, I>>(
-      base?: I
-    ): ListFieldPermissionOverridesForRoleResponse {
-      return ListFieldPermissionOverridesForRoleResponse.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleResponse>, I>>(
-      object: I
-    ): ListFieldPermissionOverridesForRoleResponse {
-      const message = createBaseListFieldPermissionOverridesForRoleResponse();
-      message.overrides = object.overrides?.map(e => FieldPermission.fromPartial(e)) || [];
-      return message;
-    },
-  };
+  fromJSON(object: any): ListFieldPermissionOverridesForRoleResponse {
+    return {
+      overrides: globalThis.Array.isArray(object?.overrides)
+        ? object.overrides.map((e: any) => FieldPermission.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListFieldPermissionOverridesForRoleResponse): unknown {
+    const obj: any = {};
+    if (message.overrides?.length) {
+      obj.overrides = message.overrides.map((e) => FieldPermission.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleResponse>, I>>(
+    base?: I,
+  ): ListFieldPermissionOverridesForRoleResponse {
+    return ListFieldPermissionOverridesForRoleResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleResponse>, I>>(
+    object: I,
+  ): ListFieldPermissionOverridesForRoleResponse {
+    const message = createBaseListFieldPermissionOverridesForRoleResponse();
+    message.overrides = object.overrides?.map((e) => FieldPermission.fromPartial(e)) || [];
+    return message;
+  },
+};
 
 function createBaseUpsertFieldPermissionRequest(): UpsertFieldPermissionRequest {
-  return { resource: 0, fieldName: '', role: '', accessLevel: 0 };
+  return { resource: 0, fieldName: "", role: "", accessLevel: 0 };
 }
 
 export const UpsertFieldPermissionRequest: MessageFns<UpsertFieldPermissionRequest> = {
-  encode(
-    message: UpsertFieldPermissionRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpsertFieldPermissionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.resource !== 0) {
       writer.uint32(8).int32(message.resource);
     }
-    if (message.fieldName !== '') {
+    if (message.fieldName !== "") {
       writer.uint32(18).string(message.fieldName);
     }
-    if (message.role !== '') {
+    if (message.role !== "") {
       writer.uint32(26).string(message.role);
     }
     if (message.accessLevel !== 0) {
@@ -11276,14 +10881,14 @@ export const UpsertFieldPermissionRequest: MessageFns<UpsertFieldPermissionReque
       fieldName: isSet(object.fieldName)
         ? globalThis.String(object.fieldName)
         : isSet(object.field_name)
-          ? globalThis.String(object.field_name)
-          : '',
-      role: isSet(object.role) ? globalThis.String(object.role) : '',
+        ? globalThis.String(object.field_name)
+        : "",
+      role: isSet(object.role) ? globalThis.String(object.role) : "",
       accessLevel: isSet(object.accessLevel)
         ? fieldAccessLevelFromJSON(object.accessLevel)
         : isSet(object.access_level)
-          ? fieldAccessLevelFromJSON(object.access_level)
-          : 0,
+        ? fieldAccessLevelFromJSON(object.access_level)
+        : 0,
     };
   },
 
@@ -11292,10 +10897,10 @@ export const UpsertFieldPermissionRequest: MessageFns<UpsertFieldPermissionReque
     if (message.resource !== 0) {
       obj.resource = fieldPermissionResourceToJSON(message.resource);
     }
-    if (message.fieldName !== '') {
+    if (message.fieldName !== "") {
       obj.fieldName = message.fieldName;
     }
-    if (message.role !== '') {
+    if (message.role !== "") {
       obj.role = message.role;
     }
     if (message.accessLevel !== 0) {
@@ -11304,18 +10909,14 @@ export const UpsertFieldPermissionRequest: MessageFns<UpsertFieldPermissionReque
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpsertFieldPermissionRequest>, I>>(
-    base?: I
-  ): UpsertFieldPermissionRequest {
+  create<I extends Exact<DeepPartial<UpsertFieldPermissionRequest>, I>>(base?: I): UpsertFieldPermissionRequest {
     return UpsertFieldPermissionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpsertFieldPermissionRequest>, I>>(
-    object: I
-  ): UpsertFieldPermissionRequest {
+  fromPartial<I extends Exact<DeepPartial<UpsertFieldPermissionRequest>, I>>(object: I): UpsertFieldPermissionRequest {
     const message = createBaseUpsertFieldPermissionRequest();
     message.resource = object.resource ?? 0;
-    message.fieldName = object.fieldName ?? '';
-    message.role = object.role ?? '';
+    message.fieldName = object.fieldName ?? "";
+    message.role = object.role ?? "";
     message.accessLevel = object.accessLevel ?? 0;
     return message;
   },
@@ -11326,10 +10927,7 @@ function createBaseUpsertFieldPermissionResponse(): UpsertFieldPermissionRespons
 }
 
 export const UpsertFieldPermissionResponse: MessageFns<UpsertFieldPermissionResponse> = {
-  encode(
-    message: UpsertFieldPermissionResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpsertFieldPermissionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.override !== undefined) {
       FieldPermission.encode(message.override, writer.uint32(10).fork()).join();
     }
@@ -11361,9 +10959,7 @@ export const UpsertFieldPermissionResponse: MessageFns<UpsertFieldPermissionResp
   },
 
   fromJSON(object: any): UpsertFieldPermissionResponse {
-    return {
-      override: isSet(object.override) ? FieldPermission.fromJSON(object.override) : undefined,
-    };
+    return { override: isSet(object.override) ? FieldPermission.fromJSON(object.override) : undefined };
   },
 
   toJSON(message: UpsertFieldPermissionResponse): unknown {
@@ -11374,39 +10970,33 @@ export const UpsertFieldPermissionResponse: MessageFns<UpsertFieldPermissionResp
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpsertFieldPermissionResponse>, I>>(
-    base?: I
-  ): UpsertFieldPermissionResponse {
+  create<I extends Exact<DeepPartial<UpsertFieldPermissionResponse>, I>>(base?: I): UpsertFieldPermissionResponse {
     return UpsertFieldPermissionResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<UpsertFieldPermissionResponse>, I>>(
-    object: I
+    object: I,
   ): UpsertFieldPermissionResponse {
     const message = createBaseUpsertFieldPermissionResponse();
-    message.override =
-      object.override !== undefined && object.override !== null
-        ? FieldPermission.fromPartial(object.override)
-        : undefined;
+    message.override = (object.override !== undefined && object.override !== null)
+      ? FieldPermission.fromPartial(object.override)
+      : undefined;
     return message;
   },
 };
 
 function createBaseFieldPermissionOverrideInput(): FieldPermissionOverrideInput {
-  return { resource: 0, fieldName: '', role: '', accessLevel: 0 };
+  return { resource: 0, fieldName: "", role: "", accessLevel: 0 };
 }
 
 export const FieldPermissionOverrideInput: MessageFns<FieldPermissionOverrideInput> = {
-  encode(
-    message: FieldPermissionOverrideInput,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: FieldPermissionOverrideInput, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.resource !== 0) {
       writer.uint32(8).int32(message.resource);
     }
-    if (message.fieldName !== '') {
+    if (message.fieldName !== "") {
       writer.uint32(18).string(message.fieldName);
     }
-    if (message.role !== '') {
+    if (message.role !== "") {
       writer.uint32(26).string(message.role);
     }
     if (message.accessLevel !== 0) {
@@ -11469,14 +11059,14 @@ export const FieldPermissionOverrideInput: MessageFns<FieldPermissionOverrideInp
       fieldName: isSet(object.fieldName)
         ? globalThis.String(object.fieldName)
         : isSet(object.field_name)
-          ? globalThis.String(object.field_name)
-          : '',
-      role: isSet(object.role) ? globalThis.String(object.role) : '',
+        ? globalThis.String(object.field_name)
+        : "",
+      role: isSet(object.role) ? globalThis.String(object.role) : "",
       accessLevel: isSet(object.accessLevel)
         ? fieldAccessLevelFromJSON(object.accessLevel)
         : isSet(object.access_level)
-          ? fieldAccessLevelFromJSON(object.access_level)
-          : 0,
+        ? fieldAccessLevelFromJSON(object.access_level)
+        : 0,
     };
   },
 
@@ -11485,10 +11075,10 @@ export const FieldPermissionOverrideInput: MessageFns<FieldPermissionOverrideInp
     if (message.resource !== 0) {
       obj.resource = fieldPermissionResourceToJSON(message.resource);
     }
-    if (message.fieldName !== '') {
+    if (message.fieldName !== "") {
       obj.fieldName = message.fieldName;
     }
-    if (message.role !== '') {
+    if (message.role !== "") {
       obj.role = message.role;
     }
     if (message.accessLevel !== 0) {
@@ -11497,18 +11087,14 @@ export const FieldPermissionOverrideInput: MessageFns<FieldPermissionOverrideInp
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<FieldPermissionOverrideInput>, I>>(
-    base?: I
-  ): FieldPermissionOverrideInput {
+  create<I extends Exact<DeepPartial<FieldPermissionOverrideInput>, I>>(base?: I): FieldPermissionOverrideInput {
     return FieldPermissionOverrideInput.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<FieldPermissionOverrideInput>, I>>(
-    object: I
-  ): FieldPermissionOverrideInput {
+  fromPartial<I extends Exact<DeepPartial<FieldPermissionOverrideInput>, I>>(object: I): FieldPermissionOverrideInput {
     const message = createBaseFieldPermissionOverrideInput();
     message.resource = object.resource ?? 0;
-    message.fieldName = object.fieldName ?? '';
-    message.role = object.role ?? '';
+    message.fieldName = object.fieldName ?? "";
+    message.role = object.role ?? "";
     message.accessLevel = object.accessLevel ?? 0;
     return message;
   },
@@ -11519,10 +11105,7 @@ function createBaseBulkUpsertFieldPermissionsRequest(): BulkUpsertFieldPermissio
 }
 
 export const BulkUpsertFieldPermissionsRequest: MessageFns<BulkUpsertFieldPermissionsRequest> = {
-  encode(
-    message: BulkUpsertFieldPermissionsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: BulkUpsertFieldPermissionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.overrides) {
       FieldPermissionOverrideInput.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -11564,22 +11147,21 @@ export const BulkUpsertFieldPermissionsRequest: MessageFns<BulkUpsertFieldPermis
   toJSON(message: BulkUpsertFieldPermissionsRequest): unknown {
     const obj: any = {};
     if (message.overrides?.length) {
-      obj.overrides = message.overrides.map(e => FieldPermissionOverrideInput.toJSON(e));
+      obj.overrides = message.overrides.map((e) => FieldPermissionOverrideInput.toJSON(e));
     }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<BulkUpsertFieldPermissionsRequest>, I>>(
-    base?: I
+    base?: I,
   ): BulkUpsertFieldPermissionsRequest {
     return BulkUpsertFieldPermissionsRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<BulkUpsertFieldPermissionsRequest>, I>>(
-    object: I
+    object: I,
   ): BulkUpsertFieldPermissionsRequest {
     const message = createBaseBulkUpsertFieldPermissionsRequest();
-    message.overrides =
-      object.overrides?.map(e => FieldPermissionOverrideInput.fromPartial(e)) || [];
+    message.overrides = object.overrides?.map((e) => FieldPermissionOverrideInput.fromPartial(e)) || [];
     return message;
   },
 };
@@ -11589,10 +11171,7 @@ function createBaseBulkUpsertFieldPermissionsResponse(): BulkUpsertFieldPermissi
 }
 
 export const BulkUpsertFieldPermissionsResponse: MessageFns<BulkUpsertFieldPermissionsResponse> = {
-  encode(
-    message: BulkUpsertFieldPermissionsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: BulkUpsertFieldPermissionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.overrides) {
       FieldPermission.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -11634,41 +11213,38 @@ export const BulkUpsertFieldPermissionsResponse: MessageFns<BulkUpsertFieldPermi
   toJSON(message: BulkUpsertFieldPermissionsResponse): unknown {
     const obj: any = {};
     if (message.overrides?.length) {
-      obj.overrides = message.overrides.map(e => FieldPermission.toJSON(e));
+      obj.overrides = message.overrides.map((e) => FieldPermission.toJSON(e));
     }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<BulkUpsertFieldPermissionsResponse>, I>>(
-    base?: I
+    base?: I,
   ): BulkUpsertFieldPermissionsResponse {
     return BulkUpsertFieldPermissionsResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<BulkUpsertFieldPermissionsResponse>, I>>(
-    object: I
+    object: I,
   ): BulkUpsertFieldPermissionsResponse {
     const message = createBaseBulkUpsertFieldPermissionsResponse();
-    message.overrides = object.overrides?.map(e => FieldPermission.fromPartial(e)) || [];
+    message.overrides = object.overrides?.map((e) => FieldPermission.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseDeleteFieldPermissionRequest(): DeleteFieldPermissionRequest {
-  return { resource: 0, fieldName: '', role: '' };
+  return { resource: 0, fieldName: "", role: "" };
 }
 
 export const DeleteFieldPermissionRequest: MessageFns<DeleteFieldPermissionRequest> = {
-  encode(
-    message: DeleteFieldPermissionRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: DeleteFieldPermissionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.resource !== 0) {
       writer.uint32(8).int32(message.resource);
     }
-    if (message.fieldName !== '') {
+    if (message.fieldName !== "") {
       writer.uint32(18).string(message.fieldName);
     }
-    if (message.role !== '') {
+    if (message.role !== "") {
       writer.uint32(26).string(message.role);
     }
     return writer;
@@ -11720,9 +11296,9 @@ export const DeleteFieldPermissionRequest: MessageFns<DeleteFieldPermissionReque
       fieldName: isSet(object.fieldName)
         ? globalThis.String(object.fieldName)
         : isSet(object.field_name)
-          ? globalThis.String(object.field_name)
-          : '',
-      role: isSet(object.role) ? globalThis.String(object.role) : '',
+        ? globalThis.String(object.field_name)
+        : "",
+      role: isSet(object.role) ? globalThis.String(object.role) : "",
     };
   },
 
@@ -11731,27 +11307,23 @@ export const DeleteFieldPermissionRequest: MessageFns<DeleteFieldPermissionReque
     if (message.resource !== 0) {
       obj.resource = fieldPermissionResourceToJSON(message.resource);
     }
-    if (message.fieldName !== '') {
+    if (message.fieldName !== "") {
       obj.fieldName = message.fieldName;
     }
-    if (message.role !== '') {
+    if (message.role !== "") {
       obj.role = message.role;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeleteFieldPermissionRequest>, I>>(
-    base?: I
-  ): DeleteFieldPermissionRequest {
+  create<I extends Exact<DeepPartial<DeleteFieldPermissionRequest>, I>>(base?: I): DeleteFieldPermissionRequest {
     return DeleteFieldPermissionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteFieldPermissionRequest>, I>>(
-    object: I
-  ): DeleteFieldPermissionRequest {
+  fromPartial<I extends Exact<DeepPartial<DeleteFieldPermissionRequest>, I>>(object: I): DeleteFieldPermissionRequest {
     const message = createBaseDeleteFieldPermissionRequest();
     message.resource = object.resource ?? 0;
-    message.fieldName = object.fieldName ?? '';
-    message.role = object.role ?? '';
+    message.fieldName = object.fieldName ?? "";
+    message.role = object.role ?? "";
     return message;
   },
 };
@@ -11761,10 +11333,7 @@ function createBaseDeleteFieldPermissionResponse(): DeleteFieldPermissionRespons
 }
 
 export const DeleteFieldPermissionResponse: MessageFns<DeleteFieldPermissionResponse> = {
-  encode(
-    message: DeleteFieldPermissionResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: DeleteFieldPermissionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.deleted !== false) {
       writer.uint32(8).bool(message.deleted);
     }
@@ -11807,13 +11376,11 @@ export const DeleteFieldPermissionResponse: MessageFns<DeleteFieldPermissionResp
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeleteFieldPermissionResponse>, I>>(
-    base?: I
-  ): DeleteFieldPermissionResponse {
+  create<I extends Exact<DeepPartial<DeleteFieldPermissionResponse>, I>>(base?: I): DeleteFieldPermissionResponse {
     return DeleteFieldPermissionResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<DeleteFieldPermissionResponse>, I>>(
-    object: I
+    object: I,
   ): DeleteFieldPermissionResponse {
     const message = createBaseDeleteFieldPermissionResponse();
     message.deleted = object.deleted ?? false;
@@ -11826,10 +11393,7 @@ function createBaseListUserIdsByCohortRequest(): ListUserIdsByCohortRequest {
 }
 
 export const ListUserIdsByCohortRequest: MessageFns<ListUserIdsByCohortRequest> = {
-  encode(
-    message: ListUserIdsByCohortRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListUserIdsByCohortRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     writer.uint32(10).fork();
     for (const v of message.userTypes) {
       writer.int32(v);
@@ -11933,16 +11497,16 @@ export const ListUserIdsByCohortRequest: MessageFns<ListUserIdsByCohortRequest> 
       userTypes: globalThis.Array.isArray(object?.userTypes)
         ? object.userTypes.map((e: any) => userRoleFromJSON(e))
         : globalThis.Array.isArray(object?.user_types)
-          ? object.user_types.map((e: any) => userRoleFromJSON(e))
-          : [],
+        ? object.user_types.map((e: any) => userRoleFromJSON(e))
+        : [],
       statuses: globalThis.Array.isArray(object?.statuses)
         ? object.statuses.map((e: any) => userStatusFromJSON(e))
         : [],
       emailVerified: isSet(object.emailVerified)
         ? globalThis.Boolean(object.emailVerified)
         : isSet(object.email_verified)
-          ? globalThis.Boolean(object.email_verified)
-          : undefined,
+        ? globalThis.Boolean(object.email_verified)
+        : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
@@ -11951,10 +11515,10 @@ export const ListUserIdsByCohortRequest: MessageFns<ListUserIdsByCohortRequest> 
   toJSON(message: ListUserIdsByCohortRequest): unknown {
     const obj: any = {};
     if (message.userTypes?.length) {
-      obj.userTypes = message.userTypes.map(e => userRoleToJSON(e));
+      obj.userTypes = message.userTypes.map((e) => userRoleToJSON(e));
     }
     if (message.statuses?.length) {
-      obj.statuses = message.statuses.map(e => userStatusToJSON(e));
+      obj.statuses = message.statuses.map((e) => userStatusToJSON(e));
     }
     if (message.emailVerified !== undefined) {
       obj.emailVerified = message.emailVerified;
@@ -11968,17 +11532,13 @@ export const ListUserIdsByCohortRequest: MessageFns<ListUserIdsByCohortRequest> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListUserIdsByCohortRequest>, I>>(
-    base?: I
-  ): ListUserIdsByCohortRequest {
+  create<I extends Exact<DeepPartial<ListUserIdsByCohortRequest>, I>>(base?: I): ListUserIdsByCohortRequest {
     return ListUserIdsByCohortRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListUserIdsByCohortRequest>, I>>(
-    object: I
-  ): ListUserIdsByCohortRequest {
+  fromPartial<I extends Exact<DeepPartial<ListUserIdsByCohortRequest>, I>>(object: I): ListUserIdsByCohortRequest {
     const message = createBaseListUserIdsByCohortRequest();
-    message.userTypes = object.userTypes?.map(e => e) || [];
-    message.statuses = object.statuses?.map(e => e) || [];
+    message.userTypes = object.userTypes?.map((e) => e) || [];
+    message.statuses = object.statuses?.map((e) => e) || [];
     message.emailVerified = object.emailVerified ?? undefined;
     message.page = object.page ?? 0;
     message.limit = object.limit ?? 0;
@@ -11991,10 +11551,7 @@ function createBaseListUserIdsByCohortResponse(): ListUserIdsByCohortResponse {
 }
 
 export const ListUserIdsByCohortResponse: MessageFns<ListUserIdsByCohortResponse> = {
-  encode(
-    message: ListUserIdsByCohortResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListUserIdsByCohortResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.userIds) {
       writer.uint32(10).string(v!);
     }
@@ -12063,15 +11620,15 @@ export const ListUserIdsByCohortResponse: MessageFns<ListUserIdsByCohortResponse
       userIds: globalThis.Array.isArray(object?.userIds)
         ? object.userIds.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.user_ids)
-          ? object.user_ids.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.user_ids.map((e: any) => globalThis.String(e))
+        : [],
       total: isSet(object.total) ? globalThis.Number(object.total) : 0,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       totalPages: isSet(object.totalPages)
         ? globalThis.Number(object.totalPages)
         : isSet(object.total_pages)
-          ? globalThis.Number(object.total_pages)
-          : 0,
+        ? globalThis.Number(object.total_pages)
+        : 0,
     };
   },
 
@@ -12092,16 +11649,12 @@ export const ListUserIdsByCohortResponse: MessageFns<ListUserIdsByCohortResponse
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListUserIdsByCohortResponse>, I>>(
-    base?: I
-  ): ListUserIdsByCohortResponse {
+  create<I extends Exact<DeepPartial<ListUserIdsByCohortResponse>, I>>(base?: I): ListUserIdsByCohortResponse {
     return ListUserIdsByCohortResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListUserIdsByCohortResponse>, I>>(
-    object: I
-  ): ListUserIdsByCohortResponse {
+  fromPartial<I extends Exact<DeepPartial<ListUserIdsByCohortResponse>, I>>(object: I): ListUserIdsByCohortResponse {
     const message = createBaseListUserIdsByCohortResponse();
-    message.userIds = object.userIds?.map(e => e) || [];
+    message.userIds = object.userIds?.map((e) => e) || [];
     message.total = object.total ?? 0;
     message.page = object.page ?? 0;
     message.totalPages = object.totalPages ?? 0;
@@ -12134,14 +11687,12 @@ export const AuthServiceService = {
    * `auth.userLoggedIn` on NATS after the DB commit (Phase 2.4).
    */
   login: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/Login' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/Login" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: LoginRequest): Buffer =>
-      Buffer.from(LoginRequest.encode(value).finish()),
+    requestSerialize: (value: LoginRequest): Buffer => Buffer.from(LoginRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): LoginRequest => LoginRequest.decode(value),
-    responseSerialize: (value: LoginResponse): Buffer =>
-      Buffer.from(LoginResponse.encode(value).finish()),
+    responseSerialize: (value: LoginResponse): Buffer => Buffer.from(LoginResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): LoginResponse => LoginResponse.decode(value),
   },
   /**
@@ -12151,14 +11702,12 @@ export const AuthServiceService = {
    * `auth.tokenRevoked` on NATS.
    */
   logout: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/Logout' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/Logout" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: LogoutRequest): Buffer =>
-      Buffer.from(LogoutRequest.encode(value).finish()),
+    requestSerialize: (value: LogoutRequest): Buffer => Buffer.from(LogoutRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): LogoutRequest => LogoutRequest.decode(value),
-    responseSerialize: (value: LogoutResponse): Buffer =>
-      Buffer.from(LogoutResponse.encode(value).finish()),
+    responseSerialize: (value: LogoutResponse): Buffer => Buffer.from(LogoutResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): LogoutResponse => LogoutResponse.decode(value),
   },
   /**
@@ -12167,16 +11716,14 @@ export const AuthServiceService = {
    * UNAUTHENTICATED on missing/expired/revoked input.
    */
   refreshToken: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/RefreshToken' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/RefreshToken" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: RefreshTokenRequest): Buffer =>
-      Buffer.from(RefreshTokenRequest.encode(value).finish()),
+    requestSerialize: (value: RefreshTokenRequest): Buffer => Buffer.from(RefreshTokenRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): RefreshTokenRequest => RefreshTokenRequest.decode(value),
     responseSerialize: (value: RefreshTokenResponse): Buffer =>
       Buffer.from(RefreshTokenResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RefreshTokenResponse =>
-      RefreshTokenResponse.decode(value),
+    responseDeserialize: (value: Buffer): RefreshTokenResponse => RefreshTokenResponse.decode(value),
   },
   /**
    * Cheap JWT verification — the gateway calls this for EVERY
@@ -12187,16 +11734,14 @@ export const AuthServiceService = {
    * jti isn't denylisted. Returns UNAUTHENTICATED on any failure.
    */
   validateToken: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ValidateToken' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ValidateToken" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ValidateTokenRequest): Buffer =>
-      Buffer.from(ValidateTokenRequest.encode(value).finish()),
+    requestSerialize: (value: ValidateTokenRequest): Buffer => Buffer.from(ValidateTokenRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ValidateTokenRequest => ValidateTokenRequest.decode(value),
     responseSerialize: (value: ValidateTokenResponse): Buffer =>
       Buffer.from(ValidateTokenResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ValidateTokenResponse =>
-      ValidateTokenResponse.decode(value),
+    responseDeserialize: (value: Buffer): ValidateTokenResponse => ValidateTokenResponse.decode(value),
   },
   /**
    * Return the calling principal's denormalised user row +
@@ -12204,14 +11749,12 @@ export const AuthServiceService = {
    * x-user-id metadata. Mirrors the monolith's `/api/auth/me`.
    */
   getMe: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/GetMe' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetMe" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetMeRequest): Buffer =>
-      Buffer.from(GetMeRequest.encode(value).finish()),
+    requestSerialize: (value: GetMeRequest): Buffer => Buffer.from(GetMeRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetMeRequest => GetMeRequest.decode(value),
-    responseSerialize: (value: GetMeResponse): Buffer =>
-      Buffer.from(GetMeResponse.encode(value).finish()),
+    responseSerialize: (value: GetMeResponse): Buffer => Buffer.from(GetMeResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetMeResponse => GetMeResponse.decode(value),
   },
   /**
@@ -12222,14 +11765,12 @@ export const AuthServiceService = {
    * NOT returned — the operation is idempotent.
    */
   assignRole: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AssignRole' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AssignRole" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: AssignRoleRequest): Buffer =>
-      Buffer.from(AssignRoleRequest.encode(value).finish()),
+    requestSerialize: (value: AssignRoleRequest): Buffer => Buffer.from(AssignRoleRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): AssignRoleRequest => AssignRoleRequest.decode(value),
-    responseSerialize: (value: AssignRoleResponse): Buffer =>
-      Buffer.from(AssignRoleResponse.encode(value).finish()),
+    responseSerialize: (value: AssignRoleResponse): Buffer => Buffer.from(AssignRoleResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): AssignRoleResponse => AssignRoleResponse.decode(value),
   },
   /**
@@ -12237,14 +11778,12 @@ export const AuthServiceService = {
    * notifications stream; status starts as pending_verification.
    */
   register: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/Register' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/Register" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: RegisterRequest): Buffer =>
-      Buffer.from(RegisterRequest.encode(value).finish()),
+    requestSerialize: (value: RegisterRequest): Buffer => Buffer.from(RegisterRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): RegisterRequest => RegisterRequest.decode(value),
-    responseSerialize: (value: RegisterResponse): Buffer =>
-      Buffer.from(RegisterResponse.encode(value).finish()),
+    responseSerialize: (value: RegisterResponse): Buffer => Buffer.from(RegisterResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): RegisterResponse => RegisterResponse.decode(value),
   },
   /**
@@ -12260,76 +11799,66 @@ export const AuthServiceService = {
    * the gateway only exposes it behind the invitation-accept route.
    */
   provisionInvitedUser: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ProvisionInvitedUser' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ProvisionInvitedUser" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ProvisionInvitedUserRequest): Buffer =>
       Buffer.from(ProvisionInvitedUserRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ProvisionInvitedUserRequest =>
-      ProvisionInvitedUserRequest.decode(value),
+    requestDeserialize: (value: Buffer): ProvisionInvitedUserRequest => ProvisionInvitedUserRequest.decode(value),
     responseSerialize: (value: ProvisionInvitedUserResponse): Buffer =>
       Buffer.from(ProvisionInvitedUserResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ProvisionInvitedUserResponse =>
-      ProvisionInvitedUserResponse.decode(value),
+    responseDeserialize: (value: Buffer): ProvisionInvitedUserResponse => ProvisionInvitedUserResponse.decode(value),
   },
   /**
    * Consume the verification_token mailed to the user; flips
    * email_verified=true and status=active.
    */
   verifyEmail: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/VerifyEmail' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/VerifyEmail" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: VerifyEmailRequest): Buffer =>
-      Buffer.from(VerifyEmailRequest.encode(value).finish()),
+    requestSerialize: (value: VerifyEmailRequest): Buffer => Buffer.from(VerifyEmailRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): VerifyEmailRequest => VerifyEmailRequest.decode(value),
-    responseSerialize: (value: VerifyEmailResponse): Buffer =>
-      Buffer.from(VerifyEmailResponse.encode(value).finish()),
+    responseSerialize: (value: VerifyEmailResponse): Buffer => Buffer.from(VerifyEmailResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): VerifyEmailResponse => VerifyEmailResponse.decode(value),
   },
   /** Mint a new verification_token for an unverified account. */
   resendVerification: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ResendVerification' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ResendVerification" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ResendVerificationRequest): Buffer =>
       Buffer.from(ResendVerificationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ResendVerificationRequest =>
-      ResendVerificationRequest.decode(value),
+    requestDeserialize: (value: Buffer): ResendVerificationRequest => ResendVerificationRequest.decode(value),
     responseSerialize: (value: ResendVerificationResponse): Buffer =>
       Buffer.from(ResendVerificationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ResendVerificationResponse =>
-      ResendVerificationResponse.decode(value),
+    responseDeserialize: (value: Buffer): ResendVerificationResponse => ResendVerificationResponse.decode(value),
   },
   /**
    * Mint reset_token and trigger the password-reset email. ALWAYS
    * returns success — never reveals whether the email exists.
    */
   forgotPassword: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ForgotPassword' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ForgotPassword" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ForgotPasswordRequest): Buffer =>
       Buffer.from(ForgotPasswordRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ForgotPasswordRequest =>
-      ForgotPasswordRequest.decode(value),
+    requestDeserialize: (value: Buffer): ForgotPasswordRequest => ForgotPasswordRequest.decode(value),
     responseSerialize: (value: ForgotPasswordResponse): Buffer =>
       Buffer.from(ForgotPasswordResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ForgotPasswordResponse =>
-      ForgotPasswordResponse.decode(value),
+    responseDeserialize: (value: Buffer): ForgotPasswordResponse => ForgotPasswordResponse.decode(value),
   },
   /** Consume reset_token + set a new password. Clears any locked_until. */
   resetPassword: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ResetPassword' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ResetPassword" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ResetPasswordRequest): Buffer =>
-      Buffer.from(ResetPasswordRequest.encode(value).finish()),
+    requestSerialize: (value: ResetPasswordRequest): Buffer => Buffer.from(ResetPasswordRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ResetPasswordRequest => ResetPasswordRequest.decode(value),
     responseSerialize: (value: ResetPasswordResponse): Buffer =>
       Buffer.from(ResetPasswordResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ResetPasswordResponse =>
-      ResetPasswordResponse.decode(value),
+    responseDeserialize: (value: Buffer): ResetPasswordResponse => ResetPasswordResponse.decode(value),
   },
   /**
    * Consume an invitation_token minted by AdminCreateUser + set the
@@ -12340,70 +11869,60 @@ export const AuthServiceService = {
    * reset_token column (stored raw).
    */
   redeemInvitation: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/RedeemInvitation' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/RedeemInvitation" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: RedeemInvitationRequest): Buffer =>
       Buffer.from(RedeemInvitationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RedeemInvitationRequest =>
-      RedeemInvitationRequest.decode(value),
+    requestDeserialize: (value: Buffer): RedeemInvitationRequest => RedeemInvitationRequest.decode(value),
     responseSerialize: (value: RedeemInvitationResponse): Buffer =>
       Buffer.from(RedeemInvitationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RedeemInvitationResponse =>
-      RedeemInvitationResponse.decode(value),
+    responseDeserialize: (value: Buffer): RedeemInvitationResponse => RedeemInvitationResponse.decode(value),
   },
   /** Authenticated change. Requires the current password. */
   changePassword: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ChangePassword' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ChangePassword" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ChangePasswordRequest): Buffer =>
       Buffer.from(ChangePasswordRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ChangePasswordRequest =>
-      ChangePasswordRequest.decode(value),
+    requestDeserialize: (value: Buffer): ChangePasswordRequest => ChangePasswordRequest.decode(value),
     responseSerialize: (value: ChangePasswordResponse): Buffer =>
       Buffer.from(ChangePasswordResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ChangePasswordResponse =>
-      ChangePasswordResponse.decode(value),
+    responseDeserialize: (value: Buffer): ChangePasswordResponse => ChangePasswordResponse.decode(value),
   },
   setupTwoFactor: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/SetupTwoFactor' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/SetupTwoFactor" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: SetupTwoFactorRequest): Buffer =>
       Buffer.from(SetupTwoFactorRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): SetupTwoFactorRequest =>
-      SetupTwoFactorRequest.decode(value),
+    requestDeserialize: (value: Buffer): SetupTwoFactorRequest => SetupTwoFactorRequest.decode(value),
     responseSerialize: (value: SetupTwoFactorResponse): Buffer =>
       Buffer.from(SetupTwoFactorResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): SetupTwoFactorResponse =>
-      SetupTwoFactorResponse.decode(value),
+    responseDeserialize: (value: Buffer): SetupTwoFactorResponse => SetupTwoFactorResponse.decode(value),
   },
   enableTwoFactor: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/EnableTwoFactor' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/EnableTwoFactor" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: EnableTwoFactorRequest): Buffer =>
       Buffer.from(EnableTwoFactorRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): EnableTwoFactorRequest =>
-      EnableTwoFactorRequest.decode(value),
+    requestDeserialize: (value: Buffer): EnableTwoFactorRequest => EnableTwoFactorRequest.decode(value),
     responseSerialize: (value: EnableTwoFactorResponse): Buffer =>
       Buffer.from(EnableTwoFactorResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): EnableTwoFactorResponse =>
-      EnableTwoFactorResponse.decode(value),
+    responseDeserialize: (value: Buffer): EnableTwoFactorResponse => EnableTwoFactorResponse.decode(value),
   },
   disableTwoFactor: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/DisableTwoFactor' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/DisableTwoFactor" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: DisableTwoFactorRequest): Buffer =>
       Buffer.from(DisableTwoFactorRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): DisableTwoFactorRequest =>
-      DisableTwoFactorRequest.decode(value),
+    requestDeserialize: (value: Buffer): DisableTwoFactorRequest => DisableTwoFactorRequest.decode(value),
     responseSerialize: (value: DisableTwoFactorResponse): Buffer =>
       Buffer.from(DisableTwoFactorResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DisableTwoFactorResponse =>
-      DisableTwoFactorResponse.decode(value),
+    responseDeserialize: (value: Buffer): DisableTwoFactorResponse => DisableTwoFactorResponse.decode(value),
   },
   /**
    * Mint a fresh set of 10 backup/recovery codes, invalidating any
@@ -12413,17 +11932,15 @@ export const AuthServiceService = {
    * are returned exactly once — only their hashes are persisted.
    */
   regenerateBackupCodes: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/RegenerateBackupCodes' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/RegenerateBackupCodes" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: RegenerateBackupCodesRequest): Buffer =>
       Buffer.from(RegenerateBackupCodesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RegenerateBackupCodesRequest =>
-      RegenerateBackupCodesRequest.decode(value),
+    requestDeserialize: (value: Buffer): RegenerateBackupCodesRequest => RegenerateBackupCodesRequest.decode(value),
     responseSerialize: (value: RegenerateBackupCodesResponse): Buffer =>
       Buffer.from(RegenerateBackupCodesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RegenerateBackupCodesResponse =>
-      RegenerateBackupCodesResponse.decode(value),
+    responseDeserialize: (value: Buffer): RegenerateBackupCodesResponse => RegenerateBackupCodesResponse.decode(value),
   },
   /**
    * Authenticated profile edit (first_name, last_name, phone_number,
@@ -12431,16 +11948,14 @@ export const AuthServiceService = {
    * through a dedicated re-verification flow (deferred).
    */
   updateAccount: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/UpdateAccount' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/UpdateAccount" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: UpdateAccountRequest): Buffer =>
-      Buffer.from(UpdateAccountRequest.encode(value).finish()),
+    requestSerialize: (value: UpdateAccountRequest): Buffer => Buffer.from(UpdateAccountRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): UpdateAccountRequest => UpdateAccountRequest.decode(value),
     responseSerialize: (value: UpdateAccountResponse): Buffer =>
       Buffer.from(UpdateAccountResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdateAccountResponse =>
-      UpdateAccountResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpdateAccountResponse => UpdateAccountResponse.decode(value),
   },
   /**
    * List active sessions for the calling principal. Always self-scoped
@@ -12449,16 +11964,14 @@ export const AuthServiceService = {
    * refresh_token chain shows as ONE session, not N.
    */
   listSessions: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ListSessions' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ListSessions" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListSessionsRequest): Buffer =>
-      Buffer.from(ListSessionsRequest.encode(value).finish()),
+    requestSerialize: (value: ListSessionsRequest): Buffer => Buffer.from(ListSessionsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListSessionsRequest => ListSessionsRequest.decode(value),
     responseSerialize: (value: ListSessionsResponse): Buffer =>
       Buffer.from(ListSessionsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListSessionsResponse =>
-      ListSessionsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListSessionsResponse => ListSessionsResponse.decode(value),
   },
   /**
    * Revoke a session by token_id. Marks the row + every successor in
@@ -12468,32 +11981,28 @@ export const AuthServiceService = {
    * (no cross-user session enumeration).
    */
   revokeSession: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/RevokeSession' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/RevokeSession" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: RevokeSessionRequest): Buffer =>
-      Buffer.from(RevokeSessionRequest.encode(value).finish()),
+    requestSerialize: (value: RevokeSessionRequest): Buffer => Buffer.from(RevokeSessionRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): RevokeSessionRequest => RevokeSessionRequest.decode(value),
     responseSerialize: (value: RevokeSessionResponse): Buffer =>
       Buffer.from(RevokeSessionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RevokeSessionResponse =>
-      RevokeSessionResponse.decode(value),
+    responseDeserialize: (value: Buffer): RevokeSessionResponse => RevokeSessionResponse.decode(value),
   },
   getPrivacyPreferences: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/GetPrivacyPreferences' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetPrivacyPreferences" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetPrivacyPreferencesRequest): Buffer =>
       Buffer.from(GetPrivacyPreferencesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetPrivacyPreferencesRequest =>
-      GetPrivacyPreferencesRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetPrivacyPreferencesRequest => GetPrivacyPreferencesRequest.decode(value),
     responseSerialize: (value: GetPrivacyPreferencesResponse): Buffer =>
       Buffer.from(GetPrivacyPreferencesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetPrivacyPreferencesResponse =>
-      GetPrivacyPreferencesResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetPrivacyPreferencesResponse => GetPrivacyPreferencesResponse.decode(value),
   },
   updatePrivacyPreferences: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/UpdatePrivacyPreferences' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/UpdatePrivacyPreferences" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpdatePrivacyPreferencesRequest): Buffer =>
@@ -12511,13 +12020,12 @@ export const AuthServiceService = {
    * created defaults row.
    */
   resetPrivacyPreferences: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ResetPrivacyPreferences' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ResetPrivacyPreferences" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ResetPrivacyPreferencesRequest): Buffer =>
       Buffer.from(ResetPrivacyPreferencesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ResetPrivacyPreferencesRequest =>
-      ResetPrivacyPreferencesRequest.decode(value),
+    requestDeserialize: (value: Buffer): ResetPrivacyPreferencesRequest => ResetPrivacyPreferencesRequest.decode(value),
     responseSerialize: (value: ResetPrivacyPreferencesResponse): Buffer =>
       Buffer.from(ResetPrivacyPreferencesResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ResetPrivacyPreferencesResponse =>
@@ -12525,28 +12033,24 @@ export const AuthServiceService = {
   },
   /** Paginated, filtered user search. Caller MUST have admin.users.search. */
   searchUsers: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/SearchUsers' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/SearchUsers" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: SearchUsersRequest): Buffer =>
-      Buffer.from(SearchUsersRequest.encode(value).finish()),
+    requestSerialize: (value: SearchUsersRequest): Buffer => Buffer.from(SearchUsersRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): SearchUsersRequest => SearchUsersRequest.decode(value),
-    responseSerialize: (value: SearchUsersResponse): Buffer =>
-      Buffer.from(SearchUsersResponse.encode(value).finish()),
+    responseSerialize: (value: SearchUsersResponse): Buffer => Buffer.from(SearchUsersResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SearchUsersResponse => SearchUsersResponse.decode(value),
   },
   /** Fetch a single user by id (admin view — full row). admin.users.read. */
   adminGetUser: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminGetUser' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminGetUser" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: AdminGetUserRequest): Buffer =>
-      Buffer.from(AdminGetUserRequest.encode(value).finish()),
+    requestSerialize: (value: AdminGetUserRequest): Buffer => Buffer.from(AdminGetUserRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): AdminGetUserRequest => AdminGetUserRequest.decode(value),
     responseSerialize: (value: AdminGetUserResponse): Buffer =>
       Buffer.from(AdminGetUserResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AdminGetUserResponse =>
-      AdminGetUserResponse.decode(value),
+    responseDeserialize: (value: Buffer): AdminGetUserResponse => AdminGetUserResponse.decode(value),
   },
   /**
    * Create a new user from the admin console as a pending, credential-less
@@ -12557,17 +12061,15 @@ export const AuthServiceService = {
    * super_admin. ALREADY_EXISTS when the email is already in use.
    */
   adminCreateUser: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminCreateUser' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminCreateUser" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AdminCreateUserRequest): Buffer =>
       Buffer.from(AdminCreateUserRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AdminCreateUserRequest =>
-      AdminCreateUserRequest.decode(value),
+    requestDeserialize: (value: Buffer): AdminCreateUserRequest => AdminCreateUserRequest.decode(value),
     responseSerialize: (value: AdminCreateUserResponse): Buffer =>
       Buffer.from(AdminCreateUserResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AdminCreateUserResponse =>
-      AdminCreateUserResponse.decode(value),
+    responseDeserialize: (value: Buffer): AdminCreateUserResponse => AdminCreateUserResponse.decode(value),
   },
   /**
    * Partially update a user's admin-controllable fields (status,
@@ -12575,85 +12077,75 @@ export const AuthServiceService = {
    * are written.
    */
   adminUpdateUser: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminUpdateUser' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminUpdateUser" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AdminUpdateUserRequest): Buffer =>
       Buffer.from(AdminUpdateUserRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AdminUpdateUserRequest =>
-      AdminUpdateUserRequest.decode(value),
+    requestDeserialize: (value: Buffer): AdminUpdateUserRequest => AdminUpdateUserRequest.decode(value),
     responseSerialize: (value: AdminUpdateUserResponse): Buffer =>
       Buffer.from(AdminUpdateUserResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AdminUpdateUserResponse =>
-      AdminUpdateUserResponse.decode(value),
+    responseDeserialize: (value: Buffer): AdminUpdateUserResponse => AdminUpdateUserResponse.decode(value),
   },
   /**
    * Deactivate a user account (status -> deactivated). admin.users.deactivate.
    * Idempotent. The caller cannot deactivate their own account.
    */
   deactivateUser: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/DeactivateUser' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/DeactivateUser" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: DeactivateUserRequest): Buffer =>
       Buffer.from(DeactivateUserRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): DeactivateUserRequest =>
-      DeactivateUserRequest.decode(value),
+    requestDeserialize: (value: Buffer): DeactivateUserRequest => DeactivateUserRequest.decode(value),
     responseSerialize: (value: DeactivateUserResponse): Buffer =>
       Buffer.from(DeactivateUserResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DeactivateUserResponse =>
-      DeactivateUserResponse.decode(value),
+    responseDeserialize: (value: Buffer): DeactivateUserResponse => DeactivateUserResponse.decode(value),
   },
   /**
    * Reactivate a deactivated/suspended user (status -> active).
    * admin.users.reactivate. Idempotent.
    */
   reactivateUser: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ReactivateUser' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ReactivateUser" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ReactivateUserRequest): Buffer =>
       Buffer.from(ReactivateUserRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ReactivateUserRequest =>
-      ReactivateUserRequest.decode(value),
+    requestDeserialize: (value: Buffer): ReactivateUserRequest => ReactivateUserRequest.decode(value),
     responseSerialize: (value: ReactivateUserResponse): Buffer =>
       Buffer.from(ReactivateUserResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ReactivateUserResponse =>
-      ReactivateUserResponse.decode(value),
+    responseDeserialize: (value: Buffer): ReactivateUserResponse => ReactivateUserResponse.decode(value),
   },
   /**
    * Platform-wide user counts + breakdowns for the admin dashboard.
    * admin.users.read.
    */
   getUserStatistics: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/GetUserStatistics' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetUserStatistics" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetUserStatisticsRequest): Buffer =>
       Buffer.from(GetUserStatisticsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetUserStatisticsRequest =>
-      GetUserStatisticsRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetUserStatisticsRequest => GetUserStatisticsRequest.decode(value),
     responseSerialize: (value: GetUserStatisticsResponse): Buffer =>
       Buffer.from(GetUserStatisticsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetUserStatisticsResponse =>
-      GetUserStatisticsResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetUserStatisticsResponse => GetUserStatisticsResponse.decode(value),
   },
   /**
    * Flattened permission strings for a target user (role-derived).
    * admin.users.read.
    */
   getUserPermissions: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/GetUserPermissions' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetUserPermissions" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetUserPermissionsRequest): Buffer =>
       Buffer.from(GetUserPermissionsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetUserPermissionsRequest =>
-      GetUserPermissionsRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetUserPermissionsRequest => GetUserPermissionsRequest.decode(value),
     responseSerialize: (value: GetUserPermissionsResponse): Buffer =>
       Buffer.from(GetUserPermissionsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetUserPermissionsResponse =>
-      GetUserPermissionsResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetUserPermissionsResponse => GetUserPermissionsResponse.decode(value),
   },
   /**
    * Bulk status / user_type update across many user ids. Per-id results
@@ -12662,17 +12154,15 @@ export const AuthServiceService = {
    * assignment from a non-super_admin actor.
    */
   bulkUpdateUsers: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/BulkUpdateUsers' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/BulkUpdateUsers" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: BulkUpdateUsersRequest): Buffer =>
       Buffer.from(BulkUpdateUsersRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): BulkUpdateUsersRequest =>
-      BulkUpdateUsersRequest.decode(value),
+    requestDeserialize: (value: Buffer): BulkUpdateUsersRequest => BulkUpdateUsersRequest.decode(value),
     responseSerialize: (value: BulkUpdateUsersResponse): Buffer =>
       Buffer.from(BulkUpdateUsersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): BulkUpdateUsersResponse =>
-      BulkUpdateUsersResponse.decode(value),
+    responseDeserialize: (value: Buffer): BulkUpdateUsersResponse => BulkUpdateUsersResponse.decode(value),
   },
   /**
    * Admin-initiated password reset. Generates a temporary password, hashes
@@ -12682,17 +12172,15 @@ export const AuthServiceService = {
    * admin.users.update. Refuses resetting your own account via this path.
    */
   adminResetPassword: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminResetPassword' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminResetPassword" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AdminResetPasswordRequest): Buffer =>
       Buffer.from(AdminResetPasswordRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AdminResetPasswordRequest =>
-      AdminResetPasswordRequest.decode(value),
+    requestDeserialize: (value: Buffer): AdminResetPasswordRequest => AdminResetPasswordRequest.decode(value),
     responseSerialize: (value: AdminResetPasswordResponse): Buffer =>
       Buffer.from(AdminResetPasswordResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AdminResetPasswordResponse =>
-      AdminResetPasswordResponse.decode(value),
+    responseDeserialize: (value: Buffer): AdminResetPasswordResponse => AdminResetPasswordResponse.decode(value),
   },
   /**
    * Export an auth-owned snapshot of a user's data (GDPR Art. 20) for the
@@ -12701,17 +12189,15 @@ export const AuthServiceService = {
    * have `admin.data.export`.
    */
   exportUserData: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ExportUserData' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ExportUserData" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ExportUserDataRequest): Buffer =>
       Buffer.from(ExportUserDataRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ExportUserDataRequest =>
-      ExportUserDataRequest.decode(value),
+    requestDeserialize: (value: Buffer): ExportUserDataRequest => ExportUserDataRequest.decode(value),
     responseSerialize: (value: ExportUserDataResponse): Buffer =>
       Buffer.from(ExportUserDataResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ExportUserDataResponse =>
-      ExportUserDataResponse.decode(value),
+    responseDeserialize: (value: Buffer): ExportUserDataResponse => ExportUserDataResponse.decode(value),
   },
   /**
    * Schedule a user's account for deletion (GDPR Art. 17) with a grace
@@ -12722,13 +12208,12 @@ export const AuthServiceService = {
    * Refuses self-deletion; idempotent once scheduled.
    */
   requestAccountDeletion: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/RequestAccountDeletion' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/RequestAccountDeletion" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: RequestAccountDeletionRequest): Buffer =>
       Buffer.from(RequestAccountDeletionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RequestAccountDeletionRequest =>
-      RequestAccountDeletionRequest.decode(value),
+    requestDeserialize: (value: Buffer): RequestAccountDeletionRequest => RequestAccountDeletionRequest.decode(value),
     responseSerialize: (value: RequestAccountDeletionResponse): Buffer =>
       Buffer.from(RequestAccountDeletionResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): RequestAccountDeletionResponse =>
@@ -12739,17 +12224,15 @@ export const AuthServiceService = {
    * Same chain-root semantics as ListSessions. admin.security.read.
    */
   adminListSessions: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminListSessions' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminListSessions" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AdminListSessionsRequest): Buffer =>
       Buffer.from(AdminListSessionsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AdminListSessionsRequest =>
-      AdminListSessionsRequest.decode(value),
+    requestDeserialize: (value: Buffer): AdminListSessionsRequest => AdminListSessionsRequest.decode(value),
     responseSerialize: (value: AdminListSessionsResponse): Buffer =>
       Buffer.from(AdminListSessionsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AdminListSessionsResponse =>
-      AdminListSessionsResponse.decode(value),
+    responseDeserialize: (value: Buffer): AdminListSessionsResponse => AdminListSessionsResponse.decode(value),
   },
   /**
    * Revoke any session by id, regardless of owner. admin.security.manage.
@@ -12757,21 +12240,19 @@ export const AuthServiceService = {
    * need to hide cross-user existence from an admin caller).
    */
   adminRevokeSession: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminRevokeSession' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminRevokeSession" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AdminRevokeSessionRequest): Buffer =>
       Buffer.from(AdminRevokeSessionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AdminRevokeSessionRequest =>
-      AdminRevokeSessionRequest.decode(value),
+    requestDeserialize: (value: Buffer): AdminRevokeSessionRequest => AdminRevokeSessionRequest.decode(value),
     responseSerialize: (value: AdminRevokeSessionResponse): Buffer =>
       Buffer.from(AdminRevokeSessionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AdminRevokeSessionResponse =>
-      AdminRevokeSessionResponse.decode(value),
+    responseDeserialize: (value: Buffer): AdminRevokeSessionResponse => AdminRevokeSessionResponse.decode(value),
   },
   /** Revoke every active session a user has. admin.security.manage. */
   adminRevokeAllUserSessions: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminRevokeAllUserSessions' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminRevokeAllUserSessions" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AdminRevokeAllUserSessionsRequest): Buffer =>
@@ -12788,72 +12269,62 @@ export const AuthServiceService = {
    * Login regardless of password correctness). admin.security.manage.
    */
   adminLockAccount: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminLockAccount' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminLockAccount" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AdminLockAccountRequest): Buffer =>
       Buffer.from(AdminLockAccountRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AdminLockAccountRequest =>
-      AdminLockAccountRequest.decode(value),
+    requestDeserialize: (value: Buffer): AdminLockAccountRequest => AdminLockAccountRequest.decode(value),
     responseSerialize: (value: AdminLockAccountResponse): Buffer =>
       Buffer.from(AdminLockAccountResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AdminLockAccountResponse =>
-      AdminLockAccountResponse.decode(value),
+    responseDeserialize: (value: Buffer): AdminLockAccountResponse => AdminLockAccountResponse.decode(value),
   },
   /**
    * Clear a lockout (manual or soft-lock from failed attempts) and reset
    * the failure counter. admin.security.manage.
    */
   adminUnlockAccount: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/AdminUnlockAccount' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/AdminUnlockAccount" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AdminUnlockAccountRequest): Buffer =>
       Buffer.from(AdminUnlockAccountRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AdminUnlockAccountRequest =>
-      AdminUnlockAccountRequest.decode(value),
+    requestDeserialize: (value: Buffer): AdminUnlockAccountRequest => AdminUnlockAccountRequest.decode(value),
     responseSerialize: (value: AdminUnlockAccountResponse): Buffer =>
       Buffer.from(AdminUnlockAccountResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AdminUnlockAccountResponse =>
-      AdminUnlockAccountResponse.decode(value),
+    responseDeserialize: (value: Buffer): AdminUnlockAccountResponse => AdminUnlockAccountResponse.decode(value),
   },
   /** List all IP allow/block rules. admin.security.read. */
   listIpRules: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ListIpRules' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ListIpRules" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListIpRulesRequest): Buffer =>
-      Buffer.from(ListIpRulesRequest.encode(value).finish()),
+    requestSerialize: (value: ListIpRulesRequest): Buffer => Buffer.from(ListIpRulesRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListIpRulesRequest => ListIpRulesRequest.decode(value),
-    responseSerialize: (value: ListIpRulesResponse): Buffer =>
-      Buffer.from(ListIpRulesResponse.encode(value).finish()),
+    responseSerialize: (value: ListIpRulesResponse): Buffer => Buffer.from(ListIpRulesResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListIpRulesResponse => ListIpRulesResponse.decode(value),
   },
   /** Create an IP allow/block rule. admin.security.manage. */
   createIpRule: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/CreateIpRule' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/CreateIpRule" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreateIpRuleRequest): Buffer =>
-      Buffer.from(CreateIpRuleRequest.encode(value).finish()),
+    requestSerialize: (value: CreateIpRuleRequest): Buffer => Buffer.from(CreateIpRuleRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): CreateIpRuleRequest => CreateIpRuleRequest.decode(value),
     responseSerialize: (value: CreateIpRuleResponse): Buffer =>
       Buffer.from(CreateIpRuleResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateIpRuleResponse =>
-      CreateIpRuleResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateIpRuleResponse => CreateIpRuleResponse.decode(value),
   },
   /** Delete an IP allow/block rule. admin.security.manage. */
   deleteIpRule: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/DeleteIpRule' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/DeleteIpRule" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: DeleteIpRuleRequest): Buffer =>
-      Buffer.from(DeleteIpRuleRequest.encode(value).finish()),
+    requestSerialize: (value: DeleteIpRuleRequest): Buffer => Buffer.from(DeleteIpRuleRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): DeleteIpRuleRequest => DeleteIpRuleRequest.decode(value),
     responseSerialize: (value: DeleteIpRuleResponse): Buffer =>
       Buffer.from(DeleteIpRuleResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DeleteIpRuleResponse =>
-      DeleteIpRuleResponse.decode(value),
+    responseDeserialize: (value: Buffer): DeleteIpRuleResponse => DeleteIpRuleResponse.decode(value),
   },
   /**
    * Returns the full default field-permission configuration (the
@@ -12861,7 +12332,7 @@ export const AuthServiceService = {
    * admin.field_permissions.read.
    */
   getFieldPermissionDefaults: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/GetFieldPermissionDefaults' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetFieldPermissionDefaults" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetFieldPermissionDefaultsRequest): Buffer =>
@@ -12878,7 +12349,7 @@ export const AuthServiceService = {
    * Mirrors the monolith's /api/v1/field-permissions/defaults/:resource/:role.
    */
   getFieldPermissionDefaultsForRole: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/GetFieldPermissionDefaultsForRole' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetFieldPermissionDefaultsForRole" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetFieldPermissionDefaultsForRoleRequest): Buffer =>
@@ -12892,7 +12363,7 @@ export const AuthServiceService = {
   },
   /** List database overrides for a resource (all roles). */
   listFieldPermissionOverrides: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ListFieldPermissionOverrides' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ListFieldPermissionOverrides" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListFieldPermissionOverridesRequest): Buffer =>
@@ -12906,7 +12377,7 @@ export const AuthServiceService = {
   },
   /** List database overrides for a (resource, role). */
   listFieldPermissionOverridesForRole: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ListFieldPermissionOverridesForRole' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ListFieldPermissionOverridesForRole" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListFieldPermissionOverridesForRoleRequest): Buffer =>
@@ -12924,17 +12395,15 @@ export const AuthServiceService = {
    * here with INVALID_ARGUMENT — they can never be loosened.
    */
   upsertFieldPermission: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/UpsertFieldPermission' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/UpsertFieldPermission" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpsertFieldPermissionRequest): Buffer =>
       Buffer.from(UpsertFieldPermissionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpsertFieldPermissionRequest =>
-      UpsertFieldPermissionRequest.decode(value),
+    requestDeserialize: (value: Buffer): UpsertFieldPermissionRequest => UpsertFieldPermissionRequest.decode(value),
     responseSerialize: (value: UpsertFieldPermissionResponse): Buffer =>
       Buffer.from(UpsertFieldPermissionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpsertFieldPermissionResponse =>
-      UpsertFieldPermissionResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpsertFieldPermissionResponse => UpsertFieldPermissionResponse.decode(value),
   },
   /**
    * Bulk upsert. All overrides land in a single transaction; if any one
@@ -12942,7 +12411,7 @@ export const AuthServiceService = {
    * behaviour). admin.field_permissions.write.
    */
   bulkUpsertFieldPermissions: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/BulkUpsertFieldPermissions' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/BulkUpsertFieldPermissions" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: BulkUpsertFieldPermissionsRequest): Buffer =>
@@ -12956,17 +12425,15 @@ export const AuthServiceService = {
   },
   /** Delete a single override, reverting that field to the lib.types default. */
   deleteFieldPermission: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/DeleteFieldPermission' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/DeleteFieldPermission" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: DeleteFieldPermissionRequest): Buffer =>
       Buffer.from(DeleteFieldPermissionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): DeleteFieldPermissionRequest =>
-      DeleteFieldPermissionRequest.decode(value),
+    requestDeserialize: (value: Buffer): DeleteFieldPermissionRequest => DeleteFieldPermissionRequest.decode(value),
     responseSerialize: (value: DeleteFieldPermissionResponse): Buffer =>
       Buffer.from(DeleteFieldPermissionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DeleteFieldPermissionResponse =>
-      DeleteFieldPermissionResponse.decode(value),
+    responseDeserialize: (value: Buffer): DeleteFieldPermissionResponse => DeleteFieldPermissionResponse.decode(value),
   },
   /**
    * Resolve a user cohort to a set of user_ids. The notifications
@@ -12979,17 +12446,15 @@ export const AuthServiceService = {
    * page/limit; the caller iterates until total is consumed.
    */
   listUserIdsByCohort: {
-    path: '/adopt_dont_shop.auth.v1.AuthService/ListUserIdsByCohort' as const,
+    path: "/adopt_dont_shop.auth.v1.AuthService/ListUserIdsByCohort" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListUserIdsByCohortRequest): Buffer =>
       Buffer.from(ListUserIdsByCohortRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListUserIdsByCohortRequest =>
-      ListUserIdsByCohortRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListUserIdsByCohortRequest => ListUserIdsByCohortRequest.decode(value),
     responseSerialize: (value: ListUserIdsByCohortResponse): Buffer =>
       Buffer.from(ListUserIdsByCohortResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListUserIdsByCohortResponse =>
-      ListUserIdsByCohortResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListUserIdsByCohortResponse => ListUserIdsByCohortResponse.decode(value),
   },
 } as const;
 
@@ -13090,10 +12555,7 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * DisableTwoFactor) and 2FA must already be enabled. The plaintext codes
    * are returned exactly once — only their hashes are persisted.
    */
-  regenerateBackupCodes: handleUnaryCall<
-    RegenerateBackupCodesRequest,
-    RegenerateBackupCodesResponse
-  >;
+  regenerateBackupCodes: handleUnaryCall<RegenerateBackupCodesRequest, RegenerateBackupCodesResponse>;
   /**
    * Authenticated profile edit (first_name, last_name, phone_number,
    * bio, timezone, language, country, city, address). Email changes go
@@ -13115,23 +12577,14 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * (no cross-user session enumeration).
    */
   revokeSession: handleUnaryCall<RevokeSessionRequest, RevokeSessionResponse>;
-  getPrivacyPreferences: handleUnaryCall<
-    GetPrivacyPreferencesRequest,
-    GetPrivacyPreferencesResponse
-  >;
-  updatePrivacyPreferences: handleUnaryCall<
-    UpdatePrivacyPreferencesRequest,
-    UpdatePrivacyPreferencesResponse
-  >;
+  getPrivacyPreferences: handleUnaryCall<GetPrivacyPreferencesRequest, GetPrivacyPreferencesResponse>;
+  updatePrivacyPreferences: handleUnaryCall<UpdatePrivacyPreferencesRequest, UpdatePrivacyPreferencesResponse>;
   /**
    * Destroy + recreate the row so the table-level defaults are the
    * single source of truth for "factory settings". Returns the freshly
    * created defaults row.
    */
-  resetPrivacyPreferences: handleUnaryCall<
-    ResetPrivacyPreferencesRequest,
-    ResetPrivacyPreferencesResponse
-  >;
+  resetPrivacyPreferences: handleUnaryCall<ResetPrivacyPreferencesRequest, ResetPrivacyPreferencesResponse>;
   /** Paginated, filtered user search. Caller MUST have admin.users.search. */
   searchUsers: handleUnaryCall<SearchUsersRequest, SearchUsersResponse>;
   /** Fetch a single user by id (admin view — full row). admin.users.read. */
@@ -13201,10 +12654,7 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * `auth.accountDeletionRequested` event. Caller MUST have `users.delete`.
    * Refuses self-deletion; idempotent once scheduled.
    */
-  requestAccountDeletion: handleUnaryCall<
-    RequestAccountDeletionRequest,
-    RequestAccountDeletionResponse
-  >;
+  requestAccountDeletion: handleUnaryCall<RequestAccountDeletionRequest, RequestAccountDeletionResponse>;
   /**
    * List sessions across all users (optionally filtered to one), paginated.
    * Same chain-root semantics as ListSessions. admin.security.read.
@@ -13217,10 +12667,7 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    */
   adminRevokeSession: handleUnaryCall<AdminRevokeSessionRequest, AdminRevokeSessionResponse>;
   /** Revoke every active session a user has. admin.security.manage. */
-  adminRevokeAllUserSessions: handleUnaryCall<
-    AdminRevokeAllUserSessionsRequest,
-    AdminRevokeAllUserSessionsResponse
-  >;
+  adminRevokeAllUserSessions: handleUnaryCall<AdminRevokeAllUserSessionsRequest, AdminRevokeAllUserSessionsResponse>;
   /**
    * Force-lock an account (sets locked_until far in the future, blocking
    * Login regardless of password correctness). admin.security.manage.
@@ -13242,10 +12689,7 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * hard-coded source-of-truth lib.types ships). Admin-only.
    * admin.field_permissions.read.
    */
-  getFieldPermissionDefaults: handleUnaryCall<
-    GetFieldPermissionDefaultsRequest,
-    GetFieldPermissionDefaultsResponse
-  >;
+  getFieldPermissionDefaults: handleUnaryCall<GetFieldPermissionDefaultsRequest, GetFieldPermissionDefaultsResponse>;
   /**
    * Returns the default access map for a single (resource, role).
    * Mirrors the monolith's /api/v1/field-permissions/defaults/:resource/:role.
@@ -13269,24 +12713,15 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * Sensitive fields (see lib.types SENSITIVE_FIELD_DENYLIST) are rejected
    * here with INVALID_ARGUMENT — they can never be loosened.
    */
-  upsertFieldPermission: handleUnaryCall<
-    UpsertFieldPermissionRequest,
-    UpsertFieldPermissionResponse
-  >;
+  upsertFieldPermission: handleUnaryCall<UpsertFieldPermissionRequest, UpsertFieldPermissionResponse>;
   /**
    * Bulk upsert. All overrides land in a single transaction; if any one
    * names a sensitive field the whole batch is rejected (the monolith's
    * behaviour). admin.field_permissions.write.
    */
-  bulkUpsertFieldPermissions: handleUnaryCall<
-    BulkUpsertFieldPermissionsRequest,
-    BulkUpsertFieldPermissionsResponse
-  >;
+  bulkUpsertFieldPermissions: handleUnaryCall<BulkUpsertFieldPermissionsRequest, BulkUpsertFieldPermissionsResponse>;
   /** Delete a single override, reverting that field to the lib.types default. */
-  deleteFieldPermission: handleUnaryCall<
-    DeleteFieldPermissionRequest,
-    DeleteFieldPermissionResponse
-  >;
+  deleteFieldPermission: handleUnaryCall<DeleteFieldPermissionRequest, DeleteFieldPermissionResponse>;
   /**
    * Resolve a user cohort to a set of user_ids. The notifications
    * service calls this from its Broadcast RPC so it can fan out a
@@ -13309,18 +12744,18 @@ export interface AuthServiceClient extends Client {
    */
   login(
     request: LoginRequest,
-    callback: (error: ServiceError | null, response: LoginResponse) => void
+    callback: (error: ServiceError | null, response: LoginResponse) => void,
   ): ClientUnaryCall;
   login(
     request: LoginRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: LoginResponse) => void
+    callback: (error: ServiceError | null, response: LoginResponse) => void,
   ): ClientUnaryCall;
   login(
     request: LoginRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: LoginResponse) => void
+    callback: (error: ServiceError | null, response: LoginResponse) => void,
   ): ClientUnaryCall;
   /**
    * Revoke a refresh token (adds its jti to the auth.revoked_tokens
@@ -13330,18 +12765,18 @@ export interface AuthServiceClient extends Client {
    */
   logout(
     request: LogoutRequest,
-    callback: (error: ServiceError | null, response: LogoutResponse) => void
+    callback: (error: ServiceError | null, response: LogoutResponse) => void,
   ): ClientUnaryCall;
   logout(
     request: LogoutRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: LogoutResponse) => void
+    callback: (error: ServiceError | null, response: LogoutResponse) => void,
   ): ClientUnaryCall;
   logout(
     request: LogoutRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: LogoutResponse) => void
+    callback: (error: ServiceError | null, response: LogoutResponse) => void,
   ): ClientUnaryCall;
   /**
    * Rotate a refresh token. Verifies the refresh token, marks it
@@ -13350,18 +12785,18 @@ export interface AuthServiceClient extends Client {
    */
   refreshToken(
     request: RefreshTokenRequest,
-    callback: (error: ServiceError | null, response: RefreshTokenResponse) => void
+    callback: (error: ServiceError | null, response: RefreshTokenResponse) => void,
   ): ClientUnaryCall;
   refreshToken(
     request: RefreshTokenRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RefreshTokenResponse) => void
+    callback: (error: ServiceError | null, response: RefreshTokenResponse) => void,
   ): ClientUnaryCall;
   refreshToken(
     request: RefreshTokenRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RefreshTokenResponse) => void
+    callback: (error: ServiceError | null, response: RefreshTokenResponse) => void,
   ): ClientUnaryCall;
   /**
    * Cheap JWT verification — the gateway calls this for EVERY
@@ -13373,18 +12808,18 @@ export interface AuthServiceClient extends Client {
    */
   validateToken(
     request: ValidateTokenRequest,
-    callback: (error: ServiceError | null, response: ValidateTokenResponse) => void
+    callback: (error: ServiceError | null, response: ValidateTokenResponse) => void,
   ): ClientUnaryCall;
   validateToken(
     request: ValidateTokenRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ValidateTokenResponse) => void
+    callback: (error: ServiceError | null, response: ValidateTokenResponse) => void,
   ): ClientUnaryCall;
   validateToken(
     request: ValidateTokenRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ValidateTokenResponse) => void
+    callback: (error: ServiceError | null, response: ValidateTokenResponse) => void,
   ): ClientUnaryCall;
   /**
    * Return the calling principal's denormalised user row +
@@ -13393,18 +12828,18 @@ export interface AuthServiceClient extends Client {
    */
   getMe(
     request: GetMeRequest,
-    callback: (error: ServiceError | null, response: GetMeResponse) => void
+    callback: (error: ServiceError | null, response: GetMeResponse) => void,
   ): ClientUnaryCall;
   getMe(
     request: GetMeRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetMeResponse) => void
+    callback: (error: ServiceError | null, response: GetMeResponse) => void,
   ): ClientUnaryCall;
   getMe(
     request: GetMeRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetMeResponse) => void
+    callback: (error: ServiceError | null, response: GetMeResponse) => void,
   ): ClientUnaryCall;
   /**
    * Assign a role to a user. Caller MUST have the
@@ -13415,18 +12850,18 @@ export interface AuthServiceClient extends Client {
    */
   assignRole(
     request: AssignRoleRequest,
-    callback: (error: ServiceError | null, response: AssignRoleResponse) => void
+    callback: (error: ServiceError | null, response: AssignRoleResponse) => void,
   ): ClientUnaryCall;
   assignRole(
     request: AssignRoleRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AssignRoleResponse) => void
+    callback: (error: ServiceError | null, response: AssignRoleResponse) => void,
   ): ClientUnaryCall;
   assignRole(
     request: AssignRoleRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AssignRoleResponse) => void
+    callback: (error: ServiceError | null, response: AssignRoleResponse) => void,
   ): ClientUnaryCall;
   /**
    * Create an account. Mints verification_token + sends it via the
@@ -13434,18 +12869,18 @@ export interface AuthServiceClient extends Client {
    */
   register(
     request: RegisterRequest,
-    callback: (error: ServiceError | null, response: RegisterResponse) => void
+    callback: (error: ServiceError | null, response: RegisterResponse) => void,
   ): ClientUnaryCall;
   register(
     request: RegisterRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RegisterResponse) => void
+    callback: (error: ServiceError | null, response: RegisterResponse) => void,
   ): ClientUnaryCall;
   register(
     request: RegisterRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RegisterResponse) => void
+    callback: (error: ServiceError | null, response: RegisterResponse) => void,
   ): ClientUnaryCall;
   /**
    * Internal create-or-find for the invite-acceptance flow. Unlike
@@ -13461,18 +12896,18 @@ export interface AuthServiceClient extends Client {
    */
   provisionInvitedUser(
     request: ProvisionInvitedUserRequest,
-    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void
+    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void,
   ): ClientUnaryCall;
   provisionInvitedUser(
     request: ProvisionInvitedUserRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void
+    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void,
   ): ClientUnaryCall;
   provisionInvitedUser(
     request: ProvisionInvitedUserRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void
+    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void,
   ): ClientUnaryCall;
   /**
    * Consume the verification_token mailed to the user; flips
@@ -13480,34 +12915,34 @@ export interface AuthServiceClient extends Client {
    */
   verifyEmail(
     request: VerifyEmailRequest,
-    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void
+    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void,
   ): ClientUnaryCall;
   verifyEmail(
     request: VerifyEmailRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void
+    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void,
   ): ClientUnaryCall;
   verifyEmail(
     request: VerifyEmailRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void
+    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void,
   ): ClientUnaryCall;
   /** Mint a new verification_token for an unverified account. */
   resendVerification(
     request: ResendVerificationRequest,
-    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void
+    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void,
   ): ClientUnaryCall;
   resendVerification(
     request: ResendVerificationRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void
+    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void,
   ): ClientUnaryCall;
   resendVerification(
     request: ResendVerificationRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void
+    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mint reset_token and trigger the password-reset email. ALWAYS
@@ -13515,34 +12950,34 @@ export interface AuthServiceClient extends Client {
    */
   forgotPassword(
     request: ForgotPasswordRequest,
-    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void
+    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void,
   ): ClientUnaryCall;
   forgotPassword(
     request: ForgotPasswordRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void
+    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void,
   ): ClientUnaryCall;
   forgotPassword(
     request: ForgotPasswordRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void
+    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void,
   ): ClientUnaryCall;
   /** Consume reset_token + set a new password. Clears any locked_until. */
   resetPassword(
     request: ResetPasswordRequest,
-    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void
+    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void,
   ): ClientUnaryCall;
   resetPassword(
     request: ResetPasswordRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void
+    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void,
   ): ClientUnaryCall;
   resetPassword(
     request: ResetPasswordRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void
+    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void,
   ): ClientUnaryCall;
   /**
    * Consume an invitation_token minted by AdminCreateUser + set the
@@ -13554,79 +12989,79 @@ export interface AuthServiceClient extends Client {
    */
   redeemInvitation(
     request: RedeemInvitationRequest,
-    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void
+    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void,
   ): ClientUnaryCall;
   redeemInvitation(
     request: RedeemInvitationRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void
+    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void,
   ): ClientUnaryCall;
   redeemInvitation(
     request: RedeemInvitationRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void
+    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void,
   ): ClientUnaryCall;
   /** Authenticated change. Requires the current password. */
   changePassword(
     request: ChangePasswordRequest,
-    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void
+    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void,
   ): ClientUnaryCall;
   changePassword(
     request: ChangePasswordRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void
+    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void,
   ): ClientUnaryCall;
   changePassword(
     request: ChangePasswordRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void
+    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void,
   ): ClientUnaryCall;
   setupTwoFactor(
     request: SetupTwoFactorRequest,
-    callback: (error: ServiceError | null, response: SetupTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: SetupTwoFactorResponse) => void,
   ): ClientUnaryCall;
   setupTwoFactor(
     request: SetupTwoFactorRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SetupTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: SetupTwoFactorResponse) => void,
   ): ClientUnaryCall;
   setupTwoFactor(
     request: SetupTwoFactorRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SetupTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: SetupTwoFactorResponse) => void,
   ): ClientUnaryCall;
   enableTwoFactor(
     request: EnableTwoFactorRequest,
-    callback: (error: ServiceError | null, response: EnableTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: EnableTwoFactorResponse) => void,
   ): ClientUnaryCall;
   enableTwoFactor(
     request: EnableTwoFactorRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: EnableTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: EnableTwoFactorResponse) => void,
   ): ClientUnaryCall;
   enableTwoFactor(
     request: EnableTwoFactorRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: EnableTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: EnableTwoFactorResponse) => void,
   ): ClientUnaryCall;
   disableTwoFactor(
     request: DisableTwoFactorRequest,
-    callback: (error: ServiceError | null, response: DisableTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: DisableTwoFactorResponse) => void,
   ): ClientUnaryCall;
   disableTwoFactor(
     request: DisableTwoFactorRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DisableTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: DisableTwoFactorResponse) => void,
   ): ClientUnaryCall;
   disableTwoFactor(
     request: DisableTwoFactorRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DisableTwoFactorResponse) => void
+    callback: (error: ServiceError | null, response: DisableTwoFactorResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mint a fresh set of 10 backup/recovery codes, invalidating any
@@ -13637,18 +13072,18 @@ export interface AuthServiceClient extends Client {
    */
   regenerateBackupCodes(
     request: RegenerateBackupCodesRequest,
-    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void
+    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void,
   ): ClientUnaryCall;
   regenerateBackupCodes(
     request: RegenerateBackupCodesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void
+    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void,
   ): ClientUnaryCall;
   regenerateBackupCodes(
     request: RegenerateBackupCodesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void
+    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Authenticated profile edit (first_name, last_name, phone_number,
@@ -13657,18 +13092,18 @@ export interface AuthServiceClient extends Client {
    */
   updateAccount(
     request: UpdateAccountRequest,
-    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void
+    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void,
   ): ClientUnaryCall;
   updateAccount(
     request: UpdateAccountRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void
+    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void,
   ): ClientUnaryCall;
   updateAccount(
     request: UpdateAccountRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void
+    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void,
   ): ClientUnaryCall;
   /**
    * List active sessions for the calling principal. Always self-scoped
@@ -13678,18 +13113,18 @@ export interface AuthServiceClient extends Client {
    */
   listSessions(
     request: ListSessionsRequest,
-    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void,
   ): ClientUnaryCall;
   listSessions(
     request: ListSessionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void,
   ): ClientUnaryCall;
   listSessions(
     request: ListSessionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Revoke a session by token_id. Marks the row + every successor in
@@ -13700,48 +13135,48 @@ export interface AuthServiceClient extends Client {
    */
   revokeSession(
     request: RevokeSessionRequest,
-    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void
+    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void,
   ): ClientUnaryCall;
   revokeSession(
     request: RevokeSessionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void
+    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void,
   ): ClientUnaryCall;
   revokeSession(
     request: RevokeSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void
+    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void,
   ): ClientUnaryCall;
   getPrivacyPreferences(
     request: GetPrivacyPreferencesRequest,
-    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   getPrivacyPreferences(
     request: GetPrivacyPreferencesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   getPrivacyPreferences(
     request: GetPrivacyPreferencesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   updatePrivacyPreferences(
     request: UpdatePrivacyPreferencesRequest,
-    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   updatePrivacyPreferences(
     request: UpdatePrivacyPreferencesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   updatePrivacyPreferences(
     request: UpdatePrivacyPreferencesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Destroy + recreate the row so the table-level defaults are the
@@ -13750,50 +13185,50 @@ export interface AuthServiceClient extends Client {
    */
   resetPrivacyPreferences(
     request: ResetPrivacyPreferencesRequest,
-    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   resetPrivacyPreferences(
     request: ResetPrivacyPreferencesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   resetPrivacyPreferences(
     request: ResetPrivacyPreferencesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void,
   ): ClientUnaryCall;
   /** Paginated, filtered user search. Caller MUST have admin.users.search. */
   searchUsers(
     request: SearchUsersRequest,
-    callback: (error: ServiceError | null, response: SearchUsersResponse) => void
+    callback: (error: ServiceError | null, response: SearchUsersResponse) => void,
   ): ClientUnaryCall;
   searchUsers(
     request: SearchUsersRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SearchUsersResponse) => void
+    callback: (error: ServiceError | null, response: SearchUsersResponse) => void,
   ): ClientUnaryCall;
   searchUsers(
     request: SearchUsersRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SearchUsersResponse) => void
+    callback: (error: ServiceError | null, response: SearchUsersResponse) => void,
   ): ClientUnaryCall;
   /** Fetch a single user by id (admin view — full row). admin.users.read. */
   adminGetUser(
     request: AdminGetUserRequest,
-    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void,
   ): ClientUnaryCall;
   adminGetUser(
     request: AdminGetUserRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void,
   ): ClientUnaryCall;
   adminGetUser(
     request: AdminGetUserRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void,
   ): ClientUnaryCall;
   /**
    * Create a new user from the admin console as a pending, credential-less
@@ -13805,18 +13240,18 @@ export interface AuthServiceClient extends Client {
    */
   adminCreateUser(
     request: AdminCreateUserRequest,
-    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void,
   ): ClientUnaryCall;
   adminCreateUser(
     request: AdminCreateUserRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void,
   ): ClientUnaryCall;
   adminCreateUser(
     request: AdminCreateUserRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void,
   ): ClientUnaryCall;
   /**
    * Partially update a user's admin-controllable fields (status,
@@ -13825,18 +13260,18 @@ export interface AuthServiceClient extends Client {
    */
   adminUpdateUser(
     request: AdminUpdateUserRequest,
-    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void,
   ): ClientUnaryCall;
   adminUpdateUser(
     request: AdminUpdateUserRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void,
   ): ClientUnaryCall;
   adminUpdateUser(
     request: AdminUpdateUserRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void
+    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void,
   ): ClientUnaryCall;
   /**
    * Deactivate a user account (status -> deactivated). admin.users.deactivate.
@@ -13844,18 +13279,18 @@ export interface AuthServiceClient extends Client {
    */
   deactivateUser(
     request: DeactivateUserRequest,
-    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void
+    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void,
   ): ClientUnaryCall;
   deactivateUser(
     request: DeactivateUserRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void
+    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void,
   ): ClientUnaryCall;
   deactivateUser(
     request: DeactivateUserRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void
+    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void,
   ): ClientUnaryCall;
   /**
    * Reactivate a deactivated/suspended user (status -> active).
@@ -13863,18 +13298,18 @@ export interface AuthServiceClient extends Client {
    */
   reactivateUser(
     request: ReactivateUserRequest,
-    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void
+    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void,
   ): ClientUnaryCall;
   reactivateUser(
     request: ReactivateUserRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void
+    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void,
   ): ClientUnaryCall;
   reactivateUser(
     request: ReactivateUserRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void
+    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void,
   ): ClientUnaryCall;
   /**
    * Platform-wide user counts + breakdowns for the admin dashboard.
@@ -13882,18 +13317,18 @@ export interface AuthServiceClient extends Client {
    */
   getUserStatistics(
     request: GetUserStatisticsRequest,
-    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void
+    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void,
   ): ClientUnaryCall;
   getUserStatistics(
     request: GetUserStatisticsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void
+    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void,
   ): ClientUnaryCall;
   getUserStatistics(
     request: GetUserStatisticsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void
+    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Flattened permission strings for a target user (role-derived).
@@ -13901,18 +13336,18 @@ export interface AuthServiceClient extends Client {
    */
   getUserPermissions(
     request: GetUserPermissionsRequest,
-    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void,
   ): ClientUnaryCall;
   getUserPermissions(
     request: GetUserPermissionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void,
   ): ClientUnaryCall;
   getUserPermissions(
     request: GetUserPermissionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Bulk status / user_type update across many user ids. Per-id results
@@ -13922,18 +13357,18 @@ export interface AuthServiceClient extends Client {
    */
   bulkUpdateUsers(
     request: BulkUpdateUsersRequest,
-    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void,
   ): ClientUnaryCall;
   bulkUpdateUsers(
     request: BulkUpdateUsersRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void,
   ): ClientUnaryCall;
   bulkUpdateUsers(
     request: BulkUpdateUsersRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void,
   ): ClientUnaryCall;
   /**
    * Admin-initiated password reset. Generates a temporary password, hashes
@@ -13944,18 +13379,18 @@ export interface AuthServiceClient extends Client {
    */
   adminResetPassword(
     request: AdminResetPasswordRequest,
-    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void
+    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void,
   ): ClientUnaryCall;
   adminResetPassword(
     request: AdminResetPasswordRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void
+    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void,
   ): ClientUnaryCall;
   adminResetPassword(
     request: AdminResetPasswordRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void
+    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void,
   ): ClientUnaryCall;
   /**
    * Export an auth-owned snapshot of a user's data (GDPR Art. 20) for the
@@ -13965,18 +13400,18 @@ export interface AuthServiceClient extends Client {
    */
   exportUserData(
     request: ExportUserDataRequest,
-    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void
+    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void,
   ): ClientUnaryCall;
   exportUserData(
     request: ExportUserDataRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void
+    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void,
   ): ClientUnaryCall;
   exportUserData(
     request: ExportUserDataRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void
+    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void,
   ): ClientUnaryCall;
   /**
    * Schedule a user's account for deletion (GDPR Art. 17) with a grace
@@ -13988,18 +13423,18 @@ export interface AuthServiceClient extends Client {
    */
   requestAccountDeletion(
     request: RequestAccountDeletionRequest,
-    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void
+    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void,
   ): ClientUnaryCall;
   requestAccountDeletion(
     request: RequestAccountDeletionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void
+    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void,
   ): ClientUnaryCall;
   requestAccountDeletion(
     request: RequestAccountDeletionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void
+    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void,
   ): ClientUnaryCall;
   /**
    * List sessions across all users (optionally filtered to one), paginated.
@@ -14007,18 +13442,18 @@ export interface AuthServiceClient extends Client {
    */
   adminListSessions(
     request: AdminListSessionsRequest,
-    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void
+    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void,
   ): ClientUnaryCall;
   adminListSessions(
     request: AdminListSessionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void
+    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void,
   ): ClientUnaryCall;
   adminListSessions(
     request: AdminListSessionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void
+    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Revoke any session by id, regardless of owner. admin.security.manage.
@@ -14027,34 +13462,34 @@ export interface AuthServiceClient extends Client {
    */
   adminRevokeSession(
     request: AdminRevokeSessionRequest,
-    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void
+    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void,
   ): ClientUnaryCall;
   adminRevokeSession(
     request: AdminRevokeSessionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void
+    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void,
   ): ClientUnaryCall;
   adminRevokeSession(
     request: AdminRevokeSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void
+    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void,
   ): ClientUnaryCall;
   /** Revoke every active session a user has. admin.security.manage. */
   adminRevokeAllUserSessions(
     request: AdminRevokeAllUserSessionsRequest,
-    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void
+    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void,
   ): ClientUnaryCall;
   adminRevokeAllUserSessions(
     request: AdminRevokeAllUserSessionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void
+    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void,
   ): ClientUnaryCall;
   adminRevokeAllUserSessions(
     request: AdminRevokeAllUserSessionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void
+    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Force-lock an account (sets locked_until far in the future, blocking
@@ -14062,18 +13497,18 @@ export interface AuthServiceClient extends Client {
    */
   adminLockAccount(
     request: AdminLockAccountRequest,
-    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void
+    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void,
   ): ClientUnaryCall;
   adminLockAccount(
     request: AdminLockAccountRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void
+    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void,
   ): ClientUnaryCall;
   adminLockAccount(
     request: AdminLockAccountRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void
+    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void,
   ): ClientUnaryCall;
   /**
    * Clear a lockout (manual or soft-lock from failed attempts) and reset
@@ -14081,66 +13516,66 @@ export interface AuthServiceClient extends Client {
    */
   adminUnlockAccount(
     request: AdminUnlockAccountRequest,
-    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void
+    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void,
   ): ClientUnaryCall;
   adminUnlockAccount(
     request: AdminUnlockAccountRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void
+    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void,
   ): ClientUnaryCall;
   adminUnlockAccount(
     request: AdminUnlockAccountRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void
+    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void,
   ): ClientUnaryCall;
   /** List all IP allow/block rules. admin.security.read. */
   listIpRules(
     request: ListIpRulesRequest,
-    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void
+    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void,
   ): ClientUnaryCall;
   listIpRules(
     request: ListIpRulesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void
+    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void,
   ): ClientUnaryCall;
   listIpRules(
     request: ListIpRulesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void
+    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void,
   ): ClientUnaryCall;
   /** Create an IP allow/block rule. admin.security.manage. */
   createIpRule(
     request: CreateIpRuleRequest,
-    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void
+    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void,
   ): ClientUnaryCall;
   createIpRule(
     request: CreateIpRuleRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void
+    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void,
   ): ClientUnaryCall;
   createIpRule(
     request: CreateIpRuleRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void
+    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void,
   ): ClientUnaryCall;
   /** Delete an IP allow/block rule. admin.security.manage. */
   deleteIpRule(
     request: DeleteIpRuleRequest,
-    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void
+    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void,
   ): ClientUnaryCall;
   deleteIpRule(
     request: DeleteIpRuleRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void
+    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void,
   ): ClientUnaryCall;
   deleteIpRule(
     request: DeleteIpRuleRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void
+    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void,
   ): ClientUnaryCall;
   /**
    * Returns the full default field-permission configuration (the
@@ -14149,18 +13584,18 @@ export interface AuthServiceClient extends Client {
    */
   getFieldPermissionDefaults(
     request: GetFieldPermissionDefaultsRequest,
-    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void,
   ): ClientUnaryCall;
   getFieldPermissionDefaults(
     request: GetFieldPermissionDefaultsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void,
   ): ClientUnaryCall;
   getFieldPermissionDefaults(
     request: GetFieldPermissionDefaultsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Returns the default access map for a single (resource, role).
@@ -14168,68 +13603,50 @@ export interface AuthServiceClient extends Client {
    */
   getFieldPermissionDefaultsForRole(
     request: GetFieldPermissionDefaultsForRoleRequest,
-    callback: (
-      error: ServiceError | null,
-      response: GetFieldPermissionDefaultsForRoleResponse
-    ) => void
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsForRoleResponse) => void,
   ): ClientUnaryCall;
   getFieldPermissionDefaultsForRole(
     request: GetFieldPermissionDefaultsForRoleRequest,
     metadata: Metadata,
-    callback: (
-      error: ServiceError | null,
-      response: GetFieldPermissionDefaultsForRoleResponse
-    ) => void
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsForRoleResponse) => void,
   ): ClientUnaryCall;
   getFieldPermissionDefaultsForRole(
     request: GetFieldPermissionDefaultsForRoleRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (
-      error: ServiceError | null,
-      response: GetFieldPermissionDefaultsForRoleResponse
-    ) => void
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsForRoleResponse) => void,
   ): ClientUnaryCall;
   /** List database overrides for a resource (all roles). */
   listFieldPermissionOverrides(
     request: ListFieldPermissionOverridesRequest,
-    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void,
   ): ClientUnaryCall;
   listFieldPermissionOverrides(
     request: ListFieldPermissionOverridesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void,
   ): ClientUnaryCall;
   listFieldPermissionOverrides(
     request: ListFieldPermissionOverridesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void,
   ): ClientUnaryCall;
   /** List database overrides for a (resource, role). */
   listFieldPermissionOverridesForRole(
     request: ListFieldPermissionOverridesForRoleRequest,
-    callback: (
-      error: ServiceError | null,
-      response: ListFieldPermissionOverridesForRoleResponse
-    ) => void
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesForRoleResponse) => void,
   ): ClientUnaryCall;
   listFieldPermissionOverridesForRole(
     request: ListFieldPermissionOverridesForRoleRequest,
     metadata: Metadata,
-    callback: (
-      error: ServiceError | null,
-      response: ListFieldPermissionOverridesForRoleResponse
-    ) => void
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesForRoleResponse) => void,
   ): ClientUnaryCall;
   listFieldPermissionOverridesForRole(
     request: ListFieldPermissionOverridesForRoleRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (
-      error: ServiceError | null,
-      response: ListFieldPermissionOverridesForRoleResponse
-    ) => void
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesForRoleResponse) => void,
   ): ClientUnaryCall;
   /**
    * Create or update a single override. admin.field_permissions.write.
@@ -14238,18 +13655,18 @@ export interface AuthServiceClient extends Client {
    */
   upsertFieldPermission(
     request: UpsertFieldPermissionRequest,
-    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void
+    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void,
   ): ClientUnaryCall;
   upsertFieldPermission(
     request: UpsertFieldPermissionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void
+    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void,
   ): ClientUnaryCall;
   upsertFieldPermission(
     request: UpsertFieldPermissionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void
+    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void,
   ): ClientUnaryCall;
   /**
    * Bulk upsert. All overrides land in a single transaction; if any one
@@ -14258,34 +13675,34 @@ export interface AuthServiceClient extends Client {
    */
   bulkUpsertFieldPermissions(
     request: BulkUpsertFieldPermissionsRequest,
-    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void
+    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void,
   ): ClientUnaryCall;
   bulkUpsertFieldPermissions(
     request: BulkUpsertFieldPermissionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void
+    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void,
   ): ClientUnaryCall;
   bulkUpsertFieldPermissions(
     request: BulkUpsertFieldPermissionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void
+    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void,
   ): ClientUnaryCall;
   /** Delete a single override, reverting that field to the lib.types default. */
   deleteFieldPermission(
     request: DeleteFieldPermissionRequest,
-    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void
+    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void,
   ): ClientUnaryCall;
   deleteFieldPermission(
     request: DeleteFieldPermissionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void
+    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void,
   ): ClientUnaryCall;
   deleteFieldPermission(
     request: DeleteFieldPermissionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void
+    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void,
   ): ClientUnaryCall;
   /**
    * Resolve a user cohort to a set of user_ids. The notifications
@@ -14299,49 +13716,40 @@ export interface AuthServiceClient extends Client {
    */
   listUserIdsByCohort(
     request: ListUserIdsByCohortRequest,
-    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void
+    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void,
   ): ClientUnaryCall;
   listUserIdsByCohort(
     request: ListUserIdsByCohortRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void
+    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void,
   ): ClientUnaryCall;
   listUserIdsByCohort(
     request: ListUserIdsByCohortRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void
+    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void,
   ): ClientUnaryCall;
 }
 
 export const AuthServiceClient = makeGenericClientConstructor(
   AuthServiceService,
-  'adopt_dont_shop.auth.v1.AuthService'
+  "adopt_dont_shop.auth.v1.AuthService",
 ) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): AuthServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): AuthServiceClient;
   service: typeof AuthServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

@@ -5,6 +5,9 @@ import {
   checkTemplateDepDrift,
   checkToolVersionsDrift,
   computeExpectedDevVolumeMounts,
+  extractCiFilterGroups,
+  filterMatches,
+  findUncoveredPackages,
   parseDevVolumesAnchor,
   rootAuthoritativeRange,
 } from './check-workspace-consistency.mjs';
@@ -163,5 +166,81 @@ describe('checkToolVersionsDrift (ADS-943)', () => {
   it('flags a missing nodejs or pnpm line', () => {
     const failures = checkToolVersionsDrift('22.15.1\n', 'pnpm@10.34.3', 'pnpm 10.34.3\n');
     expect(failures).toEqual(["[.tool-versions] missing a 'nodejs <version>' line (ADS-943)."]);
+  });
+});
+
+describe('CI test-filter reachability (ADS-1029)', () => {
+  const ci = [
+    '      - uses: ./.github/actions/run-package-tests',
+    '        with:',
+    "          filter: '@adopt-dont-shop/app.${{ matrix.app }}'",
+    '    strategy:',
+    '      matrix:',
+    '        app: [client, admin, rescue]',
+    '      - uses: ./.github/actions/run-package-tests',
+    '        with:',
+    "          filter: '@adopt-dont-shop/lib.*'",
+    '      - uses: ./.github/actions/run-package-tests',
+    '        with:',
+    "          filter: './packages/*'",
+    "          additional-filter: '!@adopt-dont-shop/lib.*'",
+    '      - uses: ./.github/actions/run-package-tests',
+    '        with:',
+    "          filter: '@adopt-dont-shop/service.*'",
+  ].join('\n');
+
+  describe('filterMatches', () => {
+    it('matches a name glob against the package name', () => {
+      expect(filterMatches('@adopt-dont-shop/lib.*', { name: '@adopt-dont-shop/lib.api', dir: 'packages/lib.api' })).toBe(true);
+      expect(filterMatches('@adopt-dont-shop/lib.*', { name: '@adopt-dont-shop/authz', dir: 'packages/authz' })).toBe(false);
+    });
+
+    it('matches a brace-list against the package name', () => {
+      const f = '@adopt-dont-shop/app.{client,admin,rescue}';
+      expect(filterMatches(f, { name: '@adopt-dont-shop/app.admin', dir: 'apps/admin' })).toBe(true);
+      expect(filterMatches(f, { name: '@adopt-dont-shop/app.marketing', dir: 'apps/marketing' })).toBe(false);
+    });
+
+    it('matches a path selector against the package directory', () => {
+      expect(filterMatches('./packages/*', { name: '@adopt-dont-shop/authz', dir: 'packages/authz' })).toBe(true);
+      expect(filterMatches('./packages/*', { name: '@adopt-dont-shop/service.auth', dir: 'services/auth' })).toBe(false);
+    });
+  });
+
+  describe('extractCiFilterGroups', () => {
+    it('groups each job filter and expands the frontend matrix', () => {
+      const groups = extractCiFilterGroups(ci);
+      expect(groups).toContainEqual({
+        includes: ['@adopt-dont-shop/app.client', '@adopt-dont-shop/app.admin', '@adopt-dont-shop/app.rescue'],
+        excludes: [],
+      });
+      expect(groups).toContainEqual({ includes: ['./packages/*'], excludes: ['@adopt-dont-shop/lib.*'] });
+    });
+  });
+
+  describe('findUncoveredPackages', () => {
+    const groups = extractCiFilterGroups(ci);
+
+    it('treats lib, non-lib, app and service packages as covered', () => {
+      const pkgs = [
+        { name: '@adopt-dont-shop/lib.api', dir: 'packages/lib.api' },
+        { name: '@adopt-dont-shop/authz', dir: 'packages/authz' },
+        { name: '@adopt-dont-shop/app.admin', dir: 'apps/admin' },
+        { name: '@adopt-dont-shop/service.auth', dir: 'services/auth' },
+      ];
+      expect(findUncoveredPackages(pkgs, groups)).toEqual([]);
+    });
+
+    it('does not let ./packages/* re-cover a lib excluded by !lib.*', () => {
+      // lib.api is covered by the lib.* group, but must NOT be covered by the
+      // packages group (whose exclude removes it) — verified by the group shape.
+      const packagesGroup = groups.find(g => g.includes.includes('./packages/*'));
+      expect(findUncoveredPackages([{ name: '@adopt-dont-shop/lib.api', dir: 'packages/lib.api' }], [packagesGroup])).toHaveLength(1);
+    });
+
+    it('flags a package that escapes every filter', () => {
+      const rogue = { name: '@adopt-dont-shop/rogue', dir: 'tools/rogue' };
+      expect(findUncoveredPackages([rogue], groups)).toEqual([rogue]);
+    });
   });
 });

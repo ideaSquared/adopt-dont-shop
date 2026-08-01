@@ -15,6 +15,15 @@ inputs:
   filter:
     description: 'Turbo filter pattern, e.g. @adopt-dont-shop/lib.*'
     required: true
+  additional-filter:
+    description: >-
+      ADS-1029: optional second Turbo `--filter`, appended after `filter` in the
+      combined (working-directory unset) shape. Used by test-packages to
+      subtract lib.* from a packages/* selection, i.e.
+      `--filter='./packages/*' --filter='!@adopt-dont-shop/lib.*'`. Empty by
+      default so existing single-filter callers are unaffected.
+    required: false
+    default: ''
   run-coverage:
     description: "Run the ':coverage' variant of the test task."
     required: false
@@ -78,8 +87,12 @@ runs:
       env:
         TURBO_TOKEN: ${{ inputs.turbo-token }}
         TURBO_TEAM: ${{ inputs.turbo-team }}
+        PRIMARY_FILTER: ${{ inputs.filter }}
+        ADDITIONAL_FILTER: ${{ inputs.additional-filter }}
       run: |
-        pnpm exec turbo run lint ${{ inputs.run-coverage == 'true' && 'test:coverage' || 'test' }} type-check --filter='${{ inputs.filter }}'
+        filters=(--filter="$PRIMARY_FILTER")
+        if [ -n "$ADDITIONAL_FILTER" ]; then filters+=(--filter="$ADDITIONAL_FILTER"); fi
+        pnpm exec turbo run lint ${{ inputs.run-coverage == 'true' && 'test:coverage' || 'test' }} type-check "${filters[@]}"
 
     - name: Lint
       if: inputs.working-directory != ''

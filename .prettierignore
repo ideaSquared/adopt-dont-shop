@@ -27,6 +27,12 @@ yarn-error.log*
 .next/
 .nuxt/
 
+# ts-proto codegen output — the generator is the source of truth, so its raw
+# output is committed verbatim and must not be Prettier-reformatted (doing so
+# fights `buf generate`, which re-emits double-quoted, un-prettied code). See
+# packages/proto (format globs are narrowed to hand-written src/*.ts).
+packages/proto/src/generated/
+
 # Package manager files
 package-lock.json
 yarn.lock
