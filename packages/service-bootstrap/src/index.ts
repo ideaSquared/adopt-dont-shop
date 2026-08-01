@@ -13,7 +13,7 @@
 //   HandlerErrorCode          — canonical union (INVALID_ARGUMENT,
 //                               UNAUTHENTICATED, PERMISSION_DENIED,
 //                               NOT_FOUND, ALREADY_EXISTS,
-//                               FAILED_PRECONDITION, INTERNAL).
+//                               FAILED_PRECONDITION, UNAVAILABLE, INTERNAL).
 //   HandlerDeps               — base dependency type (pool + nats).
 //   extractPrincipal          — parse x-user-* gRPC metadata headers; when a
 //                               PRINCIPAL_SIGNING_KEY is configured, requires

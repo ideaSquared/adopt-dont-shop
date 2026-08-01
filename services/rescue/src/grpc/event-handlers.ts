@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import type { Permission } from '@adopt-dont-shop/lib.types';
+import { createLogger } from '@adopt-dont-shop/observability';
 import {
   RescueV1,
   type AddEventAttendeeRequest,
@@ -76,6 +77,16 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // (MIN_COHORT_SIZE, ADS-1006). Kept in sync by value rather than imported —
 // services do not depend on each other's source.
 const ATTRIBUTION_MIN_COHORT = 20;
+
+// grpc-js status codes service.applications can return on CountAdoptedAdopters
+// (ADS-1022). Kept as local numeric constants — same pattern as the pets
+// client mapping in staff-foster-handlers.ts. INVALID_ARGUMENT and any
+// unmapped status fall through to INTERNAL, so only the mapped ones are named.
+const GRPC_DEADLINE_EXCEEDED = 4;
+const GRPC_PERMISSION_DENIED = 7;
+const GRPC_UNAVAILABLE = 14;
+
+const logger = createLogger({ serviceName: 'service.rescue' });
 
 // ── DB row types ────────────────────────────────────────────────────────
 
@@ -763,7 +774,15 @@ export function makeGetEventAnalytics(
 // checked in — the attribution model is "registered → later adopted") and
 // asks service.applications how many of them have since adopted within the
 // window. Forwards the caller's identity so applications runs its own
-// applications.read gate.
+// ANALYTICS_VIEW gate (ADS-1006).
+//
+// Downstream failures are mapped by gRPC status rather than flattened to
+// INTERNAL (ADS-1022): a caller lacking the analytics permission gets the
+// attribution field degraded to 0 (the rest of the analytics — which only
+// needs events.read — still returns), transient failures surface as a
+// retryable UNAVAILABLE, and everything else is our INTERNAL. Every failure
+// path logs exactly one line with the downstream code and event id, and no
+// downstream message text is forwarded to the client (ADS-977).
 async function countAdoptionsFromEvent(
   deps: HandlerDeps,
   applicationsClient: ApplicationsClient,
@@ -795,7 +814,32 @@ async function countAdoptionsFromEvent(
       principalToMetadata(principal)
     );
     return res.count;
-  } catch {
+  } catch (err) {
+    const code = (err as { code?: number }).code;
+    logger.warn('event adoption attribution failed', {
+      eventId,
+      grpcCode: code,
+      adopterIdCount: adopterIds.length,
+    });
+
+    // Caller lacks the admin-only analytics permission the attribution count
+    // requires (ADS-1006). Degrade this one field to 0 rather than failing
+    // the whole analytics call — registrations/attendance only need
+    // events.read, which the caller already holds.
+    if (code === GRPC_PERMISSION_DENIED) {
+      return 0;
+    }
+
+    // Transient downstream conditions — surface as a retryable status
+    // distinct from INTERNAL so the caller/SPA can distinguish "try again"
+    // from "server fault".
+    if (code === GRPC_UNAVAILABLE || code === GRPC_DEADLINE_EXCEEDED) {
+      throw new HandlerError('UNAVAILABLE', 'adoption attribution temporarily unavailable');
+    }
+
+    // INVALID_ARGUMENT is our request-construction bug, not the caller's;
+    // it and any unmapped status are an INTERNAL fault. Message stays generic
+    // so no downstream internals leak (ADS-977).
     throw new HandlerError('INTERNAL', 'failed to resolve adoption attribution');
   }
 }

@@ -667,12 +667,51 @@ describe('getEventAnalytics', () => {
     expect(res.analytics?.adoptionsFromEvent).toBe(0);
   });
 
-  it('surfaces a downstream attribution failure as INTERNAL rather than silently reporting zero', async () => {
+  it('maps a transient downstream failure (UNAVAILABLE) to a retryable status, not INTERNAL', async () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
       .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '0' }] })
       .mockResolvedValueOnce({ rows: registrantRows });
-    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 14 });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 14 }); // UNAVAILABLE
+
+    await expect(getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID })).rejects.toMatchObject(
+      { code: 'UNAVAILABLE' }
+    );
+  });
+
+  it('maps a downstream DEADLINE_EXCEEDED to the same retryable status', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 4 }); // DEADLINE_EXCEEDED
+
+    await expect(getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID })).rejects.toMatchObject(
+      { code: 'UNAVAILABLE' }
+    );
+  });
+
+  it('degrades attribution to 0 when the caller lacks the analytics permission (PERMISSION_DENIED)', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '5' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 7 }); // PERMISSION_DENIED
+
+    const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
+
+    // The rest of the analytics (which only needs events.read) still returns.
+    expect(res.analytics?.adoptionsFromEvent).toBe(0);
+    expect(res.analytics?.totalRegistrations).toBe(20);
+    expect(res.analytics?.actualAttendance).toBe(5);
+  });
+
+  it('maps an INVALID_ARGUMENT (our request bug) to INTERNAL, not a permission or retry status', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 3 }); // INVALID_ARGUMENT
 
     await expect(getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID })).rejects.toMatchObject(
       { code: 'INTERNAL' }
