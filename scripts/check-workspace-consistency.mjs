@@ -665,12 +665,37 @@ function checkToolVersions(rootPkg) {
   return checkToolVersionsDrift(nvmrc, rootPkg.packageManager, toolVersions);
 }
 
+// ADS-1000: a Turbo task whose script body is `tsc --noEmit` produces no
+// build artefacts. Declaring dist/** outputs for it lets Turbo restore a
+// stale/partial dist/ snapshot on a cache hit — silently corrupting a
+// package's build (type declarations with no matching JS). Guards against
+// that regression reappearing in turbo.json.
+export function checkNoEmitTaskOutputs(turboConfig) {
+  const failures = [];
+  const tasks = turboConfig.tasks || {};
+  for (const [name, bodies] of Object.entries(EXPECTED_SCRIPT_BODIES)) {
+    if (!bodies.some(body => body.includes('--noEmit'))) continue;
+    const task = tasks[name];
+    if (!task) continue;
+    const distOutputs = (task.outputs || []).filter(o => o.includes('dist/'));
+    if (distOutputs.length > 0) {
+      failures.push(
+        `[turbo.json] '${name}' task declares dist/ output(s) (${distOutputs.join(', ')}) but its script is ` +
+          `'${bodies.join(' | ')}' — --noEmit produces no build artefacts, so a cache hit restores a ` +
+          `stale/partial dist/ snapshot over a real build (ADS-1000).`
+      );
+    }
+  }
+  return failures;
+}
+
 function main() {
   const libs = listLibs();
   const apps = listApps();
   const services = listServices();
   const packages = listAllPackages();
   const rootPkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const turboConfig = JSON.parse(readFileSync(join(ROOT, 'turbo.json'), 'utf8'));
 
   const failures = [];
   const warnings = [];
@@ -797,6 +822,9 @@ function main() {
 
   // 12. Every service vitest.config.ts must import the shared helper (ADS-985)
   failures.push(...checkServiceVitestConfig(services));
+
+  // 13. No --noEmit task may declare dist/ outputs in turbo.json (ADS-1000)
+  failures.push(...checkNoEmitTaskOutputs(turboConfig));
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');
