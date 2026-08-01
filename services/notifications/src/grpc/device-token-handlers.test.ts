@@ -80,7 +80,12 @@ const tokenRowFixture = (overrides: Record<string, unknown> = {}) => ({
 const makeMocks = () => {
   const poolScript: Array<{ rows: unknown[] }> = [];
   const pool = {
-    query: vi.fn(async () => {
+    query: vi.fn(async (sql?: unknown) => {
+      // The per-token advisory lock is bookkeeping, not a scripted read — don't
+      // let it consume a scripted response.
+      if (typeof sql === 'string' && sql.includes('pg_advisory_xact_lock')) {
+        return { rows: [] };
+      }
       const next = poolScript.shift();
       return next ?? { rows: [] };
     }),
@@ -213,9 +218,9 @@ describe('registerDeviceTokenHandler', () => {
     // A takeover is a fresh mapping, not a refresh of the other user's row.
     expect(res.alreadyRegistered).toBe(false);
     expect(res.token?.userId).toBe('usr-adopter');
-    // Three queries ran (lookup, soft-delete, insert) — the prior row was
-    // unregistered rather than left as a second active mapping.
-    expect(mocks.poolMock.query).toHaveBeenCalledTimes(3);
+    // Four queries ran (advisory lock, lookup, soft-delete, insert) — the
+    // prior row was unregistered rather than left as a second active mapping.
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(4);
     // The transfer is audited at warn with both user ids (not the raw token).
     expect(mocks.logger.warn).toHaveBeenCalledWith(
       'device token reassigned to a different user',

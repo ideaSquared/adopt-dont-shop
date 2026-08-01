@@ -50,6 +50,14 @@ export const registerDeviceToken = async (
   conn: DbConn,
   input: RegisterDeviceTokenInput
 ): Promise<{ row: DeviceTokenRow; alreadyRegistered: boolean; replacedUserId?: string }> => {
+  // Serialise concurrent registrations of the SAME token so the
+  // lookup → (soft-delete) → insert sequence can't race two callers into a
+  // unique-violation against device_tokens_active_token_unique. Transaction-
+  // scoped, so the lock releases on commit/rollback; keyed on a hash of the
+  // token so it only contends per device_token, not globally. Requires the
+  // caller to run this inside a transaction (registerDeviceTokenHandler does).
+  await conn.query(`SELECT pg_advisory_xact_lock(hashtext($1)::bigint)`, [input.deviceToken]);
+
   // Look up by device_token alone so a token owned by another user is seen.
   const existing = await conn.query<DeviceTokenRow>(
     `

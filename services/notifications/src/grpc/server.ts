@@ -53,7 +53,8 @@ export type CreateGrpcServerOptions = {
   // SendEmail reads adminGetUser to bind user_id → to_email (ADS-1008).
   // Wiring it in production happens from index.ts. Smoke tests + unit tests
   // can omit it — Broadcast returns INTERNAL when the wiring is missing, and
-  // SendEmail skips the binding check.
+  // SendEmail fails closed (INTERNAL) for any send carrying a user_id it then
+  // cannot verify (user_id-less sends still proceed).
   authClient?: import('./handlers.js').AuthCohortClient & import('./auth-client.js').AuthUserClient;
 };
 
