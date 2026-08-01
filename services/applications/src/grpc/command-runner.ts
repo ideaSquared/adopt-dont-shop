@@ -61,6 +61,34 @@ export function requireOwnerOrRescueScope(
   }
 }
 
+// SaveDraftAnswers authorization (ADS-1007). The domain permits this command
+// from both `draft` and `under_review`, and the rescue-staff allowance exists
+// ONLY for the under_review follow-up-questions phase. Authorising it with the
+// blanket owner-OR-rescue scope let rescue staff silently rewrite an adopter's
+// answers while the application was still an unsubmitted `draft`. So the scope
+// is status-aware:
+//
+//   - draft         → owner only (the adopter's answers are theirs alone until
+//                     they submit; staff shouldn't even see them yet).
+//   - under_review  → owner OR rescue scope (the intended follow-up path).
+//
+// Any other status is unreachable — the domain rejects saveDraftAnswers
+// outside draft/under_review before this could matter — but is treated as the
+// stricter owner-only branch for safety.
+export function requireDraftAnswersScope(
+  principal: Principal,
+  permission: Permission,
+  state: ApplicationState
+): void {
+  if (state.status === 'under_review') {
+    requireOwnerOrRescueScope(principal, permission, state);
+    return;
+  }
+  if (!requirePermission(principal, permission, { userId: state.adopterId as UserId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
+  }
+}
+
 // Translate the pure domain's DomainError codes into HandlerError
 // codes. ILLEGAL_TRANSITION / INVALID_INPUT → INVALID_ARGUMENT;
 // CONCURRENCY → INTERNAL with a "CONCURRENCY:" message (the gateway

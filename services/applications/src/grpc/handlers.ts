@@ -37,7 +37,12 @@ import type {
 import type { ApplicationCommand, Reference } from '../domain/index.js';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { requireOwnerOrRescueScope, runCommand, runCreateCommand } from './command-runner.js';
+import {
+  requireDraftAnswersScope,
+  requireOwnerOrRescueScope,
+  runCommand,
+  runCreateCommand,
+} from './command-runner.js';
 import type { PetsClient } from './pets-client.js';
 import { principalToMetadata } from './principal.js';
 import { stateToProto } from './state-mapper.js';
@@ -167,7 +172,7 @@ export async function saveDraftAnswers(
       id: req.applicationId,
       payload: { applicationId: req.applicationId },
     }),
-    s => requireOwnerOrRescueScope(principal, APPLICATIONS_UPDATE, s)
+    s => requireDraftAnswersScope(principal, APPLICATIONS_UPDATE, s)
   );
 
   return { application: stateToProto(state) };

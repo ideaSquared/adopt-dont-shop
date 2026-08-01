@@ -11,13 +11,18 @@ import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
 import type { PetsClient } from './pets-client.js';
 
 function makePrincipal(
-  overrides: Partial<{ userId: string; permissions: string[]; roles: string[] }> = {}
+  overrides: Partial<{
+    userId: string;
+    permissions: string[];
+    roles: string[];
+    rescueId: string;
+  }> = {}
 ) {
   return {
     userId: overrides.userId ?? 'usr-1',
     roles: overrides.roles ?? ['adopter'],
     permissions: overrides.permissions ?? ['applications.create', 'applications.update'],
-    rescueId: undefined,
+    rescueId: overrides.rescueId,
   } as unknown as Parameters<typeof submitDraft>[1];
 }
 
@@ -60,7 +65,7 @@ vi.mock('@adopt-dont-shop/events', async () => {
 
 // A draftCreated event row for an aggregate already in 'draft' state at
 // version 1.
-function draftCreatedRow(aggregateId: string, adopterId = 'usr-1') {
+function draftCreatedRow(aggregateId: string, adopterId = 'usr-1', rescueId = '') {
   return {
     event_type: 'draftCreated',
     version: 1,
@@ -69,10 +74,36 @@ function draftCreatedRow(aggregateId: string, adopterId = 'usr-1') {
       applicationId: aggregateId,
       adopterId,
       petId: 'pet-1',
-      rescueId: '',
+      rescueId,
       at: '2026-06-01T12:00:00.000Z',
     },
   };
+}
+
+// Event rows that fold to an `under_review` aggregate (v3): draftCreated →
+// draftSubmitted → reviewStarted.
+function underReviewRows(aggregateId: string, adopterId = 'usr-1', rescueId = 'rescue-1') {
+  return [
+    draftCreatedRow(aggregateId, adopterId, rescueId),
+    {
+      event_type: 'draftSubmitted',
+      version: 2,
+      event_data: {
+        type: 'draftSubmitted',
+        applicationId: aggregateId,
+        at: '2026-06-02T12:00:00.000Z',
+      },
+    },
+    {
+      event_type: 'reviewStarted',
+      version: 3,
+      event_data: {
+        type: 'reviewStarted',
+        applicationId: aggregateId,
+        at: '2026-06-03T12:00:00.000Z',
+      },
+    },
+  ];
 }
 
 describe('saveDraftAnswers', () => {
@@ -162,6 +193,72 @@ describe('saveDraftAnswers', () => {
       saveDraftAnswers(deps, makePrincipal({ userId: 'usr-2' }), {
         applicationId: 'app-1',
         expectedVersion: 1,
+        answersPatchJson: '{"hasYard":true}',
+      } as SaveDraftAnswersRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  // ── ADS-1007: rescue staff must not rewrite an unsubmitted draft ──
+
+  const rescueStaff = () =>
+    makePrincipal({
+      userId: 'usr-staff',
+      roles: ['rescue_staff'],
+      permissions: ['applications.update'],
+      rescueId: 'rescue-1',
+    });
+
+  it('denies rescue staff editing an adopter’s unsubmitted draft', async () => {
+    // Draft owned by usr-1 and addressed to rescue-1. Under the old OR-scope
+    // the rescue-1 staff principal would have been allowed; now a `draft`
+    // is owner-only.
+    const { deps } = makeDeps([draftCreatedRow('app-1', 'usr-1', 'rescue-1')]);
+    await expect(
+      saveDraftAnswers(deps, rescueStaff(), {
+        applicationId: 'app-1',
+        expectedVersion: 1,
+        answersPatchJson: '{"hasFencedYard":false}',
+      } as SaveDraftAnswersRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('allows the owning adopter to edit their own draft', async () => {
+    const { deps } = makeDeps([draftCreatedRow('app-1', 'usr-1', 'rescue-1')]);
+    const res = await saveDraftAnswers(deps, makePrincipal({ userId: 'usr-1' }), {
+      applicationId: 'app-1',
+      expectedVersion: 1,
+      answersPatchJson: '{"hasYard":true}',
+    } as SaveDraftAnswersRequest);
+    expect(res.application.applicationId).toBe('app-1');
+  });
+
+  it('allows rescue staff to edit answers once the application is under_review', async () => {
+    // The intended follow-up-questions path: rescue-1 staff may amend answers
+    // after review has started.
+    const { deps } = makeDeps(underReviewRows('app-1', 'usr-1', 'rescue-1'));
+    const res = await saveDraftAnswers(deps, rescueStaff(), {
+      applicationId: 'app-1',
+      expectedVersion: 3,
+      answersPatchJson: '{"followUp":"answered"}',
+    } as SaveDraftAnswersRequest);
+    expect(res.application.applicationId).toBe('app-1');
+  });
+
+  it('denies a non-owning adopter in both draft and under_review', async () => {
+    const draftDeps = makeDeps([draftCreatedRow('app-1', 'usr-1', 'rescue-1')]);
+    await expect(
+      saveDraftAnswers(draftDeps.deps, makePrincipal({ userId: 'usr-2' }), {
+        applicationId: 'app-1',
+        expectedVersion: 1,
+        answersPatchJson: '{"hasYard":true}',
+      } as SaveDraftAnswersRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+
+    const reviewDeps = makeDeps(underReviewRows('app-1', 'usr-1', 'rescue-1'));
+    await expect(
+      saveDraftAnswers(reviewDeps.deps, makePrincipal({ userId: 'usr-2' }), {
+        applicationId: 'app-1',
+        expectedVersion: 3,
         answersPatchJson: '{"hasYard":true}',
       } as SaveDraftAnswersRequest)
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });

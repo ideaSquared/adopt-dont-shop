@@ -67,8 +67,12 @@ export function handle(
     case 'saveDraftAnswers':
       requireAggregate(state);
       checkVersion(state, command.expectedVersion);
-      // Allowed from draft AND under_review (so rescue staff can ask
-      // follow-up questions after starting review). Rejected from
+      // Allowed from draft AND under_review. The rescue-staff allowance
+      // applies only from under_review (the follow-up-questions phase) — while
+      // still an unsubmitted draft, only the owning adopter may write. That
+      // status-dependent authorization lives in requireDraftAnswersScope
+      // (command-runner.ts, ADS-1007); the domain rule below governs which
+      // statuses the command is legal from at all. Rejected from
       // submitted / decided / withdrawn.
       if (state.status !== 'draft' && state.status !== 'under_review') {
         throw new DomainError(
