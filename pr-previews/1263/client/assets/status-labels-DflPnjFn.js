@@ -1,0 +1,1 @@
+var e=e=>({submitted:`Submitted`,approved:`Approved`,rejected:`Rejected`,withdrawn:`Withdrawn`})[e],t=e=>({pending:`Pending Verification`,verified:`Verified`,suspended:`Suspended`,inactive:`Inactive`,rejected:`Rejected`})[e];export{t as n,e as t};
