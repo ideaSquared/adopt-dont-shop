@@ -14,12 +14,14 @@ import {
   upsertReportSchedule,
 } from './reports-handlers.js';
 
-function makePrincipal(over: { userId?: string; roles?: string[]; permissions?: string[] } = {}) {
+function makePrincipal(
+  over: { userId?: string; roles?: string[]; permissions?: string[]; rescueId?: string } = {}
+) {
   return {
     userId: over.userId ?? 'usr-1',
     roles: over.roles ?? ['admin'],
     permissions: over.permissions ?? ['reports.read'],
-    rescueId: undefined,
+    rescueId: over.rescueId,
   } as unknown as Parameters<typeof listSavedReports>[1];
 }
 
@@ -416,13 +418,70 @@ describe('listReportTemplates', () => {
     expect(params).toContain('adoption');
   });
 
-  it('includes system + rescue-scoped when rescueId is provided', async () => {
+  // ADS-1009 — tenant scoping is derived from the principal, not the request.
+
+  it('scopes a rescue principal to its own rescue + system on an empty request', async () => {
     const q = vi.fn().mockResolvedValue({ rows: [] });
     const { deps } = makeDeps(q);
-    await listReportTemplates(deps, makePrincipal(), { category: 0, rescueId: 'rescue-1' });
+    await listReportTemplates(deps, makePrincipal({ rescueId: 'rescue-1' }), {
+      category: 0,
+    });
     const sql = q.mock.calls[0][0] as string;
+    const params = q.mock.calls[0][1] as unknown[];
     expect(sql).toContain('rescue_id = $');
     expect(sql).toContain('OR rescue_id IS NULL');
+    // Scoped to the PRINCIPAL's rescue, regardless of any request field.
+    expect(params).toContain('rescue-1');
+  });
+
+  it('ignores a foreign rescueId from a rescue principal (no cross-tenant rows)', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [] });
+    const { deps } = makeDeps(q);
+    await listReportTemplates(deps, makePrincipal({ rescueId: 'rescue-1' }), {
+      category: 0,
+      rescueId: 'rescue-2',
+    });
+    const params = q.mock.calls[0][1] as unknown[];
+    // Only the principal's own rescue is queried; the supplied id is dropped.
+    expect(params).toContain('rescue-1');
+    expect(params).not.toContain('rescue-2');
+  });
+
+  it('falls a rescue-less non-super-admin through to system templates only', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [] });
+    const { deps } = makeDeps(q);
+    await listReportTemplates(deps, makePrincipal({ rescueId: undefined }), { category: 0 });
+    const sql = q.mock.calls[0][0] as string;
+    const params = q.mock.calls[0][1] as unknown[];
+    expect(sql).toContain('rescue_id IS NULL');
+    // No rescue predicate parameter — never the unscoped table.
+    expect(sql).not.toContain('rescue_id = $');
+    expect(params).toHaveLength(0);
+  });
+
+  it('lets super_admin (reports.read:any) enumerate across all rescues', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [] });
+    const { deps } = makeDeps(q);
+    await listReportTemplates(deps, makePrincipal({ permissions: ['reports.read:any'] }), {
+      category: 0,
+    });
+    const sql = q.mock.calls[0][0] as string;
+    const params = q.mock.calls[0][1] as unknown[];
+    // No rescue scoping predicate — the only WHERE clause is the soft-delete.
+    expect(sql).not.toContain('rescue_id = $');
+    expect(sql).not.toContain('rescue_id IS NULL');
+    expect(params).toHaveLength(0);
+  });
+
+  it('lets super_admin narrow to a specific rescue via req.rescueId', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [] });
+    const { deps } = makeDeps(q);
+    await listReportTemplates(deps, makePrincipal({ permissions: ['reports.read:any'] }), {
+      category: 0,
+      rescueId: 'rescue-2',
+    });
+    const params = q.mock.calls[0][1] as unknown[];
+    expect(params).toContain('rescue-2');
   });
 });
 

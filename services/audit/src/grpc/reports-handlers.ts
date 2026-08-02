@@ -417,6 +417,25 @@ export async function listReportTemplates(
   const where: string[] = ['deleted_at IS NULL'];
   const params: unknown[] = [];
 
+  // Tenant scoping FIRST, derived from the principal — never from the request
+  // (ADS-1009). Only reports.read:any (super_admin) may enumerate across
+  // rescues; a caller-supplied req.rescueId is honoured only for those callers
+  // as an optional narrowing filter. A rescue-scoped caller is always
+  // constrained to their own rescue plus system templates, and a caller with
+  // no rescue context falls through to system templates only — never the
+  // unscoped table (compare ADS-934 in rescue/src/grpc/event-handlers.ts).
+  if (hasPerm(principal, REPORTS_READ_ANY)) {
+    if (req.rescueId !== undefined && req.rescueId !== '') {
+      where.push(`(rescue_id = $${params.length + 1} OR rescue_id IS NULL)`);
+      params.push(req.rescueId);
+    }
+  } else if (principal.rescueId !== undefined && principal.rescueId !== '') {
+    where.push(`(rescue_id = $${params.length + 1} OR rescue_id IS NULL)`);
+    params.push(principal.rescueId);
+  } else {
+    where.push(`rescue_id IS NULL`);
+  }
+
   if (
     req.category !== undefined &&
     req.category !== AuditV1.ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_UNSPECIFIED
@@ -426,12 +445,6 @@ export async function listReportTemplates(
       where.push(`category = $${params.length + 1}`);
       params.push(cat);
     }
-  }
-  if (req.rescueId !== undefined && req.rescueId !== '') {
-    // Include both rescue-specific and system (rescue_id IS NULL) when
-    // a rescue is provided — the admin UI wants to see both.
-    where.push(`(rescue_id = $${params.length + 1} OR rescue_id IS NULL)`);
-    params.push(req.rescueId);
   }
   if (req.systemOnly === true) {
     where.push(`is_system = true`);
