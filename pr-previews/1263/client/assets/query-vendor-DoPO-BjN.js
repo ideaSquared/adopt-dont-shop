@@ -1,1 +1,0 @@
-import{i as e}from"./rolldown-runtime-aKtaBQYM.js";import{gn as t,xn as n}from"./chat-lib-CqmpTWd5.js";var r=e(n(),1),i=t(),a=r.createContext(void 0),o=({client:e,children:t})=>(r.useEffect(()=>(e.mount(),()=>{e.unmount()}),[e]),(0,i.jsx)(a.Provider,{value:e,children:t}));export{o as t};
