@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { countAdoptedAdopters } from './attribution-handlers.js';
+import { countAdoptedAdopters, MIN_COHORT_SIZE } from './attribution-handlers.js';
 
 function makePrincipal(
   overrides: Partial<{
@@ -13,8 +13,9 @@ function makePrincipal(
 ) {
   return {
     userId: overrides.userId ?? 'usr-1',
-    roles: overrides.roles ?? ['rescue_staff'],
-    permissions: overrides.permissions ?? ['applications.read'],
+    roles: overrides.roles ?? ['admin'],
+    // ANALYTICS_VIEW — the admin-only reporting gate this handler now requires.
+    permissions: overrides.permissions ?? ['admin.reports'],
     ...(overrides.rescueId !== undefined ? { rescueId: overrides.rescueId } : {}),
   } as unknown as Parameters<typeof countAdoptedAdopters>[1];
 }
@@ -25,17 +26,31 @@ function makeDeps(): { deps: HandlerDeps; query: ReturnType<typeof vi.fn> } {
   return { deps: { pool, nats: {} } as unknown as HandlerDeps, query };
 }
 
+// A cohort at or above the k-anonymity floor, so the happy path is exercised.
+const cohortIds = Array.from({ length: MIN_COHORT_SIZE }, (_, i) => `usr-adopter-${i}`);
+
 const baseReq = {
-  adopterIds: ['usr-adopter-1', 'usr-adopter-2'],
+  adopterIds: cohortIds,
   createdAfter: '2026-07-01T10:00:00.000Z',
   createdBefore: '2026-09-29T10:00:00.000Z',
 };
 
 describe('countAdoptedAdopters', () => {
-  it('throws PERMISSION_DENIED without applications.read', async () => {
+  it('denies a principal holding only applications.read (an adopter)', async () => {
     const { deps } = makeDeps();
     await expect(
-      countAdoptedAdopters(deps, makePrincipal({ permissions: [] }), baseReq)
+      countAdoptedAdopters(
+        deps,
+        makePrincipal({ roles: ['adopter'], permissions: ['applications.read'] }),
+        baseReq
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('throws PERMISSION_DENIED without any permission', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      countAdoptedAdopters(deps, makePrincipal({ roles: ['adopter'], permissions: [] }), baseReq)
     ).rejects.toBeInstanceOf(HandlerError);
   });
 
@@ -53,10 +68,34 @@ describe('countAdoptedAdopters', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
-  it('returns zero without querying when adopter_ids is empty', async () => {
+  it('rejects a cohort below the k-anonymity floor with INVALID_ARGUMENT', async () => {
     const { deps, query } = makeDeps();
-    const res = await countAdoptedAdopters(deps, makePrincipal(), { ...baseReq, adopterIds: [] });
-    expect(res).toEqual({ count: 0 });
+    await expect(
+      countAdoptedAdopters(deps, makePrincipal(), {
+        ...baseReq,
+        adopterIds: cohortIds.slice(0, MIN_COHORT_SIZE - 1),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a single-id request (the oracle case) with INVALID_ARGUMENT', async () => {
+    const { deps, query } = makeDeps();
+    await expect(
+      countAdoptedAdopters(deps, makePrincipal(), { ...baseReq, adopterIds: ['usr-victim'] })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects when de-duplication drops the cohort below the floor', async () => {
+    const { deps, query } = makeDeps();
+    // MIN_COHORT_SIZE raw ids that collapse to a single distinct id.
+    await expect(
+      countAdoptedAdopters(deps, makePrincipal(), {
+        ...baseReq,
+        adopterIds: Array.from({ length: MIN_COHORT_SIZE }, () => 'usr-victim'),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     expect(query).not.toHaveBeenCalled();
   });
 
@@ -66,11 +105,11 @@ describe('countAdoptedAdopters', () => {
 
     await countAdoptedAdopters(deps, makePrincipal(), {
       ...baseReq,
-      adopterIds: ['usr-1', 'usr-1', 'usr-2'],
+      adopterIds: [...cohortIds, ...cohortIds],
     });
 
     const params = query.mock.calls[0][1] as unknown[];
-    expect(params[0]).toEqual(['usr-1', 'usr-2']);
+    expect(params[0]).toEqual(cohortIds);
   });
 
   it('scopes to APPROVED/ADOPTED status, the candidate ids, and the created_at window', async () => {
@@ -88,7 +127,7 @@ describe('countAdoptedAdopters', () => {
     expect(params).toEqual([baseReq.adopterIds, baseReq.createdAfter, baseReq.createdBefore]);
   });
 
-  it('returns the distinct count from the query', async () => {
+  it('returns the distinct count from the query for a legitimate admin caller', async () => {
     const { deps, query } = makeDeps();
     query.mockResolvedValueOnce({ rows: [{ count: '3' }] });
 

@@ -220,6 +220,13 @@ describe('endSession', () => {
     });
   });
 
+  it('denies a NULL-owner (anonymous) session for a non-super-admin caller (ADS-1020)', async () => {
+    const { deps } = makeDeps([{ rows: [sessionRow({ user_id: null })] }]);
+    await expect(endSession(deps, makePrincipal(), { sessionId: 'sess-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
   it('allows a super_admin to end another user session', async () => {
     const { deps } = makeDeps([
       { rows: [sessionRow({ user_id: 'someone-else' })] }, // SELECT FOR UPDATE
@@ -319,6 +326,17 @@ describe('recordSwipe', () => {
 
   it('throws PERMISSION_DENIED when principal is not the session owner', async () => {
     const { deps } = makeDeps([{ rows: [sessionRow({ user_id: 'someone-else' })] }]);
+    await expect(
+      recordSwipe(deps, makePrincipal(), {
+        sessionId: 'sess-1',
+        petId: 'pet-1',
+        action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('denies a NULL-owner (anonymous) session for a non-super-admin caller (ADS-1020)', async () => {
+    const { deps } = makeDeps([{ rows: [sessionRow({ user_id: null })] }]);
     await expect(
       recordSwipe(deps, makePrincipal(), {
         sessionId: 'sess-1',

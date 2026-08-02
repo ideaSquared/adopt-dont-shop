@@ -40,7 +40,7 @@
 //     join the per-user room for adapter-backed addressing.
 //   - On disconnect: unregister.
 
-import type { Server as HttpServer } from 'node:http';
+import type { IncomingHttpHeaders, Server as HttpServer } from 'node:http';
 
 import { Metadata } from '@grpc/grpc-js';
 import { getMetricsRegistry } from '@adopt-dont-shop/observability';
@@ -144,22 +144,33 @@ export const createHandshakeRateLimiter = (opts: {
   return { tryConsume };
 };
 
-// The client IP for handshake rate-limit keying. nginx overwrites
-// X-Forwarded-For with the real connecting IP ($remote_addr, ADS-915), so
-// when the header is present the RIGHTMOST entry is the trustworthy hop —
-// mirroring the HTTP path's trustProxy:1. A client-prepended XFF is discarded
-// by nginx, and taking the rightmost entry also resists spoofing on a
-// direct-to-gateway path. Falls back to the raw socket address when there's
-// no proxy header (a direct connection).
-const handshakeClientIp = (socket: Socket): string => {
-  const xff = socket.handshake.headers['x-forwarded-for'];
-  if (typeof xff === 'string' && xff.length > 0) {
-    const last = xff.split(',').pop()?.trim();
+// The client IP used to key the handshake rate limiter (ADS-1021).
+//
+// X-Forwarded-For is only meaningful when a trusted proxy set it. Behind nginx
+// (trustProxy), the header carries the real peer ($remote_addr, ADS-915), so
+// the RIGHTMOST entry is the trustworthy hop — mirroring the HTTP path's
+// trustProxy:1 — and distinct clients get distinct buckets. On a bare,
+// directly-reachable gateway (!trustProxy) the client owns the header and could
+// rotate it to get a fresh bucket every handshake — or pin a victim's IP to
+// exhaust theirs — so the header is ignored entirely and the raw socket address
+// is used. Pure and exported so the resolution rule is directly testable.
+export const handshakeClientIp = (
+  headers: IncomingHttpHeaders,
+  socketAddress: string,
+  trustProxy: boolean
+): string => {
+  if (!trustProxy) {
+    return socketAddress;
+  }
+  const xff = headers['x-forwarded-for'];
+  const raw = Array.isArray(xff) ? xff[xff.length - 1] : xff;
+  if (typeof raw === 'string' && raw.length > 0) {
+    const last = raw.split(',').pop()?.trim();
     if (last) {
       return last;
     }
   }
-  return socket.handshake.address;
+  return socketAddress;
 };
 
 // The slim Redis pub/sub surface the @socket.io/redis-adapter broadcast path
@@ -183,7 +194,7 @@ export type AttachSocketServerOptions = {
   // dev-vs-prod distinction lives in loadConfig(): dev gets localhost
   // defaults, prod must set CORS_ORIGIN or every cross-origin handshake is
   // rejected here.
-  config: Pick<GatewayConfig, 'cors'>;
+  config: Pick<GatewayConfig, 'cors' | 'trustProxy'>;
   // The auth gRPC client used to verify handshake tokens. Required in
   // production (wired in index.ts). Optional only so pure unit tests of
   // the registry/subscriber wiring don't have to stand one up.
@@ -262,7 +273,11 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
   const handshakeRejectsTotal = getOrCreateHandshakeRejectCounter();
 
   io.use((socket, next) => {
-    const ip = handshakeClientIp(socket);
+    const ip = handshakeClientIp(
+      socket.handshake.headers,
+      socket.handshake.address,
+      config.trustProxy
+    );
     if (!handshakeLimiter.tryConsume(ip)) {
       handshakeRejectsTotal.inc();
       logger.warn('socket handshake rate limit exceeded', { ip });

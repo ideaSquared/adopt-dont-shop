@@ -23,6 +23,7 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { ensureSwipePermission } from './handlers.js';
 
 const SWIPES_READ_ANY: Permission = 'matching.swipes.read:any' as Permission;
 
@@ -286,11 +287,20 @@ export async function getSessionStats(
   principal: Principal,
   req: GetSessionStatsRequest
 ): Promise<GetSessionStatsResponse> {
+  // Capability gate — every sibling handler runs ensureSwipePermission;
+  // getSessionStats was the only one that skipped it (ADS-1020), so a
+  // principal stripped of pets.read could still read session stats.
+  ensureSwipePermission(principal);
+
   if (!req.sessionId) {
     throw new HandlerError('INVALID_ARGUMENT', 'session_id is required');
   }
   // Resolve the session owner for the IDOR check. Anonymous sessions
-  // (user_id NULL) are readable by anyone with a valid session id.
+  // (user_id NULL) remain readable by any bearer of the session id: the id
+  // is a random UUIDv4 (StartSession: randomUUID()), so it is unguessable
+  // and functions as a bearer capability for the anonymous browsing client.
+  // Only the READ path keeps this policy — the mutating paths (recordSwipe /
+  // endSession) deny NULL-owner sessions to authenticated callers (ADS-1020).
   const owner = await deps.pool.query<{ user_id: string | null }>(
     `SELECT user_id FROM matching.swipe_sessions WHERE session_id = $1 LIMIT 1`,
     [req.sessionId]

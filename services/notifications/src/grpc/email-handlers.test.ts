@@ -146,6 +146,13 @@ describe('sendEmail', () => {
 
   beforeEach(() => {
     mocks = makeMocks();
+    // Default wiring: an auth client whose record for the caller-supplied
+    // user_id matches BASE_SEND_REQ.toEmail, so the ADS-1008 binding passes on
+    // the happy path. Tests exercising the bypass override deps.authClient.
+    mocks.deps = {
+      ...mocks.deps,
+      authClient: { adminGetUser: vi.fn(async () => ({ user: { email: 'jane@example.com' } })) },
+    } as unknown as typeof mocks.deps;
   });
 
   afterEach(() => {
@@ -192,6 +199,80 @@ describe('sendEmail', () => {
       userId: 'usr-adopter',
     });
     expect(res.emailId).toBeTruthy();
+    expect(res.alreadyQueued).toBe(false);
+  });
+
+  // ── ADS-1008: bind user_id to to_email so suppression can't be bypassed ──
+
+  const authClientReturning = (email: string | undefined) => ({
+    adminGetUser: vi.fn(async () => ({ user: email === undefined ? undefined : { email } })),
+  });
+
+  it('rejects when the supplied user_id does not own to_email (suppression bypass)', async () => {
+    // user_id names a different, non-suppressed user than the recipient
+    // address — exactly the vector that let an opted-out / blacklisted
+    // address be reached.
+    const authClient = authClientReturning('someone-else@example.com');
+    const deps = { ...mocks.deps, authClient } as unknown as typeof mocks.deps;
+    await expect(
+      sendEmail(deps, SYSTEM_PRINCIPAL, {
+        ...BASE_SEND_REQ,
+        toEmail: 'jane@example.com',
+        userId: 'usr-adopter',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(authClient.adminGetUser).toHaveBeenCalledWith({ userId: 'usr-adopter' });
+  });
+
+  it('rejects when the named user_id is unknown to auth', async () => {
+    const authClient = authClientReturning(undefined);
+    const deps = { ...mocks.deps, authClient } as unknown as typeof mocks.deps;
+    await expect(
+      sendEmail(deps, SYSTEM_PRINCIPAL, {
+        ...BASE_SEND_REQ,
+        toEmail: 'jane@example.com',
+        userId: 'usr-ghost',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('dispatches when the user_id owns to_email (case-insensitive match)', async () => {
+    const authClient = authClientReturning('Jane@Example.com');
+    const deps = { ...mocks.deps, authClient } as unknown as typeof mocks.deps;
+    mocks.clientScript.push({ rows: [{ email_id: 'queued-bound' }] }); // INSERT
+    const res = await sendEmail(deps, SYSTEM_PRINCIPAL, {
+      ...BASE_SEND_REQ,
+      toEmail: 'jane@example.com',
+      userId: 'usr-adopter',
+    });
+    expect(res.alreadyQueued).toBe(false);
+    expect(realClientQueries(mocks)).toEqual(['INSERT']);
+  });
+
+  it('fails closed when a user_id is supplied but no auth client is wired', async () => {
+    // Security control must not depend on optional wiring: a misconfigured
+    // deploy that can't verify the binding refuses the send rather than
+    // reopening the bypass.
+    const deps = { pool: mocks.poolMock, nats: mocks.natsMock } as unknown as typeof mocks.deps;
+    await expect(
+      sendEmail(deps, SYSTEM_PRINCIPAL, {
+        ...BASE_SEND_REQ,
+        toEmail: 'jane@example.com',
+        userId: 'usr-adopter',
+      })
+    ).rejects.toMatchObject({ code: 'INTERNAL' });
+  });
+
+  it('needs no auth client when the send carries no user_id', async () => {
+    // Nothing to bind — a user_id-less transactional send proceeds. (Marketing
+    // still requires a user_id via the check above.)
+    const deps = { pool: mocks.poolMock, nats: mocks.natsMock } as unknown as typeof mocks.deps;
+    mocks.clientScript.push({ rows: [{ email_id: 'queued-nouser' }] }); // INSERT
+    const res = await sendEmail(deps, SYSTEM_PRINCIPAL, {
+      ...BASE_SEND_REQ,
+      toEmail: 'jane@example.com',
+      userId: '',
+    });
     expect(res.alreadyQueued).toBe(false);
   });
 

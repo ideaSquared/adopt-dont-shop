@@ -84,6 +84,12 @@ export function reportRowToProto(row: ReportRow, forReporter = false): Report {
   }
 
   // Internal moderation-workflow fields — moderators only.
+  //
+  // COUPLING (ADS-1018): every field redacted below must also be non-filterable
+  // by a reporter-scoped caller in listReports — allowing a filter on a
+  // redacted field turns the result set into an oracle that recovers the value.
+  // Keep this redaction list and listReports' filter gating in sync: today only
+  // assigned_moderator is filterable, and it is gated on MODERATION_REPORTS_VIEW.
   if (row.assigned_moderator !== null) {
     report.assignedModerator = row.assigned_moderator;
   }

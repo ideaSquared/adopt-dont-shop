@@ -98,12 +98,28 @@ export async function fileReport(
   const severityDb = severityToDb(req.severity);
   const metadataJson = parseMetadataJson(req.metadataJson);
 
+  // Dedup arbiter (ADS-1019). SYSTEM auto-reports dedup on the entity alone
+  // (JetStream may redeliver the same event). A real user's reports dedup
+  // per-reporter: one OPEN report per (reporter, entity), so a single account
+  // can't flood the moderator queue with duplicate rows against one target.
+  // Both paths DO UPDATE (a no-op that returns the existing row with
+  // was_inserted = false), so the caller gets the canonical report either way.
+  const isSystemReporter = principal.userId === SYSTEM_USER_ID;
+  const conflictClause = isSystemReporter
+    ? `ON CONFLICT (reported_entity_type, reported_entity_id)
+         WHERE reporter_id = '${SYSTEM_USER_ID}'
+         DO UPDATE SET updated_at = reports.updated_at`
+    : `ON CONFLICT (reporter_id, reported_entity_type, reported_entity_id)
+         WHERE reporter_id <> '${SYSTEM_USER_ID}'
+           AND status IN ('pending', 'under_review', 'escalated')
+         DO UPDATE SET updated_at = reports.updated_at`;
+
   return withTransaction(deps, async ({ client, publish }) => {
     const reportId = randomUUID();
     // `was_inserted` (xmax = 0) distinguishes a fresh insert from the
     // ON CONFLICT no-op so JetStream redelivery of a SYSTEM auto-report
-    // doesn't re-publish. The persisted report_id (not the throwaway
-    // `reportId`) is the canonical id on the conflict path.
+    // (or a repeat user report) doesn't re-publish. The persisted report_id
+    // (not the throwaway `reportId`) is the canonical id on the conflict path.
     const inserted = await client.query<ReportRow & { was_inserted: boolean }>(
       `INSERT INTO reports (
          report_id, reporter_id, reported_entity_type, reported_entity_id,
@@ -111,9 +127,7 @@ export async function fileReport(
          metadata
        )
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10::jsonb)
-       ON CONFLICT (reported_entity_type, reported_entity_id)
-         WHERE reporter_id = '${SYSTEM_USER_ID}'
-         DO UPDATE SET updated_at = reports.updated_at
+       ${conflictClause}
        RETURNING report_id, reporter_id, reported_entity_type, reported_entity_id,
                  reported_user_id, category, severity, status, title, description,
                  metadata, assigned_moderator, assigned_at, resolved_by, resolved_at,
@@ -254,6 +268,18 @@ export async function listReports(
     params.push(categoryToDb(req.category));
   }
   if (req.assignedModerator !== undefined) {
+    // assigned_moderator is redacted from the reporter-safe projection
+    // (reportRowToProto forReporter=true), so it must not be filterable by a
+    // caller who can't see it — otherwise the result set is an oracle that
+    // recovers the redacted value (ADS-1018). '' → IS NULL is the same leak
+    // (assigned-vs-unassigned). Reject rather than silently ignore: a caller
+    // filtering on a field they can't see is confused or probing.
+    if (!canViewInternal) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        `'${MODERATION_REPORTS_VIEW}' required to filter on assigned_moderator`
+      );
+    }
     if (req.assignedModerator === '') {
       where.push(`assigned_moderator IS NULL`);
     } else {

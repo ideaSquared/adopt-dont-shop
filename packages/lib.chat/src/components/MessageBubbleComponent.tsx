@@ -66,10 +66,22 @@ export function MessageBubbleComponent({
   const [pdfPreviewFilename, setPdfPreviewFilename] = useState('');
   const [pdfPreviewMimeType, setPdfPreviewMimeType] = useState('');
 
-  const imageAttachments = message.attachments?.filter((att) => isImageFile(att.mimeType)) || [];
+  // Only images whose URL survives sanitisation (ADS-1011). resolveFileUrl
+  // returns undefined to signal a REJECTED url (non-http(s) scheme,
+  // protocol-relative cross-origin, etc.) — those must never reach an <img src>,
+  // so they are dropped here rather than falling back to the raw url. Both the
+  // inline grid and the lightbox render from this safe set, keeping their
+  // indices aligned.
+  const imageAttachments = (message.attachments ?? []).flatMap((att) => {
+    if (!isImageFile(att.mimeType)) {
+      return [];
+    }
+    const url = resolveFileUrl(att.url);
+    return url ? [{ att, url }] : [];
+  });
 
   const handleImageClick = (attachment: NonNullable<Message['attachments']>[0]) => {
-    const imageIndex = imageAttachments.findIndex((img) => img.id === attachment.id);
+    const imageIndex = imageAttachments.findIndex((img) => img.att.id === attachment.id);
     setLightboxIndex(imageIndex >= 0 ? imageIndex : 0);
     setLightboxOpen(true);
 
@@ -131,87 +143,95 @@ export function MessageBubbleComponent({
 
           {message.attachments && message.attachments.length > 0 && (
             <div className={styles.attachmentsContainer}>
-              {message.attachments.map((attachment, index) => (
-                <div
-                  key={attachment.id || index}
-                  className={isOwn ? styles.attachmentItemOwn : styles.attachmentItemOther}
-                >
-                  {isImageFile(attachment.mimeType) ? (
-                    <div className={styles.imageWrapper}>
-                      <button
-                        type="button"
-                        className={styles.imageButtonWrapper}
-                        onClick={() => handleImageClick(attachment)}
-                        aria-label={`View ${attachment.filename}`}
-                      >
-                        <img
-                          className={styles.imageAttachment}
-                          src={resolveFileUrl(attachment.url) || attachment.url}
-                          alt={attachment.filename}
-                          loading="lazy"
-                        />
-                      </button>
-                    </div>
-                  ) : isPDFFile(attachment.mimeType) ? (
-                    <>
-                      <div className={isOwn ? styles.fileIconOwn : styles.fileIconOther}>
-                        {getFileIcon(attachment.mimeType)}
+              {message.attachments.map((attachment, index) => {
+                // undefined for non-images AND for image URLs the sanitiser
+                // rejected — both fall through to the file-icon placeholder
+                // below rather than rendering an <img> at an unsafe URL.
+                const resolvedImageUrl = isImageFile(attachment.mimeType)
+                  ? resolveFileUrl(attachment.url)
+                  : undefined;
+                return (
+                  <div
+                    key={attachment.id || index}
+                    className={isOwn ? styles.attachmentItemOwn : styles.attachmentItemOther}
+                  >
+                    {resolvedImageUrl ? (
+                      <div className={styles.imageWrapper}>
+                        <button
+                          type="button"
+                          className={styles.imageButtonWrapper}
+                          onClick={() => handleImageClick(attachment)}
+                          aria-label={`View ${attachment.filename}`}
+                        >
+                          <img
+                            className={styles.imageAttachment}
+                            src={resolvedImageUrl}
+                            alt={attachment.filename}
+                            loading="lazy"
+                          />
+                        </button>
                       </div>
-                      <div className={styles.fileInfo}>
-                        <div className={isOwn ? styles.fileNameOwn : styles.fileNameOther}>
-                          {attachment.filename}
+                    ) : isPDFFile(attachment.mimeType) ? (
+                      <>
+                        <div className={isOwn ? styles.fileIconOwn : styles.fileIconOther}>
+                          {getFileIcon(attachment.mimeType)}
                         </div>
-                        <div className={isOwn ? styles.fileSizeOwn : styles.fileSizeOther}>
-                          {formatFileSize(attachment.size)}
+                        <div className={styles.fileInfo}>
+                          <div className={isOwn ? styles.fileNameOwn : styles.fileNameOther}>
+                            {attachment.filename}
+                          </div>
+                          <div className={isOwn ? styles.fileSizeOwn : styles.fileSizeOther}>
+                            {formatFileSize(attachment.size)}
+                          </div>
                         </div>
-                      </div>
-                      <a
-                        className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handlePDFClick(attachment);
-                        }}
-                        aria-label={`Preview ${attachment.filename}`}
-                      >
-                        <MdVisibility size={16} />
-                      </a>
-                      <a
-                        className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
-                        href={resolveFileUrl(attachment.url)}
-                        download={attachment.filename}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MdDownload size={16} />
-                      </a>
-                    </>
-                  ) : (
-                    <>
-                      <div className={isOwn ? styles.fileIconOwn : styles.fileIconOther}>
-                        {getFileIcon(attachment.mimeType)}
-                      </div>
-                      <div className={styles.fileInfo}>
-                        <div className={isOwn ? styles.fileNameOwn : styles.fileNameOther}>
-                          {attachment.filename}
+                        <a
+                          className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePDFClick(attachment);
+                          }}
+                          aria-label={`Preview ${attachment.filename}`}
+                        >
+                          <MdVisibility size={16} />
+                        </a>
+                        <a
+                          className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
+                          href={resolveFileUrl(attachment.url)}
+                          download={attachment.filename}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MdDownload size={16} />
+                        </a>
+                      </>
+                    ) : (
+                      <>
+                        <div className={isOwn ? styles.fileIconOwn : styles.fileIconOther}>
+                          {getFileIcon(attachment.mimeType)}
                         </div>
-                        <div className={isOwn ? styles.fileSizeOwn : styles.fileSizeOther}>
-                          {formatFileSize(attachment.size)}
+                        <div className={styles.fileInfo}>
+                          <div className={isOwn ? styles.fileNameOwn : styles.fileNameOther}>
+                            {attachment.filename}
+                          </div>
+                          <div className={isOwn ? styles.fileSizeOwn : styles.fileSizeOther}>
+                            {formatFileSize(attachment.size)}
+                          </div>
                         </div>
-                      </div>
-                      <a
-                        className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
-                        href={resolveFileUrl(attachment.url)}
-                        download={attachment.filename}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MdDownload size={16} />
-                      </a>
-                    </>
-                  )}
-                </div>
-              ))}
+                        <a
+                          className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
+                          href={resolveFileUrl(attachment.url)}
+                          download={attachment.filename}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MdDownload size={16} />
+                        </a>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </article>
@@ -264,15 +284,12 @@ export function MessageBubbleComponent({
       )}
 
       <ImageLightbox
-        images={imageAttachments.map((att) => {
-          const resolvedUrl = resolveFileUrl(att.url);
-          return {
-            id: att.id,
-            url: resolvedUrl || att.url,
-            filename: att.filename,
-            mimeType: att.mimeType,
-          };
-        })}
+        images={imageAttachments.map(({ att, url }) => ({
+          id: att.id,
+          url,
+          filename: att.filename,
+          mimeType: att.mimeType,
+        }))}
         currentIndex={lightboxIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}

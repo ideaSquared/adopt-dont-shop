@@ -32,7 +32,8 @@ import { renderEmailTemplate } from '../email/renderer.js';
 import { findActiveTemplate, incrementTemplateUsage } from '../email/templates.js';
 import type { EmailPriority, EmailType } from '../email/types.js';
 
-import { HandlerError } from './handlers.js';
+import type { AuthUserClient } from './auth-client.js';
+import { HandlerError, type HandlerDeps } from './handlers.js';
 
 // --- Defaults --------------------------------------------------------
 
@@ -137,7 +138,35 @@ const stripHeaderOpt = (s: string | undefined): string | undefined =>
 
 // --- SendEmail -------------------------------------------------------
 
-export type SendEmailDeps = WithTransactionDeps;
+// Reuses HandlerDeps so the shared adapt() wiring passes the same deps object.
+// deps.authClient?.adminGetUser binds the recipient identity to the address
+// being mailed (ADS-1008). A send that carries a user_id but reaches a
+// deployment with no auth client wired fails closed (INTERNAL) rather than
+// skipping the binding.
+export type SendEmailDeps = HandlerDeps;
+
+// Normalise an address for comparison — trim + lowercase. Enough to bind a
+// caller-supplied user_id to to_email without importing a full RFC-5321
+// normaliser; the auth record and the request are both raw addresses.
+const normaliseAddress = (email: string): string => email.trim().toLowerCase();
+
+// Rejects unless `userId`'s email of record equals `toEmail`. Throws
+// PERMISSION_DENIED — the caller has named a user that does not own the
+// address, which is exactly the suppression-bypass ADS-1008 closes.
+const assertUserOwnsAddress = async (
+  adminGetUser: AuthUserClient['adminGetUser'],
+  userId: string,
+  toEmail: string
+): Promise<void> => {
+  const { user } = await adminGetUser({ userId });
+  const ofRecord = user?.email ? normaliseAddress(user.email) : undefined;
+  if (ofRecord === undefined || ofRecord !== normaliseAddress(toEmail)) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      'user_id does not match to_email; suppression cannot be bound to the recipient'
+    );
+  }
+};
 
 const parseJson = (input: string | undefined, fallback: object): Record<string, unknown> => {
   if (!input) {
@@ -194,6 +223,25 @@ export async function sendEmail(
       'INVALID_ARGUMENT',
       "user_id is required for 'marketing' email so recipient opt-outs are honoured"
     );
+  }
+
+  // Bind the recipient identity to the address actually being mailed
+  // (ADS-1008). The worker's opt-out / blacklist suppression keys off user_id,
+  // not to_email, so a user_id that does NOT own to_email would let a caller
+  // reach an opted-out or bounce-blacklisted address by naming an unrelated,
+  // non-suppressed user. Require the supplied user_id's email of record to
+  // equal to_email. This is a security control, so it fails CLOSED: if a
+  // user_id is supplied but no auth client is wired to verify it, refuse the
+  // send rather than let a misconfigured deploy reopen the bypass.
+  if (req.userId) {
+    const adminGetUser = deps.authClient?.adminGetUser;
+    if (!adminGetUser) {
+      throw new HandlerError(
+        'INTERNAL',
+        'cannot verify recipient identity: auth client unavailable'
+      );
+    }
+    await assertUserOwnsAddress(adminGetUser, req.userId, req.toEmail);
   }
 
   // Resolve subject / html / text — template wins when present.

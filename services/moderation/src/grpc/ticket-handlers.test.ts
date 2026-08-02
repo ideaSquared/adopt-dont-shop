@@ -9,7 +9,7 @@ import {
   type RespondToTicketRequest,
 } from '@adopt-dont-shop/proto';
 
-import { HandlerError, type HandlerDeps } from './adapter.js';
+import { type HandlerDeps } from './adapter.js';
 import {
   assignSupportTicket,
   getSupportTicket,
@@ -139,6 +139,55 @@ describe('openSupportTicket', () => {
     await expect(
       openSupportTicket(deps, makePrincipal(), req as OpenSupportTicketRequest)
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  // ADS-1017 — user_email / user_name field validation.
+  it('rejects a user_email containing CR/LF (header-injection payload)', async () => {
+    const { deps, query } = makeDeps([]);
+    await expect(
+      openSupportTicket(deps, makePrincipal(), {
+        ...VALID_OPEN,
+        userEmail: 'user@example.com\r\nBcc: victim@example.com',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed user_email', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      openSupportTicket(deps, makePrincipal(), { ...VALID_OPEN, userEmail: 'not-an-email' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a user_email over the length bound', async () => {
+    const { deps } = makeDeps([]);
+    const longLocal = 'a'.repeat(250);
+    await expect(
+      openSupportTicket(deps, makePrincipal(), {
+        ...VALID_OPEN,
+        userEmail: `${longLocal}@example.com`,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a user_name containing control characters', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      openSupportTicket(deps, makePrincipal(), {
+        ...VALID_OPEN,
+        userName: 'Platform Security\r\nX-Injected: 1',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('accepts a valid user_email + user_name', async () => {
+    const { deps } = makeDeps([{ rows: [ticketRow()] }]);
+    const res = await openSupportTicket(deps, makePrincipal(), {
+      ...VALID_OPEN,
+      userName: 'Jane Doe',
+    });
+    expect(res.ticket.ticketId).toBe('tkt-1');
   });
 
   it('falls back to principal.userId when request user_id is absent', async () => {

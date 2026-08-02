@@ -66,9 +66,12 @@ export type AuthCohortClient = {
 };
 
 export type HandlerDeps = WithTransactionDeps & {
-  // Optional — only broadcast-handlers reads it. Other handlers (Create,
-  // List, Dismiss, etc.) work fine without a cross-service client wired.
-  authClient?: AuthCohortClient;
+  // Optional cross-service client. Broadcast reads listUserIdsByCohort;
+  // SendEmail reads adminGetUser to bind user_id → to_email (ADS-1008). The
+  // adminGetUser slice is Partial so a cohort-only mock (broadcast tests) is
+  // still assignable; the production client (createAuthCohortClient) carries
+  // both. Handlers that read neither work without it wired at all.
+  authClient?: AuthCohortClient & Partial<import('./auth-client.js').AuthUserClient>;
   // Optional — only broadcast-handlers reads it (per-recipient failure
   // warns). Other handlers log via the adapt() wrapper's logger.
   logger?: Logger;

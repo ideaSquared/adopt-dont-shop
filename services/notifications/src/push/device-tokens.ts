@@ -4,6 +4,8 @@
 
 import { randomUUID } from 'node:crypto';
 
+import type { PoolClient } from 'pg';
+
 import type { DbConn } from '../email/queue.js';
 
 import type { DevicePlatform, DeviceTokenStatus } from './types.js';
@@ -31,27 +33,53 @@ export type RegisterDeviceTokenInput = {
   deviceInfo?: Record<string, unknown>;
 };
 
-// Upsert by (user_id, device_token). The partial unique index
-// `device_tokens_user_token_unique` enforces the uniqueness while
-// permitting historical soft-deleted rows.
+// Register a device token under `input.userId`, treating the token as
+// globally unique to a single active mapping (ADS-1010).
 //
-// Returns the row + a flag indicating whether the registration was
-// new (false → call refreshed an existing row's last_used_at).
+// The lookup keys on `device_token` alone, not `(user_id, device_token)`, so a
+// token already active under a DIFFERENT user is detected. A device genuinely
+// changing hands is the common legitimate case, so the prior mapping is
+// soft-deleted (transferred) rather than left to duplicate — a duplicate would
+// let one physical device receive two users' notifications and survive the
+// prior owner's GDPR erasure. `device_tokens_active_token_unique` enforces the
+// single-active-mapping invariant at the database level.
+//
+// Returns the row, an `alreadyRegistered` flag (true → the same user's row was
+// refreshed in place), and `replacedUserId` when a different user's mapping was
+// taken over (so the caller can audit the transfer).
+//
+// Takes a PoolClient, not a Pool: the pg_advisory_xact_lock below only holds for
+// the duration of a transaction, and on a bare Pool each query runs on its own
+// implicit-transaction connection — the lock would release immediately and the
+// lookup → soft-delete → insert sequence could still race into the partial
+// unique index. Requiring a PoolClient makes "call inside a transaction"
+// type-enforced (registerDeviceTokenHandler passes withTransaction's client).
 export const registerDeviceToken = async (
-  conn: DbConn,
+  conn: PoolClient,
   input: RegisterDeviceTokenInput
-): Promise<{ row: DeviceTokenRow; alreadyRegistered: boolean }> => {
-  // Look up first so we can report alreadyRegistered accurately.
+): Promise<{ row: DeviceTokenRow; alreadyRegistered: boolean; replacedUserId?: string }> => {
+  // Serialise concurrent registrations of the SAME token so the
+  // lookup → (soft-delete) → insert sequence can't race two callers into a
+  // unique-violation against device_tokens_active_token_unique. Transaction-
+  // scoped, so the lock releases on commit/rollback; keyed on a hash of the
+  // token so it only contends per device_token, not globally. Requires the
+  // caller to run this inside a transaction (registerDeviceTokenHandler does).
+  await conn.query(`SELECT pg_advisory_xact_lock(hashtext($1)::bigint)`, [input.deviceToken]);
+
+  // Look up by device_token alone so a token owned by another user is seen.
   const existing = await conn.query<DeviceTokenRow>(
     `
     SELECT * FROM device_tokens
-    WHERE user_id = $1 AND device_token = $2 AND deleted_at IS NULL
+    WHERE device_token = $1 AND deleted_at IS NULL
     LIMIT 1
     `,
-    [input.userId, input.deviceToken]
+    [input.deviceToken]
   );
+  const current = existing.rows[0];
 
-  if (existing.rows[0]) {
+  // Same user re-registering their own token → refresh in place (normal path,
+  // unchanged behaviour, alreadyRegistered = true).
+  if (current && current.user_id === input.userId) {
     const refreshed = await conn.query<DeviceTokenRow>(
       `
       UPDATE device_tokens
@@ -65,13 +93,30 @@ export const registerDeviceToken = async (
       RETURNING *
       `,
       [
-        existing.rows[0].token_id,
+        current.token_id,
         input.appVersion ?? null,
         input.deviceInfo ? JSON.stringify(input.deviceInfo) : null,
         input.platform,
       ]
     );
     return { row: refreshed.rows[0], alreadyRegistered: true };
+  }
+
+  // Token currently mapped to a DIFFERENT user → transfer it: soft-delete the
+  // prior mapping so at most one active row per device_token survives.
+  let replacedUserId: string | undefined;
+  if (current) {
+    await conn.query(
+      `
+      UPDATE device_tokens
+      SET status     = 'inactive',
+          deleted_at = COALESCE(deleted_at, now()),
+          updated_at = now()
+      WHERE token_id = $1
+      `,
+      [current.token_id]
+    );
+    replacedUserId = current.user_id;
   }
 
   const inserted = await conn.query<DeviceTokenRow>(
@@ -97,7 +142,7 @@ export const registerDeviceToken = async (
       JSON.stringify(input.deviceInfo ?? {}),
     ]
   );
-  return { row: inserted.rows[0], alreadyRegistered: false };
+  return { row: inserted.rows[0], alreadyRegistered: false, replacedUserId };
 };
 
 // Soft-delete by token_id. Idempotent — a second call returns the

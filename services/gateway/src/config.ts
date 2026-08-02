@@ -110,6 +110,16 @@ export type GatewayConfig = {
   cors: {
     origins: string[];
   };
+  // Whether an X-Forwarded-For header on an inbound connection may be trusted
+  // to carry the real client IP (ADS-1021). True only when a trusted proxy
+  // (nginx) sits in front and overwrites XFF with the peer address — then the
+  // WebSocket handshake rate limiter keys per real client. False on a bare
+  // gateway reachable directly, where a client controls XFF and could rotate
+  // buckets (or pin a victim's) to defeat the limiter, so the raw socket
+  // address is used instead. Sourced from TRUST_PROXY; defaults true in
+  // production/staging (deployed behind nginx, matching the HTTP path's
+  // trustProxy:1) and false otherwise so debug/direct runs are safe by default.
+  trustProxy: boolean;
   // Rate limiting — applied at the gateway edge for every route.
   // Backed by a shared Redis store in production/staging so per-replica
   // limits don't multiply by N replicas. Falls back to an in-memory
@@ -175,9 +185,26 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     principalSigningKey: readOptionalSecret('PRINCIPAL_SIGNING_KEY', env, 32),
     testTokenPeek: buildTestTokenPeekConfig(env),
     cors: buildCorsConfig(env, environment),
+    trustProxy: buildTrustProxy(env, environment),
     rateLimit: buildRateLimitConfig(env),
   };
 };
+
+// TRUST_PROXY gates whether X-Forwarded-For is believed (ADS-1021). Explicit
+// 'true'/'false' (or '1'/'0') wins; absent, it follows the deployment posture:
+// production/staging run behind nginx (which overwrites XFF) so trust is on and
+// the WS handshake limiter buckets per real client, while every other
+// environment defaults off so a directly-reachable gateway can't be spoofed.
+function buildTrustProxy(env: NodeJS.ProcessEnv, environment: string): boolean {
+  const raw = env.TRUST_PROXY?.trim().toLowerCase();
+  if (raw === 'true' || raw === '1') {
+    return true;
+  }
+  if (raw === 'false' || raw === '0') {
+    return false;
+  }
+  return environment === 'production' || environment === 'staging';
+}
 
 // Build the CORS config block. CORS_ORIGIN is a comma-separated list
 // of allowed origins (e.g. "http://localhost:3000,http://localhost:3001").

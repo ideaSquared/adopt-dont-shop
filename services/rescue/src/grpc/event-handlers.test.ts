@@ -540,7 +540,15 @@ describe('getEventAnalytics', () => {
       countAdoptedAdopters: vi.fn(async () => ({ count: 0 })),
       close: vi.fn(),
     };
-    getEventAnalytics = makeGetEventAnalytics(applicationsStub as unknown as ApplicationsClient);
+    const logger = {
+      warn: vi.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
+    } as unknown as Parameters<typeof makeGetEventAnalytics>[1];
+    getEventAnalytics = makeGetEventAnalytics(
+      applicationsStub as unknown as ApplicationsClient,
+      logger
+    );
   });
 
   it('rejects callers without events.read', async () => {
@@ -601,15 +609,20 @@ describe('getEventAnalytics', () => {
 
   // ── adoptionsFromEvent — registered-then-adopted attribution (ADS-941) ──
 
+  // A registrant cohort at/above the k-anonymity floor service.applications
+  // enforces (ADS-1006), so the attribution call is actually made.
+  const registrantRows = Array.from({ length: 20 }, (_, i) => ({
+    user_id: `usr-registrant-${i}`,
+  }));
+  const registrantIds = registrantRows.map(r => r.user_id);
+
   it('resolves the registrant ids (not just checked-in attendees) and reports the adopted count', async () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({
         rows: [eventRow({ status: 'completed', start_date: new Date('2026-07-01T10:00:00Z') })],
       })
-      .mockResolvedValueOnce({ rows: [{ total: '2', checked_in: '1' }] })
-      .mockResolvedValueOnce({
-        rows: [{ user_id: 'usr-registrant-1' }, { user_id: 'usr-registrant-2' }],
-      });
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '1' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
     applicationsStub.countAdoptedAdopters.mockResolvedValueOnce({ count: 2 });
 
     const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
@@ -617,7 +630,22 @@ describe('getEventAnalytics', () => {
     expect(res.analytics?.adoptionsFromEvent).toBe(2);
     expect(applicationsStub.countAdoptedAdopters).toHaveBeenCalledTimes(1);
     const [req] = applicationsStub.countAdoptedAdopters.mock.calls[0];
-    expect(req.adopterIds).toEqual(['usr-registrant-1', 'usr-registrant-2']);
+    expect(req.adopterIds).toEqual(registrantIds);
+  });
+
+  it('skips the attribution call when the registrant cohort is below the k-anonymity floor', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '2', checked_in: '1' }] })
+      .mockResolvedValueOnce({
+        rows: [{ user_id: 'usr-registrant-1' }, { user_id: 'usr-registrant-2' }],
+      });
+
+    const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
+
+    // Degrades to a 0 count rather than erroring on the rejected RPC.
+    expect(res.analytics?.adoptionsFromEvent).toBe(0);
+    expect(applicationsStub.countAdoptedAdopters).not.toHaveBeenCalled();
   });
 
   it('queries a 90-day post-event window anchored on the event start date', async () => {
@@ -625,8 +653,8 @@ describe('getEventAnalytics', () => {
       .mockResolvedValueOnce({
         rows: [eventRow({ status: 'completed', start_date: new Date('2026-07-01T10:00:00Z') })],
       })
-      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '0' }] })
-      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-registrant-1' }] });
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
 
     await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
 
@@ -638,8 +666,8 @@ describe('getEventAnalytics', () => {
   it('returns zero adoptions when nobody in the registrant set has adopted', async () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
-      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '0' }] })
-      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-registrant-1' }] });
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
     applicationsStub.countAdoptedAdopters.mockResolvedValueOnce({ count: 0 });
 
     const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
@@ -647,12 +675,51 @@ describe('getEventAnalytics', () => {
     expect(res.analytics?.adoptionsFromEvent).toBe(0);
   });
 
-  it('surfaces a downstream attribution failure as INTERNAL rather than silently reporting zero', async () => {
+  it('maps a transient downstream failure (UNAVAILABLE) to a retryable status, not INTERNAL', async () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
-      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '0' }] })
-      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-registrant-1' }] });
-    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 14 });
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 14 }); // UNAVAILABLE
+
+    await expect(getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID })).rejects.toMatchObject(
+      { code: 'UNAVAILABLE' }
+    );
+  });
+
+  it('maps a downstream DEADLINE_EXCEEDED to the same retryable status', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 4 }); // DEADLINE_EXCEEDED
+
+    await expect(getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID })).rejects.toMatchObject(
+      { code: 'UNAVAILABLE' }
+    );
+  });
+
+  it('degrades attribution to 0 when the caller lacks the analytics permission (PERMISSION_DENIED)', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '5' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 7 }); // PERMISSION_DENIED
+
+    const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
+
+    // The rest of the analytics (which only needs events.read) still returns.
+    expect(res.analytics?.adoptionsFromEvent).toBe(0);
+    expect(res.analytics?.totalRegistrations).toBe(20);
+    expect(res.analytics?.actualAttendance).toBe(5);
+  });
+
+  it('maps an INVALID_ARGUMENT (our request bug) to INTERNAL, not a permission or retry status', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '20', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: registrantRows });
+    applicationsStub.countAdoptedAdopters.mockRejectedValueOnce({ code: 3 }); // INVALID_ARGUMENT
 
     await expect(getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID })).rejects.toMatchObject(
       { code: 'INTERNAL' }

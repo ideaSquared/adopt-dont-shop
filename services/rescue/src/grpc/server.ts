@@ -122,7 +122,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getEventAttendees: adapt(getEventAttendees, { deps, logger }),
     addEventAttendee: adapt(addEventAttendee, { deps, logger }),
     checkInAttendee: adapt(checkInAttendee, { deps, logger }),
-    getEventAnalytics: adapt(makeGetEventAnalytics(applicationsClient), { deps, logger }),
+    getEventAnalytics: adapt(makeGetEventAnalytics(applicationsClient, logger), { deps, logger }),
   });
 
   logger.info('gRPC RescueService registered', {

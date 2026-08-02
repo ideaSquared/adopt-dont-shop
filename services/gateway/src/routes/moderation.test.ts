@@ -6,7 +6,7 @@ import { ModerationV1 } from '@adopt-dont-shop/proto';
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
 
-import { registerModerationRoutes } from './moderation.js';
+import { registerModerationRoutes, reportFileRateLimitKey } from './moderation.js';
 
 function makeClient(): {
   client: ModerationClient;
@@ -48,6 +48,24 @@ const HEADERS = {
   'x-user-roles': 'admin',
   'x-user-permissions': 'admin.dashboard',
 };
+
+describe('reportFileRateLimitKey (ADS-1019 per-principal report rate limit)', () => {
+  it('keys on the authenticated user id when present', () => {
+    const req = {
+      headers: { 'x-user-id': 'usr-1' },
+      ip: '10.0.0.5',
+    } as unknown as Parameters<typeof reportFileRateLimitKey>[0];
+    expect(reportFileRateLimitKey(req)).toBe('usr-1');
+  });
+
+  it('falls back to the peer IP when unauthenticated', () => {
+    const req = {
+      headers: {},
+      ip: '10.0.0.5',
+    } as unknown as Parameters<typeof reportFileRateLimitKey>[0];
+    expect(reportFileRateLimitKey(req)).toBe('10.0.0.5');
+  });
+});
 
 describe('moderation report routes', () => {
   let app: FastifyInstance;

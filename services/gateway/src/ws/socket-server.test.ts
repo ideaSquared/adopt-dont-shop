@@ -6,6 +6,8 @@ import type { Server as IOServer } from 'socket.io';
 import type { Logger } from 'winston';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getMetricsRegistry } from '@adopt-dont-shop/observability';
+
 import type { ValidateTokenResponse } from '@adopt-dont-shop/proto';
 
 import type { GatewayConfig } from '../config.js';
@@ -16,6 +18,7 @@ import {
   attachSocketServer,
   createHandshakeRateLimiter,
   emitToUser,
+  handshakeClientIp,
   type AttachSocketServerOptions,
   type RedisAdapterClient,
 } from './socket-server.js';
@@ -36,6 +39,10 @@ function devConfig(overrides?: Partial<GatewayConfig>): GatewayConfig {
   return {
     environment: 'development',
     cors: { origins: ['http://localhost:3000'] },
+    // Default: a bare gateway that does NOT trust X-Forwarded-For (ADS-1021),
+    // so the handshake limiter keys on the real socket address. Tests behind a
+    // proxy override with trustProxy: true.
+    trustProxy: false,
     ...overrides,
   } as GatewayConfig;
 }
@@ -585,5 +592,73 @@ describe('handshake rate limiting — pre-auth per-IP cap (ADS-962)', () => {
     // The two admitted handshakes each validate their token; the rejected
     // third is short-circuited by the limiter before the auth round-trip.
     expect(validateMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('handshakeClientIp — trusted-proxy-aware keying (ADS-1021)', () => {
+  const ADDR = '203.0.113.9';
+
+  it('ignores X-Forwarded-For entirely on an untrusted (bare-gateway) peer', () => {
+    // A directly-reachable gateway must not believe a client-supplied header —
+    // otherwise the client rotates buckets to defeat the limiter.
+    expect(handshakeClientIp({ 'x-forwarded-for': '1.1.1.1' }, ADDR, false)).toBe(ADDR);
+    expect(handshakeClientIp({ 'x-forwarded-for': '1.1.1.1, 2.2.2.2' }, ADDR, false)).toBe(ADDR);
+  });
+
+  it('falls back to the socket address when the header is absent', () => {
+    expect(handshakeClientIp({}, ADDR, false)).toBe(ADDR);
+    expect(handshakeClientIp({}, ADDR, true)).toBe(ADDR);
+  });
+
+  it('honours a single-entry X-Forwarded-For behind a trusted proxy', () => {
+    expect(handshakeClientIp({ 'x-forwarded-for': '198.51.100.7' }, ADDR, true)).toBe(
+      '198.51.100.7'
+    );
+  });
+
+  it('takes the rightmost entry of a multi-entry X-Forwarded-For behind a trusted proxy', () => {
+    // nginx appends the real peer as the last hop (ADS-915).
+    expect(handshakeClientIp({ 'x-forwarded-for': '9.9.9.9, 198.51.100.7' }, ADDR, true)).toBe(
+      '198.51.100.7'
+    );
+  });
+});
+
+describe('handshake rate limiting — XFF spoofing on an untrusted peer (ADS-1021)', () => {
+  it('trips the limiter and increments the reject counter despite a rotating spoofed XFF', async () => {
+    const rejectCounter = getMetricsRegistry().getSingleMetric(
+      'gateway_ws_handshake_ratelimit_rejects_total'
+    );
+    const readRejects = async (): Promise<number> => {
+      const snapshot = await rejectCounter?.get();
+      return snapshot?.values[0]?.value ?? 0;
+    };
+    const before = await readRejects();
+
+    // Untrusted peer (devConfig trustProxy:false); all three share the loopback
+    // socket address, so distinct spoofed XFF values must NOT split the bucket.
+    const { url } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(vi.fn().mockResolvedValue(VALID_RES)),
+      handshakeRateLimit: { max: 2, windowMs: 60_000 },
+    });
+
+    const spoof = (v: string): ClientSocket => {
+      const client = ioClient(url, {
+        path: '/socket.io',
+        transports: ['websocket'],
+        reconnection: false,
+        auth: { token: 'good.jwt' },
+        extraHeaders: { 'X-Forwarded-For': v },
+      });
+      clients.push(client);
+      return client;
+    };
+
+    expect(await awaitConnectOutcome(spoof('1.1.1.1'))).toBe(true);
+    expect(await awaitConnectOutcome(spoof('2.2.2.2'))).toBe(true);
+    expect(await awaitConnectOutcome(spoof('3.3.3.3'))).toBe(false);
+
+    expect(await readRejects()).toBe(before + 1);
   });
 });
