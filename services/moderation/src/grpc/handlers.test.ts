@@ -184,6 +184,41 @@ describe('fileReport', () => {
       payload: { reportId: 'persisted-rpt' },
     });
   });
+
+  // ADS-1019 — per-reporter dedup for user reports; SYSTEM path unchanged.
+  it('dedups a user report per-reporter (one OPEN report per reporter+entity)', async () => {
+    const { deps, query } = makeDeps([{ rows: [reportRow()] }]);
+    await fileReport(deps, makePrincipal({ userId: 'usr-1' }), VALID_FILE_REQ);
+    const sql = String(query.mock.calls[0][0]);
+    expect(sql).toMatch(/ON CONFLICT \(reporter_id, reported_entity_type, reported_entity_id\)/);
+    // Scoped to open statuses so a reporter may re-file once resolved/dismissed.
+    expect(sql).toMatch(/status IN \('pending', 'under_review', 'escalated'\)/);
+  });
+
+  it('a repeat user report against the same entity collapses to a no-op (no duplicate)', async () => {
+    // ON CONFLICT DO UPDATE returns the existing row with was_inserted=false.
+    const { deps } = makeDeps([
+      { rows: [reportRow({ report_id: 'first-rpt', was_inserted: false })] },
+    ]);
+    const res = await fileReport(deps, makePrincipal({ userId: 'usr-1' }), VALID_FILE_REQ);
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish).not.toHaveBeenCalled();
+    expect(res.report.reportId).toBe('first-rpt');
+  });
+
+  it('SYSTEM auto-reports keep the entity-scoped arbiter (no regression)', async () => {
+    const { deps, query } = makeDeps([{ rows: [reportRow()] }]);
+    await fileReport(
+      deps,
+      makePrincipal({ userId: '00000000-0000-0000-0000-000000000000' }),
+      VALID_FILE_REQ
+    );
+    const sql = String(query.mock.calls[0][0]);
+    expect(sql).toMatch(/ON CONFLICT \(reported_entity_type, reported_entity_id\)/);
+    expect(sql).toMatch(/WHERE reporter_id = '00000000-0000-0000-0000-000000000000'/);
+    // Not the per-reporter arbiter.
+    expect(sql).not.toMatch(/ON CONFLICT \(reporter_id,/);
+  });
 });
 
 describe('getReport', () => {

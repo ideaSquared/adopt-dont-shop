@@ -66,6 +66,18 @@ export type ModerationRoutesOptions = {
 const RL_WRITE = { max: 30, timeWindow: '1 minute' } as const;
 const RL_READ = { max: 120, timeWindow: '1 minute' } as const;
 
+// Report filing is open to any authenticated user, so it is rate-limited PER
+// PRINCIPAL (ADS-1019) — one account can't flood the moderator queue across
+// many entities even from rotating IPs. Falls back to the peer IP for the rare
+// unauthenticated path. Bounds the cross-entity volume the per-reporter dedup
+// (one open report per entity) doesn't cover on its own.
+export const reportFileRateLimitKey = (req: FastifyRequest): string => headerUserId(req) ?? req.ip;
+const RL_REPORT_FILE = {
+  max: 30,
+  timeWindow: '1 minute',
+  keyGenerator: reportFileRateLimitKey,
+} as const;
+
 export const registerModerationRoutes = async (
   app: FastifyInstance,
   opts: ModerationRoutesOptions
@@ -79,7 +91,7 @@ export const registerModerationRoutes = async (
   app.post(
     '/api/v1/moderation/reports',
     {
-      config: { rateLimit: RL_WRITE },
+      config: { rateLimit: RL_REPORT_FILE },
       schema: {
         tags: ['moderation'],
         summary: 'File a moderation report',
