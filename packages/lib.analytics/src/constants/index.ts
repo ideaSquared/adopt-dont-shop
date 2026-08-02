@@ -3,3 +3,4 @@
  */
 
 export * from './endpoints';
+export * from './sensitive-params';

@@ -160,6 +160,42 @@ describe('AnalyticsService', () => {
       );
     });
 
+    it('strips a single-use token from the captured page-view URL (ADS-1012)', async () => {
+      mockApiService.post.mockResolvedValue({ success: true });
+
+      await service.trackPageView({
+        url: 'https://example.com/reset-password?token=SECRET&page=2',
+        title: 'Reset password',
+      });
+
+      expect(mockApiService.post).toHaveBeenCalledWith(
+        '/api/v1/analytics/pageviews',
+        // token gone, the non-sensitive page param preserved.
+        expect.objectContaining({ url: 'https://example.com/reset-password?page=2' })
+      );
+    });
+
+    it('strips the token on a pushState-driven capture, not only initial mount (ADS-1012)', async () => {
+      const autoService = new AnalyticsService({ autoTrackPageViews: true });
+      autoService.setConsent({ analytics: true });
+      const post = autoService['apiService'].post as ReturnType<typeof vi.fn>;
+      post.mockResolvedValue({ success: true });
+      post.mockClear(); // drop the initial-mount capture; assert only the navigation
+
+      // Same-origin SPA navigation to a token-bearing route; the wrapped
+      // pushState the service installed reads window.location.href on capture.
+      window.history.pushState({}, '', '/verify-email?token=SECRET&ref=abc');
+      vi.advanceTimersByTime(1);
+      await Promise.resolve();
+
+      const capturedUrl = new URL(post.mock.calls[0][1].url);
+      expect(capturedUrl.pathname).toBe('/verify-email');
+      expect(capturedUrl.searchParams.has('token')).toBe(false);
+      expect(capturedUrl.searchParams.get('ref')).toBe('abc');
+
+      autoService.destroy();
+    });
+
     it('should track user journeys', async () => {
       mockApiService.post.mockResolvedValue({ success: true });
 

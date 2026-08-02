@@ -1,4 +1,5 @@
 import { ApiService } from '@adopt-dont-shop/lib.api';
+import { stripSensitiveParams } from '../constants/sensitive-params';
 import {
   AnalyticsServiceConfig,
   UserEngagementEvent,
@@ -285,10 +286,16 @@ export class AnalyticsService {
       return;
     }
 
+    // Strip single-use credentials from the URL before it leaves the browser
+    // (ADS-1012). This is the single choke point every capture path funnels
+    // through — initial mount, pushState/replaceState, popstate, and any direct
+    // caller — so a reset/verify/invite token in the query string never reaches
+    // the analytics datastore, regardless of which route triggered the view.
     const fullPageView: PageViewEvent = {
       sessionId: this.sessionId,
       timestamp: new Date(),
       ...pageView,
+      url: stripSensitiveParams(pageView.url),
     };
 
     try {
