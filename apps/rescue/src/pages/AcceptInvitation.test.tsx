@@ -12,14 +12,34 @@ vi.mock('../services/libraryServices', () => ({
 }));
 
 let searchParamsValue = new URLSearchParams('?token=token-123');
+const setSearchParamsMock = vi.fn();
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
   return {
     ...actual,
     useNavigate: () => vi.fn(),
-    useSearchParams: () => [searchParamsValue, vi.fn()] as const,
+    useSearchParams: () => [searchParamsValue, setSearchParamsMock] as const,
   };
+});
+
+describe('AcceptInvitation token hygiene [ADS-1012]', () => {
+  beforeEach(() => {
+    getInvitationDetailsMock.mockReset();
+    setSearchParamsMock.mockReset();
+    searchParamsValue = new URLSearchParams('?token=token-123');
+  });
+
+  it('strips the invitation token from the address bar on mount', () => {
+    getInvitationDetailsMock.mockResolvedValue({ email: 'invitee@example.com' });
+
+    renderWithProviders(<AcceptInvitation />);
+
+    expect(setSearchParamsMock).toHaveBeenCalledTimes(1);
+    const [nextParams, options] = setSearchParamsMock.mock.calls[0];
+    expect((nextParams as URLSearchParams).has('token')).toBe(false);
+    expect(options).toEqual({ replace: true });
+  });
 });
 
 describe('AcceptInvitation autocomplete attributes', () => {

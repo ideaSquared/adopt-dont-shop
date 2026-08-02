@@ -10,13 +10,14 @@ vi.mock('@/services', () => ({
 
 let searchParamsValue = new URLSearchParams('?token=token-123');
 const navigateMock = vi.fn();
+const setSearchParamsMock = vi.fn();
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
   return {
     ...actual,
     useNavigate: () => navigateMock,
-    useSearchParams: () => [searchParamsValue, vi.fn()] as const,
+    useSearchParams: () => [searchParamsValue, setSearchParamsMock] as const,
   };
 });
 
@@ -35,6 +36,29 @@ describe('ResetPasswordPage autocomplete attributes', () => {
     passwordInputs.forEach(input => {
       expect(input).toHaveAttribute('autocomplete', 'new-password');
     });
+  });
+});
+
+describe('ResetPasswordPage token hygiene [ADS-1012]', () => {
+  beforeEach(() => {
+    navigateMock.mockReset();
+    setSearchParamsMock.mockReset();
+    searchParamsValue = new URLSearchParams('?token=token-123');
+  });
+
+  it('strips the reset token from the address bar on mount', () => {
+    render(<ResetPasswordPage />);
+
+    expect(setSearchParamsMock).toHaveBeenCalledTimes(1);
+    const [nextParams, options] = setSearchParamsMock.mock.calls[0];
+    expect((nextParams as URLSearchParams).has('token')).toBe(false);
+    expect(options).toEqual({ replace: true });
+  });
+
+  it('does not rewrite the URL when there is no token to strip', () => {
+    searchParamsValue = new URLSearchParams('');
+    render(<ResetPasswordPage />);
+    expect(setSearchParamsMock).not.toHaveBeenCalled();
   });
 });
 

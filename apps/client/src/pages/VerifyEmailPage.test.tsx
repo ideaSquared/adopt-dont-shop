@@ -14,14 +14,35 @@ vi.mock('@/services', () => ({
 }));
 
 let searchParamsValue = new URLSearchParams('?token=token-123');
+const setSearchParamsMock = vi.fn();
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
   return {
     ...actual,
     useNavigate: () => navigateMock,
-    useSearchParams: () => [searchParamsValue, vi.fn()] as const,
+    useSearchParams: () => [searchParamsValue, setSearchParamsMock] as const,
   };
+});
+
+describe('VerifyEmailPage token hygiene [ADS-1012]', () => {
+  beforeEach(() => {
+    verifyEmailMock.mockReset();
+    navigateMock.mockReset();
+    setSearchParamsMock.mockReset();
+    searchParamsValue = new URLSearchParams('?token=token-123');
+  });
+
+  it('strips the verification token from the address bar on mount', () => {
+    verifyEmailMock.mockResolvedValueOnce(undefined);
+
+    render(<VerifyEmailPage />);
+
+    expect(setSearchParamsMock).toHaveBeenCalledTimes(1);
+    const [nextParams, options] = setSearchParamsMock.mock.calls[0];
+    expect((nextParams as URLSearchParams).has('token')).toBe(false);
+    expect(options).toEqual({ replace: true });
+  });
 });
 
 describe('VerifyEmailPage [ADS-375]', () => {

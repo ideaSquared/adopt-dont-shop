@@ -27,7 +27,7 @@ const resetPasswordSchema = z
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export const ResetPasswordPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -41,7 +41,20 @@ export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const { logEvent } = useStatsig();
 
-  const token = searchParams.get('token');
+  // Capture the single-use reset token ONCE, then strip it from the address
+  // bar (ADS-1012) so it doesn't linger in browser history or ride out on
+  // Referer headers for the rest of the session. Held in state so the URL
+  // rewrite below doesn't pull it out from under the submit handler. (The
+  // analytics layer independently drops it from any transmitted page-view URL.)
+  const [token] = useState(() => searchParams.get('token'));
+
+  useEffect(() => {
+    if (searchParams.has('token')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('token');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const {
     register,

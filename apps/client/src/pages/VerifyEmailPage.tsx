@@ -7,9 +7,22 @@ import * as styles from './VerifyEmailPage.css';
 type VerificationStatus = 'verifying' | 'success' | 'error' | 'expired';
 
 export const VerifyEmailPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token');
+  // Capture the single-use token ONCE, then strip it from the address bar
+  // (ADS-1012) — held in state so the URL rewrite doesn't pull it out from
+  // under the verify effect. Previously the strip lived inside the async
+  // verify call, so it ran after the token had already sat in the URL (and
+  // been observable) through render.
+  const [token] = useState(() => searchParams.get('token'));
+
+  useEffect(() => {
+    if (searchParams.has('token')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('token');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const [status, setStatus] = useState<VerificationStatus>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
@@ -41,9 +54,8 @@ export const VerifyEmailPage: React.FC = () => {
 
     const verifyEmail = async () => {
       try {
-        // Strip the token from browser history before the response arrives
-        // so it doesn't linger in address bar, history, or referer headers.
-        window.history.replaceState(null, '', window.location.pathname);
+        // Token is stripped from the address bar by the dedicated effect above
+        // (ADS-1012); no need to touch history here.
         await authService.verifyEmail(token);
         if (cancelled) {
           return;
