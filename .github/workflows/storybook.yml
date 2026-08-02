@@ -66,8 +66,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     # ADS-950: serialise Storybook deploys so they don't race with each other
     # (concurrent pushes to the same gh-pages root would produce conflicts).
-    # PR preview deploys (preview.yml) write to pr-previews/<PR>/ — a disjoint
-    # path — so they don't share this concurrency group.
+    # PR previews (preview.yml) were removed in ADS-1015/1016; the pr-previews/
+    # preservation below is retained only to avoid clobbering any leftover
+    # preview directories still on gh-pages until they're cleaned up separately.
     concurrency:
       group: gh-pages-storybook
       cancel-in-progress: false
@@ -98,7 +99,8 @@ jobs:
             && git checkout gh-pages \
             || { git checkout --orphan gh-pages; git rm -rf . 2>/dev/null || true; }
 
-          # Preserve the pr-previews/ directory written by preview.yml.
+          # Preserve any leftover pr-previews/ directory (PR previews were
+          # removed in ADS-1015/1016; this guards stale dirs pending cleanup).
           if [ -d pr-previews ]; then
             cp -r pr-previews /tmp/pr-previews-backup
           fi
