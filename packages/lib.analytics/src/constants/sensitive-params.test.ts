@@ -27,7 +27,15 @@ describe('stripSensitiveParams (ADS-1012)', () => {
     expect(stripSensitiveParams(url)).toBe(url);
   });
 
-  it('returns a non-URL string unchanged rather than throwing', () => {
-    expect(stripSensitiveParams('/relative/path?token=SECRET')).toBe('/relative/path?token=SECRET');
+  it('strips a token from a RELATIVE path and returns relative form', () => {
+    // trackPageView receives route paths from AnalyticsContext callers, so the
+    // strip must not fail open on a relative input (Copilot review, #1265).
+    expect(stripSensitiveParams('/verify-email?token=SECRET&ref=abc')).toBe(
+      '/verify-email?ref=abc'
+    );
+  });
+
+  it('leaves a relative path with no sensitive params unchanged', () => {
+    expect(stripSensitiveParams('/pets/123?page=2')).toBe('/pets/123?page=2');
   });
 });

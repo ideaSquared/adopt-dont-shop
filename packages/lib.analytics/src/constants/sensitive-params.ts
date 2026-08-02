@@ -17,19 +17,34 @@ export const SENSITIVE_QUERY_PARAMS = [
   'secret',
 ] as const;
 
+// Base used only to parse RELATIVE inputs (e.g. '/verify-email?token=…', which
+// trackPageView receives from AnalyticsContext callers). Never emitted — a
+// relative input yields a relative result so the origin is preserved as the
+// caller intended.
+const RELATIVE_PARSE_BASE = 'http://relative.invalid';
+
 /**
  * Return `rawUrl` with every {@link SENSITIVE_QUERY_PARAMS} entry removed from
- * its query string. Non-sensitive params (pagination, UTM, etc.) are preserved
- * in place. Input that isn't a parseable absolute URL is returned unchanged, as
- * is a URL that carried none of the sensitive params (so nothing is normalised
- * needlessly).
+ * its query string. Handles BOTH absolute URLs (window.location.href) and
+ * relative paths (e.g. '/verify-email?token=…') — the latter are common because
+ * trackPageView accepts arbitrary strings and app code passes route paths.
+ * Non-sensitive params (pagination, UTM, etc.) are preserved in place, and a
+ * relative input is returned in relative form. A URL carrying none of the
+ * sensitive params, or a string that parses as neither, is returned unchanged
+ * so nothing is normalised needlessly.
  */
 export const stripSensitiveParams = (rawUrl: string): string => {
   let url: URL;
+  let isAbsolute = true;
   try {
     url = new URL(rawUrl);
   } catch {
-    return rawUrl;
+    try {
+      url = new URL(rawUrl, RELATIVE_PARSE_BASE);
+      isAbsolute = false;
+    } catch {
+      return rawUrl;
+    }
   }
 
   let stripped = false;
@@ -40,5 +55,8 @@ export const stripSensitiveParams = (rawUrl: string): string => {
     }
   }
 
-  return stripped ? url.toString() : rawUrl;
+  if (!stripped) {
+    return rawUrl;
+  }
+  return isAbsolute ? url.toString() : `${url.pathname}${url.search}${url.hash}`;
 };
