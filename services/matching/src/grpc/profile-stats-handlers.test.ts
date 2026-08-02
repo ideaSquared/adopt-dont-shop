@@ -204,6 +204,13 @@ describe('getUserSwipeStats', () => {
 // --- GetSessionStats -------------------------------------------------
 
 describe('getSessionStats', () => {
+  it('denies a principal without the swipe (pets.read) permission (ADS-1020)', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      getSessionStats(deps, makePrincipal({ permissions: [] }), { sessionId: 'sess-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
   it('rejects a missing session_id', async () => {
     const { deps } = makeDeps([]);
     await expect(getSessionStats(deps, makePrincipal(), { sessionId: '' })).rejects.toMatchObject({

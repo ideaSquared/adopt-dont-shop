@@ -49,7 +49,7 @@ import {
   type SwipeSessionRow,
 } from './mapper.js';
 
-function ensureSwipePermission(principal: Principal): void {
+export function ensureSwipePermission(principal: Principal): void {
   if (!requirePermission(principal, PETS_VIEW)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_VIEW}' required`);
   }
@@ -187,12 +187,13 @@ export async function endSession(
     const row = existing.rows[0];
 
     // Ownership: only the session owner can close it. super_admin
-    // bypasses (CAD pattern) — same guard shape as recordSwipe.
-    if (
-      row.user_id !== null &&
-      row.user_id !== principal.userId &&
-      !principal.roles.includes('super_admin')
-    ) {
+    // bypasses (CAD pattern) — same guard shape as recordSwipe. A
+    // NULL-owner (anonymous) session has no authenticated owner, so an
+    // authenticated caller is never its owner — deny unless super_admin
+    // (ADS-1020). The old guard fell OPEN on user_id === null, letting any
+    // caller holding a session id close someone else's anonymous session.
+    const isOwner = row.user_id !== null && row.user_id === principal.userId;
+    if (!isOwner && !principal.roles.includes('super_admin')) {
       throw new HandlerError('PERMISSION_DENIED', 'not the session owner');
     }
 
@@ -276,12 +277,13 @@ export async function recordSwipe(
     const sessionRow = session.rows[0];
 
     // Ownership: only the session owner can record a swipe on it.
-    // super_admin bypasses (CAD pattern).
-    if (
-      sessionRow.user_id !== null &&
-      sessionRow.user_id !== principal.userId &&
-      !principal.roles.includes('super_admin')
-    ) {
+    // super_admin bypasses (CAD pattern). A NULL-owner (anonymous) session
+    // has no authenticated owner, so an authenticated caller is never its
+    // owner — deny unless super_admin (ADS-1020). The old guard fell OPEN on
+    // user_id === null, letting a personal swipe row hang off a session the
+    // caller doesn't own (see gdpr/erase.ts) and corrupt the matching signal.
+    const isOwner = sessionRow.user_id !== null && sessionRow.user_id === principal.userId;
+    if (!isOwner && !principal.roles.includes('super_admin')) {
       throw new HandlerError('PERMISSION_DENIED', 'not the session owner');
     }
 

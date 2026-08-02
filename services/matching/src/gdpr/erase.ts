@@ -12,11 +12,12 @@ export async function eraseMatching(
 ): Promise<number> {
   let total = 0;
   // Order matters: swipe_actions FK swipe_sessions, so drop actions first.
-  // Match on EITHER the action's own user_id OR its parent session's
-  // owner: recordSwipe lets an authenticated user swipe within a
-  // null-owner (anonymous) session, so a personal swipe row can hang off
-  // a session the user doesn't own. Deleting only via session ownership
-  // would orphan that personal data and breach erasure completeness.
+  // Match on EITHER the action's own user_id OR its parent session's owner.
+  // recordSwipe now denies an authenticated user swiping within a null-owner
+  // session (ADS-1020), but pre-existing / monolith-migrated rows may still
+  // have a personal swipe hanging off a session the user doesn't own, so the
+  // OR clause stays — deleting only via session ownership would orphan that
+  // personal data and breach erasure completeness.
   for (const sql of [
     `DELETE FROM matching.swipe_actions
        USING matching.swipe_sessions s
