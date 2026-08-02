@@ -254,6 +254,18 @@ export async function listReports(
     params.push(categoryToDb(req.category));
   }
   if (req.assignedModerator !== undefined) {
+    // assigned_moderator is redacted from the reporter-safe projection
+    // (reportRowToProto forReporter=true), so it must not be filterable by a
+    // caller who can't see it — otherwise the result set is an oracle that
+    // recovers the redacted value (ADS-1018). '' → IS NULL is the same leak
+    // (assigned-vs-unassigned). Reject rather than silently ignore: a caller
+    // filtering on a field they can't see is confused or probing.
+    if (!canViewInternal) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        `'${MODERATION_REPORTS_VIEW}' required to filter on assigned_moderator`
+      );
+    }
     if (req.assignedModerator === '') {
       where.push(`assigned_moderator IS NULL`);
     } else {

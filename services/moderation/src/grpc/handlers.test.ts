@@ -408,6 +408,31 @@ describe('listReports', () => {
     expect(sql).toContain('assigned_moderator IS NULL');
   });
 
+  // ADS-1018 — the assigned_moderator filter is redacted from the reporter
+  // projection, so a reporter-scoped caller must not be able to filter on it
+  // (the result set would recover the redacted value).
+  it('denies a reporter-scoped caller filtering on assignedModerator', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await expect(
+      listReports(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+        assignedModerator: 'mod-1',
+        limit: 10,
+      } as ListReportsRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('denies a reporter-scoped caller filtering on assignedModerator="" (IS NULL oracle)', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await expect(
+      listReports(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+        assignedModerator: '',
+        limit: 10,
+      } as ListReportsRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it('emits nextCursor when more rows than limit', async () => {
     const eleven = Array.from({ length: 11 }, (_, i) =>
       reportRow({ report_id: `r-${i}`, created_at: new Date(2026, 5, 1, 12, 0, 0, i) })
