@@ -4,6 +4,8 @@
 
 import { randomUUID } from 'node:crypto';
 
+import type { PoolClient } from 'pg';
+
 import type { DbConn } from '../email/queue.js';
 
 import type { DevicePlatform, DeviceTokenStatus } from './types.js';
@@ -44,10 +46,16 @@ export type RegisterDeviceTokenInput = {
 //
 // Returns the row, an `alreadyRegistered` flag (true → the same user's row was
 // refreshed in place), and `replacedUserId` when a different user's mapping was
-// taken over (so the caller can audit the transfer). Run inside a transaction:
-// the takeover is a soft-delete followed by an insert.
+// taken over (so the caller can audit the transfer).
+//
+// Takes a PoolClient, not a Pool: the pg_advisory_xact_lock below only holds for
+// the duration of a transaction, and on a bare Pool each query runs on its own
+// implicit-transaction connection — the lock would release immediately and the
+// lookup → soft-delete → insert sequence could still race into the partial
+// unique index. Requiring a PoolClient makes "call inside a transaction"
+// type-enforced (registerDeviceTokenHandler passes withTransaction's client).
 export const registerDeviceToken = async (
-  conn: DbConn,
+  conn: PoolClient,
   input: RegisterDeviceTokenInput
 ): Promise<{ row: DeviceTokenRow; alreadyRegistered: boolean; replacedUserId?: string }> => {
   // Serialise concurrent registrations of the SAME token so the
