@@ -4,11 +4,11 @@ The monorepo ships **24 workspace libraries** under `@adopt-dont-shop/lib.*`. Ea
 
 ## Standards
 
-- ESM by default; `lib.api`, `lib.permissions`, `lib.types`, and `lib.validation` additionally emit a CJS bundle via a second `tsc -p tsconfig.cjs.json` pass for backend consumers
+- ESM by default; `lib.permissions` and `lib.types` additionally emit a CJS bundle via a second `tsc -p tsconfig.cjs.json` pass for backend consumers, exposed through the `require` condition in their `exports` map
 - TypeScript strict mode
 - Built with `tsc` (`lib.components` uses Vite to bundle styles/assets), orchestrated by Turborepo (`dependsOn: ["^build"]`)
 - Tested with Vitest — every library ships a `vitest.config.ts` and an `pnpm test` script that runs `vitest run`
-- Workspace-linked: depend on each other with `"*"` and rely on `pnpm install` at the repo root
+- Workspace-linked: depend on each other with the `"workspace:*"` protocol and rely on `pnpm install` at the repo root
 
 ## Index
 
