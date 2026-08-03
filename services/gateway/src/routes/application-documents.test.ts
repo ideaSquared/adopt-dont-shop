@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -225,6 +225,25 @@ describe('application document routes', () => {
     });
     expect(res.statusCode).toBe(400);
     expect(mocks.addDocument).not.toHaveBeenCalled();
+  });
+
+  it('POST rejects an anonymous request with 401 and never writes bytes (ADS-1035)', async () => {
+    const boundary = 'b-anon';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('%PDF-1.4 hello'),
+      'aaa.pdf',
+      'id_verification'
+    );
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(401);
+    expect(mocks.addDocument).not.toHaveBeenCalled();
+    expect(existsSync(join(tmp, 'documents'))).toBe(false);
   });
 
   it('GET /:id/documents returns { data: view[] } with a freshly-signed URL per document', async () => {
