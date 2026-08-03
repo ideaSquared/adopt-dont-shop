@@ -240,9 +240,11 @@ export const registerUploadsRoutes = async (
 // --- Helpers ---------------------------------------------------------
 
 // x-user-id is stamped by the authenticate middleware after a validated
-// ValidateToken call (never client-supplied — see middleware/authenticate.ts's
-// SPOOFABLE_HEADERS strip). Its absence means the request carried no valid
-// principal, so the route must reject before touching storage (ADS-1035).
+// ValidateToken call, which strips any client-supplied value first (see
+// middleware/authenticate.ts's SPOOFABLE_HEADERS strip) — provided that
+// middleware runs in front of this route. Its absence means the request
+// carried no valid principal, so the route must reject before touching
+// storage (ADS-1035).
 function principalUserId(req: FastifyRequest): string | null {
   const raw = (req.headers as Record<string, string | string[] | undefined>)['x-user-id'];
   return typeof raw === 'string' && raw.length > 0 ? raw : null;
