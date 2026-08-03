@@ -76,7 +76,7 @@ fail CI if it reappears.
 
 ## Before opening a PR
 
-CI runs **ten** checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
+CI runs **twelve** checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
 
 The PR description includes a short "Before requesting review" checklist (see [`.github/pull_request_template.md`](./.github/pull_request_template.md)) that mirrors the most-failed CI checks — tick it off before requesting review.
 
@@ -91,7 +91,7 @@ pnpm ci:local         # full preflight (~3-5min): format + lint + type-check + t
 
 `ci:local` covers everything in the fast and slow tiers below except E2E and the backend coverage thresholds — run those separately when relevant.
 
-**Coverage parity.** Root `pnpm test` (and `ci:local`) run plain `turbo run test` — they skip the coverage thresholds. CI's `test-frontend`, `test-libs`, and `test-services` jobs run `test:coverage` and enforce the thresholds declared in `vitest.shared.config.ts`, so a PR that's green on `pnpm test` locally can still fail CI on coverage. To match the CI gate locally, run coverage the same way CI does:
+**Coverage parity.** Root `pnpm test` (and `ci:local`) run plain `turbo run test` — they skip the coverage thresholds. CI's `test-frontend`, `test-libs`, `test-packages`, and `test-services` jobs run `test:coverage` and enforce the thresholds declared in `vitest.shared.config.ts`, so a PR that's green on `pnpm test` locally can still fail CI on coverage. To match the CI gate locally, run coverage the same way CI does:
 
 ```bash
 pnpm exec turbo run test:coverage                 # every package, with thresholds
@@ -148,7 +148,7 @@ pnpm audit --audit-level high
 pnpm test:e2e
 ```
 
-> Service coverage thresholds are enforced inside each `services/*` package's `vitest.config.ts`. The `test-services` CI job runs lint, test, and type-check for every `service.*` package.
+> The `test-services` CI job runs lint, `test:coverage`, and type-check for every `service.*` package. Coverage is collected for all of them, but only `services/chat` and `services/cms` currently declare real thresholds in their own `vitest.config.ts`; the rest inherit the shared baseline from `vitest.shared.config.ts`, which is 0% while `coverage-thresholds.json` is absent. Adding a threshold block to a service's `vitest.config.ts` is what makes its coverage gate.
 
 ### Full CI matrix (for reference)
 
@@ -159,9 +159,10 @@ The required checks that gate merge (all feed into the `ci-required` aggregator 
 3. **Frontend Tests (app.client / app.admin / app.rescue)** (`ci.yml` → `test-frontend` matrix, ×3) — lint + test + type-check + build per app.
 4. **Library Tests** (`ci.yml` → `test-libs`) — lint, test and type-check across every `lib.*`.
 5. **Service Tests** (`ci.yml` → `test-services`) — lint + test + type-check across every `services/*` package. Added in ADS-822 so zero-test services no longer merge green.
-6. **Contract Tests (Pact)** (`ci.yml` → `test-contracts`) — two-phase consumer-driven Pact verification (consumers write pact files, providers verify them). Gated on the `backend` path filter — frontend-only PRs skip it (treated as success). See [ADR 0005](./docs/adr/0005-pact-contract-tests.md) (ADS-816).
-7. **Dev-Auth Guard** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
-8. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
+6. **Package Tests** (`ci.yml` → `test-packages`) — lint + test + type-check across the service-only shared packages under `packages/*` that are not `lib.*` (`proto`, `events`, `authz`, `db`, `storage`, `observability`, …). Gated on the `libs` or `backend` path filter.
+7. **Contract Tests (Pact)** (`ci.yml` → `test-contracts`) — two-phase consumer-driven Pact verification (consumers write pact files, providers verify them). Gated on the `backend` path filter — frontend-only PRs skip it (treated as success). See [ADR 0005](./docs/adr/0005-pact-contract-tests.md) (ADS-816).
+8. **Dev-Auth Guard** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
+9. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
 
 Additional checks that run but are not part of `ci-required`:
 
@@ -171,7 +172,7 @@ Additional checks that run but are not part of `ci-required`:
 
 The Quality workflow's `pnpm outdated -r` step is informational (`continue-on-error: true`) and does not block merge.
 
-If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the eight `ci-required` checks above will not be merged.
+If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the nine `ci-required` checks above will not be merged.
 
 ## Code style
 
@@ -212,7 +213,7 @@ This is a forward-looking rule (ADS-737); we are not bulk-moving existing tests.
 
 ### Coverage thresholds
 
-Since ADS-708, CI runs `test:coverage` (not plain `test`) across `lib.*` and `app.*` and enforces the thresholds declared in `vitest.shared.config.ts`. The baseline is **0%** so existing PRs are not blocked — the infrastructure is in place so individual packages can ratchet upward incrementally (tracked in ADS-717). To raise the bar for a single package, override the inherited thresholds in that package's `vitest.config.ts`:
+Since ADS-708, CI runs `test:coverage` (not plain `test`) across `app.*`, `lib.*`, the non-`lib.*` `packages/*`, and `services/*`, and enforces the thresholds declared in `vitest.shared.config.ts`. The baseline is **0%** (the shared config falls back to zero while `coverage-thresholds.json` is absent from the repo root) so existing PRs are not blocked — the infrastructure is in place so individual packages can ratchet upward incrementally (tracked in ADS-717). To raise the bar for a single package, override the inherited thresholds in that package's `vitest.config.ts`:
 
 ```typescript
 import { mergeConfig } from 'vitest/config';
@@ -269,25 +270,6 @@ Use the issue templates in [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/
 
 - [Bug report](./.github/ISSUE_TEMPLATE/bug_report.yml)
 - [Feature request](./.github/ISSUE_TEMPLATE/feature_request.yml)
-
-## Reviewing changes
-
-### PR preview deployments (ADS-950)
-
-Every PR that touches `apps/**` or `packages/lib.*/**` automatically gets three preview URLs posted as a comment. Each app is built against the shared staging API and deployed to GitHub Pages under a PR-specific path:
-
-| App | Preview URL pattern |
-|-----|---------------------|
-| app.client | `https://ideasquared.github.io/adopt-dont-shop/pr-previews/<PR>/client/` |
-| app.admin  | `https://ideasquared.github.io/adopt-dont-shop/pr-previews/<PR>/admin/`  |
-| app.rescue | `https://ideasquared.github.io/adopt-dont-shop/pr-previews/<PR>/rescue/` |
-
-The preview comment is updated in place on every push. Previews are removed automatically when the PR closes. The workflow source is `.github/workflows/preview.yml`.
-
-**Notes for reviewers:**
-- Auth flows run against the staging backend — use staging credentials.
-- Feature flags default to OFF (no `VITE_STATSIG_CLIENT_KEY` is set for preview builds).
-- Service worker / PWA caching is not active in preview builds.
 
 ## Reviewing & code ownership
 
