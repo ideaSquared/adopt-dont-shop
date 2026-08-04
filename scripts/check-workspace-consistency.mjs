@@ -965,6 +965,10 @@ function main() {
     try {
       pkg = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8'));
     } catch {
+      // Every entry here comes from a real services/* directory (listServices())
+      // or the known e2e workspace, so a missing/unreadable package.json is
+      // itself drift worth failing on, not something to skip past.
+      failures.push(`[${dir}] package.json missing or unreadable (ADS-1003)`);
       continue;
     }
     failures.push(...checkLintFormatScripts(dir, pkg.scripts || {}));

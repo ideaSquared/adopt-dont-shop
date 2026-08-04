@@ -260,6 +260,7 @@ describe('checkLintFormatScripts (ADS-1003)', () => {
 
   it('flags only the scripts that are actually missing', () => {
     const failures = checkLintFormatScripts('services/auth', { lint: 'eslint src' });
+    expect(failures).toHaveLength(1);
     expect(failures[0]).toContain('missing scripts: format, format:check');
   });
 });
