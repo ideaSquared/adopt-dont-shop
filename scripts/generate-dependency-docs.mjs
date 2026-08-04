@@ -119,6 +119,7 @@ export function readmeConsumersSection(scopedName, consumers) {
   const fileName = consumerDocFileName(scopedName);
   return [
     README_SECTION_START,
+    '',
     '## Consumers',
     '',
     `${consumers.length} workspace package(s) depend on this library. See [${fileName}](../../docs/libraries/${fileName}) ` +
@@ -128,7 +129,7 @@ export function readmeConsumersSection(scopedName, consumers) {
 }
 
 export function docsIndexLibraryListSection(map) {
-  const lines = [DOCS_INDEX_SECTION_START, '### Library consumer lists', ''];
+  const lines = [DOCS_INDEX_SECTION_START, '', '### Library consumer lists', ''];
   const sorted = [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   for (const [scopedName, consumers] of sorted) {
     const fileName = consumerDocFileName(scopedName);

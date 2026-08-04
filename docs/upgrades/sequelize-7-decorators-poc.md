@@ -79,7 +79,7 @@ The hard constraint in this task ("don't bump Sequelize") therefore
 makes the POC unachievable in its intended shape. The valuable output
 is the dependency finding above plus the prep work below.
 
-## What the POC *would* have looked like
+## What the POC _would_ have looked like
 
 Even though the migration can't land today, the team will want a concrete
 template when it does. The plan below is what I would execute the
@@ -123,8 +123,10 @@ interface BreedAttributes {
   updated_at?: Date;
 }
 
-interface BreedCreationAttributes
-  extends Optional<BreedAttributes, 'breed_id' | 'created_at' | 'updated_at'> {}
+interface BreedCreationAttributes extends Optional<
+  BreedAttributes,
+  'breed_id' | 'created_at' | 'updated_at'
+> {}
 
 export class Breed
   extends Model<BreedAttributes, BreedCreationAttributes>
@@ -171,12 +173,7 @@ Breed.init(
 **After** (target, against `@sequelize/core` ≥ alpha.10):
 
 ```typescript
-import {
-  Model,
-  InferAttributes,
-  InferCreationAttributes,
-  CreationOptional,
-} from '@sequelize/core';
+import { Model, InferAttributes, InferCreationAttributes, CreationOptional } from '@sequelize/core';
 import {
   Attribute,
   Default,
@@ -202,10 +199,7 @@ import { PetType } from './Pet';
 })
 @Index({ fields: ['species', 'name'], name: 'breeds_species_name_unique', unique: true })
 @Index({ fields: ['name'], name: 'breeds_name_idx' })
-export class Breed extends Model<
-  InferAttributes<Breed>,
-  InferCreationAttributes<Breed>
-> {
+export class Breed extends Model<InferAttributes<Breed>, InferCreationAttributes<Breed>> {
   @PrimaryKey
   @Attribute(getUuidType())
   @Default(() => generateUuidV7())
@@ -258,8 +252,8 @@ this POC is worth doing once before scheduling the rest of the work.
      class-level `@Hook` set.
    - Or keep `withAuditHooks` as a post-definition register: call
      `applyAuditHooks(Breed)` once at module bottom.
-   The second option is less invasive and preserves the existing
-   helper's logic verbatim. **Recommend it for the bulk PR.**
+     The second option is less invasive and preserves the existing
+     helper's logic verbatim. **Recommend it for the bulk PR.**
 
 2. **`getUuidType()` dialect switch**
    `getUuidType()` returns `DataTypes.UUID` on Postgres and
@@ -283,8 +277,8 @@ this POC is worth doing once before scheduling the rest of the work.
    The project sets `paranoid: true` as a global default via the
    `Sequelize` constructor options; individual models opt out (Breed
    does). Decorators inherit the global default the same way, so this
-   keeps working — but the test that asserts deleted_at exists on
-   models *should* run unchanged. Verify by running the existing
+   keeps working — but the test that asserts `deleted_at` exists on
+   models _should_ run unchanged. Verify by running the existing
    paranoid suite first.
 
 5. **Multi-tenant rescue scoping**
@@ -301,7 +295,7 @@ this POC is worth doing once before scheduling the rest of the work.
    association declarations wrapped in a `try / catch` that swallows
    errors when `NODE_ENV === 'test'` (re-registration on hot reload).
    When migrating each model, you have to:
-   - Move that model's *child-side* associations (`belongsTo`,
+   - Move that model's _child-side_ associations (`belongsTo`,
      `belongsToMany`) onto the class with `@BelongsTo` / `@BelongsToMany`.
    - **Leave the parent-side `hasMany` lines in `index.ts`** until the
      parent is migrated too — `@HasMany` on the parent class is the
@@ -334,12 +328,12 @@ this POC is worth doing once before scheduling the rest of the work.
 If the prerequisite Sequelize bump is done, then **based on the
 exercise of writing the Breed before/after side-by-side**:
 
-| Class of model | Count (rough) | Per-model effort | Why |
-| --- | --- | --- | --- |
-| Lookup tables (Breed, Permission, EmailTemplate skeletons, …) | ~10 | **15–30 min** | Few columns, no scopes, simple FKs. |
-| Standard entities (Address, Rating, Invitation, Notification, …) | ~30 | **30–60 min** | One or two associations + audit columns + validators. |
-| Tenant-scoped + paranoid + multi-association entities (Pet, Application, Chat, Message, Rescue, …) | ~20 | **1–2 hr** | Multiple scopes, polymorphic FKs, status triggers, RBAC interactions. |
-| Auth-path models (User, RefreshToken, RevokedToken, Role, RolePermission, UserRole, Permission, FieldPermission) | ~8 | **2–4 hr** | Critical-path test surface + RBAC `belongsToMany` plumbing + the User model has many hooks (afterCreate auto-seeds prefs rows). Last to migrate, paired with extra reviewer scrutiny. |
+| Class of model                                                                                                   | Count (rough) | Per-model effort | Why                                                                                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------------- | ------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lookup tables (Breed, Permission, EmailTemplate skeletons, …)                                                    | ~10           | **15–30 min**    | Few columns, no scopes, simple FKs.                                                                                                                                                   |
+| Standard entities (Address, Rating, Invitation, Notification, …)                                                 | ~30           | **30–60 min**    | One or two associations + audit columns + validators.                                                                                                                                 |
+| Tenant-scoped + paranoid + multi-association entities (Pet, Application, Chat, Message, Rescue, …)               | ~20           | **1–2 hr**       | Multiple scopes, polymorphic FKs, status triggers, RBAC interactions.                                                                                                                 |
+| Auth-path models (User, RefreshToken, RevokedToken, Role, RolePermission, UserRole, Permission, FieldPermission) | ~8            | **2–4 hr**       | Critical-path test surface + RBAC `belongsToMany` plumbing + the User model has many hooks (afterCreate auto-seeds prefs rows). Last to migrate, paired with extra reviewer scrutiny. |
 
 Plus fixed overhead:
 

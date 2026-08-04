@@ -183,6 +183,10 @@ Full guidelines are in [.claude/CLAUDE.md](./.claude/CLAUDE.md). Key rules:
 - Immutable data; pure functions; no nested if/else (use early returns)
 - Functional components only in React; no class components
 
+### Markdown formatting
+
+Markdown (`*.md`) is formatted by Prettier like everything else — `pnpm format` / `pnpm format:check` cover it, and `.vscode/settings.json` formats it on save. The one exception is `docs/tasks.md`, excluded in `.prettierignore` because `scripts/generate-task-index.mjs` regenerates it with unpadded Markdown tables that Prettier would re-pad, so the generator and Prettier would otherwise fight on every run. Other generated Markdown (`docs/libraries/*-consumers.md`, and the `## Consumers` / `### Library consumer lists` blocks `scripts/generate-dependency-docs.mjs` writes into `docs/README.md` and `packages/lib.*/README.md`) stays in Prettier's scope because that generator already emits Prettier-idempotent output. If you touch either generator, keep its Markdown idempotent under `prettier --write` (blank line before headings, no unpadded tables) rather than reaching for another `.prettierignore` entry.
+
 ### Editor configuration
 
 A repo-root `.editorconfig` enforces 2-space indent, LF line endings, UTF-8, final newline, and trimmed trailing whitespace — matching Prettier so format-only diffs don't show up in code review. VSCode picks this up out of the box (see `.vscode/extensions.json`). For other editors, install the EditorConfig plugin:
