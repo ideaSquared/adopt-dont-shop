@@ -135,6 +135,24 @@ instead of direct gateway access):
 # VITE_WS_BASE_URL=ws://api.localhost
 ```
 
+## Internal service gRPC URLs
+
+Every gRPC client defaults to the in-cluster Docker Compose service name
+(`service-<name>:<grpcPort>`) — override only when reaching a service on a
+different host/port (e.g. native dev without Docker):
+
+```env
+# service.pets — service.rescue's CreateFosterPlacement and
+# service.applications' StartDraft both resolve pet -> rescue ownership
+# via this before committing.
+PETS_GRPC_URL=service-pets:6003
+
+# service.applications — service.rescue's GetEventAnalytics calls
+# CountAdoptedAdopters here to compute registered-then-adopted
+# attribution (ADS-941).
+APPLICATIONS_GRPC_URL=service-applications:6005
+```
+
 ## Email
 
 `.env.example` sets `EMAIL_PROVIDER=console` (prints to stdout — no
