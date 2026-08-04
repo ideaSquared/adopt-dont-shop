@@ -5201,9 +5201,11 @@ export const ApplicationServiceService = {
    * rescue (ADS-1023). Deliberately narrow: the caller already knows
    * the adopter_ids (it resolved them itself); the response reveals
    * only the count, never which ids matched or which rescue/pet was
-   * involved. Caller MUST hold applications.read. adopter_ids is
-   * capped at 10,000 entries (ADS-1024) — rejected with
-   * INVALID_ARGUMENT above that.
+   * involved. Caller MUST hold ANALYTICS_VIEW (admin.reports) — an
+   * admin-only reporting permission, NOT applications.read, which
+   * every adopter is seeded (ADS-1006). adopter_ids is capped at
+   * 10,000 entries (ADS-1024) — rejected with INVALID_ARGUMENT above
+   * that.
    */
   countAdoptedAdopters: {
     path: "/adopt_dont_shop.applications.v1.ApplicationService/CountAdoptedAdopters" as const,
@@ -5442,9 +5444,11 @@ export interface ApplicationServiceServer extends UntypedServiceImplementation {
    * rescue (ADS-1023). Deliberately narrow: the caller already knows
    * the adopter_ids (it resolved them itself); the response reveals
    * only the count, never which ids matched or which rescue/pet was
-   * involved. Caller MUST hold applications.read. adopter_ids is
-   * capped at 10,000 entries (ADS-1024) — rejected with
-   * INVALID_ARGUMENT above that.
+   * involved. Caller MUST hold ANALYTICS_VIEW (admin.reports) — an
+   * admin-only reporting permission, NOT applications.read, which
+   * every adopter is seeded (ADS-1006). adopter_ids is capped at
+   * 10,000 entries (ADS-1024) — rejected with INVALID_ARGUMENT above
+   * that.
    */
   countAdoptedAdopters: handleUnaryCall<CountAdoptedAdoptersRequest, CountAdoptedAdoptersResponse>;
   /**
@@ -5774,9 +5778,11 @@ export interface ApplicationServiceClient extends Client {
    * rescue (ADS-1023). Deliberately narrow: the caller already knows
    * the adopter_ids (it resolved them itself); the response reveals
    * only the count, never which ids matched or which rescue/pet was
-   * involved. Caller MUST hold applications.read. adopter_ids is
-   * capped at 10,000 entries (ADS-1024) — rejected with
-   * INVALID_ARGUMENT above that.
+   * involved. Caller MUST hold ANALYTICS_VIEW (admin.reports) — an
+   * admin-only reporting permission, NOT applications.read, which
+   * every adopter is seeded (ADS-1006). adopter_ids is capped at
+   * 10,000 entries (ADS-1024) — rejected with INVALID_ARGUMENT above
+   * that.
    */
   countAdoptedAdopters(
     request: CountAdoptedAdoptersRequest,
