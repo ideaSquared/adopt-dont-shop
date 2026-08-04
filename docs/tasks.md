@@ -63,7 +63,9 @@ the repo root with `pnpm <script>`.
 | `pnpm check:docs-script-refs` | `node scripts/check-docs-script-references.mjs` |
 | `pnpm check:env-example` | `node scripts/check-env-example.mjs` |
 | `pnpm check:lib-tests` | `node scripts/check-lib-tests.mjs` |
+| `pnpm check:proto-fresh` | `pnpm --filter @adopt-dont-shop/proto check:fresh` |
 | `pnpm check:readmes` | `node scripts/check-readmes.mjs` |
+| `pnpm check:renovate` | `npx --package renovate -- renovate-config-validator renovate.json` |
 | `pnpm check:stories` | `node scripts/check-storybook-coverage.mjs` |
 | `pnpm check:workflow-paths` | `node scripts/check-workflow-paths.mjs` |
 | `pnpm check:workspaces` | `node scripts/check-workspace-consistency.mjs` |
@@ -103,7 +105,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:renovate && pnpm test:scripts` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks
