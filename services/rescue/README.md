@@ -14,10 +14,12 @@ transitions).
 See [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../../docs/infrastructure/MICROSERVICES-STANDARDS.md)
 for the shared service boundaries / ownership model. Cross-service gRPC: calls
 **service.pets** (`PETS_GRPC_URL`) in `CreateFosterPlacement` to validate pet
-ownership. Read over gRPC by **service.notifications** (`ListStaffMembers` /
-`Get`) for rescue fan-out. Depends on the shared backend packages
-`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
-proto, service-bootstrap}`.
+ownership, and **service.applications** (`APPLICATIONS_GRPC_URL`) in
+`GetEventAnalytics` → `CountAdoptedAdopters` to compute registered-then-adopted
+attribution (ADS-941). Read over gRPC by **service.notifications**
+(`ListStaffMembers` / `Get`) for rescue fan-out. Depends on the shared backend
+packages `@adopt-dont-shop/{authz, config-secrets, db, events, lib.types,
+observability, proto, service-bootstrap}`.
 
 ## Scripts
 
@@ -70,16 +72,17 @@ denormalisation.
 
 `DATABASE_URL` is **required** (boot fails fast without it). `RESCUE_PORT`
 (5004), `RESCUE_GRPC_PORT` (6004), `RESCUE_HOST`, `RESCUE_SCHEMA` (`rescue`),
-`PETS_GRPC_URL`, and `NATS_URL` have dev defaults, plus the standard
-`@adopt-dont-shop/observability` vars. See
+`PETS_GRPC_URL`, `APPLICATIONS_GRPC_URL`, and `NATS_URL` have dev defaults,
+plus the standard `@adopt-dont-shop/observability` vars. See
 [`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
 ## Testing notes
 
 Vitest. The verification state machine is a pure, I/O-free transition table
-tested directly; handlers are tested with pool + NATS (+ a stub pets client)
-injected — assert each permission/scope path, one-time invitation-token
-behaviour, foster-placement validation against the pets client, and
+tested directly; handlers are tested with pool + NATS (+ a stub pets client
+and a stub applications client) injected — assert each permission/scope path,
+one-time invitation-token behaviour, foster-placement validation against the
+pets client, event-analytics attribution against the applications client, and
 publish-after-commit ordering. See
 [`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
 conventions.
