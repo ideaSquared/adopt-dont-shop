@@ -227,7 +227,7 @@ describe('field-level permission enforcement (ADS-1037)', () => {
     expect(JSON.parse(res.rescue.settingsJson)).toEqual({ adoptionPolicies: {} });
   });
 
-  it('getRescue keeps fields outside the field-permission config (plan, version) visible regardless of role', async () => {
+  it("getRescue hides plan and version from an adopter (configured 'none' for that role)", async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [rescueRow({ plan: 'growth', version: 4 })],
     });
@@ -282,6 +282,34 @@ describe('field-level permission enforcement (ADS-1037)', () => {
       name: 'Pawsome 2',
     } as never);
     expect(res.rescue.name).toBe('Pawsome 2');
+  });
+
+  it("updateRescue masks the response the same way Get/List do — Update can't be used to read back a field the role can't see (write success path)", async () => {
+    // rescue_staff.verifiedBy is 'none' in the field-permission defaults —
+    // Get/List already hide it. The updated row DOES carry a real
+    // verified_by; the response must not leak it just because it came
+    // back from an UPDATE ... RETURNING instead of a SELECT.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockImplementation(async () => ({
+      rows: [rescueRow({ name: 'Pawsome 2', verified_by: 'usr-admin' })],
+    }));
+
+    const res = await updateRescue(mocks.deps, STAFF, {
+      rescueId: 'rsc-1',
+      name: 'Pawsome 2',
+    } as never);
+    expect(res.rescue.name).toBe('Pawsome 2');
+    expect(res.rescue.verifiedBy).toBeUndefined();
+  });
+
+  it('updateRescue masks the response on the no-op path too (no fields supplied)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [rescueRow({ verified_by: 'usr-admin' })],
+    });
+
+    const res = await updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1' } as never);
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(res.rescue.verifiedBy).toBeUndefined();
   });
 });
 

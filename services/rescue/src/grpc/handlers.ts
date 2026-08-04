@@ -27,6 +27,7 @@ import {
   hasPermission,
   requirePermission,
   resolveFieldAccessMap,
+  type FieldAccessMap,
   type Principal,
 } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
@@ -201,9 +202,18 @@ const ZERO_RESCUE: Rescue = {
 
 // Applied at the owning service's serialisation boundary (this handler
 // file), not the gateway, so a direct gRPC caller can't bypass it.
-function maskRescue(rescue: Rescue, principal: Principal): Rescue {
-  const accessMap = resolveFieldAccessMap('rescues', principal.roles);
+//
+// Takes an already-resolved access map rather than a principal so a
+// caller masking more than one row (listRescues) — or masking a
+// response after already resolving the map for a write guard
+// (updateRescue) — resolves it once and reuses it, instead of
+// recomputing the same per-role lookup on every call.
+function maskRescueWithAccessMap(rescue: Rescue, accessMap: FieldAccessMap): Rescue {
   return { ...ZERO_RESCUE, ...fieldMask(rescue, accessMap) };
+}
+
+function maskRescue(rescue: Rescue, principal: Principal): Rescue {
+  return maskRescueWithAccessMap(rescue, resolveFieldAccessMap('rescues', principal.roles));
 }
 
 function invitationRowToProto(row: InvitationRow): Invitation {
@@ -426,15 +436,21 @@ export async function listRescues(
       ? encodeCursor({ createdAt: last.created_at.toISOString(), rescueId: last.rescue_id })
       : undefined;
 
-  return { rescues: page.map(row => maskRescue(rowToProto(row), principal)), nextCursor };
+  // Resolve the access map once for the page, not per row.
+  const accessMap = resolveFieldAccessMap('rescues', principal.roles);
+  return {
+    rescues: page.map(row => maskRescueWithAccessMap(rowToProto(row), accessMap)),
+    nextCursor,
+  };
 }
 
 // --- Update ----------------------------------------------------------
 
-// Every UpdateRescueRequest field the SQL-building block below can set,
-// in the same field-name spelling `resolveFieldAccessMap('rescues', ...)`
-// uses — the single list both the write guard and the SQL builder read
-// from, so they can't silently drift apart.
+// Every UpdateRescueRequest field this handler can write, in the same
+// field-name spelling `resolveFieldAccessMap('rescues', ...)` uses. The
+// single source of truth for both (1) which request fields the write
+// guard checks and (2) — via RESCUE_FIELD_COLUMNS below — which SQL
+// column each one maps to, so the two can't silently drift apart.
 const UPDATABLE_RESCUE_FIELDS = [
   'name',
   'phone',
@@ -453,6 +469,25 @@ const UPDATABLE_RESCUE_FIELDS = [
   'settingsJson',
 ] as const satisfies ReadonlyArray<keyof UpdateRescueRequest>;
 
+// The rescue.rescues column each UPDATABLE_RESCUE_FIELDS entry writes to.
+const RESCUE_FIELD_COLUMNS: Record<(typeof UPDATABLE_RESCUE_FIELDS)[number], string> = {
+  name: 'name',
+  phone: 'phone',
+  address: 'address',
+  city: 'city',
+  county: 'state',
+  postcode: 'zip_code',
+  country: 'country',
+  website: 'website',
+  description: 'description',
+  mission: 'mission',
+  contactPerson: 'contact_person',
+  contactTitle: 'contact_title',
+  contactEmail: 'contact_email',
+  contactPhone: 'contact_phone',
+  settingsJson: 'settings',
+};
+
 export async function updateRescue(
   deps: HandlerDeps,
   principal: Principal,
@@ -470,9 +505,15 @@ export async function updateRescue(
     throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_UPDATE}' required for this rescue`);
   }
 
-  // Field-level write guard (ADS-1037) — reject the whole update up front
-  // if it names a field the principal's role(s) can't write, before any
-  // SQL is built. Only fields the request actually supplies are checked.
+  // Resolved once and reused below for both the write guard and masking
+  // this handler's two response paths (ADS-1037) — Get/List mask their
+  // Rescue response by role, and Update must not be usable to read back
+  // a field the same principal couldn't see via Get/List.
+  const accessMap = resolveFieldAccessMap('rescues', principal.roles);
+
+  // Field-level write guard — reject the whole update up front if it
+  // names a field the principal's role(s) can't write, before any SQL
+  // is built. Only fields the request actually supplies are checked.
   const requestedFields: Partial<Record<(typeof UPDATABLE_RESCUE_FIELDS)[number], unknown>> = {};
   for (const field of UPDATABLE_RESCUE_FIELDS) {
     const value = req[field];
@@ -480,10 +521,7 @@ export async function updateRescue(
       requestedFields[field] = value;
     }
   }
-  const writeCheck = fieldWriteGuard(
-    requestedFields,
-    resolveFieldAccessMap('rescues', principal.roles)
-  );
+  const writeCheck = fieldWriteGuard(requestedFields, accessMap);
   if (!writeCheck.allowed) {
     throw new HandlerError(
       'PERMISSION_DENIED',
@@ -500,54 +538,19 @@ export async function updateRescue(
     n++;
   };
 
-  if (req.name !== undefined) {
-    set('name', req.name);
-  }
-  if (req.phone !== undefined) {
-    set('phone', req.phone);
-  }
-  if (req.address !== undefined) {
-    set('address', req.address);
-  }
-  if (req.city !== undefined) {
-    set('city', req.city);
-  }
-  if (req.county !== undefined) {
-    set('state', req.county);
-  }
-  if (req.postcode !== undefined) {
-    set('zip_code', req.postcode);
-  }
-  if (req.country !== undefined) {
-    set('country', req.country);
-  }
-  if (req.website !== undefined) {
-    set('website', req.website);
-  }
-  if (req.description !== undefined) {
-    set('description', req.description);
-  }
-  if (req.mission !== undefined) {
-    set('mission', req.mission);
-  }
-  if (req.contactPerson !== undefined) {
-    set('contact_person', req.contactPerson);
-  }
-  if (req.contactTitle !== undefined) {
-    set('contact_title', req.contactTitle);
-  }
-  if (req.contactEmail !== undefined) {
-    set('contact_email', req.contactEmail);
-  }
-  if (req.contactPhone !== undefined) {
-    set('contact_phone', req.contactPhone);
-  }
-  if (req.settingsJson !== undefined) {
-    set('settings', req.settingsJson || '{}');
+  // Derived from the same requestedFields the write guard just checked —
+  // the SQL builder can't drift from UPDATABLE_RESCUE_FIELDS because it
+  // reads from it directly rather than repeating the field list.
+  for (const field of UPDATABLE_RESCUE_FIELDS) {
+    const value = requestedFields[field];
+    if (value === undefined) {
+      continue;
+    }
+    set(RESCUE_FIELD_COLUMNS[field], field === 'settingsJson' ? value || '{}' : value);
   }
 
   if (sets.length === 0) {
-    return { rescue: rowToProto(existing) };
+    return { rescue: maskRescueWithAccessMap(rowToProto(existing), accessMap) };
   }
 
   set('updated_by', principal.userId);
@@ -594,7 +597,7 @@ export async function updateRescue(
     }
     throw new HandlerError('INTERNAL', 'update returned no rows');
   }
-  return { rescue: rowToProto(updated) };
+  return { rescue: maskRescueWithAccessMap(rowToProto(updated), accessMap) };
 }
 
 // --- Verify (status-machine command) --------------------------------
