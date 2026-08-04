@@ -39,6 +39,19 @@
 //   - On connect: register the socket in the per-replica SocketRegistry and
 //     join the per-user room for adapter-backed addressing.
 //   - On disconnect: unregister.
+//
+// Periodic revalidation (ADS-1036): the handshake only authenticates once,
+// so a socket opened before a revocation would otherwise stay trusted for
+// its entire lifetime. auth-subscriber.ts handles the event-driven cases
+// (logout, session revoke, admin revoke) with sub-second latency; this file
+// adds the defence-in-depth backstop for what that doesn't cover — plain
+// token expiry and account suspension/deactivation, neither of which
+// publishes a revocation event today. Every connected socket re-runs
+// `authClient.validateToken` on its original handshake token on a jittered
+// 60-120s interval (tunable via `revalidationInterval` for tests) and is
+// disconnected the first time that call fails — the same
+// suspended/deactivated/revoked/expired checks ValidateToken already
+// enforces on the HTTP hot path (assertActiveUser in service.auth).
 
 import type { IncomingHttpHeaders, Server as HttpServer } from 'node:http';
 
@@ -52,6 +65,7 @@ import type { Logger } from 'winston';
 import type { GatewayConfig } from '../config.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
+import { getRevocationDisconnectsCounter } from './metrics.js';
 import type { SocketRegistry } from './socket-registry.js';
 
 // Only the validateToken method is needed here — narrow the dependency so
@@ -82,6 +96,12 @@ const MAX_SOCKETS_PER_USER = 10;
 // reconnect storms (multiple tabs re-handshaking after a network blip).
 const MAX_HANDSHAKES_PER_WINDOW = 30;
 const HANDSHAKE_WINDOW_MS = 10_000;
+
+// Periodic per-socket revalidation window (ADS-1036 defence-in-depth). A
+// jittered range, not a fixed period, so every connected socket on a replica
+// doesn't hammer service.auth's ValidateToken in the same instant.
+const REVALIDATION_INTERVAL_MIN_MS = 60_000;
+const REVALIDATION_INTERVAL_MAX_MS = 120_000;
 
 // Trip counter for the handshake rate limit, mirroring the sibling limiters'
 // trip counters in server.ts (login, invitation-accept). Lazily created and
@@ -215,6 +235,10 @@ export type AttachSocketServerOptions = {
   // constants; overridden in tests to exercise the rejection path without a
   // real flood. A per-IP fixed-window cap — see MAX_HANDSHAKES_PER_WINDOW.
   handshakeRateLimit?: { max: number; windowMs: number };
+  // Periodic per-socket revalidation tuning (ADS-1036). Defaults to the
+  // module constants (60-120s); overridden in tests so revalidation fires
+  // fast enough to assert on without a real multi-minute wait.
+  revalidationInterval?: { minMs: number; maxMs: number };
 };
 
 export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer => {
@@ -272,6 +296,13 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
   });
   const handshakeRejectsTotal = getOrCreateHandshakeRejectCounter();
 
+  // Periodic revalidation tuning (ADS-1036) — see the module comment.
+  const { minMs: revalidationMinMs, maxMs: revalidationMaxMs } = opts.revalidationInterval ?? {
+    minMs: REVALIDATION_INTERVAL_MIN_MS,
+    maxMs: REVALIDATION_INTERVAL_MAX_MS,
+  };
+  const revocationDisconnectsTotal = getRevocationDisconnectsCounter();
+
   io.use((socket, next) => {
     const ip = handshakeClientIp(
       socket.handshake.headers,
@@ -300,12 +331,18 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
     }
 
     void authenticateHandshake(socket, { authClient, allowUnauthenticated, logger })
-      .then(userId => {
-        if (!userId) {
+      .then(result => {
+        if (!result) {
           next(new Error('unauthorized'));
           return;
         }
-        socket.data.userId = userId;
+        socket.data.userId = result.userId;
+        // Stashed so the periodic revalidation loop below can re-run
+        // ValidateToken on the SAME token without re-parsing the handshake
+        // (ADS-1036). Only ever set on the authClient path — undefined for
+        // the dev-only client-supplied-userId fallback, which correctly
+        // gets no revalidation (there's nothing to revalidate against).
+        socket.data.accessToken = result.token;
         next();
       })
       .catch(() => {
@@ -350,7 +387,25 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
       bucketSize: registry.socketsFor(userId).length,
     });
 
+    // Periodic revalidation (ADS-1036 defence-in-depth) — see the module
+    // comment. Only runs when there's a real authClient + handshake token to
+    // revalidate against (never in the dev-only allowUnauthenticated mode).
+    const accessToken = socket.data.accessToken;
+    const revalidation =
+      authClient && typeof accessToken === 'string'
+        ? scheduleRevalidation({
+            socket,
+            token: accessToken,
+            authClient,
+            logger,
+            minMs: revalidationMinMs,
+            maxMs: revalidationMaxMs,
+            onFailure: () => revocationDisconnectsTotal.inc({ reason: 'revalidation_failed' }),
+          })
+        : undefined;
+
     socket.on('disconnect', reason => {
+      revalidation?.cancel();
       registry.remove(userId, socket);
       logger.info('socket disconnected', { socketId: socket.id, userId, reason });
     });
@@ -374,11 +429,18 @@ type AuthenticateHandshakeDeps = {
   logger: Logger;
 };
 
-// Returns the authenticated userId, or undefined to reject the handshake.
+// The authenticated userId plus, on the real authClient path, the handshake
+// token that produced it — stashed on socket.data so the periodic
+// revalidation loop (ADS-1036) can re-check the SAME token later without
+// re-deriving it. `token` is absent for the dev-only client-supplied-userId
+// fallback, which has no token to revalidate.
+type HandshakeAuthResult = { userId: string; token?: string };
+
+// Returns the authenticated result, or undefined to reject the handshake.
 async function authenticateHandshake(
   socket: Socket,
   deps: AuthenticateHandshakeDeps
-): Promise<string | undefined> {
+): Promise<HandshakeAuthResult | undefined> {
   const { authClient, allowUnauthenticated, logger } = deps;
 
   // No auth client wired. In production this never happens (index.ts
@@ -387,7 +449,8 @@ async function authenticateHandshake(
   // case we preserve the old client-supplied-userId behaviour.
   if (!authClient) {
     if (allowUnauthenticated) {
-      return extractClientSuppliedUserId(socket);
+      const userId = extractClientSuppliedUserId(socket);
+      return userId ? { userId } : undefined;
     }
     logger.error('socket handshake rejected — no auth client configured');
     return undefined;
@@ -401,12 +464,75 @@ async function authenticateHandshake(
   try {
     const res = await authClient.validateToken({ accessToken: token }, new Metadata());
     const userId = res.principal?.userId;
-    return typeof userId === 'string' && userId.length > 0 ? userId : undefined;
+    return typeof userId === 'string' && userId.length > 0 ? { userId, token } : undefined;
   } catch {
     // Invalid / expired / revoked token, or the auth service is down.
     // Either way the handshake is not trusted.
     return undefined;
   }
+}
+
+type ScheduleRevalidationOptions = {
+  socket: Socket;
+  token: string;
+  authClient: SocketAuthClient;
+  logger: Logger;
+  minMs: number;
+  maxMs: number;
+  onFailure: () => void;
+};
+
+// A jittered delay in [minMs, maxMs) so every socket on a replica doesn't
+// call ValidateToken in the same instant.
+const jitteredDelay = (minMs: number, maxMs: number): number =>
+  minMs + Math.random() * Math.max(0, maxMs - minMs);
+
+// Re-runs ValidateToken against the socket's original handshake token on a
+// jittered interval and disconnects it the first time that call fails —
+// covers suspension/deactivation/expiry/revocation for a socket that was
+// opened before the auth-subscriber's event fired, or for a path that
+// doesn't publish an event at all (ADS-1036). Uses a recursive setTimeout
+// (not setInterval) so each tick's delay is freshly jittered and the chain
+// stops cleanly the moment a check fails or the socket disconnects first.
+function scheduleRevalidation(opts: ScheduleRevalidationOptions): { cancel: () => void } {
+  const { socket, token, authClient, logger, minMs, maxMs, onFailure } = opts;
+  let timer: NodeJS.Timeout | undefined;
+  let cancelled = false;
+
+  const tick = (): void => {
+    timer = setTimeout(
+      () => {
+        void authClient
+          .validateToken({ accessToken: token }, new Metadata())
+          .then(() => {
+            if (!cancelled) {
+              tick();
+            }
+          })
+          .catch(() => {
+            if (cancelled) {
+              return;
+            }
+            logger.info('socket revalidation failed — disconnecting', {
+              socketId: socket.id,
+              userId: socket.data.userId,
+            });
+            onFailure();
+            socket.disconnect(true);
+          });
+      },
+      jitteredDelay(minMs, maxMs)
+    );
+  };
+
+  tick();
+
+  return {
+    cancel: () => {
+      cancelled = true;
+      clearTimeout(timer);
+    },
+  };
 }
 
 // Access token from the handshake. `auth.token` (Socket.IO idiomatic)
