@@ -22,7 +22,7 @@ import crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
   createStorageProvider,
@@ -111,11 +111,16 @@ export const registerUploadsRoutes = async (
             },
           },
           400: { type: 'object', properties: { error: { type: 'string' } } },
+          401: { type: 'object', properties: { error: { type: 'string' } } },
           500: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
     async (req, reply) => {
+      if (!principalUserId(req)) {
+        return reply.code(401).send({ error: 'unauthenticated' });
+      }
+
       if (typeof (req as { isMultipart?: () => boolean }).isMultipart !== 'function') {
         return reply.code(500).send({ error: 'multipart support not registered' });
       }
@@ -233,6 +238,18 @@ export const registerUploadsRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
+
+// x-user-id is stamped by the authenticate middleware after a validated
+// ValidateToken call, which strips any client-supplied value first (see
+// middleware/authenticate.ts's SPOOFABLE_HEADERS strip) — provided that
+// middleware runs in front of this route. Its absence means the request
+// carried no valid principal, so the route must reject before touching
+// storage (ADS-1035).
+function principalUserId(req: FastifyRequest): string | null {
+  const headers = req.headers as Record<string, string | string[] | undefined>;
+  const raw = headers['x-user-id'];
+  return typeof raw === 'string' && raw.length > 0 ? raw : null;
+}
 
 type MultipartPart = {
   type: 'file' | 'field';

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -69,7 +69,10 @@ describe('POST /api/v1/uploads/images', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/uploads/images',
-      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
       payload: body,
     });
 
@@ -89,7 +92,10 @@ describe('POST /api/v1/uploads/images', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/uploads/images',
-      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
       payload: body,
     });
 
@@ -105,7 +111,10 @@ describe('POST /api/v1/uploads/images', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/uploads/images',
-      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
       payload: body,
     });
 
@@ -120,7 +129,10 @@ describe('POST /api/v1/uploads/images', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/uploads/images',
-      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
       payload: body,
     });
 
@@ -140,7 +152,10 @@ describe('POST /api/v1/uploads/images', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/uploads/images',
-      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
       payload: body,
     });
 
@@ -157,7 +172,10 @@ describe('POST /api/v1/uploads/images', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/uploads/images',
-      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
       payload: body,
     });
 
@@ -176,12 +194,30 @@ describe('POST /api/v1/uploads/images', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/uploads/images',
-      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
       payload: body,
     });
 
     expect(res.statusCode).toBe(400);
     expect((res.json() as { error: string }).error).toMatch(/dimensions/i);
+  });
+
+  it('rejects an anonymous request with 401 and writes nothing to storage (ADS-1035)', async () => {
+    const boundary = 'b7';
+    const body = multipartBody(boundary, await makeJpeg(), 'cat.jpg', 'image/jpeg');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(401);
+    expect(existsSync(join(tmp, 'pets'))).toBe(false);
   });
 });
 
