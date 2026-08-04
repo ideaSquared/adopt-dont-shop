@@ -177,8 +177,15 @@ describe('registerAuthSubscribers — eviction behaviour (ADS-1036)', () => {
   });
 
   it('increments gateway_ws_revocation_disconnects_total labeled by reason', async () => {
-    const counter = getMetricsRegistry().getSingleMetric('gateway_ws_revocation_disconnects_total');
+    // Re-fetch getSingleMetric() on every read rather than capturing it once
+    // up front — registerAuthSubscribers() (via getRevocationDisconnectsCounter)
+    // is what actually registers the metric, so a read taken before that call
+    // would see `undefined` and silently read 0 when this file runs in
+    // isolation (nothing else would have registered the metric first).
     const readReason = async (reason: string): Promise<number> => {
+      const counter = getMetricsRegistry().getSingleMetric(
+        'gateway_ws_revocation_disconnects_total'
+      );
       const snapshot = await counter?.get();
       return snapshot?.values.find(v => v.labels.reason === reason)?.value ?? 0;
     };

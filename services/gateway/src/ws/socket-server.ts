@@ -400,6 +400,10 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
             logger,
             minMs: revalidationMinMs,
             maxMs: revalidationMaxMs,
+            // One increment per SOCKET (unlike auth-subscriber.ts's
+            // per-event increment — see metrics.ts's module comment) since
+            // each socket runs its own revalidation loop and disconnects
+            // itself individually.
             onFailure: () => revocationDisconnectsTotal.inc({ reason: 'revalidation_failed' }),
           })
         : undefined;

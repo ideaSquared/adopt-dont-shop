@@ -84,6 +84,11 @@ export const registerAuthSubscribers = (
 
   const evictUser = (userId: string, reason: string): void => {
     io.in(userId).disconnectSockets(true);
+    // One increment per revocation EVENT, not per socket — the room
+    // broadcast above may close zero, one, or several sockets for this user
+    // across every replica, and that count isn't cleanly available from the
+    // room-based API. See metrics.ts's module comment for the full contrast
+    // with the periodic-revalidation path, which increments per socket.
     disconnectsTotal.inc({ reason });
     logger.info('socket(s) evicted — auth revocation', { userId, reason });
   };

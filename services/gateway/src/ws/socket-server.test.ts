@@ -825,8 +825,15 @@ describe('periodic revalidation (ADS-1036)', () => {
   });
 
   it('increments gateway_ws_revocation_disconnects_total{reason="revalidation_failed"}', async () => {
-    const counter = getMetricsRegistry().getSingleMetric('gateway_ws_revocation_disconnects_total');
+    // Re-fetch getSingleMetric() on every read rather than capturing it once
+    // up front — attachSocketServer (via getRevocationDisconnectsCounter) is
+    // what registers the metric, so a read taken before the first startServer
+    // call in this file would see `undefined` and silently read 0 if this
+    // test file were ever reordered to run this case first in isolation.
     const readReason = async (reason: string): Promise<number> => {
+      const counter = getMetricsRegistry().getSingleMetric(
+        'gateway_ws_revocation_disconnects_total'
+      );
       const snapshot = await counter?.get();
       return snapshot?.values.find(v => v.labels.reason === reason)?.value ?? 0;
     };
