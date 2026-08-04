@@ -12,11 +12,11 @@
 
 The script honours the same env-var conventions as the rest of `service.backend` (see `service.backend/src/sequelize.ts`):
 
-| NODE_ENV      | Connection-string source (in priority order)                                                  |
-| ------------- | --------------------------------------------------------------------------------------------- |
+| NODE_ENV      | Connection-string source (in priority order)                                                          |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
 | `development` | `DEV_DATABASE_URL`, else built from `DB_HOST` / `DB_PORT` / `DB_USERNAME` / `DB_PASSWORD` / `DB_NAME` |
-| `test`        | in-memory SQLite (used by the test suite only)                                                |
-| `production`  | `DATABASE_URL`, else built from individual `DB_*` vars                                        |
+| `test`        | in-memory SQLite (used by the test suite only)                                                        |
+| `production`  | `DATABASE_URL`, else built from individual `DB_*` vars                                                |
 
 ### Against a local dev DB
 
@@ -75,17 +75,26 @@ schema-audit.ts && echo safe || echo drift
   "dialect": "postgres",
   "databaseName": "adopt_dont_shop_prod",
   "totalModels": 60,
-  "totalTables": 61,        // 60 model tables + SequelizeMeta
+  "totalTables": 61, // 60 model tables + SequelizeMeta
   "driftedTables": 2,
   "tables": [
-    { "table": "users", "modelName": "User", "status": "ok",
-      "columns": [], "indexes": [], "enums": [] },
-    { "table": "audit_logs", "modelName": "AuditLog", "status": "drift",
-      "columns": [
-        { "column": "session_id", "kind": "extra", "expected": null, "actual": "uuid" }
-      ],
-      "indexes": [], "enums": [] }
-  ]
+    {
+      "table": "users",
+      "modelName": "User",
+      "status": "ok",
+      "columns": [],
+      "indexes": [],
+      "enums": [],
+    },
+    {
+      "table": "audit_logs",
+      "modelName": "AuditLog",
+      "status": "drift",
+      "columns": [{ "column": "session_id", "kind": "extra", "expected": null, "actual": "uuid" }],
+      "indexes": [],
+      "enums": [],
+    },
+  ],
 }
 ```
 
@@ -93,32 +102,32 @@ schema-audit.ts && echo safe || echo drift
 
 The audit recognises five drift categories. Each maps to a different decision for the rebaseline.
 
-| Category               | What it means                                                                                                  | Implication for the rebaseline                                                                                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `missing-table`        | Model registered but no table in DB.                                                                           | The pre-seed plan **cannot** include this baseline — it would mark a missing table as "applied" and `db:migrate` would skip the file that would have created it.            |
-| `extra-table`          | Table in DB with no Sequelize model.                                                                           | Almost always benign (legacy table, unmanaged side-table). Flag for documentation; no rebaseline action needed. Verify it's not something a model used to declare.            |
-| `column.missing`       | Model declares a column the live DB doesn't have.                                                              | The per-model baseline file would `createTable` with this column. If we pre-seed `SequelizeMeta`, the column never gets added. Adjust: ship a real migration to add it first. |
-| `column.extra`         | Live DB has a column the model doesn't declare.                                                                | Pre-seed is still safe (the per-model file's `createTable` would have run successfully against this DB), but flag the column for cleanup tracking.                            |
-| `column.type`          | Type mismatch (e.g. model says `STRING`, DB has `INTEGER`).                                                    | **Hard block.** The per-model baseline would have produced a different column. Pre-seeding lies. Investigate; either rebaseline the model to match the live type or write a forward migration to fix the live DB. |
-| `column.nullable`      | Nullability mismatch (e.g. model declares `NOT NULL`, DB has `NULL`).                                          | Same as `column.type` — block. NULL acceptance differs between expected and live.                                                                                             |
-| `index.missing`        | Model declares an index the live DB doesn't have.                                                              | The per-model file would have built the index. If we pre-seed, the index is permanently lost. Adjust: ship a real migration to add it.                                       |
-| `index.extra`          | Live DB has an index the model doesn't declare.                                                                | Likely a hand-added emergency index (R5 in the design doc). Flag — either drop it after rebaseline or add it to the model. Rebaseline can proceed.                            |
-| `enum.missing-values`  | Postgres ENUM has fewer values than the model declares.                                                        | Hard block — `INSERT` of the missing value would fail in production. Run an `ALTER TYPE … ADD VALUE` migration first.                                                         |
-| `enum.extra-values`    | Postgres ENUM has more values than the model declares.                                                         | Pre-seed is safe (any insert from the application is still valid). Flag for cleanup.                                                                                          |
+| Category              | What it means                                                         | Implication for the rebaseline                                                                                                                                                                                    |
+| --------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `missing-table`       | Model registered but no table in DB.                                  | The pre-seed plan **cannot** include this baseline — it would mark a missing table as "applied" and `db:migrate` would skip the file that would have created it.                                                  |
+| `extra-table`         | Table in DB with no Sequelize model.                                  | Almost always benign (legacy table, unmanaged side-table). Flag for documentation; no rebaseline action needed. Verify it's not something a model used to declare.                                                |
+| `column.missing`      | Model declares a column the live DB doesn't have.                     | The per-model baseline file would `createTable` with this column. If we pre-seed `SequelizeMeta`, the column never gets added. Adjust: ship a real migration to add it first.                                     |
+| `column.extra`        | Live DB has a column the model doesn't declare.                       | Pre-seed is still safe (the per-model file's `createTable` would have run successfully against this DB), but flag the column for cleanup tracking.                                                                |
+| `column.type`         | Type mismatch (e.g. model says `STRING`, DB has `INTEGER`).           | **Hard block.** The per-model baseline would have produced a different column. Pre-seeding lies. Investigate; either rebaseline the model to match the live type or write a forward migration to fix the live DB. |
+| `column.nullable`     | Nullability mismatch (e.g. model declares `NOT NULL`, DB has `NULL`). | Same as `column.type` — block. NULL acceptance differs between expected and live.                                                                                                                                 |
+| `index.missing`       | Model declares an index the live DB doesn't have.                     | The per-model file would have built the index. If we pre-seed, the index is permanently lost. Adjust: ship a real migration to add it.                                                                            |
+| `index.extra`         | Live DB has an index the model doesn't declare.                       | Likely a hand-added emergency index (R5 in the design doc). Flag — either drop it after rebaseline or add it to the model. Rebaseline can proceed.                                                                |
+| `enum.missing-values` | Postgres ENUM has fewer values than the model declares.               | Hard block — `INSERT` of the missing value would fail in production. Run an `ALTER TYPE … ADD VALUE` migration first.                                                                                             |
+| `enum.extra-values`   | Postgres ENUM has more values than the model declares.                | Pre-seed is safe (any insert from the application is still valid). Flag for cleanup.                                                                                                                              |
 
 ## Mapping to the design doc's open questions
 
 The audit answers — or tightly bounds — most of the seven open questions in [`per-model-rebaseline.md` §5](./per-model-rebaseline.md#5-open-questions):
 
-| #   | Question                                                            | What the audit tells you                                                                                                                                                                                                                                                              |
-| --- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q1  | Production `SequelizeMeta` content (`.ts` vs `.js`)                 | **Not answered by the audit** — `SequelizeMeta` is excluded from drift detection (it's a sequelize-cli internal). Run `SELECT * FROM "SequelizeMeta"` separately. The audit confirms whether the rest of the prerequisite (matching schema) holds.                                |
-| Q2  | Ad-hoc schema mods in prod                                          | **Directly answered.** Every ad-hoc mod that adds a column / index / enum value lands in the report as `extra-*`; every ad-hoc DROP shows up as `missing-*`. Run the audit against prod and compare with the dev report; differences are the ad-hoc mods.                            |
-| Q3  | Who owns the migration runner in prod                               | Not a schema question; not addressed.                                                                                                                                                                                                                                                 |
-| Q4  | Next maintenance window                                             | Not a schema question; not addressed.                                                                                                                                                                                                                                                 |
-| Q5  | Option A (hand-write) vs Option B (pg_dump-derived)                 | **Indirectly answered.** If the audit shows zero drift, either option works. If it shows drift, Option A (hand-write what the model says) actively contradicts the live DB; Option B (dump the live DB) preserves it. The audit makes the trade-off concrete instead of theoretical. |
+| #   | Question                                                            | What the audit tells you                                                                                                                                                                                                                                                                                                                                                                                |
+| --- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | Production `SequelizeMeta` content (`.ts` vs `.js`)                 | **Not answered by the audit** — `SequelizeMeta` is excluded from drift detection (it's a sequelize-cli internal). Run `SELECT * FROM "SequelizeMeta"` separately. The audit confirms whether the rest of the prerequisite (matching schema) holds.                                                                                                                                                      |
+| Q2  | Ad-hoc schema mods in prod                                          | **Directly answered.** Every ad-hoc mod that adds a column / index / enum value lands in the report as `extra-*`; every ad-hoc DROP shows up as `missing-*`. Run the audit against prod and compare with the dev report; differences are the ad-hoc mods.                                                                                                                                               |
+| Q3  | Who owns the migration runner in prod                               | Not a schema question; not addressed.                                                                                                                                                                                                                                                                                                                                                                   |
+| Q4  | Next maintenance window                                             | Not a schema question; not addressed.                                                                                                                                                                                                                                                                                                                                                                   |
+| Q5  | Option A (hand-write) vs Option B (pg_dump-derived)                 | **Indirectly answered.** If the audit shows zero drift, either option works. If it shows drift, Option A (hand-write what the model says) actively contradicts the live DB; Option B (dump the live DB) preserves it. The audit makes the trade-off concrete instead of theoretical.                                                                                                                    |
 | Q6  | Models producing DDL Sequelize cannot represent natively (triggers) | **Partially answered.** The audit detects column / index / enum drift but does not introspect triggers, functions, or check-constraints. A `column.extra` is what you get when a non-Sequelize migration (e.g. 11-add-audit-log-immutable-trigger) leaves DDL behind — so the audit confirms whether the column-level state matches; trigger-level drift needs a separate `pg_dump --schema-only` diff. |
-| Q7  | Should the rebaseline drop unused tables/columns                    | **Directly answered.** The audit's `extra-table` and `column.extra` categories enumerate every "unused" thing. Decide per-row whether it's actually dead or in flight in another consumer.                                                                                            |
+| Q7  | Should the rebaseline drop unused tables/columns                    | **Directly answered.** The audit's `extra-table` and `column.extra` categories enumerate every "unused" thing. Decide per-row whether it's actually dead or in flight in another consumer.                                                                                                                                                                                                              |
 
 ## Operating procedure (recommended)
 

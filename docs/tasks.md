@@ -154,7 +154,7 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/authz` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/config-secrets` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/db` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/e2e` | `install:browsers`, `report`, `test`, `test:debug`, `test:headed`, `test:smoke`, `test:ui`, `type-check` |
+| `@adopt-dont-shop/e2e` | `format`, `format:check`, `install:browsers`, `lint`, `lint:fix`, `report`, `test`, `test:debug`, `test:headed`, `test:smoke`, `test:ui`, `type-check` |
 | `@adopt-dont-shop/events` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.analytics` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.api` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |

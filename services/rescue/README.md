@@ -14,10 +14,12 @@ transitions).
 See [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../../docs/infrastructure/MICROSERVICES-STANDARDS.md)
 for the shared service boundaries / ownership model. Cross-service gRPC: calls
 **service.pets** (`PETS_GRPC_URL`) in `CreateFosterPlacement` to validate pet
-ownership. Read over gRPC by **service.notifications** (`ListStaffMembers` /
-`Get`) for rescue fan-out. Depends on the shared backend packages
-`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
-proto, service-bootstrap}`.
+ownership, and **service.applications** (`APPLICATIONS_GRPC_URL`) in
+`GetEventAnalytics` → `CountAdoptedAdopters` to compute registered-then-adopted
+attribution (ADS-941). Read over gRPC by **service.notifications**
+(`ListStaffMembers` / `Get`) for rescue fan-out. Depends on the shared backend
+packages `@adopt-dont-shop/{authz, config-secrets, db, events, lib.types,
+observability, proto, service-bootstrap}`.
 
 ## Scripts
 
@@ -40,19 +42,19 @@ HTTP surface: `/health/simple`. Everything else is gRPC `RescueService`
 `/api/v1/events/*`. Permission scope is the `rescue_id`; admin / `super_admin`
 bypass scope.
 
-| RPC | Permission |
-| --- | --- |
-| `Create` | `rescues.create` |
-| `Get` / `List` | `rescues.read` (List defaults to verified-only) |
-| `Update` | `rescues.update` (scoped; does not change status) |
-| `Verify` | `admin.security.manage` (admin-only status transition) |
-| `InviteStaff` | `staff.create` (scoped; mints token, returned once) |
-| `GetMyStaffMembership` | authenticated (self-scoped) |
-| `ListStaffMembers` | `staff.read` |
-| `CreateFosterPlacement` | `foster.create` (scoped; validates pet via pets gRPC) |
-| `ListFosterPlacements` / `GetFosterPlacement` | `foster.read` (scoped) |
-| `EndFosterPlacement` | `foster.update` (scoped; idempotent) |
-| `GetInvitationByToken` | none (the token is the credential) |
+| RPC                                           | Permission                                             |
+| --------------------------------------------- | ------------------------------------------------------ |
+| `Create`                                      | `rescues.create`                                       |
+| `Get` / `List`                                | `rescues.read` (List defaults to verified-only)        |
+| `Update`                                      | `rescues.update` (scoped; does not change status)      |
+| `Verify`                                      | `admin.security.manage` (admin-only status transition) |
+| `InviteStaff`                                 | `staff.create` (scoped; mints token, returned once)    |
+| `GetMyStaffMembership`                        | authenticated (self-scoped)                            |
+| `ListStaffMembers`                            | `staff.read`                                           |
+| `CreateFosterPlacement`                       | `foster.create` (scoped; validates pet via pets gRPC)  |
+| `ListFosterPlacements` / `GetFosterPlacement` | `foster.read` (scoped)                                 |
+| `EndFosterPlacement`                          | `foster.update` (scoped; idempotent)                   |
+| `GetInvitationByToken`                        | none (the token is the credential)                     |
 
 Schema (`rescue`): `rescues`, `rescue_settings`, `staff_members` (user↔rescue
 join, no cross-schema FK), `invitations` (one-time token), `foster_placements`,
@@ -70,16 +72,17 @@ denormalisation.
 
 `DATABASE_URL` is **required** (boot fails fast without it). `RESCUE_PORT`
 (5004), `RESCUE_GRPC_PORT` (6004), `RESCUE_HOST`, `RESCUE_SCHEMA` (`rescue`),
-`PETS_GRPC_URL`, and `NATS_URL` have dev defaults, plus the standard
-`@adopt-dont-shop/observability` vars. See
+`PETS_GRPC_URL`, `APPLICATIONS_GRPC_URL`, and `NATS_URL` have dev defaults,
+plus the standard `@adopt-dont-shop/observability` vars. See
 [`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
 ## Testing notes
 
 Vitest. The verification state machine is a pure, I/O-free transition table
-tested directly; handlers are tested with pool + NATS (+ a stub pets client)
-injected — assert each permission/scope path, one-time invitation-token
-behaviour, foster-placement validation against the pets client, and
+tested directly; handlers are tested with pool + NATS (+ a stub pets client
+and a stub applications client) injected — assert each permission/scope path,
+one-time invitation-token behaviour, foster-placement validation against the
+pets client, event-analytics attribution against the applications client, and
 publish-after-commit ordering. See
 [`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
 conventions.

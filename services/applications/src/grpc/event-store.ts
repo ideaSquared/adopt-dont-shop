@@ -140,17 +140,33 @@ export async function appendEvents(
 // status / answers / references / version are the live-state columns;
 // everything else (timestamps stamped by specific events) is
 // projected from the state's optional fields.
+//
+// actioned_at (ADS-1025) is the CountAdoptedAdopters attribution query's
+// filter column — "when did this application reach its decision", not
+// "when was it created". It's derived from the state rather than the
+// event stream directly: decidedAt / adoptedAt are already the
+// triggering `approved` / `adopted` event's `at` (== occurred_at, see
+// appendEvents), stamped there by apply.ts. Any other status (including
+// rejected/withdrawn, which never qualify for attribution) leaves it null.
 export async function projectReadModel(client: PoolClient, state: ApplicationState): Promise<void> {
+  const actionedAt =
+    state.status === 'approved'
+      ? state.decidedAt
+      : state.status === 'adopted'
+        ? state.adoptedAt
+        : null;
+
   await client.query(
     `INSERT INTO applications (
        application_id, user_id, pet_id, rescue_id, status,
-       documents, version, created_at, updated_at
+       documents, version, actioned_at, created_at, updated_at
      )
-     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, NOW(), NOW())
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, NOW(), NOW())
      ON CONFLICT (application_id) DO UPDATE SET
        status = EXCLUDED.status,
        documents = EXCLUDED.documents,
        version = EXCLUDED.version,
+       actioned_at = EXCLUDED.actioned_at,
        updated_at = NOW()`,
     [
       state.applicationId,
@@ -160,6 +176,7 @@ export async function projectReadModel(client: PoolClient, state: ApplicationSta
       state.status,
       JSON.stringify({ answers: state.answers, references: state.references }),
       state.version,
+      actionedAt,
     ]
   );
 }

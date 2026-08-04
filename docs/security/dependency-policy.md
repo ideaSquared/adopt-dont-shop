@@ -19,7 +19,7 @@ workflow run page for anyone who looks.
 > **Why not `pnpm audit`?** npm retired the quick-audit endpoint `pnpm audit`
 > calls (it now returns HTTP 410), so the command fails on every run
 > regardless of the dependency tree. `scripts/audit-bulk.mjs` queries npm's
-> supported *bulk advisory* endpoint directly against the versions resolved in
+> supported _bulk advisory_ endpoint directly against the versions resolved in
 > `pnpm-lock.yaml` — same npm advisory data, same `high`/`critical` gate.
 
 ## Advisory: `quality.yml` (Dependency Check)

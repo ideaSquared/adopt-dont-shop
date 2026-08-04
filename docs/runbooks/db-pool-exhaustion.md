@@ -20,13 +20,13 @@ otherwise `warning` (`P95LatencyHigh`).
 Pool sizing and timeouts are **not env-tunable today** — they live in
 `TIMEOUT_DEFAULTS` in [`packages/db/src/client.ts`](../../packages/db/src/client.ts):
 
-| Setting                    | Default   | Meaning                                                       |
-| -------------------------- | --------- | ------------------------------------------------------------- |
-| `connectionTimeoutMillis`  | `10_000`  | How long a request waits for a connection from the pool.      |
-| `idleTimeoutMillis`        | `30_000`  | Idle-connection eviction.                                     |
-| `statement_timeout`        | `30_000`  | Postgres session `statement_timeout` — per-query ceiling.     |
-| `query_timeout`            | `30_000`  | Client-side query timeout applied by node-postgres.           |
-| `max`                      | `10`      | pg default — the code does not override it.                   |
+| Setting                   | Default  | Meaning                                                   |
+| ------------------------- | -------- | --------------------------------------------------------- |
+| `connectionTimeoutMillis` | `10_000` | How long a request waits for a connection from the pool.  |
+| `idleTimeoutMillis`       | `30_000` | Idle-connection eviction.                                 |
+| `statement_timeout`       | `30_000` | Postgres session `statement_timeout` — per-query ceiling. |
+| `query_timeout`           | `30_000` | Client-side query timeout applied by node-postgres.       |
+| `max`                     | `10`     | pg default — the code does not override it.               |
 
 `packages/db/src/client.ts` does not emit a `[db] pool …` log line at
 boot; there is no boot-time report of the effective values.
@@ -55,12 +55,12 @@ docker compose -f docker-compose.prod.yml exec -T database \
 
 ## Diagnosis
 
-| Signal in `pg_stat_activity`                            | Cause                                |
-| ------------------------------------------------------- | ------------------------------------ |
-| Many `idle in transaction` rows, `age` > 1m             | A handler is leaking a transaction   |
-| One query holding for minutes, others queued behind it  | Missing index / runaway report query |
-| `active` count == `pool max × replicas × services`      | Traffic genuinely exceeds capacity   |
-| Many sessions holding the same table-level lock         | Migration / VACUUM FULL in flight    |
+| Signal in `pg_stat_activity`                           | Cause                                |
+| ------------------------------------------------------ | ------------------------------------ |
+| Many `idle in transaction` rows, `age` > 1m            | A handler is leaking a transaction   |
+| One query holding for minutes, others queued behind it | Missing index / runaway report query |
+| `active` count == `pool max × replicas × services`     | Traffic genuinely exceeds capacity   |
+| Many sessions holding the same table-level lock        | Migration / VACUUM FULL in flight    |
 
 Cross-check with the Grafana **Request volume** panel. If volume is
 flat but the pool is saturated, a slow query is the cause. If volume
@@ -69,11 +69,13 @@ is up and tracking the saturation, capacity is the cause.
 ## Mitigation
 
 1. **Kill the offending query** (if one query is the obvious cause):
+
    ```bash
    docker compose -f docker-compose.prod.yml exec -T database \
      psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
      "SELECT pg_terminate_backend(<pid>);"
    ```
+
    Watch the `state` distribution drop back to mostly `idle`.
 
 2. **Bump the pool** — the pool `max` is currently **not env-tunable**;

@@ -12,6 +12,7 @@ The schema-equivalence gate is the per-model rebaseline's safety net (see [`per-
 > A database bootstrapped via `sequelize-cli db:migrate` must be byte-equivalent (modulo documented asymmetries) to a database bootstrapped via `sequelize.sync()` against the same model code.
 
 If the two diverge, then either:
+
 - a per-model baseline file does not faithfully describe what `sync()` would produce, or
 - a model has been edited but the per-model baseline that captures it was not updated, or
 - a forward migration has changed the live schema in a way the models don't yet reflect.
@@ -23,6 +24,7 @@ In any of those cases, the next fresh-DB bootstrap will not match what the runni
 CI workflow: [`.github/workflows/schema-equivalence.yml`](../../.github/workflows/schema-equivalence.yml).
 
 Triggers on **`pull_request`** events that touch any of:
+
 - `service.backend/src/migrations/**`
 - `service.backend/src/models/**`
 - `service.backend/scripts/normalise-pg-dump.sh`
@@ -57,11 +59,11 @@ As per-domain baseline PRs (e.g. `00a-baseline-users.ts`) land, DB-A's bootstrap
 
 The normaliser drops the following from both dumps so they don't surface as drift:
 
-| Object                                                | Why it differs                                                                                                                                                                                                                  |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SequelizeMeta` table                                  | Created by `sequelize-cli` only. Present on DB-A, absent on DB-B. Already excluded at `pg_dump` time via `--exclude-table` and stripped again by the normaliser as belt-and-braces.                                              |
-| `audit_logs_immutable` trigger                        | Installed only by migration 11 (`service.backend/src/migrations/11-add-audit-log-immutable-trigger.ts`, removed with the monolith). DB-A has it, DB-B does not, until/unless the trigger DDL moves into a per-domain baseline or a `sync()`-equivalent hook. |
-| `audit_logs_reject_mutation` function                 | Same as above — created exclusively by migration 11.                                                                                                                                                                            |
+| Object                                | Why it differs                                                                                                                                                                                                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SequelizeMeta` table                 | Created by `sequelize-cli` only. Present on DB-A, absent on DB-B. Already excluded at `pg_dump` time via `--exclude-table` and stripped again by the normaliser as belt-and-braces.                                                                          |
+| `audit_logs_immutable` trigger        | Installed only by migration 11 (`service.backend/src/migrations/11-add-audit-log-immutable-trigger.ts`, removed with the monolith). DB-A has it, DB-B does not, until/unless the trigger DDL moves into a per-domain baseline or a `sync()`-equivalent hook. |
+| `audit_logs_reject_mutation` function | Same as above — created exclusively by migration 11.                                                                                                                                                                                                         |
 
 If the rebaseline scope expands to fold migration 11's trigger into a per-domain baseline (or a model-side `afterSync` hook), remove the corresponding entry from `normalise-pg-dump.sh`'s `asym` list so the gate covers it again.
 
@@ -98,6 +100,7 @@ Outputs land in `./schema-equivalence-out/` by default (override with `OUT_DIR`)
 - `schema.diff` — the unified diff. Empty file = success.
 
 Exit codes mirror CI:
+
 - `0` — equivalent.
 - `1` — drift. Diff in `schema.diff`.
 - `2` — bootstrap or dump failed. stderr carries the error.
@@ -125,6 +128,7 @@ This is rarer but more dangerous: it means the running service has been declarin
 The model genuinely changed and the new shape is what we want. The fix is a **post-baseline forward migration** that brings the existing-DB path in line with the new model. Then update the relevant per-domain baseline file too, so a fresh DB also gets the new shape directly without going through the forward migration.
 
 Workflow:
+
 1. Add a new file `service.backend/src/migrations/NN-<descriptive>.ts` that brings the live schema in line with the new model (the standard `up`/`down` pattern from existing migrations applies).
 2. Update the per-domain baseline file so a fresh `db:migrate` produces the new shape directly.
 3. Re-run the gate locally; verify empty diff.

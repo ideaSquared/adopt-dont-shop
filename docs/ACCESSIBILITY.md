@@ -9,19 +9,19 @@ default), and `dark`. All three meet WCAG AA for text and UI contrast on
 their default surfaces, verified by the design tokens in
 `lib.components/src/styles/colors.ts` and `theme.ts`.
 
-| Theme    | Surface        | Text on surface | Contrast posture |
-| -------- | -------------- | --------------- | ---------------- |
-| `light`  | `#FFFFFF`      | gray-900        | WCAG AA          |
-| `normal` | `#FAF7F2` cream| gray-900        | WCAG AA          |
-| `dark`   | `#0F172A` navy | gray-100        | WCAG AA          |
+| Theme    | Surface         | Text on surface | Contrast posture |
+| -------- | --------------- | --------------- | ---------------- |
+| `light`  | `#FFFFFF`       | gray-900        | WCAG AA          |
+| `normal` | `#FAF7F2` cream | gray-900        | WCAG AA          |
+| `dark`   | `#0F172A` navy  | gray-100        | WCAG AA          |
 
 ### How users switch themes
 
 Each app exposes the `<ThemeToggle />` component inside its settings page:
 
-- `app.client`: *Profile → Settings → Appearance*
-- `app.rescue`: *Settings → Appearance*
-- `app.admin`: *Account Settings → Appearance*
+- `app.client`: _Profile → Settings → Appearance_
+- `app.rescue`: _Settings → Appearance_
+- `app.admin`: _Account Settings → Appearance_
 
 The toggle cycles `light → normal → dark → light`. The preference persists
 to `localStorage` under the key `theme` and is rehydrated on app load.

@@ -27,9 +27,9 @@ closes that gap.
 
 ## Recovery objectives (RTO / RPO)
 
-| Target | Value | Basis |
-| --- | --- | --- |
-| **RPO** (max data loss) | **24 hours** | Daily 02:00 UTC snapshot; anything written since the last snapshot is lost on a full restore. |
+| Target                    | Value         | Basis                                                                                                                                   |
+| ------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **RPO** (max data loss)   | **24 hours**  | Daily 02:00 UTC snapshot; anything written since the last snapshot is lost on a full restore.                                           |
 | **RTO** (time to restore) | **≤ 2 hours** | Download dump from S3 + `psql` replay into a scratch DB + verify + repoint. Dominated by `psql` replay time, which scales with DB size. |
 
 These are the targets for a logical-dump strategy. Tighter RPO (minutes) needs
@@ -47,11 +47,11 @@ streaming replication / PITR — out of scope here, tracked under ADS-443.
 
 ## Schedule
 
-| Job | Cadence | Retention |
-| --- | --- | --- |
-| Nightly automated dump | Daily 02:00 UTC | 30 days off-site (S3 lifecycle) |
-| Pre-migration manual dump | Before every prod migration | 30 days off-site |
-| Restore drill | Quarterly (staging) | Drill log retained 1 year |
+| Job                       | Cadence                     | Retention                       |
+| ------------------------- | --------------------------- | ------------------------------- |
+| Nightly automated dump    | Daily 02:00 UTC             | 30 days off-site (S3 lifecycle) |
+| Pre-migration manual dump | Before every prod migration | 30 days off-site                |
+| Restore drill             | Quarterly (staging)         | Drill log retained 1 year       |
 
 Nightly dumps run via the [`backup.yml`](../.github/workflows/backup.yml)
 scheduled workflow (cron `0 2 * * *`), which SSHes to the prod host and runs

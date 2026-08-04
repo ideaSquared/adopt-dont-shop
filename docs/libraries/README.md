@@ -13,16 +13,19 @@ The monorepo ships **24 workspace libraries** under `@adopt-dont-shop/lib.*`. Ea
 ## Index
 
 ### Transport & data
+
 - [`lib.api`](../../packages/lib.api/README.md) — HTTP client, interceptors, auth-token plumbing ([architecture](../../packages/lib.api/ARCHITECTURE.md))
 - [`lib.types`](../../packages/lib.types/README.md) — shared types and constants (zero-dep, safe for both runtimes)
 - [`lib.validation`](../../packages/lib.validation/README.md) — canonical Zod schemas (User / Pet / Rescue / Application)
 
 ### Auth & access
+
 - [`lib.auth`](../../packages/lib.auth/README.md) — sessions, two-factor, `AuthProvider` / `useAuth`
 - [`lib.permissions`](../../packages/lib.permissions/README.md) — RBAC + field-level permission services
 - [`lib.invitations`](../../packages/lib.invitations/README.md) — staff/user invitations
 
 ### Domain services
+
 - [`lib.applications`](../../packages/lib.applications/README.md) — adoption application lifecycle
 - [`lib.chat`](../../packages/lib.chat/README.md) — Socket.IO real-time messaging
 - [`lib.discovery`](../../packages/lib.discovery/README.md) — swipe-based pet discovery sessions
@@ -36,6 +39,7 @@ The monorepo ships **24 workspace libraries** under `@adopt-dont-shop/lib.*`. Ea
 - [`lib.matching`](../../packages/lib.matching/README.md) — shared types for pet-adopter matching
 
 ### UI & analytics
+
 - [`lib.components`](../../packages/lib.components/README.md) — shared React components
 - [`lib.analytics`](../../packages/lib.analytics/README.md) — event tracking
 - [`lib.feature-flags`](../../packages/lib.feature-flags/README.md) — Statsig hooks (`useFeatureGate`, `useDynamicConfig`, `useConfigValue`) + typed gate/config constants
@@ -43,6 +47,7 @@ The monorepo ships **24 workspace libraries** under `@adopt-dont-shop/lib.*`. Ea
 - [`lib.legal`](../../packages/lib.legal/README.md) — legal re-acceptance modal, cookie banner, consent service
 
 ### Utilities
+
 - [`lib.utils`](../../packages/lib.utils/README.md) — formatters, locale, env helpers
 - [`lib.dev-tools`](../../packages/lib.dev-tools/README.md) — dev-only tooling
 

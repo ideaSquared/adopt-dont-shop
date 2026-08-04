@@ -8,7 +8,7 @@
 ## Context
 
 ADS-1037 found that the field-level permission system was fully built as a
-*configuration* surface — the `field_permissions` DB table, its migration,
+_configuration_ surface — the `field_permissions` DB table, its migration,
 the auth service's gRPC CRUD handlers, the gateway REST routes, the 1100-line
 `lib.types` default policy, and the admin `FieldPermissions` editor page all
 exist and work — but nothing read that configuration when serving a real

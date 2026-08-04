@@ -3,14 +3,14 @@
 The Admin app exposes a **Security Center** at `/security` that consolidates
 five security surfaces operators need at hand:
 
-| Tab | What it does | Backing endpoint |
-| --- | --- | --- |
-| Two-Factor Auth | Enrol the current admin in TOTP MFA, regenerate backup codes | `POST /api/v1/auth/2fa/*` |
-| Active Sessions | List refresh-token families, revoke individual or all sessions for a user | `GET /api/v1/admin/security/sessions`, `DELETE /api/v1/admin/security/sessions/:id` |
-| IP Restrictions | Manage allow/block lists enforced on `/api/v1/auth/login` | `GET/POST/DELETE /api/v1/admin/security/ip-rules` |
-| Login History | Filtered view of `LOGIN`, `LOGOUT`, `PASSWORD_RESET`, `TWO_FACTOR` audit events | `GET /api/v1/admin/security/login-history` |
-| Suspicious Activity | Accounts/IPs over the failed-login threshold inside a configurable window | `GET /api/v1/admin/security/suspicious-activity` |
-| Account Recovery | Force-lock a suspected-compromised account (revokes sessions + 24h lockout) and unlock automatic lockouts | `POST /api/v1/admin/security/users/:id/lock`, `POST /api/v1/admin/security/users/:id/unlock` |
+| Tab                 | What it does                                                                                              | Backing endpoint                                                                             |
+| ------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Two-Factor Auth     | Enrol the current admin in TOTP MFA, regenerate backup codes                                              | `POST /api/v1/auth/2fa/*`                                                                    |
+| Active Sessions     | List refresh-token families, revoke individual or all sessions for a user                                 | `GET /api/v1/admin/security/sessions`, `DELETE /api/v1/admin/security/sessions/:id`          |
+| IP Restrictions     | Manage allow/block lists enforced on `/api/v1/auth/login`                                                 | `GET/POST/DELETE /api/v1/admin/security/ip-rules`                                            |
+| Login History       | Filtered view of `LOGIN`, `LOGOUT`, `PASSWORD_RESET`, `TWO_FACTOR` audit events                           | `GET /api/v1/admin/security/login-history`                                                   |
+| Suspicious Activity | Accounts/IPs over the failed-login threshold inside a configurable window                                 | `GET /api/v1/admin/security/suspicious-activity`                                             |
+| Account Recovery    | Force-lock a suspected-compromised account (revokes sessions + 24h lockout) and unlock automatic lockouts | `POST /api/v1/admin/security/users/:id/lock`, `POST /api/v1/admin/security/users/:id/unlock` |
 
 ## Permissions
 

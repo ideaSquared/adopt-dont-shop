@@ -32,13 +32,13 @@ also stop the container.
 
 ## When to use it
 
-| Situation                                         | Action                            |
-| ------------------------------------------------- | --------------------------------- |
-| Another incident is in flight, error rate climbing | `maintenance_mode = true`         |
-| Planned migration with destructive cutover         | `maintenance_mode = true` window  |
-| Bulk-write feature misbehaving, rest of app fine   | `ALLOW_BULK_OPERATIONS = false`   |
+| Situation                                          | Action                              |
+| -------------------------------------------------- | ----------------------------------- |
+| Another incident is in flight, error rate climbing | `maintenance_mode = true`           |
+| Planned migration with destructive cutover         | `maintenance_mode = true` window    |
+| Bulk-write feature misbehaving, rest of app fine   | `ALLOW_BULK_OPERATIONS = false`     |
 | Need to register no new users for an hour          | `new_registrations_enabled = false` |
-| You want to take the site fully offline            | Stop nginx (not maintenance mode) |
+| You want to take the site fully offline            | Stop nginx (not maintenance mode)   |
 
 Maintenance mode does **not** prevent direct API hits — it's a UX
 contract enforced by the frontend. Determined clients can still call

@@ -42,17 +42,17 @@ Server layout (single CPX42):
 
 ## Repo Files
 
-| File | Purpose |
-|---|---|
-| `docker-compose.prod.yml` | Production stack — GHCR images, no nginx |
-| `docker-compose.staging.yml` | Staging stack — same shape, isolated network |
-| `deploy/gateway/docker-compose.gateway.yml` | Gateway nginx + certbot |
-| `deploy/gateway/nginx.conf` | All-domain routing (prod + staging) |
-| `deploy/gateway/snippets/ssl-params.conf` | TLS cipher config |
-| `.github/workflows/deploy.yml` | Build → push → deploy workflow |
-| `.github/workflows/rollback.yml` | Redeploy a previous SHA |
-| `Makefile` | CLI commands (`make staging`, `make prod`, `make rollback`) |
-| `services/<name>/src/migrations/` | Per-service migrations (each service runs its own) |
+| File                                        | Purpose                                                     |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| `docker-compose.prod.yml`                   | Production stack — GHCR images, no nginx                    |
+| `docker-compose.staging.yml`                | Staging stack — same shape, isolated network                |
+| `deploy/gateway/docker-compose.gateway.yml` | Gateway nginx + certbot                                     |
+| `deploy/gateway/nginx.conf`                 | All-domain routing (prod + staging)                         |
+| `deploy/gateway/snippets/ssl-params.conf`   | TLS cipher config                                           |
+| `.github/workflows/deploy.yml`              | Build → push → deploy workflow                              |
+| `.github/workflows/rollback.yml`            | Redeploy a previous SHA                                     |
+| `Makefile`                                  | CLI commands (`make staging`, `make prod`, `make rollback`) |
+| `services/<name>/src/migrations/`           | Per-service migrations (each service runs its own)          |
 
 ---
 
@@ -60,18 +60,18 @@ Server layout (single CPX42):
 
 ### Environments (Settings → Environments)
 
-| Environment | Protection |
-|---|---|
-| `staging` | None — deploys immediately |
+| Environment  | Protection                          |
+| ------------ | ----------------------------------- |
+| `staging`    | None — deploys immediately          |
 | `production` | Required reviewer — manual approval |
 
 ### Secrets (Settings → Secrets → Actions)
 
-| Secret | Value | Notes |
-|---|---|---|
-| `HETZNER_HOST` | Server IP | |
-| `HETZNER_SSH_KEY` | Private key for `deploy` user | |
-| `GHCR_TOKEN` | PAT with `read:packages` + `write:packages` | Used on server to pull images |
+| Secret            | Value                                       | Notes                         |
+| ----------------- | ------------------------------------------- | ----------------------------- |
+| `HETZNER_HOST`    | Server IP                                   |                               |
+| `HETZNER_SSH_KEY` | Private key for `deploy` user               |                               |
+| `GHCR_TOKEN`      | PAT with `read:packages` + `write:packages` | Used on server to pull images |
 
 ### Repository
 
@@ -171,6 +171,7 @@ DEPLOY_SHA=latest
 ```
 
 Generate secrets:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
@@ -187,6 +188,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ### Certificates
 
 Initial issuance (stop gateway first, or use DNS challenge):
+
 ```bash
 certbot certonly --standalone \
   -d adoptdontshop.com -d www.adoptdontshop.com \

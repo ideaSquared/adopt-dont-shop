@@ -54,6 +54,7 @@ committed to a branch, built, and pushed by `docker.yml` as
 want to wait for a full-stack build at that SHA.
 
 1. Confirm the hotfix image exists in GHCR:
+
    ```
    docker buildx imagetools inspect \
      ghcr.io/ideasquared/adopt-dont-shop/service-auth:<hotfix-sha>
@@ -64,6 +65,7 @@ want to wait for a full-stack build at that SHA.
    - **tag_overrides:** `SERVICE_AUTH_TAG=<hotfix-sha>`
 
    Via CLI:
+
    ```bash
    gh workflow run deploy.yml \
      -f environment=production \
@@ -87,6 +89,7 @@ want to wait for a full-stack build at that SHA.
 previous known-good SHA.
 
 Find the previous SHA from:
+
 - `.last_sha` on the deploy host (`cat /opt/ads/production/.last_sha`)
 - The workflow run log for the last successful deploy
 - `git log --oneline main` — the SHA tag matches the git commit SHA
@@ -139,22 +142,22 @@ for detailed recovery paths.
 
 ## Available per-service tag variables
 
-| Variable | Compose service | Internal port |
-|---|---|---|
-| `SERVICE_GATEWAY_TAG` | `service-gateway` | 4000 |
-| `SERVICE_AUTH_TAG` | `service-auth` | 5002 |
-| `SERVICE_NOTIFICATIONS_TAG` | `service-notifications` | 5001 |
-| `SERVICE_PETS_TAG` | `service-pets` | 5003 |
-| `SERVICE_RESCUE_TAG` | `service-rescue` | 5004 |
-| `SERVICE_APPLICATIONS_TAG` | `service-applications` | 5005 |
-| `SERVICE_CHAT_TAG` | `service-chat` | 5006 |
-| `SERVICE_MODERATION_TAG` | `service-moderation` | 5007 |
-| `SERVICE_MATCHING_TAG` | `service-matching` | 5008 |
-| `SERVICE_AUDIT_TAG` | `service-audit` | 5009 |
-| `SERVICE_CMS_TAG` | `service-cms` | 5010 |
-| `APP_CLIENT_TAG` | `app-client` | 8080 |
-| `APP_ADMIN_TAG` | `app-admin` | 8080 |
-| `APP_RESCUE_TAG` | `app-rescue` | 8080 |
+| Variable                    | Compose service         | Internal port |
+| --------------------------- | ----------------------- | ------------- |
+| `SERVICE_GATEWAY_TAG`       | `service-gateway`       | 4000          |
+| `SERVICE_AUTH_TAG`          | `service-auth`          | 5002          |
+| `SERVICE_NOTIFICATIONS_TAG` | `service-notifications` | 5001          |
+| `SERVICE_PETS_TAG`          | `service-pets`          | 5003          |
+| `SERVICE_RESCUE_TAG`        | `service-rescue`        | 5004          |
+| `SERVICE_APPLICATIONS_TAG`  | `service-applications`  | 5005          |
+| `SERVICE_CHAT_TAG`          | `service-chat`          | 5006          |
+| `SERVICE_MODERATION_TAG`    | `service-moderation`    | 5007          |
+| `SERVICE_MATCHING_TAG`      | `service-matching`      | 5008          |
+| `SERVICE_AUDIT_TAG`         | `service-audit`         | 5009          |
+| `SERVICE_CMS_TAG`           | `service-cms`           | 5010          |
+| `APP_CLIENT_TAG`            | `app-client`            | 8080          |
+| `APP_ADMIN_TAG`             | `app-admin`             | 8080          |
+| `APP_RESCUE_TAG`            | `app-rescue`            | 8080          |
 
 Multiple overrides can be passed as a comma-separated list:
 

@@ -29,7 +29,7 @@ used unconditionally in production builds):
 
 `packages/lib.api/src/services/api-service.ts:184` has a comment claiming
 "Tokens are now stored in HttpOnly cookies — do not read from localStorage,"
-but this only describes the *fallback* path taken when no `getAuthToken` is
+but this only describes the _fallback_ path taken when no `getAuthToken` is
 configured. `lib.auth`'s constructor always configures it
 (`config.getAuthToken: () => this.getToken()`), so in every real app the
 fallback is dead code and the actual behaviour is Authorization-header
@@ -58,7 +58,7 @@ descriptive of runtime behaviour.
   frontend's CSRF fetch 404s today; the request interceptor swallows that
   failure and proceeds without the header (`api-service.ts:55-60`), and
   nothing server-side currently validates the header either. CSRF
-  protection is therefore *client stubbed, not implemented* — a second
+  protection is therefore _client stubbed, not implemented_ — a second
   prerequisite this ticket's "Proposed Fix" assumes is already done.
 - Access-token TTL is already reasonably short: 15 minutes
   (`services/auth/src/grpc/token-issuer.ts:26`, `ACCESS_TTL_SECONDS`).
@@ -82,7 +82,7 @@ server-side pieces from scratch, not wiring up something half-built.
    (`api-service.ts:65-72`) calls `config.getAuthToken()` (wired to
    `authService.getToken()`, i.e. `localStorage.getItem(ACCESS_TOKEN)`) and
    sets `Authorization: Bearer <token>` on every request. `credentials:
-   'include'` is already set on every `fetch` call
+'include'` is already set on every `fetch` call
    (`api-service.ts:388`) — this exists for CSRF-cookie delivery, not token
    delivery.
 3. **401 handling / refresh** — `ApiService.executeFetch` on a 401 calls a
@@ -109,22 +109,22 @@ server-side pieces from scratch, not wiring up something half-built.
 
 ## Blast radius — every consumer that needs to change
 
-| Layer | File(s) | Change required |
-|---|---|---|
-| Gateway | `services/gateway/src/routes/auth.ts` | Add `@fastify/cookie` plugin registration; set `Set-Cookie: accessToken=...; HttpOnly; Secure; SameSite=Lax; Path=/` (+ refresh cookie, likely `Path=/api/v1/auth/refresh-token` scoped) on login, refresh, register-post-verify, redeem-invitation; clear cookies on logout. |
-| Gateway | new route (e.g. `services/gateway/src/routes/csrf.ts`) | Build a real CSRF-token issuance + validation flow (double-submit cookie or synchronizer token) — does not exist today despite the client already speaking to it. |
-| Gateway | CORS / cookie config | `SameSite`, `Secure`, `Domain` need to be correct across the three app origins (client/rescue/admin) sharing one gateway — verify they're same-site or this breaks silently. |
-| `lib.auth` | `packages/lib.auth/src/services/auth-service.ts` | `getToken()` → return `null` always (or delete); `setTokens()` → no-op for tokens (keep `setUser`); `logout()`/`refreshToken()` stop reading `localStorage` for the refresh token — refresh must become a no-body `POST` relying on the cookie. |
-| `lib.auth` | `packages/lib.auth/src/contexts/AuthContext.tsx` | Remove/rework the dev-mock token-in-localStorage path (~9 call sites: lines ~98-449). |
-| `lib.auth` | `packages/lib.auth/src/types/auth.ts` | Drop `__dev_*` prefix per ticket; remove `ACCESS_TOKEN`/`REFRESH_TOKEN` from `STORAGE_KEYS` (or keep only `USER`). |
-| `lib.api` | `packages/lib.api/src/services/api-service.ts` | Remove the `getAuthToken`/`Authorization` header interceptor path entirely (or make it inert); rely solely on `credentials: 'include'`. Refresh handler must stop passing a `refreshToken` body. |
-| `apps/rescue` | `src/services/libraryServices.ts` (chat Socket.IO wiring) | Stop sending `Authorization: Bearer <token>` on the WS handshake; rely on the cookie riding along on the upgrade request (this is the one place the existing `socket-server.ts` cookie-fallback code becomes load-bearing instead of dead). |
-| `apps/client` | equivalent `libraryServices.ts` | Same WS change. |
-| `apps/rescue` | `src/pages/Dashboard.tsx:48-51` | Direct `STORAGE_KEYS.ACCESS_TOKEN` read/remove needs updating or deleting (the key will no longer exist). |
-| `packages/lib.chat` | `src/services/chat-service.ts` | Confirm/adjust however it consumes the `headers.Authorization` callback from each app. |
-| All three apps | login/logout/refresh call sites, any component checking `isAuthenticated()`/`getToken()` | `isAuthenticated()` currently requires `!!this.getToken()` (`auth-service.ts:164-166`) — with `getToken()` always `null`, this must change to something else (e.g. a lightweight `/auth/me` probe or a non-HttpOnly "logged-in" marker cookie the JS *can* read, which is the standard pattern for this exact problem). |
-| Tests | `packages/lib.auth/src/__tests__/auth-service.test.ts`, `AuthContext.test.tsx`, and any MSW-based frontend tests asserting `localStorage` token state | All need rewriting to assert cookie-based behaviour instead (can't inspect httpOnly cookies from JS in tests either — needs supertest/playwright-level assertions server-side, and "absence of the token in JS" assertions client-side). |
-| E2E | Playwright suite (`/e2e`) | New spec per acceptance criteria: injected `<script>` cannot exfiltrate tokens; CSRF-missing mutation returns 403; refresh survives reload with no JS-visible token. |
+| Layer               | File(s)                                                                                                                                               | Change required                                                                                                                                                                                                                                                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gateway             | `services/gateway/src/routes/auth.ts`                                                                                                                 | Add `@fastify/cookie` plugin registration; set `Set-Cookie: accessToken=...; HttpOnly; Secure; SameSite=Lax; Path=/` (+ refresh cookie, likely `Path=/api/v1/auth/refresh-token` scoped) on login, refresh, register-post-verify, redeem-invitation; clear cookies on logout.                                           |
+| Gateway             | new route (e.g. `services/gateway/src/routes/csrf.ts`)                                                                                                | Build a real CSRF-token issuance + validation flow (double-submit cookie or synchronizer token) — does not exist today despite the client already speaking to it.                                                                                                                                                       |
+| Gateway             | CORS / cookie config                                                                                                                                  | `SameSite`, `Secure`, `Domain` need to be correct across the three app origins (client/rescue/admin) sharing one gateway — verify they're same-site or this breaks silently.                                                                                                                                            |
+| `lib.auth`          | `packages/lib.auth/src/services/auth-service.ts`                                                                                                      | `getToken()` → return `null` always (or delete); `setTokens()` → no-op for tokens (keep `setUser`); `logout()`/`refreshToken()` stop reading `localStorage` for the refresh token — refresh must become a no-body `POST` relying on the cookie.                                                                         |
+| `lib.auth`          | `packages/lib.auth/src/contexts/AuthContext.tsx`                                                                                                      | Remove/rework the dev-mock token-in-localStorage path (~9 call sites: lines ~98-449).                                                                                                                                                                                                                                   |
+| `lib.auth`          | `packages/lib.auth/src/types/auth.ts`                                                                                                                 | Drop `__dev_*` prefix per ticket; remove `ACCESS_TOKEN`/`REFRESH_TOKEN` from `STORAGE_KEYS` (or keep only `USER`).                                                                                                                                                                                                      |
+| `lib.api`           | `packages/lib.api/src/services/api-service.ts`                                                                                                        | Remove the `getAuthToken`/`Authorization` header interceptor path entirely (or make it inert); rely solely on `credentials: 'include'`. Refresh handler must stop passing a `refreshToken` body.                                                                                                                        |
+| `apps/rescue`       | `src/services/libraryServices.ts` (chat Socket.IO wiring)                                                                                             | Stop sending `Authorization: Bearer <token>` on the WS handshake; rely on the cookie riding along on the upgrade request (this is the one place the existing `socket-server.ts` cookie-fallback code becomes load-bearing instead of dead).                                                                             |
+| `apps/client`       | equivalent `libraryServices.ts`                                                                                                                       | Same WS change.                                                                                                                                                                                                                                                                                                         |
+| `apps/rescue`       | `src/pages/Dashboard.tsx:48-51`                                                                                                                       | Direct `STORAGE_KEYS.ACCESS_TOKEN` read/remove needs updating or deleting (the key will no longer exist).                                                                                                                                                                                                               |
+| `packages/lib.chat` | `src/services/chat-service.ts`                                                                                                                        | Confirm/adjust however it consumes the `headers.Authorization` callback from each app.                                                                                                                                                                                                                                  |
+| All three apps      | login/logout/refresh call sites, any component checking `isAuthenticated()`/`getToken()`                                                              | `isAuthenticated()` currently requires `!!this.getToken()` (`auth-service.ts:164-166`) — with `getToken()` always `null`, this must change to something else (e.g. a lightweight `/auth/me` probe or a non-HttpOnly "logged-in" marker cookie the JS _can_ read, which is the standard pattern for this exact problem). |
+| Tests               | `packages/lib.auth/src/__tests__/auth-service.test.ts`, `AuthContext.test.tsx`, and any MSW-based frontend tests asserting `localStorage` token state | All need rewriting to assert cookie-based behaviour instead (can't inspect httpOnly cookies from JS in tests either — needs supertest/playwright-level assertions server-side, and "absence of the token in JS" assertions client-side).                                                                                |
+| E2E                 | Playwright suite (`/e2e`)                                                                                                                             | New spec per acceptance criteria: injected `<script>` cannot exfiltrate tokens; CSRF-missing mutation returns 403; refresh survives reload with no JS-visible token.                                                                                                                                                    |
 
 This is **8+ files across 2 backend surfaces (gateway route logic +
 brand-new CSRF subsystem) and 3 frontend packages, touching all three
@@ -158,7 +158,7 @@ gateway's origin). The client already assumes a CSRF token exists
 ## Target design (high level)
 
 1. Gateway sets `accessToken` and `refreshToken` as `HttpOnly; Secure;
-   SameSite=Lax` cookies on `/auth/login`, `/auth/refresh-token`,
+SameSite=Lax` cookies on `/auth/login`, `/auth/refresh-token`,
    `/auth/register` (post-verify), `/auth/redeem-invitation`; clears them on
    `/auth/logout`. `refreshToken` cookie scoped to `Path=/api/v1/auth` to
    limit its blast radius if a non-auth endpoint is compromised.
@@ -197,7 +197,7 @@ gateway's origin). The client already assumes a CSRF token exists
    before any cookie-auth work starts. Ship and verify 403-on-missing/bad
    token in production traffic first.
 2. **Phase 1 — Gateway sets cookies alongside existing body tokens**: add
-   `Set-Cookie` on login/refresh/etc. *without* removing `tokens` from the
+   `Set-Cookie` on login/refresh/etc. _without_ removing `tokens` from the
    JSON body yet. Both mechanisms live side by side; no frontend change
    required yet. Verify cookies show up correctly (Secure/HttpOnly/SameSite,
    correct domain) across all three app origins in a staging environment.

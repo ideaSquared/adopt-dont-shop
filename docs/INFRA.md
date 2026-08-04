@@ -69,13 +69,13 @@ Key properties:
 > upload-serving surface now live in the gateway (`services/gateway`); the
 > nginx auth_request wiring below is unchanged.
 
-| File | Change |
-|------|--------|
-| `nginx/nginx.prod.conf` | Added `location /uploads/` with `auth_request /_auth_uploads`; added internal `/_auth_uploads` proxy location |
-| `service.backend/src/routes/upload-serve.routes.ts` | Added `GET /api/v1/uploads/authorize` — the auth subrequest endpoint (now in `services/gateway`) |
-| `service.backend/src/config/index.ts` | Added `serveLocalUploads` flag (reads `SERVE_LOCAL_UPLOADS` env var) |
-| `service.backend/src/index.ts` | Routes the `/authorize` endpoint unconditionally; gates file streaming on `serveLocalUploads` |
-| `docker-compose.prod.yml` | Shares `uploads` volume with nginx (`ro`); sets `SERVE_LOCAL_UPLOADS=false` |
+| File                                                | Change                                                                                                        |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `nginx/nginx.prod.conf`                             | Added `location /uploads/` with `auth_request /_auth_uploads`; added internal `/_auth_uploads` proxy location |
+| `service.backend/src/routes/upload-serve.routes.ts` | Added `GET /api/v1/uploads/authorize` — the auth subrequest endpoint (now in `services/gateway`)              |
+| `service.backend/src/config/index.ts`               | Added `serveLocalUploads` flag (reads `SERVE_LOCAL_UPLOADS` env var)                                          |
+| `service.backend/src/index.ts`                      | Routes the `/authorize` endpoint unconditionally; gates file streaming on `serveLocalUploads`                 |
+| `docker-compose.prod.yml`                           | Shares `uploads` volume with nginx (`ro`); sets `SERVE_LOCAL_UPLOADS=false`                                   |
 
 ### How to test locally (without Docker)
 

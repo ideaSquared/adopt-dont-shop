@@ -31,6 +31,7 @@ pnpm bootstrap
 ```
 
 That's it. `pnpm bootstrap` is the one-shot bootstrap and it will:
+
 1. Verify Node.js v22
 2. Create `.env` from `.env.example` (if missing)
 3. **Generate fresh JWT / session / encryption secrets straight into `.env`** (won't overwrite existing values)
@@ -77,13 +78,13 @@ pnpm dev:apps            # frontend apps only
 
 ### Access
 
-| App | URL | Purpose |
-| --- | --- | --- |
-| Client | http://localhost:3000 | Public adoption portal |
-| Admin | http://localhost:3001 | Internal management |
-| Rescue | http://localhost:3002 | Rescue organization portal |
-| API gateway | http://localhost:4000 | Fastify REST + WebSocket edge (health: `/health/simple`) |
-| Nginx proxy | http://localhost | Reverse proxy (subdomains: api, admin, rescue); `/api` + `/socket.io` route to the gateway |
+| App         | URL                   | Purpose                                                                                    |
+| ----------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| Client      | http://localhost:3000 | Public adoption portal                                                                     |
+| Admin       | http://localhost:3001 | Internal management                                                                        |
+| Rescue      | http://localhost:3002 | Rescue organization portal                                                                 |
+| API gateway | http://localhost:4000 | Fastify REST + WebSocket edge (health: `/health/simple`)                                   |
+| Nginx proxy | http://localhost      | Reverse proxy (subdomains: api, admin, rescue); `/api` + `/socket.io` route to the gateway |
 
 ## Project Structure
 
@@ -242,7 +243,7 @@ pnpm docker:dev:build         # rebuild images from scratch
 
 Common issues:
 
-- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5010 (services), 5432 (Postgres), 6380 (Redis — the dev override remaps the *host* port off 6379, which Windows frequently reserves; set `REDIS_HOST_PORT` in `.env` to change it), 4222/8222 (NATS) are free
+- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5010 (services), 5432 (Postgres), 6380 (Redis — the dev override remaps the _host_ port off 6379, which Windows frequently reserves; set `REDIS_HOST_PORT` in `.env` to change it), 4222/8222 (NATS) are free
 - **HMR not firing** — on macOS/Windows, verify `CHOKIDAR_USEPOLLING=true` is set in container env (`pnpm bootstrap` writes it per-host since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) — it is **not** set on Linux, which uses native inotify instead)
 - **Slow builds** — ensure BuildKit is on: `export DOCKER_BUILDKIT=1`
 

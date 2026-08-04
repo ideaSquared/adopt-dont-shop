@@ -52,8 +52,13 @@ Thumbs.db
 Dockerfile
 docker-compose.yml
 
-# Markdown files (optional)
-*.md
-
 # Scaffolding templates — contain {{PLACEHOLDER}} tokens that prettier can't parse
 scripts/templates/
+
+# Generated task index — scripts/generate-task-index.mjs emits unpadded Markdown
+# tables; Prettier pads table columns to align, which the generator doesn't
+# replicate, so formatting this file fights `pnpm tasks:write` on every
+# regeneration. docs/libraries/*-consumers.md and the marked sections in
+# docs/README.md / packages/lib.*/README.md don't have this problem (no
+# tables) and stay in scope for Prettier.
+docs/tasks.md

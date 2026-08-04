@@ -6,12 +6,12 @@ has its own RPO / RTO and backup mechanism.
 
 ## What gets backed up
 
-| Volume / Store        | Source                                 | Recovery class | Retention |
-|-----------------------|----------------------------------------|----------------|-----------|
-| `postgres_data`       | `database` service (Postgres 16+PostGIS) | Tier-1 (full)  | 30 days   |
-| `uploads`             | Shared user-uploads volume (gateway writes, per-stack nginx serves read-only) | Tier-1 (full)  | 90 days   |
-| `letsencrypt`         | nginx TLS state                        | Regenerable — no backup |  N/A     |
-| Application images    | GitHub Container Registry (GHCR)       | Immutable tags | indefinite (per-tag) |
+| Volume / Store     | Source                                                                        | Recovery class          | Retention            |
+| ------------------ | ----------------------------------------------------------------------------- | ----------------------- | -------------------- |
+| `postgres_data`    | `database` service (Postgres 16+PostGIS)                                      | Tier-1 (full)           | 30 days              |
+| `uploads`          | Shared user-uploads volume (gateway writes, per-stack nginx serves read-only) | Tier-1 (full)           | 90 days              |
+| `letsencrypt`      | nginx TLS state                                                               | Regenerable — no backup | N/A                  |
+| Application images | GitHub Container Registry (GHCR)                                              | Immutable tags          | indefinite (per-tag) |
 
 ## Postgres — `pg_dump` to S3
 

@@ -99,13 +99,11 @@ import { SplitPaneDetail } from '@adopt-dont-shop/lib.components';
 
 <SplitPaneDetail
   items={rescues}
-  getItemId={(r) => r.rescueId}
+  getItemId={r => r.rescueId}
   selectedId={selectedId}
   onSelect={setSelectedId}
-  renderListItem={(rescue, { isSelected }) => (
-    <RescueRow rescue={rescue} isSelected={isSelected} />
-  )}
-  renderDetail={(rescue) => <RescueDetail rescue={rescue} />}
+  renderListItem={(rescue, { isSelected }) => <RescueRow rescue={rescue} isSelected={isSelected} />}
+  renderDetail={rescue => <RescueDetail rescue={rescue} />}
   emptyDetail={<p>Select a rescue to view details.</p>}
   emptyList={<p>No rescues match your filters.</p>}
   data-testid='rescues-split-pane'

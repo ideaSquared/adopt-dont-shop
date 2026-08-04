@@ -54,7 +54,6 @@ test.describe('adoption application submission', () => {
         .count()
         .catch(() => 0);
       const storage = await page.evaluate(() => Object.keys(window.localStorage)).catch(() => null);
-      // eslint-disable-next-line no-console
       console.error(
         `\n===== APPLY CTA DIAGNOSTICS =====\n` +
           `url: ${page.url()}\n` +

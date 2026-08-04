@@ -31,16 +31,16 @@ Pinned versions:
 
 Surface area:
 
-| Layer | File count |
-| --- | --- |
-| Models | 66 |
-| Migrations | 10 (sequential `00`–`09`) |
-| Seeders | 53 |
-| Files importing `sequelize` | 120 |
-| `sequelize.query(...)` raw queries | 76 occurrences |
-| `sequelize.transaction()` blocks | 38 occurrences |
-| `Op.in/Op.like/Op.or/Op.and/...` uses | 138 occurrences |
-| `DataTypes.{JSON,JSONB,VIRTUAL,ENUM}` columns | 96 occurrences |
+| Layer                                         | File count                |
+| --------------------------------------------- | ------------------------- |
+| Models                                        | 66                        |
+| Migrations                                    | 10 (sequential `00`–`09`) |
+| Seeders                                       | 53                        |
+| Files importing `sequelize`                   | 120                       |
+| `sequelize.query(...)` raw queries            | 76 occurrences            |
+| `sequelize.transaction()` blocks              | 38 occurrences            |
+| `Op.in/Op.like/Op.or/Op.and/...` uses         | 138 occurrences           |
+| `DataTypes.{JSON,JSONB,VIRTUAL,ENUM}` columns | 96 occurrences            |
 
 Notably we do **not** use `sequelize-typescript` decorators (`@Table`,
 `@Column`) — `grep` for those returns zero. The dependency is dead weight
@@ -50,25 +50,26 @@ here).
 ## 2. Breaking changes
 
 References:
+
 - Sequelize 7 alpha changelog — <https://github.com/sequelize/sequelize/releases?q=v7&expanded=true>
 - Migration guide (in-progress) — <https://sequelize.org/docs/v7/other-topics/upgrade/>
 - Dialect-package split RFC — <https://github.com/sequelize/sequelize/issues/14393>
 
-| Change | Risk for us | Notes |
-| --- | --- | --- |
-| **Dialect packages split** — `pg` is no longer a peer-dep auto-pick; install `@sequelize/postgres` | **Medium** | Requires deps update + import-site change in DB init. |
-| **`Model.init(attrs, options)` static API replaced/augmented by decorator-based definition** | **Medium** | Existing `Model.init` calls keep working in 7.x but are deprecated. We have 66 model files using `Model.init`. |
-| **`DataTypes` import path** | Low | Still exported from main package; no change required. |
-| **`Op` symbols** | Low | Still exported; no change. |
-| **Raw query result shape** — `QueryTypes.SELECT` returns rows directly (already true in v6 with `type:`); typed via generics now | Low | We already pass `type: QueryTypes.SELECT` and use generics (`sequelize.query<CountResult>(...)`). |
-| **Transactions** — explicit `transaction.commit()` semantics tightened; managed transactions encouraged | Low | We use managed transactions (`sequelize.transaction(async (t) => {...})`). |
-| **Eager-loaded includes** — `nest: true` interactions with through-tables changed | Medium | Spot-check every `findAll({ include: [...] })` site. |
-| **`paranoid` model option** behaviour around forced deletes refined | Low | Limited use; verify per-model. |
-| **`getterMethods` / `setterMethods`** removed in favour of decorators / class get/set | Medium | Audit `model/*.ts` for any use; `grep -rE "getterMethods|setterMethods"` reports 0 — we are clean. |
-| **`@types/sequelize` is incompatible** | None | We can drop it — Sequelize 7 ships first-class types. |
-| **CLI** — `sequelize-cli` still works against v7 but is deprecated; the team recommends `umzug` directly | **Medium-long-term** | Decide whether to migrate migrations to umzug (separate ticket) or stay on `sequelize-cli` while it works. |
-| **`dialectOptions` shape** | Low | Verify our PG-specific `ssl` / `decimalNumbers` config still applies. |
-| **Hooks signatures** | Low | We use `beforeCreate` / `beforeUpdate` sparingly; verify each. |
+| Change                                                                                                                           | Risk for us          | Notes                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **Dialect packages split** — `pg` is no longer a peer-dep auto-pick; install `@sequelize/postgres`                               | **Medium**           | Requires deps update + import-site change in DB init.                                                          |
+| **`Model.init(attrs, options)` static API replaced/augmented by decorator-based definition**                                     | **Medium**           | Existing `Model.init` calls keep working in 7.x but are deprecated. We have 66 model files using `Model.init`. |
+| **`DataTypes` import path**                                                                                                      | Low                  | Still exported from main package; no change required.                                                          |
+| **`Op` symbols**                                                                                                                 | Low                  | Still exported; no change.                                                                                     |
+| **Raw query result shape** — `QueryTypes.SELECT` returns rows directly (already true in v6 with `type:`); typed via generics now | Low                  | We already pass `type: QueryTypes.SELECT` and use generics (`sequelize.query<CountResult>(...)`).              |
+| **Transactions** — explicit `transaction.commit()` semantics tightened; managed transactions encouraged                          | Low                  | We use managed transactions (`sequelize.transaction(async (t) => {...})`).                                     |
+| **Eager-loaded includes** — `nest: true` interactions with through-tables changed                                                | Medium               | Spot-check every `findAll({ include: [...] })` site.                                                           |
+| **`paranoid` model option** behaviour around forced deletes refined                                                              | Low                  | Limited use; verify per-model.                                                                                 |
+| **`getterMethods` / `setterMethods`** removed in favour of decorators / class get/set                                            | Medium               | Audit `model/*.ts` for any use; `grep -rE "getterMethods                                                       | setterMethods"` reports 0 — we are clean. |
+| **`@types/sequelize` is incompatible**                                                                                           | None                 | We can drop it — Sequelize 7 ships first-class types.                                                          |
+| **CLI** — `sequelize-cli` still works against v7 but is deprecated; the team recommends `umzug` directly                         | **Medium-long-term** | Decide whether to migrate migrations to umzug (separate ticket) or stay on `sequelize-cli` while it works.     |
+| **`dialectOptions` shape**                                                                                                       | Low                  | Verify our PG-specific `ssl` / `decimalNumbers` config still applies.                                          |
+| **Hooks signatures**                                                                                                             | Low                  | We use `beforeCreate` / `beforeUpdate` sparingly; verify each.                                                 |
 
 ## 3. Risk inventory
 
@@ -84,7 +85,7 @@ import { Sequelize } from 'sequelize';
 import { Sequelize } from '@sequelize/core';
 import { PostgresDialect } from '@sequelize/postgres';
 
-new Sequelize({ dialect: PostgresDialect, /* ... */ });
+new Sequelize({ dialect: PostgresDialect /* ... */ });
 ```
 
 Verify the actual init file in this repo before the upgrade
@@ -103,6 +104,7 @@ grep -rnE "sequelize\.query" service.backend/src
 ```
 
 These need:
+
 - Confirmed `type: QueryTypes.SELECT` (or appropriate) — typed result is the
   caller's responsibility in v7.
 - Re-typed generic where currently it's `<any>` (we should already be `any`-free

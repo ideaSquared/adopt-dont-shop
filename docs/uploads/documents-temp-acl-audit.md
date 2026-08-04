@@ -4,7 +4,7 @@ Follow-up to PR #415 (per-resource ACL for `/uploads/*`). The merged ACL helper
 treats `documents/*` and `temp/*` as "uploader OR admin only" because no
 owning-entity model with a staff relation was identified for those folders.
 
-This document inventories every code path that *writes* uploads — to determine
+This document inventories every code path that _writes_ uploads — to determine
 whether anything actually lands under `uploads/documents/*` or `uploads/temp/*`
 today, and what each writer's logical owner is, so the right ACL model can be
 chosen.
@@ -33,8 +33,8 @@ Two things in the codebase share the names `documents` and `temp` and they are
 
 The ACL helper (`service.backend/src/services/upload-acl.service.ts`) keys off
 the **URL prefix** (the disk directory), not `entity_type`. So the audit
-question is: *what production code paths cause a file to be placed under
-`uploads/documents/*` or `uploads/temp/*` at write time?*
+question is: _what production code paths cause a file to be placed under
+`uploads/documents/_`or`uploads/temp/_` at write time?_
 
 ---
 
@@ -45,10 +45,10 @@ question is: *what production code paths cause a file to be placed under
 There are exactly two production callers of `FileUploadService.uploadFile`
 (grep `FileUploadService.uploadFile` outside `__tests__/`):
 
-| File:line                                                                      | Caller / endpoint                              | uploadType (disk dir) | entity_type written | entity_id source           | Logical owner                | Recommended ACL                                        |
-| ------------------------------------------------------------------------------ | ---------------------------------------------- | --------------------- | ------------------- | -------------------------- | ---------------------------- | ------------------------------------------------------ |
-| `service.backend/src/controllers/application.controller.ts:680`                | `addDocument` — `POST /applications/:id/document` | `applications`        | `application`       | `req.params.applicationId` | The application              | Already covered (`applications/*` → owner / staff / admin) |
-| `service.backend/src/controllers/chat.controller.ts:1083`                      | chat attachment upload — `POST /chats/:id/attachments` | `chat`         | `chat`              | `req.params.conversationId`| The chat conversation        | Already covered (`chat/*` → participant / admin)        |
+| File:line                                                       | Caller / endpoint                                      | uploadType (disk dir) | entity_type written | entity_id source            | Logical owner         | Recommended ACL                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------ | --------------------- | ------------------- | --------------------------- | --------------------- | ---------------------------------------------------------- |
+| `service.backend/src/controllers/application.controller.ts:680` | `addDocument` — `POST /applications/:id/document`      | `applications`        | `application`       | `req.params.applicationId`  | The application       | Already covered (`applications/*` → owner / staff / admin) |
+| `service.backend/src/controllers/chat.controller.ts:1083`       | chat attachment upload — `POST /chats/:id/attachments` | `chat`                | `chat`              | `req.params.conversationId` | The chat conversation | Already covered (`chat/*` → participant / admin)           |
 
 **Both production write paths target `applications/` and `chat/` only.** Neither
 ever writes to `documents/*` or `temp/*`.
@@ -63,23 +63,23 @@ middlewares are exported (`petImageUpload`, `applicationDocumentUpload`,
 
 ### 2.3 Direct `FileUpload.create(...)` outside the service
 
-| File:line                                                                                  | Context                            | entity_type written | file_path written                                                                  | Reaches `documents/`? |
-| ------------------------------------------------------------------------------------------ | ---------------------------------- | ------------------- | ---------------------------------------------------------------------------------- | --------------------- |
-| `service.backend/src/seeders/20250111-file-uploads-seeder.ts:5-88`                         | dev seed (4 sample rows)           | `chat`, `pet`, `application` | `/uploads/chat/...`, `/uploads/pets/...`, `/uploads/applications/...`              | No                    |
-| `service.backend/src/seeders/18-emily-dog-conversation.ts:294`                             | demo conversation seed             | `chat`              | `uploads/chat/...`                                                                 | No                    |
-| `service.backend/src/seeders/19-emily-rabbit-conversation.ts:313`                          | demo conversation seed             | `chat`              | `uploads/chat/...`                                                                 | No                    |
-| `service.backend/src/seeders/fixtures/emily-conversation.ts:292`                           | demo conversation seed             | `chat`              | `uploads/chat/...`                                                                 | No                    |
-| `service.backend/src/seeders/fixtures/emily-conversation-2.ts:293`                         | demo conversation seed             | `chat`              | `uploads/chat/...`                                                                 | No                    |
-| `service.backend/src/seeders/fixtures/emily-attachment-test.ts:405`                        | demo conversation seed (8 attachments) | `chat`          | `uploads/chat/...`                                                                 | No                    |
+| File:line                                                           | Context                                | entity_type written          | file_path written                                                     | Reaches `documents/`? |
+| ------------------------------------------------------------------- | -------------------------------------- | ---------------------------- | --------------------------------------------------------------------- | --------------------- |
+| `service.backend/src/seeders/20250111-file-uploads-seeder.ts:5-88`  | dev seed (4 sample rows)               | `chat`, `pet`, `application` | `/uploads/chat/...`, `/uploads/pets/...`, `/uploads/applications/...` | No                    |
+| `service.backend/src/seeders/18-emily-dog-conversation.ts:294`      | demo conversation seed                 | `chat`                       | `uploads/chat/...`                                                    | No                    |
+| `service.backend/src/seeders/19-emily-rabbit-conversation.ts:313`   | demo conversation seed                 | `chat`                       | `uploads/chat/...`                                                    | No                    |
+| `service.backend/src/seeders/fixtures/emily-conversation.ts:292`    | demo conversation seed                 | `chat`                       | `uploads/chat/...`                                                    | No                    |
+| `service.backend/src/seeders/fixtures/emily-conversation-2.ts:293`  | demo conversation seed                 | `chat`                       | `uploads/chat/...`                                                    | No                    |
+| `service.backend/src/seeders/fixtures/emily-attachment-test.ts:405` | demo conversation seed (8 attachments) | `chat`                       | `uploads/chat/...`                                                    | No                    |
 
 **No seeder creates a `FileUpload` row whose `file_path`/`url` lives under
 `documents/*` or `temp/*`.**
 
 ### 2.4 String-only references to `/uploads/documents/*` (no `FileUpload` row)
 
-| File:line                                                       | Context                                                                                       | Logical owner       | Notes |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------- | ----- |
-| `service.backend/src/seeders/09-applications.ts:616`            | A document URL embedded in `Application.documents` JSON column (`file_url: '/uploads/documents/therapy_certification_doc-0.pdf'`) | The application     | **No matching `FileUpload` row is seeded** — this is dangling demo data. After PR #415, requesting that URL (as anyone) would: pass the auth gate → ACL helper looks up `FileUpload` by `stored_filename: 'therapy_certification_doc-0.pdf'` → not found → **404**. |
+| File:line                                            | Context                                                                                                                           | Logical owner   | Notes                                                                                                                                                                                                                                                               |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `service.backend/src/seeders/09-applications.ts:616` | A document URL embedded in `Application.documents` JSON column (`file_url: '/uploads/documents/therapy_certification_doc-0.pdf'`) | The application | **No matching `FileUpload` row is seeded** — this is dangling demo data. After PR #415, requesting that URL (as anyone) would: pass the auth gate → ACL helper looks up `FileUpload` by `stored_filename: 'therapy_certification_doc-0.pdf'` → not found → **404**. |
 
 The application document feature itself (production code path 2.1, row 1)
 writes to `applications/*`, not `documents/*`. Only this one stale seeder string
@@ -87,10 +87,10 @@ references the `documents/*` prefix in production source.
 
 ### 2.5 Test-only writes to `'documents'`
 
-| File:line                                                                | Context                                                                       |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| File:line                                                                | Context                                                                                                                                                                           |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `service.backend/src/__tests__/services/file-upload.service.test.ts:205` | unit test exercising "text/plain has no magic bytes" path; passes `'documents'` to `FileUploadService.uploadFile` with no `entityType`, no `entityId`. Filesystem ops are mocked. |
-| `service.backend/src/__tests__/services/file-upload.service.test.ts:226` | unit test exercising "text/csv has no magic bytes" path; same shape as above. |
+| `service.backend/src/__tests__/services/file-upload.service.test.ts:226` | unit test exercising "text/csv has no magic bytes" path; same shape as above.                                                                                                     |
 
 These never hit the real disk and don't create real DB rows; they only prove
 the service contract accepts the `'documents'` directory key.
@@ -102,9 +102,9 @@ the service contract accepts the `'documents'` directory key.
 defaults its `category` argument to `'documents'` (line 37) and whose
 `ensureUploadDirectory` creates `documents/` and `temp/` on disk (lines 23-24).
 
-| File:line                                                                       | Behaviour                                                                                                                                                                       |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `service.backend/src/services/storage/local-storage-provider.ts:33-72`          | Writes a buffer to `<uploadDir>/<category>/<uuid><ext>` (default category `'documents'`). **Does not insert a `FileUpload` row, does not record entity\_id/entity\_type, does no audit log.** |
+| File:line                                                              | Behaviour                                                                                                                                                                                   |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `service.backend/src/services/storage/local-storage-provider.ts:33-72` | Writes a buffer to `<uploadDir>/<category>/<uuid><ext>` (default category `'documents'`). **Does not insert a `FileUpload` row, does not record entity_id/entity_type, does no audit log.** |
 
 Grep `LocalStorageProvider|local-storage-provider` shows **zero importers**.
 Class is exported but never instantiated. It is the only code in the repo that
@@ -117,14 +117,14 @@ row → 404 by the helper's fail-closed rule).
 
 ## 3. Cross-reference: which `entity_type` writes to which prefix?
 
-| Prefix on disk         | `entity_type` values observed in writers                                                  |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| `pets/*`               | `pet` (seeder); production has no real writer beyond pre-configured `petImageUpload` middleware which does not yet appear at any route call site. |
-| `applications/*`       | `application` (production: `application.controller.ts:680`; seeder)                       |
-| `chat/*`               | `chat` (production: `chat.controller.ts:1083`; multiple seeders)                          |
-| `profiles/*`           | none observed in production controllers; pre-configured `profileImageUpload` middleware is exported but not wired to any route. |
-| `documents/*`          | **none** in production code. Only: tests with no `entityType`; one stale seeder string in `09-applications.ts:616`; the dead `LocalStorageProvider`. |
-| `temp/*`               | **none** in production code at all.                                                       |
+| Prefix on disk   | `entity_type` values observed in writers                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pets/*`         | `pet` (seeder); production has no real writer beyond pre-configured `petImageUpload` middleware which does not yet appear at any route call site.    |
+| `applications/*` | `application` (production: `application.controller.ts:680`; seeder)                                                                                  |
+| `chat/*`         | `chat` (production: `chat.controller.ts:1083`; multiple seeders)                                                                                     |
+| `profiles/*`     | none observed in production controllers; pre-configured `profileImageUpload` middleware is exported but not wired to any route.                      |
+| `documents/*`    | **none** in production code. Only: tests with no `entityType`; one stale seeder string in `09-applications.ts:616`; the dead `LocalStorageProvider`. |
+| `temp/*`         | **none** in production code at all.                                                                                                                  |
 
 There are **no cases of the same `entity_type` writing to multiple prefixes** in
 production. `application` only ever writes to `applications/*`, `chat` only ever
@@ -148,16 +148,16 @@ from it.
 ## 5. Recommended ACL model per write site
 
 Because **no production writer targets `documents/*` or `temp/*`**, the ACL
-posture for those prefixes is governed by what *might* land there in the
+posture for those prefixes is governed by what _might_ land there in the
 future, not by what does today. With that in mind:
 
-| Write site                                                            | Recommendation                                                                  | Rationale                                                                                                                                                                                                                                                |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `application.controller.ts:680` (writes `applications/*`, `entity_type=application`) | Keep as-is — `applications/*` ACL already correct.                              | Already routed through PR #415's owner-or-staff-or-admin check.                                                                                                                                                                                          |
-| `chat.controller.ts:1083` (writes `chat/*`, `entity_type=chat`)       | Keep as-is — `chat/*` ACL already correct.                                      | Already routed through PR #415's participant-or-admin check.                                                                                                                                                                                              |
-| Stale seeder string `09-applications.ts:616` (`/uploads/documents/therapy_certification_doc-0.pdf`) | Move to `applications/*` (rename the path string in the seeder's JSON). | The owning entity is the application this `documents` array is on. Re-categorising the path (and ideally seeding a real `FileUpload` row with `entity_type=application` and `entity_id=<that application>`) would put it under the existing applications ACL. Today the URL 404s for everyone via the helper, so this is a correctness fix, not a security regression. |
-| `LocalStorageProvider` (dead, currently unreferenced)                 | No ACL change. Either delete (if confirmed dead) or, before any caller is wired up, decide whether it should write through `FileUploadService` so that uploads gain a `FileUpload` row + entity link. | It bypasses the audit/DB-row pipeline entirely. Writing files without a `FileUpload` row makes them un-authorisable by the current ACL helper (which fails closed → 404). So any future use must either (a) reuse `FileUploadService.uploadFile` and target an existing `entity_type`, or (b) add a per-record ACL column.   |
-| Unit tests at `file-upload.service.test.ts:205,226`                   | Keep as-is or change `'documents'` → `'pets'`/`'applications'` for clarity.     | Tests just exercise the magic-byte path; the chosen directory is incidental. Not an ACL question.                                                                                                                                                        |
+| Write site                                                                                          | Recommendation                                                                                                                                                                                        | Rationale                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `application.controller.ts:680` (writes `applications/*`, `entity_type=application`)                | Keep as-is — `applications/*` ACL already correct.                                                                                                                                                    | Already routed through PR #415's owner-or-staff-or-admin check.                                                                                                                                                                                                                                                                                                        |
+| `chat.controller.ts:1083` (writes `chat/*`, `entity_type=chat`)                                     | Keep as-is — `chat/*` ACL already correct.                                                                                                                                                            | Already routed through PR #415's participant-or-admin check.                                                                                                                                                                                                                                                                                                           |
+| Stale seeder string `09-applications.ts:616` (`/uploads/documents/therapy_certification_doc-0.pdf`) | Move to `applications/*` (rename the path string in the seeder's JSON).                                                                                                                               | The owning entity is the application this `documents` array is on. Re-categorising the path (and ideally seeding a real `FileUpload` row with `entity_type=application` and `entity_id=<that application>`) would put it under the existing applications ACL. Today the URL 404s for everyone via the helper, so this is a correctness fix, not a security regression. |
+| `LocalStorageProvider` (dead, currently unreferenced)                                               | No ACL change. Either delete (if confirmed dead) or, before any caller is wired up, decide whether it should write through `FileUploadService` so that uploads gain a `FileUpload` row + entity link. | It bypasses the audit/DB-row pipeline entirely. Writing files without a `FileUpload` row makes them un-authorisable by the current ACL helper (which fails closed → 404). So any future use must either (a) reuse `FileUploadService.uploadFile` and target an existing `entity_type`, or (b) add a per-record ACL column.                                             |
+| Unit tests at `file-upload.service.test.ts:205,226`                                                 | Keep as-is or change `'documents'` → `'pets'`/`'applications'` for clarity.                                                                                                                           | Tests just exercise the magic-byte path; the chosen directory is incidental. Not an ACL question.                                                                                                                                                                                                                                                                      |
 
 **Summary by recommendation category** (counting the production-relevant write
 sites listed in §2.1, §2.4, §2.6):
@@ -252,5 +252,5 @@ producing files there, this audit needs to be re-run.
   `documents/*` without an entity link. Recommend deciding its fate before any
   ACL changes.
 - The "uploader-or-admin" fallback for `documents/*` and `temp/*` is safe
-  *because nothing real lives there today*. No migration needed; revisit when a
+  _because nothing real lives there today_. No migration needed; revisit when a
   real writer is added.
