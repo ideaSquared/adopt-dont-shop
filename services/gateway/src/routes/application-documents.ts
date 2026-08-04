@@ -141,9 +141,11 @@ export const registerApplicationDocumentsRoutes = async (
       }
 
       // ADS-1034: fail closed rather than persist a document with no way to
-      // ever mint a usable URL for it.
+      // ever mint a usable URL for it. An empty/whitespace-only secret must
+      // also be rejected — signing with it would produce forgeable
+      // signatures, matching uploads.ts's `if (!opts.signingSecret)` guard.
       const { signingSecret } = opts;
-      if (signingSecret === undefined) {
+      if (!signingSecret || signingSecret.trim() === '') {
         return reply.code(503).send({ error: 'Signed document URLs not configured' });
       }
 
@@ -256,9 +258,10 @@ export const registerApplicationDocumentsRoutes = async (
     },
     async (req, reply) => {
       // ADS-1034: without a signing secret there is no safe URL to hand
-      // back for a private-category document — fail closed.
+      // back for a private-category document — fail closed. An empty/
+      // whitespace-only secret is rejected too (see the POST handler above).
       const { signingSecret } = opts;
-      if (signingSecret === undefined) {
+      if (!signingSecret || signingSecret.trim() === '') {
         return reply.code(503).send({ error: 'Signed document URLs not configured' });
       }
 

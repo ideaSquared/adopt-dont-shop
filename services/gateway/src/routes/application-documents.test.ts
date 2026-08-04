@@ -167,6 +167,31 @@ describe('application document routes', () => {
     await unsignedApp.close();
   });
 
+  it('POST → 503 when signingSecret is an empty string (never mints a forgeable signature)', async () => {
+    const { client: emptySecretClient, mocks: emptySecretMocks } = makeClient();
+    const emptySecretApp = Fastify({ logger: false });
+    const { default: multipart } = await import('@fastify/multipart');
+    await emptySecretApp.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
+    await registerApplicationDocumentsRoutes(emptySecretApp, {
+      client: emptySecretClient,
+      storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+      signingSecret: '',
+    });
+
+    const boundary = 'b-empty-secret';
+    const body = multipartBody(boundary, Buffer.from('%PDF-1.4'), 'x.pdf', 'id_verification');
+    const res = await emptySecretApp.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(503);
+    expect(emptySecretMocks.addDocument).not.toHaveBeenCalled();
+    await emptySecretApp.close();
+  });
+
   it('POST → 400 when the file part is missing', async () => {
     const boundary = 'b2';
     const body = Buffer.from(
@@ -247,6 +272,25 @@ describe('application document routes', () => {
     });
     expect(res.statusCode).toBe(503);
     await unsignedApp.close();
+  });
+
+  it('GET /:id/documents → 503 when signingSecret is an empty string (never mints a forgeable signature)', async () => {
+    const { client: emptySecretClient, mocks: emptySecretMocks } = makeClient();
+    emptySecretMocks.listDocuments.mockResolvedValue({ documents: [DOC] });
+    const emptySecretApp = Fastify({ logger: false });
+    await registerApplicationDocumentsRoutes(emptySecretApp, {
+      client: emptySecretClient,
+      storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+      signingSecret: '',
+    });
+
+    const res = await emptySecretApp.inject({
+      method: 'GET',
+      url: '/api/v1/applications/app-1/documents',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(503);
+    await emptySecretApp.close();
   });
 
   it('DELETE /:id/documents/:docId → 204', async () => {
