@@ -312,157 +312,180 @@ type User = {
 
 ---
 
-## Backend Patterns (Express + Sequelize)
+## Backend Patterns (Fastify gateway + gRPC microservices)
 
-### Architecture: Controllers → Services → Models
+### Architecture: Gateway routes → gRPC handlers → DB
 
 ```
-Request → Controller → Service → Model → Database
-                    ↓
-                Response
+HTTP request
+  → services/gateway      (Fastify plugin under src/routes/*.ts)
+    → grpc-client         (services/gateway/src/grpc-clients/*-client.ts)
+      → services/<name>   (gRPC handler in src/grpc/*-handlers.ts)
+        → pg.Pool         (raw SQL — no ORM)
+HTTP response
 ```
 
-**Controllers** (`src/controllers/`):
+The gateway is the only HTTP edge. Every microservice (`auth`, `pets`, `applications`, `rescue`, `chat`, `notifications`, `moderation`, `matching`, `cms`, `audit`) speaks gRPC inbound and owns its own Postgres schema via `@adopt-dont-shop/db` (a thin `pg.Pool` wrapper). There is no Sequelize, no ORM, and no `models/` directory.
 
-- Handle HTTP request/response
-- Validate input using express-validator
-- Call service layer methods
-- Return appropriate HTTP status codes
-- NO business logic
+**Gateway routes** (`services/gateway/src/routes/*.ts`):
 
-**Services** (`src/services/`):
+- Fastify plugins, one file per `/api/v1/<domain>` surface (`auth.ts`, `pets.ts`, …)
+- Validate request bodies with explicit Zod / TS-typed shapes
+- Build gRPC metadata via `buildMetadata(req)` (auth headers, request ID)
+- Translate gRPC errors via `handleGrpcError(reply, err)` so clients get the right HTTP status
+- NO business logic — just REST → gRPC translation, rate-limiting, and OpenAPI schema
 
-- Contain all business logic
-- Pure, testable functions
-- Handle data transformations
-- Orchestrate model interactions
-- Throw errors, let middleware handle HTTP responses
+**gRPC handlers** (`services/<name>/src/grpc/*-handlers.ts`):
 
-**Models** (`src/models/`):
+- Pure async functions: `(deps, principal, request) → Promise<response>`
+- `deps` carries the `pg.Pool` and any injected seams (password hasher, token issuer, …) so tests stay fast (no real bcrypt rounds, no JWT lib calls)
+- `principal` (`@adopt-dont-shop/authz.Principal`) is forwarded from the gateway; `requirePermission(principal, PERM)` is the gate
+- State-changing handlers run DB writes + NATS events inside `withTransaction(deps, async ({ client, publish }) => { … })` from `@adopt-dont-shop/events` so events only fire on commit (publish-after-commit)
+- The `adapter.ts` per service wraps these pure handlers in the grpc-js `(call, callback)` signature and maps `HandlerError` codes to `grpc.status.*`
 
-- Define database schema using Sequelize
-- Use TypeScript enums for status/type fields
-- Define associations
-- Add model-level validations
-- Use hooks (beforeCreate, beforeUpdate) sparingly
+**Persistence** (`services/<name>/src/`):
 
-### Controller Pattern
+- Schema lives in `migrations/NNN_*.ts` (3-digit prefix, snake_case) and runs through `node-pg-migrate` via `db:migrate`
+- Each service owns ONE Postgres schema (`auth`, `pets`, …); the connection's `search_path` is set to `<schema>, public` (so PostGIS in `public` resolves)
+- Cross-schema FKs are deliberately omitted — they're application-side per the schema-per-service rule
+- Reads/writes are raw parameterised SQL through `deps.pool` / `client`
+
+### Gateway route pattern (Fastify plugin)
 
 ```typescript
-// Good: Clean controller
-export class UserController {
-  static async getUser(req: Request, res: Response) {
+// services/gateway/src/routes/auth.ts (excerpt)
+import type { FastifyInstance } from 'fastify';
+import { type LoginRequest } from '@adopt-dont-shop/proto';
+
+import type { AuthClient } from '../grpc-clients/auth-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
+
+export async function authRoutes(app: FastifyInstance, { client }: { client: AuthClient }) {
+  app.post('/api/v1/auth/login', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
+    const body = req.body as { email?: string; password?: string };
+    if (!body.email || !body.password) {
+      return reply.code(400).send({ error: 'email and password are required' });
+    }
+
     try {
-      const userId = req.params.userId;
-      const user = await UserService.getUserById(userId);
-
-      return res.status(200).json({ data: user });
-    } catch (error) {
-      // Let error middleware handle this
-      throw error;
+      const res = await client.login(
+        { email: body.email, password: body.password } satisfies LoginRequest,
+        buildMetadata(req),
+      );
+      return reply.code(200).send(res);
+    } catch (err) {
+      return handleGrpcError(reply, err);
     }
-  }
+  });
 }
 ```
 
-### Service Pattern
+### gRPC handler pattern (pure function over deps)
 
 ```typescript
-// Good: Service with business logic
-export class UserService {
-  static async getUserById(userId: string): Promise<User> {
-    const user = await User.findByPk(userId);
+// services/<name>/src/grpc/handlers.ts (excerpt)
+import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
+export type HandlerDeps = WithTransactionDeps & {
+  // Any per-handler seams (password hasher, token issuer, clock, …)
+};
 
-    if (user.status === UserStatus.SUSPENDED) {
-      throw new ForbiddenError('User account is suspended');
-    }
-
-    return user;
+export class HandlerError extends Error {
+  constructor(
+    public readonly code:
+      | 'INVALID_ARGUMENT' | 'UNAUTHENTICATED' | 'PERMISSION_DENIED'
+      | 'NOT_FOUND' | 'ALREADY_EXISTS' | 'INTERNAL',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'HandlerError';
   }
+}
+
+export async function getUser(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: { userId: string },
+) {
+  requirePermission(principal, 'user.read');
+
+  const { rows } = await deps.pool.query<{ user_id: string; email: string; status: string }>(
+    `SELECT user_id, email, status FROM auth.users WHERE user_id = $1`,
+    [req.userId],
+  );
+  const user = rows[0];
+  if (!user) throw new HandlerError('NOT_FOUND', 'user not found');
+  if (user.status === 'suspended') throw new HandlerError('PERMISSION_DENIED', 'user is suspended');
+  return user;
 }
 ```
 
-### Sequelize Model Pattern
+State-changing handlers wrap the write + event in `withTransaction`:
 
 ```typescript
-// Good: Strongly typed model with enums
-export enum UserStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
-}
-
-interface UserAttributes {
-  userId: string;
-  email: string;
-  status: UserStatus;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-class User extends Model<UserAttributes> implements UserAttributes {
-  declare userId: string;
-  declare email: string;
-  declare status: UserStatus;
-  declare createdAt: Date;
-  declare updatedAt: Date;
-}
-
-User.init(
-  {
-    userId: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
+await withTransaction(deps, async ({ client, publish }) => {
+  await client.query(
+    `INSERT INTO pets.pets (pet_id, name, rescue_id) VALUES ($1, $2, $3)`,
+    [petId, payload.name, payload.rescueId],
+  );
+  publish({
+    type: 'pets.actionTaken',
+    id: `pets.created.${petId}`,
+    payload: {
+      service: 'service.pets',
+      aggregateType: 'pet',
+      aggregateId: petId,
+      action: 'create',
+      actorUserId: principal.userId,
     },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-      },
-    },
-    status: {
-      type: DataTypes.ENUM(...Object.values(UserStatus)),
-      defaultValue: UserStatus.ACTIVE,
-    },
-  },
-  { sequelize }
-);
+  });
+});
 ```
 
-### Database Migrations
+### Database migrations (node-pg-migrate)
 
-- Migrations in `services/<name>/src/migrations/` (each service owns and runs its own via node-pg-migrate)
-- Use sequential numbering: `01-create-users.ts`, `02-add-user-fields.ts`
-- NEVER modify existing migrations - create new ones
-- Test migrations up AND down
-- Include both `up` and `down` methods
-
-### Middleware Patterns
+- Migrations in `services/<name>/src/migrations/` (each service owns and runs its own)
+- 3-digit snake_case numbering: `001_create_users.ts`, `002_create_roles.ts`, …
+- Export `up` (and `down` when reversible) functions taking a `MigrationBuilder` from `node-pg-migrate`
+- NEVER modify existing migrations — create a new one
+- Run automatically on container start via the entrypoint; manually with `docker compose exec service-<name> pnpm db:migrate`
 
 ```typescript
-// Authentication middleware
-export const authenticate = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const token = extractToken(req);
-    const decoded = verifyToken(token);
-    req.user = await UserService.getUserById(decoded.userId);
-    next();
-  } catch (error) {
-    next(error);
-  }
+// services/<name>/src/migrations/001_create_users.ts
+import type { MigrationBuilder } from 'node-pg-migrate';
+
+export const up = async (pgm: MigrationBuilder): Promise<void> => {
+  pgm.sql('CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;');
+
+  pgm.createType('user_status', ['active', 'inactive', 'suspended']);
+
+  pgm.createTable('users', {
+    user_id: { type: 'uuid', primaryKey: true },
+    email: { type: 'citext', notNull: true, unique: true },
+    status: { type: 'user_status', notNull: true, default: 'active' },
+    created_at: { type: 'timestamptz', notNull: true, default: pgm.func('now()') },
+    updated_at: { type: 'timestamptz', notNull: true, default: pgm.func('now()') },
+  });
+
+  pgm.createIndex('users', ['email']);
+};
+
+export const down = async (pgm: MigrationBuilder): Promise<void> => {
+  pgm.dropTable('users');
+  pgm.dropType('user_status');
 };
 ```
+
+### Authentication / authorization
+
+- The gateway's `authenticate` Fastify hook verifies the JWT (or session) and stamps `x-user-*` metadata on the gRPC call
+- Service handlers receive the `Principal` already; never re-decode the JWT — `requirePermission(principal, PERMISSION)` is the gate
+- Permission constants are exported from `@adopt-dont-shop/lib.types` (`ADMIN_AUDIT_LOGS`, …)
+- Defence-in-depth: the gateway gates first; handlers MUST re-check, because the handler can't trust the metadata stamper
 
 ### Logging vs. Auditing — two layers
 
@@ -471,22 +494,38 @@ The backend separates **operational logs** (Layer 1) from **audit events** (Laye
 | | Layer 1 — `logger.*` | Layer 2 — audit |
 |---|---|---|
 | **Purpose** | Debugging, ops, "what happened" | Forensics, "who did what to what" |
-| **Storage** | console + files + Loki (when `LOKI_URL` set) | immutable `audit_logs` table + mirrored to Loki |
-| **How to emit** | `logger.info/warn/error(...)` or `loggerHelpers.log*` | one of the two paths below |
+| **Storage** | console + files + Loki (when `LOKI_URL` set) | immutable `audit.audit_events` table + Loki |
+| **How to emit** | `logger.info/warn/error(...)` via `@adopt-dont-shop/observability` | NATS `<domain>.actionTaken` event inside `withTransaction` |
 
-**Decision rule for emitting audit events — pick exactly ONE path per action:**
+**Audit events are produced by publishing a `<domain>.actionTaken` NATS event** from inside a `withTransaction` block (so the event only fires on commit — the publish-after-commit pattern that `@adopt-dont-shop/events.withTransaction` enforces). The `services/audit` service subscribes to the wildcard `*.actionTaken` subject and persists every event row in the `audit.audit_events` table (idempotent via the producer's NATS message id).
 
-- **Service runs inside a Sequelize transaction?** Call `AuditLogService.log({..., transaction: t})` explicitly inside the service so the audit row commits atomically with the business write. Pattern: `pet.service.ts:157`, `application.service.ts:524`, `invitation.service.ts`, `foster.service.ts`, `field-permission.service.ts`.
-- **Route-level CRUD with no service transaction?** Attach `auditRoute({...})` middleware to the route — it fires on `res.on('finish')` after a 2xx response. Pattern: `application-draft.routes.ts`, `cms.routes.ts`, `reports.routes.ts`.
-- **Background job / cron / event consumer?** Call `AuditLogService.log(...)` explicitly. No transaction needed.
+```typescript
+// In a state-changing handler
+await withTransaction(deps, async ({ client, publish }) => {
+  await client.query(
+    `UPDATE pets.pets SET name = $1, updated_at = now() WHERE pet_id = $2`,
+    [changes.name, petId],
+  );
+  publish({
+    type: 'pets.actionTaken',
+    id: `pets.updated.${petId}.${Date.now()}`,
+    payload: {
+      service: 'service.pets',
+      aggregateType: 'pet',
+      aggregateId: petId,
+      action: 'update',
+      actorUserId: principal.userId,
+      details: { before, after },  // ← for sensitive entities, capture deltas
+    },
+  });
+});
+```
 
-**Never combine both** on the same action. `auditRoute()` and `AuditLogService.log()` writing for the same handler produces duplicate rows and breaks transactional atomicity (the route-level audit fires *outside* the service transaction). If you're adding audit to a route whose service uses transactions, move the call into the service.
+The payload shape (`AuditEventPayload`) is documented in `services/audit/src/nats/event-types.ts`. Action names are lower-case domain verbs (`create`, `update`, `delete`, `submit`, `approve`, …).
 
-**For UPDATE operations on sensitive entities**, capture before/after deltas. Two options:
-1. Read the previous row inside the same transaction, then include `{ before, after }` in `details` (see `field-permission.service.ts upsert()`).
-2. (Legacy — the deleted monolith used `diffSequelize` from `service.backend` for this; the microservices read the previous row inside the transaction per option 1.)
+**For UPDATE operations on sensitive entities**, read the previous row inside the same transaction and include `{ before, after }` in `details` so the audit trail tells the full story. There is no longer a `diffSequelize` helper — services use raw SQL.
 
-**Never** log secrets or PII to Layer 1 without going through `loggerHelpers` — the redaction format only protects known fields. Audit-row metadata is also redacted by Winston, but treat it as durable storage.
+**Never** log secrets or PII to Layer 1 without going through the redaction helpers in `@adopt-dont-shop/observability`. Audit payloads are also redacted by the Winston pipeline, but the `audit.audit_events` row is durable storage — treat it accordingly.
 
 ---
 
@@ -668,22 +707,20 @@ export class ValidationError extends Error {
 
 ### API Error Handling
 
+The gateway centralises gRPC → HTTP mapping in `services/gateway/src/middleware/grpc-error.ts`. Every route calls `handleGrpcError(err, reply)` in its `catch`; the helper maps `grpc.status.*` to the right HTTP status and returns generic messages for 5xx (so internal stack fragments never leak) while forwarding the upstream text only for the client-facing 4xx codes on its allowlist:
+
 ```typescript
-// Backend: Centralized error middleware
-app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error('API Error', { error, path: req.path });
+import { handleGrpcError } from '../middleware/grpc-error.js';
 
-  if (error instanceof NotFoundError) {
-    return res.status(404).json({ error: error.message });
-  }
-
-  if (error instanceof ValidationError) {
-    return res.status(400).json({ error: error.message });
-  }
-
-  return res.status(500).json({ error: 'Internal server error' });
-});
+try {
+  const res = await client.getUser({ userId }, buildMetadata(req));
+  return reply.code(200).send(res);
+} catch (err) {
+  return handleGrpcError(err, reply);
+}
 ```
+
+Inside a gRPC handler, throw a `HandlerError` with one of the documented codes (`INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DENIED`, `NOT_FOUND`, `ALREADY_EXISTS`, `INTERNAL`) and let the adapter translate it into the matching `grpc.status.*` — the gateway will finish the mapping to HTTP.
 
 ### Frontend Error Handling
 
@@ -770,59 +807,23 @@ type PaginatedResponse<T> = {
 
 ## Database Patterns
 
-### Sequelize Migrations
+### Migrations
 
-```typescript
-// migrations/01-create-users.ts
-export default {
-  up: async (queryInterface: QueryInterface) => {
-    await queryInterface.createTable('users', {
-      userId: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
-      },
-      email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
-      createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-    });
+Migrations are covered in **Backend Patterns → Database migrations (node-pg-migrate)** above — the same `MigrationBuilder`-based pattern applies everywhere. Key rules:
 
-    await queryInterface.addIndex('users', ['email']);
-  },
+- Files live in `services/<name>/src/migrations/` with a 3-digit snake_case prefix (`001_create_users.ts`, `002_create_roles.ts`, …)
+- Never modify a shipped migration — add a new one
+- Include a `down` when the change is reversible
 
-  down: async (queryInterface: QueryInterface) => {
-    await queryInterface.dropTable('users');
-  },
-};
-```
+### Cross-schema relationships
 
-### Model Associations
-
-```typescript
-// Define associations after all models are loaded
-User.hasMany(Pet, { foreignKey: 'userId', as: 'pets' });
-Pet.belongsTo(User, { foreignKey: 'userId', as: 'owner' });
-
-User.belongsToMany(Role, { through: 'user_roles' });
-Role.belongsToMany(User, { through: 'user_roles' });
-```
+There are **no ORM-level associations and no cross-schema foreign keys**. Each service owns exactly one Postgres schema, and referential integrity between schemas is enforced application-side (the schema-per-service rule). Store the other aggregate's id as a UUID column, look the record up over gRPC when you need the row, and let the audit trail (via NATS `<domain>.actionTaken` events) tell the join story after the fact.
 
 ### Seeders
 
-- Seed/dev data lives with each service (see `services/*/src` and the e2e seed flow) — the monolith's `seeders/` directory no longer exists
-- Use for development and test data
-- Should be idempotent (safe to run multiple times)
-- Sequential numbering: `01-users.ts`, `02-pets.ts`
+- Seed / dev data lives with each service in `services/<name>/src/db/seed.ts` and runs via `pnpm --filter @adopt-dont-shop/service.<name> db:seed`
+- Seeders must be idempotent (safe to run more than once) — the e2e suite depends on that
+- The gateway-level `pnpm db:seed` script (`scripts/seed.mjs`) fans the per-service seeders out in one command
 
 ---
 
