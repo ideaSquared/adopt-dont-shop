@@ -148,7 +148,7 @@ pnpm audit --audit-level high
 pnpm test:e2e
 ```
 
-> The `test-services` CI job runs lint, `test:coverage`, and type-check for every `service.*` package. Coverage is collected for all of them, but only `services/chat` and `services/cms` currently declare real thresholds in their own `vitest.config.ts`; the rest inherit the shared baseline from `vitest.shared.config.ts`, which is 0% while `coverage-thresholds.json` is absent. Adding a threshold block to a service's `vitest.config.ts` is what makes its coverage gate.
+> The `test-services` CI job runs lint, `test:coverage`, and type-check for every `service.*` package. Every service declares its own coverage thresholds in its own `vitest.config.ts` (see "Coverage thresholds" below) — that's what makes its coverage gate; there is no shared fallback file.
 
 ### Full CI matrix (for reference)
 
@@ -213,13 +213,18 @@ This is a forward-looking rule (ADS-737); we are not bulk-moving existing tests.
 
 ### Coverage thresholds
 
-Since ADS-708, CI runs `test:coverage` (not plain `test`) across `app.*`, `lib.*`, the non-`lib.*` `packages/*`, and `services/*`, and enforces the thresholds declared in `vitest.shared.config.ts`. The baseline is **0%** (the shared config falls back to zero while `coverage-thresholds.json` is absent from the repo root) so existing PRs are not blocked — the infrastructure is in place so individual packages can ratchet upward incrementally (tracked in ADS-717). To raise the bar for a single package, override the inherited thresholds in that package's `vitest.config.ts`:
+CI runs `test:coverage` (not plain `test`) across `app.*`, `lib.*`, the
+non-`lib.*` `packages/*`, and `services/*`. Enforcement lives **per package**:
+every `packages/lib.*` and `services/*` package declares its own
+`test.coverage.thresholds` in its own `vitest.config.ts`, inheriting
+everything else from `vitest.shared.config.ts` (whose own default is 0% —
+a safety net, not a real floor). This is the only coverage-threshold
+mechanism in the repo (ADS-1004); there is no persisted root thresholds file.
 
 ```typescript
-import { mergeConfig } from 'vitest/config';
-import shared from '../vitest.shared.config';
+import { defineLibConfig } from '../../vitest.shared.config';
 
-export default mergeConfig(shared, {
+export default defineLibConfig({
   test: {
     coverage: {
       thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
@@ -228,41 +233,41 @@ export default mergeConfig(shared, {
 });
 ```
 
+`scripts/check-workspace-consistency.mjs` fails CI if any `packages/lib.*` or
+`services/*` package omits this block — a new package can't silently land
+at 0%. A package that genuinely can't be measured yet (e.g. pre-existing test
+failures) still declares the block explicitly, at 0, with a comment
+explaining why and linking the tracking ticket — that counts as "declared".
+
 #### Automated ratchet (ADS-796)
 
-The shared-config baseline is raised automatically by a ratchet instead of being
-edited by hand. `scripts/ratchet-coverage.mjs` reads a v8 coverage summary
-(`coverage/coverage-summary.json`, emitted by the vitest `json-summary` reporter)
-and persists the new floor to `coverage-thresholds.json` at the repo root:
+Thresholds are raised over time by a ratchet instead of being edited by hand
+to an arbitrary number. `scripts/ratchet-coverage.mjs` reads a package's v8
+coverage summary (`coverage/coverage-summary.json`, emitted by the vitest
+`json-summary` reporter) and the thresholds already declared in that
+package's own `vitest.config.ts`, then rewrites them in place:
 
 ```bash
-# raise the persisted baseline towards measured coverage (minus a 1% margin)
-pnpm run ratchet:coverage
+# raise packages/lib.api's declared thresholds towards measured coverage
+# (minus a 1% margin) — run test:coverage for the package first so
+# coverage/coverage-summary.json exists
+pnpm --filter @adopt-dont-shop/lib.api test:coverage
+pnpm run ratchet:coverage -- --package packages/lib.api
 
-# preview without writing the file
-pnpm run ratchet:coverage -- --dry-run
+# preview without writing vitest.config.ts
+pnpm run ratchet:coverage -- --package services/chat --dry-run
 ```
 
 The rule is one-directional and pure (unit-tested via `pnpm run test:scripts`):
 a threshold is **never lowered**, and is only raised when measured coverage
-clears the current floor by more than the safety margin. `vitest.shared.config.ts`
-reads `coverage-thresholds.json` when present and falls back to the historic 0%
-baseline when it is absent — so committing a populated file is what moves the
-floor off 0%.
+clears the current floor by more than the safety margin. The ratchet requires
+an existing `thresholds` block to raise — it errors if the package's
+`vitest.config.ts` doesn't declare one yet (add the initial block by hand
+first, per the example above).
 
-**Rollout:** the file is intentionally absent today (baseline stays 0%, CI
-unchanged). To switch it on, run coverage with the `json-summary` reporter, run
-`pnpm run ratchet:coverage`, and commit the generated `coverage-thresholds.json`.
-A scheduled/`main` CI job can then re-run the ratchet and open a follow-up PR.
-
-**Exemptions:** a package that cannot meet the shared floor sets a lower
-`thresholds` block in its own `vitest.config.ts` with a comment linking the
-tracking ticket. The override always wins over the shared baseline.
-
-**Cache invalidation (ADS-908):** `turbo.json` lists `coverage-thresholds.json`
-as an input for the `test` and `test:coverage` tasks, so committing a ratcheted
-threshold busts the Turbo cache for every package on the next run — a warm
-cache from before the bump can't hide a newly-failing threshold.
+**Exemptions:** a package that cannot meet a rising floor sets (or keeps) a
+lower `thresholds` block in its own `vitest.config.ts`, with a comment linking
+the tracking ticket. Nothing outside that file overrides it.
 
 ## Reporting bugs / proposing features
 

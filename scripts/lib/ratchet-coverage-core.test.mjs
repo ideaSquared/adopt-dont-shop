@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  extractThresholdsFromSource,
   measuredFromSummaryTotal,
   ratchetMetric,
   ratchetThresholds,
+  updateThresholdsInSource,
 } from './ratchet-coverage-core.mjs';
 
 describe('ratchetMetric', () => {
@@ -96,5 +98,99 @@ describe('measuredFromSummaryTotal', () => {
     const total = { lines: { pct: 80 }, statements: {} };
 
     expect(measuredFromSummaryTotal(total)).toEqual({ lines: 80 });
+  });
+});
+
+describe('extractThresholdsFromSource (ADS-1004)', () => {
+  it('reads every metric declared in a thresholds block', () => {
+    const source = [
+      "import { defineServiceConfig } from '../../vitest.shared.config';",
+      '',
+      'export default defineServiceConfig({',
+      '  test: {',
+      '    coverage: {',
+      '      thresholds: {',
+      '        statements: 91,',
+      '        branches: 95,',
+      '        functions: 89,',
+      '        lines: 91,',
+      '      },',
+      '    },',
+      '  },',
+      '});',
+      '',
+    ].join('\n');
+
+    expect(extractThresholdsFromSource(source)).toEqual({
+      statements: 91,
+      branches: 95,
+      functions: 89,
+      lines: 91,
+    });
+  });
+
+  it('reads decimal threshold values', () => {
+    const source = '        statements: 62.5,\n        branches: 41,\n';
+    expect(extractThresholdsFromSource(source)).toEqual({ statements: 62.5, branches: 41 });
+  });
+
+  it('omits metrics with no matching line rather than defaulting to 0', () => {
+    const source = 'export default defineServiceConfig();\n';
+    expect(extractThresholdsFromSource(source)).toEqual({});
+  });
+
+  it('is indifferent to indentation depth', () => {
+    const source = '          statements: 85,\n          branches: 72,\n';
+    expect(extractThresholdsFromSource(source)).toEqual({ statements: 85, branches: 72 });
+  });
+});
+
+describe('updateThresholdsInSource (ADS-1004)', () => {
+  it('rewrites declared threshold values while preserving surrounding source', () => {
+    const source = [
+      '      thresholds: {',
+      '        statements: 91,',
+      '        branches: 95,',
+      '        functions: 89,',
+      '        lines: 91,',
+      '      },',
+    ].join('\n');
+
+    const updated = updateThresholdsInSource(source, {
+      statements: 92,
+      branches: 96,
+      functions: 90,
+      lines: 92,
+    });
+
+    expect(updated).toBe(
+      [
+        '      thresholds: {',
+        '        statements: 92,',
+        '        branches: 96,',
+        '        functions: 90,',
+        '        lines: 92,',
+        '      },',
+      ].join('\n')
+    );
+  });
+
+  it('leaves a metric untouched when it is absent from the update', () => {
+    const source = '        statements: 91,\n        branches: 95,\n';
+    expect(updateThresholdsInSource(source, { statements: 92 })).toBe(
+      '        statements: 92,\n        branches: 95,\n'
+    );
+  });
+
+  it('is a no-op when no threshold line matches', () => {
+    const source = 'export default defineServiceConfig();\n';
+    expect(updateThresholdsInSource(source, { statements: 92 })).toBe(source);
+  });
+
+  it('round-trips with extractThresholdsFromSource', () => {
+    const source = '        statements: 80,\n        branches: 80,\n        functions: 80,\n        lines: 80,\n';
+    const next = { statements: 85, branches: 81, functions: 83, lines: 84 };
+    const updated = updateThresholdsInSource(source, next);
+    expect(extractThresholdsFromSource(updated)).toEqual(next);
   });
 });

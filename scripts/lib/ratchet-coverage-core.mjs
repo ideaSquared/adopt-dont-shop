@@ -1,10 +1,13 @@
 /**
- * Pure coverage-ratchet logic (ADS-796).
+ * Pure coverage-ratchet logic (ADS-796 / ADS-1004).
  *
  * Kept free of any filesystem / process access so it can be unit-tested as a
- * black box. The CLI wrapper in scripts/ratchet-coverage.mjs reads the v8
- * `coverage-summary.json` and the persisted `coverage-thresholds.json`, calls
- * the functions here, and writes the result back.
+ * black box. The CLI wrapper in scripts/ratchet-coverage.mjs reads a
+ * package's v8 `coverage-summary.json` and the thresholds already declared
+ * in that package's own `vitest.config.ts`, calls the functions here, and
+ * writes the raised thresholds back into that same file. There is no
+ * persisted root thresholds file — each `services/*` / `packages/lib.*`
+ * package's `vitest.config.ts` is the single source of truth for its floor.
  *
  * The ratchet rule is intentionally one-directional:
  *
@@ -74,4 +77,55 @@ export function measuredFromSummaryTotal(total) {
     }
     return { ...acc, [metric]: pct };
   }, {});
+}
+
+// Matches a `<metric>: <number>,` line inside a `thresholds: { ... }` block
+// in a vitest.config.ts source file, e.g. `        statements: 94,`.
+function thresholdLineRegExp(metric) {
+  return new RegExp(`^([ \\t]*${metric}:\\s*)-?\\d+(?:\\.\\d+)?(,?[ \\t]*)$`, 'm');
+}
+
+/**
+ * Read the coverage thresholds a package's `vitest.config.ts` source
+ * declares for itself (ADS-1004). Every workspace package's `vitest.config.ts`
+ * is the source of truth for its own floor — this scans the raw source text
+ * for `<metric>: <number>,` lines rather than executing the TypeScript, so
+ * it stays dependency-free and safe to run before `pnpm install`.
+ *
+ * @param {string} source Contents of a `vitest.config.ts` file.
+ * @returns {Record<string, number>} Metrics declared in `source`; a metric
+ *   with no matching line is omitted (not defaulted to 0), so callers can
+ *   distinguish "declared as 0" from "never declared".
+ */
+export function extractThresholdsFromSource(source) {
+  return COVERAGE_METRICS.reduce((acc, metric) => {
+    const match = source.match(thresholdLineRegExp(metric));
+    if (!match) {
+      return acc;
+    }
+    return { ...acc, [metric]: Number(match[0].match(/-?\d+(?:\.\d+)?/)[0]) };
+  }, {});
+}
+
+/**
+ * Rewrite the `<metric>: <number>,` threshold lines in a `vitest.config.ts`
+ * source to the given values, preserving everything else (comments,
+ * formatting, surrounding config) byte-for-byte. A metric with no matching
+ * line in `source` is left untouched — callers should first confirm the
+ * metric is declared (see `extractThresholdsFromSource`) before ratcheting.
+ *
+ * @param {string} source Contents of a `vitest.config.ts` file.
+ * @param {Record<string, number>} thresholds New value per metric.
+ * @returns {string} The updated source.
+ */
+export function updateThresholdsInSource(source, thresholds) {
+  return COVERAGE_METRICS.reduce((text, metric) => {
+    if (!(metric in thresholds)) {
+      return text;
+    }
+    return text.replace(
+      thresholdLineRegExp(metric),
+      (_line, prefix, suffix) => `${prefix}${thresholds[metric]}${suffix}`
+    );
+  }, source);
 }

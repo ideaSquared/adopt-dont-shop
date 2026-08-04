@@ -1,31 +1,40 @@
 #!/usr/bin/env node
 /**
- * Coverage threshold ratchet (ADS-796 / ADS-717).
+ * Coverage threshold ratchet (ADS-796 / ADS-1004).
  *
- * Reads a v8 `coverage-summary.json` (emit it with the vitest `json-summary`
- * reporter) and a persisted `coverage-thresholds.json`, raises each persisted
- * threshold towards the freshly measured coverage (minus a safety margin), and
- * writes the updated thresholds back. Thresholds are NEVER lowered, so a
- * coverage regression keeps CI red.
+ * Reads a package's v8 `coverage-summary.json` (emit it with the vitest
+ * `json-summary` reporter) and the coverage thresholds already declared in
+ * that package's own `vitest.config.ts`, raises each threshold towards the
+ * freshly measured coverage (minus a safety margin), and rewrites the
+ * thresholds back into that same `vitest.config.ts`. Thresholds are NEVER
+ * lowered, so a coverage regression keeps CI red.
  *
- * `vitest.shared.config.ts` reads `coverage-thresholds.json` when it exists and
- * falls back to the legacy 0% baseline when it does not — so adding this file
- * is what actually moves enforcement off 0%. See docs/testing.md for rollout.
+ * ADS-1004: each `services/*` / `packages/lib.*` package's `vitest.config.ts`
+ * is the single source of truth for its own coverage floor — there is no
+ * persisted root thresholds file. See CONTRIBUTING.md "Coverage thresholds"
+ * and docs/testing.md for the mechanism this ratchets.
  *
  * Usage:
- *   node scripts/ratchet-coverage.mjs [options]
+ *   node scripts/ratchet-coverage.mjs --package <path> [options]
  *
  * Options:
- *   --summary <path>     Coverage summary JSON (default: coverage/coverage-summary.json)
- *   --thresholds <path>  Persisted thresholds JSON (default: coverage-thresholds.json)
+ *   --package <path>     Package directory relative to the repo root
+ *                         (required), e.g. packages/lib.api or services/chat.
+ *   --summary <path>     Coverage summary JSON, relative to --package
+ *                         (default: coverage/coverage-summary.json)
  *   --margin <number>    Safety margin subtracted from measured % (default: 1)
- *   --dry-run            Print the result without writing the thresholds file
+ *   --dry-run            Print the result without writing vitest.config.ts
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
-import { measuredFromSummaryTotal, ratchetThresholds } from './lib/ratchet-coverage-core.mjs';
+import {
+  extractThresholdsFromSource,
+  measuredFromSummaryTotal,
+  ratchetThresholds,
+  updateThresholdsInSource,
+} from './lib/ratchet-coverage-core.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -37,12 +46,12 @@ function parseArgs(argv) {
       args.dryRun = true;
       continue;
     }
-    if (arg === '--summary') {
-      args.summary = argv[(i += 1)];
+    if (arg === '--package') {
+      args.package = argv[(i += 1)];
       continue;
     }
-    if (arg === '--thresholds') {
-      args.thresholds = argv[(i += 1)];
+    if (arg === '--summary') {
+      args.summary = argv[(i += 1)];
       continue;
     }
     if (arg === '--margin') {
@@ -59,24 +68,50 @@ function readJson(path) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const summaryPath = resolve(ROOT, args.summary ?? 'coverage/coverage-summary.json');
-  const thresholdsPath = resolve(ROOT, args.thresholds ?? 'coverage-thresholds.json');
+
+  if (!args.package) {
+    console.error(
+      'Usage: node scripts/ratchet-coverage.mjs --package <path> [--summary <path>] [--margin <n>] [--dry-run]'
+    );
+    console.error('Example: node scripts/ratchet-coverage.mjs --package packages/lib.api');
+    process.exit(1);
+  }
+
+  const packageDir = resolve(ROOT, args.package);
+  const summaryPath = resolve(packageDir, args.summary ?? 'coverage/coverage-summary.json');
+  const configPath = join(packageDir, 'vitest.config.ts');
 
   if (!existsSync(summaryPath)) {
     console.error(`No coverage summary found at ${summaryPath}.`);
-    console.error('Run coverage with the vitest "json-summary" reporter first.');
+    console.error('Run "test:coverage" for this package with the vitest "json-summary" reporter first.');
+    process.exit(1);
+  }
+
+  if (!existsSync(configPath)) {
+    console.error(`No vitest.config.ts found at ${configPath}.`);
     process.exit(1);
   }
 
   const summary = readJson(summaryPath);
   const measured = measuredFromSummaryTotal(summary.total ?? {});
-  const current = existsSync(thresholdsPath) ? readJson(thresholdsPath) : {};
+  const source = readFileSync(configPath, 'utf8');
+  const current = extractThresholdsFromSource(source);
+
+  if (Object.keys(current).length === 0) {
+    console.error(`No coverage thresholds declared in ${configPath}.`);
+    console.error(
+      'The ratchet only raises an existing floor — add an initial `thresholds` block ' +
+        '(see CONTRIBUTING.md "Coverage thresholds") before ratcheting.'
+    );
+    process.exit(1);
+  }
 
   const next = ratchetThresholds(current, measured, args.margin);
 
   const changed = JSON.stringify(current) !== JSON.stringify(next);
   console.log('Coverage ratchet:');
-  console.log(`  measured:  ${JSON.stringify(measured)}`);
+  console.log(`  package:    ${args.package}`);
+  console.log(`  measured:   ${JSON.stringify(measured)}`);
   console.log(`  thresholds: ${JSON.stringify(next)}`);
 
   if (!changed) {
@@ -89,8 +124,8 @@ function main() {
     return;
   }
 
-  writeFileSync(thresholdsPath, `${JSON.stringify(next, null, 2)}\n`);
-  console.log(`Wrote ${thresholdsPath}`);
+  writeFileSync(configPath, updateThresholdsInSource(source, next));
+  console.log(`Updated ${configPath}`);
 }
 
 main();
