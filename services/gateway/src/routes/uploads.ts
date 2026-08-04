@@ -246,7 +246,8 @@ export const registerUploadsRoutes = async (
 // carried no valid principal, so the route must reject before touching
 // storage (ADS-1035).
 function principalUserId(req: FastifyRequest): string | null {
-  const raw = (req.headers as Record<string, string | string[] | undefined>)['x-user-id'];
+  const headers = req.headers as Record<string, string | string[] | undefined>;
+  const raw = headers['x-user-id'];
   return typeof raw === 'string' && raw.length > 0 ? raw : null;
 }
 
