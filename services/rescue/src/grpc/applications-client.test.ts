@@ -44,8 +44,8 @@ const makeServiceError = (code: number, details: string): ServiceError => {
 
 const COUNT_REQUEST: CountAdoptedAdoptersRequest = {
   adopterIds: ['usr-1', 'usr-2'],
-  createdAfter: '2026-07-01T10:00:00.000Z',
-  createdBefore: '2026-09-29T10:00:00.000Z',
+  actionedAfter: '2026-07-01T10:00:00.000Z',
+  actionedBefore: '2026-09-29T10:00:00.000Z',
 };
 
 const successResponse: CountAdoptedAdoptersResponse = { count: 2 };
