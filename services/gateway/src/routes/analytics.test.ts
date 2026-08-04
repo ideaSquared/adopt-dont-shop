@@ -203,3 +203,108 @@ describe('GET /api/v1/analytics/health', () => {
     }
   });
 });
+
+describe('analytics ingestion redaction + bounding (ADS-1038)', () => {
+  let app: FastifyInstance;
+  let logger: ReturnType<typeof makeLogger>;
+
+  beforeEach(async () => {
+    logger = makeLogger();
+    app = await buildApp(logger);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  const loggedData = (): Record<string, unknown> =>
+    (logger.infoMock.mock.calls[0][1] as { data: Record<string, unknown> }).data;
+
+  it('drops the query string (and its token) from the pageview path', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/analytics/pageviews',
+      headers: { 'content-type': 'application/json' },
+      payload: { path: '/reset-password?token=SECRET' },
+    });
+    expect(loggedData().path).toBe('/reset-password');
+    expect(JSON.stringify(logger.infoMock.mock.calls[0][1])).not.toContain('SECRET');
+  });
+
+  it('drops the query string (and its token) from the referrer', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/analytics/pageviews',
+      headers: { 'content-type': 'application/json' },
+      payload: { path: '/x', referrer: 'https://app.example/verify-email?token=SECRET' },
+    });
+    expect(loggedData().referrer).toBe('https://app.example/verify-email');
+    expect(JSON.stringify(logger.infoMock.mock.calls[0][1])).not.toContain('SECRET');
+  });
+
+  it('drops the URL fragment (and an OAuth-style token in it) from the referrer', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/analytics/pageviews',
+      headers: { 'content-type': 'application/json' },
+      payload: { path: '/x', referrer: 'https://app.example/cb#access_token=SECRET' },
+    });
+    expect(loggedData().referrer).toBe('https://app.example/cb');
+    expect(JSON.stringify(logger.infoMock.mock.calls[0][1])).not.toContain('SECRET');
+  });
+
+  it('redacts secret-keyed event properties by key', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/analytics/events',
+      headers: { 'content-type': 'application/json' },
+      payload: { event: 'signup', properties: { authToken: 'SECRET', page: 2 } },
+    });
+    const props = loggedData().properties as Record<string, unknown>;
+    expect(props.authToken).toBe('[REDACTED]');
+    expect(props.page).toBe(2);
+  });
+
+  it('truncates an oversized properties object instead of logging it whole', async () => {
+    const big = { blob: 'A'.repeat(5000) };
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/analytics/events',
+      headers: { 'content-type': 'application/json' },
+      payload: { event: 'x', properties: big },
+    });
+    const props = loggedData().properties as Record<string, unknown>;
+    expect(props._truncated).toBe(true);
+    expect(JSON.stringify(logger.infoMock.mock.calls[0][1])).not.toContain('AAAA');
+  });
+});
+
+describe('analytics ingestion per-route rate limit (ADS-1038)', () => {
+  it('rejects pageview floods from one IP once the per-route cap is exceeded', async () => {
+    const logger = makeLogger();
+    const app = Fastify({ logger: false });
+    const rateLimit = (await import('@fastify/rate-limit')).default;
+    await app.register(rateLimit, { global: true, max: 1000, timeWindow: '1 minute' });
+    await registerAnalyticsRoutes(app, { logger });
+    try {
+      const fire = () =>
+        app.inject({
+          method: 'POST',
+          url: '/api/v1/analytics/pageviews',
+          headers: { 'content-type': 'application/json' },
+          payload: { path: '/x' },
+        });
+      // The route override is 120/min; send just over it and assert a 429 appears.
+      let saw429 = false;
+      for (let i = 0; i < 130; i++) {
+        const res = await fire();
+        if (res.statusCode === 429) {
+          saw429 = true;
+          break;
+        }
+      }
+      expect(saw429).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+});
