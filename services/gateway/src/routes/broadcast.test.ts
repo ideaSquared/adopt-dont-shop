@@ -295,3 +295,30 @@ describe('GET /api/v1/notifications/broadcast/preview', () => {
     expect(broadcast).not.toHaveBeenCalled();
   });
 });
+
+describe('broadcast rate limiting (ADS-997)', () => {
+  it('caps the broadcast fan-out at 5/min and 429s once the ceiling is exceeded', async () => {
+    const app = Fastify({ logger: false });
+    const { client, broadcast } = makeClient();
+    broadcast.mockResolvedValue({ targeted: 0, delivered: 0, suppressed: 0, failed: 0 });
+    await registerBroadcastRoutes(app, { client });
+    try {
+      const fire = () =>
+        app.inject({
+          method: 'POST',
+          url: '/api/v1/notifications/broadcast',
+          headers: ADMIN_HEADERS,
+          payload: { cohort: {}, title: 't', message: 'm' },
+        });
+      const statuses: number[] = [];
+      for (let i = 0; i < 6; i += 1) {
+        statuses.push((await fire()).statusCode);
+      }
+      // The first 5 (the cap) pass; the 6th trips the per-route limit.
+      expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
+      expect(statuses[5]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+});

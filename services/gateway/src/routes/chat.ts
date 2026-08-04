@@ -10,6 +10,7 @@
 // `x-user-permissions` / `x-rescue-id` headers from the client become
 // the gRPC metadata the chat handlers' principal extractor reads.
 
+import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance } from 'fastify';
 
 import {
@@ -39,6 +40,22 @@ export type ChatRoutesOptions = {
 // prefixes via this list.
 const CHAT_PREFIXES = ['/api/v1/chats', '/api/v1/conversations'] as const;
 
+// Per-route rate limits (ADS-996). Before this the only cap on the chat
+// surface was the gateway-wide 100 req/min/IP limit — per-IP, so a rotating
+// proxy bypassed it, and far too loose for POST message flooding. Reads sit
+// at 120/min (same house sizing as moderation.ts); the chatty writes get
+// their own ceilings, and open-chat is tightened to curb chat-spam creation.
+// Registering @fastify/rate-limit with { global: false } below means a route
+// without a config.rateLimit block is UNcapped, so every route below sets one.
+const CHAT_RATE_LIMITS = {
+  read: { max: 120, timeWindow: '1 minute' },
+  openChat: { max: 10, timeWindow: '1 minute' },
+  sendMessage: { max: 60, timeWindow: '1 minute' },
+  markRead: { max: 60, timeWindow: '1 minute' },
+  react: { max: 30, timeWindow: '1 minute' },
+  delete: { max: 30, timeWindow: '1 minute' },
+} as const;
+
 // Envelope normalization: the proto Message carries its text under `body`
 // (the POST maps the SPA's `content` onto it). But the SPA chat client
 // (ChatContext) and the e2e helpers READ `content`, so without this the text
@@ -64,6 +81,8 @@ export const registerChatRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
+  await app.register(rateLimit, { global: false });
+
   for (const prefix of CHAT_PREFIXES) {
     registerChatRoutesForPrefix(app, client, prefix);
   }
@@ -74,6 +93,7 @@ export const registerChatRoutes = async (
   app.post<{ Params: { messageId: string } }>(
     '/api/v1/messages/:messageId/reactions',
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.react },
       schema: {
         tags: ['chat'],
         summary: 'Add or remove a reaction on a message',
@@ -120,6 +140,7 @@ const registerChatRoutesForPrefix = (
   app.get(
     prefix,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.read },
       schema: {
         tags: ['chat'],
         summary: 'List chats for the calling user',
@@ -163,6 +184,7 @@ const registerChatRoutesForPrefix = (
   app.post(
     prefix,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.openChat },
       schema: {
         tags: ['chat'],
         summary: 'Open or create a chat',
@@ -214,6 +236,7 @@ const registerChatRoutesForPrefix = (
   app.get(
     `${prefix}/search`,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.read },
       schema: {
         tags: ['chat'],
         summary: 'Search chats',
@@ -289,6 +312,7 @@ const registerChatRoutesForPrefix = (
   app.get<{ Params: { chatId: string } }>(
     `${prefix}/:chatId/unread-count`,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.read },
       schema: {
         tags: ['chat'],
         summary: 'Get unread message count for a chat',
@@ -330,6 +354,7 @@ const registerChatRoutesForPrefix = (
   app.get<{ Params: { chatId: string } }>(
     `${prefix}/:chatId`,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.read },
       schema: {
         tags: ['chat'],
         summary: 'Get a single chat by ID',
@@ -375,6 +400,7 @@ const registerChatRoutesForPrefix = (
   app.delete<{ Params: { chatId: string }; Body?: { reason?: string } }>(
     `${prefix}/:chatId`,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.delete },
       schema: {
         tags: ['chat'],
         summary: 'Delete (archive) a chat',
@@ -418,6 +444,7 @@ const registerChatRoutesForPrefix = (
   app.get<{ Params: { chatId: string } }>(
     `${prefix}/:chatId/messages`,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.read },
       schema: {
         tags: ['chat'],
         summary: 'List messages in a chat',
@@ -466,6 +493,7 @@ const registerChatRoutesForPrefix = (
   app.delete<{ Params: { chatId: string; messageId: string }; Body?: { reason?: string } }>(
     `${prefix}/:chatId/messages/:messageId`,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.delete },
       schema: {
         tags: ['chat'],
         summary: 'Delete a message',
@@ -509,6 +537,7 @@ const registerChatRoutesForPrefix = (
   app.post<{ Params: { chatId: string } }>(
     `${prefix}/:chatId/messages`,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.sendMessage },
       schema: {
         tags: ['chat'],
         summary: 'Send a message to a chat',
@@ -553,6 +582,7 @@ const registerChatRoutesForPrefix = (
   app.post<{ Params: { chatId: string } }>(
     `${prefix}/:chatId/read`,
     {
+      config: { rateLimit: CHAT_RATE_LIMITS.markRead },
       schema: {
         tags: ['chat'],
         summary: 'Mark messages in a chat as read',

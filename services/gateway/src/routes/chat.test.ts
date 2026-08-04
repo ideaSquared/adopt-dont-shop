@@ -872,3 +872,29 @@ describe('DELETE /api/v1/chats/:chatId', () => {
     expect(client.deleteChatMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('chat rate limiting (ADS-996)', () => {
+  it('caps open-chat at 10/min and 429s once the ceiling is exceeded', async () => {
+    const client = makeClient();
+    client.openChatMock.mockResolvedValue({ chat: CHAT_FIXTURE, created: false });
+    const app = await buildApp(client);
+    try {
+      const fire = () =>
+        app.inject({
+          method: 'POST',
+          url: '/api/v1/chats',
+          headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+          payload: { otherUserId: 'usr-2' },
+        });
+      const statuses: number[] = [];
+      for (let i = 0; i < 11; i += 1) {
+        statuses.push((await fire()).statusCode);
+      }
+      // The first 10 (the cap) pass; the 11th trips the per-route limit.
+      expect(statuses.slice(0, 10).every(s => s === 200)).toBe(true);
+      expect(statuses[10]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+});
