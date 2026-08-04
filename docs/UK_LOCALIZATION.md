@@ -23,7 +23,7 @@ Implemented: January 2025
 
 ### Location
 
-`lib.utils/src/locale/`
+`packages/lib.utils/src/locale/`
 
 ### Modules
 
@@ -197,7 +197,7 @@ postcode: {
 
 ### RescueProfileForm
 
-**Location:** `app.rescue/src/components/rescue/RescueProfileForm.tsx`
+**Location:** `apps/rescue/src/components/rescue/RescueProfileForm.tsx`
 
 **UK-Specific Changes:**
 
@@ -231,7 +231,7 @@ onChange={(e) => handleChange('address.postcode', e.target.value.toUpperCase())}
 
 ### AdoptionPolicyForm
 
-**Location:** `app.rescue/src/components/rescue/AdoptionPolicyForm.tsx`
+**Location:** `apps/rescue/src/components/rescue/AdoptionPolicyForm.tsx`
 
 **Currency Changes:**
 
@@ -532,9 +532,9 @@ postcode: {
 ## 11. Related Documentation
 
 - [Shared libraries index](./libraries/README.md)
-- [lib.utils README](../lib.utils/README.md)
+- [lib.utils README](../packages/lib.utils/README.md)
 - [Backend API endpoints](./backend/api-endpoints.md)
-- [lib.components README](../lib.components/README.md)
+- [lib.components README](../packages/lib.components/README.md)
 
 ---
 
@@ -543,7 +543,7 @@ postcode: {
 For questions or issues related to UK localization:
 
 1. Check this documentation
-2. Review the locale utilities source code in `lib.utils/src/locale/`
+2. Review the locale utilities source code in `packages/lib.utils/src/locale/`
 3. Test with the examples provided above
 
 ---

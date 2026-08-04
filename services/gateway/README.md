@@ -42,14 +42,21 @@ pnpm type-check   # TypeScript type-check
 
 The gateway exposes a REST + WebSocket surface (not a gRPC server) plus health
 and `/metrics`. Route groups under `/api/v1/*`: `auth` / `sessions` /
-`field-permissions` / `users` → auth; `notifications` / `devices` / `email` /
-`broadcast` → notifications; `pets` → pets; `rescue` / `rescues` / `staff` /
-`foster` / `invitations` → rescue; `applications` / `application-documents` →
-applications; `chats` → chat; `moderation` / `admin/moderation` / `support` →
-moderation; `matching` → matching; `audit` / `reports` → audit; `cms` → cms.
-Gateway-folded (in-process): `legal`, `config`, `analytics`, `dashboard`,
-`uploads`, and `users/me/erasure-request`. There is **no** catch-all monolith
-proxy — unowned `/api/*` paths return 404.
+`field-permissions` / `users` / `privacy` → auth; `notifications` / `devices` /
+`email` / `broadcast` → notifications; `pets` → pets; `rescue` / `rescues` /
+`staff` / `foster` / `invitations` / `events` → rescue; `applications` /
+`application-documents` / `profile` → applications; `chats` / `conversations` /
+`messages` → chat; `moderation` / `admin/moderation` / `support` → moderation;
+`matching` / `match` / `discovery` / `search` → matching; `audit` / `reports` →
+audit; `cms` → cms. Gateway-folded (in-process): `legal`, `config`,
+`analytics`, `dashboard`, `uploads`, `csrf-token`, and
+`users/me/erasure-request`. There is **no** catch-all monolith proxy — unowned
+`/api/*` paths return 404.
+
+`/api/v1/test/*` is a test-only one-time-token peek seam (ADS-871) that is
+**not registered** unless `E2E_TOKEN_PEEK=true`; `loadConfig()` throws at boot
+if that is set under `NODE_ENV=production`. See
+[`src/routes/test-token-peek.ts`](src/routes/test-token-peek.ts).
 
 **Socket.IO** terminates here; see [`src/ws/`](src/ws) for the handshake auth,
 origin allowlist, per-user connection cap, and pre-auth handshake rate limit.

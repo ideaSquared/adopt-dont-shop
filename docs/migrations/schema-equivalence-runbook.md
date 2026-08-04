@@ -36,7 +36,7 @@ The job:
 3. Bootstraps **DB-A** via `pnpm db:migrate` — runs every migration in `service.backend/src/migrations/` in order.
 4. Bootstraps **DB-B** via a one-shot inline `sequelize.sync()` invocation that loads `src/models/index.ts` and calls `sync()` once.
 5. Runs `pg_dump --schema-only --no-owner --no-privileges --exclude-table=SequelizeMeta` against both.
-6. Pipes both dumps through [`normalise-pg-dump.sh`](../../service.backend/scripts/normalise-pg-dump.sh) — strips comments, blank lines, `SET` directives, sorts statements, drops known asymmetries.
+6. Pipes both dumps through `service.backend/scripts/normalise-pg-dump.sh` (removed with the monolith) — strips comments, blank lines, `SET` directives, sorts statements, drops known asymmetries.
 7. `diff -u`s the normalised files. Empty diff → green. Non-empty → red.
 
 Both dumps and the diff are uploaded as the `schema-equivalence-artifacts` workflow artifact (14-day retention) so a developer can inspect drift offline without re-running CI.
@@ -60,7 +60,7 @@ The normaliser drops the following from both dumps so they don't surface as drif
 | Object                                                | Why it differs                                                                                                                                                                                                                  |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SequelizeMeta` table                                  | Created by `sequelize-cli` only. Present on DB-A, absent on DB-B. Already excluded at `pg_dump` time via `--exclude-table` and stripped again by the normaliser as belt-and-braces.                                              |
-| `audit_logs_immutable` trigger                        | Installed only by [migration 11](../../service.backend/src/migrations/11-add-audit-log-immutable-trigger.ts). DB-A has it, DB-B does not, until/unless the trigger DDL moves into a per-domain baseline or a `sync()`-equivalent hook. |
+| `audit_logs_immutable` trigger                        | Installed only by migration 11 (`service.backend/src/migrations/11-add-audit-log-immutable-trigger.ts`, removed with the monolith). DB-A has it, DB-B does not, until/unless the trigger DDL moves into a per-domain baseline or a `sync()`-equivalent hook. |
 | `audit_logs_reject_mutation` function                 | Same as above — created exclusively by migration 11.                                                                                                                                                                            |
 
 If the rebaseline scope expands to fold migration 11's trigger into a per-domain baseline (or a model-side `afterSync` hook), remove the corresponding entry from `normalise-pg-dump.sh`'s `asym` list so the gate covers it again.

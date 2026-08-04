@@ -46,7 +46,7 @@ Pass `--no-start` to skip the stack-start prompt (default when stdin is not a TT
 
 ### Speed up your builds (Turbo remote cache)
 
-Turbo caches every task (`build`, `test`, `lint`, `type-check`, `format`) so a clean checkout can replay work someone else already ran instead of rebuilding all ~24 packages (5–10 min cold vs <30 s warm). Opt into the **shared** cache once per checkout:
+Turbo caches every task (`build`, `test`, `lint`, `type-check`, `format`) so a clean checkout can replay work someone else already ran instead of rebuilding all ~47 buildable packages (5–10 min cold vs <30 s warm). Opt into the **shared** cache once per checkout:
 
 ```bash
 npx turbo login          # authenticate (opens a browser)
@@ -113,7 +113,7 @@ adopt-dont-shop/
 
 ## Common Commands
 
-The root `package.json` defines ~70 scripts. `pnpm commands` prints all of
+The root `package.json` defines ~80 scripts. `pnpm commands` prints all of
 them, grouped by category with a one-line description — the fastest way to
 discover a command you don't already know (`pnpm run tasks` / `docs/tasks.md`
 has the full command bodies and per-package scripts too).
@@ -141,7 +141,7 @@ pnpm ci:local:quick           # fast preflight (~30s): format + lint + type-chec
 pnpm ci:local                 # full preflight (~3-5min): everything CI runs
 
 # Database — each service migrates its own schema automatically on container
-# start (the entrypoint runs `pnpm db:migrate --if-present`). To migrate a
+# start (the entrypoint runs `pnpm run --if-present db:migrate`). To migrate a
 # single service by hand, exec into its container, e.g.:
 pnpm docker:shell:db          # psql into the shared database
 docker compose exec service-auth pnpm db:migrate
@@ -229,7 +229,7 @@ The full operator-side runbook (secret rotation, approval gates, migration recov
 - [docs/libraries/](./docs/libraries/) — per-library reference
 - [services/gateway/README.md](./services/gateway/README.md) — API gateway
 - [packages/lib.components/README.md](./packages/lib.components/README.md) — UI components
-- [Component library on Storybook](https://ideasquared.github.io/adopt-dont-shop/) — browse the deployed component catalogue (`pnpm storybook` to run it locally, see [packages/lib.components/README.md](./packages/lib.components/README.md#component-library--storybook))
+- [Component library on Storybook](https://ideasquared.github.io/adopt-dont-shop/) — browse the deployed component catalogue (`pnpm --filter @adopt-dont-shop/lib.components storybook` to run it locally on `:6006`, see [packages/lib.components/README.md](./packages/lib.components/README.md#scripts))
 
 ## Troubleshooting
 
@@ -242,7 +242,7 @@ pnpm docker:dev:build         # rebuild images from scratch
 
 Common issues:
 
-- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5010 (services), 5432 (Postgres), 6379 (Redis), 4222/8222 (NATS) are free
+- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5010 (services), 5432 (Postgres), 6380 (Redis — the dev override remaps the *host* port off 6379, which Windows frequently reserves; set `REDIS_HOST_PORT` in `.env` to change it), 4222/8222 (NATS) are free
 - **HMR not firing** — on macOS/Windows, verify `CHOKIDAR_USEPOLLING=true` is set in container env (`pnpm bootstrap` writes it per-host since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) — it is **not** set on Linux, which uses native inotify instead)
 - **Slow builds** — ensure BuildKit is on: `export DOCKER_BUILDKIT=1`
 

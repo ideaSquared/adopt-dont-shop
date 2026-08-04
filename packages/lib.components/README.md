@@ -58,7 +58,7 @@ Vitest + React Testing Library, co-located with each component
 (`*.test.tsx`). Storybook stories (`*.stories.tsx`) live next to the component;
 coverage is tracked in
 [ADS-956](https://linear.app/ideasquared/issue/ADS-956). See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific, and the `accessibility` guidance for component a11y.
 
 ## Ownership

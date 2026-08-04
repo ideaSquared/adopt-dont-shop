@@ -52,13 +52,15 @@ this is just the map. The `lib.*` references are also indexed from
 | [db](./db/README.md) | Postgres client + node-pg-migrate runner with PostGIS support. |
 | [observability](./observability/README.md) | Backend observability bootstrap — OpenTelemetry (OTLP/HTTP), Sentry, Winston (+ optional Loki), shared Prometheus `/metrics` registry. |
 | [storage](./storage/README.md) | File-storage abstraction (local FS + S3 providers) behind one `StorageProvider` contract. |
-| `config-secrets` | Boot-time secret loader — reads Docker-mounted secrets or env vars. |
-| `service-bootstrap` | Shared service boot — Fastify health server, gRPC bind / shutdown, adapters, principal extractor, `HandlerError`. |
+| [config-secrets](./config-secrets/README.md) | Boot-time secret loader — reads Docker-mounted secrets or env vars. |
+| [service-bootstrap](./service-bootstrap/README.md) | Shared service boot — Fastify health server, gRPC bind / shutdown, adapters, principal extractor, `HandlerError`. |
+| [seed-faker](./seed-faker/README.md) | Dev-only bulk-seeding toolkit — env guard, seeded UK-locale Faker, batched bulk-insert helper. Backs each service's `db:spam` script; never imported by runtime code. |
+| [test-utils](./test-utils/README.md) | Dev-only test helpers for the gRPC services — stub gRPC server harness, principal/metadata builders, NATS/JetStream test doubles. A `devDependency` only. |
 
 ## ESLint configs
 
 | Package | Purpose |
 | --- | --- |
-| `eslint-config-base` | Base ESLint config for TypeScript packages. |
-| `eslint-config-node` | ESLint config for Node.js backend services. |
-| `eslint-config-react` | ESLint config for React apps. |
+| [eslint-config-base](./eslint-config-base/README.md) | Base ESLint config for TypeScript packages. |
+| [eslint-config-node](./eslint-config-node/README.md) | ESLint config for Node.js backend services. |
+| [eslint-config-react](./eslint-config-react/README.md) | ESLint config for React apps. |

@@ -328,7 +328,7 @@ When updating a component to use UK localization:
 ## Quick Links
 
 - [Full Documentation](./UK_LOCALIZATION.md)
-- [lib.utils Source](../lib.utils/src/locale/)
-- [Example Components](../app.rescue/src/components/rescue/)
+- [lib.utils Source](../packages/lib.utils/src/locale/)
+- [Example Components](../apps/rescue/src/components/rescue/)
 
 **Last Updated:** January 2025
