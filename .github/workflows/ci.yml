@@ -107,8 +107,12 @@ jobs:
       # ADS-1003: e2e (Playwright) has no path filter and no browsers to
       # install, so lint it unconditionally here rather than gating it behind
       # the run-e2e-labelled test-e2e job (which only runs the suite itself).
+      # Invoked directly (not via `turbo run lint`) because turbo.json's
+      # global `lint` task inputs are scoped to `src/**`, which e2e doesn't
+      # have (its code lives in tests/fixtures/helpers) — under Turbo's cache
+      # that mismatch could let a changed e2e file replay a stale cache hit.
       - name: Verify e2e lint
-        run: pnpm exec turbo run lint --filter=@adopt-dont-shop/e2e
+        run: pnpm --filter @adopt-dont-shop/e2e run lint
 
       # ADS-1027: fail if packages/proto's committed ts-proto output no longer
       # matches `buf generate` — otherwise any `pnpm build` silently dirties the
