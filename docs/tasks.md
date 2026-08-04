@@ -57,6 +57,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
+| `pnpm check:csp` | `node scripts/check-csp-headers.mjs` |
 | `pnpm check:docker-pinning` | `node scripts/check-docker-pinning.mjs` |
 | `pnpm check:docs-freshness` | `node scripts/check-docs-freshness.mjs` |
 | `pnpm check:docs-index` | `node scripts/check-docs-index.mjs` |
@@ -105,7 +106,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:renovate && pnpm test:scripts` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:readmes && pnpm check:renovate && pnpm test:scripts` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks

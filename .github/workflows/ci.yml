@@ -81,7 +81,7 @@ jobs:
       # 'unsafe-inline'/'unsafe-eval', and every prod SPA vhost at the edge
       # must declare its own CSP.
       - name: Verify CSP headers
-        run: node scripts/check-csp-headers.mjs
+        run: pnpm check:csp
 
       # ADS-984: these three drift guards previously only ran via `pnpm
       # ci:local`, so nothing in GitHub CI caught a required env var missing
@@ -115,7 +115,7 @@ jobs:
       # not yet backfilled; a hard failure for those in the guard's
       # STRICT_PACKAGES set, so an enforced README can't regress.
       - name: Verify workspace READMEs match the template
-        run: node scripts/check-readmes.mjs
+        run: pnpm check:readmes
 
       # ADS-1031: renovate.json errors (invalid keys, deprecated matchers) are
       # otherwise only caught when Renovate itself runs and silently drops the
