@@ -1,10 +1,13 @@
 /**
- * Pure coverage-ratchet logic (ADS-796).
+ * Pure coverage-ratchet logic (ADS-796 / ADS-1004).
  *
  * Kept free of any filesystem / process access so it can be unit-tested as a
- * black box. The CLI wrapper in scripts/ratchet-coverage.mjs reads the v8
- * `coverage-summary.json` and the persisted `coverage-thresholds.json`, calls
- * the functions here, and writes the result back.
+ * black box. The CLI wrapper in scripts/ratchet-coverage.mjs reads a
+ * package's v8 `coverage-summary.json` and the thresholds already declared
+ * in that package's own `vitest.config.ts`, calls the functions here, and
+ * writes the raised thresholds back into that same file. There is no
+ * persisted root thresholds file — each `services/*` / `packages/lib.*`
+ * package's `vitest.config.ts` is the single source of truth for its floor.
  *
  * The ratchet rule is intentionally one-directional:
  *
@@ -74,4 +77,131 @@ export function measuredFromSummaryTotal(total) {
     }
     return { ...acc, [metric]: pct };
   }, {});
+}
+
+// Matches a `<metric>: <number>,` line, e.g. `        statements: 94,`. On
+// its own this has no notion of `thresholds: { ... }` block context — it
+// matches that shape anywhere it appears. Callers apply it only within the
+// region `thresholdsRegion` returns, so a same-named key belonging to some
+// other object in the file (a mock fixture, an unrelated config block) can
+// never be mistaken for a declared threshold.
+function thresholdLineRegExp(metric) {
+  return new RegExp(`^([ \\t]*${metric}:\\s*)-?\\d+(?:\\.\\d+)?(,?[ \\t]*)$`, 'm');
+}
+
+// Locates the `thresholds: { ... }` block's body in a vitest.config.ts
+// source — the character range strictly between its opening `{` and matching
+// closing `}`, found via brace-depth counting so nested objects inside the
+// block can't confuse the boundary. Returns null when no literal
+// `thresholds:` key is present in `source` at all.
+function thresholdsBlockRange(source) {
+  const keyMatch = source.match(/\bthresholds\s*:\s*\{/);
+  if (!keyMatch) {
+    return null;
+  }
+  const openIndex = keyMatch.index + keyMatch[0].length - 1;
+  let depth = 0;
+  for (let i = openIndex; i < source.length; i += 1) {
+    if (source[i] === '{') {
+      depth += 1;
+    } else if (source[i] === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return [openIndex + 1, i];
+      }
+    }
+  }
+  return null;
+}
+
+// The [start, end) region of `source` threshold lines should be read from /
+// written to: inside the `thresholds: { ... }` block when the source
+// declares one (every real vitest.config.ts does — that's the whole point of
+// this system), otherwise the whole source. The whole-source fallback only
+// matters for bare fixtures (e.g. some of the tests below) that omit the
+// wrapper and exercise the line-matching directly.
+function thresholdsRegion(source) {
+  const range = thresholdsBlockRange(source);
+  return range ? { start: range[0], end: range[1] } : { start: 0, end: source.length };
+}
+
+/**
+ * Read the coverage thresholds a package's `vitest.config.ts` source
+ * declares for itself (ADS-1004). Every workspace package's `vitest.config.ts`
+ * is the source of truth for its own floor — this scans the raw source text
+ * for `<metric>: <number>,` lines within the `thresholds: { ... }` block
+ * rather than executing the TypeScript, so it stays dependency-free and safe
+ * to run before `pnpm install`.
+ *
+ * @param {string} source Contents of a `vitest.config.ts` file.
+ * @returns {Record<string, number>} Metrics declared in `source`; a metric
+ *   with no matching line is omitted (not defaulted to 0), so callers can
+ *   distinguish "declared as 0" from "never declared".
+ */
+export function extractThresholdsFromSource(source) {
+  const { start, end } = thresholdsRegion(source);
+  const region = source.slice(start, end);
+  return COVERAGE_METRICS.reduce((acc, metric) => {
+    const match = region.match(thresholdLineRegExp(metric));
+    if (!match) {
+      return acc;
+    }
+    return { ...acc, [metric]: Number(match[0].match(/-?\d+(?:\.\d+)?/)[0]) };
+  }, {});
+}
+
+/**
+ * Rewrite the `<metric>: <number>,` threshold lines within a
+ * `vitest.config.ts` source's `thresholds: { ... }` block to the given
+ * values, preserving everything else (comments, formatting, surrounding
+ * config) byte-for-byte. A metric with no matching line in `source` is left
+ * untouched — callers should first confirm the metric is declared (see
+ * `extractThresholdsFromSource`) before ratcheting.
+ *
+ * @param {string} source Contents of a `vitest.config.ts` file.
+ * @param {Record<string, number>} thresholds New value per metric.
+ * @returns {string} The updated source.
+ */
+export function updateThresholdsInSource(source, thresholds) {
+  const { start, end } = thresholdsRegion(source);
+  const updatedRegion = COVERAGE_METRICS.reduce(
+    (text, metric) => {
+      if (!(metric in thresholds)) {
+        return text;
+      }
+      return text.replace(
+        thresholdLineRegExp(metric),
+        (_line, prefix, suffix) => `${prefix}${thresholds[metric]}${suffix}`
+      );
+    },
+    source.slice(start, end)
+  );
+  return `${source.slice(0, start)}${updatedRegion}${source.slice(end)}`;
+}
+
+/**
+ * Which of the four coverage metrics are absent from a declared-thresholds
+ * map (as returned by `extractThresholdsFromSource`). Shared by the ratchet
+ * CLI (which refuses to ratchet a partially-declared block) and
+ * `scripts/check-workspace-consistency.mjs`'s coverage-thresholds guard.
+ *
+ * @param {Record<string, number>} declared
+ * @returns {string[]} Metric names present in `COVERAGE_METRICS` but absent
+ *   from `declared`, in `COVERAGE_METRICS` order.
+ */
+export function missingCoverageMetrics(declared) {
+  return COVERAGE_METRICS.filter(metric => !(metric in declared));
+}
+
+/**
+ * Whether a parsed `--margin` value is usable by the ratchet: a finite,
+ * non-negative number. `Number('foo')` (an invalid CLI argument) yields
+ * `NaN`, which must be rejected before it flows into `ratchetMetric` and
+ * writes `NaN` thresholds into a `vitest.config.ts`.
+ *
+ * @param {number} margin
+ * @returns {boolean}
+ */
+export function isValidMargin(margin) {
+  return Number.isFinite(margin) && margin >= 0;
 }

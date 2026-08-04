@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  extractThresholdsFromSource,
+  isValidMargin,
   measuredFromSummaryTotal,
+  missingCoverageMetrics,
   ratchetMetric,
   ratchetThresholds,
+  updateThresholdsInSource,
 } from './ratchet-coverage-core.mjs';
 
 describe('ratchetMetric', () => {
@@ -96,5 +100,207 @@ describe('measuredFromSummaryTotal', () => {
     const total = { lines: { pct: 80 }, statements: {} };
 
     expect(measuredFromSummaryTotal(total)).toEqual({ lines: 80 });
+  });
+});
+
+describe('extractThresholdsFromSource (ADS-1004)', () => {
+  it('reads every metric declared in a thresholds block', () => {
+    const source = [
+      "import { defineServiceConfig } from '../../vitest.shared.config';",
+      '',
+      'export default defineServiceConfig({',
+      '  test: {',
+      '    coverage: {',
+      '      thresholds: {',
+      '        statements: 91,',
+      '        branches: 95,',
+      '        functions: 89,',
+      '        lines: 91,',
+      '      },',
+      '    },',
+      '  },',
+      '});',
+      '',
+    ].join('\n');
+
+    expect(extractThresholdsFromSource(source)).toEqual({
+      statements: 91,
+      branches: 95,
+      functions: 89,
+      lines: 91,
+    });
+  });
+
+  it('reads decimal threshold values', () => {
+    const source = '        statements: 62.5,\n        branches: 41,\n';
+    expect(extractThresholdsFromSource(source)).toEqual({ statements: 62.5, branches: 41 });
+  });
+
+  it('omits metrics with no matching line rather than defaulting to 0', () => {
+    const source = 'export default defineServiceConfig();\n';
+    expect(extractThresholdsFromSource(source)).toEqual({});
+  });
+
+  it('is indifferent to indentation depth', () => {
+    const source = '          statements: 85,\n          branches: 72,\n';
+    expect(extractThresholdsFromSource(source)).toEqual({ statements: 85, branches: 72 });
+  });
+
+  it('ignores a metric-named line outside the thresholds block', () => {
+    // A mock fixture earlier in the file happens to use the same key names,
+    // at the same shape, as the real thresholds block further down. Only the
+    // real block's values should be read.
+    const source = [
+      'const mockCoverageSummary = {',
+      '  total: {',
+      '    statements: 55,',
+      '    branches: 60,',
+      '    functions: 70,',
+      '    lines: 55,',
+      '  },',
+      '};',
+      '',
+      'export default defineServiceConfig({',
+      '  test: {',
+      '    coverage: {',
+      '      thresholds: {',
+      '        statements: 91,',
+      '        branches: 95,',
+      '        functions: 89,',
+      '        lines: 91,',
+      '      },',
+      '    },',
+      '  },',
+      '});',
+      '',
+    ].join('\n');
+
+    expect(extractThresholdsFromSource(source)).toEqual({
+      statements: 91,
+      branches: 95,
+      functions: 89,
+      lines: 91,
+    });
+  });
+});
+
+describe('updateThresholdsInSource (ADS-1004)', () => {
+  it('rewrites declared threshold values while preserving surrounding source', () => {
+    const source = [
+      '      thresholds: {',
+      '        statements: 91,',
+      '        branches: 95,',
+      '        functions: 89,',
+      '        lines: 91,',
+      '      },',
+    ].join('\n');
+
+    const updated = updateThresholdsInSource(source, {
+      statements: 92,
+      branches: 96,
+      functions: 90,
+      lines: 92,
+    });
+
+    expect(updated).toBe(
+      [
+        '      thresholds: {',
+        '        statements: 92,',
+        '        branches: 96,',
+        '        functions: 90,',
+        '        lines: 92,',
+        '      },',
+      ].join('\n')
+    );
+  });
+
+  it('leaves a metric untouched when it is absent from the update', () => {
+    const source = '        statements: 91,\n        branches: 95,\n';
+    expect(updateThresholdsInSource(source, { statements: 92 })).toBe(
+      '        statements: 92,\n        branches: 95,\n'
+    );
+  });
+
+  it('is a no-op when no threshold line matches', () => {
+    const source = 'export default defineServiceConfig();\n';
+    expect(updateThresholdsInSource(source, { statements: 92 })).toBe(source);
+  });
+
+  it('round-trips with extractThresholdsFromSource', () => {
+    const source = '        statements: 80,\n        branches: 80,\n        functions: 80,\n        lines: 80,\n';
+    const next = { statements: 85, branches: 81, functions: 83, lines: 84 };
+    const updated = updateThresholdsInSource(source, next);
+    expect(extractThresholdsFromSource(updated)).toEqual(next);
+  });
+
+  it('leaves a metric-named line outside the thresholds block untouched', () => {
+    const source = [
+      'const mockCoverageSummary = {',
+      '  total: {',
+      '    statements: 55,',
+      '  },',
+      '};',
+      '',
+      '      thresholds: {',
+      '        statements: 91,',
+      '      },',
+    ].join('\n');
+
+    const updated = updateThresholdsInSource(source, { statements: 92 });
+
+    expect(updated).toBe(
+      [
+        'const mockCoverageSummary = {',
+        '  total: {',
+        '    statements: 55,',
+        '  },',
+        '};',
+        '',
+        '      thresholds: {',
+        '        statements: 92,',
+        '      },',
+      ].join('\n')
+    );
+  });
+});
+
+describe('missingCoverageMetrics (ADS-1004)', () => {
+  it('returns an empty array when all four metrics are declared', () => {
+    expect(
+      missingCoverageMetrics({ statements: 90, branches: 80, functions: 90, lines: 90 })
+    ).toEqual([]);
+  });
+
+  it('lists every metric when none are declared', () => {
+    expect(missingCoverageMetrics({})).toEqual(['statements', 'branches', 'functions', 'lines']);
+  });
+
+  it('lists only the metrics missing from a partially-declared block', () => {
+    expect(missingCoverageMetrics({ statements: 90, branches: 80 })).toEqual([
+      'functions',
+      'lines',
+    ]);
+  });
+});
+
+describe('isValidMargin (ADS-1004)', () => {
+  it('accepts the default margin', () => {
+    expect(isValidMargin(1)).toBe(true);
+  });
+
+  it('accepts zero', () => {
+    expect(isValidMargin(0)).toBe(true);
+  });
+
+  it("rejects NaN — what Number('foo') produces for an invalid --margin value", () => {
+    expect(isValidMargin(Number('foo'))).toBe(false);
+  });
+
+  it('rejects a negative margin', () => {
+    expect(isValidMargin(-1)).toBe(false);
+  });
+
+  it('rejects Infinity', () => {
+    expect(isValidMargin(Infinity)).toBe(false);
   });
 });

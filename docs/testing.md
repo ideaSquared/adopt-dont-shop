@@ -11,8 +11,9 @@ covered by automated tests in this repository.
 | Vitest     | `scripts/` (`pnpm test:scripts`)         | The repo's own DX guard-scripts (see below)                     |
 | Playwright | `e2e/`                                   | Cross-app integration journeys against the docker-compose stack |
 
-Each backend service owns its own `vitest.config.ts` under
-`services/<name>/`, which enforces coverage thresholds (see ADS-418).
+Each backend service — and every `packages/lib.*` — owns its own
+`vitest.config.ts`, which declares and enforces that package's coverage
+thresholds (see CONTRIBUTING.md "Coverage thresholds", ADS-1004).
 `pnpm test:coverage` in that workspace fails the build below the thresholds.
 
 ## E2E gating

@@ -38,7 +38,10 @@
  *  12. Every services/*.vitest.config.ts imports defineServiceConfig from
  *     vitest.shared.config.ts — no ad-hoc defineConfig at service scope
  *     (ADS-985).
- *  14. Every services/* and e2e package.json ships lint, format and
+ *  14. Every services/* and packages/lib.* declares coverage thresholds in
+ *     its own vitest.config.ts — the shared default is 0%, so an override
+ *     is mandatory (ADS-1004).
+ *  15. Every services/* and e2e package.json ships lint, format and
  *     format:check scripts (ADS-1003) — lib.* and app.* already require
  *     these via their check #1 script lists.
  *
@@ -50,6 +53,11 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
+
+import {
+  extractThresholdsFromSource,
+  missingCoverageMetrics,
+} from './lib/ratchet-coverage-core.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -604,6 +612,57 @@ function checkServiceVitestConfig(services) {
   return failures;
 }
 
+// ADS-1004: every services/* and packages/lib.* package must declare its own
+// coverage thresholds in its own vitest.config.ts — the shared
+// vitest.shared.config.ts default is 0%, so a package that never overrides it
+// would silently gate at 0% forever with no signal. A deliberate all-zero
+// override with a rationale comment (e.g. lib.dev-tools) still counts as
+// "declared"; this only catches a package that never overrides it at all.
+//
+// `contents` is `null` when the package's vitest.config.ts is missing or
+// unreadable — that is itself a failure, not something to skip silently, so
+// a package can't dodge the guard just by lacking a config file.
+//
+// `path` is the repo-relative path to that package's vitest.config.ts (e.g.
+// `services/auth/vitest.config.ts`, `packages/lib.api/vitest.config.ts`),
+// used verbatim in failure messages so they point at a real, actionable
+// file location instead of a bare workspace name.
+export function findMissingCoverageThresholds(configs) {
+  return configs.flatMap(({ path, contents }) => {
+    if (contents === null) {
+      return [
+        `[${path}] missing or unreadable — every services/* and packages/lib.* ` +
+          `package must declare its own coverage thresholds in a vitest.config.ts (ADS-1004).`,
+      ];
+    }
+    const missing = missingCoverageMetrics(extractThresholdsFromSource(contents));
+    if (missing.length === 0) {
+      return [];
+    }
+    return [
+      `[${path}] missing coverage threshold(s): ${missing.join(', ')} — every ` +
+        `services/* and packages/lib.* package must declare its own coverage thresholds (ADS-1004). ` +
+        `See CONTRIBUTING.md "Coverage thresholds".`,
+    ];
+  });
+}
+
+function checkCoverageThresholds(libs, services) {
+  const targets = [
+    ...libs.map(lib => join(ROOT, pkgDir(lib), 'vitest.config.ts')),
+    ...services.map(svc => join(ROOT, 'services', svc, 'vitest.config.ts')),
+  ];
+  const configs = targets.map(absolutePath => {
+    const path = relative(ROOT, absolutePath);
+    try {
+      return { path, contents: readFileSync(absolutePath, 'utf8') };
+    } catch {
+      return { path, contents: null };
+    }
+  });
+  return findMissingCoverageThresholds(configs);
+}
+
 function findTemplatePackageJsonFiles() {
   const templatesDir = join(ROOT, 'scripts', 'templates');
   const found = [];
@@ -1041,6 +1100,10 @@ function main() {
 
   // 13. No --noEmit task may declare dist/ outputs in turbo.json (ADS-1000)
   failures.push(...checkNoEmitTaskOutputs(turboConfig));
+
+  // 14. Every services/* and packages/lib.* must declare its own coverage
+  //     thresholds (ADS-1004)
+  failures.push(...checkCoverageThresholds(libs, services));
 
   // ADS-1029: every testable package must be reachable by a CI test filter.
   failures.push(...checkCiFilterReachability());

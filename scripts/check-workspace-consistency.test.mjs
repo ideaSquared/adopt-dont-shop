@@ -11,6 +11,7 @@ import {
   extractJobBlock,
   filterMatches,
   findGuardScriptFiles,
+  findMissingCoverageThresholds,
   findRootScriptForGuardFile,
   findUncoveredPackages,
   isRunByCiLocal,
@@ -172,6 +173,77 @@ describe('checkToolVersionsDrift (ADS-943)', () => {
   it('flags a missing nodejs or pnpm line', () => {
     const failures = checkToolVersionsDrift('22.15.1\n', 'pnpm@10.34.3', 'pnpm 10.34.3\n');
     expect(failures).toEqual(["[.tool-versions] missing a 'nodejs <version>' line (ADS-943)."]);
+  });
+});
+
+describe('findMissingCoverageThresholds (ADS-1004)', () => {
+  const declared = [
+    '      thresholds: {',
+    '        statements: 94,',
+    '        branches: 89,',
+    '        functions: 99,',
+    '        lines: 94,',
+    '      },',
+  ].join('\n');
+
+  it('passes a package that declares all four coverage thresholds', () => {
+    expect(
+      findMissingCoverageThresholds([
+        { path: 'packages/lib.api/vitest.config.ts', contents: declared },
+      ])
+    ).toEqual([]);
+  });
+
+  it('passes a package that deliberately declares all-zero thresholds with a rationale comment', () => {
+    const allZero = [
+      '      // ADS-717: held at 0 until pre-existing test failures are fixed.',
+      '      thresholds: {',
+      '        statements: 0,',
+      '        branches: 0,',
+      '        functions: 0,',
+      '        lines: 0,',
+      '      },',
+    ].join('\n');
+    expect(
+      findMissingCoverageThresholds([
+        { path: 'packages/lib.dev-tools/vitest.config.ts', contents: allZero },
+      ])
+    ).toEqual([]);
+  });
+
+  it('flags a newly-scaffolded service that never overrides the shared 0% default, with the real path', () => {
+    const noOverride = [
+      "import { defineServiceConfig } from '../../vitest.shared.config';",
+      '',
+      'export default defineServiceConfig();',
+      '',
+    ].join('\n');
+
+    const failures = findMissingCoverageThresholds([
+      { path: 'services/new-service/vitest.config.ts', contents: noOverride },
+    ]);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('[services/new-service/vitest.config.ts]');
+    expect(failures[0]).toContain('statements, branches, functions, lines');
+  });
+
+  it('flags only the metrics that are actually missing', () => {
+    const partial = '        statements: 80,\n        branches: 80,\n';
+    const failures = findMissingCoverageThresholds([
+      { path: 'packages/lib.partial/vitest.config.ts', contents: partial },
+    ]);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('functions, lines');
+    expect(failures[0]).not.toContain('statements,');
+  });
+
+  it('flags a package whose vitest.config.ts is missing or unreadable, with the real repo-relative path', () => {
+    const failures = findMissingCoverageThresholds([
+      { path: 'services/new-service/vitest.config.ts', contents: null },
+    ]);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('[services/new-service/vitest.config.ts]');
+    expect(failures[0]).toContain('missing or unreadable');
   });
 });
 

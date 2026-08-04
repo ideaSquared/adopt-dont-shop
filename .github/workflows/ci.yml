@@ -335,11 +335,9 @@ jobs:
   # SERVICE TESTS — lint/test:coverage/type-check all service.* packages
   # (ADS-822, coverage added in ADS-831). Mirrors test-libs in structure.
   #
-  # ADS-831: collects coverage for every service, but only services/chat and
-  # services/cms declare thresholds in their own vitest.config.ts and so
-  # actually gate. The rest inherit the shared 0% baseline (deliberate, so this
-  # cannot break current CI). Next step: ratchet a per-service floor the same
-  # way lib.* packages do (ADS-708 / ADS-717).
+  # ADS-831 / ADS-1004: collects coverage for every service. Every service
+  # declares its own thresholds in its own vitest.config.ts (mirrors lib.*
+  # packages) and so actually gates CI.
   #
   # Gated on the `backend` path filter — ci-required treats skipped as pass.
   # ============================================================================
