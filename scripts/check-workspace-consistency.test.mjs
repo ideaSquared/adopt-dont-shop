@@ -218,6 +218,15 @@ describe('findMissingCoverageThresholds (ADS-1004)', () => {
     expect(failures[0]).toContain('functions, lines');
     expect(failures[0]).not.toContain('statements,');
   });
+
+  it('flags a package whose vitest.config.ts is missing or unreadable, rather than skipping it', () => {
+    const failures = findMissingCoverageThresholds([
+      { workspace: 'services/new-service', contents: null },
+    ]);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('services/new-service');
+    expect(failures[0]).toContain('missing or unreadable');
+  });
 });
 
 describe('CI test-filter reachability (ADS-1029)', () => {

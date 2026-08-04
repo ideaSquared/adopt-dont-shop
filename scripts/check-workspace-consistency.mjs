@@ -51,7 +51,10 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
 
-import { COVERAGE_METRICS, extractThresholdsFromSource } from './lib/ratchet-coverage-core.mjs';
+import {
+  extractThresholdsFromSource,
+  missingCoverageMetrics,
+} from './lib/ratchet-coverage-core.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -599,19 +602,28 @@ function checkServiceVitestConfig(services) {
 // would silently gate at 0% forever with no signal. A deliberate all-zero
 // override with a rationale comment (e.g. lib.dev-tools) still counts as
 // "declared"; this only catches a package that never overrides it at all.
+//
+// `contents` is `null` when the package's vitest.config.ts is missing or
+// unreadable — that is itself a failure, not something to skip silently, so
+// a package can't dodge the guard just by lacking a config file.
 export function findMissingCoverageThresholds(configs) {
-  return configs
-    .map(({ workspace, contents }) => ({
-      workspace,
-      missing: COVERAGE_METRICS.filter(metric => !(metric in extractThresholdsFromSource(contents))),
-    }))
-    .filter(({ missing }) => missing.length > 0)
-    .map(
-      ({ workspace, missing }) =>
-        `[${workspace}/vitest.config.ts] missing coverage threshold(s): ${missing.join(', ')} — every ` +
+  return configs.flatMap(({ workspace, contents }) => {
+    if (contents === null) {
+      return [
+        `[${workspace}/vitest.config.ts] missing or unreadable — every services/* and packages/lib.* ` +
+          `package must declare its own coverage thresholds in a vitest.config.ts (ADS-1004).`,
+      ];
+    }
+    const missing = missingCoverageMetrics(extractThresholdsFromSource(contents));
+    if (missing.length === 0) {
+      return [];
+    }
+    return [
+      `[${workspace}/vitest.config.ts] missing coverage threshold(s): ${missing.join(', ')} — every ` +
         `services/* and packages/lib.* package must declare its own coverage thresholds (ADS-1004). ` +
-        `See CONTRIBUTING.md "Coverage thresholds".`
-    );
+        `See CONTRIBUTING.md "Coverage thresholds".`,
+    ];
+  });
 }
 
 function checkCoverageThresholds(libs, services) {
@@ -619,15 +631,13 @@ function checkCoverageThresholds(libs, services) {
     ...libs.map(lib => ({ workspace: lib, path: join(ROOT, pkgDir(lib), 'vitest.config.ts') })),
     ...services.map(svc => ({ workspace: svc, path: join(ROOT, 'services', svc, 'vitest.config.ts') })),
   ];
-  const configs = targets
-    .map(({ workspace, path }) => {
-      try {
-        return { workspace, contents: readFileSync(path, 'utf8') };
-      } catch {
-        return null;
-      }
-    })
-    .filter(config => config !== null);
+  const configs = targets.map(({ workspace, path }) => {
+    try {
+      return { workspace, contents: readFileSync(path, 'utf8') };
+    } catch {
+      return { workspace, contents: null };
+    }
+  });
   return findMissingCoverageThresholds(configs);
 }
 
