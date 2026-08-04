@@ -30,7 +30,7 @@ export const up = async (pgm: MigrationBuilder): Promise<void> => {
          WHERE event_type IN ('approved', 'adopted')
       ) AS latest
      WHERE applications.application_id = latest.aggregate_id
-       AND applications.status = latest.event_type
+       AND applications.status::text = latest.event_type
        AND latest.rn = 1
        AND applications.status IN ('approved', 'adopted')
        AND applications.actioned_at IS NULL;
