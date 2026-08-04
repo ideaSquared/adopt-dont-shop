@@ -143,6 +143,43 @@ describe('extractThresholdsFromSource (ADS-1004)', () => {
     const source = '          statements: 85,\n          branches: 72,\n';
     expect(extractThresholdsFromSource(source)).toEqual({ statements: 85, branches: 72 });
   });
+
+  it('ignores a metric-named line outside the thresholds block', () => {
+    // A mock fixture earlier in the file happens to use the same key names,
+    // at the same shape, as the real thresholds block further down. Only the
+    // real block's values should be read.
+    const source = [
+      'const mockCoverageSummary = {',
+      '  total: {',
+      '    statements: 55,',
+      '    branches: 60,',
+      '    functions: 70,',
+      '    lines: 55,',
+      '  },',
+      '};',
+      '',
+      'export default defineServiceConfig({',
+      '  test: {',
+      '    coverage: {',
+      '      thresholds: {',
+      '        statements: 91,',
+      '        branches: 95,',
+      '        functions: 89,',
+      '        lines: 91,',
+      '      },',
+      '    },',
+      '  },',
+      '});',
+      '',
+    ].join('\n');
+
+    expect(extractThresholdsFromSource(source)).toEqual({
+      statements: 91,
+      branches: 95,
+      functions: 89,
+      lines: 91,
+    });
+  });
 });
 
 describe('updateThresholdsInSource (ADS-1004)', () => {
@@ -192,5 +229,35 @@ describe('updateThresholdsInSource (ADS-1004)', () => {
     const next = { statements: 85, branches: 81, functions: 83, lines: 84 };
     const updated = updateThresholdsInSource(source, next);
     expect(extractThresholdsFromSource(updated)).toEqual(next);
+  });
+
+  it('leaves a metric-named line outside the thresholds block untouched', () => {
+    const source = [
+      'const mockCoverageSummary = {',
+      '  total: {',
+      '    statements: 55,',
+      '  },',
+      '};',
+      '',
+      '      thresholds: {',
+      '        statements: 91,',
+      '      },',
+    ].join('\n');
+
+    const updated = updateThresholdsInSource(source, { statements: 92 });
+
+    expect(updated).toBe(
+      [
+        'const mockCoverageSummary = {',
+        '  total: {',
+        '    statements: 55,',
+        '  },',
+        '};',
+        '',
+        '      thresholds: {',
+        '        statements: 92,',
+        '      },',
+      ].join('\n')
+    );
   });
 });
