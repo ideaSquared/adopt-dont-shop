@@ -1,6 +1,6 @@
 # React Native + Expo — Mobile App Exploration
 
-> **Status:** Exploratory. No mobile app exists today. This document captures *why* React Native + Expo is the best-aligned choice for a future native app, and *how* it would slot into this monorepo. It is a decision aid, not a committed roadmap.
+> **Status:** Exploratory. No mobile app exists today. This document captures _why_ React Native + Expo is the best-aligned choice for a future native app, and _how_ it would slot into this monorepo. It is a decision aid, not a committed roadmap.
 
 ## TL;DR
 
@@ -12,17 +12,17 @@ The one thing it does **not** reuse is the view layer: React Native renders to `
 
 The repo is a TypeScript/React monorepo on pnpm workspaces + Turborepo. Alignment was the deciding factor.
 
-| Criterion | React Native + Expo | Flutter | Native (Swift + Kotlin) |
-| --- | --- | --- | --- |
-| Language | TypeScript (same as repo) | Dart (new) | Swift + Kotlin (two new) |
-| Reuse `lib.types/api/validation/utils/matching` | ✅ directly via workspace | ❌ none | ❌ none |
-| Reuse `lib.components` UI | ❌ (RN ≠ DOM) | ❌ | ❌ |
-| Fits pnpm workspaces + Turborepo | ✅ native fit | ❌ tooling island | ❌ |
-| Team skill match | ✅ React/TS already | ❌ retrain | ❌ retrain ×2 |
-| Native UX / performance | ✅ very good | ✅ best-in-class | ✅ best-in-class |
-| One codebase → iOS + Android | ✅ | ✅ | ❌ two codebases |
+| Criterion                                       | React Native + Expo       | Flutter           | Native (Swift + Kotlin)  |
+| ----------------------------------------------- | ------------------------- | ----------------- | ------------------------ |
+| Language                                        | TypeScript (same as repo) | Dart (new)        | Swift + Kotlin (two new) |
+| Reuse `lib.types/api/validation/utils/matching` | ✅ directly via workspace | ❌ none           | ❌ none                  |
+| Reuse `lib.components` UI                       | ❌ (RN ≠ DOM)             | ❌                | ❌                       |
+| Fits pnpm workspaces + Turborepo                | ✅ native fit             | ❌ tooling island | ❌                       |
+| Team skill match                                | ✅ React/TS already       | ❌ retrain        | ❌ retrain ×2            |
+| Native UX / performance                         | ✅ very good              | ✅ best-in-class  | ✅ best-in-class         |
+| One codebase → iOS + Android                    | ✅                        | ✅                | ❌ two codebases         |
 
-Flutter is an excellent framework on its own merits, but for *this repo* it shares none of our TypeScript, ignores Turbo/npm, and needs a parallel Dart toolchain — it becomes a tooling island. React Native keeps mobile inside the same mental model and build graph as everything else.
+Flutter is an excellent framework on its own merits, but for _this repo_ it shares none of our TypeScript, ignores Turbo/npm, and needs a parallel Dart toolchain — it becomes a tooling island. React Native keeps mobile inside the same mental model and build graph as everything else.
 
 ### Lighter-weight alternatives to consider first
 
@@ -50,7 +50,7 @@ The `lib.*` packages split cleanly by whether they touch React/DOM:
 **Not reusable (React DOM / web-only) — needs a mobile equivalent:**
 
 - `lib.components` — depends on `react-dom`, Radix UI, Recharts, vanilla-extract. The mobile app needs its own RN component layer (e.g. via a UI kit or hand-rolled primitives).
-- `lib.auth` — the auth *logic* is portable, but its UI components and vanilla-extract styles are web-only. Consider extracting any shared logic into a logic-only module if mobile needs it.
+- `lib.auth` — the auth _logic_ is portable, but its UI components and vanilla-extract styles are web-only. Consider extracting any shared logic into a logic-only module if mobile needs it.
 
 **Rule of thumb before importing a lib into mobile:** if its `package.json` lists `react-dom`, `@vanilla-extract/*`, or Radix, it is web-only. If it only depends on `zod`, `date-fns`, `lib.types`, etc., it is safe for React Native.
 

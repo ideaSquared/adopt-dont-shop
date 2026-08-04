@@ -33,7 +33,7 @@ The Client App is the public-facing React application for potential pet adopters
 - **Active filters**: type, size, gender, age group, status, distance, free-text
 - **Sorting**: distance, age, date added
 
-*Out of scope / roadmap:* breed filter, special-needs filter, urgency sort.
+_Out of scope / roadmap:_ breed filter, special-needs filter, urgency sort.
 
 **Unified Features**
 
@@ -41,7 +41,7 @@ The Client App is the public-facing React application for potential pet adopters
 - Detailed pet profiles with photo galleries
 - Favorites across both interfaces (swipe likes auto-add to favorites server-side)
 
-*Out of scope / roadmap:* Smart recommendations engine — see [recommendations plan](./recommendations-plan.md) (separate doc, design only).
+_Out of scope / roadmap:_ Smart recommendations engine — see [recommendations plan](./recommendations-plan.md) (separate doc, design only).
 
 ### 2. User Authentication & Account Management
 
@@ -63,9 +63,9 @@ The Client App is the public-facing React application for potential pet adopters
 - Application history and status tracking (`ApplicationDashboard`, `ApplicationDetailsPage`)
 - Application withdrawal flow
 
-*Implementation note:* The earlier "step-component" application flow (`steps/BasicInfo`, `LivingSituation`, etc.) was removed. The live application form is fully question-driven via dynamic rescue questions.
+_Implementation note:_ The earlier "step-component" application flow (`steps/BasicInfo`, `LivingSituation`, etc.) was removed. The live application form is fully question-driven via dynamic rescue questions.
 
-*Out of scope / roadmap:* Document upload as a first-class step (rescue questions can include file inputs but there is no dedicated step UI).
+_Out of scope / roadmap:_ Document upload as a first-class step (rescue questions can include file inputs but there is no dedicated step UI).
 
 ### 4. Communication
 
@@ -75,7 +75,7 @@ The Client App is the public-facing React application for potential pet adopters
 - Message reactions, read receipts, typing indicators
 - Email + in-app notifications
 
-*Out of scope / roadmap:* Group / multi-participant chat (data model supports it, UX is 1:1 only today).
+_Out of scope / roadmap:_ Group / multi-participant chat (data model supports it, UX is 1:1 only today).
 
 ### 5. User Settings & Preferences
 
@@ -85,7 +85,7 @@ The Client App is the public-facing React application for potential pet adopters
 - **Privacy controls**: profile visibility, show email/phone toggles
 - **Accessibility**: keyboard nav (built-in), theme toggle (`ThemeToggle` — light/normal/dark)
 
-*Out of scope / roadmap:* Swipe sensitivity preference, characteristic preferences (size/age/energy), reduce-motion preference, default saved-search.
+_Out of scope / roadmap:_ Swipe sensitivity preference, characteristic preferences (size/age/energy), reduce-motion preference, default saved-search.
 
 ### 6. Analytics & Personalization
 
@@ -93,7 +93,7 @@ The Client App is the public-facing React application for potential pet adopters
 - Session persistence: `localStorage`-backed session ID + last-viewed pet IDs (see §1)
 - Backend `discovery` endpoint returns a sorted queue (proximity, freshness, sponsored)
 
-*Out of scope / roadmap:* Behavioural learning / recommendation engine — see [recommendations plan](./recommendations-plan.md). Personal adoption readiness scores — roadmap.
+_Out of scope / roadmap:_ Behavioural learning / recommendation engine — see [recommendations plan](./recommendations-plan.md). Personal adoption readiness scores — roadmap.
 
 ## Technical Requirements
 
@@ -112,7 +112,7 @@ The Client App is the public-facing React application for potential pet adopters
 - ARIA labels on swipe cards + nav
 - WCAG 2.1 AA targeted (no formal audit artefact)
 
-*Out of scope / roadmap:* `prefers-reduced-motion` handling.
+_Out of scope / roadmap:_ `prefers-reduced-motion` handling.
 
 ### Security
 
@@ -171,7 +171,7 @@ The Client App is the public-facing React application for potential pet adopters
 4. Account creation with email verification
 5. Optional preference setup (Settings)
 
-*Out of scope / roadmap:* Interactive sample-pet demo for unauthenticated users; registration prompt after N interactions in swipe.
+_Out of scope / roadmap:_ Interactive sample-pet demo for unauthenticated users; registration prompt after N interactions in swipe.
 
 ### Returning User Flow
 
@@ -179,7 +179,7 @@ The Client App is the public-facing React application for potential pet adopters
 2. **Session resume** in `/discover` (queue continues excluding previously viewed)
 3. Notifications + messages surfaces
 
-*Out of scope / roadmap:* Personalised dashboard with personal stats; AI-enhanced recommendations.
+_Out of scope / roadmap:_ Personalised dashboard with personal stats; AI-enhanced recommendations.
 
 ### Application Flow
 

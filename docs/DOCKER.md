@@ -31,23 +31,25 @@ See [package.json](../package.json) for the full script list.
 
 Both Dockerfiles use multi-stage builds for optimal image size and cache reuse:
 
-| Stage | Purpose |
-| --- | --- |
-| `base` | Foundation layer (Node, system tools, non-root user) |
-| `development` | Dev runtime with hot-reload (`pnpm dev`) |
-| `build` | Compile TypeScript / bundle assets |
-| `production` | Minimal runtime image (Node for backend, nginx for frontend) |
+| Stage         | Purpose                                                      |
+| ------------- | ------------------------------------------------------------ |
+| `base`        | Foundation layer (Node, system tools, non-root user)         |
+| `development` | Dev runtime with hot-reload (`pnpm dev`)                     |
+| `build`       | Compile TypeScript / bundle assets                           |
+| `production`  | Minimal runtime image (Node for backend, nginx for frontend) |
 
 Every microservice under `services/` is built from a single parameterised [`Dockerfile.service`](../Dockerfile.service) at the repo root; each service is selected via the `SERVICE` and `SERVICE_DIR` build args. All three frontend apps share [Dockerfile.app](../Dockerfile.app) and select their app via the `APP_NAME` build arg.
 
 ### Services
 
 **Infrastructure**
+
 - `database` — PostgreSQL 16 with PostGIS (`postgis/postgis:16-3.4`)
 - `redis` — Redis 7 for cache and sessions
 - `nginx` — Reverse proxy with subdomain routing (api, admin, rescue)
 
 **Application**
+
 - `service-gateway` — Fastify API gateway on port 4000 (health: `/health/simple`)
 - `app-client` — Public portal on 3000
 - `app-admin` — Admin dashboard on 3001
@@ -96,12 +98,12 @@ pnpm docker:down              # stop when done
 
 The dev stack is configured for HMR on Windows/macOS/Linux. Since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) the CHOKIDAR polling vars are **only set on macOS and Windows** — Linux uses native inotify and saves the steady-state CPU that polling burns.
 
-| Layer | Mechanism | Latency |
-| --- | --- | --- |
-| Frontend apps (`app.*/src/**`) | Vite HMR — native inotify on Linux, polling on macOS/Windows (`CHOKIDAR_USEPOLLING`, `CHOKIDAR_INTERVAL`, `CHOKIDAR_AWAITWRITEFINISH`) | ~<500ms (Linux) / ~1-2s (macOS, Windows) |
-| Frontend libs (`lib.*/src/**` except `lib.types`) | Vite aliases point at lib `src/` — HMR picks them up | ~1-2s |
-| Backend services (`services/*/src/**`) | `tsx watch` (native fs events) | ~1s |
-| `lib.types/src/**` | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink | ~2-5s |
+| Layer                                             | Mechanism                                                                                                                              | Latency                                  |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Frontend apps (`app.*/src/**`)                    | Vite HMR — native inotify on Linux, polling on macOS/Windows (`CHOKIDAR_USEPOLLING`, `CHOKIDAR_INTERVAL`, `CHOKIDAR_AWAITWRITEFINISH`) | ~<500ms (Linux) / ~1-2s (macOS, Windows) |
+| Frontend libs (`lib.*/src/**` except `lib.types`) | Vite aliases point at lib `src/` — HMR picks them up                                                                                   | ~1-2s                                    |
+| Backend services (`services/*/src/**`)            | `tsx watch` (native fs events)                                                                                                         | ~1s                                      |
+| `lib.types/src/**`                                | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink                                    | ~2-5s                                    |
 
 `pnpm bootstrap` auto-detects the host OS and appends the polling vars to `.env` on macOS/Windows. To verify per-container:
 
@@ -154,7 +156,7 @@ pnpm db:seed                  # (optional) reload dev seed data
 services:
   service-gateway:
     ports:
-      - "9229:9229"
+      - '9229:9229'
     command: >
       node --inspect=0.0.0.0:9229 --import tsx/esm --watch src/index.ts
 ```
@@ -312,7 +314,6 @@ Since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) polling is opt-in 
 - Reduce watch scope in the relevant `vite.config.ts`
 
 If HMR misfires on **Linux**, the cause is almost certainly not polling — check that the file system has inotify watches available (`cat /proc/sys/fs/inotify/max_user_watches`).
-
 
 ### Port Already in Use
 

@@ -26,54 +26,54 @@ The paths below are the original monolith layout, kept as a map of the moving
 parts; the equivalent code now lives under `services/audit/src/` (with the HTTP
 layer fronted by the gateway).
 
-| Path (former-monolith layout) | Purpose |
-| --- | --- |
-| `src/migrations/00-baseline-041..046-*.ts` | Tables: `reports`, `report_status_transitions`, `report_templates`, `report_shares`, `saved_reports`, `scheduled_reports` |
-| `src/models/{ReportTemplate,SavedReport,ScheduledReport,ReportShare}.ts` | Sequelize models (audit-columns + paranoid soft-delete) |
-| `src/schemas/reports.schema.ts` | Canonical Zod schemas for the report config |
-| `src/services/reports.service.ts` | CRUD + execute + share + schedule orchestration |
-| `src/services/report-cache.service.ts` | Redis cache with TTLs scaled to widget freshness |
-| `src/services/report-renderer.service.ts` | PDF (`pdfkit`) + CSV (`papaparse`) renderers |
-| `src/lib/redis.ts` | Lazy ioredis client; no-op when `REDIS_URL` is unset |
-| `src/lib/queue.ts` | BullMQ `reports` queue + worker factory |
-| `src/workers/reports.worker.ts` | Two job types: `report:scheduled-run`, `report:render-and-email` |
-| `src/socket/analytics-emitter.ts` | Server → client Socket.IO events with debouncing |
-| `src/controllers/reports.controller.ts` | HTTP layer; enforces rescue-scope authorization |
-| `src/routes/reports.routes.ts` | Mounted at `/api/v1/reports` |
+| Path (former-monolith layout)                                            | Purpose                                                                                                                   |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `src/migrations/00-baseline-041..046-*.ts`                               | Tables: `reports`, `report_status_transitions`, `report_templates`, `report_shares`, `saved_reports`, `scheduled_reports` |
+| `src/models/{ReportTemplate,SavedReport,ScheduledReport,ReportShare}.ts` | Sequelize models (audit-columns + paranoid soft-delete)                                                                   |
+| `src/schemas/reports.schema.ts`                                          | Canonical Zod schemas for the report config                                                                               |
+| `src/services/reports.service.ts`                                        | CRUD + execute + share + schedule orchestration                                                                           |
+| `src/services/report-cache.service.ts`                                   | Redis cache with TTLs scaled to widget freshness                                                                          |
+| `src/services/report-renderer.service.ts`                                | PDF (`pdfkit`) + CSV (`papaparse`) renderers                                                                              |
+| `src/lib/redis.ts`                                                       | Lazy ioredis client; no-op when `REDIS_URL` is unset                                                                      |
+| `src/lib/queue.ts`                                                       | BullMQ `reports` queue + worker factory                                                                                   |
+| `src/workers/reports.worker.ts`                                          | Two job types: `report:scheduled-run`, `report:render-and-email`                                                          |
+| `src/socket/analytics-emitter.ts`                                        | Server → client Socket.IO events with debouncing                                                                          |
+| `src/controllers/reports.controller.ts`                                  | HTTP layer; enforces rescue-scope authorization                                                                           |
+| `src/routes/reports.routes.ts`                                           | Mounted at `/api/v1/reports`                                                                                              |
 
 ### Frontend layout
 
-| Path | Purpose |
-| --- | --- |
-| `lib.analytics/src/schemas/reports.ts` | Zod schemas mirroring the backend (single source of truth for types) |
-| `lib.analytics/src/services/report-service.ts` | Typed API client over `lib.api`'s `ApiService` |
-| `lib.analytics/src/hooks/useReports.ts` | React Query v5 hooks: `useReports`, `useReport`, `useExecuteSavedReport`, `useExecuteReportPreview`, `useSaveReport`, `useUpdateReport`, `useDeleteReport`, `useUpsertSchedule`, `useCreateUserShare`, `useCreateTokenShare`, `useRevokeShare` |
-| `lib.analytics/src/hooks/useRealtimeAnalytics.ts` | Socket.IO subscription + `useAnalyticsInvalidator` (mount once at app root) |
-| `lib.components/src/components/charts/*` | Recharts-backed primitives: `LineChart`, `BarChart`, `PieChart`, `AreaChart`, `MetricCard`, `DataTable`, `ChartFrame` |
-| `lib.components/src/components/reports/*` | `ReportBuilder`, `ReportRenderer`, `WidgetPicker`, `FilterPanel`, `DrillDownModal` |
-| `app.admin/src/pages/{Reports,ReportBuilderPage,ReportViewPage}.tsx` | Admin user-facing pages |
-| `app.rescue/src/pages/{Reports,ReportBuilderPage,ReportViewPage}.tsx` | Rescue user-facing pages |
+| Path                                                                  | Purpose                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib.analytics/src/schemas/reports.ts`                                | Zod schemas mirroring the backend (single source of truth for types)                                                                                                                                                                           |
+| `lib.analytics/src/services/report-service.ts`                        | Typed API client over `lib.api`'s `ApiService`                                                                                                                                                                                                 |
+| `lib.analytics/src/hooks/useReports.ts`                               | React Query v5 hooks: `useReports`, `useReport`, `useExecuteSavedReport`, `useExecuteReportPreview`, `useSaveReport`, `useUpdateReport`, `useDeleteReport`, `useUpsertSchedule`, `useCreateUserShare`, `useCreateTokenShare`, `useRevokeShare` |
+| `lib.analytics/src/hooks/useRealtimeAnalytics.ts`                     | Socket.IO subscription + `useAnalyticsInvalidator` (mount once at app root)                                                                                                                                                                    |
+| `lib.components/src/components/charts/*`                              | Recharts-backed primitives: `LineChart`, `BarChart`, `PieChart`, `AreaChart`, `MetricCard`, `DataTable`, `ChartFrame`                                                                                                                          |
+| `lib.components/src/components/reports/*`                             | `ReportBuilder`, `ReportRenderer`, `WidgetPicker`, `FilterPanel`, `DrillDownModal`                                                                                                                                                             |
+| `app.admin/src/pages/{Reports,ReportBuilderPage,ReportViewPage}.tsx`  | Admin user-facing pages                                                                                                                                                                                                                        |
+| `app.rescue/src/pages/{Reports,ReportBuilderPage,ReportViewPage}.tsx` | Rescue user-facing pages                                                                                                                                                                                                                       |
 
 ## Endpoints
 
 All routes mount at `/api/v1/reports`. All require auth except the
 token-share viewer.
 
-| Method | Path | Permission | Notes |
-| --- | --- | --- | --- |
-| GET | `/` | `reports.read.own` | Lists user's reports + rescue/platform reports the caller can view |
-| POST | `/` | `reports.create` | Creates a saved report. Backend forces `rescueId` to caller's rescue unless `reports.read.platform`. |
-| GET | `/templates` | `reports.read.own` | Lists system + rescue-private templates |
-| POST | `/execute` | `reports.create` | Runs an unsaved config (preview, not cached) |
-| GET | `/:id` | scope-checked | Owner / rescue / platform / share-row matrix |
-| PUT | `/:id` | `reports.update` + ownership | |
-| DELETE | `/:id` | `reports.delete` + ownership | Soft-delete |
-| POST | `/:id/execute` | scope-checked | Runs the saved config; cached |
-| POST | `/:id/schedule` | `reports.schedule` | Upserts BullMQ repeatable |
-| DELETE | `/schedules/:scheduleId` | `reports.schedule` | Removes the repeatable |
-| POST | `/:id/share` | `reports.share` | `shareType: 'user'` or `'token'` |
-| DELETE | `/shares/:shareId` | `reports.share` | Revokes |
-| GET | `/shared/:token` | none | Token-based read-only viewer; verifies signed JWT + DB row |
+| Method | Path                     | Permission                   | Notes                                                                                                |
+| ------ | ------------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| GET    | `/`                      | `reports.read.own`           | Lists user's reports + rescue/platform reports the caller can view                                   |
+| POST   | `/`                      | `reports.create`             | Creates a saved report. Backend forces `rescueId` to caller's rescue unless `reports.read.platform`. |
+| GET    | `/templates`             | `reports.read.own`           | Lists system + rescue-private templates                                                              |
+| POST   | `/execute`               | `reports.create`             | Runs an unsaved config (preview, not cached)                                                         |
+| GET    | `/:id`                   | scope-checked                | Owner / rescue / platform / share-row matrix                                                         |
+| PUT    | `/:id`                   | `reports.update` + ownership |                                                                                                      |
+| DELETE | `/:id`                   | `reports.delete` + ownership | Soft-delete                                                                                          |
+| POST   | `/:id/execute`           | scope-checked                | Runs the saved config; cached                                                                        |
+| POST   | `/:id/schedule`          | `reports.schedule`           | Upserts BullMQ repeatable                                                                            |
+| DELETE | `/schedules/:scheduleId` | `reports.schedule`           | Removes the repeatable                                                                               |
+| POST   | `/:id/share`             | `reports.share`              | `shareType: 'user'` or `'token'`                                                                     |
+| DELETE | `/shares/:shareId`       | `reports.share`              | Revokes                                                                                              |
+| GET    | `/shared/:token`         | none                         | Token-based read-only viewer; verifies signed JWT + DB row                                           |
 
 ## Report config schema
 
@@ -100,17 +100,17 @@ compile-time errors and 400s at runtime.
 
 ## Permissions matrix
 
-| Permission | super_admin | admin | rescue_admin | rescue_staff | adopter |
-| --- | --- | --- | --- | --- | --- |
-| `reports.create` | ✓ | ✓ | ✓ | ✓ | — |
-| `reports.read.own` | ✓ | ✓ | ✓ | ✓ | — |
-| `reports.read.rescue` | ✓ | ✓ | ✓ | ✓ | — |
-| `reports.read.platform` | ✓ | ✓ | — | — | — |
-| `reports.update` | ✓ | ✓ | ✓ | — | — |
-| `reports.delete` | ✓ | ✓ | ✓ | — | — |
-| `reports.share` | ✓ | ✓ | ✓ | — | — |
-| `reports.schedule` | ✓ | ✓ | ✓ | — | — |
-| `reports.template.manage` | ✓ | ✓ | — | — | — |
+| Permission                | super_admin | admin | rescue_admin | rescue_staff | adopter |
+| ------------------------- | ----------- | ----- | ------------ | ------------ | ------- |
+| `reports.create`          | ✓           | ✓     | ✓            | ✓            | —       |
+| `reports.read.own`        | ✓           | ✓     | ✓            | ✓            | —       |
+| `reports.read.rescue`     | ✓           | ✓     | ✓            | ✓            | —       |
+| `reports.read.platform`   | ✓           | ✓     | —            | —            | —       |
+| `reports.update`          | ✓           | ✓     | ✓            | —            | —       |
+| `reports.delete`          | ✓           | ✓     | ✓            | —            | —       |
+| `reports.share`           | ✓           | ✓     | ✓            | —            | —       |
+| `reports.schedule`        | ✓           | ✓     | ✓            | —            | —       |
+| `reports.template.manage` | ✓           | ✓     | —            | —            | —       |
 
 ## Sharing model
 
@@ -129,11 +129,11 @@ Two paths in the same `report_shares` table:
 
 Server emits to scoped rooms joined at handshake:
 
-| Event | Room | Payload |
-| --- | --- | --- |
-| `analytics:invalidate` | `analytics:rescue:{rescueId}` / `analytics:platform` | `{ rescueId, categories }` |
-| `analytics:metric-update` | same | `{ metric, scope, delta?, value?, ts }` |
-| `reports:scheduled-run-complete` | `user:{ownerId}` | `{ savedReportId, scheduleId, status, ts }` |
+| Event                            | Room                                                 | Payload                                     |
+| -------------------------------- | ---------------------------------------------------- | ------------------------------------------- |
+| `analytics:invalidate`           | `analytics:rescue:{rescueId}` / `analytics:platform` | `{ rescueId, categories }`                  |
+| `analytics:metric-update`        | same                                                 | `{ metric, scope, delta?, value?, ts }`     |
+| `reports:scheduled-run-complete` | `user:{ownerId}`                                     | `{ savedReportId, scheduleId, status, ts }` |
 
 `analytics:invalidate` is debounced server-side to one event per
 `(rescueId, category)` per 5 seconds so chat-heavy mutations don't
@@ -163,11 +163,11 @@ sets `last_status='failed'`, persists `last_error`, and emits
 
 ### Required env vars
 
-| Var | Required | Notes |
-| --- | --- | --- |
-| `REDIS_URL` | for caching + scheduling | When unset, cache is a no-op and the worker refuses to start. The HTTP API still works. |
-| `JWT_REPORT_SHARE_SECRET` | for token shares | Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Distinct from `JWT_SECRET`. |
-| `WORKER_ENABLED` | optional | When `true` (or in dev), the API process also runs the BullMQ worker. Set `false` in prod and run a dedicated worker container. |
+| Var                       | Required                 | Notes                                                                                                                           |
+| ------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `REDIS_URL`               | for caching + scheduling | When unset, cache is a no-op and the worker refuses to start. The HTTP API still works.                                         |
+| `JWT_REPORT_SHARE_SECRET` | for token shares         | Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Distinct from `JWT_SECRET`.           |
+| `WORKER_ENABLED`          | optional                 | When `true` (or in dev), the API process also runs the BullMQ worker. Set `false` in prod and run a dedicated worker container. |
 
 ### Rollout
 

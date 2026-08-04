@@ -12,20 +12,20 @@ before bringing the stack up.
 
 ## Index
 
-| Symptom | Jump to |
-| --- | --- |
-| Hangs at "Checking Postgres data volume" / "waiting for database to be healthy" | [1](#1-pnpm-dockerdev-hangs-checking-the-database) |
-| A `service-*` container is stuck `Restarting` — migrations | [2](#2-service--stuck-restarting--migrations-havent-run-or-failed) |
-| A `service-*` container restart-loops right after `nats` comes up | [3](#3-service--restart-loops-when-nats-isnt-ready-yet) |
-| `502 Bad Gateway` from `http://localhost` | [4](#4-502-bad-gateway-from-nginx-at-httplocalhost) |
-| `pnpm docker:dev` fails/warns about Redis port 6379 on Windows | [5](#5-windows-redis-host-port-6379-is-reserved) |
-| Postgres rejects the current `.env` password | [6](#6-postgres-volume-rejects-the-current-env-password) |
-| A new/updated dependency isn't showing up in the container | [7](#7-dockerdev-never-picks-up-a-new-dependency) |
-| TS errors: `@adopt-dont-shop/lib.*` has no exported member … | [8](#8-type-checker-complains-about-adopt-dont-shoplib-missing-exports) |
-| Editing a `lib.*` package doesn't hot-reload the browser | [9](#9-hmr-not-firing-after-editing-a-lib-package) |
-| `.env` is missing a required var | [10](#10-env-missing-a-required-var) |
-| Playwright can't connect to `localhost:3000` / `http://localhost` | [11](#11-playwright-cant-connect-to-the-app-url) |
-| `docker:dev:build` needed after a lockfile change | [12](#12-lockfile-changed-but-the-dev-image-is-stale) |
+| Symptom                                                                         | Jump to                                                                 |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Hangs at "Checking Postgres data volume" / "waiting for database to be healthy" | [1](#1-pnpm-dockerdev-hangs-checking-the-database)                      |
+| A `service-*` container is stuck `Restarting` — migrations                      | [2](#2-service--stuck-restarting--migrations-havent-run-or-failed)      |
+| A `service-*` container restart-loops right after `nats` comes up               | [3](#3-service--restart-loops-when-nats-isnt-ready-yet)                 |
+| `502 Bad Gateway` from `http://localhost`                                       | [4](#4-502-bad-gateway-from-nginx-at-httplocalhost)                     |
+| `pnpm docker:dev` fails/warns about Redis port 6379 on Windows                  | [5](#5-windows-redis-host-port-6379-is-reserved)                        |
+| Postgres rejects the current `.env` password                                    | [6](#6-postgres-volume-rejects-the-current-env-password)                |
+| A new/updated dependency isn't showing up in the container                      | [7](#7-dockerdev-never-picks-up-a-new-dependency)                       |
+| TS errors: `@adopt-dont-shop/lib.*` has no exported member …                    | [8](#8-type-checker-complains-about-adopt-dont-shoplib-missing-exports) |
+| Editing a `lib.*` package doesn't hot-reload the browser                        | [9](#9-hmr-not-firing-after-editing-a-lib-package)                      |
+| `.env` is missing a required var                                                | [10](#10-env-missing-a-required-var)                                    |
+| Playwright can't connect to `localhost:3000` / `http://localhost`               | [11](#11-playwright-cant-connect-to-the-app-url)                        |
+| `docker:dev:build` needed after a lockfile change                               | [12](#12-lockfile-changed-but-the-dev-image-is-stale)                   |
 
 ---
 
@@ -89,7 +89,7 @@ docker compose logs service-auth --tail=100   # substitute the actual failing se
 ### 3. `service-*` restart-loops when NATS isn't ready yet
 
 **Diagnosis.** Every extracted service `depends_on: nats: condition:
-service_healthy`, so Compose won't *start* a service until `nats`'s own
+service_healthy`, so Compose won't _start_ a service until `nats`'s own
 healthcheck (`GET :8222/healthz`) passes. But JetStream can report the HTTP
 healthz endpoint healthy microseconds before it's actually ready to accept
 a client connection — a service that connects at that exact window can
@@ -178,7 +178,7 @@ Windows). Every service talks to Redis over the Docker network at
 **Diagnosis.** Postgres only sets its superuser password on first volume
 init. If `POSTGRES_PASSWORD` changes in `.env` after that (e.g. you pulled
 a teammate's `.env.example` update, or ran `pnpm secrets:generate` again),
-the existing `postgres_data` volume still authenticates with the *old*
+the existing `postgres_data` volume still authenticates with the _old_
 password and every service crash-loops on
 `password authentication failed for user`.
 

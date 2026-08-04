@@ -14,7 +14,7 @@ physical database (schema-per-service). That is fine at current scale, but
 read-heavy services (pet/rescue listings, CMS content) will eventually want to
 offload reads to a replica so a traffic spike doesn't starve the primary of
 write capacity. There is no replica yet and no routing layer that would know
-what to do with one — so the discipline has to exist in code *before* the
+what to do with one — so the discipline has to exist in code _before_ the
 replica is provisioned, or it never gets retrofitted cleanly.
 
 This ADR defines the routing convention. **Replica provisioning itself is out of
@@ -34,7 +34,7 @@ a `.read` pool:
   `.read` is that pool.
 - **`readUrl` unset/empty** → `.read` aliases the primary pool.
 
-`.read` is therefore *always present*. Call sites use `pool.read` for reads
+`.read` is therefore _always present_. Call sites use `pool.read` for reads
 unconditionally and fall back to the primary transparently in single-instance
 deploys — no `if (replica)` branching anywhere.
 

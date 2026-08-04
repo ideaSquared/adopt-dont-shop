@@ -54,11 +54,11 @@ You do **not** need a Vercel account to benefit from caching:
 
 Remote-cache tokens are credentials — treat them like any other secret.
 
-| Token | Where it lives | Rotate when |
-| --- | --- | --- |
-| Local `turbo login` token | `~/.turbo/config.json` (per-user, machine-local) | On suspected compromise, or when leaving the team. Re-run `npx turbo login`. |
-| CI `TURBO_TOKEN` | GitHub Actions repository secret | Quarterly (~90 days), on suspected compromise, or when an admin off-boards. Issue a fresh token from the cache provider, update the `TURBO_TOKEN` secret, delete the old token. |
-| Self-hosted `TURBO_TOKEN` | Your shell profile / secrets manager | Same cadence as CI; the cache server should support revoking individual tokens. |
+| Token                     | Where it lives                                   | Rotate when                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local `turbo login` token | `~/.turbo/config.json` (per-user, machine-local) | On suspected compromise, or when leaving the team. Re-run `npx turbo login`.                                                                                                    |
+| CI `TURBO_TOKEN`          | GitHub Actions repository secret                 | Quarterly (~90 days), on suspected compromise, or when an admin off-boards. Issue a fresh token from the cache provider, update the `TURBO_TOKEN` secret, delete the old token. |
+| Self-hosted `TURBO_TOKEN` | Your shell profile / secrets manager             | Same cadence as CI; the cache server should support revoking individual tokens.                                                                                                 |
 
 Sensible defaults if you have no stronger policy: rotate CI tokens **every 90
 days**, scope each token to the minimum (cache read/write only, no repo or org
@@ -73,4 +73,4 @@ builds keep working after a rotation as long as the new token is in place.
 - Cache misses on a clean checkout that should hit — confirm your Turbo version
   matches CI's (`turbo --version`); cache keys include the Turbo version.
 - Want to ignore the cache for one run — pass `--force` (e.g. `turbo run build
-  --force`).
+--force`).

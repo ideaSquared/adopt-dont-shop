@@ -7,7 +7,7 @@
 > for context. The current architecture is a Fastify gateway fronting
 > a fleet of Node.js gRPC microservices (`services/gateway/` plus
 > `services/{auth,pets,rescue,applications,chat,notifications,
-> moderation,matching,cms,audit}/`). For current implementation
+moderation,matching,cms,audit}/`). For current implementation
 > details see [`docs/backend/implementation-guide.md`](./implementation-guide.md)
 > and [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../infrastructure/MICROSERVICES-STANDARDS.md).
 
@@ -47,7 +47,7 @@ The Backend Service is the core API and data management layer that powers all ap
 - Account deletion (GDPR Art. 17) via `/api/v1/privacy/me/delete` with 30-day grace + retention worker anonymization
 - Field-level access restrictions via `FieldPermission` model + `middleware/field-permissions.ts`
 
-*Out of scope (not implemented):* OAuth / social login / external-account linking. Defer to roadmap.
+_Out of scope (not implemented):_ OAuth / social login / external-account linking. Defer to roadmap.
 
 ### 3. Rescue Management
 
@@ -66,7 +66,7 @@ The Backend Service is the core API and data management layer that powers all ap
 - Behavioural / temperament data captured as Pet columns
 - Foster placement coordination (see §11)
 
-*Partial:* Medical records carried as inline JSON columns; dedicated `MedicalRecord` timeline is roadmap.
+_Partial:_ Medical records carried as inline JSON columns; dedicated `MedicalRecord` timeline is roadmap.
 
 ### 5. Application Processing
 
@@ -98,7 +98,7 @@ Frontend `ApplicationStage` (PENDING / REVIEWING / VISITING / DECIDING / RESOLVE
 - Email and push alerts for offline users (push channel scaffolded — see §7)
 - Content moderation via `content-moderation.service.ts` (regex-rule-based, severity tiers)
 
-*Not implemented:* Offline message queueing/replay for users offline at send time. Currently relies on push + email fallback. Deferred to roadmap.
+_Not implemented:_ Offline message queueing/replay for users offline at send time. Currently relies on push + email fallback. Deferred to roadmap.
 
 ### 7. Notification System
 
@@ -112,7 +112,7 @@ Frontend `ApplicationStage` (PENDING / REVIEWING / VISITING / DECIDING / RESOLVE
 - Quiet hours enforcement in `notificationChannelService.ts`
 - Device token registration via `POST /api/v1/devices`, `DELETE /api/v1/devices/:id`, `GET /api/v1/devices` (backed by `DeviceToken` model)
 
-*Roadmap:* Scheduled notification dispatcher worker (`scheduledFor` column exists but no scheduler job yet), email digests, A/B testing.
+_Roadmap:_ Scheduled notification dispatcher worker (`scheduledFor` column exists but no scheduler job yet), email digests, A/B testing.
 
 ### 8. Email Service
 
@@ -125,9 +125,9 @@ Frontend `ApplicationStage` (PENDING / REVIEWING / VISITING / DECIDING / RESOLVE
 - Variable substitution + conditionals via template engine
 - Unsubscribe token hashing (`utils/secrets.ts`)
 
-*PRD note:* The original PRD listed SendGrid + AWS SES as production providers. Actual implementation ships **Resend** as the production provider. Add SendGrid/SES later only if business need arises.
+_PRD note:_ The original PRD listed SendGrid + AWS SES as production providers. Actual implementation ships **Resend** as the production provider. Add SendGrid/SES later only if business need arises.
 
-*Roadmap:* A/B testing, dynamic segmentation, full personalization engine.
+_Roadmap:_ A/B testing, dynamic segmentation, full personalization engine.
 
 ### 9. Analytics & Reporting
 
@@ -137,7 +137,7 @@ Frontend `ApplicationStage` (PENDING / REVIEWING / VISITING / DECIDING / RESOLVE
 - Custom reports framework: `SavedReport`, `ScheduledReport`, `ReportTemplate`, `ReportShare`, `workers/reports.worker.ts`, 13 endpoints in `reports.routes.ts`
 - Real-time dashboards for admins
 
-*Not in scope:* Trend forecasting, financial/revenue reporting (no monetization model in code).
+_Not in scope:_ Trend forecasting, financial/revenue reporting (no monetization model in code).
 
 ### 10. Configuration
 

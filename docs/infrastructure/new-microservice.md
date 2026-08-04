@@ -27,19 +27,19 @@ in the `500N` range with a matching gRPC port at `600N` (same N). The
 current allocation (from `docker-compose.yml` and each service's
 `src/config.ts`):
 
-| Service | HTTP (health) | gRPC |
-| --- | --- | --- |
-| service-gateway | 4000 | — (REST/WS edge, not a gRPC service) |
-| service-notifications | 5001 | 6001 |
-| service-auth | 5002 | 6002 |
-| service-pets | 5003 | 6003 |
-| service-rescue | 5004 | 6004 |
-| service-applications | 5005 | 6005 |
-| service-chat | 5006 | 6006 |
-| service-moderation | 5007 | 6007 |
-| service-matching | 5008 | 6008 |
-| service-audit | 5009 | 6009 |
-| service-cms | 5010 | 6010 |
+| Service               | HTTP (health) | gRPC                                 |
+| --------------------- | ------------- | ------------------------------------ |
+| service-gateway       | 4000          | — (REST/WS edge, not a gRPC service) |
+| service-notifications | 5001          | 6001                                 |
+| service-auth          | 5002          | 6002                                 |
+| service-pets          | 5003          | 6003                                 |
+| service-rescue        | 5004          | 6004                                 |
+| service-applications  | 5005          | 6005                                 |
+| service-chat          | 5006          | 6006                                 |
+| service-moderation    | 5007          | 6007                                 |
+| service-matching      | 5008          | 6008                                 |
+| service-audit         | 5009          | 6009                                 |
+| service-cms           | 5010          | 6010                                 |
 
 The next new service is **5011 / 6011**. Update this table when you add one.
 
@@ -79,7 +79,7 @@ fields:
   via `tsx` in dev; the build output is only used by the production Docker
   image
 - `dependencies` always include `@adopt-dont-shop/{authz, config-secrets,
-  db, events, lib.types, observability, proto, service-bootstrap}`,
+db, events, lib.types, observability, proto, service-bootstrap}`,
   `@grpc/grpc-js`, `fastify`, `nats`, `node-pg-migrate`, `pg`, `winston`
 - Standard scripts: `dev` (`tsx watch ./src/index.ts`), `start` (compiled),
   `db:migrate`, `build` (`tsc`), `test`/`test:coverage`, `lint`, `type-check`

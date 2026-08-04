@@ -41,13 +41,13 @@ cryptographically random values — **do not re-use values from staging or devel
 
 The five application secrets that must be rotated for every new environment:
 
-| Variable | Purpose |
-|---|---|
-| `JWT_SECRET` | Signs short-lived access tokens |
-| `JWT_REFRESH_SECRET` | Signs long-lived refresh tokens |
-| `SESSION_SECRET` | Encrypts server-side sessions |
-| `ENCRYPTION_KEY` | AES-256-GCM key for PII fields (must be 64 hex chars / 32 bytes) |
-| `UPLOAD_SIGNING_SECRET` | Signs upload URLs |
+| Variable                | Purpose                                                          |
+| ----------------------- | ---------------------------------------------------------------- |
+| `JWT_SECRET`            | Signs short-lived access tokens                                  |
+| `JWT_REFRESH_SECRET`    | Signs long-lived refresh tokens                                  |
+| `SESSION_SECRET`        | Encrypts server-side sessions                                    |
+| `ENCRYPTION_KEY`        | AES-256-GCM key for PII fields (must be 64 hex chars / 32 bytes) |
+| `UPLOAD_SIGNING_SECRET` | Signs upload URLs                                                |
 
 Regenerate `POSTGRES_PASSWORD` and `REDIS_PASSWORD` too if they carried over from a
 development or staging environment.
@@ -90,13 +90,13 @@ or secured ops log. At minimum: `date`, `rotated_by`, `reason`.
 
 ### Rotation cadence
 
-| Trigger | Action |
-|---|---|
-| Initial production launch | Full rotation of all five application secrets |
-| Quarterly (~every 90 days) | Full rotation of all five application secrets |
-| Suspected compromise | Immediate rotation of affected secret(s); full rotation if scope is unclear |
-| Team member off-boarding | Rotate any secret the person had access to |
-| Staging value detected in prod | Immediate full rotation |
+| Trigger                        | Action                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| Initial production launch      | Full rotation of all five application secrets                               |
+| Quarterly (~every 90 days)     | Full rotation of all five application secrets                               |
+| Suspected compromise           | Immediate rotation of affected secret(s); full rotation if scope is unclear |
+| Team member off-boarding       | Rotate any secret the person had access to                                  |
+| Staging value detected in prod | Immediate full rotation                                                     |
 
 ## Image signing & verification
 
@@ -117,11 +117,11 @@ Staging deploys stay automatic. [ADS-826]
 
 The deploy job's `environment:` is resolved by the workflow's `preflight` job:
 
-| Dispatch | Approval environment |
-|---|---|
-| `environment=staging` (with or without skip flags) | `staging` — no approval |
-| `environment=production`, no skip flags | `production` |
-| `environment=production` + `skip_ci_check` and/or `skip_cosign_verify` | `production-bypass` |
+| Dispatch                                                               | Approval environment    |
+| ---------------------------------------------------------------------- | ----------------------- |
+| `environment=staging` (with or without skip flags)                     | `staging` — no approval |
+| `environment=production`, no skip flags                                | `production`            |
+| `environment=production` + `skip_ci_check` and/or `skip_cosign_verify` | `production-bypass`     |
 
 Bypass runs route to the dedicated `production-bypass` environment so the
 reviewer list sees at a glance that safety checks are being skipped. Any run
@@ -264,10 +264,10 @@ path E.
 Sequelize/`pg` driver open the link to Postgres over TLS. Three modes are
 supported:
 
-| `DB_SSL_MODE` | Behaviour |
-|---------------|-----------|
-| `require`     | TLS, no certificate verification (default) |
-| `verify-ca`   | TLS, verify CA chain |
+| `DB_SSL_MODE` | Behaviour                                                           |
+| ------------- | ------------------------------------------------------------------- |
+| `require`     | TLS, no certificate verification (default)                          |
+| `verify-ca`   | TLS, verify CA chain                                                |
 | `verify-full` | TLS, verify CA chain + hostname (recommended for managed providers) |
 
 Every schema-owning service refuses to boot in production with

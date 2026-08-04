@@ -136,4 +136,4 @@ PR. If a corrective migration was needed too, link that PR alongside.
   via [`5xx-spike.md`](./5xx-spike.md) first.
 - You're not sure which tag is the previous good one — pull the
   release notes / `git log` on `main` before issuing `docker compose
-  up`. A rollback to a worse tag costs more than 5 min of investigation.
+up`. A rollback to a worse tag costs more than 5 min of investigation.

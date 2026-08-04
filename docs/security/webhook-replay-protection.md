@@ -42,13 +42,13 @@ composite primary key.
 All of these live in the notifications service (the former monolith paths
 below are now removed; equivalent logic lives under `services/notifications/`):
 
-| Layer | Former monolith path |
-| --- | --- |
-| Migration | `src/migrations/12-create-webhook-event-ids.ts` |
-| Model | `src/models/WebhookEventId.ts` |
-| Service | `src/services/email/webhook-idempotency.service.ts` |
-| Wiring | `src/controllers/email.controller.ts` (`handleDeliveryWebhook`) |
-| Cleanup | `src/jobs/webhook-events-purge.job.ts` |
+| Layer     | Former monolith path                                            |
+| --------- | --------------------------------------------------------------- |
+| Migration | `src/migrations/12-create-webhook-event-ids.ts`                 |
+| Model     | `src/models/WebhookEventId.ts`                                  |
+| Service   | `src/services/email/webhook-idempotency.service.ts`             |
+| Wiring    | `src/controllers/email.controller.ts` (`handleDeliveryWebhook`) |
+| Cleanup   | `src/jobs/webhook-events-purge.job.ts`                          |
 
 **Table shape:**
 
@@ -81,12 +81,12 @@ duplicate-replay is by definition not a client error.
 should the normalised handler ever be replaced with provider-shaped
 payloads):
 
-| Provider | Event-ID source |
-| --- | --- |
-| SendGrid | `sg_event_id` on each event in the array body |
-| Postmark | `MessageID` + `RecordType` |
+| Provider        | Event-ID source                                             |
+| --------------- | ----------------------------------------------------------- |
+| SendGrid        | `sg_event_id` on each event in the array body               |
+| Postmark        | `MessageID` + `RecordType`                                  |
 | AWS SES via SNS | `Mail.messageId` + `Type` (`Bounce`/`Complaint`/`Delivery`) |
-| Generic | `t` (timestamp) + SHA-256(rawBody) |
+| Generic         | `t` (timestamp) + SHA-256(rawBody)                          |
 
 **Cleanup:** `jobs/webhook-events-purge.job.ts` deletes rows older than
 7 days, scheduled daily via BullMQ on the shared `reports` queue. Cron:
