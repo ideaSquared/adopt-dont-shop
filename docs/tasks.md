@@ -57,13 +57,16 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
+| `pnpm check:csp` | `node scripts/check-csp-headers.mjs` |
 | `pnpm check:docker-pinning` | `node scripts/check-docker-pinning.mjs` |
 | `pnpm check:docs-freshness` | `node scripts/check-docs-freshness.mjs` |
 | `pnpm check:docs-index` | `node scripts/check-docs-index.mjs` |
 | `pnpm check:docs-script-refs` | `node scripts/check-docs-script-references.mjs` |
 | `pnpm check:env-example` | `node scripts/check-env-example.mjs` |
 | `pnpm check:lib-tests` | `node scripts/check-lib-tests.mjs` |
+| `pnpm check:proto-fresh` | `pnpm --filter @adopt-dont-shop/proto check:fresh` |
 | `pnpm check:readmes` | `node scripts/check-readmes.mjs` |
+| `pnpm check:renovate` | `npx --package renovate -- renovate-config-validator renovate.json` |
 | `pnpm check:stories` | `node scripts/check-storybook-coverage.mjs` |
 | `pnpm check:workflow-paths` | `node scripts/check-workflow-paths.mjs` |
 | `pnpm check:workspaces` | `node scripts/check-workspace-consistency.mjs` |
@@ -103,7 +106,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:readmes && pnpm check:renovate && pnpm test:scripts` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks
@@ -151,7 +154,7 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/authz` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/config-secrets` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/db` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/e2e` | `install:browsers`, `report`, `test`, `test:debug`, `test:headed`, `test:smoke`, `test:ui`, `type-check` |
+| `@adopt-dont-shop/e2e` | `format`, `format:check`, `install:browsers`, `lint`, `lint:fix`, `report`, `test`, `test:debug`, `test:headed`, `test:smoke`, `test:ui`, `type-check` |
 | `@adopt-dont-shop/events` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.analytics` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.api` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |

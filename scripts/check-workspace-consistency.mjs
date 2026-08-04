@@ -817,6 +817,94 @@ export function checkNoEmitTaskOutputs(turboConfig) {
   return failures;
 }
 
+// ADS-1002: every scripts/check-*.mjs guard invoked from ci.yml's
+// `workspace-drift` job — CI's required PR gate — whether as a bare
+// `node scripts/check-x.mjs` step or via a wrapping `pnpm check:x` script
+// that runs one, must map to a root `check:*` script that also runs locally
+// via `pnpm ci:local`, so the two never drift out of parity (ci.yml
+// previously called scripts/check-csp-headers.mjs and
+// scripts/check-readmes.mjs directly with no ci:local equivalent). Scope is
+// deliberately narrow: only steps backed by a scripts/check-*.mjs file are
+// checked — a workspace-drift step with no such backing (e.g. `pnpm ls -r`,
+// `pnpm format:check`, `pnpm check:proto-fresh`) is outside what this guard
+// covers and won't be flagged either way.
+
+// Extract the YAML text of a single top-level job block (from its
+// `  <jobName>:` header line to the next 2-space-indented top-level key).
+// Mirrors parseDevVolumesAnchor's dedent-detection style above.
+export function extractJobBlock(ciYaml, jobName) {
+  const lines = ciYaml.split('\n');
+  const startIdx = lines.findIndex(l => l === `  ${jobName}:`);
+  if (startIdx === -1) return null;
+  const blockLines = [lines[startIdx]];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    if (/^  \S/.test(lines[i])) break; // dedent to 2 spaces = next job key
+    blockLines.push(lines[i]);
+  }
+  return blockLines.join('\n');
+}
+
+// Every scripts/check-*.mjs guard referenced in a job's YAML, whether
+// invoked directly ('node scripts/check-x.mjs') or via a wrapping root
+// package.json script ('pnpm check:x').
+export function findGuardScriptFiles(jobYaml, rootScripts) {
+  const found = new Set();
+  const directRe = /\bnode scripts\/(check-[\w-]+\.mjs)\b/g;
+  let m;
+  while ((m = directRe.exec(jobYaml)) !== null) found.add(m[1]);
+
+  const pnpmRe = /\bpnpm (check:[\w-]+)\b/g;
+  while ((m = pnpmRe.exec(jobYaml)) !== null) {
+    const body = rootScripts[m[1]] || '';
+    const fileMatch = body.match(/scripts\/(check-[\w-]+\.mjs)/);
+    if (fileMatch) found.add(fileMatch[1]);
+  }
+  return [...found].sort();
+}
+
+// The root package.json script name (if any) whose command body runs the
+// given guard script file directly.
+export function findRootScriptForGuardFile(file, rootScripts) {
+  const hit = Object.entries(rootScripts).find(([, body]) => (body || '').includes(`scripts/${file}`));
+  return hit ? hit[0] : null;
+}
+
+// Is `pnpm <scriptName>` one of the commands `ci:local` runs?
+export function isRunByCiLocal(scriptName, ciLocalBody) {
+  const escaped = scriptName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\bpnpm ${escaped}\\b`).test(ciLocalBody || '');
+}
+
+export function checkWorkspaceDriftGuardsCoveredByCiLocal(ciYaml, rootPkg) {
+  const rootScripts = rootPkg.scripts || {};
+  const jobYaml = extractJobBlock(ciYaml, 'workspace-drift');
+  if (!jobYaml) {
+    return [
+      "[ci.yml] could not find the 'workspace-drift' job — expected a top-level '  workspace-drift:' key (ADS-1002).",
+    ];
+  }
+
+  const failures = [];
+  const ciLocalBody = rootScripts['ci:local'] || '';
+  for (const file of findGuardScriptFiles(jobYaml, rootScripts)) {
+    const scriptName = findRootScriptForGuardFile(file, rootScripts);
+    if (!scriptName) {
+      failures.push(
+        `[ci.yml workspace-drift] invokes scripts/${file} but no root package.json script wraps it — ` +
+          `add a 'check:*' script for it (ADS-1002).`
+      );
+      continue;
+    }
+    if (!isRunByCiLocal(scriptName, ciLocalBody)) {
+      failures.push(
+        `[ci.yml workspace-drift] scripts/${file} runs via the '${scriptName}' root script, but 'ci:local' ` +
+          `does not run '${scriptName}' — add it to ci:local so local parity matches CI (ADS-1002).`
+      );
+    }
+  }
+  return failures;
+}
+
 function main() {
   const libs = listLibs();
   const apps = listApps();
@@ -973,6 +1061,11 @@ function main() {
     }
     failures.push(...checkLintFormatScripts(dir, pkg.scripts || {}));
   }
+
+  // ADS-1002: every ci.yml workspace-drift guard must be wrapped in a root
+  // 'check:*' script that ci:local also runs.
+  const ciYaml = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
+  failures.push(...checkWorkspaceDriftGuardsCoveredByCiLocal(ciYaml, rootPkg));
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');

@@ -42,19 +42,19 @@ HTTP surface: `/health/simple`. Everything else is gRPC `RescueService`
 `/api/v1/events/*`. Permission scope is the `rescue_id`; admin / `super_admin`
 bypass scope.
 
-| RPC | Permission |
-| --- | --- |
-| `Create` | `rescues.create` |
-| `Get` / `List` | `rescues.read` (List defaults to verified-only) |
-| `Update` | `rescues.update` (scoped; does not change status) |
-| `Verify` | `admin.security.manage` (admin-only status transition) |
-| `InviteStaff` | `staff.create` (scoped; mints token, returned once) |
-| `GetMyStaffMembership` | authenticated (self-scoped) |
-| `ListStaffMembers` | `staff.read` |
-| `CreateFosterPlacement` | `foster.create` (scoped; validates pet via pets gRPC) |
-| `ListFosterPlacements` / `GetFosterPlacement` | `foster.read` (scoped) |
-| `EndFosterPlacement` | `foster.update` (scoped; idempotent) |
-| `GetInvitationByToken` | none (the token is the credential) |
+| RPC                                           | Permission                                             |
+| --------------------------------------------- | ------------------------------------------------------ |
+| `Create`                                      | `rescues.create`                                       |
+| `Get` / `List`                                | `rescues.read` (List defaults to verified-only)        |
+| `Update`                                      | `rescues.update` (scoped; does not change status)      |
+| `Verify`                                      | `admin.security.manage` (admin-only status transition) |
+| `InviteStaff`                                 | `staff.create` (scoped; mints token, returned once)    |
+| `GetMyStaffMembership`                        | authenticated (self-scoped)                            |
+| `ListStaffMembers`                            | `staff.read`                                           |
+| `CreateFosterPlacement`                       | `foster.create` (scoped; validates pet via pets gRPC)  |
+| `ListFosterPlacements` / `GetFosterPlacement` | `foster.read` (scoped)                                 |
+| `EndFosterPlacement`                          | `foster.update` (scoped; idempotent)                   |
+| `GetInvitationByToken`                        | none (the token is the credential)                     |
 
 Schema (`rescue`): `rescues`, `rescue_settings`, `staff_members` (user↔rescue
 join, no cross-schema FK), `invitations` (one-time token), `foster_placements`,
