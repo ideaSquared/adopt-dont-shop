@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  checkLintFormatScripts,
   checkNoEmitTaskOutputs,
   checkTemplateDepDrift,
   checkToolVersionsDrift,
+  checkWorkspaceDriftGuardsCoveredByCiLocal,
   computeExpectedDevVolumeMounts,
   extractCiFilterGroups,
+  extractJobBlock,
   filterMatches,
+  findGuardScriptFiles,
   findMissingCoverageThresholds,
+  findRootScriptForGuardFile,
   findUncoveredPackages,
+  isRunByCiLocal,
   parseDevVolumesAnchor,
   rootAuthoritativeRange,
 } from './check-workspace-consistency.mjs';
@@ -181,7 +187,11 @@ describe('findMissingCoverageThresholds (ADS-1004)', () => {
   ].join('\n');
 
   it('passes a package that declares all four coverage thresholds', () => {
-    expect(findMissingCoverageThresholds([{ workspace: 'lib.api', contents: declared }])).toEqual([]);
+    expect(
+      findMissingCoverageThresholds([
+        { path: 'packages/lib.api/vitest.config.ts', contents: declared },
+      ])
+    ).toEqual([]);
   });
 
   it('passes a package that deliberately declares all-zero thresholds with a rationale comment', () => {
@@ -194,10 +204,14 @@ describe('findMissingCoverageThresholds (ADS-1004)', () => {
       '        lines: 0,',
       '      },',
     ].join('\n');
-    expect(findMissingCoverageThresholds([{ workspace: 'lib.dev-tools', contents: allZero }])).toEqual([]);
+    expect(
+      findMissingCoverageThresholds([
+        { path: 'packages/lib.dev-tools/vitest.config.ts', contents: allZero },
+      ])
+    ).toEqual([]);
   });
 
-  it('flags a newly-scaffolded service that never overrides the shared 0% default', () => {
+  it('flags a newly-scaffolded service that never overrides the shared 0% default, with the real path', () => {
     const noOverride = [
       "import { defineServiceConfig } from '../../vitest.shared.config';",
       '',
@@ -205,26 +219,30 @@ describe('findMissingCoverageThresholds (ADS-1004)', () => {
       '',
     ].join('\n');
 
-    const failures = findMissingCoverageThresholds([{ workspace: 'new-service', contents: noOverride }]);
+    const failures = findMissingCoverageThresholds([
+      { path: 'services/new-service/vitest.config.ts', contents: noOverride },
+    ]);
     expect(failures).toHaveLength(1);
-    expect(failures[0]).toContain('new-service');
+    expect(failures[0]).toContain('[services/new-service/vitest.config.ts]');
     expect(failures[0]).toContain('statements, branches, functions, lines');
   });
 
   it('flags only the metrics that are actually missing', () => {
     const partial = '        statements: 80,\n        branches: 80,\n';
-    const failures = findMissingCoverageThresholds([{ workspace: 'partial-lib', contents: partial }]);
+    const failures = findMissingCoverageThresholds([
+      { path: 'packages/lib.partial/vitest.config.ts', contents: partial },
+    ]);
     expect(failures).toHaveLength(1);
     expect(failures[0]).toContain('functions, lines');
     expect(failures[0]).not.toContain('statements,');
   });
 
-  it('flags a package whose vitest.config.ts is missing or unreadable, rather than skipping it', () => {
+  it('flags a package whose vitest.config.ts is missing or unreadable, with the real repo-relative path', () => {
     const failures = findMissingCoverageThresholds([
-      { workspace: 'services/new-service', contents: null },
+      { path: 'services/new-service/vitest.config.ts', contents: null },
     ]);
     expect(failures).toHaveLength(1);
-    expect(failures[0]).toContain('services/new-service');
+    expect(failures[0]).toContain('[services/new-service/vitest.config.ts]');
     expect(failures[0]).toContain('missing or unreadable');
   });
 });
@@ -302,5 +320,140 @@ describe('CI test-filter reachability (ADS-1029)', () => {
       const rogue = { name: '@adopt-dont-shop/rogue', dir: 'tools/rogue' };
       expect(findUncoveredPackages([rogue], groups)).toEqual([rogue]);
     });
+  });
+});
+
+describe('workspace-drift guard / ci:local parity (ADS-1002)', () => {
+  const ciYaml = [
+    'jobs:',
+    '  workspace-drift:',
+    '    steps:',
+    '      - name: Verify workspace consistency',
+    '        run: node scripts/check-workspace-consistency.mjs',
+    '      - name: Verify CSP headers',
+    '        run: pnpm check:csp',
+    '  changes:',
+    '    steps:',
+    '      - run: node scripts/check-docs-freshness.mjs --check-external',
+  ].join('\n');
+
+  describe('extractJobBlock', () => {
+    it('extracts only the named job, stopping at the next top-level job key', () => {
+      const block = extractJobBlock(ciYaml, 'workspace-drift');
+      expect(block).toContain('check-workspace-consistency.mjs');
+      expect(block).toContain('pnpm check:csp');
+      expect(block).not.toContain('check-docs-freshness.mjs');
+    });
+
+    it('returns null when the job is not found', () => {
+      expect(extractJobBlock(ciYaml, 'no-such-job')).toBeNull();
+    });
+  });
+
+  describe('findGuardScriptFiles', () => {
+    const rootScripts = {
+      'check:csp': 'node scripts/check-csp-headers.mjs',
+      'check:workspaces': 'node scripts/check-workspace-consistency.mjs',
+    };
+
+    it('finds guard files invoked directly with node', () => {
+      expect(findGuardScriptFiles('run: node scripts/check-workspace-consistency.mjs', rootScripts)).toEqual([
+        'check-workspace-consistency.mjs',
+      ]);
+    });
+
+    it('resolves guard files invoked indirectly via a wrapping pnpm script', () => {
+      expect(findGuardScriptFiles('run: pnpm check:csp', rootScripts)).toEqual(['check-csp-headers.mjs']);
+    });
+
+    it('ignores a pnpm script reference with no matching root script', () => {
+      expect(findGuardScriptFiles('run: pnpm check:unknown', rootScripts)).toEqual([]);
+    });
+  });
+
+  describe('findRootScriptForGuardFile', () => {
+    it('finds the script name wrapping a given guard file', () => {
+      const rootScripts = { 'check:csp': 'node scripts/check-csp-headers.mjs' };
+      expect(findRootScriptForGuardFile('check-csp-headers.mjs', rootScripts)).toBe('check:csp');
+    });
+
+    it('returns null when no root script wraps the file', () => {
+      expect(findRootScriptForGuardFile('check-new-guard.mjs', {})).toBeNull();
+    });
+  });
+
+  describe('isRunByCiLocal', () => {
+    it('is true when ci:local invokes the script by name', () => {
+      expect(isRunByCiLocal('check:csp', 'pnpm format:check && pnpm check:csp && pnpm test:scripts')).toBe(true);
+    });
+
+    it('is false when ci:local does not invoke the script', () => {
+      expect(isRunByCiLocal('check:csp', 'pnpm format:check && pnpm test:scripts')).toBe(false);
+    });
+  });
+
+  describe('checkWorkspaceDriftGuardsCoveredByCiLocal', () => {
+    it('passes when every workspace-drift guard has a ci:local-covered root script', () => {
+      const rootPkg = {
+        scripts: {
+          'check:csp': 'node scripts/check-csp-headers.mjs',
+          'check:workspaces': 'node scripts/check-workspace-consistency.mjs',
+          'ci:local': 'pnpm format:check && pnpm check:workspaces && pnpm check:csp',
+        },
+      };
+      expect(checkWorkspaceDriftGuardsCoveredByCiLocal(ciYaml, rootPkg)).toEqual([]);
+    });
+
+    it('fails when a guard script has no wrapping root package.json script', () => {
+      const yaml = ['jobs:', '  workspace-drift:', '    steps:', '      - run: node scripts/check-new-guard.mjs'].join(
+        '\n'
+      );
+      const rootPkg = { scripts: { 'ci:local': 'pnpm format:check' } };
+      const failures = checkWorkspaceDriftGuardsCoveredByCiLocal(yaml, rootPkg);
+      expect(failures).toHaveLength(1);
+      expect(failures[0]).toContain('scripts/check-new-guard.mjs');
+      expect(failures[0]).toContain('no root package.json script wraps it');
+    });
+
+    it('fails when the wrapping root script exists but ci:local does not run it', () => {
+      const yaml = ['jobs:', '  workspace-drift:', '    steps:', '      - run: pnpm check:new-guard'].join('\n');
+      const rootPkg = {
+        scripts: {
+          'check:new-guard': 'node scripts/check-new-guard.mjs',
+          'ci:local': 'pnpm format:check',
+        },
+      };
+      const failures = checkWorkspaceDriftGuardsCoveredByCiLocal(yaml, rootPkg);
+      expect(failures).toHaveLength(1);
+      expect(failures[0]).toContain("does not run 'check:new-guard'");
+    });
+
+    it('fails with a clear message when the workspace-drift job cannot be found', () => {
+      const failures = checkWorkspaceDriftGuardsCoveredByCiLocal('jobs:\n  changes:\n    steps: []', {
+        scripts: {},
+      });
+      expect(failures).toEqual([
+        "[ci.yml] could not find the 'workspace-drift' job — expected a top-level '  workspace-drift:' key (ADS-1002).",
+      ]);
+    });
+  });
+});
+
+describe('checkLintFormatScripts (ADS-1003)', () => {
+  it('reports no drift when lint, format and format:check are all present', () => {
+    const scripts = { lint: 'eslint .', format: 'prettier --write .', 'format:check': 'prettier --check .' };
+    expect(checkLintFormatScripts('e2e', scripts)).toEqual([]);
+  });
+
+  it('flags every missing script by name', () => {
+    const failures = checkLintFormatScripts('e2e', { test: 'playwright test' });
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('[e2e] missing scripts: lint, format, format:check');
+  });
+
+  it('flags only the scripts that are actually missing', () => {
+    const failures = checkLintFormatScripts('services/auth', { lint: 'eslint src' });
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('missing scripts: format, format:check');
   });
 });

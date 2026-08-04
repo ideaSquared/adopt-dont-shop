@@ -57,22 +57,22 @@ erDiagram
 
 **Purpose**: Rescue organization profiles and settings. Defined in `Rescue.ts`.
 
-| Field                        | Type         | Description                                              |
-| ---------------------------- | ------------ | -------------------------------------------------------- |
-| rescue_id                    | UUID (PK)    | Primary identifier                                       |
-| name                         | VARCHAR      | Organization name                                        |
-| email                        | VARCHAR      | Contact email                                            |
-| phone                        | VARCHAR      | Contact phone                                            |
-| address_line_1               | VARCHAR      | Street address                                           |
-| city / state / zip_code      | VARCHAR      | UK locality fields (mapped to existing columns)          |
-| country                      | CHAR(2)      | ISO-3166 country code (default `GB`)                     |
-| companies_house_number       | VARCHAR      | Companies House registration (UK verification source)    |
-| charity_registration_number  | VARCHAR      | Charity Commission registration                          |
-| verification_status          | ENUM         | `pending`, `verified`, `rejected`                        |
-| verified_at / verified_by    | TIMESTAMP / UUID | Verification audit                                   |
-| settings                     | JSONB        | Per-rescue feature settings                              |
-| plan                         | VARCHAR      | Subscription plan (default `free`)                       |
-| created_at / updated_at      | TIMESTAMP    | Auditing                                                 |
+| Field                       | Type             | Description                                           |
+| --------------------------- | ---------------- | ----------------------------------------------------- |
+| rescue_id                   | UUID (PK)        | Primary identifier                                    |
+| name                        | VARCHAR          | Organization name                                     |
+| email                       | VARCHAR          | Contact email                                         |
+| phone                       | VARCHAR          | Contact phone                                         |
+| address_line_1              | VARCHAR          | Street address                                        |
+| city / state / zip_code     | VARCHAR          | UK locality fields (mapped to existing columns)       |
+| country                     | CHAR(2)          | ISO-3166 country code (default `GB`)                  |
+| companies_house_number      | VARCHAR          | Companies House registration (UK verification source) |
+| charity_registration_number | VARCHAR          | Charity Commission registration                       |
+| verification_status         | ENUM             | `pending`, `verified`, `rejected`                     |
+| verified_at / verified_by   | TIMESTAMP / UUID | Verification audit                                    |
+| settings                    | JSONB            | Per-rescue feature settings                           |
+| plan                        | VARCHAR          | Subscription plan (default `free`)                    |
+| created_at / updated_at     | TIMESTAMP        | Auditing                                              |
 
 **Indexes**: verified_by, deleted_at (soft delete)
 
@@ -80,23 +80,23 @@ erDiagram
 
 **Purpose**: Pet profiles and availability. Defined in `Pet.ts`.
 
-| Field                   | Type      | Description                                                                                              |
-| ----------------------- | --------- | -------------------------------------------------------------------------------------------------------- |
-| pet_id                  | UUID (PK) | Primary identifier                                                                                       |
-| rescue_id               | UUID (FK) | Owning rescue                                                                                            |
-| name                    | VARCHAR   | Pet name                                                                                                 |
-| type                    | ENUM      | `dog`, `cat`, `rabbit`, `bird`, `reptile`, `small_mammal`, `fish`, `other`                               |
-| breed                   | VARCHAR   | Breed information                                                                                        |
-| age_years / age_months  | INTEGER   | Age components (also `birth_date` + `age_group`)                                                         |
-| gender                  | ENUM      | `male`, `female`, `unknown`                                                                              |
-| size                    | ENUM      | `extra_small`, `small`, `medium`, `large`, `extra_large`                                                 |
+| Field                   | Type      | Description                                                                                                 |
+| ----------------------- | --------- | ----------------------------------------------------------------------------------------------------------- |
+| pet_id                  | UUID (PK) | Primary identifier                                                                                          |
+| rescue_id               | UUID (FK) | Owning rescue                                                                                               |
+| name                    | VARCHAR   | Pet name                                                                                                    |
+| type                    | ENUM      | `dog`, `cat`, `rabbit`, `bird`, `reptile`, `small_mammal`, `fish`, `other`                                  |
+| breed                   | VARCHAR   | Breed information                                                                                           |
+| age_years / age_months  | INTEGER   | Age components (also `birth_date` + `age_group`)                                                            |
+| gender                  | ENUM      | `male`, `female`, `unknown`                                                                                 |
+| size                    | ENUM      | `extra_small`, `small`, `medium`, `large`, `extra_large`                                                    |
 | status                  | ENUM      | `available`, `pending`, `adopted`, `foster`, `medical_hold`, `behavioral_hold`, `not_available`, `deceased` |
-| short_description       | TEXT      | Card / list copy                                                                                         |
-| long_description        | TEXT      | Full profile body                                                                                        |
-| medical_notes           | TEXT      | Free-text vet notes (no separate `medical_history` JSON column)                                          |
-| adoption_fee_minor      | INTEGER   | Fee in minor currency units (e.g. pence). Pair with `adoption_fee_currency`.                             |
-| adoption_fee_currency   | CHAR(3)   | ISO-4217 currency code                                                                                   |
-| created_at / updated_at | TIMESTAMP | Auditing                                                                                                 |
+| short_description       | TEXT      | Card / list copy                                                                                            |
+| long_description        | TEXT      | Full profile body                                                                                           |
+| medical_notes           | TEXT      | Free-text vet notes (no separate `medical_history` JSON column)                                             |
+| adoption_fee_minor      | INTEGER   | Fee in minor currency units (e.g. pence). Pair with `adoption_fee_currency`.                                |
+| adoption_fee_currency   | CHAR(3)   | ISO-4217 currency code                                                                                      |
+| created_at / updated_at | TIMESTAMP | Auditing                                                                                                    |
 
 **Indexes**: rescue_id, type, status, breed
 
@@ -106,22 +106,22 @@ erDiagram
 
 **Purpose**: Adoption application tracking. Defined in `Application.ts`.
 
-| Field              | Type      | Description                                                                       |
-| ------------------ | --------- | --------------------------------------------------------------------------------- |
-| application_id     | UUID (PK) | Primary identifier                                                                |
-| user_id            | UUID (FK) | Applicant                                                                         |
-| pet_id             | UUID (FK) | Applied pet                                                                       |
-| rescue_id          | UUID (FK) | Rescue org                                                                        |
-| status             | ENUM      | `submitted`, `approved`, `rejected`, `withdrawn` (simplified outcome)             |
-| priority           | ENUM      | `low`, `normal`, `high`, `urgent`                                                 |
-| stage              | ENUM      | `pending`, `reviewing`, `visiting`, `deciding`, `resolved`, `withdrawn`           |
-| final_outcome      | ENUM      | `approved`, `rejected`, `withdrawn` (set when `stage = resolved`)                 |
-| review_started_at  | TIMESTAMP | Review start time                                                                 |
-| visit_scheduled_at | TIMESTAMP | Visit scheduled                                                                   |
-| visit_completed_at | TIMESTAMP | Visit completion                                                                  |
-| resolved_at        | TIMESTAMP | Resolution time                                                                   |
-| documents          | JSONB     | Uploaded supporting documents                                                     |
-| created_at         | TIMESTAMP | Submission date                                                                   |
+| Field              | Type      | Description                                                             |
+| ------------------ | --------- | ----------------------------------------------------------------------- |
+| application_id     | UUID (PK) | Primary identifier                                                      |
+| user_id            | UUID (FK) | Applicant                                                               |
+| pet_id             | UUID (FK) | Applied pet                                                             |
+| rescue_id          | UUID (FK) | Rescue org                                                              |
+| status             | ENUM      | `submitted`, `approved`, `rejected`, `withdrawn` (simplified outcome)   |
+| priority           | ENUM      | `low`, `normal`, `high`, `urgent`                                       |
+| stage              | ENUM      | `pending`, `reviewing`, `visiting`, `deciding`, `resolved`, `withdrawn` |
+| final_outcome      | ENUM      | `approved`, `rejected`, `withdrawn` (set when `stage = resolved`)       |
+| review_started_at  | TIMESTAMP | Review start time                                                       |
+| visit_scheduled_at | TIMESTAMP | Visit scheduled                                                         |
+| visit_completed_at | TIMESTAMP | Visit completion                                                        |
+| resolved_at        | TIMESTAMP | Resolution time                                                         |
+| documents          | JSONB     | Uploaded supporting documents                                           |
+| created_at         | TIMESTAMP | Submission date                                                         |
 
 **Indexes**: user_id, pet_id, rescue_id, stage, status
 
@@ -131,18 +131,18 @@ erDiagram
 
 **Purpose**: Junction table linking users to the rescues they staff. Defined in `StaffMember.ts`. RBAC roles live on the `user_roles` table — staff_members does **not** store roles or permissions itself.
 
-| Field           | Type      | Description                                          |
-| --------------- | --------- | ---------------------------------------------------- |
-| staff_member_id | UUID (PK) | Primary identifier                                   |
-| rescue_id       | UUID (FK) | Rescue org (FK → rescues)                            |
-| user_id         | UUID (FK) | User account (FK → users)                            |
-| title           | VARCHAR   | Free-text role/title (e.g. "Adoptions Coordinator")  |
-| is_verified     | BOOLEAN   | Verified-by-rescue flag                              |
-| verified_by     | UUID (FK) | User who verified (nullable)                         |
-| verified_at     | TIMESTAMP | When verified                                        |
-| added_by        | UUID (FK) | Who added the staffer                                |
-| added_at        | TIMESTAMP | When added                                           |
-| deleted_at      | TIMESTAMP | Soft-delete timestamp (paranoid)                     |
+| Field           | Type      | Description                                         |
+| --------------- | --------- | --------------------------------------------------- |
+| staff_member_id | UUID (PK) | Primary identifier                                  |
+| rescue_id       | UUID (FK) | Rescue org (FK → rescues)                           |
+| user_id         | UUID (FK) | User account (FK → users)                           |
+| title           | VARCHAR   | Free-text role/title (e.g. "Adoptions Coordinator") |
+| is_verified     | BOOLEAN   | Verified-by-rescue flag                             |
+| verified_by     | UUID (FK) | User who verified (nullable)                        |
+| verified_at     | TIMESTAMP | When verified                                       |
+| added_by        | UUID (FK) | Who added the staffer                               |
+| added_at        | TIMESTAMP | When added                                          |
+| deleted_at      | TIMESTAMP | Soft-delete timestamp (paranoid)                    |
 
 **Indexes**: user_id, rescue_id
 
@@ -152,15 +152,15 @@ erDiagram
 
 **Purpose**: Chat thread management between adopters and rescues. Defined in `Chat.ts`.
 
-| Field          | Type      | Description                                |
-| -------------- | --------- | ------------------------------------------ |
-| chat_id        | UUID (PK) | Primary identifier                         |
-| rescue_id      | UUID (FK) | Owning rescue                              |
-| pet_id         | UUID (FK) | Pet that initiated the chat (optional)     |
-| application_id | UUID (FK) | Related application (optional)             |
-| status         | ENUM      | `active`, `locked`, `archived`             |
-| created_at     | TIMESTAMP | Creation date                              |
-| updated_at     | TIMESTAMP | Last update                                |
+| Field          | Type      | Description                            |
+| -------------- | --------- | -------------------------------------- |
+| chat_id        | UUID (PK) | Primary identifier                     |
+| rescue_id      | UUID (FK) | Owning rescue                          |
+| pet_id         | UUID (FK) | Pet that initiated the chat (optional) |
+| application_id | UUID (FK) | Related application (optional)         |
+| status         | ENUM      | `active`, `locked`, `archived`         |
+| created_at     | TIMESTAMP | Creation date                          |
+| updated_at     | TIMESTAMP | Last update                            |
 
 **Indexes**: rescue_id, pet_id, application_id, status
 
@@ -168,31 +168,31 @@ erDiagram
 
 **Purpose**: Junction table linking users to chats. Defined in `ChatParticipant.ts`.
 
-| Field    | Type      | Description           |
-| -------- | --------- | --------------------- |
-| chat_id  | UUID (FK) | Parent chat           |
-| user_id  | UUID (FK) | Participant user      |
-| role     | ENUM      | Participant role      |
+| Field   | Type      | Description      |
+| ------- | --------- | ---------------- |
+| chat_id | UUID (FK) | Parent chat      |
+| user_id | UUID (FK) | Participant user |
+| role    | ENUM      | Participant role |
 
 ### Messages
 
 **Purpose**: Individual messages within a chat. Defined in `Message.ts`.
 
-| Field             | Type      | Description                                                          |
-| ----------------- | --------- | -------------------------------------------------------------------- |
-| message_id        | UUID (PK) | Primary identifier                                                   |
-| chat_id           | UUID (FK) | Parent chat                                                          |
-| sender_id         | UUID (FK) | Message sender                                                       |
-| content           | TEXT      | Message content                                                      |
-| content_format    | ENUM      | Content type (e.g. plain / markdown)                                 |
-| attachments       | JSONB     | File attachments                                                     |
+| Field             | Type      | Description                                                                     |
+| ----------------- | --------- | ------------------------------------------------------------------------------- |
+| message_id        | UUID (PK) | Primary identifier                                                              |
+| chat_id           | UUID (FK) | Parent chat                                                                     |
+| sender_id         | UUID (FK) | Message sender                                                                  |
+| content           | TEXT      | Message content                                                                 |
+| content_format    | ENUM      | Content type (e.g. plain / markdown)                                            |
+| attachments       | JSONB     | File attachments                                                                |
 | search_vector     | TSVECTOR  | Stored generated column for full-text search (`messages_search_vector_gin_idx`) |
-| is_flagged        | BOOLEAN   | Content-moderation flag                                              |
-| flag_reason       | VARCHAR   | Reason set when flagged                                              |
-| flag_severity     | ENUM      | Severity from moderation pipeline                                    |
-| moderation_status | ENUM      | Outcome of moderation scan                                           |
-| flagged_at        | TIMESTAMP | When the flag was applied                                            |
-| created_at        | TIMESTAMP | Send time                                                            |
+| is_flagged        | BOOLEAN   | Content-moderation flag                                                         |
+| flag_reason       | VARCHAR   | Reason set when flagged                                                         |
+| flag_severity     | ENUM      | Severity from moderation pipeline                                               |
+| moderation_status | ENUM      | Outcome of moderation scan                                                      |
+| flagged_at        | TIMESTAMP | When the flag was applied                                                       |
+| created_at        | TIMESTAMP | Send time                                                                       |
 
 Read receipts are tracked in a separate `MessageRead` table; reactions in `MessageReaction`.
 
@@ -202,26 +202,26 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 **Purpose**: Multi-channel user notifications. Defined in `Notification.ts`.
 
-| Field                   | Type      | Description                                                                       |
-| ----------------------- | --------- | --------------------------------------------------------------------------------- |
-| notification_id         | UUID (PK) | Primary identifier                                                                |
-| user_id                 | UUID (FK) | Recipient                                                                         |
-| type                    | ENUM      | Notification category (see `NotificationType`)                                    |
-| channel                 | ENUM      | Delivery channel (email / push / in-app / SMS)                                    |
-| priority                | ENUM      | `low`, `normal`, `high`, `urgent`                                                 |
-| status                  | ENUM      | `pending`, `sent`, `delivered`, `read`, `failed`, `cancelled`                     |
-| title                   | VARCHAR   | Notification title                                                                |
-| message                 | TEXT      | Content                                                                           |
-| data                    | JSONB     | Additional data                                                                   |
-| template_id             | VARCHAR   | Optional template reference                                                       |
-| template_variables      | JSONB     | Template substitution values                                                      |
-| scheduled_for           | TIMESTAMP | Send-after timestamp                                                              |
-| sent_at / delivered_at  | TIMESTAMP | Lifecycle timestamps                                                              |
-| read_at / clicked_at    | TIMESTAMP | Engagement timestamps (there is **no** boolean `read` column — use `read_at` / `status = read`) |
-| retry_count / max_retries | INTEGER | Delivery retry bookkeeping                                                        |
-| error_message           | VARCHAR   | Last failure reason                                                               |
-| external_id             | VARCHAR   | Provider message ID                                                               |
-| created_at              | TIMESTAMP | Creation time                                                                     |
+| Field                     | Type      | Description                                                                                     |
+| ------------------------- | --------- | ----------------------------------------------------------------------------------------------- |
+| notification_id           | UUID (PK) | Primary identifier                                                                              |
+| user_id                   | UUID (FK) | Recipient                                                                                       |
+| type                      | ENUM      | Notification category (see `NotificationType`)                                                  |
+| channel                   | ENUM      | Delivery channel (email / push / in-app / SMS)                                                  |
+| priority                  | ENUM      | `low`, `normal`, `high`, `urgent`                                                               |
+| status                    | ENUM      | `pending`, `sent`, `delivered`, `read`, `failed`, `cancelled`                                   |
+| title                     | VARCHAR   | Notification title                                                                              |
+| message                   | TEXT      | Content                                                                                         |
+| data                      | JSONB     | Additional data                                                                                 |
+| template_id               | VARCHAR   | Optional template reference                                                                     |
+| template_variables        | JSONB     | Template substitution values                                                                    |
+| scheduled_for             | TIMESTAMP | Send-after timestamp                                                                            |
+| sent_at / delivered_at    | TIMESTAMP | Lifecycle timestamps                                                                            |
+| read_at / clicked_at      | TIMESTAMP | Engagement timestamps (there is **no** boolean `read` column — use `read_at` / `status = read`) |
+| retry_count / max_retries | INTEGER   | Delivery retry bookkeeping                                                                      |
+| error_message             | VARCHAR   | Last failure reason                                                                             |
+| external_id               | VARCHAR   | Provider message ID                                                                             |
+| created_at                | TIMESTAMP | Creation time                                                                                   |
 
 **Indexes**: user_id, status, created_at
 
@@ -231,20 +231,20 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 **Purpose**: User swipe behavior tracking. See the owning service's `src/models/SwipeAction.ts` for the authoritative shape.
 
-| Field            | Type           | Description                                                  |
-| ---------------- | -------------- | ------------------------------------------------------------ |
-| swipe_action_id  | UUID (PK)      | Primary identifier (UUIDv7)                                  |
-| session_id       | UUID (FK)      | Discovery session identifier                                 |
-| pet_id           | UUID (FK)      | Pet swiped                                                   |
-| user_id          | UUID (FK)      | User performing action (nullable for anonymous sessions)     |
-| action           | ENUM           | `like`, `pass`, `super_like`, `info`                         |
-| timestamp        | TIMESTAMP      | When the swipe occurred (client-supplied)                    |
-| response_time    | INTEGER        | Optional reaction time in ms                                 |
-| device_type      | VARCHAR        | Optional device label                                        |
-| coordinates      | JSONB          | Optional `{ x, y }` gesture endpoint                         |
-| gesture_data     | JSONB          | Optional `{ distance, velocity, direction }`                 |
-| created_at       | TIMESTAMP      | Row insert time                                              |
-| updated_at       | TIMESTAMP      | Row update time                                              |
+| Field           | Type      | Description                                              |
+| --------------- | --------- | -------------------------------------------------------- |
+| swipe_action_id | UUID (PK) | Primary identifier (UUIDv7)                              |
+| session_id      | UUID (FK) | Discovery session identifier                             |
+| pet_id          | UUID (FK) | Pet swiped                                               |
+| user_id         | UUID (FK) | User performing action (nullable for anonymous sessions) |
+| action          | ENUM      | `like`, `pass`, `super_like`, `info`                     |
+| timestamp       | TIMESTAMP | When the swipe occurred (client-supplied)                |
+| response_time   | INTEGER   | Optional reaction time in ms                             |
+| device_type     | VARCHAR   | Optional device label                                    |
+| coordinates     | JSONB     | Optional `{ x, y }` gesture endpoint                     |
+| gesture_data    | JSONB     | Optional `{ distance, velocity, direction }`             |
+| created_at      | TIMESTAMP | Row insert time                                          |
+| updated_at      | TIMESTAMP | Row update time                                          |
 
 **Indexes**: user_id, pet_id, action, session_id
 
@@ -301,25 +301,25 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 **Purpose**: Outbound email management. Defined in `EmailQueue.ts`.
 
-| Field             | Type      | Description                                          |
-| ----------------- | --------- | ---------------------------------------------------- |
-| email_id          | UUID (PK) | Primary identifier                                   |
-| template_id       | VARCHAR   | Email template                                       |
-| from_email / from_name | VARCHAR | Sender envelope                                    |
-| to_email          | VARCHAR   | Recipient (column is `to_email`, not `recipient_email`) |
-| to_name           | VARCHAR   | Recipient display name                               |
-| cc_emails         | JSONB     | CC list                                              |
-| bcc_emails        | JSONB     | BCC list                                             |
-| reply_to_email    | VARCHAR   | Reply-to address                                     |
-| html_content / text_content | TEXT | Rendered bodies                                  |
-| template_data     | JSONB     | Template substitution values                         |
-| status            | ENUM      | Delivery status                                      |
-| scheduled_for     | TIMESTAMP | Send-after timestamp                                 |
-| max_retries / current_retries | INTEGER | Retry bookkeeping                            |
-| last_attempt_at / sent_at | TIMESTAMP | Lifecycle timestamps                             |
-| failure_reason    | TEXT      | Last error                                           |
-| provider_id / provider_message_id | VARCHAR | Provider correlation                         |
-| created_at        | TIMESTAMP | Queue time                                           |
+| Field                             | Type      | Description                                             |
+| --------------------------------- | --------- | ------------------------------------------------------- |
+| email_id                          | UUID (PK) | Primary identifier                                      |
+| template_id                       | VARCHAR   | Email template                                          |
+| from_email / from_name            | VARCHAR   | Sender envelope                                         |
+| to_email                          | VARCHAR   | Recipient (column is `to_email`, not `recipient_email`) |
+| to_name                           | VARCHAR   | Recipient display name                                  |
+| cc_emails                         | JSONB     | CC list                                                 |
+| bcc_emails                        | JSONB     | BCC list                                                |
+| reply_to_email                    | VARCHAR   | Reply-to address                                        |
+| html_content / text_content       | TEXT      | Rendered bodies                                         |
+| template_data                     | JSONB     | Template substitution values                            |
+| status                            | ENUM      | Delivery status                                         |
+| scheduled_for                     | TIMESTAMP | Send-after timestamp                                    |
+| max_retries / current_retries     | INTEGER   | Retry bookkeeping                                       |
+| last_attempt_at / sent_at         | TIMESTAMP | Lifecycle timestamps                                    |
+| failure_reason                    | TEXT      | Last error                                              |
+| provider_id / provider_message_id | VARCHAR   | Provider correlation                                    |
+| created_at                        | TIMESTAMP | Queue time                                              |
 
 **Indexes**: status, created_at
 

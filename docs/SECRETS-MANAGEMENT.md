@@ -15,6 +15,7 @@ This guide covers best practices for managing secrets and sensitive configuratio
 ## Overview
 
 **Never commit secrets to version control!** All sensitive configuration should be:
+
 - Stored in `.env` files (which are gitignored)
 - Managed via Docker secrets for production
 - Or managed via external secrets management tools (AWS Secrets Manager, HashiCorp Vault, etc.)
@@ -46,6 +47,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"      # 
 Edit `.env` and replace all `CHANGE_THIS_*` placeholders with the generated secrets.
 
 **Critical secrets to change:**
+
 - `POSTGRES_PASSWORD` - Database password
 - `JWT_SECRET` - JWT token signing key
 - `JWT_REFRESH_SECRET` - Refresh token signing key
@@ -87,28 +89,28 @@ ENCRYPTION_KEY=64_CHAR_HEX_STRING_FOR_ENCRYPTION
 
 #### Required for All Environments
 
-| Secret | Purpose | How to Generate |
-|--------|---------|----------------|
+| Secret              | Purpose         | How to Generate           |
+| ------------------- | --------------- | ------------------------- |
 | `POSTGRES_PASSWORD` | Database access | `openssl rand -base64 32` |
-| `JWT_SECRET` | Sign JWT tokens | `openssl rand -base64 32` |
+| `JWT_SECRET`        | Sign JWT tokens | `openssl rand -base64 32` |
 
 #### Required for Production
 
-| Secret | Purpose | How to Generate |
-|--------|---------|----------------|
-| `JWT_REFRESH_SECRET` | Sign refresh tokens | `openssl rand -base64 32` |
-| `SESSION_SECRET` | Encrypt sessions | `openssl rand -base64 32` |
-| `ENCRYPTION_KEY` | Encrypt sensitive data | `openssl rand -hex 32` |
-| `REDIS_PASSWORD` | Redis authentication | `openssl rand -base64 32` |
+| Secret               | Purpose                | How to Generate           |
+| -------------------- | ---------------------- | ------------------------- |
+| `JWT_REFRESH_SECRET` | Sign refresh tokens    | `openssl rand -base64 32` |
+| `SESSION_SECRET`     | Encrypt sessions       | `openssl rand -base64 32` |
+| `ENCRYPTION_KEY`     | Encrypt sensitive data | `openssl rand -hex 32`    |
+| `REDIS_PASSWORD`     | Redis authentication   | `openssl rand -base64 32` |
 
 #### Optional (Third-Party Services)
 
-| Secret | Purpose | Where to Get |
-|--------|---------|--------------|
-| `SENDGRID_API_KEY` | Email sending | SendGrid Dashboard |
-| `AWS_S3_ACCESS_KEY_ID` | File storage | AWS IAM |
-| `STRIPE_SECRET_KEY` | Payment processing | Stripe Dashboard |
-| `SENTRY_DSN` | Error tracking | Sentry Project Settings |
+| Secret                 | Purpose            | Where to Get            |
+| ---------------------- | ------------------ | ----------------------- |
+| `SENDGRID_API_KEY`     | Email sending      | SendGrid Dashboard      |
+| `AWS_S3_ACCESS_KEY_ID` | File storage       | AWS IAM                 |
+| `STRIPE_SECRET_KEY`    | Payment processing | Stripe Dashboard        |
+| `SENTRY_DSN`           | Error tracking     | Sentry Project Settings |
 
 ## Docker Secrets
 
@@ -236,8 +238,8 @@ metadata:
   name: adopt-dont-shop-secrets
 type: Opaque
 stringData:
-  postgres-password: "your-secure-password"
-  jwt-secret: "your-jwt-secret"
+  postgres-password: 'your-secure-password'
+  jwt-secret: 'your-jwt-secret'
 ```
 
 ## Security Best Practices
@@ -245,6 +247,7 @@ stringData:
 ### Secret Generation
 
 **DO:**
+
 - ✅ Use cryptographically secure random generators
 - ✅ Minimum 32 characters for passwords and keys
 - ✅ Use different secrets for different purposes
@@ -252,6 +255,7 @@ stringData:
 - ✅ Use hex encoding for encryption keys
 
 **DON'T:**
+
 - ❌ Use dictionary words or common passwords
 - ❌ Reuse secrets across environments
 - ❌ Share secrets via email or Slack
@@ -260,6 +264,7 @@ stringData:
 ### Secret Storage
 
 **DO:**
+
 - ✅ Use `.env` files for local development
 - ✅ Use Docker secrets or external managers for production
 - ✅ Encrypt secrets at rest
@@ -267,6 +272,7 @@ stringData:
 - ✅ Audit secret access
 
 **DON'T:**
+
 - ❌ Store secrets in plain text files committed to git
 - ❌ Store secrets in container images
 - ❌ Log secrets in application logs
@@ -318,13 +324,14 @@ pnpm validate:env
 
 The deploy and rollback workflows require the following secret stored under **Settings → Secrets and variables → Actions**:
 
-| Secret | Required scope | Purpose |
-|--------|----------------|---------|
+| Secret       | Required scope           | Purpose                                             |
+| ------------ | ------------------------ | --------------------------------------------------- |
 | `GHCR_TOKEN` | `read:packages` **only** | `docker pull` images from GHCR on the deploy server |
 
 `GHCR_TOKEN` must be a Personal Access Token (classic or fine-grained) with **only** `read:packages` permission. Never grant `write:packages` or `repo` scope — a compromised token with those scopes would allow an attacker to push malicious container images or read/modify source code (supply-chain attack). See [ADS-671](https://linear.app/ideasquared/issue/ADS-671).
 
 To rotate this token:
+
 1. Create a new PAT at **GitHub → Settings → Developer settings → Personal access tokens** with `read:packages` only.
 2. Update the `GHCR_TOKEN` repository secret under **Settings → Secrets and variables → Actions**.
 3. Trigger a staging deploy or rollback to verify the new token works.
@@ -357,16 +364,19 @@ jobs:
 ### Secrets Injection Methods
 
 **Method 1: Environment Variables (Simplest)**
+
 ```bash
 POSTGRES_PASSWORD=xxx JWT_SECRET=xxx docker compose up -d
 ```
 
 **Method 2: .env File (Recommended for Development)**
+
 ```bash
 docker compose --env-file .env.prod up -d
 ```
 
 **Method 3: File-Based Docker Secrets (Used in Production)**
+
 ```bash
 # Write secret files, then bring up the stack (deploy workflow does this automatically)
 mkdir -p secrets && chmod 700 secrets
@@ -378,6 +388,7 @@ rm -f secrets/*
 ```
 
 **Method 4: External Secrets Manager (Enterprise)**
+
 - AWS Secrets Manager with ECS/EKS
 - HashiCorp Vault with Kubernetes
 - Azure Key Vault
@@ -390,6 +401,7 @@ rm -f secrets/*
 **Cause:** Required environment variable is not set.
 
 **Solution:**
+
 ```bash
 # Check if .env file exists
 ls -la .env
@@ -409,6 +421,7 @@ docker compose config | grep POSTGRES_PASSWORD
 **Cause:** Environment variables not passed to container.
 
 **Solution:**
+
 ```bash
 # Verify .env file is in project root
 ls -la .env
@@ -426,6 +439,7 @@ docker compose up -d
 **Cause:** Secret file missing from `./secrets/<name>` on the host before `docker compose up -d` was called.
 
 **Solution:**
+
 ```bash
 # Check whether the secrets directory exists and contains the expected files
 ls -la secrets/

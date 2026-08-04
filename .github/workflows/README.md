@@ -4,23 +4,23 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 
 ## Workflow Files
 
-| File                       | Purpose                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `ci.yml`                   | Main CI pipeline: workspace drift, change detection, backend / frontend / library tests, Playwright E2E. |
-| `onboarding-smoke.yml`     | Nightly + manual: exercises the documented `pnpm bootstrap` onboarding path on a clean checkout (ADS-951).  |
-| `quality.yml`              | Code quality, formatting, type checking, dependency health.                                             |
-| `security.yml`             | Dependency audit and weekly security scans.                                                             |
-| `codeql.yml`               | GitHub CodeQL static analysis for JavaScript / TypeScript (ADS-498).                                    |
-| `docker.yml`               | Builds the gateway / service and per-app Docker images, then tests the docker-compose stack.            |
-| `lib-test-guard.yml`       | Fails when any `lib.*` package has zero test files (ADS-186 / ADS-328 safety net).                      |
-| `schema-equivalence.yml`   | Bootstraps DB-A (migrate) and DB-B (sync), diffs normalised `pg_dump` to detect schema drift.            |
-| `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH.                                                  |
-| `rollback.yml`             | Manual rollback to a previously published GHCR image SHA.                                               |
-| `release.yml`              | Builds and pushes production Docker images (gateway + 10 services + 3 apps) to Docker Hub on tag pushes (`v*`) and successful CI runs to `main`. |
-| `release-please.yml`       | Generates release PRs, version tags, and GitHub Releases with changelogs from conventional commits.     |
-| `storybook.yml`            | Builds and deploys `lib.components` Storybook to GitHub Pages.                                          |
-| `labeler.yml`              | Auto-labels pull requests using `.github/labeler.yml` rules.                                            |
-| `sync-labels.yml`          | Syncs `.github/labels.yml` to the repository's label set on changes to `main`.                          |
+| File                     | Purpose                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ci.yml`                 | Main CI pipeline: workspace drift, change detection, backend / frontend / library tests, Playwright E2E.                                         |
+| `onboarding-smoke.yml`   | Nightly + manual: exercises the documented `pnpm bootstrap` onboarding path on a clean checkout (ADS-951).                                       |
+| `quality.yml`            | Code quality, formatting, type checking, dependency health.                                                                                      |
+| `security.yml`           | Dependency audit and weekly security scans.                                                                                                      |
+| `codeql.yml`             | GitHub CodeQL static analysis for JavaScript / TypeScript (ADS-498).                                                                             |
+| `docker.yml`             | Builds the gateway / service and per-app Docker images, then tests the docker-compose stack.                                                     |
+| `lib-test-guard.yml`     | Fails when any `lib.*` package has zero test files (ADS-186 / ADS-328 safety net).                                                               |
+| `schema-equivalence.yml` | Bootstraps DB-A (migrate) and DB-B (sync), diffs normalised `pg_dump` to detect schema drift.                                                    |
+| `deploy.yml`             | Manual deploy to staging or production via GHCR + SSH.                                                                                           |
+| `rollback.yml`           | Manual rollback to a previously published GHCR image SHA.                                                                                        |
+| `release.yml`            | Builds and pushes production Docker images (gateway + 10 services + 3 apps) to Docker Hub on tag pushes (`v*`) and successful CI runs to `main`. |
+| `release-please.yml`     | Generates release PRs, version tags, and GitHub Releases with changelogs from conventional commits.                                              |
+| `storybook.yml`          | Builds and deploys `lib.components` Storybook to GitHub Pages.                                                                                   |
+| `labeler.yml`            | Auto-labels pull requests using `.github/labeler.yml` rules.                                                                                     |
+| `sync-labels.yml`        | Syncs `.github/labels.yml` to the repository's label set on changes to `main`.                                                                   |
 
 ## Workflow Overview
 
@@ -131,19 +131,19 @@ GitHub Releases themselves are produced by `release-please.yml` from conventiona
 lib-dist → run-turbo-filter preamble. That's now centralised in
 `.github/actions/`, one edit point per contract change:
 
-| Action | Used by | Purpose |
-| ------ | ------- | ------- |
-| `setup-workspace` | `checkout-and-setup`, `e2e-suite` | Install Node + pnpm (Corepack), cache the pnpm store, install workspace deps. |
-| `checkout-and-setup` | `build-libs`, `run-package-tests`, `test-contracts` | Checkout + `setup-workspace`, plus an optional restore of the `packages/lib.*/dist` cache populated by `build-libs`. |
-| `run-package-tests` | `test-frontend`, `test-libs`, `test-services` | `checkout-and-setup` + lint/test(:coverage)/type-check via Turbo (and, for frontend apps, a `pnpm build` step), then uploads the junit results. |
-| `e2e-suite` | `test-e2e` | The full Playwright E2E body: image build, stack boot, suite run, teardown. |
-| `dev-auth-guard` | `dev-auth-guard` | Scans production source for ungated dev-auth bypass patterns. |
-| `coverage-report` | `coverage-report` | ADS-947: posts/updates a sticky PR comment with per-package coverage delta vs `main` and this run's job timings. See `## Workflow Overview` below. |
+| Action               | Used by                                             | Purpose                                                                                                                                            |
+| -------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup-workspace`    | `checkout-and-setup`, `e2e-suite`                   | Install Node + pnpm (Corepack), cache the pnpm store, install workspace deps.                                                                      |
+| `checkout-and-setup` | `build-libs`, `run-package-tests`, `test-contracts` | Checkout + `setup-workspace`, plus an optional restore of the `packages/lib.*/dist` cache populated by `build-libs`.                               |
+| `run-package-tests`  | `test-frontend`, `test-libs`, `test-services`       | `checkout-and-setup` + lint/test(:coverage)/type-check via Turbo (and, for frontend apps, a `pnpm build` step), then uploads the junit results.    |
+| `e2e-suite`          | `test-e2e`                                          | The full Playwright E2E body: image build, stack boot, suite run, teardown.                                                                        |
+| `dev-auth-guard`     | `dev-auth-guard`                                    | Scans production source for ungated dev-auth bypass patterns.                                                                                      |
+| `coverage-report`    | `coverage-report`                                   | ADS-947: posts/updates a sticky PR comment with per-package coverage delta vs `main` and this run's job timings. See `## Workflow Overview` below. |
 
 These are composite actions, not `workflow_call` reusable workflows: a job
 that calls a reusable workflow gets its status-check name prefixed with the
 caller job's name (`<caller> / <callee>`), which would silently rename every
-check in this file. Composite actions splice their steps into the *same*
+check in this file. Composite actions splice their steps into the _same_
 job, so job names, `needs:`, and `if:` gating are unchanged — required for
 `ci-required` and the branch-protection checks in this repo to keep working
 across the refactor.
@@ -208,15 +208,16 @@ The ruleset itself lives in the repo at
 
 Three required status checks on `main`:
 
-| Check                                       | Source workflow            | Why required                                                                                                       |
-| ------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `CI Required`                               | `ci.yml`                   | Aggregates workspace-drift, build-libs, backend/frontend/library tests (with coverage gates), dev-auth-guard, E2E. |
-| `Verify every lib.* package has tests`      | `lib-test-guard.yml`       | Deterministic script; always runs; prevents `--passWithNoTests` regressions (ADS-186 / ADS-328).                   |
-| `Schema Equivalence (migrate vs sync)`      | `schema-equivalence.yml`   | Deterministic pg_dump diff; path-filtered to migrations/models. Required to block schema drift on relevant PRs.    |
+| Check                                  | Source workflow          | Why required                                                                                                       |
+| -------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `CI Required`                          | `ci.yml`                 | Aggregates workspace-drift, build-libs, backend/frontend/library tests (with coverage gates), dev-auth-guard, E2E. |
+| `Verify every lib.* package has tests` | `lib-test-guard.yml`     | Deterministic script; always runs; prevents `--passWithNoTests` regressions (ADS-186 / ADS-328).                   |
+| `Schema Equivalence (migrate vs sync)` | `schema-equivalence.yml` | Deterministic pg_dump diff; path-filtered to migrations/models. Required to block schema drift on relevant PRs.    |
 
 #### Why these three (and not the others)
 
 The set is filtered to **HIGH-accuracy, no-regression-allowed** signals:
+
 - **Workspace drift, dev-auth-guard, lib-test-guard, schema-equivalence** —
   deterministic checks. No flake, no false positives.
 - **Backend / Frontend / Library Tests** — coverage-thresholded in
@@ -228,6 +229,7 @@ The set is filtered to **HIGH-accuracy, no-regression-allowed** signals:
   breakage.
 
 Intentionally **not** required:
+
 - `Detect Changes` — pure metadata helper, not a regression signal.
 - `Quality` (dependency check) — advisory only (`continue-on-error: true`).
 - `Security` (npm audit) — fails on new external CVEs unrelated to the PR.
@@ -249,7 +251,7 @@ path filter didn't match is treated as success — so a PR touching only
 If you add a new HIGH-accuracy regression-blocking job, the preferred path is
 to add it as a `needs:` entry on `ci-required` in `ci.yml` so it rolls up into
 the existing required check. Only add a new entry to the ruleset JSON if the
-job lives in a *separate* workflow file (as `lib-test-guard` and
+job lives in a _separate_ workflow file (as `lib-test-guard` and
 `schema-equivalence` do).
 
 ---
@@ -345,7 +347,7 @@ SHA, not a floating tag like `@v4`. A human-readable comment with the
 release version goes next to the SHA so the line is greppable:
 
 ```yaml
-- uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+- uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 ```
 
 ### Why
@@ -361,12 +363,12 @@ through Dependabot rather than via silent re-resolution at run time.
 These actions see production secrets and must be reviewed especially
 carefully on every bump:
 
-| Action                          | Where used        | Secrets exposed |
-| ------------------------------- | ----------------- | --------------- |
-| `appleboy/ssh-action`           | `deploy.yml`, `rollback.yml` | `HETZNER_SSH_KEY`, `HETZNER_HOST` |
-| `docker/login-action`           | `deploy.yml`, `docker.yml`    | `GHCR_TOKEN`     |
-| `github/codeql-action/*`        | `codeql.yml`, `docker.yml`    | `GITHUB_TOKEN` (security-events: write) |
-| `dorny/paths-filter`            | `ci.yml`                       | `GITHUB_TOKEN`   |
+| Action                   | Where used                   | Secrets exposed                         |
+| ------------------------ | ---------------------------- | --------------------------------------- |
+| `appleboy/ssh-action`    | `deploy.yml`, `rollback.yml` | `HETZNER_SSH_KEY`, `HETZNER_HOST`       |
+| `docker/login-action`    | `deploy.yml`, `docker.yml`   | `GHCR_TOKEN`                            |
+| `github/codeql-action/*` | `codeql.yml`, `docker.yml`   | `GITHUB_TOKEN` (security-events: write) |
+| `dorny/paths-filter`     | `ci.yml`                     | `GITHUB_TOKEN`                          |
 
 ### Updating an action
 
@@ -382,7 +384,7 @@ carefully on every bump:
 Look up the SHA from the release page, then write:
 
 ```yaml
-- uses: owner/repo@<full-40-char-SHA>  # v<x.y.z>
+- uses: owner/repo@<full-40-char-SHA> # v<x.y.z>
 ```
 
 Never copy a `@vN` reference from a Stack Overflow snippet without

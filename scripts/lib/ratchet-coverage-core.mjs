@@ -192,3 +192,16 @@ export function updateThresholdsInSource(source, thresholds) {
 export function missingCoverageMetrics(declared) {
   return COVERAGE_METRICS.filter(metric => !(metric in declared));
 }
+
+/**
+ * Whether a parsed `--margin` value is usable by the ratchet: a finite,
+ * non-negative number. `Number('foo')` (an invalid CLI argument) yields
+ * `NaN`, which must be rejected before it flows into `ratchetMetric` and
+ * writes `NaN` thresholds into a `vitest.config.ts`.
+ *
+ * @param {number} margin
+ * @returns {boolean}
+ */
+export function isValidMargin(margin) {
+  return Number.isFinite(margin) && margin >= 0;
+}

@@ -57,7 +57,9 @@ const EVENTS_DELETE: Permission = 'events.delete' as Permission;
 // adoptionsFromEvent uses a "registered → later adopted" attribution
 // model: an adoption is attributed to event X when a user who
 // REGISTERED for event X (rescue.event_attendees — every registrant,
-// not just those who checked in) later has an application that reaches
+// not just those who checked in) later has an application AT THIS EVENT'S
+// RESCUE (rescue_id is passed to CountAdoptedAdopters, ADS-1023 — an
+// adopter who adopted from a different rescue doesn't count) that reaches
 // APPROVED or ADOPTED status. Attribution is by adopter identity within
 // a bounded post-event window, not by any adoption↔event link table.
 //
@@ -69,7 +71,10 @@ const EVENTS_DELETE: Permission = 'events.delete' as Permission;
 // adopter-count reading because that's what the product decision this
 // ticket implements explicitly asked for.
 //
-// Window: 90 days after the event's start_date — a reasonable
+// Window: 90 days after the event's start_date, bounding
+// actioned_at — WHEN THE APPLICATION REACHED APPROVED/ADOPTED (ADS-1025;
+// service.applications stamps this from the deciding event, not from
+// created_at) — not the application's creation date. A reasonable
 // adoption-cycle length (submit → review → home visit → decision).
 // Single named constant so it's easy to find and retune.
 const ATTRIBUTION_WINDOW_DAYS = 90;
@@ -78,6 +83,11 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // (MIN_COHORT_SIZE, ADS-1006). Kept in sync by value rather than imported —
 // services do not depend on each other's source.
 const ATTRIBUTION_MIN_COHORT = 20;
+// Mirrors service.applications' CountAdoptedAdopters adopter_ids cap
+// (MAX_ADOPTER_IDS, ADS-1024). An event with more registrants than this
+// can't be attributed in one call; countAdoptionsFromEvent fails with a
+// clear error rather than silently truncating the registrant list.
+const ATTRIBUTION_MAX_COHORT = 10_000;
 
 // grpc-js status codes service.applications can return on CountAdoptedAdopters
 // (ADS-1022). Kept as local numeric constants — same pattern as the pets
@@ -798,11 +808,20 @@ async function countAdoptionsFromEvent(
   event: EventRow,
   logger: Logger
 ): Promise<number> {
+  // Fetch one more than the cap so we can detect "more than the cap"
+  // without a separate COUNT query, and without ever silently truncating
+  // the registrant list handed to service.applications (ADS-1024).
   const attendeeRes = await deps.pool.query<{ user_id: string }>(
-    `SELECT DISTINCT user_id FROM rescue.event_attendees WHERE event_id = $1`,
-    [eventId]
+    `SELECT DISTINCT user_id FROM rescue.event_attendees WHERE event_id = $1 LIMIT $2`,
+    [eventId, ATTRIBUTION_MAX_COHORT + 1]
   );
   const adopterIds = attendeeRes.rows.map(r => r.user_id);
+  if (adopterIds.length > ATTRIBUTION_MAX_COHORT) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `event ${eventId} has more than ${ATTRIBUTION_MAX_COHORT} registrants; adoption attribution is not supported at this scale`
+    );
+  }
   // service.applications enforces a k-anonymity cohort floor on the
   // attribution count (ADS-1006) so it can never become a per-user oracle.
   // Below that floor the RPC would reject with INVALID_ARGUMENT, so skip the
@@ -811,14 +830,17 @@ async function countAdoptionsFromEvent(
     return 0;
   }
 
-  const createdAfter = event.start_date.toISOString();
-  const createdBefore = new Date(
+  const actionedAfter = event.start_date.toISOString();
+  const actionedBefore = new Date(
     event.start_date.getTime() + ATTRIBUTION_WINDOW_DAYS * MS_PER_DAY
   ).toISOString();
 
   try {
+    // rescue_id (ADS-1023) scopes the count to adoptions at THIS rescue —
+    // a registrant who adopted from a different rescue shouldn't inflate
+    // this event's attribution number.
     const res = await applicationsClient.countAdoptedAdopters(
-      { adopterIds, createdAfter, createdBefore },
+      { adopterIds, actionedAfter, actionedBefore, rescueId: event.rescue_id },
       principalToMetadata(principal)
     );
     return res.count;

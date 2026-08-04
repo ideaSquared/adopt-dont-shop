@@ -95,6 +95,16 @@ function publishOf(deps: HandlerDeps): ReturnType<typeof vi.fn> {
   return (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
 }
 
+// The projectReadModel UPSERT is the last query call in a runCommand
+// flow. Its actioned_at param (ADS-1025) is what the query.mock.calls
+// give us to check without a real DB — see event-store.ts.
+function actionedAtParam(query: ReturnType<typeof vi.fn>): unknown {
+  const insertCall = query.mock.calls.find(([sql]) =>
+    (sql as string).includes('INSERT INTO applications')
+  );
+  return insertCall?.[1]?.[7];
+}
+
 describe('startReview', () => {
   it('throws PERMISSION_DENIED without applications.review', async () => {
     const { deps } = makeDeps(submittedStream());
@@ -216,6 +226,15 @@ describe('approve', () => {
     );
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({ type: 'applications.approved' });
   });
+
+  // ADS-1025 — the attribution query filters on actioned_at, stamped by
+  // projectReadModel when the fold reaches approved/adopted.
+  it('stamps actioned_at with the approved event’s own timestamp', async () => {
+    const { deps, query } = makeDeps(decidableStream());
+    const res = await approve(deps, makePrincipal(), { applicationId: 'app-1', notes: 'ok' });
+    expect(res.application.decidedAt).toBeTruthy();
+    expect(actionedAtParam(query)).toBe(res.application.decidedAt);
+  });
 });
 
 describe('reject', () => {
@@ -237,6 +256,14 @@ describe('reject', () => {
     );
     expect(res.application.rejectionReason).toBe('home unsuitable');
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({ type: 'applications.rejected' });
+  });
+
+  // ADS-1025 — rejected never qualifies for CountAdoptedAdopters, so
+  // actioned_at must stay unset even though the application was decided.
+  it('leaves actioned_at unset on a rejected application', async () => {
+    const { deps, query } = makeDeps(decidableStream());
+    await reject(deps, makePrincipal(), { applicationId: 'app-1', reason: 'home unsuitable' });
+    expect(actionedAtParam(query)).toBeNull();
   });
 });
 
@@ -352,5 +379,18 @@ describe('markAdopted', () => {
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_ADOPTED
     );
     expect(publishOf(deps).mock.calls[0][0]).toMatchObject({ type: 'applications.adopted' });
+  });
+
+  // ADS-1025 — once adopted, actioned_at tracks the later `adopted` event
+  // (not the earlier `approved` one), matching "reached APPROVED/ADOPTED".
+  it('re-stamps actioned_at with the adopted event’s (later) timestamp', async () => {
+    const { deps, query } = makeDeps([
+      ...decidableStream(),
+      ev('approved', 6, { actorUserId: 'staff-1', notes: null }),
+    ]);
+    const res = await markAdopted(deps, makePrincipal(), { applicationId: 'app-1' });
+    expect(res.application.adoptedAt).toBeTruthy();
+    expect(res.application.adoptedAt).not.toBe(res.application.decidedAt);
+    expect(actionedAtParam(query)).toBe(res.application.adoptedAt);
   });
 });

@@ -144,7 +144,7 @@ are no Sequelize models anymore.
 describes a **different, historical** problem: the deleted `service.backend`
 monolith's `00-baseline.ts` called `sequelize.sync()`, which silently
 regenerated its baseline schema from whatever the Sequelize model files
-looked like *at migration-run time* — a real footgun that motivated
+looked like _at migration-run time_ — a real footgun that motivated
 per-model baseline files. None of that applies to the current node-pg-migrate
 services; the doc is kept for historical context, not as a pattern to follow
 here. If you're not touching `service.backend/` (it's deleted — you can't
@@ -169,7 +169,7 @@ logic for one specific, expected failure:
   back that file's changes — the `pgmigrations` table won't record it as
   applied, and re-running `db:migrate` retries it. This safety net breaks if
   your migration uses **non-transactional DDL** (e.g. `CREATE INDEX
-  CONCURRENTLY`, which cannot run inside a transaction) — those need to be
+CONCURRENTLY`, which cannot run inside a transaction) — those need to be
   idempotent (`IF NOT EXISTS` / a guard query) so a re-run after a partial
   failure doesn't error on "already exists". If you write one, say so in the
   migration's comment.

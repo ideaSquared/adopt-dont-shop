@@ -30,7 +30,7 @@ Every candidate fell into at least one of these buckets:
    (favorites, notifications), pagination append (search results),
    server-driven status updates (applications). `use()` returns an immutable
    value per render; layering a `useState` mirror on top to enable mutation
-   would *add* code, not remove it.
+   would _add_ code, not remove it.
 
 2. **Error semantics aren't "throw to boundary"** — pages catch the failure
    and either `navigate()` away (`HelpArticlePage`, `BlogPostPage` redirect

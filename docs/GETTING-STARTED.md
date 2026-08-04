@@ -41,12 +41,12 @@ guessing.
 
 ## 4. Verify it's running
 
-| App | URL |
-| --- | --- |
-| Client (public adoption portal) | http://localhost:3000 |
-| Admin (internal management) | http://localhost:3001 |
-| Rescue (rescue org portal) | http://localhost:3002 |
-| API gateway health check | http://localhost:4000/health/simple |
+| App                             | URL                                 |
+| ------------------------------- | ----------------------------------- |
+| Client (public adoption portal) | http://localhost:3000               |
+| Admin (internal management)     | http://localhost:3001               |
+| Rescue (rescue org portal)      | http://localhost:3002               |
+| API gateway health check        | http://localhost:4000/health/simple |
 
 All four should respond. If the frontends 502 for the first ~40s after the
 containers report "up", that's expected — see the note in

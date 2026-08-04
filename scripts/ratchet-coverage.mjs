@@ -32,6 +32,7 @@ import { fileURLToPath } from 'url';
 import {
   COVERAGE_METRICS,
   extractThresholdsFromSource,
+  isValidMargin,
   measuredFromSummaryTotal,
   missingCoverageMetrics,
   ratchetThresholds,
@@ -57,7 +58,8 @@ function parseArgs(argv) {
       continue;
     }
     if (arg === '--margin') {
-      args.margin = Number(argv[(i += 1)]);
+      args.marginRaw = argv[(i += 1)];
+      args.margin = Number(args.marginRaw);
       continue;
     }
   }
@@ -76,6 +78,12 @@ function main() {
       'Usage: node scripts/ratchet-coverage.mjs --package <path> [--summary <path>] [--margin <n>] [--dry-run]'
     );
     console.error('Example: node scripts/ratchet-coverage.mjs --package packages/lib.api');
+    process.exit(1);
+  }
+
+  if (!isValidMargin(args.margin)) {
+    console.error(`Invalid --margin value: '${args.marginRaw}'.`);
+    console.error('--margin must be a finite, non-negative number (e.g. --margin 1).');
     process.exit(1);
   }
 

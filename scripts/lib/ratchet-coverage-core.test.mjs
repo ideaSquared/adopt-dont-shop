@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   extractThresholdsFromSource,
+  isValidMargin,
   measuredFromSummaryTotal,
   missingCoverageMetrics,
   ratchetMetric,
@@ -279,5 +280,27 @@ describe('missingCoverageMetrics (ADS-1004)', () => {
       'functions',
       'lines',
     ]);
+  });
+});
+
+describe('isValidMargin (ADS-1004)', () => {
+  it('accepts the default margin', () => {
+    expect(isValidMargin(1)).toBe(true);
+  });
+
+  it('accepts zero', () => {
+    expect(isValidMargin(0)).toBe(true);
+  });
+
+  it("rejects NaN — what Number('foo') produces for an invalid --margin value", () => {
+    expect(isValidMargin(Number('foo'))).toBe(false);
+  });
+
+  it('rejects a negative margin', () => {
+    expect(isValidMargin(-1)).toBe(false);
+  });
+
+  it('rejects Infinity', () => {
+    expect(isValidMargin(Infinity)).toBe(false);
   });
 });

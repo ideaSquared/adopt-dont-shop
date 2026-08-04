@@ -9,7 +9,7 @@ The Rescue App is the operational hub for rescue organizations to manage pets, r
 - **Primary**: Rescue staff with admin permissions
 - **Secondary**: General rescue staff and volunteers (server-side role: `rescue_staff`)
 
-*Note on roles:* The backend has a single `rescue_staff` `UserRole`. Finer permission granularity (admin vs staff vs volunteer within a rescue) is enforced **client-side** via `PermissionsContext` fallback maps (`rescue_admin`, `rescue_staff`, `rescue_volunteer` permission sets). There is no separate `rescue_manager` or `volunteer` `UserRole`.
+_Note on roles:_ The backend has a single `rescue_staff` `UserRole`. Finer permission granularity (admin vs staff vs volunteer within a rescue) is enforced **client-side** via `PermissionsContext` fallback maps (`rescue_admin`, `rescue_staff`, `rescue_volunteer` permission sets). There is no separate `rescue_manager` or `volunteer` `UserRole`.
 
 ## Key Features
 
@@ -24,7 +24,7 @@ The Rescue App is the operational hub for rescue organizations to manage pets, r
   Pet Management header and the empty state (ADS-646). Column format
   and operational notes live in [docs/operations/pet-csv-import.md](../operations/pet-csv-import.md).
 
-*Out of scope / roadmap:* Dedicated medical-records timeline UI, dedicated vaccination tracking UI, dedicated behavioural-assessment workflow. Schema supports these as inline fields; rich UI is a future enhancement.
+_Out of scope / roadmap:_ Dedicated medical-records timeline UI, dedicated vaccination tracking UI, dedicated behavioural-assessment workflow. Schema supports these as inline fields; rich UI is a future enhancement.
 
 ### 2. Application Management
 
@@ -59,7 +59,7 @@ These stages are **display-only**; they do not persist as a backend column. Stag
 - Staff management via `StaffManagement` (add/remove/edit/invite)
 - Notification preferences via `NotificationPreferencesForm`
 
-*Out of scope / roadmap:* Public rescue profile editor, in-app role/permission assignment UI (permissions managed via backend RBAC), volunteer-specific UX, message templates.
+_Out of scope / roadmap:_ Public rescue profile editor, in-app role/permission assignment UI (permissions managed via backend RBAC), volunteer-specific UX, message templates.
 
 ### 4. Communication Tools
 
@@ -67,7 +67,7 @@ These stages are **display-only**; they do not persist as a backend column. Stag
 - Conversation filter: active / resolved
 - Email/push/SMS preferences toggleable via `NotificationPreferencesForm` (backend handles delivery)
 
-*Out of scope / roadmap:* Internal staff chat, message templates library, searchable conversation archive (search within messages), announcements broadcast.
+_Out of scope / roadmap:_ Internal staff chat, message templates library, searchable conversation archive (search within messages), announcements broadcast.
 
 ### 5. Analytics & Reporting
 
@@ -79,7 +79,7 @@ These stages are **display-only**; they do not persist as a backend column. Stag
 - Custom report generation via `lib.analytics` (`useReports`, `useReportTemplates`, scheduling, token shares)
 - CSV + PDF export via `analyticsService.exportToCSV/exportToPDF`
 
-*Out of scope / roadmap:* Financial reporting, Excel export.
+_Out of scope / roadmap:_ Financial reporting, Excel export.
 
 ### 6. Staff Management
 
@@ -87,14 +87,14 @@ These stages are **display-only**; they do not persist as a backend column. Stag
 - Add/edit/remove staff
 - Invite flow (`InviteStaffModal`, `PendingInvitations`, `AcceptInvitation`)
 
-*Out of scope / roadmap:* Role/permission assignment UI, activity tracking UI, training management, schedule coordination, internal messaging / announcements.
+_Out of scope / roadmap:_ Role/permission assignment UI, activity tracking UI, training management, schedule coordination, internal messaging / announcements.
 
 ### 7. Event Management
 
 - Create/list adoption events, fundraisers, meet-and-greets (`Events.tsx`)
 - Calendar view (`EventCalendar`)
 
-*Out of scope / roadmap:* External calendar integration (Google/iCal), event analytics surfaced in UI, training-specific event types.
+_Out of scope / roadmap:_ External calendar integration (Google/iCal), event analytics surfaced in UI, training-specific event types.
 
 ### 8. Foster Coordination
 
@@ -129,14 +129,14 @@ These stages are **display-only**; they do not persist as a backend column. Stag
   - Manifest + icons (192/512)
   - Install prompt component
 
-*Out of scope:* Offline pet/application editing (sync-on-reconnect is complex; roadmap).
+_Out of scope:_ Offline pet/application editing (sync-on-reconnect is complex; roadmap).
 
 ### Data Export / Import
 
 - CSV + PDF export from analytics
 - Pet CSV import via `PetCsvImportModal`
 
-*Out of scope / roadmap:* Excel export, webhooks for third-party integrations.
+_Out of scope / roadmap:_ Excel export, webhooks for third-party integrations.
 
 ## User Roles & Permissions
 
@@ -150,7 +150,7 @@ These stages are **display-only**; they do not persist as a backend column. Stag
 - **`rescue_staff`** (permission key): pet management, application review, communication, basic reporting
 - **`rescue_volunteer`** (permission key): read-mostly access to assigned scopes
 
-*Removed from PRD:* `Rescue Manager` and `Volunteer` as distinct `UserRole` enum values (do not exist in backend).
+_Removed from PRD:_ `Rescue Manager` and `Volunteer` as distinct `UserRole` enum values (do not exist in backend).
 
 ## Data Models
 
@@ -213,7 +213,7 @@ interface FosterPlacementAttributes {
 - Permissions: `permissionsService` (`lib.permissions`)
 - Foster: `/api/v1/foster/placements` (new)
 
-*Out of scope:* Calendar/payment/social/vet third-party integrations.
+_Out of scope:_ Calendar/payment/social/vet third-party integrations.
 
 ## Success Metrics
 

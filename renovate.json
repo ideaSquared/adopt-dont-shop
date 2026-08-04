@@ -20,12 +20,12 @@
     },
     {
       "description": "Group TypeScript ESLint packages",
-      "matchPackagePatterns": ["^@typescript-eslint/"],
+      "matchPackageNames": ["/^@typescript-eslint//"],
       "groupName": "typescript-eslint"
     },
     {
       "description": "Group Vitest packages",
-      "matchPackagePatterns": ["^vitest$", "^@vitest/"],
+      "matchPackageNames": ["vitest", "/^@vitest//"],
       "groupName": "vitest"
     },
     {
@@ -50,12 +50,18 @@
       "description": "Pin Docker base image digests and keep them current",
       "matchManagers": ["docker", "dockerfile", "docker-compose"],
       "pinDigests": true
+    },
+    {
+      "description": "Prioritise vulnerability-fix PRs ahead of routine updates",
+      "matchPackageNames": ["*"],
+      "isVulnerabilityAlert": true,
+      "prPriority": 10
     }
   ],
   "vulnerabilityAlerts": {
     "labels": ["security", "DevEx"],
     "automerge": false,
-    "prPriority": 10
+    "prConcurrentLimit": 0
   },
   "lockFileMaintenance": {
     "enabled": true,

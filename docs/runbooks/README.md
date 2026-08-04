@@ -12,18 +12,18 @@ diagnosis → fix format.
 
 ## Index
 
-| Runbook                                          | When to open it                                          |
-| ------------------------------------------------ | -------------------------------------------------------- |
-| [`dev-stack-troubleshooting.md`](./dev-stack-troubleshooting.md) | Local `pnpm docker:dev` failures (not prod on-call) |
-| [`5xx-spike.md`](./5xx-spike.md)                 | `HighFiveHundredRate` page; 5xx ratio >1% over 5m        |
-| [`redis-outage.md`](./redis-outage.md)           | `redis` container unhealthy; rate-limiters misbehaving   |
-| [`db-pool-exhaustion.md`](./db-pool-exhaustion.md) | `acquire timeout` errors; p95 latency climbs in lockstep |
-| [`deploy-rollback.md`](./deploy-rollback.md)     | Bad deploy: image is live but error rate is up           |
-| [`migration-failure.md`](./migration-failure.md) | A schema-owning service stuck in `restarting` after a deploy ran a migration |
-| [`maintenance-mode.md`](./maintenance-mode.md)   | Planned outage, controlled brownout, or kill-switch needed |
-| [`jetstream-backlog.md`](./jetstream-backlog.md) | NATS JetStream consumer lag / backlog                   |
-| [`gdpr-erasure-incident.md`](./gdpr-erasure-incident.md) | GDPR erasure run failed mid-way                  |
-| [`applications-cutover.md`](./applications-cutover.md) | _Obsolete_ — per-domain cutover flags removed; gateway always registers routes |
+| Runbook                                                          | When to open it                                                                |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [`dev-stack-troubleshooting.md`](./dev-stack-troubleshooting.md) | Local `pnpm docker:dev` failures (not prod on-call)                            |
+| [`5xx-spike.md`](./5xx-spike.md)                                 | `HighFiveHundredRate` page; 5xx ratio >1% over 5m                              |
+| [`redis-outage.md`](./redis-outage.md)                           | `redis` container unhealthy; rate-limiters misbehaving                         |
+| [`db-pool-exhaustion.md`](./db-pool-exhaustion.md)               | `acquire timeout` errors; p95 latency climbs in lockstep                       |
+| [`deploy-rollback.md`](./deploy-rollback.md)                     | Bad deploy: image is live but error rate is up                                 |
+| [`migration-failure.md`](./migration-failure.md)                 | A schema-owning service stuck in `restarting` after a deploy ran a migration   |
+| [`maintenance-mode.md`](./maintenance-mode.md)                   | Planned outage, controlled brownout, or kill-switch needed                     |
+| [`jetstream-backlog.md`](./jetstream-backlog.md)                 | NATS JetStream consumer lag / backlog                                          |
+| [`gdpr-erasure-incident.md`](./gdpr-erasure-incident.md)         | GDPR erasure run failed mid-way                                                |
+| [`applications-cutover.md`](./applications-cutover.md)           | _Obsolete_ — per-domain cutover flags removed; gateway always registers routes |
 
 ## On-call principles
 
@@ -75,8 +75,8 @@ See [`docs/observability-alerting.md`](../observability-alerting.md)
 for the authoritative table. Quick version:
 
 - `critical` → PagerDuty + `#oncall-page` → ack in 5 min
-- `warning`  → `#alerts` → review in 30 min
-- `info`     → `#alerts-noise` → best effort
+- `warning` → `#alerts` → review in 30 min
+- `info` → `#alerts-noise` → best effort
 
 ### What every runbook assumes you have
 

@@ -20,14 +20,14 @@ Every service mounts the shared registry from
 on an unauthenticated `/metrics` endpoint. The series available **right now**
 are:
 
-| Metric | Type | Labels | Source |
-| --- | --- | --- | --- |
-| `http_request_duration_seconds` | histogram | `method`, `route`, `status_code` | shared — Fastify `onResponse` hook |
-| `grpc_handler_duration_seconds` | histogram | `service`, `method`, `code`, `direction` | shared — gRPC adapter wrappers |
-| `gdpr_sagas` | gauge | `state` (`in_progress`/`completed`/`failed`/`timed_out`) | `services/audit` only |
-| `gateway_rate_limit_hits_total` | counter | `route` | `services/gateway` only |
-| `grpc_circuit_state` | gauge | `service` (`0`=closed, `1`=half-open, `2`=open) | `services/gateway` only |
-| `nodejs_*`, `process_*` | gauge/counter | — | `collectDefaultMetrics()` |
+| Metric                          | Type          | Labels                                                   | Source                             |
+| ------------------------------- | ------------- | -------------------------------------------------------- | ---------------------------------- |
+| `http_request_duration_seconds` | histogram     | `method`, `route`, `status_code`                         | shared — Fastify `onResponse` hook |
+| `grpc_handler_duration_seconds` | histogram     | `service`, `method`, `code`, `direction`                 | shared — gRPC adapter wrappers     |
+| `gdpr_sagas`                    | gauge         | `state` (`in_progress`/`completed`/`failed`/`timed_out`) | `services/audit` only              |
+| `gateway_rate_limit_hits_total` | counter       | `route`                                                  | `services/gateway` only            |
+| `grpc_circuit_state`            | gauge         | `service` (`0`=closed, `1`=half-open, `2`=open)          | `services/gateway` only            |
+| `nodejs_*`, `process_*`         | gauge/counter | —                                                        | `collectDefaultMetrics()`          |
 
 Notes that shape every rule below:
 
@@ -66,18 +66,18 @@ spend before the SLO is breached.
 
 These services serve HTTP and/or gRPC and own a user-facing latency budget.
 
-| Service | Job label | Availability SLO (non-5xx) | Latency SLO | 30-day error budget |
-| --- | --- | --- | --- | --- |
-| gateway | `service-gateway` | 99.9% | p95 HTTP < 500 ms | 43m 12s / 0.1% req |
-| auth | `service-auth` | 99.9% | p95 gRPC < 300 ms | 43m 12s |
-| pets | `service-pets` | 99.5% | p95 gRPC < 400 ms | 3h 36m |
-| rescue | `service-rescue` | 99.5% | p95 gRPC < 400 ms | 3h 36m |
-| applications | `service-applications` | 99.5% | p95 gRPC < 500 ms | 3h 36m |
-| chat | `service-chat` | 99.5% | p95 gRPC < 400 ms | 3h 36m |
-| matching | `service-matching` | 99.0% | p95 gRPC < 800 ms | 7h 18m |
-| moderation | `service-moderation` | 99.5% | p95 gRPC < 400 ms | 3h 36m |
-| notifications | `service-notifications` | 99.5% | p95 gRPC < 500 ms | 3h 36m |
-| cms | `service-cms` | 99.9% | p95 HTTP < 300 ms | 43m 12s |
+| Service       | Job label               | Availability SLO (non-5xx) | Latency SLO       | 30-day error budget |
+| ------------- | ----------------------- | -------------------------- | ----------------- | ------------------- |
+| gateway       | `service-gateway`       | 99.9%                      | p95 HTTP < 500 ms | 43m 12s / 0.1% req  |
+| auth          | `service-auth`          | 99.9%                      | p95 gRPC < 300 ms | 43m 12s             |
+| pets          | `service-pets`          | 99.5%                      | p95 gRPC < 400 ms | 3h 36m              |
+| rescue        | `service-rescue`        | 99.5%                      | p95 gRPC < 400 ms | 3h 36m              |
+| applications  | `service-applications`  | 99.5%                      | p95 gRPC < 500 ms | 3h 36m              |
+| chat          | `service-chat`          | 99.5%                      | p95 gRPC < 400 ms | 3h 36m              |
+| matching      | `service-matching`      | 99.0%                      | p95 gRPC < 800 ms | 7h 18m              |
+| moderation    | `service-moderation`    | 99.5%                      | p95 gRPC < 400 ms | 3h 36m              |
+| notifications | `service-notifications` | 99.5%                      | p95 gRPC < 500 ms | 3h 36m              |
+| cms           | `service-cms`           | 99.9%                      | p95 HTTP < 300 ms | 43m 12s             |
 
 Rationale: the **gateway** and **auth** sit on every request path, so they
 carry the tightest budgets. **matching** runs a heavier recommender (and reads
@@ -88,10 +88,10 @@ pets on-demand), so it gets the loosest latency/availability target.
 The audit service has no user-facing latency SLO, but it owns a **correctness**
 objective on the GDPR erasure saga (a legal obligation):
 
-| Objective | Target | Measured by |
-| --- | --- | --- |
-| No saga stuck `failed` | `gdpr_sagas{state="failed"} == 0` | gauge |
-| No saga stuck `timed_out` | `gdpr_sagas{state="timed_out"} == 0` | gauge |
+| Objective                 | Target                                                               | Measured by             |
+| ------------------------- | -------------------------------------------------------------------- | ----------------------- |
+| No saga stuck `failed`    | `gdpr_sagas{state="failed"} == 0`                                    | gauge                   |
+| No saga stuck `timed_out` | `gdpr_sagas{state="timed_out"} == 0`                                 | gauge                   |
 | Erasure requests complete | each `erasureRequested` reaches `completed` within the saga deadline | gauge + sweep scheduler |
 
 A single `failed`/`timed_out` saga is a budget breach — there is no tolerable
@@ -102,18 +102,18 @@ rate of unfulfilled erasure requests.
 The committed rules implement the objectives above. Each rule annotates the
 runbook to open on fire.
 
-| Rule (file) | Watches | SLO it protects |
-| --- | --- | --- |
-| `ServiceDown` (`service-down.yml`) | `up == 0` per job | Availability — service is unreachable |
-| `HighErrorRate` (`high-error-rate.yml`) | 5xx fraction of `http_request_duration_seconds_count` | Availability (HTTP) |
-| `HighGrpcErrorRate` (`high-error-rate.yml`) | non-OK fraction of `grpc_handler_duration_seconds_count` | Availability (gRPC) |
-| `HttpP95LatencyHigh` (`p95-latency.yml`) | `histogram_quantile(0.95, …http_request_duration_seconds_bucket…)` | Latency (HTTP) |
-| `GrpcP95LatencyHigh` (`p95-latency.yml`) | `histogram_quantile(0.95, …grpc_handler_duration_seconds_bucket…)` | Latency (gRPC) |
-| `GdprSagaFailed` (`gdpr-saga.yml`) | `gdpr_sagas{state="failed"} > 0` | GDPR saga correctness |
-| `GdprSagaTimedOut` (`gdpr-saga.yml`) | `gdpr_sagas{state="timed_out"} > 0` | GDPR saga correctness |
-| `GdprErasureRequestedNotCompleted` (`gdpr-saga.yml`) | `in_progress` backlog persisting beyond the saga deadline | GDPR saga correctness |
-| `GatewayCircuitOpen` (`gateway-resilience.yml`) | `grpc_circuit_state == 2` | Availability — downstream dependency unhealthy |
-| `GatewayRateLimitSpike` (`gateway-resilience.yml`) | surge in `gateway_rate_limit_hits_total` | Abuse / capacity signal |
+| Rule (file)                                          | Watches                                                            | SLO it protects                                |
+| ---------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------- |
+| `ServiceDown` (`service-down.yml`)                   | `up == 0` per job                                                  | Availability — service is unreachable          |
+| `HighErrorRate` (`high-error-rate.yml`)              | 5xx fraction of `http_request_duration_seconds_count`              | Availability (HTTP)                            |
+| `HighGrpcErrorRate` (`high-error-rate.yml`)          | non-OK fraction of `grpc_handler_duration_seconds_count`           | Availability (gRPC)                            |
+| `HttpP95LatencyHigh` (`p95-latency.yml`)             | `histogram_quantile(0.95, …http_request_duration_seconds_bucket…)` | Latency (HTTP)                                 |
+| `GrpcP95LatencyHigh` (`p95-latency.yml`)             | `histogram_quantile(0.95, …grpc_handler_duration_seconds_bucket…)` | Latency (gRPC)                                 |
+| `GdprSagaFailed` (`gdpr-saga.yml`)                   | `gdpr_sagas{state="failed"} > 0`                                   | GDPR saga correctness                          |
+| `GdprSagaTimedOut` (`gdpr-saga.yml`)                 | `gdpr_sagas{state="timed_out"} > 0`                                | GDPR saga correctness                          |
+| `GdprErasureRequestedNotCompleted` (`gdpr-saga.yml`) | `in_progress` backlog persisting beyond the saga deadline          | GDPR saga correctness                          |
+| `GatewayCircuitOpen` (`gateway-resilience.yml`)      | `grpc_circuit_state == 2`                                          | Availability — downstream dependency unhealthy |
+| `GatewayRateLimitSpike` (`gateway-resilience.yml`)   | surge in `gateway_rate_limit_hits_total`                           | Abuse / capacity signal                        |
 
 ## Severity & on-call
 
@@ -122,10 +122,10 @@ routing or receivers** — that needs a real destination (PagerDuty key / Slack
 webhook) which does not exist in this repo yet. Wire routing when a destination
 is provisioned. Until then the convention is:
 
-| Severity | Intended routing (TODO: wire) | Response |
-| --- | --- | --- |
-| `critical` | page | ack within 5 min |
-| `warning` | chat channel | review within 30 min |
+| Severity   | Intended routing (TODO: wire) | Response             |
+| ---------- | ----------------------------- | -------------------- |
+| `critical` | page                          | ack within 5 min     |
+| `warning`  | chat channel                  | review within 30 min |
 
 Each `critical`/`warning` rule annotates a `runbook` — open it from the alert.
 Runbook index: [`docs/runbooks/README.md`](./runbooks/README.md).

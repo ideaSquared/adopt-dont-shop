@@ -51,7 +51,7 @@ this; pick the one that fits the side-effect:
      `email_queue_idempotency_key_unique` and is swallowed as a no-op.
    - `services/moderation/src/grpc/handlers.ts` `fileReport` upserts on the
      partial unique index `(reported_entity_type, reported_entity_id) WHERE
-     reporter_id = SYSTEM` and only publishes its domain event when the row was
+reporter_id = SYSTEM` and only publishes its domain event when the row was
      genuinely inserted (`xmax = 0`), so a redelivered auto-report neither
      duplicates the report nor re-emits `moderation.reportFiled`.
    - `services/audit/src/nats/gdpr-subscribers.ts` upserts the saga row

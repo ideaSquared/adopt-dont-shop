@@ -5,11 +5,11 @@ covered by automated tests in this repository.
 
 ## Test runners
 
-| Runner   | Where it lives                                  | What it covers                                     |
-| -------- | ----------------------------------------------- | -------------------------------------------------- |
-| Vitest   | every `services/*`, `app.*`, and `lib.*`        | Behaviour-driven tests for services, components, libraries |
-| Vitest   | `scripts/` (`pnpm test:scripts`)                | The repo's own DX guard-scripts (see below) |
-| Playwright | `e2e/`                                          | Cross-app integration journeys against the docker-compose stack |
+| Runner     | Where it lives                           | What it covers                                                  |
+| ---------- | ---------------------------------------- | --------------------------------------------------------------- |
+| Vitest     | every `services/*`, `app.*`, and `lib.*` | Behaviour-driven tests for services, components, libraries      |
+| Vitest     | `scripts/` (`pnpm test:scripts`)         | The repo's own DX guard-scripts (see below)                     |
+| Playwright | `e2e/`                                   | Cross-app integration journeys against the docker-compose stack |
 
 Each backend service — and every `packages/lib.*` — owns its own
 `vitest.config.ts`, which declares and enforces that package's coverage
@@ -57,7 +57,7 @@ that come up most often:
   handlers, invoke the handler function directly with a synthetic
   context.
 - 100% coverage of behaviour is the aspiration, but coverage thresholds
-  (see `vitest.config.ts`) define the *enforced* floor.
+  (see `vitest.config.ts`) define the _enforced_ floor.
 
 ## `scripts/` test guard
 

@@ -41,6 +41,9 @@
  *  14. Every services/* and packages/lib.* declares coverage thresholds in
  *     its own vitest.config.ts — the shared default is 0%, so an override
  *     is mandatory (ADS-1004).
+ *  15. Every services/* and e2e package.json ships lint, format and
+ *     format:check scripts (ADS-1003) — lib.* and app.* already require
+ *     these via their check #1 script lists.
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -105,6 +108,19 @@ const EXPECTED_LIB_FORMAT_BODIES = {
 };
 
 const EXPECTED_LINT_BODIES = ['eslint .', 'eslint src'];
+
+// ADS-1003: services/* and e2e aren't covered by REQUIRED_LIB_SCRIPTS /
+// REQUIRED_APP_SCRIPTS (their other required scripts differ per package —
+// e.g. services ship db:migrate, e2e ships test:smoke), but every workspace
+// must still ship lint/format/format:check so `pnpm lint` / `pnpm
+// format:check` never silently skip a package — e2e shipped none of the
+// three until this ticket.
+const REQUIRED_LINT_FORMAT_SCRIPTS = ['lint', 'format', 'format:check'];
+
+export function checkLintFormatScripts(dir, scripts) {
+  const missing = REQUIRED_LINT_FORMAT_SCRIPTS.filter(name => !scripts[name]);
+  return missing.length > 0 ? [`[${dir}] missing scripts: ${missing.join(', ')} (ADS-1003)`] : [];
+}
 
 // After the Phase 0 restructure (apps/ + packages/lib.* + services/), libs
 // live under packages/ and apps live under apps/. The functions below still
@@ -606,11 +622,16 @@ function checkServiceVitestConfig(services) {
 // `contents` is `null` when the package's vitest.config.ts is missing or
 // unreadable — that is itself a failure, not something to skip silently, so
 // a package can't dodge the guard just by lacking a config file.
+//
+// `path` is the repo-relative path to that package's vitest.config.ts (e.g.
+// `services/auth/vitest.config.ts`, `packages/lib.api/vitest.config.ts`),
+// used verbatim in failure messages so they point at a real, actionable
+// file location instead of a bare workspace name.
 export function findMissingCoverageThresholds(configs) {
-  return configs.flatMap(({ workspace, contents }) => {
+  return configs.flatMap(({ path, contents }) => {
     if (contents === null) {
       return [
-        `[${workspace}/vitest.config.ts] missing or unreadable — every services/* and packages/lib.* ` +
+        `[${path}] missing or unreadable — every services/* and packages/lib.* ` +
           `package must declare its own coverage thresholds in a vitest.config.ts (ADS-1004).`,
       ];
     }
@@ -619,7 +640,7 @@ export function findMissingCoverageThresholds(configs) {
       return [];
     }
     return [
-      `[${workspace}/vitest.config.ts] missing coverage threshold(s): ${missing.join(', ')} — every ` +
+      `[${path}] missing coverage threshold(s): ${missing.join(', ')} — every ` +
         `services/* and packages/lib.* package must declare its own coverage thresholds (ADS-1004). ` +
         `See CONTRIBUTING.md "Coverage thresholds".`,
     ];
@@ -628,14 +649,15 @@ export function findMissingCoverageThresholds(configs) {
 
 function checkCoverageThresholds(libs, services) {
   const targets = [
-    ...libs.map(lib => ({ workspace: lib, path: join(ROOT, pkgDir(lib), 'vitest.config.ts') })),
-    ...services.map(svc => ({ workspace: svc, path: join(ROOT, 'services', svc, 'vitest.config.ts') })),
+    ...libs.map(lib => join(ROOT, pkgDir(lib), 'vitest.config.ts')),
+    ...services.map(svc => join(ROOT, 'services', svc, 'vitest.config.ts')),
   ];
-  const configs = targets.map(({ workspace, path }) => {
+  const configs = targets.map(absolutePath => {
+    const path = relative(ROOT, absolutePath);
     try {
-      return { workspace, contents: readFileSync(path, 'utf8') };
+      return { path, contents: readFileSync(absolutePath, 'utf8') };
     } catch {
-      return { workspace, contents: null };
+      return { path, contents: null };
     }
   });
   return findMissingCoverageThresholds(configs);
@@ -854,6 +876,94 @@ export function checkNoEmitTaskOutputs(turboConfig) {
   return failures;
 }
 
+// ADS-1002: every scripts/check-*.mjs guard invoked from ci.yml's
+// `workspace-drift` job — CI's required PR gate — whether as a bare
+// `node scripts/check-x.mjs` step or via a wrapping `pnpm check:x` script
+// that runs one, must map to a root `check:*` script that also runs locally
+// via `pnpm ci:local`, so the two never drift out of parity (ci.yml
+// previously called scripts/check-csp-headers.mjs and
+// scripts/check-readmes.mjs directly with no ci:local equivalent). Scope is
+// deliberately narrow: only steps backed by a scripts/check-*.mjs file are
+// checked — a workspace-drift step with no such backing (e.g. `pnpm ls -r`,
+// `pnpm format:check`, `pnpm check:proto-fresh`) is outside what this guard
+// covers and won't be flagged either way.
+
+// Extract the YAML text of a single top-level job block (from its
+// `  <jobName>:` header line to the next 2-space-indented top-level key).
+// Mirrors parseDevVolumesAnchor's dedent-detection style above.
+export function extractJobBlock(ciYaml, jobName) {
+  const lines = ciYaml.split('\n');
+  const startIdx = lines.findIndex(l => l === `  ${jobName}:`);
+  if (startIdx === -1) return null;
+  const blockLines = [lines[startIdx]];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    if (/^  \S/.test(lines[i])) break; // dedent to 2 spaces = next job key
+    blockLines.push(lines[i]);
+  }
+  return blockLines.join('\n');
+}
+
+// Every scripts/check-*.mjs guard referenced in a job's YAML, whether
+// invoked directly ('node scripts/check-x.mjs') or via a wrapping root
+// package.json script ('pnpm check:x').
+export function findGuardScriptFiles(jobYaml, rootScripts) {
+  const found = new Set();
+  const directRe = /\bnode scripts\/(check-[\w-]+\.mjs)\b/g;
+  let m;
+  while ((m = directRe.exec(jobYaml)) !== null) found.add(m[1]);
+
+  const pnpmRe = /\bpnpm (check:[\w-]+)\b/g;
+  while ((m = pnpmRe.exec(jobYaml)) !== null) {
+    const body = rootScripts[m[1]] || '';
+    const fileMatch = body.match(/scripts\/(check-[\w-]+\.mjs)/);
+    if (fileMatch) found.add(fileMatch[1]);
+  }
+  return [...found].sort();
+}
+
+// The root package.json script name (if any) whose command body runs the
+// given guard script file directly.
+export function findRootScriptForGuardFile(file, rootScripts) {
+  const hit = Object.entries(rootScripts).find(([, body]) => (body || '').includes(`scripts/${file}`));
+  return hit ? hit[0] : null;
+}
+
+// Is `pnpm <scriptName>` one of the commands `ci:local` runs?
+export function isRunByCiLocal(scriptName, ciLocalBody) {
+  const escaped = scriptName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\bpnpm ${escaped}\\b`).test(ciLocalBody || '');
+}
+
+export function checkWorkspaceDriftGuardsCoveredByCiLocal(ciYaml, rootPkg) {
+  const rootScripts = rootPkg.scripts || {};
+  const jobYaml = extractJobBlock(ciYaml, 'workspace-drift');
+  if (!jobYaml) {
+    return [
+      "[ci.yml] could not find the 'workspace-drift' job — expected a top-level '  workspace-drift:' key (ADS-1002).",
+    ];
+  }
+
+  const failures = [];
+  const ciLocalBody = rootScripts['ci:local'] || '';
+  for (const file of findGuardScriptFiles(jobYaml, rootScripts)) {
+    const scriptName = findRootScriptForGuardFile(file, rootScripts);
+    if (!scriptName) {
+      failures.push(
+        `[ci.yml workspace-drift] invokes scripts/${file} but no root package.json script wraps it — ` +
+          `add a 'check:*' script for it (ADS-1002).`
+      );
+      continue;
+    }
+    if (!isRunByCiLocal(scriptName, ciLocalBody)) {
+      failures.push(
+        `[ci.yml workspace-drift] scripts/${file} runs via the '${scriptName}' root script, but 'ci:local' ` +
+          `does not run '${scriptName}' — add it to ci:local so local parity matches CI (ADS-1002).`
+      );
+    }
+  }
+  return failures;
+}
+
 function main() {
   const libs = listLibs();
   const apps = listApps();
@@ -997,6 +1107,28 @@ function main() {
 
   // ADS-1029: every testable package must be reachable by a CI test filter.
   failures.push(...checkCiFilterReachability());
+
+  // 14. services/* and e2e must ship lint/format/format:check too — libs/apps
+  //     already require them via REQUIRED_LIB_SCRIPTS / REQUIRED_APP_SCRIPTS
+  //     (ADS-1003).
+  for (const dir of [...services.map(svc => `services/${svc}`), 'e2e']) {
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8'));
+    } catch {
+      // Every entry here comes from a real services/* directory (listServices())
+      // or the known e2e workspace, so a missing/unreadable package.json is
+      // itself drift worth failing on, not something to skip past.
+      failures.push(`[${dir}] package.json missing or unreadable (ADS-1003)`);
+      continue;
+    }
+    failures.push(...checkLintFormatScripts(dir, pkg.scripts || {}));
+  }
+
+  // ADS-1002: every ci.yml workspace-drift guard must be wrapped in a root
+  // 'check:*' script that ci:local also runs.
+  const ciYaml = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
+  failures.push(...checkWorkspaceDriftGuardsCoveredByCiLocal(ciYaml, rootPkg));
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');

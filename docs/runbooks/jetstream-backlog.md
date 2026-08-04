@@ -77,26 +77,32 @@ Match the shape of the backlog:
 
 1. **Fix the consuming service first.** The backlog is a symptom; the stream is
    doing its job (retaining + redelivering). Restart / roll back the service:
+
    ```bash
    docker compose -f docker-compose.prod.yml restart service-<name>
    # or, if it's a bad deploy, see deploy-rollback.md
    ```
+
    Once healthy, the durable consumer replays the backlog automatically. Watch
    `num_pending` fall.
 
 2. **If a single poison message blocks a consumer** (same message redelivering,
    blocking the rest), let it exhaust `MAX_DELIVER` (it will move to the DLQ on
    its own) or, if it's urgent, `term` it manually so the consumer advances:
+
    ```bash
    nats consumer next DOMAIN_EVENTS <durable-name> --count 1   # inspect it
    ```
+
    Capture the payload before terminating — the DLQ keeps it for 14 days but
    copy it into the incident notes.
 
 3. **Triage the DLQ** once the bleeding stops:
+
    ```bash
    nats stream view DOMAIN_EVENTS_DLQ            # inspect dead-lettered msgs
    ```
+
    For each class of dead-lettered message: fix the handler bug, then replay by
    re-publishing the original subject (the events are idempotent by design —
    erasure/notification handlers no-op on replay). Do **not** mass-replay

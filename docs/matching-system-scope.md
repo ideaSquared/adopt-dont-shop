@@ -15,20 +15,24 @@ The matchmaking system is **substantially built**. Phase 1 of the recommendation
 The matching microservice owns the `matching.*` Postgres schema and exposes a full gRPC API via `MatchingService` (`packages/proto/proto/adopt_dont_shop/matching/v1/matching.proto`).
 
 **Session lifecycle**
+
 - `StartSession` — creates or resumes an active swipe session; idempotent.
 - `EndSession` — marks session inactive, stamps `end_time`.
 
 **Swipe feed recommender (`Recommend`)**
+
 - Pulls available pets from `service.pets` via gRPC.
 - Scores with a weighted blend: recency (0.4) + promotion (0.3) + age-group preference match (0.3).
 - Excludes pets already swiped in the current session.
 - Returns a ranked `PetCandidate[]` with per-pet scores on `[0, 1]`.
 
 **Swipe recording (`RecordSwipe`)**
+
 - Persists a `matching.swipe_actions` row inside a transaction and publishes `matching.swipeRecorded` to NATS after commit.
 - Increments session counters (`total_swipes`, `likes`, `passes`, `super_likes`).
 
 **Top picks (`GetTopPicks`)**
+
 - Reads the adopter's stored match profile (`matching.adopter_match_profiles`).
 - Scores against preferred types / sizes / age groups + lifestyle household flags.
 - Scoring: preference match (0.5) + recency (0.3) + promotion (0.2).
@@ -36,21 +40,26 @@ The matching microservice owns the `matching.*` Postgres schema and exposes a fu
 - Excludes already-swiped pets; resolves each pick's rescue name via gRPC.
 
 **Match profile (`GetMatchProfile` / `UpsertMatchProfile`)**
+
 - Stores per-adopter preferences: `preferred_types`, `preferred_sizes`, `preferred_age_groups`, `preferred_energy`, `preferred_temperament`, `lifestyle`, `max_distance_km`, `open_to_special_needs`, `allergies`, `notify_new_matches`, `min_notification_score`.
 - Upsert is partial-update safe (`set_*` booleans distinguish "clear" from "not provided").
 
 **Search and history**
+
 - `SearchPets` — filter-driven search, distinct from preference-driven recommendation.
 - `ListSwipeHistory` — cursor-paginated log of likes / passes / super-likes / info-views.
 
 **Statistics**
+
 - `GetUserSwipeStats` — aggregate swipe counts per user.
 - `GetSessionStats` — aggregate swipe counts per session.
 
 **GDPR**
+
 - `gdpr/erase.ts` — erases a user's swipe sessions and actions on account deletion.
 
 **Database migrations (4 applied)**
+
 1. `001_create_swipe_sessions`
 2. `002_create_swipe_actions`
 3. `003_create_adopter_match_profiles`
@@ -60,22 +69,23 @@ The matching microservice owns the `matching.*` Postgres schema and exposes a fu
 
 REST routes registered under `services/gateway/src/routes/matching.ts`:
 
-| Method | Path | RPC |
-|--------|------|-----|
-| POST | `/api/v1/matching/sessions` | `StartSession` |
-| POST | `/api/v1/matching/sessions/:id/end` | `EndSession` |
-| POST | `/api/v1/matching/sessions/:id/swipes` | `RecordSwipe` |
-| GET | `/api/v1/matching/swipes` | `ListSwipeHistory` |
-| POST | `/api/v1/discovery/queue` | `Recommend` |
-| POST | `/api/v1/discovery/pets/more` | `Recommend` (load-more variant) |
-| GET | `/api/v1/search/pets` | `SearchPets` |
-| GET | `/api/v1/match/top-picks` | `GetTopPicks` |
-| GET | `/api/v1/match/profile` | `GetMatchProfile` |
-| PUT | `/api/v1/match/profile` | `UpsertMatchProfile` |
+| Method | Path                                   | RPC                             |
+| ------ | -------------------------------------- | ------------------------------- |
+| POST   | `/api/v1/matching/sessions`            | `StartSession`                  |
+| POST   | `/api/v1/matching/sessions/:id/end`    | `EndSession`                    |
+| POST   | `/api/v1/matching/sessions/:id/swipes` | `RecordSwipe`                   |
+| GET    | `/api/v1/matching/swipes`              | `ListSwipeHistory`              |
+| POST   | `/api/v1/discovery/queue`              | `Recommend`                     |
+| POST   | `/api/v1/discovery/pets/more`          | `Recommend` (load-more variant) |
+| GET    | `/api/v1/search/pets`                  | `SearchPets`                    |
+| GET    | `/api/v1/match/top-picks`              | `GetTopPicks`                   |
+| GET    | `/api/v1/match/profile`                | `GetMatchProfile`               |
+| PUT    | `/api/v1/match/profile`                | `UpsertMatchProfile`            |
 
 ### Frontend library — `packages/lib.matching`
 
 `matching-service.ts` exposes three typed methods for the React apps:
+
 - `getTopPicks(limit?)` — fetches the curated top-picks list.
 - `getMatchProfile()` — reads the stored preferences form state.
 - `updateMatchProfile(profile)` — persists preference form changes.
@@ -194,15 +204,15 @@ The eight gaps below are all schema columns or proto fields that exist in the da
 
 Phase 1 of the recommendations plan is complete. The system provides personalised, explainable rankings backed by adopter preferences and recency signals, with reason chips and real-time swipe recording.
 
-| Gap | Build / Defer | Effort |
-|-----|---------------|--------|
-| Swipe-history → `inferred_prefs` inference | **Build** | Medium (3–5d) |
-| Energy + temperament scoring | **Build** | Low (1–2d) |
-| Rescue swipe analytics | **Build** | Medium (3–4d) |
-| `similar_to_liked` reason chip | Defer (after gap 1) | Medium (2–3d) |
-| Allergy filtering | Defer (normalise schema first) | Low–Medium (1–3d) |
-| Match notification pipeline | Defer (feature-flag) | Medium (4–6d) |
-| Distance filtering | Defer (pets location prerequisite) | High (5–8d) |
-| `breed_name` / `photo_url` in TopPick | Defer (pets prerequisite) | Medium–High (3–5d) |
+| Gap                                        | Build / Defer                      | Effort             |
+| ------------------------------------------ | ---------------------------------- | ------------------ |
+| Swipe-history → `inferred_prefs` inference | **Build**                          | Medium (3–5d)      |
+| Energy + temperament scoring               | **Build**                          | Low (1–2d)         |
+| Rescue swipe analytics                     | **Build**                          | Medium (3–4d)      |
+| `similar_to_liked` reason chip             | Defer (after gap 1)                | Medium (2–3d)      |
+| Allergy filtering                          | Defer (normalise schema first)     | Low–Medium (1–3d)  |
+| Match notification pipeline                | Defer (feature-flag)               | Medium (4–6d)      |
+| Distance filtering                         | Defer (pets location prerequisite) | High (5–8d)        |
+| `breed_name` / `photo_url` in TopPick      | Defer (pets prerequisite)          | Medium–High (3–5d) |
 
 Immediate next tickets: inferred-prefs inference + energy/temperament scoring (can be a single PR), and rescue swipe analytics (separate PR). The deferred gaps each have a clear prerequisite that blocks them independently of scoring work.

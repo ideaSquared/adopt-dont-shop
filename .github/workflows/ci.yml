@@ -81,7 +81,7 @@ jobs:
       # 'unsafe-inline'/'unsafe-eval', and every prod SPA vhost at the edge
       # must declare its own CSP.
       - name: Verify CSP headers
-        run: node scripts/check-csp-headers.mjs
+        run: pnpm check:csp
 
       # ADS-984: these three drift guards previously only ran via `pnpm
       # ci:local`, so nothing in GitHub CI caught a required env var missing
@@ -104,6 +104,16 @@ jobs:
       - name: Verify formatting (prettier)
         run: pnpm format:check
 
+      # ADS-1003: e2e (Playwright) has no path filter and no browsers to
+      # install, so lint it unconditionally here rather than gating it behind
+      # the run-e2e-labelled test-e2e job (which only runs the suite itself).
+      # Invoked directly (not via `turbo run lint`) because turbo.json's
+      # global `lint` task inputs are scoped to `src/**`, which e2e doesn't
+      # have (its code lives in tests/fixtures/helpers) — under Turbo's cache
+      # that mismatch could let a changed e2e file replay a stale cache hit.
+      - name: Verify e2e lint
+        run: pnpm --filter @adopt-dont-shop/e2e run lint
+
       # ADS-1027: fail if packages/proto's committed ts-proto output no longer
       # matches `buf generate` — otherwise any `pnpm build` silently dirties the
       # tree. The guard regenerates into a tmpdir and diffs.
@@ -115,7 +125,22 @@ jobs:
       # not yet backfilled; a hard failure for those in the guard's
       # STRICT_PACKAGES set, so an enforced README can't regress.
       - name: Verify workspace READMEs match the template
-        run: node scripts/check-readmes.mjs
+        run: pnpm check:readmes
+
+      # ADS-1031: renovate.json errors (invalid keys, deprecated matchers) are
+      # otherwise only caught when Renovate itself runs and silently drops the
+      # bad config. Validate with the official validator, gated on renovate.json
+      # changing since it downloads the renovate CLI via npx.
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706  # v4.0.2
+        id: renovate-filter
+        with:
+          filters: |
+            renovate:
+              - 'renovate.json'
+
+      - name: Verify renovate.json config
+        if: steps.renovate-filter.outputs.renovate == 'true'
+        run: pnpm check:renovate
 
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes

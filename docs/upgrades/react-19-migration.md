@@ -14,12 +14,12 @@
 
 React lives in three apps and one shared component library:
 
-| Package | `react` | `react-dom` | `@types/react` | `react-router-dom` | `styled-components` |
-| --- | --- | --- | --- | --- | --- |
-| `app.admin` | ^18.2.0 | ^18.2.0 | ^18.3.3 | ^6.22.3 | ^6.1.12 |
-| `app.client` | ^18.2.0 | ^18.2.0 | ^18.3.3 | ^6.22.3 | ^6.1.12 |
-| `app.rescue` | ^18.2.0 | ^18.2.0 | ^18.3.3 | ^6.22.3 | ^6.1.19 |
-| `lib.components` (peer) | >=18.0.0 | >=18.0.0 | ^18.3.3 | >=6.0.0 | ^6.1.12 |
+| Package                 | `react`  | `react-dom` | `@types/react` | `react-router-dom` | `styled-components` |
+| ----------------------- | -------- | ----------- | -------------- | ------------------ | ------------------- |
+| `app.admin`             | ^18.2.0  | ^18.2.0     | ^18.3.3        | ^6.22.3            | ^6.1.12             |
+| `app.client`            | ^18.2.0  | ^18.2.0     | ^18.3.3        | ^6.22.3            | ^6.1.12             |
+| `app.rescue`            | ^18.2.0  | ^18.2.0     | ^18.3.3        | ^6.22.3            | ^6.1.19             |
+| `lib.components` (peer) | >=18.0.0 | >=18.0.0    | ^18.3.3        | >=6.0.0            | ^6.1.12             |
 
 Build/test toolchain (modern, no blockers):
 
@@ -30,49 +30,50 @@ Build/test toolchain (modern, no blockers):
 
 Surface area:
 
-| Concern | Count |
-| --- | --- |
-| `*.tsx`/`*.ts` files in apps + lib.components | 709 |
-| `useEffect` call sites | 200 |
-| `forwardRef` call sites | 21 |
-| `<Suspense>` usages | 13 |
-| `<StrictMode>` usages | 3 (one per app — already on, good) |
-| `defaultProps` on function components | 0 |
-| `propTypes` declarations | 0 |
-| `ReactDOM.render` (legacy) | 0 — all use `createRoot` |
-| `react-test-renderer` | 0 — we use Testing Library |
+| Concern                                       | Count                              |
+| --------------------------------------------- | ---------------------------------- |
+| `*.tsx`/`*.ts` files in apps + lib.components | 709                                |
+| `useEffect` call sites                        | 200                                |
+| `forwardRef` call sites                       | 21                                 |
+| `<Suspense>` usages                           | 13                                 |
+| `<StrictMode>` usages                         | 3 (one per app — already on, good) |
+| `defaultProps` on function components         | 0                                  |
+| `propTypes` declarations                      | 0                                  |
+| `ReactDOM.render` (legacy)                    | 0 — all use `createRoot`           |
+| `react-test-renderer`                         | 0 — we use Testing Library         |
 
 We are in genuinely good shape — no legacy APIs to retire.
 
 ## 2. Breaking changes
 
 References:
+
 - React 19 release post — <https://react.dev/blog/2024/12/05/react-19>
 - React 19 upgrade guide — <https://react.dev/blog/2024/04/25/react-19-upgrade-guide>
 - React 19 RC notes — <https://react.dev/blog/2024/04/25/react-19>
 
-| Change | Risk for us | Notes |
-| --- | --- | --- |
-| **`forwardRef` no longer required** — `ref` is a regular prop on function components | Low | We can leave existing 21 `forwardRef` call sites alone; cleanup later. |
-| **`propTypes` and `defaultProps` removed for function components** | None | We use neither. |
-| **Legacy context (`contextTypes`) removed** | None | Not used. |
-| **String refs removed** | None | Not used. |
-| **Module pattern factories removed** | None | Not used. |
-| **`createFactory` removed** | None | Not used. |
-| **`react-test-renderer/shallow` removed** | None | Not used. |
-| **`<Context.Provider>` → `<Context>`** (Provider element type now optional) | Low | Old form still works; cleanup later. |
-| **`useRef` requires an argument** | Low | Verify all `useRef()` no-arg calls. |
-| **`act` from `react`/`react-dom/test-utils` deprecated → use `@testing-library/react`'s `act`** | Low | Re-export pattern; minor codemod. |
-| **`ReactDOM.findDOMNode` removed** | None | Not used. |
-| **`react-dom` server export changes** (`renderToString` warns on Suspense) | Low | We don't SSR. |
-| **`styled-components` v6 ESM/CJS friction with React 19** | Medium | Verify with smoke test. styled-components 6.1.x supports React 19 from 6.1.13+. We're on 6.1.12/6.1.19 — `app.client` and `app.admin` will need a tiny bump. |
-| **`react-router-dom@6` works with React 19**; v7 is the next major and is independent | None | We can stay on v6 for this upgrade. |
-| **`@testing-library/react@16` is the React 19 line** | None | Already there. |
-| **Hydration error message format changed** | Low | We don't SSR; only matters if devs rely on log strings. |
-| **`<form action={fn}>` server actions** | New feature | Adopt incrementally after the bump. |
-| **`use()` hook stable** | New feature | Adopt incrementally. |
-| **React Compiler (experimental)** | Optional | Don't enable on first pass. |
-| **Stricter dev warnings around effect re-runs** | Low | We already have one StrictMode-induced bug fixed (ADS-375); upgrade may surface another. |
+| Change                                                                                          | Risk for us | Notes                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`forwardRef` no longer required** — `ref` is a regular prop on function components            | Low         | We can leave existing 21 `forwardRef` call sites alone; cleanup later.                                                                                       |
+| **`propTypes` and `defaultProps` removed for function components**                              | None        | We use neither.                                                                                                                                              |
+| **Legacy context (`contextTypes`) removed**                                                     | None        | Not used.                                                                                                                                                    |
+| **String refs removed**                                                                         | None        | Not used.                                                                                                                                                    |
+| **Module pattern factories removed**                                                            | None        | Not used.                                                                                                                                                    |
+| **`createFactory` removed**                                                                     | None        | Not used.                                                                                                                                                    |
+| **`react-test-renderer/shallow` removed**                                                       | None        | Not used.                                                                                                                                                    |
+| **`<Context.Provider>` → `<Context>`** (Provider element type now optional)                     | Low         | Old form still works; cleanup later.                                                                                                                         |
+| **`useRef` requires an argument**                                                               | Low         | Verify all `useRef()` no-arg calls.                                                                                                                          |
+| **`act` from `react`/`react-dom/test-utils` deprecated → use `@testing-library/react`'s `act`** | Low         | Re-export pattern; minor codemod.                                                                                                                            |
+| **`ReactDOM.findDOMNode` removed**                                                              | None        | Not used.                                                                                                                                                    |
+| **`react-dom` server export changes** (`renderToString` warns on Suspense)                      | Low         | We don't SSR.                                                                                                                                                |
+| **`styled-components` v6 ESM/CJS friction with React 19**                                       | Medium      | Verify with smoke test. styled-components 6.1.x supports React 19 from 6.1.13+. We're on 6.1.12/6.1.19 — `app.client` and `app.admin` will need a tiny bump. |
+| **`react-router-dom@6` works with React 19**; v7 is the next major and is independent           | None        | We can stay on v6 for this upgrade.                                                                                                                          |
+| **`@testing-library/react@16` is the React 19 line**                                            | None        | Already there.                                                                                                                                               |
+| **Hydration error message format changed**                                                      | Low         | We don't SSR; only matters if devs rely on log strings.                                                                                                      |
+| **`<form action={fn}>` server actions**                                                         | New feature | Adopt incrementally after the bump.                                                                                                                          |
+| **`use()` hook stable**                                                                         | New feature | Adopt incrementally.                                                                                                                                         |
+| **React Compiler (experimental)**                                                               | Optional    | Don't enable on first pass.                                                                                                                                  |
+| **Stricter dev warnings around effect re-runs**                                                 | Low         | We already have one StrictMode-induced bug fixed (ADS-375); upgrade may surface another.                                                                     |
 
 ## 3. Risk inventory
 
