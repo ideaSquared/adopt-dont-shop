@@ -16,12 +16,25 @@
 // required); the principal-headers populated by the authenticate
 // middleware are forwarded to the log line as `userId` when present.
 
+import { redactSecretFields, redactUrl } from '@adopt-dont-shop/observability';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Logger } from 'winston';
 
 export type AnalyticsRoutesOptions = {
   logger: Logger;
 };
+
+// Unauthenticated ingestion endpoints, so they carry their own per-route caps
+// (ADS-1038) on top of the global limiter — a client can't cheaply inflate Loki
+// ingest. Pageviews/events fire frequently from the SPA; batch is heavier
+// (up to MAX_BATCH events per request) so it's tighter.
+const ANALYTICS_RATE_LIMIT = { max: 120, timeWindow: '1 minute' } as const;
+const ANALYTICS_BATCH_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const;
+
+// Serialised-size ceiling for a logged `properties` object. redactSecretFields
+// only masks by key, so an attacker could still ship an unbounded blob under
+// innocuous keys — bound the whole thing before it reaches a log line.
+const MAX_PROPERTIES_BYTES = 2048;
 
 type PageviewBody = {
   path?: string;
@@ -63,6 +76,36 @@ const cap = (s: string | undefined): string | undefined => {
   return s.length > sessionLengthCap ? s.slice(0, sessionLengthCap) : s;
 };
 
+// A URL/path/referrer safe to log: the fragment is dropped first (an OAuth-style
+// `#access_token=...` or a hash-routed `#/verify-email?token=...` carries the
+// same secret risk as the query string), then redactUrl drops the query string
+// (ADS-972/ADS-1038) and masks known secret-bearing path segments, then it's
+// length-capped. Undefined in, undefined out.
+const safeUrl = (s: string | undefined): string | undefined =>
+  s ? cap(redactUrl(s.split('#')[0] ?? '')) : s;
+
+// Redact secret-keyed fields, then bound the serialised size so one request
+// can't emit an unbounded log line. Over the ceiling → a marker, not the blob.
+const boundedProperties = (properties: Record<string, unknown> | undefined): unknown => {
+  if (!properties || typeof properties !== 'object') {
+    return {};
+  }
+  const redacted = redactSecretFields(properties);
+  let serialised: string;
+  try {
+    serialised = JSON.stringify(redacted);
+  } catch {
+    return { _dropped: 'unserialisable' };
+  }
+  // Byte length, not String.length — a non-ASCII payload is more bytes than
+  // UTF-16 code units, and the ceiling is about the Loki line size.
+  const bytes = Buffer.byteLength(serialised);
+  if (bytes > MAX_PROPERTIES_BYTES) {
+    return { _truncated: true, _bytes: bytes };
+  }
+  return redacted;
+};
+
 export const registerAnalyticsRoutes = async (
   app: FastifyInstance,
   opts: AnalyticsRoutesOptions
@@ -72,6 +115,7 @@ export const registerAnalyticsRoutes = async (
   app.post(
     '/api/v1/analytics/pageviews',
     {
+      config: { rateLimit: ANALYTICS_RATE_LIMIT },
       schema: {
         tags: ['analytics'],
         summary: 'Record a page view event',
@@ -105,11 +149,13 @@ export const registerAnalyticsRoutes = async (
         service: 'analytics',
         type: 'pageview',
         data: {
-          path: cap(pagePath),
+          // Drop the query string before logging — reset/verify/invite routes
+          // carry a live token there (ADS-1038). Same for referrer.
+          path: safeUrl(pagePath),
           timestamp: body.timestamp || new Date().toISOString(),
           userId: userIdFromHeaders(req),
           sessionId: cap(body.sessionId),
-          referrer: cap(body.referrer),
+          referrer: safeUrl(body.referrer),
           userAgent: cap(body.userAgent),
           ip: req.ip,
         },
@@ -121,6 +167,7 @@ export const registerAnalyticsRoutes = async (
   app.post(
     '/api/v1/analytics/events',
     {
+      config: { rateLimit: ANALYTICS_RATE_LIMIT },
       schema: {
         tags: ['analytics'],
         summary: 'Record a single analytics event',
@@ -156,7 +203,7 @@ export const registerAnalyticsRoutes = async (
         data: {
           event: cap(eventName),
           timestamp: body.timestamp || new Date().toISOString(),
-          properties: body.properties || {},
+          properties: boundedProperties(body.properties),
           userId: userIdFromHeaders(req),
           sessionId: cap(body.sessionId),
           ip: req.ip,
@@ -169,6 +216,7 @@ export const registerAnalyticsRoutes = async (
   app.post(
     '/api/v1/analytics/events/batch',
     {
+      config: { rateLimit: ANALYTICS_BATCH_RATE_LIMIT },
       schema: {
         tags: ['analytics'],
         summary: 'Record a batch of analytics events',
@@ -222,7 +270,7 @@ export const registerAnalyticsRoutes = async (
         events: body.events.map(event => ({
           event: cap(event.event || event.name || event.type || 'unknown'),
           timestamp: event.timestamp || new Date().toISOString(),
-          properties: event.properties || {},
+          properties: boundedProperties(event.properties),
         })),
       });
       return reply.code(201).send({
