@@ -666,9 +666,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   if (opts.applicationsClient) {
     await registerApplicationsRoutes(server, { client: opts.applicationsClient });
     // Application document routes (multipart upload → storage → AddDocument).
+    // signingSecret (ADS-1034): documents are private, so reads/writes mint
+    // /uploads-signed URLs instead of persisting a raw storage URL.
     await registerApplicationDocumentsRoutes(server, {
       client: opts.applicationsClient,
       storage: storageConfig,
+      signingSecret: config.storage.signingSecret,
     });
   }
   if (opts.chatClient) {

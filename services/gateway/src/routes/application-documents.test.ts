@@ -9,10 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 
+import { computeUploadSignature } from './uploads.js';
+
 import {
   ALLOWED_DOCUMENT_MIME,
   registerApplicationDocumentsRoutes,
 } from './application-documents.js';
+
+const SIGNING_SECRET = 'test-doc-signing-secret';
 
 function makeClient(): {
   client: ApplicationsClient;
@@ -37,12 +41,15 @@ const ADOPTER = {
   'x-user-permissions': 'applications.update,applications.read',
 };
 
+// ADS-1034: the stored `url` is now the storage key (`category/filename`),
+// not a directly-fetchable path — the route mints a signed URL from it on
+// every read.
 const DOC = {
   documentId: 'doc-1',
   applicationId: 'app-1',
   type: 'id_verification',
   filename: 'aaa.pdf',
-  url: '/uploads/documents/aaa.pdf',
+  url: 'documents/aaa.pdf',
   uploadedAt: '2026-06-06T12:00:00.000Z',
   size: 1234,
   mimeType: 'application/pdf',
@@ -70,6 +77,7 @@ describe('application document routes', () => {
         local: { directory: tmp, publicPath: '/uploads' },
         s3: {},
       },
+      signingSecret: SIGNING_SECRET,
     });
   });
 
@@ -97,7 +105,7 @@ describe('application document routes', () => {
     ]);
   }
 
-  it('POST uploads bytes, calls AddDocument, returns { data: view } with id renamed', async () => {
+  it('POST uploads bytes, calls AddDocument with a storage key (not a raw URL), returns a signed URL', async () => {
     mocks.addDocument.mockResolvedValue({ document: DOC });
     const boundary = 'boundary123';
     const body = multipartBody(
@@ -115,20 +123,48 @@ describe('application document routes', () => {
     });
 
     expect(res.statusCode).toBe(201);
-    const json = res.json() as { data: { id: string; type: string; mimeType: string } };
+    const json = res.json() as {
+      data: { id: string; type: string; mimeType: string; url: string };
+    };
     expect(json.data.id).toBe('doc-1');
     expect(json.data.type).toBe('id_verification');
     expect(json.data.mimeType).toBe('application/pdf');
+    // ADS-1034: the response URL is a signed /uploads-signed/ link, never
+    // the raw storage path.
+    expect(json.data.url).toMatch(/^\/uploads-signed\/\d+\/[0-9a-f]+\/documents\//);
 
-    // AddDocument was called with the application id + storage's resolved
-    // url/filename/size.
+    // AddDocument was called with a bare storage key (category/filename) —
+    // never a directly-fetchable URL — for the private `documents` category.
     const [grpcReq] = mocks.addDocument.mock.calls[0];
     expect(grpcReq.applicationId).toBe('app-1');
     expect(grpcReq.type).toBe('id_verification');
-    expect(typeof grpcReq.url).toBe('string');
-    expect(grpcReq.url).toContain('/uploads/documents/');
+    expect(grpcReq.url).toMatch(/^documents\/[0-9a-f-]+\.pdf$/);
     expect(grpcReq.size).toBeGreaterThan(0);
     expect(grpcReq.mimeType).toBe('application/pdf');
+  });
+
+  it('POST → 503 when no signing secret is configured (fail closed for private documents)', async () => {
+    const { client: unsignedClient, mocks: unsignedMocks } = makeClient();
+    const unsignedApp = Fastify({ logger: false });
+    const { default: multipart } = await import('@fastify/multipart');
+    await unsignedApp.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
+    await registerApplicationDocumentsRoutes(unsignedApp, {
+      client: unsignedClient,
+      storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+    });
+
+    const boundary = 'b-no-secret';
+    const body = multipartBody(boundary, Buffer.from('%PDF-1.4'), 'x.pdf', 'id_verification');
+    const res = await unsignedApp.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(503);
+    expect(unsignedMocks.addDocument).not.toHaveBeenCalled();
+    await unsignedApp.close();
   });
 
   it('POST → 400 when the file part is missing', async () => {
@@ -166,7 +202,7 @@ describe('application document routes', () => {
     expect(mocks.addDocument).not.toHaveBeenCalled();
   });
 
-  it('GET /:id/documents returns { data: view[] }', async () => {
+  it('GET /:id/documents returns { data: view[] } with a freshly-signed URL per document', async () => {
     mocks.listDocuments.mockResolvedValue({ documents: [DOC] });
     const res = await app.inject({
       method: 'GET',
@@ -174,10 +210,43 @@ describe('application document routes', () => {
       headers: ADOPTER,
     });
     expect(res.statusCode).toBe(200);
-    const json = res.json() as { data: Array<{ id: string }> };
+    const json = res.json() as { data: Array<{ id: string; url: string }> };
     expect(json.data).toHaveLength(1);
     expect(json.data[0].id).toBe('doc-1');
     expect(mocks.listDocuments.mock.calls[0][0]).toEqual({ applicationId: 'app-1' });
+
+    // The URL is a valid signed link over the stored storage key, verifiable
+    // with the same secret the gateway signs with.
+    const match = json.data[0].url.match(/^\/uploads-signed\/(\d+)\/([0-9a-f]+)\/(.+)$/);
+    expect(match).not.toBeNull();
+    const [, expiresAtStr, signature, filePath] = match as unknown as [
+      string,
+      string,
+      string,
+      string,
+    ];
+    expect(filePath).toBe(DOC.url);
+    expect(signature).toBe(
+      computeUploadSignature(filePath, Number.parseInt(expiresAtStr, 10), SIGNING_SECRET)
+    );
+  });
+
+  it('GET /:id/documents → 503 when no signing secret is configured', async () => {
+    const { client: unsignedClient, mocks: unsignedMocks } = makeClient();
+    unsignedMocks.listDocuments.mockResolvedValue({ documents: [DOC] });
+    const unsignedApp = Fastify({ logger: false });
+    await registerApplicationDocumentsRoutes(unsignedApp, {
+      client: unsignedClient,
+      storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+    });
+
+    const res = await unsignedApp.inject({
+      method: 'GET',
+      url: '/api/v1/applications/app-1/documents',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(503);
+    await unsignedApp.close();
   });
 
   it('DELETE /:id/documents/:docId → 204', async () => {
