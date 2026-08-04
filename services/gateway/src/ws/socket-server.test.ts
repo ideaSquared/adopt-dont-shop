@@ -1,6 +1,7 @@
 import { createServer, type Server as HttpServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
+import type { NatsConnection } from 'nats';
 import { io as ioClient, type Socket as ClientSocket } from 'socket.io-client';
 import type { Server as IOServer } from 'socket.io';
 import type { Logger } from 'winston';
@@ -13,6 +14,7 @@ import type { ValidateTokenResponse } from '@adopt-dont-shop/proto';
 import type { GatewayConfig } from '../config.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
+import { registerAuthSubscribers } from './auth-subscriber.js';
 import { SocketRegistry } from './socket-registry.js';
 import {
   attachSocketServer,
@@ -121,6 +123,82 @@ function createInMemoryRedisBus(): { client: () => RedisAdapterClient } {
 // validateToken, so a narrow stub is the honest dependency.
 function makeAuthClient(validateMock: ReturnType<typeof vi.fn>): AuthClient {
   return { validateToken: validateMock, close: vi.fn() } as unknown as AuthClient;
+}
+
+type AddedConsumer = { durable_name?: string; filter_subject?: string; deliver_policy?: string };
+
+// JetStream stand-in for registerAuthSubscribers (ADS-1036), mirroring
+// notifications-subscriber.test.ts / auth-subscriber.test.ts: subscribe()
+// binds a durable consumer then drives consume(); the consume() iterator
+// blocks on a per-filter-subject waiter queue so a test can `push` a message
+// into a live subscriber on demand.
+function makeNats(): {
+  nats: NatsConnection;
+  push: (subject: string, payload: unknown, id?: string) => Promise<void>;
+} {
+  const consumersAdded: AddedConsumer[] = [];
+  const waiters = new Map<string, ((msg: { subject: string; data: Uint8Array }) => void)[]>();
+
+  const jsm = {
+    consumers: {
+      add: vi.fn(async (_stream: string, cfg: AddedConsumer) => {
+        consumersAdded.push(cfg);
+        return cfg;
+      }),
+    },
+  };
+
+  const js = {
+    consumers: {
+      get: vi.fn(async (_stream: string, durable: string) => {
+        const cfg = consumersAdded.find(c => c.durable_name === durable);
+        const filter = cfg?.filter_subject ?? '';
+        return {
+          consume: vi.fn(async () => ({
+            async *[Symbol.asyncIterator]() {
+              for (;;) {
+                const data = await new Promise<{ subject: string; data: Uint8Array }>(resolve => {
+                  const list = waiters.get(filter) ?? [];
+                  list.push(resolve);
+                  waiters.set(filter, list);
+                });
+                yield { ...data, ack: vi.fn(), nak: vi.fn(), term: vi.fn(), redelivered: false };
+              }
+            },
+            close: vi.fn(),
+          })),
+        };
+      }),
+    },
+  };
+
+  const nats = {
+    jetstreamManager: vi.fn(async () => jsm),
+    jetstream: vi.fn(() => js),
+  } as unknown as NatsConnection;
+
+  const push = async (subject: string, payload: unknown, id = 'evt-1'): Promise<void> => {
+    const list = waiters.get(subject);
+    const resolve = list?.shift();
+    if (!resolve) {
+      throw new Error(`no waiter on ${subject}`);
+    }
+    const envelope = { id, occurredAt: '2026-06-01T10:00:00Z', payload };
+    resolve({ subject, data: new TextEncoder().encode(JSON.stringify(envelope)) });
+    for (let i = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
+  };
+
+  return { nats, push };
+}
+
+// The consume loop is created in a fire-and-forget async task; give it a few
+// microtasks to register its waiters before a test pushes a message.
+async function settleNats(): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setImmediate(r));
+  }
 }
 
 type Harness = {
@@ -660,5 +738,257 @@ describe('handshake rate limiting — XFF spoofing on an untrusted peer (ADS-102
     expect(await awaitConnectOutcome(spoof('3.3.3.3'))).toBe(false);
 
     expect(await readRejects()).toBe(before + 1);
+  });
+});
+
+describe('periodic revalidation (ADS-1036)', () => {
+  it('disconnects the socket the first time a later revalidation call fails', async () => {
+    const validateMock = vi
+      .fn()
+      .mockResolvedValueOnce(VALID_RES) // handshake
+      .mockRejectedValueOnce(new Error('account is not active')); // first revalidation tick
+    const { url } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+      revalidationInterval: { minMs: 20, maxMs: 20 },
+    });
+
+    const client = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const disconnected = new Promise<string>(resolve => {
+      client.on('disconnect', reason => resolve(reason));
+    });
+
+    await expect(disconnected).resolves.toBeTruthy();
+    // Handshake validation + exactly one revalidation tick before eviction.
+    expect(validateMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-validates on the SAME token the handshake used', async () => {
+    const validateMock = vi
+      .fn()
+      .mockResolvedValueOnce(VALID_RES)
+      .mockRejectedValueOnce(new Error('expired'));
+    const { url } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+      revalidationInterval: { minMs: 20, maxMs: 20 },
+    });
+
+    const client = connectClient(url, { auth: { token: 'reused.jwt' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    await new Promise<void>(resolve => client.on('disconnect', () => resolve()));
+
+    for (const call of validateMock.mock.calls) {
+      expect(call[0]).toEqual({ accessToken: 'reused.jwt' });
+    }
+  });
+
+  it('keeps the socket connected while revalidation keeps succeeding', async () => {
+    const validateMock = vi.fn().mockResolvedValue(VALID_RES);
+    const { url, registry } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+      revalidationInterval: { minMs: 20, maxMs: 20 },
+    });
+
+    const client = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    // Long enough for several revalidation ticks at a 20ms interval.
+    await new Promise(resolve => setTimeout(resolve, 90));
+
+    expect(client.connected).toBe(true);
+    expect(validateMock.mock.calls.length).toBeGreaterThan(2);
+    expect(registry.socketsFor('usr-from-principal')).toHaveLength(1);
+  });
+
+  it('does not schedule revalidation in the dev-only allowUnauthenticated fallback (no token to revalidate)', async () => {
+    const { url, registry } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+      revalidationInterval: { minMs: 10, maxMs: 10 },
+    });
+
+    const client = connectClient(url, { auth: { userId: 'usr-dev' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    // No authClient is wired at all in this mode, so if revalidation were
+    // (incorrectly) scheduled it would throw trying to call validateToken
+    // on undefined — surfaced as an unexpected disconnect.
+    await new Promise(resolve => setTimeout(resolve, 40));
+
+    expect(client.connected).toBe(true);
+    expect(registry.socketsFor('usr-dev')).toHaveLength(1);
+  });
+
+  it('increments gateway_ws_revocation_disconnects_total{reason="revalidation_failed"}', async () => {
+    // Re-fetch getSingleMetric() on every read rather than capturing it once
+    // up front — attachSocketServer (via getRevocationDisconnectsCounter) is
+    // what registers the metric, so a read taken before the first startServer
+    // call in this file would see `undefined` and silently read 0 if this
+    // test file were ever reordered to run this case first in isolation.
+    const readReason = async (reason: string): Promise<number> => {
+      const counter = getMetricsRegistry().getSingleMetric(
+        'gateway_ws_revocation_disconnects_total'
+      );
+      const snapshot = await counter?.get();
+      return snapshot?.values.find(v => v.labels.reason === reason)?.value ?? 0;
+    };
+    const before = await readReason('revalidation_failed');
+
+    const validateMock = vi
+      .fn()
+      .mockResolvedValueOnce(VALID_RES)
+      .mockRejectedValueOnce(new Error('revoked'));
+    const { url } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+      revalidationInterval: { minMs: 20, maxMs: 20 },
+    });
+
+    const client = connectClient(url, { auth: { token: 'good.jwt' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+    await new Promise<void>(resolve => client.on('disconnect', () => resolve()));
+
+    expect(await readReason('revalidation_failed')).toBe(before + 1);
+  });
+});
+
+describe('auth-driven session eviction (ADS-1036)', () => {
+  it('disconnects the socket when auth.sessionRevoked fires for its user', async () => {
+    const { url, io } = await startServer({ logger: quietLogger(), allowUnauthenticated: true });
+    const client = connectClient(url, { auth: { userId: 'usr-revoke-self' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const { nats, push } = makeNats();
+    registerAuthSubscribers({ nats, io, logger: quietLogger() });
+    await settleNats();
+
+    const disconnected = new Promise<string>(resolve => {
+      client.on('disconnect', reason => resolve(reason));
+    });
+
+    await push('auth.sessionRevoked', {
+      sessionId: 'sess-1',
+      familyId: 'fam-1',
+      userId: 'usr-revoke-self',
+    });
+
+    await expect(disconnected).resolves.toBeTruthy();
+  });
+
+  it('disconnects the socket when auth.sessionRevokedByAdmin fires for its user', async () => {
+    const { url, io } = await startServer({ logger: quietLogger(), allowUnauthenticated: true });
+    const client = connectClient(url, { auth: { userId: 'usr-revoke-admin' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const { nats, push } = makeNats();
+    registerAuthSubscribers({ nats, io, logger: quietLogger() });
+    await settleNats();
+
+    const disconnected = new Promise<string>(resolve => {
+      client.on('disconnect', reason => resolve(reason));
+    });
+
+    await push('auth.sessionRevokedByAdmin', {
+      sessionId: 'sess-2',
+      familyId: 'fam-2',
+      userId: 'usr-revoke-admin',
+      revokedBy: 'usr-admin',
+    });
+
+    await expect(disconnected).resolves.toBeTruthy();
+  });
+
+  it('disconnects the socket when auth.tokenRevoked fires for its user (logout)', async () => {
+    const { url, io } = await startServer({ logger: quietLogger(), allowUnauthenticated: true });
+    const client = connectClient(url, { auth: { userId: 'usr-logout' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const { nats, push } = makeNats();
+    registerAuthSubscribers({ nats, io, logger: quietLogger() });
+    await settleNats();
+
+    const disconnected = new Promise<string>(resolve => {
+      client.on('disconnect', reason => resolve(reason));
+    });
+
+    await push('auth.tokenRevoked', {
+      userId: 'usr-logout',
+      jti: 'jti-1',
+      tokenType: 'refresh',
+    });
+
+    await expect(disconnected).resolves.toBeTruthy();
+  });
+
+  it('does not disconnect a socket belonging to a different user', async () => {
+    const { url, io, registry } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+    });
+    const client = connectClient(url, { auth: { userId: 'usr-innocent' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const { nats, push } = makeNats();
+    registerAuthSubscribers({ nats, io, logger: quietLogger() });
+    await settleNats();
+
+    await push('auth.sessionRevoked', {
+      sessionId: 'sess-9',
+      familyId: 'fam-9',
+      userId: 'usr-someone-else',
+    });
+
+    // Give the (non-)eviction a moment to (not) happen.
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(client.connected).toBe(true);
+    expect(registry.socketsFor('usr-innocent')).toHaveLength(1);
+  });
+});
+
+describe('auth-driven session eviction — cross-replica (ADS-818 + ADS-1036)', () => {
+  it('disconnects a socket connected on a DIFFERENT adapter-backed replica when its session is revoked', async () => {
+    const bus = createInMemoryRedisBus();
+
+    // Replica A: subscribes to the auth revocation stream and issues the
+    // room-based eviction; no client connects here directly.
+    const a = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+      redisAdapter: { pubClient: bus.client(), subClient: bus.client() },
+    });
+
+    // Replica B: the target user's socket actually lives here.
+    const b = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+      redisAdapter: { pubClient: bus.client(), subClient: bus.client() },
+    });
+
+    const client = connectClient(b.url, { auth: { userId: 'usr-cross-revoke' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const { nats, push } = makeNats();
+    registerAuthSubscribers({ nats, io: a.io, logger: quietLogger() });
+    await settleNats();
+
+    const disconnected = new Promise<string>(resolve => {
+      client.on('disconnect', reason => resolve(reason));
+    });
+
+    // Fires against replica A's subscriber; the eviction must reach the
+    // socket on replica B via the Redis-adapter room, not A's (empty) local
+    // registry.
+    await push('auth.sessionRevoked', {
+      sessionId: 'sess-cross',
+      familyId: 'fam-cross',
+      userId: 'usr-cross-revoke',
+    });
+
+    await expect(disconnected).resolves.toBeTruthy();
   });
 });

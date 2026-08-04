@@ -16,6 +16,7 @@ import { createNotificationsClient } from './grpc-clients/notifications-client.j
 import { createPetsClient } from './grpc-clients/pets-client.js';
 import { createRescueClient } from './grpc-clients/rescue-client.js';
 import { createServer } from './server.js';
+import { registerAuthSubscribers } from './ws/auth-subscriber.js';
 import { registerChatSubscribers } from './ws/chat-subscriber.js';
 import { registerNotificationSubscribers } from './ws/notifications-subscriber.js';
 import { SocketRegistry } from './ws/socket-registry.js';
@@ -144,6 +145,7 @@ const main = async (): Promise<void> => {
     });
     registerNotificationSubscribers({ nats, registry, logger });
     registerChatSubscribers({ nats, registry, logger });
+    registerAuthSubscribers({ nats, io, logger });
 
     logger.info('service.gateway listening', {
       port: config.port,
