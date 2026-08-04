@@ -28,13 +28,13 @@ The reference production deployment uses **managed Postgres** with
 storage-layer encryption enabled by default. Confirm the following for your
 deployment before going live:
 
-| Provider | At-rest encryption | Setting / verification |
-| --- | --- | --- |
-| AWS RDS for PostgreSQL | KMS-backed AES-256, on by default for new instances since 2022 | `DescribeDBInstances → StorageEncrypted: true` |
-| Neon | AES-256 on the underlying S3 / EBS | On by default; visible under Project → Settings → Storage |
-| Supabase | AES-256 on the underlying disk | On by default (cannot be disabled) |
-| GCP Cloud SQL | Google-managed AES-256, on by default | Console → Connections → "Encryption: Google-managed" |
-| Self-hosted on encrypted block device | Whatever the block layer provides | Verify via `cryptsetup status` / cloud volume metadata |
+| Provider                              | At-rest encryption                                             | Setting / verification                                    |
+| ------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------- |
+| AWS RDS for PostgreSQL                | KMS-backed AES-256, on by default for new instances since 2022 | `DescribeDBInstances → StorageEncrypted: true`            |
+| Neon                                  | AES-256 on the underlying S3 / EBS                             | On by default; visible under Project → Settings → Storage |
+| Supabase                              | AES-256 on the underlying disk                                 | On by default (cannot be disabled)                        |
+| GCP Cloud SQL                         | Google-managed AES-256, on by default                          | Console → Connections → "Encryption: Google-managed"      |
+| Self-hosted on encrypted block device | Whatever the block layer provides                              | Verify via `cryptsetup status` / cloud volume metadata    |
 
 Record your provider + verification command in the team runbook (`docs/runbooks/`).
 
@@ -43,12 +43,12 @@ Record your provider + verification command in the team runbook (`docs/runbooks/
 Code references below point at the auth service (the former monolith paths
 shown are now removed; equivalent logic lives under `services/auth/`).
 
-| Column / table | Algorithm | Code reference (former monolith) |
-| --- | --- | --- |
-| `users.password` | bcrypt (12 rounds) | `src/models/User.ts` |
-| `users.totp_secret` | AES-256-GCM (env-key `ENCRYPTION_KEY`) | `src/services/two-factor.service.ts` |
-| `users.backup_codes` | bcrypt (per code) | same |
-| `password_reset_tokens.token_hash`, `email_verification.token_hash` | SHA-256 | `src/services/auth.service.ts` |
+| Column / table                                                      | Algorithm                              | Code reference (former monolith)     |
+| ------------------------------------------------------------------- | -------------------------------------- | ------------------------------------ |
+| `users.password`                                                    | bcrypt (12 rounds)                     | `src/models/User.ts`                 |
+| `users.totp_secret`                                                 | AES-256-GCM (env-key `ENCRYPTION_KEY`) | `src/services/two-factor.service.ts` |
+| `users.backup_codes`                                                | bcrypt (per code)                      | same                                 |
+| `password_reset_tokens.token_hash`, `email_verification.token_hash` | SHA-256                                | `src/services/auth.service.ts`       |
 
 Anything **not** listed above is plaintext at the application layer and
 relies on the storage layer for at-rest confidentiality.

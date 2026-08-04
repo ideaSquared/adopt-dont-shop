@@ -43,14 +43,14 @@ in the modal's mapping step.
 
 ### Required columns
 
-| Column   | Aliases                       |
-| -------- | ----------------------------- |
-| `name`   | `pet_name`, `animal_name`     |
-| `type`   | `species`, `animal_type`      |
-| `breed`  | `primary_breed`               |
-| `gender` | `sex`                         |
-| `size`   | —                             |
-| `color`  | `colour`                      |
+| Column   | Aliases                   |
+| -------- | ------------------------- |
+| `name`   | `pet_name`, `animal_name` |
+| `type`   | `species`, `animal_type`  |
+| `breed`  | `primary_breed`           |
+| `gender` | `sex`                     |
+| `size`   | —                         |
+| `color`  | `colour`                  |
 
 Values are validated against the same enums the API enforces:
 

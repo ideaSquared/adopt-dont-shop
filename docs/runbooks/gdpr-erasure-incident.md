@@ -96,9 +96,11 @@ docker compose -f docker-compose.prod.yml logs --tail=200 --no-color service-<na
 
 1. **Fix the culprit service** — restart if it was down, roll back if a bad
    deploy broke the erasure handler:
+
    ```bash
    docker compose -f docker-compose.prod.yml restart service-<name>
    ```
+
    Once healthy, the durable consumer reprocesses the redelivered request (or
    the sweep re-publishes on its next tick), and the service acks. The saga
    advances on its own.
@@ -106,6 +108,7 @@ docker compose -f docker-compose.prod.yml logs --tail=200 --no-color service-<na
 2. **Force a re-run** if you've fixed the cause but don't want to wait for the
    sweep — re-publish `gdpr.erasureRequested` with the same correlationId and a
    fresh msgID. Idempotent handlers make this safe:
+
    ```bash
    nats pub gdpr.erasureRequested \
      '{"correlationId":"<id>","userId":"<uid>","reason":"manual re-run","requestedAt":"'"$(date -u +%FT%TZ)"'"}' \

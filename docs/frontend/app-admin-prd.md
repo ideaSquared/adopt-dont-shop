@@ -23,7 +23,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 - **Bulk Operations**: Mass activate/deactivate/delete with export to CSV
 - **User Analytics**: Registration trends in Dashboard + Analytics pages
 
-*Out of scope / roadmap:* CSV import, account merging.
+_Out of scope / roadmap:_ CSV import, account merging.
 
 ### 2. Rescue Organization Management
 
@@ -41,7 +41,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 - **Custom Reports**: Full report builder framework wired to backend (`useReports`, `useReportTemplates`, `useSaveReport`, `useExecuteSavedReport`, `useUpsertSchedule`, `useCreateTokenShare`)
 - **Data Export**: CSV + PDF via in-browser `exportService.ts`
 
-*Out of scope / roadmap:* Real-time KPI streaming, server-rendered large-dataset exports (100k+), system uptime/performance UI (lives in Prometheus/Grafana stacks).
+_Out of scope / roadmap:_ Real-time KPI streaming, server-rendered large-dataset exports (100k+), system uptime/performance UI (lives in Prometheus/Grafana stacks).
 
 ### 4. Content Management
 
@@ -51,7 +51,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 - **Navigation Menus**: Menu CRUD via cmsService
 - **Broadcast Notifications**: Platform-wide messaging via `BroadcastNotifications.tsx`
 
-*Removed from PRD:* Media library (no consumers; CMS uses direct image URLs). Email template CRUD (only hardcoded `SendEmailModal` templates currently — moved to roadmap).
+_Removed from PRD:_ Media library (no consumers; CMS uses direct image URLs). Email template CRUD (only hardcoded `SendEmailModal` templates currently — moved to roadmap).
 
 ### 5. System Configuration
 
@@ -61,7 +61,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 - **Security Settings**: Full Security Center (`SecurityCenter.tsx`) covering MFA, sessions, IP rules, login history, suspicious activity, account recovery
 - **Field-Level Permissions**: Full override grid via `FieldPermissions.tsx`
 
-*Out of scope / roadmap:* In-app feature toggle (delegated to Statsig), maintenance-mode toggle, API key issuance UI.
+_Out of scope / roadmap:_ In-app feature toggle (delegated to Statsig), maintenance-mode toggle, API key issuance UI.
 
 ### 6. Pet & Application Management
 
@@ -72,7 +72,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 - **Quality Control**: Reports flow via Moderation page
 - **Bulk Operations**: Mass updates wired to backend
 
-*Out of scope / roadmap:* Duplicate detection/merge, dedicated data-integrity tooling.
+_Out of scope / roadmap:_ Duplicate detection/merge, dedicated data-integrity tooling.
 
 ### 7. Communication Systems
 
@@ -82,7 +82,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 - **Support Ticket System**: `Support.tsx` + `TicketDetailModal.tsx` via `lib.support-tickets`
 - **Escalation**: `escalated` status filter + badge
 
-*Out of scope / roadmap:* Email campaign workflow, response templates, knowledge base, per-agent performance tracking.
+_Out of scope / roadmap:_ Email campaign workflow, response templates, knowledge base, per-agent performance tracking.
 
 ### 8. Content Moderation & Safety
 
@@ -92,7 +92,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 - **Sanctions Tab**: Apply warnings, restrictions, temporary bans (linked to moderation actions)
 - **Safety Metrics**: Stat cards on Moderation page via `useModerationMetrics`
 
-*Out of scope / roadmap:* Appeals UI, automated/AI screening, policy management UI, educational resources.
+_Out of scope / roadmap:_ Appeals UI, automated/AI screening, policy management UI, educational resources.
 
 ### 9. Support, Audit, GDPR
 
@@ -102,7 +102,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 - **GDPR/Privacy Tools** (`PrivacyTools.tsx` — admin page): trigger user data export + deletion-request workflows against backend `/api/v1/privacy/*` endpoints (admin-scoped wrappers)
 - **Account Settings** (admin's own): MFA, sessions, etc.
 
-*Out of scope / roadmap:* Compliance reports UI, system health monitoring UI (Prometheus/Grafana lives outside the app).
+_Out of scope / roadmap:_ Compliance reports UI, system health monitoring UI (Prometheus/Grafana lives outside the app).
 
 ## Technical Requirements
 
@@ -170,7 +170,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 
 - Does not access app.admin. Belongs to `app.client`.
 
-*Removed from PRD:* `VERIFIED_USER`, `STAFF`, `Analytics Specialist`, `Content Moderator-as-distinct-userType` (now merged into `moderator`). Permission granularity lives in `lib.permissions` field-level permission system rather than separate `AdminUser` table.
+_Removed from PRD:_ `VERIFIED_USER`, `STAFF`, `Analytics Specialist`, `Content Moderator-as-distinct-userType` (now merged into `moderator`). Permission granularity lives in `lib.permissions` field-level permission system rather than separate `AdminUser` table.
 
 ## Data Models
 
@@ -213,7 +213,7 @@ For support/moderation models see backend PRD §5–§8.
 
 - High-contrast toggle (a11y)
 
-*Out of scope / roadmap:* Light/dark theme switch, inline editing, auto-save.
+_Out of scope / roadmap:_ Light/dark theme switch, inline editing, auto-save.
 
 ## Workflow & User Journey
 
@@ -241,7 +241,7 @@ For support/moderation models see backend PRD §5–§8.
 - Rescue performance
 - Support ticket volume
 
-*Out of scope:* Revenue tracking (no monetization), cost analysis, predictive analytics.
+_Out of scope:_ Revenue tracking (no monetization), cost analysis, predictive analytics.
 
 ## Security & Compliance
 

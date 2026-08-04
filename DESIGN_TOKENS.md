@@ -33,12 +33,12 @@ explicit variants. Use the base for filled CTAs; the variants for states and
 tints.
 
 ```ts
-vars.colors.primary              // brand rose (#F43F5E)
-vars.colors.primaryHover         // darker rose for :hover
-vars.colors.primaryActive        // darker still for :active
-vars.colors.primaryBgSubtle      // very light rose tint for badge/alert fills
-vars.colors.primaryBorderSubtle  // pale rose for borders on tinted surfaces
-vars.colors.primaryTextEmphasis  // deep rose for text on tinted surfaces
+vars.colors.primary; // brand rose (#F43F5E)
+vars.colors.primaryHover; // darker rose for :hover
+vars.colors.primaryActive; // darker still for :active
+vars.colors.primaryBgSubtle; // very light rose tint for badge/alert fills
+vars.colors.primaryBorderSubtle; // pale rose for borders on tinted surfaces
+vars.colors.primaryTextEmphasis; // deep rose for text on tinted surfaces
 ```
 
 The same shape exists for `secondary`, `success`, `danger`, `warning`,
@@ -55,43 +55,43 @@ tokens below for surfaces and text that need to flip.
 ### Theme-aware surfaces
 
 ```ts
-vars.background.body      // page bg                       (flips by theme)
-vars.background.surface   // raised surface (cards)
-vars.background.muted     // subtle bg
-vars.background.inverse | overlay | disabled
-vars.background.danger | success | warning | info  // tinted alert/badge fills
+vars.background.body; // page bg                       (flips by theme)
+vars.background.surface; // raised surface (cards)
+vars.background.muted; // subtle bg
+vars.background.inverse | overlay | disabled;
+vars.background.danger | success | warning | info; // tinted alert/badge fills
 
-vars.text.primary | secondary | tertiary | muted
-vars.text.disabled | inverse | link | linkHover
-vars.text.danger | success | warning | info
+vars.text.primary | secondary | tertiary | muted;
+vars.text.disabled | inverse | link | linkHover;
+vars.text.danger | success | warning | info;
 
-vars.border.color.default | muted | strong | focus
-vars.border.color.danger | success | warning | info
+vars.border.color.default | muted | strong | focus;
+vars.border.color.danger | success | warning | info;
 ```
 
 ### Spacing — Bootstrap-style spacers
 
 ```ts
-vars.spacing['0']  // 0
-vars.spacing['1']  // 0.25rem  (4px)
-vars.spacing['2']  // 0.5rem   (8px)
-vars.spacing['3']  // 1rem     (16px) — Bootstrap's $spacer base
-vars.spacing['4']  // 1.5rem   (24px)
-vars.spacing['5']  // 2rem     (32px)
-vars.spacing['6']  // 3rem     (48px)
-vars.spacing['7']  // 4rem     (64px)
-vars.spacing['8']  // 6rem     (96px)
+vars.spacing['0']; // 0
+vars.spacing['1']; // 0.25rem  (4px)
+vars.spacing['2']; // 0.5rem   (8px)
+vars.spacing['3']; // 1rem     (16px) — Bootstrap's $spacer base
+vars.spacing['4']; // 1.5rem   (24px)
+vars.spacing['5']; // 2rem     (32px)
+vars.spacing['6']; // 3rem     (48px)
+vars.spacing['7']; // 4rem     (64px)
+vars.spacing['8']; // 6rem     (96px)
 ```
 
 ### Border radius
 
 ```ts
-vars.border.radius.sm    // 4px
-vars.border.radius.base  // 8px  — default for buttons, inputs
-vars.border.radius.lg    // 12px
-vars.border.radius.xl    // 16px — default for cards
-vars.border.radius['2xl'] // 24px
-vars.border.radius.pill  // 9999px — pills, avatars
+vars.border.radius.sm; // 4px
+vars.border.radius.base; // 8px  — default for buttons, inputs
+vars.border.radius.lg; // 12px
+vars.border.radius.xl; // 16px — default for cards
+vars.border.radius['2xl']; // 24px
+vars.border.radius.pill; // 9999px — pills, avatars
 ```
 
 ### Typography
@@ -109,10 +109,10 @@ vars.typography.lineHeight.tight | snug | normal | relaxed | loose
 ### Shadows, transitions, z-index
 
 ```ts
-vars.shadows.sm | base | lg | xl
-vars.shadows.focus | focusDanger | inner
-vars.transitions.fast | base | slow
-vars.zIndex.dropdown | sticky | overlay | modal | popover | toast | tooltip
+vars.shadows.sm | base | lg | xl;
+vars.shadows.focus | focusDanger | inner;
+vars.transitions.fast | base | slow;
+vars.zIndex.dropdown | sticky | overlay | modal | popover | toast | tooltip;
 ```
 
 ### Breakpoints

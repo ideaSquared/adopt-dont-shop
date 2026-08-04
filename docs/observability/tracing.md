@@ -53,16 +53,16 @@ name (`service.gateway`, `service.auth`, …).
 instrumentation that ships in the bundle. The relevant ones for this
 service are:
 
-| Module         | Spans                                                     |
-|----------------|-----------------------------------------------------------|
-| `http`         | inbound + outbound HTTP                                    |
-| `fastify`      | route handlers + hooks (gateway + each service)            |
-| `grpc`         | gRPC client + server calls between the gateway and services |
-| `pg`           | every SQL statement (direct via `@adopt-dont-shop/db`)     |
-| `ioredis`      | every Redis command                                        |
-| `socket.io`    | server-side connection events (gateway)                    |
-| `undici`       | `fetch()` calls                                            |
-| `winston`      | log-record attribution to a span                           |
+| Module      | Spans                                                       |
+| ----------- | ----------------------------------------------------------- |
+| `http`      | inbound + outbound HTTP                                     |
+| `fastify`   | route handlers + hooks (gateway + each service)             |
+| `grpc`      | gRPC client + server calls between the gateway and services |
+| `pg`        | every SQL statement (direct via `@adopt-dont-shop/db`)      |
+| `ioredis`   | every Redis command                                         |
+| `socket.io` | server-side connection events (gateway)                     |
+| `undici`    | `fetch()` calls                                             |
+| `winston`   | log-record attribution to a span                            |
 
 `@opentelemetry/instrumentation-fs` is **disabled** because it emits
 one span per `readFile` / `stat` and floods exporters with no

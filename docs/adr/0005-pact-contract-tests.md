@@ -56,12 +56,12 @@ known limitation for Node environments.
 
 **Trade-offs accepted:**
 
-| What this catches | What it misses |
-|---|---|
-| Field name / type drift | Protobuf wire encoding (field numbers, varint encoding) |
-| Required field removals | Order of oneof variants |
-| Error code semantics changes | gRPC compression / stream semantics |
-| Enum value drift (as `number`) | HTTP/2 flow control |
+| What this catches              | What it misses                                          |
+| ------------------------------ | ------------------------------------------------------- |
+| Field name / type drift        | Protobuf wire encoding (field numbers, varint encoding) |
+| Required field removals        | Order of oneof variants                                 |
+| Error code semantics changes   | gRPC compression / stream semantics                     |
+| Enum value drift (as `number`) | HTTP/2 flow control                                     |
 
 The missed items are covered by the existing in-process gRPC server contract
 tests (`services/gateway/src/grpc-clients/*.contract.test.ts`) which exercise
@@ -83,11 +83,11 @@ the contract focuses on the JSON payload shape.
 
 ### The three contracts in scope (ADS-816 pragmatic scoping)
 
-| Consumer | Provider | RPC / Subject |
-|---|---|---|
-| `service.gateway` | `service.auth` | `ValidateToken` (happy path + UNAUTHENTICATED error) |
-| `service.gateway` | `service.applications` | `GetApplication` (happy path + NOT\_FOUND error) |
-| `service.notifications` | `service.gateway` | `gdpr.erasureRequested` NATS event |
+| Consumer                | Provider               | RPC / Subject                                        |
+| ----------------------- | ---------------------- | ---------------------------------------------------- |
+| `service.gateway`       | `service.auth`         | `ValidateToken` (happy path + UNAUTHENTICATED error) |
+| `service.gateway`       | `service.applications` | `GetApplication` (happy path + NOT_FOUND error)      |
+| `service.notifications` | `service.gateway`      | `gdpr.erasureRequested` NATS event                   |
 
 ### File layout
 

@@ -46,7 +46,7 @@ The mechanism is LB-dependent but in all cases targets the WebSocket
 upgrade path (`/socket.io`):
 
 - **AWS ALB** — enable target group stickiness (`stickiness.enabled =
-  true`, `type = lb_cookie`, duration 1–24 hours). The ALB-issued
+true`, `type = lb_cookie`, duration 1–24 hours). The ALB-issued
   `AWSALB` / `AWSALBCORS` cookies pin the client to one target.
 - **nginx upstream** (current `nginx/nginx.prod.conf` proxy in front of
   the backend) — use `ip_hash;` on the backend upstream block, or
@@ -71,7 +71,7 @@ routing.
   writes. The hottest key would be the noisiest user, which is the
   opposite of what we want.
 - **Simpler code.** The current implementation is a `Map<string,
-  Set<string>>` with synchronous `isUserAtConnectionCap`,
+Set<string>>` with synchronous `isUserAtConnectionCap`,
   `registerUserSocket`, `unregisterUserSocket` — no I/O on the
   connect path. A Redis-backed version would need atomic INCR/DECR with
   TTL fallback for crash-leaked counters, plus an in-memory fallback for
@@ -161,13 +161,13 @@ WebSocket stickiness before this assumption holds. Concretely:
 
 ### AWS ALB
 
-| Setting | Value |
-|---|---|
-| `stickiness.enabled` | `true` |
-| `stickiness.type` | `lb_cookie` |
-| `stickiness.lb_cookie.duration_seconds` | `86400` (24h; minimum 60s — long enough to outlast typical socket sessions) |
-| Cookie name | ALB-managed: `AWSALB`, `AWSALBCORS` (not configurable on the LB cookie type; use `app_cookie` if you must control the name) |
-| Target group | The one routing `/socket.io` traffic to the backend service |
+| Setting                                 | Value                                                                                                                       |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `stickiness.enabled`                    | `true`                                                                                                                      |
+| `stickiness.type`                       | `lb_cookie`                                                                                                                 |
+| `stickiness.lb_cookie.duration_seconds` | `86400` (24h; minimum 60s — long enough to outlast typical socket sessions)                                                 |
+| Cookie name                             | ALB-managed: `AWSALB`, `AWSALBCORS` (not configurable on the LB cookie type; use `app_cookie` if you must control the name) |
+| Target group                            | The one routing `/socket.io` traffic to the backend service                                                                 |
 
 ### nginx (current production proxy)
 

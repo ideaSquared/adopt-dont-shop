@@ -24,15 +24,15 @@ Replace the current generic discovery queue (recency + proximity + sponsored) wi
 
 Weighted sum of normalised feature scores (0–1):
 
-| Feature | Weight (initial) |
-|---|---:|
-| Pet-type preference match | 0.30 |
-| Breed/size affinity (from like history) | 0.20 |
-| Age-bucket affinity | 0.10 |
-| Distance fit (closer = higher) | 0.20 |
-| Freshness | 0.10 |
-| Special-needs match | 0.05 |
-| Sponsored boost (non-overriding) | 0.05 |
+| Feature                                 | Weight (initial) |
+| --------------------------------------- | ---------------: |
+| Pet-type preference match               |             0.30 |
+| Breed/size affinity (from like history) |             0.20 |
+| Age-bucket affinity                     |             0.10 |
+| Distance fit (closer = higher)          |             0.20 |
+| Freshness                               |             0.10 |
+| Special-needs match                     |             0.05 |
+| Sponsored boost (non-overriding)        |             0.05 |
 
 Weights live in the matching service (`services/matching`) as a typed config. Statsig dynamic config can override at runtime so tuning doesn't require a deploy.
 
@@ -47,7 +47,7 @@ Weights live in the matching service (`services/matching`) as a typed config. St
       "petId": "uuid",
       "score": 0.83,
       "breakdown": {
-        "type": 0.30,
+        "type": 0.3,
         "breed": 0.18,
         "age": 0.08,
         "distance": 0.17,

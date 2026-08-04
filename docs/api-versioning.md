@@ -61,12 +61,12 @@ apps (`app.client`, `app.rescue`, `app.admin`) and any external integrator to
 migrate. Shorten it only with sign-off, and only when no external client is
 affected; lengthen it for widely-used routes.
 
-| State | Meaning | Client impact |
-| --- | --- | --- |
-| **Active** | Supported, no replacement planned. | None. |
+| State          | Meaning                                               | Client impact                                                                      |
+| -------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Active**     | Supported, no replacement planned.                    | None.                                                                              |
 | **Deprecated** | Still works; a replacement exists; removal scheduled. | `Deprecation` + `Sunset` headers on every response; `deprecated: true` in OpenAPI. |
-| **Sunset** | Past the sunset date; may be removed at any time. | Route is removed; calls return `404`. |
-| **Removed** | Gone. | `404`. |
+| **Sunset**     | Past the sunset date; may be removed at any time.     | Route is removed; calls return `404`.                                              |
+| **Removed**    | Gone.                                                 | `404`.                                                                             |
 
 ### `Deprecation` and `Sunset` response headers (RFC 8594)
 
@@ -143,6 +143,7 @@ are its runtime counterpart. Keep the two in sync.
 
    The footer documents intent and timeline; the route itself keeps working
    until its sunset date — deprecation is not removal.
+
 6. **Wait out the window.** Keep the deprecated route serving for the full
    6-month (default) window. Watch its request volume; do not remove it while
    it still has meaningful traffic from clients you cannot reach.

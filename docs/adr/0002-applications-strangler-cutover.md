@@ -60,14 +60,14 @@ verticals, as the foundation of any real cutover.
 The gateway returns ts-proto `toJSON` output. The frontend's Zod
 `ApplicationSchema` expects a different shape:
 
-| Concept | Gateway proto-JSON | Frontend `ApplicationSchema` |
-|---|---|---|
-| id | `applicationId` | `id` |
-| adopter | `adopterId` | `userId` |
-| status | `"APPLICATION_STATUS_SUBMITTED"` | `"submitted"` (lowercase) |
-| answers | `answersJson` (stringified blob) | nested camelCase `data` object (`personalInfo`, `livingConditions`, `petExperience`, `references`, `additionalInfo`, `answers`) |
-| references | inside `answersJson` | `data.references` |
-| extra fields | — | `stage`, `priority`, `reviewedAt`, `reviewedBy`, `reviewNotes`, `documents[]` |
+| Concept      | Gateway proto-JSON               | Frontend `ApplicationSchema`                                                                                                    |
+| ------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| id           | `applicationId`                  | `id`                                                                                                                            |
+| adopter      | `adopterId`                      | `userId`                                                                                                                        |
+| status       | `"APPLICATION_STATUS_SUBMITTED"` | `"submitted"` (lowercase)                                                                                                       |
+| answers      | `answersJson` (stringified blob) | nested camelCase `data` object (`personalInfo`, `livingConditions`, `petExperience`, `references`, `additionalInfo`, `answers`) |
+| references   | inside `answersJson`             | `data.references`                                                                                                               |
+| extra fields | —                                | `stage`, `priority`, `reviewedAt`, `reviewedBy`, `reviewNotes`, `documents[]`                                                   |
 
 If only the path (Gap 1) were fixed, `ApplicationSchema.parse()` would throw on
 every response. The path fix and a shape adapter must ship together.

@@ -41,13 +41,13 @@ The route with the highest rate is your starting point.
 
 Match the symptom to a cause:
 
-| Signal                                                       | Likely cause                                | Jump to                                  |
-| ------------------------------------------------------------ | ------------------------------------------- | ---------------------------------------- |
-| Started immediately after a deploy                           | Bad release                                 | [`deploy-rollback.md`](./deploy-rollback.md) |
-| Auth / rate-limit routes erroring; `redis` container unhealthy | Redis outage                              | [`redis-outage.md`](./redis-outage.md)   |
-| `acquire timeout` / `pool is draining` in service logs       | DB pool exhaustion                          | [`db-pool-exhaustion.md`](./db-pool-exhaustion.md) |
-| One service stuck in `restarting`; recent deploy ran a migration | Migration failure for that service       | [`migration-failure.md`](./migration-failure.md) |
-| Errors confined to one route, no other signal                | Application bug on a code path              | continue below                           |
+| Signal                                                           | Likely cause                       | Jump to                                            |
+| ---------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------- |
+| Started immediately after a deploy                               | Bad release                        | [`deploy-rollback.md`](./deploy-rollback.md)       |
+| Auth / rate-limit routes erroring; `redis` container unhealthy   | Redis outage                       | [`redis-outage.md`](./redis-outage.md)             |
+| `acquire timeout` / `pool is draining` in service logs           | DB pool exhaustion                 | [`db-pool-exhaustion.md`](./db-pool-exhaustion.md) |
+| One service stuck in `restarting`; recent deploy ran a migration | Migration failure for that service | [`migration-failure.md`](./migration-failure.md)   |
+| Errors confined to one route, no other signal                    | Application bug on a code path     | continue below                                     |
 
 The gateway only exposes `/health/simple` (liveness — `200 ok`). There
 is no aggregated `/api/v1/health` route; check per-dependency state by

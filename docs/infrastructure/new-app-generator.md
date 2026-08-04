@@ -22,11 +22,11 @@ The generator only scaffolds React apps under `app.*`. Backend services are not 
 
 ### Templates
 
-| Template     | Description                                                  | Pre-installed libraries                                                                                                                                                  |
-| ------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `minimal`    | Basic React app with auth and routing                        | `lib.components`, `lib.auth`                                                                                                                                             |
-| `standard`   | Full-featured app with data fetching and analytics           | `lib.components`, `lib.auth`, `lib.analytics`, `lib.api`, `@tanstack/react-query`                                                                                        |
-| `enterprise` | Complete enterprise app with all features                    | `lib.components`, `lib.auth`, `lib.analytics`, `lib.api`, `lib.feature-flags`, `lib.notifications`, `lib.permissions`, `lib.discovery`, `lib.search`, `@statsig/react-bindings`, `@tanstack/react-query` |
+| Template     | Description                                        | Pre-installed libraries                                                                                                                                                                                  |
+| ------------ | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `minimal`    | Basic React app with auth and routing              | `lib.components`, `lib.auth`                                                                                                                                                                             |
+| `standard`   | Full-featured app with data fetching and analytics | `lib.components`, `lib.auth`, `lib.analytics`, `lib.api`, `@tanstack/react-query`                                                                                                                        |
+| `enterprise` | Complete enterprise app with all features          | `lib.components`, `lib.auth`, `lib.analytics`, `lib.api`, `lib.feature-flags`, `lib.notifications`, `lib.permissions`, `lib.discovery`, `lib.search`, `@statsig/react-bindings`, `@tanstack/react-query` |
 
 ## Examples
 

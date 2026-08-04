@@ -12,13 +12,13 @@
 
 Node 20.19.0 is targeted in three places, all consistent today:
 
-| Location | Value | File |
-| --- | --- | --- |
-| `engines.node` | `>=20.19.0` | `package.json` |
-| `.nvmrc` | `20.19.0` | `.nvmrc` |
-| Backend Dockerfile `ARG NODE_VERSION` | `20.19.0` | `service.backend/Dockerfile` (lines 4, 9, 180) |
-| App Dockerfile `ARG NODE_VERSION` | `20.19.0` | `Dockerfile.app` (lines 11–12) |
-| GitHub Actions | reads `.nvmrc` via `actions/setup-node@v4` `node-version-file` | `.github/workflows/ci.yml`, `quality.yml`, `lib-test-guard.yml`, `security.yml`, `storybook.yml` |
+| Location                              | Value                                                          | File                                                                                             |
+| ------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `engines.node`                        | `>=20.19.0`                                                    | `package.json`                                                                                   |
+| `.nvmrc`                              | `20.19.0`                                                      | `.nvmrc`                                                                                         |
+| Backend Dockerfile `ARG NODE_VERSION` | `20.19.0`                                                      | `service.backend/Dockerfile` (lines 4, 9, 180)                                                   |
+| App Dockerfile `ARG NODE_VERSION`     | `20.19.0`                                                      | `Dockerfile.app` (lines 11–12)                                                                   |
+| GitHub Actions                        | reads `.nvmrc` via `actions/setup-node@v4` `node-version-file` | `.github/workflows/ci.yml`, `quality.yml`, `lib-test-guard.yml`, `security.yml`, `storybook.yml` |
 
 CI does **not** currently use a matrix — every workflow pulls the single
 `.nvmrc` value. Bumping `.nvmrc` will move every job in lockstep, which is
@@ -28,25 +28,26 @@ version" signal before commit).
 ## 2. Breaking changes / things to watch
 
 References:
+
 - Node.js 21 changelog — <https://nodejs.org/en/blog/release/v21.0.0>
 - Node.js 22 changelog — <https://nodejs.org/en/blog/release/v22.0.0>
 - Node 22 LTS announcement — <https://nodejs.org/en/blog/release/v22.11.0>
 
 Highlights that may bite us:
 
-| Change | Risk | Notes |
-| --- | --- | --- |
-| **V8 12.4** — new ICU, regex `v` flag, WebAssembly GC | Low | Most code paths unaffected; watch for stricter regex parsing. |
-| **Built-in WebSocket client** | Low | We use `ws`/Socket.IO server-side, not the client; behaviour unchanged. |
-| **`require(esm)` (experimental)** | Off by default | Don't enable; keep current CJS/ESM split. |
-| **`punycode` deprecation (DEP0040)** runtime warning louder | Medium | `punycode` is pulled in transitively by `tough-cookie`/`whatwg-url`. Our code does not import it directly (`grep -r "punycode" service.backend/src` returns nothing). Likely just a noisy warning until deps update. |
-| **`url.parse()` legacy API** still deprecated | None | We do not use it (`grep -r "url.parse(" service.backend/src` returns nothing). |
-| **`new Buffer(...)` removed in 22** | None | Already not in use (`grep -r "new Buffer(" service.backend/src` returns nothing). |
-| **`fetch`/`Headers`/`Request` stable** | Low | Current code uses axios; future code may switch but nothing forces it. |
-| **`--watch` mode default behaviour tweaks** | None | Not used in production, only in scripts. |
-| **OpenSSL 3.x stricter defaults** (already in 20) | None | Already vetted on Node 20. |
-| **`node:test` runner improvements** | None | We use Vitest. |
-| **GLIBC bump** (alpine: needs 3.18+) | Medium | `node:22-alpine` ships on Alpine 3.20; our base image moves with the upstream tag. Verify glibc-linked native deps (`bcrypt`, `pg-native` if added) still link. |
+| Change                                                      | Risk           | Notes                                                                                                                                                                                                                |
+| ----------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **V8 12.4** — new ICU, regex `v` flag, WebAssembly GC       | Low            | Most code paths unaffected; watch for stricter regex parsing.                                                                                                                                                        |
+| **Built-in WebSocket client**                               | Low            | We use `ws`/Socket.IO server-side, not the client; behaviour unchanged.                                                                                                                                              |
+| **`require(esm)` (experimental)**                           | Off by default | Don't enable; keep current CJS/ESM split.                                                                                                                                                                            |
+| **`punycode` deprecation (DEP0040)** runtime warning louder | Medium         | `punycode` is pulled in transitively by `tough-cookie`/`whatwg-url`. Our code does not import it directly (`grep -r "punycode" service.backend/src` returns nothing). Likely just a noisy warning until deps update. |
+| **`url.parse()` legacy API** still deprecated               | None           | We do not use it (`grep -r "url.parse(" service.backend/src` returns nothing).                                                                                                                                       |
+| **`new Buffer(...)` removed in 22**                         | None           | Already not in use (`grep -r "new Buffer(" service.backend/src` returns nothing).                                                                                                                                    |
+| **`fetch`/`Headers`/`Request` stable**                      | Low            | Current code uses axios; future code may switch but nothing forces it.                                                                                                                                               |
+| **`--watch` mode default behaviour tweaks**                 | None           | Not used in production, only in scripts.                                                                                                                                                                             |
+| **OpenSSL 3.x stricter defaults** (already in 20)           | None           | Already vetted on Node 20.                                                                                                                                                                                           |
+| **`node:test` runner improvements**                         | None           | We use Vitest.                                                                                                                                                                                                       |
+| **GLIBC bump** (alpine: needs 3.18+)                        | Medium         | `node:22-alpine` ships on Alpine 3.20; our base image moves with the upstream tag. Verify glibc-linked native deps (`bcrypt`, `pg-native` if added) still link.                                                      |
 
 ## 3. Risk inventory
 
@@ -164,8 +165,8 @@ strategy:
   fail-fast: false
   matrix:
     node-version:
-      - file:.nvmrc      # current (20.19.0)
-      - '22.11.0'        # new
+      - file:.nvmrc # current (20.19.0)
+      - '22.11.0' # new
 steps:
   - uses: actions/setup-node@v4
     with:

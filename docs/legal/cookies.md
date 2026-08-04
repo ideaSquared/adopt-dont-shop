@@ -42,11 +42,11 @@ We do not use marketing or advertising cookies.
 The table below lists every cookie set by Adopt Don't Shop today. If
 this changes we will update this policy and bump the version.
 
-| Name                                            | Category            | Purpose                                                                                                | Retention                  | Set by                       |
-|-------------------------------------------------|---------------------|--------------------------------------------------------------------------------------------------------|----------------------------|------------------------------|
-| `accessToken`                                   | Strictly necessary  | Short-lived authentication token. Keeps you signed in between requests.                                | 15 minutes                 | First-party (this service)   |
-| `refreshToken`                                  | Strictly necessary  | Long-lived authentication token. Lets us issue a new `accessToken` without forcing you to sign in.     | 3 days                     | First-party (this service)   |
-| `__Host-psifi.x-csrf-token` (production) / `psifi.x-csrf-token` (development) | Strictly necessary | CSRF (cross-site request forgery) defence. Pairs with a request header so other sites cannot act as you. | Session (cleared on browser close) | First-party (this service)   |
+| Name                                                                          | Category           | Purpose                                                                                                  | Retention                          | Set by                     |
+| ----------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------- | ---------------------------------- | -------------------------- |
+| `accessToken`                                                                 | Strictly necessary | Short-lived authentication token. Keeps you signed in between requests.                                  | 15 minutes                         | First-party (this service) |
+| `refreshToken`                                                                | Strictly necessary | Long-lived authentication token. Lets us issue a new `accessToken` without forcing you to sign in.       | 3 days                             | First-party (this service) |
+| `__Host-psifi.x-csrf-token` (production) / `psifi.x-csrf-token` (development) | Strictly necessary | CSRF (cross-site request forgery) defence. Pairs with a request header so other sites cannot act as you. | Session (cleared on browser close) | First-party (this service) |
 
 All three cookies are set with the `HttpOnly`, `SameSite=Strict`, and
 (in production) `Secure` flags so that they cannot be read by

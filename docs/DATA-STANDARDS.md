@@ -16,8 +16,8 @@ Every domain entity uses a **UUIDv7** primary key.
 
 ```typescript
 type Brand<T, B> = T & { readonly __brand: B };
-export type UserId   = Brand<string, 'UserId'>;
-export type PetId    = Brand<string, 'PetId'>;
+export type UserId = Brand<string, 'UserId'>;
+export type PetId = Brand<string, 'PetId'>;
 export type RescueId = Brand<string, 'RescueId'>;
 ```
 
@@ -32,7 +32,7 @@ Helper: a `uuid` utility in each service's `src/utils/` (originally `src/utils/u
 - TypeScript model properties: `camelCase`.
 - Database columns: `snake_case`.
 - Every model sets `underscored: true` in its options. Every FK is declared with an explicit `field:` override — never rely on Sequelize's implicit snake-casing.
-- Association `foreignKey` declarations always use the snake\_case column name (e.g. `foreignKey: 'rescue_id'`), not the JS alias.
+- Association `foreignKey` declarations always use the snake_case column name (e.g. `foreignKey: 'rescue_id'`), not the JS alias.
 
 Non-negotiable: the `standards.test.ts` suite (see rule 20) asserts `options.underscored === true` on every registered model and will fail a PR that omits it.
 
@@ -53,6 +53,7 @@ Non-negotiable: the `standards.test.ts` suite (see rule 20) asserts `options.und
 Workflow-heavy entities (`Application`, `Pet`, `HomeVisit`, `UserSanction`, `Report`) model status as an **append-only transition log**, not a mutable status column maintained by hooks.
 
 Pattern:
+
 ```
 {entity}_status_transitions
   transition_id    UUID PK
@@ -77,10 +78,10 @@ Status timestamps (`submitted_at`, `decision_at`, etc.) are derived from the tra
 
 ## 5. Enum Rule
 
-| Scenario | Mechanism |
-|---|---|
+| Scenario                                              | Mechanism                                          |
+| ----------------------------------------------------- | -------------------------------------------------- |
 | Stable taxonomy — unlikely to change without a deploy | Postgres `ENUM` type; TypeScript `enum` mirrors it |
-| Mutable — business might add/rename values at runtime | Lookup reference table with a FK |
+| Mutable — business might add/rename values at runtime | Lookup reference table with a FK                   |
 
 Examples of stable enums: `UserStatus`, `Gender`, `PetStatus`, `ApplicationStatus`. Examples of mutable data that should be lookup tables: `breeds` (500+ values, unbounded), report categories (moderators may add new ones).
 
@@ -160,6 +161,7 @@ Every FK must declare:
 2. **An index on the FK column** — Postgres does not auto-index FK columns. A missing index turns parent-row deletes into full sequential scans of every child table. This is consistently one of the top causes of slow production deletes.
 
 Document the choice inline:
+
 ```typescript
 { foreignKey: { name: 'user_id', onDelete: 'SET NULL' } }
 ```
@@ -184,6 +186,7 @@ If the DB default is missing, raw SQL inserts and bulk-seed scripts will produce
 Derived columns that can be computed from other columns in the same row must be declared as `GENERATED ALWAYS AS ... STORED` in the migration, not maintained by hooks.
 
 Example — full-text search vector:
+
 ```sql
 search_vector TSVECTOR GENERATED ALWAYS AS (
   setweight(to_tsvector('english', coalesce(name, '')), 'A') ||
@@ -247,11 +250,11 @@ Helpers: a `secrets` utility in each service's `src/utils/` (originally `src/uti
 
 All geographic and locale codes are stored in their canonical formats and validated at the DB level with CHECK constraints:
 
-| Data | Column type | Constraint |
-|---|---|---|
-| Country | `CHAR(2)` | `CHECK (country ~ '^[A-Z]{2}$')` (ISO 3166-1 alpha-2) |
+| Data     | Column type   | Constraint                                               |
+| -------- | ------------- | -------------------------------------------------------- |
+| Country  | `CHAR(2)`     | `CHECK (country ~ '^[A-Z]{2}$')` (ISO 3166-1 alpha-2)    |
 | Language | `VARCHAR(10)` | `CHECK (language ~ '^[a-z]{2,3}(-[A-Z]{2})?$')` (BCP 47) |
-| Currency | `CHAR(3)` | `CHECK (currency ~ '^[A-Z]{3}$')` (ISO 4217) |
+| Currency | `CHAR(3)`     | `CHECK (currency ~ '^[A-Z]{3}$')` (ISO 4217)             |
 
 TypeScript mirrors these as branded types or narrow string literals in `lib.types`.
 
@@ -323,10 +326,10 @@ This test must pass on every PR. A model that is missing any required property c
 
 Each backend service carries its own copy of these helpers under `services/<name>/src/` (the paths below are the original monolith locations, retained as a quick lookup of what each helper is called):
 
-| Concern | File (former-monolith path) |
-|---|---|
-| Sequelize dialect helpers (`getJsonType`, `getUuidType`, etc.) | `src/sequelize.ts` |
-| Audit column factory (`created_by`, `updated_by`, `version`) | `src/models/audit-columns.ts` |
-| Secret hashing and encryption helpers | `src/utils/secrets.ts` |
-| UUIDv7 generator | `src/utils/uuid.ts` |
-| Standards enforcement test | `src/__tests__/models/standards.test.ts` |
+| Concern                                                        | File (former-monolith path)              |
+| -------------------------------------------------------------- | ---------------------------------------- |
+| Sequelize dialect helpers (`getJsonType`, `getUuidType`, etc.) | `src/sequelize.ts`                       |
+| Audit column factory (`created_by`, `updated_by`, `version`)   | `src/models/audit-columns.ts`            |
+| Secret hashing and encryption helpers                          | `src/utils/secrets.ts`                   |
+| UUIDv7 generator                                               | `src/utils/uuid.ts`                      |
+| Standards enforcement test                                     | `src/__tests__/models/standards.test.ts` |

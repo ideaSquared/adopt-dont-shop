@@ -18,8 +18,8 @@ Health-check probes also publish status data via `/api/v1/health` and
 
 ## Severity / routing convention
 
-| Severity | Routing                                  | Response target |
-| -------- | ---------------------------------------- | --------------- |
+| Severity   | Routing                                 | Response target |
+| ---------- | --------------------------------------- | --------------- |
 | `critical` | PagerDuty primary, Slack `#oncall-page` | 5 min ack       |
 | `warning`  | Slack `#alerts`                         | 30 min review   |
 | `info`     | Slack `#alerts-noise`                   | best-effort     |
@@ -44,8 +44,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Backend 5xx rate >1% (5m)"
-          runbook: "docs/runbooks/5xx-spike.md"
+          summary: 'Backend 5xx rate >1% (5m)'
+          runbook: 'docs/runbooks/5xx-spike.md'
 
       # Latency regression
       - alert: P95LatencyHigh
@@ -58,8 +58,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Backend p95 latency >500ms (10m)"
-          runbook: "docs/runbooks/db-pool-exhaustion.md"
+          summary: 'Backend p95 latency >500ms (10m)'
+          runbook: 'docs/runbooks/db-pool-exhaustion.md'
 
       # Event-loop lag
       - alert: EventLoopLag
@@ -68,8 +68,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Node.js event-loop lag p99 >200ms"
-          runbook: "docs/runbooks/5xx-spike.md"
+          summary: 'Node.js event-loop lag p99 >200ms'
+          runbook: 'docs/runbooks/5xx-spike.md'
 
       # Memory headroom
       - alert: HeapUsageHigh
@@ -81,8 +81,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Backend RSS >80% of node memory"
-          runbook: "docs/runbooks/5xx-spike.md"
+          summary: 'Backend RSS >80% of node memory'
+          runbook: 'docs/runbooks/5xx-spike.md'
 
       # Readiness flapping
       - alert: ReadinessProbeFailing
@@ -91,8 +91,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Backend /health/ready failing (DB/Redis/BullMQ)"
-          runbook: "docs/runbooks/redis-outage.md"
+          summary: 'Backend /health/ready failing (DB/Redis/BullMQ)'
+          runbook: 'docs/runbooks/redis-outage.md'
 ```
 
 ## Dashboards
@@ -118,9 +118,9 @@ Recommended Grafana panels:
 
 ## Health endpoints reference
 
-| Endpoint            | Probes                          | Used by              |
-| ------------------- | ------------------------------- | -------------------- |
-| `/health/simple`    | server is up                    | Load balancer        |
-| `/api/v1/health`    | DB, email, storage, fs, Redis, queue | Operator dashboards |
-| `/health/ready`     | DB + Redis + BullMQ             | Kubernetes readiness |
-| `/metrics`          | Prometheus scrape               | Prometheus           |
+| Endpoint         | Probes                               | Used by              |
+| ---------------- | ------------------------------------ | -------------------- |
+| `/health/simple` | server is up                         | Load balancer        |
+| `/api/v1/health` | DB, email, storage, fs, Redis, queue | Operator dashboards  |
+| `/health/ready`  | DB + Redis + BullMQ                  | Kubernetes readiness |
+| `/metrics`       | Prometheus scrape                    | Prometheus           |

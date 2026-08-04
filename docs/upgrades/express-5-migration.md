@@ -39,12 +39,12 @@ Adjacent middleware in use:
 
 Surface area:
 
-| Layer | File count |
-| --- | --- |
-| Routes (`*.routes.ts`) | 26 |
-| Controllers | 18 |
-| Middleware | 19 |
-| Total Express imports | 82 |
+| Layer                  | File count |
+| ---------------------- | ---------- |
+| Routes (`*.routes.ts`) | 26         |
+| Controllers            | 18         |
+| Middleware             | 19         |
+| Total Express imports  | 82         |
 
 Top-level wiring lives in `service.backend/src/index.ts` — 23 `app.use(...)`
 mounts plus six health endpoints.
@@ -52,25 +52,26 @@ mounts plus six health endpoints.
 ## 2. Breaking changes
 
 References:
+
 - Express 5 release notes — <https://expressjs.com/2024/10/15/v5-release.html>
 - Migration guide — <https://expressjs.com/en/guide/migrating-5.html>
 - path-to-regexp 8 changelog — <https://github.com/pillarjs/path-to-regexp/blob/master/Readme.md#errors>
 
-| Change | Risk for us | Notes |
-| --- | --- | --- |
-| **Async errors auto-forwarded** — throwing or rejecting in a handler now propagates to error middleware without `next(err)` | Positive (less code) | We have only 3 manual `next(error)` calls (`grep -E "next\(error\)"` returns 3). After upgrade we can simplify, but it's not required. |
-| **`path-to-regexp` v8** — `:param?` no longer supported, splats need `*splat` syntax, regex routes more strict | **Medium** | Need to audit every `router.get/post/...` path. See risk inventory below. |
-| **`req.query` is a getter, not a writable property** | Low | We do not assign to `req.query` anywhere (`grep -E "req\.query\s*=" service.backend/src` returns 0). |
-| **`res.redirect('back')` removed** — use `res.redirect(req.get('Referrer') ?? '/')` | None | We don't redirect (`grep -E "res\.redirect\(" service.backend/src` returns 0). |
-| **`res.send(status)` shorthand removed** — use `res.sendStatus(...)` | Low | All our `res.send/json` calls already pass bodies, not status numbers. |
-| **`app.del()` removed** — use `app.delete()` | None | We use `.delete` everywhere. |
-| **`req.host` removed** — use `req.hostname` | Low | Not used. |
-| **`req.acceptsCharset/Encoding/Language` removed (singular)** | Low | Not used. |
-| **`Pluralized` accept methods only** | Low | Not used. |
-| **Body parser middleware now built-in (`express.json`/`urlencoded`) raise on invalid JSON instead of silently passing** | Medium | We rely on default behaviour in `index.ts:157,159`. Validation middleware needs to handle the new `SyntaxError` shape from express's body parser. |
-| **`express.static` `dotfiles` default changes** | None | Static files not served. |
-| **Settings `etag`, `query parser`, `subdomain offset` defaults unchanged** but `trust proxy` semantics tightened | Low | We set `trust proxy = 1` already. |
-| **Node ≥ 18 required** | None | Already on Node 20, will be on Node 22. |
+| Change                                                                                                                      | Risk for us          | Notes                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Async errors auto-forwarded** — throwing or rejecting in a handler now propagates to error middleware without `next(err)` | Positive (less code) | We have only 3 manual `next(error)` calls (`grep -E "next\(error\)"` returns 3). After upgrade we can simplify, but it's not required.            |
+| **`path-to-regexp` v8** — `:param?` no longer supported, splats need `*splat` syntax, regex routes more strict              | **Medium**           | Need to audit every `router.get/post/...` path. See risk inventory below.                                                                         |
+| **`req.query` is a getter, not a writable property**                                                                        | Low                  | We do not assign to `req.query` anywhere (`grep -E "req\.query\s*=" service.backend/src` returns 0).                                              |
+| **`res.redirect('back')` removed** — use `res.redirect(req.get('Referrer') ?? '/')`                                         | None                 | We don't redirect (`grep -E "res\.redirect\(" service.backend/src` returns 0).                                                                    |
+| **`res.send(status)` shorthand removed** — use `res.sendStatus(...)`                                                        | Low                  | All our `res.send/json` calls already pass bodies, not status numbers.                                                                            |
+| **`app.del()` removed** — use `app.delete()`                                                                                | None                 | We use `.delete` everywhere.                                                                                                                      |
+| **`req.host` removed** — use `req.hostname`                                                                                 | Low                  | Not used.                                                                                                                                         |
+| **`req.acceptsCharset/Encoding/Language` removed (singular)**                                                               | Low                  | Not used.                                                                                                                                         |
+| **`Pluralized` accept methods only**                                                                                        | Low                  | Not used.                                                                                                                                         |
+| **Body parser middleware now built-in (`express.json`/`urlencoded`) raise on invalid JSON instead of silently passing**     | Medium               | We rely on default behaviour in `index.ts:157,159`. Validation middleware needs to handle the new `SyntaxError` shape from express's body parser. |
+| **`express.static` `dotfiles` default changes**                                                                             | None                 | Static files not served.                                                                                                                          |
+| **Settings `etag`, `query parser`, `subdomain offset` defaults unchanged** but `trust proxy` semantics tightened            | Low                  | We set `trust proxy = 1` already.                                                                                                                 |
+| **Node ≥ 18 required**                                                                                                      | None                 | Already on Node 20, will be on Node 22.                                                                                                           |
 
 ## 3. Risk inventory
 

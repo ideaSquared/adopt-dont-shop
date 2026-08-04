@@ -17,11 +17,11 @@ flows start failing.
 
 ## What still works vs. what doesn't
 
-| Subsystem               | Behaviour without Redis                                   |
-| ----------------------- | --------------------------------------------------------- |
-| Cache helpers           | Fall through to the loader. Slower but correct.           |
-| Gateway rate-limiters   | **Degraded** — per-replica in-memory, shared state lost.  |
-| Async / scheduled jobs  | Down. Enqueues fail; in-flight jobs stall.                |
+| Subsystem              | Behaviour without Redis                                  |
+| ---------------------- | -------------------------------------------------------- |
+| Cache helpers          | Fall through to the loader. Slower but correct.          |
+| Gateway rate-limiters  | **Degraded** — per-replica in-memory, shared state lost. |
+| Async / scheduled jobs | Down. Enqueues fail; in-flight jobs stall.               |
 
 The cache fallthrough is safe; the rate-limiter and any Redis-backed
 job system are not. Plan to enable maintenance mode for write-heavy
@@ -61,22 +61,26 @@ Match the symptom:
 ## Mitigation
 
 1. **Restart Redis** (fastest, usually enough):
+
    ```bash
    docker compose -f docker-compose.prod.yml restart redis
    # Wait for healthcheck to pass (~10s)
    docker compose -f docker-compose.prod.yml ps redis
    ```
+
    The gateway's Redis client is configured with lazy reconnect, so
    no gateway restart is needed.
 
 2. **If restart fails** — check the AOF / RDB on the `redis_data`
    volume. If corrupt, accept data loss:
+
    ```bash
    docker compose -f docker-compose.prod.yml stop redis
    docker volume rm $(docker compose -f docker-compose.prod.yml \
      config --volumes | grep redis_data)
    docker compose -f docker-compose.prod.yml up -d redis
    ```
+
    Cost: rate-limit windows reset and namespace version stamps
    reset (full cache miss for ~minutes). Acceptable in an outage.
 

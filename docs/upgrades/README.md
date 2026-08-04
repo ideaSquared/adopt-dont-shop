@@ -9,12 +9,12 @@ each one before treating it as live guidance.
 
 ## Index
 
-| Doc | Linear | Status | Driver |
-| --- | --- | --- | --- |
-| [Node 20 → 22 LTS](./node-22-migration.md) | ADS-532 | ✅ Shipped | Node 20 EOL April 2026 |
-| [Express 4 → 5](./express-5-migration.md) | ADS-531 | ✅ Shipped | Express 5 stable Oct 2024 |
-| [Sequelize 6 → 7](./sequelize-7-migration.md) | ADS-531 | ⚠️ On 7.0.0-alpha — stable bump pending | Active maintenance line |
-| [React 18 → 19](./react-19-migration.md) | ADS-531 | ✅ Shipped | React 19 stable Dec 2024 |
+| Doc                                           | Linear  | Status                                  | Driver                    |
+| --------------------------------------------- | ------- | --------------------------------------- | ------------------------- |
+| [Node 20 → 22 LTS](./node-22-migration.md)    | ADS-532 | ✅ Shipped                              | Node 20 EOL April 2026    |
+| [Express 4 → 5](./express-5-migration.md)     | ADS-531 | ✅ Shipped                              | Express 5 stable Oct 2024 |
+| [Sequelize 6 → 7](./sequelize-7-migration.md) | ADS-531 | ⚠️ On 7.0.0-alpha — stable bump pending | Active maintenance line   |
+| [React 18 → 19](./react-19-migration.md)      | ADS-531 | ✅ Shipped                              | React 19 stable Dec 2024  |
 
 ## Sequencing recommendation
 
