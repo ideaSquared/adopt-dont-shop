@@ -64,6 +64,13 @@ const MATCHING_RATE_LIMITS = {
   search: { max: 120, timeWindow: '1 minute' },
   // Top picks is a curated read the SPA loads on the home + picks pages.
   topPicks: { max: 60, timeWindow: '1 minute' },
+  // Match profile: the GET is a cheap read; the PUT upserts the persistent
+  // adopter_match_profiles store (body is additionalProperties with no size
+  // constraint) so it gets the tighter write ceiling (ADS-998). Swipe
+  // stats/session are low-cost reads.
+  matchProfileRead: { max: 120, timeWindow: '1 minute' },
+  matchProfileWrite: { max: 30, timeWindow: '1 minute' },
+  swipeStats: { max: 120, timeWindow: '1 minute' },
 } as const;
 
 // userAgent / ipAddress are deliberately NOT accepted from the body:
@@ -422,6 +429,7 @@ export const registerMatchingRoutes = async (
   app.get(
     '/api/v1/match/profile',
     {
+      config: { rateLimit: MATCHING_RATE_LIMITS.matchProfileRead },
       schema: {
         tags: ['matching'],
         summary: 'Get the adopter match profile',
@@ -451,6 +459,7 @@ export const registerMatchingRoutes = async (
   app.put(
     '/api/v1/match/profile',
     {
+      config: { rateLimit: MATCHING_RATE_LIMITS.matchProfileWrite },
       schema: {
         tags: ['matching'],
         summary: 'Upsert the adopter match profile',
@@ -518,6 +527,7 @@ export const registerMatchingRoutes = async (
   app.get<{ Params: { userId: string } }>(
     '/api/v1/discovery/swipe/stats/:userId',
     {
+      config: { rateLimit: MATCHING_RATE_LIMITS.swipeStats },
       schema: {
         tags: ['discovery'],
         summary: 'Get swipe statistics for a user',
@@ -559,6 +569,7 @@ export const registerMatchingRoutes = async (
   app.get<{ Params: { sessionId: string } }>(
     '/api/v1/discovery/swipe/session/:sessionId',
     {
+      config: { rateLimit: MATCHING_RATE_LIMITS.swipeStats },
       schema: {
         tags: ['discovery'],
         summary: 'Get statistics for a swipe session',

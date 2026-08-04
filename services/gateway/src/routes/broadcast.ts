@@ -11,6 +11,7 @@
 // audiences onto the same BroadcastCohort shape the explicit `cohort`
 // object uses, so both forms are accepted side by side.
 
+import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance } from 'fastify';
 
 import {
@@ -28,6 +29,18 @@ export type BroadcastRoutesOptions = {
   client: NotificationsClient;
 };
 
+// Per-route rate limits (ADS-997). The broadcast fan-out queues thousands of
+// notification rows + outbound emails per call, so even one compromised admin
+// account could fire ~100 broadcasts/min under the gateway-wide cap. A tight
+// 5/min ceiling has negligible UX impact on what is an occasional admin action.
+// Preview is a cheap dry-run cohort count but still admin-only, so a modest
+// read cap is plenty. Registering @fastify/rate-limit with { global: false }
+// below means an unconfigured route is UNcapped, so both routes set one.
+const BROADCAST_RATE_LIMITS = {
+  broadcast: { max: 5, timeWindow: '1 minute' },
+  preview: { max: 60, timeWindow: '1 minute' },
+} as const;
+
 const AUDIENCE_COHORT: Record<string, BroadcastCohort> = {
   all: { userTypes: [], statuses: [] },
   'all-rescues': { userTypes: ['rescue_staff'], statuses: [] },
@@ -41,9 +54,12 @@ export const registerBroadcastRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
+  await app.register(rateLimit, { global: false });
+
   app.post(
     '/api/v1/notifications/broadcast',
     {
+      config: { rateLimit: BROADCAST_RATE_LIMITS.broadcast },
       schema: {
         tags: ['notifications', 'admin'],
         summary: 'Broadcast a notification to a cohort of users',
@@ -140,6 +156,7 @@ export const registerBroadcastRoutes = async (
   app.get(
     '/api/v1/notifications/broadcast/preview',
     {
+      config: { rateLimit: BROADCAST_RATE_LIMITS.preview },
       schema: {
         tags: ['notifications', 'admin'],
         summary: 'Preview the recipient count for a named broadcast audience',

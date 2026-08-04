@@ -734,3 +734,45 @@ describe('GET /api/v1/match/top-picks (GetTopPicks)', () => {
     }
   });
 });
+
+describe('match profile rate limiting (ADS-998)', () => {
+  it('caps the match-profile upsert at 30/min and 429s once the ceiling is exceeded', async () => {
+    const m = makeClient();
+    m.upsertMatchProfileMock.mockResolvedValue({
+      profile: {
+        userId: 'usr-1',
+        preferredTypesJson: '',
+        preferredSizesJson: '',
+        preferredAgeGroupsJson: '',
+        preferredEnergyJson: '',
+        preferredTemperamentJson: '',
+        lifestyleJson: '{}',
+        openToSpecialNeeds: false,
+        notifyNewMatches: false,
+        minNotificationScore: 0,
+        inferredPrefsJson: '{}',
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      },
+    });
+    const app = await makeApp(m.client);
+    try {
+      const fire = () =>
+        app.inject({
+          method: 'PUT',
+          url: '/api/v1/match/profile',
+          headers: ADOPTER_HEADERS,
+          payload: { preferred_types: ['cat'] },
+        });
+      const statuses: number[] = [];
+      for (let i = 0; i < 31; i += 1) {
+        statuses.push((await fire()).statusCode);
+      }
+      // The first 30 (the cap) pass; the 31st trips the per-route limit.
+      expect(statuses.slice(0, 30).every(s => s === 200)).toBe(true);
+      expect(statuses[30]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+});
