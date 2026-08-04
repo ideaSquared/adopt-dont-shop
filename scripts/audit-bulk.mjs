@@ -33,13 +33,18 @@ const MAX_RETRIES = 3;
 // the moment a fixable patched version exists (i.e. the override can reach it).
 //
 // Current exemptions:
-//   GHSA-mh99-v99m-4gvg  brace-expansion OOM DoS — patched only in 5.0.8; no
-//     1.1.x/2.1.x release exists beyond 1.1.16/2.1.2. 1.x/2.x consumers
+//   GHSA-mh99-v99m-4gvg  brace-expansion OOM DoS
+//   GHSA-rgw5-rvv9-x895  brace-expansion unbounded-intermediate-arrays DoS
+//     (bypasses the CVE-2026-14257 mitigation)
+//   Both are patched in the 5.x line (overridden to 5.0.9 in package.json), but
+//     no 1.1.x/2.1.x release exists beyond 1.1.16/2.1.2. The 1.x/2.x consumers
 //     (minimatch@3, minimatch@5/9) cannot be safely force-bumped to 5.x without
-//     API compatibility audit. Unblock when upstream ships 1.1.17 / 2.1.3.
+//     an API-compatibility audit, so those instances stay exempt. Unblock when
+//     upstream ships 1.1.17 / 2.1.3.
 //
 const EXEMPTED_GHSA_IDS = new Set([
   'ghsa-mh99-v99m-4gvg',
+  'ghsa-rgw5-rvv9-x895',
 ]);
 
 const ghsaIdFromUrl = (url) => {
