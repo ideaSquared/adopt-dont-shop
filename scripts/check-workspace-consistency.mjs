@@ -802,12 +802,16 @@ export function checkNoEmitTaskOutputs(turboConfig) {
 }
 
 // ADS-1002: every scripts/check-*.mjs guard invoked from ci.yml's
-// `workspace-drift` job — CI's required PR gate — must also run locally via
-// `pnpm ci:local`, so the two never drift out of parity (ci.yml previously
-// called scripts/check-csp-headers.mjs and scripts/check-readmes.mjs
-// directly with no ci:local equivalent). Guards this can't regress: a new
-// workspace-drift step that isn't wrapped in a root `check:*` script, or
-// whose `check:*` script isn't run by `ci:local`, fails this check.
+// `workspace-drift` job — CI's required PR gate — whether as a bare
+// `node scripts/check-x.mjs` step or via a wrapping `pnpm check:x` script
+// that runs one, must map to a root `check:*` script that also runs locally
+// via `pnpm ci:local`, so the two never drift out of parity (ci.yml
+// previously called scripts/check-csp-headers.mjs and
+// scripts/check-readmes.mjs directly with no ci:local equivalent). Scope is
+// deliberately narrow: only steps backed by a scripts/check-*.mjs file are
+// checked — a workspace-drift step with no such backing (e.g. `pnpm ls -r`,
+// `pnpm format:check`, `pnpm check:proto-fresh`) is outside what this guard
+// covers and won't be flagged either way.
 
 // Extract the YAML text of a single top-level job block (from its
 // `  <jobName>:` header line to the next 2-space-indented top-level key).
