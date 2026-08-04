@@ -137,9 +137,12 @@ instead of direct gateway access):
 
 ## Internal service gRPC URLs
 
-Every gRPC client defaults to the in-cluster Docker Compose service name
-(`service-<name>:<grpcPort>`) — override only when reaching a service on a
-different host/port (e.g. native dev without Docker):
+Required gRPC clients like these two on service.rescue default to the
+in-cluster Docker Compose service name (`service-<name>:<grpcPort>`) — override
+only when reaching a service on a different host/port (e.g. native dev without
+Docker). Some clients are optional instead and default to `undefined` when
+unset (e.g. service.notifications' `AUTH_GRPC_URL` / `PETS_GRPC_URL` /
+`RESCUE_GRPC_URL`):
 
 ```env
 # service.pets — service.rescue's CreateFosterPlacement and
