@@ -30,8 +30,10 @@ import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 import {
+  COVERAGE_METRICS,
   extractThresholdsFromSource,
   measuredFromSummaryTotal,
+  missingCoverageMetrics,
   ratchetThresholds,
   updateThresholdsInSource,
 } from './lib/ratchet-coverage-core.mjs';
@@ -96,12 +98,25 @@ function main() {
   const measured = measuredFromSummaryTotal(summary.total ?? {});
   const source = readFileSync(configPath, 'utf8');
   const current = extractThresholdsFromSource(source);
+  const missing = missingCoverageMetrics(current);
 
-  if (Object.keys(current).length === 0) {
+  if (missing.length === COVERAGE_METRICS.length) {
     console.error(`No coverage thresholds declared in ${configPath}.`);
     console.error(
       'The ratchet only raises an existing floor — add an initial `thresholds` block ' +
         '(see CONTRIBUTING.md "Coverage thresholds") before ratcheting.'
+    );
+    process.exit(1);
+  }
+
+  if (missing.length > 0) {
+    console.error(
+      `Partial coverage thresholds declared in ${configPath} — missing: ${missing.join(', ')}.`
+    );
+    console.error(
+      'The ratchet requires all four metrics (statements, branches, functions, lines) to be ' +
+        'declared before it can raise any of them — add the missing metric(s) to the `thresholds` ' +
+        'block (see CONTRIBUTING.md "Coverage thresholds") before ratcheting.'
     );
     process.exit(1);
   }

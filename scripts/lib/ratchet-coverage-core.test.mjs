@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractThresholdsFromSource,
   measuredFromSummaryTotal,
+  missingCoverageMetrics,
   ratchetMetric,
   ratchetThresholds,
   updateThresholdsInSource,
@@ -259,5 +260,24 @@ describe('updateThresholdsInSource (ADS-1004)', () => {
         '      },',
       ].join('\n')
     );
+  });
+});
+
+describe('missingCoverageMetrics (ADS-1004)', () => {
+  it('returns an empty array when all four metrics are declared', () => {
+    expect(
+      missingCoverageMetrics({ statements: 90, branches: 80, functions: 90, lines: 90 })
+    ).toEqual([]);
+  });
+
+  it('lists every metric when none are declared', () => {
+    expect(missingCoverageMetrics({})).toEqual(['statements', 'branches', 'functions', 'lines']);
+  });
+
+  it('lists only the metrics missing from a partially-declared block', () => {
+    expect(missingCoverageMetrics({ statements: 90, branches: 80 })).toEqual([
+      'functions',
+      'lines',
+    ]);
   });
 });

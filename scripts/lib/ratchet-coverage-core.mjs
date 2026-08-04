@@ -178,3 +178,17 @@ export function updateThresholdsInSource(source, thresholds) {
   );
   return `${source.slice(0, start)}${updatedRegion}${source.slice(end)}`;
 }
+
+/**
+ * Which of the four coverage metrics are absent from a declared-thresholds
+ * map (as returned by `extractThresholdsFromSource`). Shared by the ratchet
+ * CLI (which refuses to ratchet a partially-declared block) and
+ * `scripts/check-workspace-consistency.mjs`'s coverage-thresholds guard.
+ *
+ * @param {Record<string, number>} declared
+ * @returns {string[]} Metric names present in `COVERAGE_METRICS` but absent
+ *   from `declared`, in `COVERAGE_METRICS` order.
+ */
+export function missingCoverageMetrics(declared) {
+  return COVERAGE_METRICS.filter(metric => !(metric in declared));
+}
