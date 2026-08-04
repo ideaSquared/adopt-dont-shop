@@ -32,11 +32,19 @@ plus the discipline to call it at each service's serialisation boundary.
 
 `@adopt-dont-shop/authz` gained three pure, unit-tested primitives:
 
-- `resolveFieldAccessMap(resource, roles, overrides?)` — unions a
-  principal's role(s) against the `lib.types` defaults (most-permissive
-  role wins per field, matching how `loadPrincipal` already unions plain
-  permissions), re-enforcing the sensitive-field denylist last so neither
-  a role default nor a supplied override can loosen it.
+- `resolveFieldAccessMap(resource, roles, overrides?)` — three stages, in
+  order: (1) unions a principal's role(s) against the `lib.types`
+  defaults, most-permissive role wins per field, matching how
+  `loadPrincipal` already unions plain permissions; (2) an admin-supplied
+  `overrides` map, when present, takes PRECEDENCE over that union per
+  field — it replaces the level rather than taking the more permissive of
+  the two, so an override can both loosen a field the role default denies
+  AND RESTRICT a field the role default grants (e.g. a role's `write`
+  overridden to `none`). This is deliberately not most-permissive-wins:
+  the Field Permissions admin UI exists to let an operator tighten access,
+  and a union there would make it unable to ever do so; (3) the
+  sensitive-field denylist is re-applied last so neither a role default
+  nor an override can ever loosen a hard-denied field.
 - `fieldMask(payload, accessMap)` — read-side response masking. Strips any
   key whose resolved level isn't `read`/`write`, including keys absent
   from the map (secure by default).

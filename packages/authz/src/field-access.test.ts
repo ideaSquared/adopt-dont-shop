@@ -33,17 +33,42 @@ describe('resolveFieldAccessMap', () => {
     expect(resolveFieldAccessMap('pets', [])).toEqual({});
   });
 
-  it('layers supplied overrides on top of the role defaults, most-permissive wins', () => {
-    // moderator.phoneNumber defaults to 'none'; an override granting 'read'
-    // must win over the default.
+  it('an override can loosen access beyond what the role default grants', () => {
+    // moderator.phoneNumber defaults to 'none'; an admin-configured
+    // override granting 'read' must take effect.
     const map = resolveFieldAccessMap('users', ['moderator'], { phoneNumber: 'read' });
     expect(map.phoneNumber).toBe('read');
   });
 
-  it('an override cannot loosen access below what the default already grants', () => {
-    // admin.firstName defaults to 'write'; an override of 'read' must not
-    // downgrade it — most-permissive-wins applies to overrides too.
-    const map = resolveFieldAccessMap('users', ['admin'], { firstName: 'read' });
+  it('an override can RESTRICT access below what the role default grants', () => {
+    // admin.firstName defaults to 'write'. Overrides take precedence
+    // over the role union rather than most-permissive-wins, so an admin
+    // can tighten a field the role default would otherwise expose — the
+    // whole point of the Field Permissions admin UI. If overrides could
+    // only loosen, the UI could never restrict anything and ADS-1037's
+    // phantom-control problem would persist even with enforcement wired
+    // up.
+    const map = resolveFieldAccessMap('users', ['admin'], { firstName: 'none' });
+    expect(map.firstName).toBe('none');
+  });
+
+  it('an override replaces (does not union with) the role-default level', () => {
+    // rescue_staff.email defaults to 'read'; an override of 'write' must
+    // apply exactly as configured, not merge with the default via
+    // most-permissive-wins (which would happen to produce the same
+    // result here, but for the wrong reason — assert 'none' too, which a
+    // permissive union could never produce from a 'read' default).
+    expect(resolveFieldAccessMap('users', ['rescue_staff'], { email: 'write' }).email).toBe(
+      'write'
+    );
+    expect(resolveFieldAccessMap('users', ['rescue_staff'], { email: 'none' }).email).toBe('none');
+  });
+
+  it("role-union among a principal's own roles is still most-permissive-wins (unaffected by the override precedence change)", () => {
+    // moderator.firstName is 'read', adopter.firstName is 'write' — no
+    // override supplied, so the two roles still union to the more
+    // permissive level.
+    const map = resolveFieldAccessMap('users', ['moderator', 'adopter']);
     expect(map.firstName).toBe('write');
   });
 
