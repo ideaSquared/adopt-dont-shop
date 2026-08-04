@@ -104,6 +104,12 @@ jobs:
       - name: Verify formatting (prettier)
         run: pnpm format:check
 
+      # ADS-1003: e2e (Playwright) has no path filter and no browsers to
+      # install, so lint it unconditionally here rather than gating it behind
+      # the run-e2e-labelled test-e2e job (which only runs the suite itself).
+      - name: Verify e2e lint
+        run: pnpm exec turbo run lint --filter=@adopt-dont-shop/e2e
+
       # ADS-1027: fail if packages/proto's committed ts-proto output no longer
       # matches `buf generate` — otherwise any `pnpm build` silently dirties the
       # tree. The guard regenerates into a tmpdir and diffs.

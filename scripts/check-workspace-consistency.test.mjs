@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  checkLintFormatScripts,
   checkNoEmitTaskOutputs,
   checkTemplateDepDrift,
   checkToolVersionsDrift,
@@ -242,5 +243,23 @@ describe('CI test-filter reachability (ADS-1029)', () => {
       const rogue = { name: '@adopt-dont-shop/rogue', dir: 'tools/rogue' };
       expect(findUncoveredPackages([rogue], groups)).toEqual([rogue]);
     });
+  });
+});
+
+describe('checkLintFormatScripts (ADS-1003)', () => {
+  it('reports no drift when lint, format and format:check are all present', () => {
+    const scripts = { lint: 'eslint .', format: 'prettier --write .', 'format:check': 'prettier --check .' };
+    expect(checkLintFormatScripts('e2e', scripts)).toEqual([]);
+  });
+
+  it('flags every missing script by name', () => {
+    const failures = checkLintFormatScripts('e2e', { test: 'playwright test' });
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('[e2e] missing scripts: lint, format, format:check');
+  });
+
+  it('flags only the scripts that are actually missing', () => {
+    const failures = checkLintFormatScripts('services/auth', { lint: 'eslint src' });
+    expect(failures[0]).toContain('missing scripts: format, format:check');
   });
 });

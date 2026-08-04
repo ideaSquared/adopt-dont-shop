@@ -15,9 +15,14 @@
     "test:headed": "playwright test --headed",
     "report": "playwright show-report",
     "install:browsers": "playwright install --with-deps chromium",
+    "lint": "eslint tests fixtures helpers global-setup.ts global-teardown.ts playwright.config.ts",
+    "lint:fix": "eslint tests fixtures helpers global-setup.ts global-teardown.ts playwright.config.ts --fix",
+    "format": "prettier --write \"{tests,fixtures,helpers}/**/*.ts\" \"*.ts\"",
+    "format:check": "prettier --check \"{tests,fixtures,helpers}/**/*.ts\" \"*.ts\"",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@playwright/test": "^1.61.0",
     "@types/node": "^26.0.0",
     "otplib": "^13.4.1",
