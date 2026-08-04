@@ -96,11 +96,15 @@ service ApplicationService {
   // caller-supplied set of adopter user ids (e.g. an event's
   // registrants, resolved by the calling service), returns how many of
   // them have at least one application that reached APPROVED or
-  // ADOPTED status with created_at inside [created_after,
-  // created_before]. Deliberately narrow: the caller already knows the
-  // adopter_ids (it resolved them itself); the response reveals only
-  // the count, never which ids matched or which rescue/pet was
-  // involved. Caller MUST hold applications.read.
+  // ADOPTED status with actioned_at (ADS-1025 — when the application
+  // reached that status, not when it was created) inside
+  // [actioned_after, actioned_before], optionally narrowed to one
+  // rescue (ADS-1023). Deliberately narrow: the caller already knows
+  // the adopter_ids (it resolved them itself); the response reveals
+  // only the count, never which ids matched or which rescue/pet was
+  // involved. Caller MUST hold applications.read. adopter_ids is
+  // capped at 10,000 entries (ADS-1024) — rejected with
+  // INVALID_ARGUMENT above that.
   rpc CountAdoptedAdopters(CountAdoptedAdoptersRequest) returns (CountAdoptedAdoptersResponse);
 
   // Document metadata — append a row referencing an already-stored
@@ -406,19 +410,34 @@ message GetStatsResponse {
 
 message CountAdoptedAdoptersRequest {
   // Candidate adopter user ids to check — e.g. an event's registrant
-  // list, resolved by the calling service. No filter/scope semantics;
-  // the caller decides which ids are in play.
+  // list, resolved by the calling service. No filter/scope semantics
+  // beyond the optional rescue_id below; the caller decides which ids
+  // are in play. Capped at 10,000 entries (ADS-1024) — the handler
+  // rejects anything above that with INVALID_ARGUMENT before querying.
   repeated string adopter_ids = 1;
-  // Inclusive lower bound (RFC3339) on the application's created_at.
-  string created_after = 2;
-  // Inclusive upper bound (RFC3339) on the application's created_at.
-  string created_before = 3;
+  // Inclusive lower bound (RFC3339) on the application's actioned_at —
+  // when it reached APPROVED/ADOPTED status (ADS-1025). Renamed from
+  // created_after: the documented attribution rule was always "reached
+  // APPROVED/ADOPTED within the window", not "created within the
+  // window". Required; must parse as a valid date and must not be
+  // after actioned_before.
+  string actioned_after = 2;
+  // Inclusive upper bound (RFC3339) on actioned_at. See actioned_after.
+  string actioned_before = 3;
+  // Optional rescue scope (ADS-1023). When set, only applications
+  // owned by this rescue count towards the distinct-adopter total —
+  // e.g. an event's attribution count should only reflect adoptions at
+  // the rescue that ran the event. Omit for an unscoped, cross-rescue
+  // count.
+  optional string rescue_id = 4;
 }
 
 message CountAdoptedAdoptersResponse {
   // Distinct count of adopter_ids (from the request) with at least one
-  // non-deleted application whose status is APPROVED or ADOPTED and
-  // whose created_at falls in [created_after, created_before].
+  // non-deleted application whose status is APPROVED or ADOPTED, whose
+  // actioned_at (when it reached that status) falls in
+  // [actioned_after, actioned_before], and — when rescue_id was
+  // supplied — that belongs to that rescue.
   uint32 count = 1;
 }
 

@@ -631,6 +631,8 @@ describe('getEventAnalytics', () => {
     expect(applicationsStub.countAdoptedAdopters).toHaveBeenCalledTimes(1);
     const [req] = applicationsStub.countAdoptedAdopters.mock.calls[0];
     expect(req.adopterIds).toEqual(registrantIds);
+    // ADS-1023 — the event's own rescue scopes the attribution count.
+    expect(req.rescueId).toBe(RESCUE_ID);
   });
 
   it('skips the attribution call when the registrant cohort is below the k-anonymity floor', async () => {
@@ -659,8 +661,25 @@ describe('getEventAnalytics', () => {
     await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
 
     const [req] = applicationsStub.countAdoptedAdopters.mock.calls[0];
-    expect(req.createdAfter).toBe('2026-07-01T10:00:00.000Z');
-    expect(req.createdBefore).toBe('2026-09-29T10:00:00.000Z'); // +90 days
+    expect(req.actionedAfter).toBe('2026-07-01T10:00:00.000Z');
+    expect(req.actionedBefore).toBe('2026-09-29T10:00:00.000Z'); // +90 days
+  });
+
+  // ── ADS-1024 — bounded attendee fetch ────────────────────────────────
+
+  it('rejects with a clear error when the event has more registrants than the attribution cap, without truncating', async () => {
+    const overCap = Array.from({ length: 10_001 }, (_, i) => ({ user_id: `usr-registrant-${i}` }));
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '10001', checked_in: '0' }] })
+      .mockResolvedValueOnce({ rows: overCap });
+
+    await expect(getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID })).rejects.toMatchObject(
+      { code: 'INVALID_ARGUMENT' }
+    );
+    // No silent truncation — the whole call fails rather than attributing
+    // off a partial registrant list.
+    expect(applicationsStub.countAdoptedAdopters).not.toHaveBeenCalled();
   });
 
   it('returns zero adoptions when nobody in the registrant set has adopted', async () => {

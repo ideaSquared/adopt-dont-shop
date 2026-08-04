@@ -386,21 +386,40 @@ export interface GetStatsResponse {
 export interface CountAdoptedAdoptersRequest {
   /**
    * Candidate adopter user ids to check — e.g. an event's registrant
-   * list, resolved by the calling service. No filter/scope semantics;
-   * the caller decides which ids are in play.
+   * list, resolved by the calling service. No filter/scope semantics
+   * beyond the optional rescue_id below; the caller decides which ids
+   * are in play. Capped at 10,000 entries (ADS-1024) — the handler
+   * rejects anything above that with INVALID_ARGUMENT before querying.
    */
   adopterIds: string[];
-  /** Inclusive lower bound (RFC3339) on the application's created_at. */
-  createdAfter: string;
-  /** Inclusive upper bound (RFC3339) on the application's created_at. */
-  createdBefore: string;
+  /**
+   * Inclusive lower bound (RFC3339) on the application's actioned_at —
+   * when it reached APPROVED/ADOPTED status (ADS-1025). Renamed from
+   * created_after: the documented attribution rule was always "reached
+   * APPROVED/ADOPTED within the window", not "created within the
+   * window". Required; must parse as a valid date and must not be
+   * after actioned_before.
+   */
+  actionedAfter: string;
+  /** Inclusive upper bound (RFC3339) on actioned_at. See actioned_after. */
+  actionedBefore: string;
+  /**
+   * Optional rescue scope (ADS-1023). When set, only applications
+   * owned by this rescue count towards the distinct-adopter total —
+   * e.g. an event's attribution count should only reflect adoptions at
+   * the rescue that ran the event. Omit for an unscoped, cross-rescue
+   * count.
+   */
+  rescueId?: string | undefined;
 }
 
 export interface CountAdoptedAdoptersResponse {
   /**
    * Distinct count of adopter_ids (from the request) with at least one
-   * non-deleted application whose status is APPROVED or ADOPTED and
-   * whose created_at falls in [created_after, created_before].
+   * non-deleted application whose status is APPROVED or ADOPTED, whose
+   * actioned_at (when it reached that status) falls in
+   * [actioned_after, actioned_before], and — when rescue_id was
+   * supplied — that belongs to that rescue.
    */
   count: number;
 }
@@ -3386,7 +3405,7 @@ export const GetStatsResponse: MessageFns<GetStatsResponse> = {
 };
 
 function createBaseCountAdoptedAdoptersRequest(): CountAdoptedAdoptersRequest {
-  return { adopterIds: [], createdAfter: "", createdBefore: "" };
+  return { adopterIds: [], actionedAfter: "", actionedBefore: "", rescueId: undefined };
 }
 
 export const CountAdoptedAdoptersRequest: MessageFns<CountAdoptedAdoptersRequest> = {
@@ -3394,11 +3413,14 @@ export const CountAdoptedAdoptersRequest: MessageFns<CountAdoptedAdoptersRequest
     for (const v of message.adopterIds) {
       writer.uint32(10).string(v!);
     }
-    if (message.createdAfter !== "") {
-      writer.uint32(18).string(message.createdAfter);
+    if (message.actionedAfter !== "") {
+      writer.uint32(18).string(message.actionedAfter);
     }
-    if (message.createdBefore !== "") {
-      writer.uint32(26).string(message.createdBefore);
+    if (message.actionedBefore !== "") {
+      writer.uint32(26).string(message.actionedBefore);
+    }
+    if (message.rescueId !== undefined) {
+      writer.uint32(34).string(message.rescueId);
     }
     return writer;
   },
@@ -3423,7 +3445,7 @@ export const CountAdoptedAdoptersRequest: MessageFns<CountAdoptedAdoptersRequest
             break;
           }
 
-          message.createdAfter = reader.string();
+          message.actionedAfter = reader.string();
           continue;
         }
         case 3: {
@@ -3431,7 +3453,15 @@ export const CountAdoptedAdoptersRequest: MessageFns<CountAdoptedAdoptersRequest
             break;
           }
 
-          message.createdBefore = reader.string();
+          message.actionedBefore = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.rescueId = reader.string();
           continue;
         }
       }
@@ -3450,16 +3480,21 @@ export const CountAdoptedAdoptersRequest: MessageFns<CountAdoptedAdoptersRequest
         : globalThis.Array.isArray(object?.adopter_ids)
         ? object.adopter_ids.map((e: any) => globalThis.String(e))
         : [],
-      createdAfter: isSet(object.createdAfter)
-        ? globalThis.String(object.createdAfter)
-        : isSet(object.created_after)
-        ? globalThis.String(object.created_after)
+      actionedAfter: isSet(object.actionedAfter)
+        ? globalThis.String(object.actionedAfter)
+        : isSet(object.actioned_after)
+        ? globalThis.String(object.actioned_after)
         : "",
-      createdBefore: isSet(object.createdBefore)
-        ? globalThis.String(object.createdBefore)
-        : isSet(object.created_before)
-        ? globalThis.String(object.created_before)
+      actionedBefore: isSet(object.actionedBefore)
+        ? globalThis.String(object.actionedBefore)
+        : isSet(object.actioned_before)
+        ? globalThis.String(object.actioned_before)
         : "",
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : undefined,
     };
   },
 
@@ -3468,11 +3503,14 @@ export const CountAdoptedAdoptersRequest: MessageFns<CountAdoptedAdoptersRequest
     if (message.adopterIds?.length) {
       obj.adopterIds = message.adopterIds;
     }
-    if (message.createdAfter !== "") {
-      obj.createdAfter = message.createdAfter;
+    if (message.actionedAfter !== "") {
+      obj.actionedAfter = message.actionedAfter;
     }
-    if (message.createdBefore !== "") {
-      obj.createdBefore = message.createdBefore;
+    if (message.actionedBefore !== "") {
+      obj.actionedBefore = message.actionedBefore;
+    }
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
     }
     return obj;
   },
@@ -3483,8 +3521,9 @@ export const CountAdoptedAdoptersRequest: MessageFns<CountAdoptedAdoptersRequest
   fromPartial<I extends Exact<DeepPartial<CountAdoptedAdoptersRequest>, I>>(object: I): CountAdoptedAdoptersRequest {
     const message = createBaseCountAdoptedAdoptersRequest();
     message.adopterIds = object.adopterIds?.map((e) => e) || [];
-    message.createdAfter = object.createdAfter ?? "";
-    message.createdBefore = object.createdBefore ?? "";
+    message.actionedAfter = object.actionedAfter ?? "";
+    message.actionedBefore = object.actionedBefore ?? "";
+    message.rescueId = object.rescueId ?? undefined;
     return message;
   },
 };
@@ -5156,11 +5195,15 @@ export const ApplicationServiceService = {
    * caller-supplied set of adopter user ids (e.g. an event's
    * registrants, resolved by the calling service), returns how many of
    * them have at least one application that reached APPROVED or
-   * ADOPTED status with created_at inside [created_after,
-   * created_before]. Deliberately narrow: the caller already knows the
-   * adopter_ids (it resolved them itself); the response reveals only
-   * the count, never which ids matched or which rescue/pet was
-   * involved. Caller MUST hold applications.read.
+   * ADOPTED status with actioned_at (ADS-1025 — when the application
+   * reached that status, not when it was created) inside
+   * [actioned_after, actioned_before], optionally narrowed to one
+   * rescue (ADS-1023). Deliberately narrow: the caller already knows
+   * the adopter_ids (it resolved them itself); the response reveals
+   * only the count, never which ids matched or which rescue/pet was
+   * involved. Caller MUST hold applications.read. adopter_ids is
+   * capped at 10,000 entries (ADS-1024) — rejected with
+   * INVALID_ARGUMENT above that.
    */
   countAdoptedAdopters: {
     path: "/adopt_dont_shop.applications.v1.ApplicationService/CountAdoptedAdopters" as const,
@@ -5393,11 +5436,15 @@ export interface ApplicationServiceServer extends UntypedServiceImplementation {
    * caller-supplied set of adopter user ids (e.g. an event's
    * registrants, resolved by the calling service), returns how many of
    * them have at least one application that reached APPROVED or
-   * ADOPTED status with created_at inside [created_after,
-   * created_before]. Deliberately narrow: the caller already knows the
-   * adopter_ids (it resolved them itself); the response reveals only
-   * the count, never which ids matched or which rescue/pet was
-   * involved. Caller MUST hold applications.read.
+   * ADOPTED status with actioned_at (ADS-1025 — when the application
+   * reached that status, not when it was created) inside
+   * [actioned_after, actioned_before], optionally narrowed to one
+   * rescue (ADS-1023). Deliberately narrow: the caller already knows
+   * the adopter_ids (it resolved them itself); the response reveals
+   * only the count, never which ids matched or which rescue/pet was
+   * involved. Caller MUST hold applications.read. adopter_ids is
+   * capped at 10,000 entries (ADS-1024) — rejected with
+   * INVALID_ARGUMENT above that.
    */
   countAdoptedAdopters: handleUnaryCall<CountAdoptedAdoptersRequest, CountAdoptedAdoptersResponse>;
   /**
@@ -5721,11 +5768,15 @@ export interface ApplicationServiceClient extends Client {
    * caller-supplied set of adopter user ids (e.g. an event's
    * registrants, resolved by the calling service), returns how many of
    * them have at least one application that reached APPROVED or
-   * ADOPTED status with created_at inside [created_after,
-   * created_before]. Deliberately narrow: the caller already knows the
-   * adopter_ids (it resolved them itself); the response reveals only
-   * the count, never which ids matched or which rescue/pet was
-   * involved. Caller MUST hold applications.read.
+   * ADOPTED status with actioned_at (ADS-1025 — when the application
+   * reached that status, not when it was created) inside
+   * [actioned_after, actioned_before], optionally narrowed to one
+   * rescue (ADS-1023). Deliberately narrow: the caller already knows
+   * the adopter_ids (it resolved them itself); the response reveals
+   * only the count, never which ids matched or which rescue/pet was
+   * involved. Caller MUST hold applications.read. adopter_ids is
+   * capped at 10,000 entries (ADS-1024) — rejected with
+   * INVALID_ARGUMENT above that.
    */
   countAdoptedAdopters(
     request: CountAdoptedAdoptersRequest,
