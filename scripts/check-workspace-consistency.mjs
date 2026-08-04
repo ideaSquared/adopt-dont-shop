@@ -38,6 +38,9 @@
  *  12. Every services/*.vitest.config.ts imports defineServiceConfig from
  *     vitest.shared.config.ts — no ad-hoc defineConfig at service scope
  *     (ADS-985).
+ *  14. Every services/* and e2e package.json ships lint, format and
+ *     format:check scripts (ADS-1003) — lib.* and app.* already require
+ *     these via their check #1 script lists.
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -97,6 +100,19 @@ const EXPECTED_LIB_FORMAT_BODIES = {
 };
 
 const EXPECTED_LINT_BODIES = ['eslint .', 'eslint src'];
+
+// ADS-1003: services/* and e2e aren't covered by REQUIRED_LIB_SCRIPTS /
+// REQUIRED_APP_SCRIPTS (their other required scripts differ per package —
+// e.g. services ship db:migrate, e2e ships test:smoke), but every workspace
+// must still ship lint/format/format:check so `pnpm lint` / `pnpm
+// format:check` never silently skip a package — e2e shipped none of the
+// three until this ticket.
+const REQUIRED_LINT_FORMAT_SCRIPTS = ['lint', 'format', 'format:check'];
+
+export function checkLintFormatScripts(dir, scripts) {
+  const missing = REQUIRED_LINT_FORMAT_SCRIPTS.filter(name => !scripts[name]);
+  return missing.length > 0 ? [`[${dir}] missing scripts: ${missing.join(', ')} (ADS-1003)`] : [];
+}
 
 // After the Phase 0 restructure (apps/ + packages/lib.* + services/), libs
 // live under packages/ and apps live under apps/. The functions below still
@@ -940,6 +956,23 @@ function main() {
 
   // ADS-1029: every testable package must be reachable by a CI test filter.
   failures.push(...checkCiFilterReachability());
+
+  // 14. services/* and e2e must ship lint/format/format:check too — libs/apps
+  //     already require them via REQUIRED_LIB_SCRIPTS / REQUIRED_APP_SCRIPTS
+  //     (ADS-1003).
+  for (const dir of [...services.map(svc => `services/${svc}`), 'e2e']) {
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8'));
+    } catch {
+      // Every entry here comes from a real services/* directory (listServices())
+      // or the known e2e workspace, so a missing/unreadable package.json is
+      // itself drift worth failing on, not something to skip past.
+      failures.push(`[${dir}] package.json missing or unreadable (ADS-1003)`);
+      continue;
+    }
+    failures.push(...checkLintFormatScripts(dir, pkg.scripts || {}));
+  }
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');

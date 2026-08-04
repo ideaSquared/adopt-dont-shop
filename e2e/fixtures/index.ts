@@ -13,7 +13,6 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
-  // eslint-disable-next-line no-empty-pattern -- Playwright fixture signature requires a destructured first arg
   apiAs: async ({}, use) => {
     const clients: ApiClient[] = [];
     await use(async role => {
