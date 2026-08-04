@@ -1,6 +1,22 @@
 # Infrastructure Notes
 
-## Upload serving: nginx auth_request pattern (ADS-422)
+## Upload serving: nginx auth_request pattern (ADS-422) — SUPERSEDED by ADS-1034
+
+> **This design is no longer live.** The `/api/v1/uploads/authorize` endpoint
+> this section describes was never actually ported to the gateway when
+> `service.backend` was deleted (phase 11) — the `auth_request` block below
+> pointed at a route that didn't exist, so every `/uploads/` request in
+> production 500'd. ADS-1034 removed the `auth_request` gate entirely and
+> made `GET /uploads-signed/*` (already implemented, previously orphaned —
+> see `services/gateway/src/routes/uploads.ts`) the single retrieval path for
+> access-controlled files: the gateway mints a short-lived HMAC-signed URL
+> per request, only after its own authorization check passes (for
+> `documents`, that's service.applications' AddDocument/ListDocuments RPCs).
+> `nginx/nginx.prod.conf`'s `/uploads/` location now serves public categories
+> (e.g. `pets`) unauthenticated and denies `/uploads/documents/` outright, so
+> the private category is never reachable via a raw path. The rest of this
+> section is kept as a historical record of the design that preceded it —
+> do not follow its deploy/rollback instructions.
 
 ### Background
 
