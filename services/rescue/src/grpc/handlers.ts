@@ -21,7 +21,14 @@
 
 import { randomBytes, randomUUID } from 'node:crypto';
 
-import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import {
+  fieldMask,
+  fieldWriteGuard,
+  hasPermission,
+  requirePermission,
+  resolveFieldAccessMap,
+  type Principal,
+} from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
 import {
@@ -167,6 +174,38 @@ function rowToProto(row: RescueRow): Rescue {
   };
 }
 
+// --- Field-level read masking (ADS-1037) ------------------------------
+//
+// Every non-optional Rescue proto field, at its safe "hidden" zero value.
+// `fieldMask` returns a Partial<Rescue> (it omits whatever the caller's
+// role can't read); spreading that over ZERO_RESCUE keeps the result a
+// fully-typed Rescue — masked-out required fields read as their zero
+// value (e.g. an empty settingsJson) rather than being absent, since
+// proto3 scalars have no "missing" representation. Masked-out optional
+// fields are simply left undefined, matching their proto `optional` type.
+const ZERO_RESCUE: Rescue = {
+  rescueId: '',
+  name: '',
+  email: '',
+  address: '',
+  city: '',
+  postcode: '',
+  country: '',
+  contactPerson: '',
+  status: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+  settingsJson: '',
+  createdAt: '',
+  updatedAt: '',
+  plan: '',
+};
+
+// Applied at the owning service's serialisation boundary (this handler
+// file), not the gateway, so a direct gRPC caller can't bypass it.
+function maskRescue(rescue: Rescue, principal: Principal): Rescue {
+  const accessMap = resolveFieldAccessMap('rescues', principal.roles);
+  return { ...ZERO_RESCUE, ...fieldMask(rescue, accessMap) };
+}
+
 function invitationRowToProto(row: InvitationRow): Invitation {
   return {
     invitationId: row.invitation_id,
@@ -295,7 +334,7 @@ export async function getRescue(
   if (!row) {
     throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
   }
-  return { rescue: rowToProto(row) };
+  return { rescue: maskRescue(rowToProto(row), principal) };
 }
 
 // --- List ------------------------------------------------------------
@@ -387,10 +426,32 @@ export async function listRescues(
       ? encodeCursor({ createdAt: last.created_at.toISOString(), rescueId: last.rescue_id })
       : undefined;
 
-  return { rescues: page.map(rowToProto), nextCursor };
+  return { rescues: page.map(row => maskRescue(rowToProto(row), principal)), nextCursor };
 }
 
 // --- Update ----------------------------------------------------------
+
+// Every UpdateRescueRequest field the SQL-building block below can set,
+// in the same field-name spelling `resolveFieldAccessMap('rescues', ...)`
+// uses — the single list both the write guard and the SQL builder read
+// from, so they can't silently drift apart.
+const UPDATABLE_RESCUE_FIELDS = [
+  'name',
+  'phone',
+  'address',
+  'city',
+  'county',
+  'postcode',
+  'country',
+  'website',
+  'description',
+  'mission',
+  'contactPerson',
+  'contactTitle',
+  'contactEmail',
+  'contactPhone',
+  'settingsJson',
+] as const satisfies ReadonlyArray<keyof UpdateRescueRequest>;
 
 export async function updateRescue(
   deps: HandlerDeps,
@@ -407,6 +468,27 @@ export async function updateRescue(
   }
   if (!requirePermission(principal, RESCUES_UPDATE, { rescueId: req.rescueId as RescueId })) {
     throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_UPDATE}' required for this rescue`);
+  }
+
+  // Field-level write guard (ADS-1037) — reject the whole update up front
+  // if it names a field the principal's role(s) can't write, before any
+  // SQL is built. Only fields the request actually supplies are checked.
+  const requestedFields: Partial<Record<(typeof UPDATABLE_RESCUE_FIELDS)[number], unknown>> = {};
+  for (const field of UPDATABLE_RESCUE_FIELDS) {
+    const value = req[field];
+    if (value !== undefined) {
+      requestedFields[field] = value;
+    }
+  }
+  const writeCheck = fieldWriteGuard(
+    requestedFields,
+    resolveFieldAccessMap('rescues', principal.roles)
+  );
+  if (!writeCheck.allowed) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `cannot write field(s): ${writeCheck.blockedFields.join(', ')}`
+    );
   }
 
   const sets: string[] = [];

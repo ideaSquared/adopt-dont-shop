@@ -5,9 +5,23 @@
  * Database overrides take precedence over these defaults.
  *
  * Convention: Any field not listed defaults to 'none' (secure by default).
- * Field names MUST exactly match the keys emitted by the backend API —
- * i.e., the Sequelize model's `toJSON()` output. All four models (Users,
- * Rescues, Pets, Applications) now emit camelCase.
+ *
+ * Enforcement boundary (ADS-1037): these microservices have no Sequelize
+ * models and no shared `toJSON()` — each service's gRPC handler builds its
+ * own response proto with its own `rowToProto()` mapper (e.g.
+ * services/rescue/src/grpc/handlers.ts, services/pets/src/grpc/handlers.ts).
+ * Field names here MUST match the keys THAT mapper actually returns, not
+ * a shared model shape. `fieldMask` / `fieldWriteGuard`
+ * (@adopt-dont-shop/authz) are applied inside the owning service's
+ * handler, at that mapper's boundary — never at the gateway, so a direct
+ * gRPC caller can't bypass it.
+ *
+ * Verified current as of ADS-1037 for `rescues` (services/rescue). The
+ * `users`, `applications`, and `pets` blocks below still describe an
+ * older shape (the deleted monolith's Sequelize `toJSON()` output) that
+ * predates the microservices split and has NOT been re-verified against
+ * the live proto/row shapes those services actually return — treat them
+ * as a starting point, not ground truth, until audited the same way.
  */
 import type { FieldAccessLevel, FieldPermissionConfig } from '../types/field-permissions.js';
 import type { UserRole } from '../types/index.js';
@@ -22,8 +36,14 @@ const NONE: FieldAccessLevel = 'none';
 /**
  * User resource field permissions
  *
- * User model uses camelCase attributes with `underscored: true` — toJSON
- * emits camelCase, so defaults use camelCase keys.
+ * NOT YET AUDITED against the current services/auth gRPC shape (ADS-1037;
+ * see the file-level comment above) — several keys below (phoneNumber,
+ * dateOfBirth, addressLine*, postalCode, ...) don't match
+ * `rowToProtoUser()` in services/auth/src/grpc/handlers.ts, and the
+ * request-body aliases below assume Express-style snake_case bodies that
+ * the gRPC UpdateAccount/AdminUpdateUser requests don't use. No service
+ * enforces this block yet; audit it against the real proto shape before
+ * wiring fieldMask/fieldWriteGuard onto any `users` route.
  *
  * Sensitive fields like password, tokens, and 2FA secrets are NEVER exposed.
  * Contact details (email, phone) are restricted based on role.
@@ -324,9 +344,19 @@ const userFieldPermissions: FieldPermissionConfig['users'] = {
 /**
  * Application resource field permissions
  *
- * The Application model now emits camelCase from toJSON() (same as User/Rescue),
- * so all field keys here are camelCase. Both the response shape (fieldMask) and
- * the request body shape (fieldWriteGuard) use the same camelCase keys.
+ * NOT YET AUDITED against the current services/applications gRPC shape
+ * (ADS-1037; see the file-level comment above). services/applications is
+ * event-sourced: `GetApplication` returns the proto built by
+ * `stateToProto()` (services/applications/src/grpc/state-mapper.ts) —
+ * fields like `id`, `data`, `reviewNotes`, `notes`, `tags`, `score` below
+ * don't exist on that proto (it has `applicationId`, `answersJson`,
+ * `decisionNotes`, `homeVisitNotes`, etc. instead), and `documents` is
+ * never embedded in `Application` at all — it's returned by the separate
+ * `ListDocuments` RPC (services/applications/src/grpc/document-handlers.ts).
+ * `homeVisitNotes` is the one field below confirmed to match the real
+ * proto; it's the field wired up in this PR. Audit the rest against the
+ * real proto shape before wiring fieldMask/fieldWriteGuard any further
+ * onto `applications` routes.
  *
  * Interview notes, home visit notes, and scoring are restricted.
  * Applicants see their own application data but not internal notes.
@@ -515,8 +545,17 @@ const applicationFieldPermissions: FieldPermissionConfig['applications'] = {
 /**
  * Pet resource field permissions
  *
- * Pet model uses camelCase attributes with individual `field:` column
- * mappings — toJSON emits camelCase, so defaults use camelCase keys.
+ * NOT YET AUDITED against the current services/pets gRPC shape (ADS-1037;
+ * see the file-level comment above). `rowToProto()` in
+ * services/pets/src/grpc/handlers.ts nests `medicalNotes` /
+ * `behavioralNotes` / `color` / `goodWith*` inside a JSON-stringified
+ * `extraJson` field rather than returning them as top-level proto keys,
+ * and several keys below (microchipId, surrenderReason, trainingNotes,
+ * intakeDate, ...) aren't on the current proto/row at all — the service
+ * already does its own ad hoc masking of medicalNotes/behavioralNotes via
+ * an `includeInternalNotes` flag (see `isPrivilegedReader`), independent
+ * of this config. Audit against the real shape before wiring
+ * fieldMask/fieldWriteGuard onto `pets` routes.
  *
  * Most pet fields are publicly readable. Internal notes (behavioral,
  * medical, surrender reason) are restricted.
@@ -894,8 +933,16 @@ const petFieldPermissions: FieldPermissionConfig['pets'] = {
 /**
  * Rescue resource field permissions
  *
- * Rescue model uses camelCase attributes with individual `field:` column
- * mappings — toJSON emits camelCase, so defaults use camelCase keys.
+ * Field keys match the camelCase field names on the `Rescue` proto
+ * message (packages/proto/proto/adopt_dont_shop/rescue/v1/rescue.proto),
+ * i.e. what `rowToProto()` in services/rescue/src/grpc/handlers.ts
+ * actually returns — the enforcement boundary for this resource (see
+ * ADS-1037; this comment previously described the deleted monolith's
+ * Sequelize `toJSON()` output, which no longer exists).
+ *
+ * `readableId` has no backing proto field today; it's left in place
+ * (harmless — fieldMask only ever touches keys present in the payload)
+ * rather than removed as an unrelated cleanup.
  *
  * Most rescue info is public. Internal settings and verification state
  * are restricted.
@@ -926,9 +973,12 @@ const rescueFieldPermissions: FieldPermissionConfig['rescues'] = {
     verifiedBy: READ,
     verificationSource: READ,
     verificationFailureReason: READ,
-    settings: WRITE,
+    settingsJson: WRITE,
     createdAt: READ,
     updatedAt: READ,
+    plan: READ,
+    planExpiresAt: READ,
+    version: READ,
   },
   moderator: {
     rescueId: READ,
@@ -955,9 +1005,12 @@ const rescueFieldPermissions: FieldPermissionConfig['rescues'] = {
     verifiedBy: READ,
     verificationSource: READ,
     verificationFailureReason: NONE,
-    settings: NONE,
+    settingsJson: NONE,
     createdAt: READ,
     updatedAt: READ,
+    plan: READ,
+    planExpiresAt: READ,
+    version: READ,
   },
   support_agent: {
     rescueId: READ,
@@ -984,9 +1037,12 @@ const rescueFieldPermissions: FieldPermissionConfig['rescues'] = {
     verifiedBy: READ,
     verificationSource: READ,
     verificationFailureReason: NONE,
-    settings: NONE,
+    settingsJson: NONE,
     createdAt: READ,
     updatedAt: READ,
+    plan: READ,
+    planExpiresAt: READ,
+    version: READ,
   },
   rescue_staff: {
     rescueId: READ,
@@ -1013,9 +1069,12 @@ const rescueFieldPermissions: FieldPermissionConfig['rescues'] = {
     verifiedBy: NONE,
     verificationSource: READ,
     verificationFailureReason: READ,
-    settings: WRITE,
+    settingsJson: WRITE,
     createdAt: READ,
     updatedAt: READ,
+    plan: READ,
+    planExpiresAt: READ,
+    version: READ,
   },
   adopter: {
     rescueId: READ,
@@ -1042,9 +1101,12 @@ const rescueFieldPermissions: FieldPermissionConfig['rescues'] = {
     verifiedBy: NONE,
     verificationSource: NONE,
     verificationFailureReason: NONE,
-    settings: NONE,
+    settingsJson: NONE,
     createdAt: NONE,
     updatedAt: NONE,
+    plan: NONE,
+    planExpiresAt: NONE,
+    version: NONE,
   },
   super_admin: {
     rescueId: READ,
@@ -1071,9 +1133,12 @@ const rescueFieldPermissions: FieldPermissionConfig['rescues'] = {
     verifiedBy: READ,
     verificationSource: READ,
     verificationFailureReason: READ,
-    settings: WRITE,
+    settingsJson: WRITE,
     createdAt: READ,
     updatedAt: READ,
+    plan: READ,
+    planExpiresAt: READ,
+    version: READ,
   },
 };
 
