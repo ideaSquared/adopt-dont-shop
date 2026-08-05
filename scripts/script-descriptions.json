@@ -68,6 +68,7 @@
   "check:docs-freshness": "Report (non-blocking): broken internal/external doc links and docs untouched for 12+ months.",
   "check:stories": "Report Storybook stories coverage for packages/lib.components/src/components/ui/.",
   "check:readmes": "Report (non-blocking): workspace READMEs missing a section from docs/templates/README.{app,service,lib}.md.",
+  "check:no-only": "Guard: fail if a committed test file uses a focused test (.only / fdescribe / fit).",
   "ratchet:coverage": "Raise a package's declared coverage-threshold floor (in its own vitest.config.ts) towards current measured coverage (never lowers it); usage: -- --package <path>.",
   "ratchet:stories-coverage": "Raise the persisted Storybook stories-coverage floor towards current measured coverage (never lowers it).",
   "generate:dependency-docs": "Regenerate docs/libraries/*-consumers.md and the docs/README.md library-consumer-lists block.",
