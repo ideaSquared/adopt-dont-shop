@@ -1,0 +1,194 @@
+# ============================================================================
+# Self-hosted observability stack — prod/staging overlay (ADS-1041)
+# ============================================================================
+# Opt-in overlay layered on top of docker-compose.prod.yml / .staging.yml. The
+# deploy workflow adds `-f docker-compose.observability.yml` only when the host
+# .env sets OBSERVABILITY_ENABLED=true, so existing deploys are unchanged until
+# an operator turns it on. Bring it up manually with:
+#
+#   docker compose -f docker-compose.<env>.yml -f docker-compose.observability.yml \
+#     --env-file .env up -d
+#
+# Services attach to the base file's `default` network (ads-<env>-network), so
+# the app services resolve loki/prometheus/tempo/alertmanager by name and expose
+# no host ports — reach Grafana over an SSH tunnel (see docs/runbooks/
+# observability-enable.md). All app services must have LOKI_URL / OTEL_EXPORTER_
+# OTLP_ENDPOINT / SENTRY_DSN set in the host .env for signals to flow.
+#
+# Config lives under ./observability/ and MUST be provisioned onto the host at
+# /opt/ads/<env>/observability/ alongside the compose file (the host holds no
+# repo checkout — deploy.yml:517). Images are tag-pinned to match the dev
+# `observability` profile; Renovate digest-pins them (ADS-1053).
+# ============================================================================
+
+x-obs-logging: &obs-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-obs-hardening: &obs-hardening
+  restart: always
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  logging: *obs-logging
+
+services:
+  prometheus:
+    <<: *obs-hardening
+    image: prom/prometheus:v3.1.0
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      # 30d retention covers the 30-day SLO error-budget window (docs/slo.md).
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9090/-/ready || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+        reservations:
+          cpus: '0.1'
+          memory: 128m
+
+  loki:
+    <<: *obs-hardening
+    image: grafana/loki:3.2.0
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./observability/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki_data:/loki
+    expose:
+      - "3100"
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+        reservations:
+          cpus: '0.1'
+          memory: 128m
+
+  tempo:
+    <<: *obs-hardening
+    image: grafana/tempo:2.6.1
+    command: -config.file=/etc/tempo/tempo.yaml
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    expose:
+      - "3200"   # Tempo query API (Grafana)
+      - "4318"   # OTLP/HTTP ingest (services → OTEL_EXPORTER_OTLP_ENDPOINT)
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+        reservations:
+          cpus: '0.1'
+          memory: 128m
+
+  alertmanager:
+    <<: *obs-hardening
+    image: prom/alertmanager:v0.28.0
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./observability/alertmanager/secrets:/etc/alertmanager/secrets:ro
+      - alertmanager_data:/alertmanager
+    expose:
+      - "9093"
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9093/-/ready || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256m
+        reservations:
+          cpus: '0.1'
+          memory: 64m
+
+  grafana:
+    <<: *obs-hardening
+    image: grafana/grafana:11.3.0
+    environment:
+      # Real admin password required — no anonymous access, no default creds.
+      GF_SECURITY_ADMIN_PASSWORD: '${GF_SECURITY_ADMIN_PASSWORD:?Error: GF_SECURITY_ADMIN_PASSWORD required to enable observability}'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_AUTH_DISABLE_LOGIN_FORM: 'false'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      # Reached via SSH tunnel to localhost; set GF_SERVER_ROOT_URL in the host
+      # .env if you front it with a reverse proxy.
+      GF_SERVER_ROOT_URL: '${GF_SERVER_ROOT_URL:-http://localhost:3030}'
+      # Stay on our own infra — no update checks / usage phone-home.
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    expose:
+      - "3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512m
+        reservations:
+          cpus: '0.1'
+          memory: 64m
+
+volumes:
+  prometheus_data:
+    driver: local
+  loki_data:
+    driver: local
+  tempo_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  grafana_data:
+    driver: local
