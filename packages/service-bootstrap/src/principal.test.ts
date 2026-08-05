@@ -223,37 +223,82 @@ describe('assertPrincipalVerificationConfig', () => {
     resetDefaultPrincipalSigningKeyForTests();
   };
 
-  it('does not throw when a signing key is configured (even in production)', () => {
-    withKey('a-signing-key-that-is-at-least-32-bytes');
-    expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).not.toThrow();
-  });
+  const STRONG_KEY = 'a-signing-key-that-is-at-least-32-bytes';
 
-  it('throws when the signing key is shorter than 32 bytes', () => {
-    withKey('too-short-key');
-    expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).toThrow(
-      InsecurePrincipalConfigError
+  describe('with a signing key configured (the secure path)', () => {
+    it.each(['development', 'test', 'staging', 'production', 'qa', ''])(
+      'does not throw for NODE_ENV=%j when a strong key is set',
+      NODE_ENV => {
+        withKey(STRONG_KEY);
+        expect(() => assertPrincipalVerificationConfig({ NODE_ENV })).not.toThrow();
+      }
     );
+
+    it('does not throw for an unset NODE_ENV when a strong key is set', () => {
+      withKey(STRONG_KEY);
+      expect(() => assertPrincipalVerificationConfig({})).not.toThrow();
+    });
+
+    it('throws when the signing key is shorter than 32 bytes', () => {
+      withKey('too-short-key');
+      expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).toThrow(
+        InsecurePrincipalConfigError
+      );
+    });
   });
 
-  it('throws in production when no key is set and no escape hatch', () => {
-    withKey(undefined);
-    expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).toThrow(
-      InsecurePrincipalConfigError
+  describe('without a signing key', () => {
+    it('allows unsigned header-trust in development', () => {
+      withKey(undefined);
+      expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'development' })).not.toThrow();
+    });
+
+    it('allows unsigned header-trust in test', () => {
+      withKey(undefined);
+      expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'test' })).not.toThrow();
+    });
+
+    // ADS-1050: the bug being fixed. A staging deploy without the key must NOT
+    // silently fall back to trusting forgeable x-user-* headers.
+    it('fails closed in staging', () => {
+      withKey(undefined);
+      expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'staging' })).toThrow(
+        InsecurePrincipalConfigError
+      );
+    });
+
+    it('fails closed in production', () => {
+      withKey(undefined);
+      expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).toThrow(
+        InsecurePrincipalConfigError
+      );
+    });
+
+    it.each(['qa', 'staging-2', 'PRODUCTION', ''])(
+      'fails closed for an unrecognised/empty NODE_ENV=%j (treated as deployed)',
+      NODE_ENV => {
+        withKey(undefined);
+        expect(() => assertPrincipalVerificationConfig({ NODE_ENV })).toThrow(
+          InsecurePrincipalConfigError
+        );
+      }
     );
-  });
 
-  it('allows production header-trust only with the explicit ALLOW_UNSIGNED_PRINCIPAL opt-in', () => {
-    withKey(undefined);
-    expect(() =>
-      assertPrincipalVerificationConfig({
-        NODE_ENV: 'production',
-        ALLOW_UNSIGNED_PRINCIPAL: 'true',
-      })
-    ).not.toThrow();
-  });
+    it('fails closed when NODE_ENV is unset (safe default)', () => {
+      withKey(undefined);
+      expect(() => assertPrincipalVerificationConfig({})).toThrow(InsecurePrincipalConfigError);
+    });
 
-  it('does not throw outside production when no key is set (dev / phased rollout)', () => {
-    withKey(undefined);
-    expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'development' })).not.toThrow();
+    // ADS-1050: ALLOW_UNSIGNED_PRINCIPAL was a second bypass — it could
+    // force-open production. It must no longer open ANY deployed environment.
+    it.each(['production', 'staging', 'qa'])(
+      'ALLOW_UNSIGNED_PRINCIPAL=true cannot force-open deployed NODE_ENV=%j',
+      NODE_ENV => {
+        withKey(undefined);
+        expect(() =>
+          assertPrincipalVerificationConfig({ NODE_ENV, ALLOW_UNSIGNED_PRINCIPAL: 'true' })
+        ).toThrow(InsecurePrincipalConfigError);
+      }
+    );
   });
 });
