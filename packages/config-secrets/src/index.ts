@@ -24,8 +24,14 @@ const PLACEHOLDER_PREFIX = 'change_this';
 const isPlaceholderValue = (value: string): boolean =>
   value.toLowerCase().startsWith(PLACEHOLDER_PREFIX);
 
+// Trim NODE_ENV before comparing — env-file values can carry trailing/leading
+// whitespace, and a raw `=== 'production'` would then fail-open, silently
+// skipping the production-only security checks below. Mirrors how services read
+// NODE_ENV elsewhere (`env.NODE_ENV?.trim()`).
+const isProductionEnv = (env: NodeJS.ProcessEnv): boolean => env.NODE_ENV?.trim() === 'production';
+
 const assertNotPlaceholder = (name: string, value: string, env: NodeJS.ProcessEnv): void => {
-  if (env.NODE_ENV === 'production' && isPlaceholderValue(value)) {
+  if (isProductionEnv(env) && isPlaceholderValue(value)) {
     throw new Error(
       `${name} is set to a placeholder value — replace it with a real secret before deploying to production`
     );
@@ -167,7 +173,7 @@ export const requireDistinctSecrets = (
   secrets: Record<string, string>,
   env: NodeJS.ProcessEnv = process.env
 ): void => {
-  if (env.NODE_ENV !== 'production') {
+  if (!isProductionEnv(env)) {
     return;
   }
   const seenByValue = new Map<string, string>();

@@ -168,6 +168,15 @@ describe('requireSecret', () => {
     const value = 'a-real-access-signing-secret-value-32b';
     expect(requireSecret('JWT_SECRET', { NODE_ENV: 'production', JWT_SECRET: value })).toBe(value);
   });
+
+  it('trims NODE_ENV so whitespace cannot fail-open the production placeholder check', () => {
+    expect(() =>
+      requireSecret('JWT_SECRET', {
+        NODE_ENV: ' production ',
+        JWT_SECRET: 'CHANGE_THIS_jwt_secret',
+      })
+    ).toThrow(/JWT_SECRET is set to a placeholder value/);
+  });
 });
 
 describe('requireHexSecret', () => {
@@ -232,6 +241,15 @@ describe('requireDistinctSecrets', () => {
         { NODE_ENV: 'production' }
       )
     ).not.toThrow();
+  });
+
+  it('trims NODE_ENV so whitespace cannot fail-open the production distinct check', () => {
+    expect(() =>
+      requireDistinctSecrets(
+        { JWT_SECRET: 'same', JWT_REFRESH_SECRET: 'same' },
+        { NODE_ENV: 'production\n' }
+      )
+    ).toThrow(/JWT_SECRET and JWT_REFRESH_SECRET must be distinct/);
   });
 });
 
