@@ -13,6 +13,12 @@
     "eslintconfig",
     "react"
   ],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"*.js\"",
+    "format:check": "prettier --check \"*.js\""
+  },
   "dependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*"
   },
