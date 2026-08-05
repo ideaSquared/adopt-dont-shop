@@ -1,0 +1,76 @@
+# Alertmanager routing for the deployed observability stack (ADS-1041 / ADS-1052).
+#
+# Routes the SLO alert rules (infra/prometheus/rules/, loaded by Prometheus) by
+# their `severity` label. Ships INERT: both receivers are defined but carry no
+# notifier configs, so Alertmanager starts cleanly with zero secrets and simply
+# drops notifications (alerts still group and show in the Alertmanager UI).
+#
+# Wire a real destination LATER (the ADS-1041 "template both, decide later"
+# choice): uncomment the slack_configs / email_configs block under the relevant
+# receiver and drop the secret into observability/alertmanager/secrets/ on the
+# host (mounted read-only at /etc/alertmanager/secrets/). Alertmanager reads the
+# webhook URL / SMTP password from a file so it never lands in `docker inspect`.
+# Reload with `docker compose kill -s HUP alertmanager` (or restart).
+
+global:
+  resolve_timeout: 5m
+
+route:
+  # Group alerts so a burst from one service arrives as one notification.
+  group_by: ['alertname', 'severity', 'job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  # Default sink — inert. Every alert also matches a severity child route below.
+  receiver: 'warning-chat'
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: 'critical-pager'
+      # Page fast and re-page more often for criticals.
+      group_wait: 10s
+      repeat_interval: 1h
+    - matchers:
+        - severity = "warning"
+      receiver: 'warning-chat'
+
+# Suppress a warning for the same alertname/job once its critical is already
+# firing (e.g. don't send "high latency" warning while "service down" pages).
+inhibit_rules:
+  - source_matchers: [severity = "critical"]
+    target_matchers: [severity = "warning"]
+    equal: ['alertname', 'job']
+
+receivers:
+  # ---- CRITICAL → paging channel -----------------------------------------
+  # Inert until a notifier is added. Recommended: Slack (or PagerDuty/Opsgenie
+  # for true on-call escalation). To activate Slack, create the secret file
+  #   observability/alertmanager/secrets/slack_api_url   (the incoming-webhook URL)
+  # and uncomment:
+  - name: 'critical-pager'
+    # slack_configs:
+    #   - channel: '#alerts-critical'
+    #     api_url_file: /etc/alertmanager/secrets/slack_api_url
+    #     send_resolved: true
+    #     title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+    #     text: >-
+    #       {{ range .Alerts }}{{ .Annotations.summary }}
+    #       {{ .Annotations.description }}
+    #       Runbook: {{ .Annotations.runbook }}
+    #       {{ end }}
+
+  # ---- WARNING → chat channel --------------------------------------------
+  # Inert until a notifier is added. Slack example (create
+  #   observability/alertmanager/secrets/slack_api_url) or SMTP email:
+  - name: 'warning-chat'
+    # slack_configs:
+    #   - channel: '#alerts'
+    #     api_url_file: /etc/alertmanager/secrets/slack_api_url
+    #     send_resolved: true
+    # email_configs:
+    #   - to: 'oncall@adoptdontshop.com'
+    #     from: 'alertmanager@adoptdontshop.com'
+    #     smarthost: 'smtp.example.com:587'
+    #     auth_username: 'alertmanager@adoptdontshop.com'
+    #     auth_password_file: /etc/alertmanager/secrets/smtp_password
+    #     send_resolved: true

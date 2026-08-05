@@ -1,0 +1,12 @@
+apiVersion: 1
+
+# Auto-provisioned Tempo datasource (ADS-1041). Grafana picks this up on boot
+# via the provisioning bind-mount. Traces arrive from every service's OTel SDK
+# (OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318); Grafana queries Tempo on :3200.
+datasources:
+  - name: Tempo
+    type: tempo
+    access: proxy
+    uid: tempo
+    url: http://tempo:3200
+    isDefault: false
