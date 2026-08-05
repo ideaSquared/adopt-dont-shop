@@ -29,10 +29,11 @@ const record = (over: Partial<OutboxRecord> = {}): OutboxRecord => ({
 });
 
 // A pg pool/client double whose `query` is scripted by matching on the SQL
-// keyword. Each test supplies what the claim SELECT/UPDATE returns.
+// keyword. Each test supplies what the claim `SELECT ... FOR UPDATE` returns;
+// BEGIN/COMMIT/DELETE/UPDATE all fall through to an empty result.
 function makePool(claimRows: Record<string, unknown>[]) {
   const query = vi.fn(async (sql: string) => {
-    if (sql.includes('UPDATE') && sql.includes('RETURNING')) {
+    if (sql.includes('FOR UPDATE SKIP LOCKED')) {
       return { rows: claimRows };
     }
     if (sql.includes('SELECT count(*)')) {
@@ -163,7 +164,7 @@ describe('relayOutboxOnce', () => {
     expect(deleted).toBe(false);
     // ...and the failure is recorded on the row.
     const stamped = query.mock.calls.some(
-      ([sql, params]) => String(sql).includes('SET last_error') && params?.[1] === 'no stream ack'
+      ([sql, params]) => String(sql).includes('last_error') && params?.[1] === 'no stream ack'
     );
     expect(stamped).toBe(true);
   });
@@ -228,6 +229,18 @@ describe('flushInline', () => {
     } as unknown as NatsConnection;
 
     await expect(flushInline(nats, { query }, [record()])).resolves.toBeUndefined();
+  });
+
+  it('counts an inline publish failure on the shared failure metric', async () => {
+    const query = vi.fn().mockResolvedValue({ rows: [] });
+    const nats = {
+      jetstream: vi.fn().mockReturnValue({ publish: vi.fn().mockRejectedValue(new Error('x')) }),
+    } as unknown as NatsConnection;
+
+    await flushInline(nats, { query }, [record()]);
+
+    const text = await getMetricsRegistry().metrics();
+    expect(text).toContain('events_outbox_publish_failures_total 1');
   });
 });
 

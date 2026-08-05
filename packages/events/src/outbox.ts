@@ -147,6 +147,10 @@ export const flushInline = async (
       await deleteOutboxRow(executor, rec.outboxId);
       recordOutboxPublished();
     } catch (err) {
+      // Count it on the same failure metric the relay uses — an inline failure
+      // is non-fatal (the row waits for the relay) but it IS a publish failure,
+      // and hiding it would understate the true failure rate.
+      recordOutboxFailure();
       logger?.warn?.('outbox inline publish failed; relay will retry', {
         subject: rec.subject,
         err,
@@ -170,12 +174,25 @@ const rowToRecord = (row: {
   occurredAt: row.occurred_at,
 });
 
-// Claim a batch and publish it. The claim UPDATE bumps attempts and locks the
-// batch with FOR UPDATE SKIP LOCKED (so concurrent relays across replicas take
-// disjoint batches), then autocommits — releasing the locks BEFORE we do any
-// network I/O. Each row is published then DELETEd; a publish failure records
-// last_error and leaves the row for the next tick. Returns the count published
-// so the caller can drain until a short batch signals the backlog is empty.
+// Claim a batch and publish it, holding the claim lock through publish+delete.
+//
+// The whole sweep runs in ONE transaction: `SELECT ... FOR UPDATE SKIP LOCKED`
+// locks the batch, and the locks are held until COMMIT — so a second relay (a
+// sibling replica) skips these rows and picks up a disjoint batch instead of
+// re-claiming and re-publishing them. That matters because events published
+// with no id opt out of JetStream's Nats-Msg-Id de-dup, so a cross-replica
+// double-claim would be a genuine duplicate side-effect, not a deduped one.
+//
+// Holding a connection + row locks across the network publishes is acceptable
+// here where it would not be on the write hot-path: the relay is a background
+// backstop (the inline path handles the happy path), it runs on a bounded
+// batch, and it stops the batch at the first failure — so the hold is short.
+//
+// Each row is published then DELETEd (self-cleaning queue). A publish failure
+// stamps attempts/last_error, stops the batch (preserving per-subject order),
+// and COMMITs what already succeeded; the remaining rows wait for the next
+// sweep. Returns the count published so the caller can drain until a short
+// batch signals the backlog is empty.
 export const relayOutboxOnce = async (
   deps: Pick<OutboxRelayDeps, 'pool' | 'nats'>,
   batchSize: number
@@ -183,19 +200,17 @@ export const relayOutboxOnce = async (
   const { pool, nats } = deps;
   const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { rows } = await client.query(
-      `UPDATE ${OUTBOX_TABLE}
-          SET attempts = attempts + 1, last_attempt_at = now()
-        WHERE outbox_id IN (
-          SELECT outbox_id FROM ${OUTBOX_TABLE}
-           ORDER BY seq
-           LIMIT $1
-           FOR UPDATE SKIP LOCKED
-        )
-      RETURNING outbox_id, event_id, subject, payload, occurred_at`,
+      `SELECT outbox_id, event_id, subject, payload, occurred_at
+         FROM ${OUTBOX_TABLE}
+        ORDER BY seq
+        LIMIT $1
+        FOR UPDATE SKIP LOCKED`,
       [batchSize]
     );
     if (rows.length === 0) {
+      await client.query('COMMIT');
       return 0;
     }
     const js = nats.jetstream();
@@ -209,18 +224,27 @@ export const relayOutboxOnce = async (
         published += 1;
       } catch (err) {
         recordOutboxFailure();
-        await client
-          .query(`UPDATE ${OUTBOX_TABLE} SET last_error = $2 WHERE outbox_id = $1`, [
-            rec.outboxId,
-            err instanceof Error ? err.message : String(err),
-          ])
-          .catch(() => {
-            // The row stays pending regardless; a failed error-stamp is not
-            // worth surfacing.
-          });
+        await client.query(
+          `UPDATE ${OUTBOX_TABLE}
+              SET attempts = attempts + 1, last_attempt_at = now(), last_error = $2
+            WHERE outbox_id = $1`,
+          [rec.outboxId, err instanceof Error ? err.message : String(err)]
+        );
+        // Stop at the first failure — the remaining rows keep their lock until
+        // COMMIT and are retried next sweep, in order.
+        break;
       }
     }
+    await client.query('COMMIT');
     return published;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // The original error is the one that matters; a failed rollback usually
+      // means the connection is already gone.
+    }
+    throw err;
   } finally {
     client.release();
   }
@@ -241,7 +265,7 @@ export type OutboxRelayHandle = {
   stop: () => void;
 };
 
-const DEFAULT_INTERVAL_MS = 500;
+const DEFAULT_INTERVAL_MS = 1_000;
 const DEFAULT_BATCH_SIZE = 100;
 
 // Start the background relay. Returns a handle whose stop() clears the timer.
