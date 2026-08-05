@@ -133,4 +133,34 @@ describe('loadConfig', () => {
     expect(config.host).toBe('localhost');
     expect(config.schema).toBe('custom_schema');
   });
+
+  it('rejects reused access/refresh signing secrets in production (ADS-1047)', () => {
+    expect(() =>
+      loadConfig({
+        ...REQUIRED,
+        NODE_ENV: 'production',
+        // Same value for both signing secrets defeats their separation.
+        JWT_REFRESH_SECRET: VALID_ACCESS_SECRET,
+      })
+    ).toThrow(/JWT_SECRET and JWT_REFRESH_SECRET must be distinct/);
+  });
+
+  it('rejects a CHANGE_THIS placeholder signing secret in production (ADS-1047)', () => {
+    expect(() =>
+      loadConfig({
+        ...REQUIRED,
+        NODE_ENV: 'production',
+        JWT_SECRET: 'CHANGE_THIS_to_a_real_access_signing_secret',
+      })
+    ).toThrow(/JWT_SECRET is set to a placeholder value/);
+  });
+
+  it('tolerates reused signing secrets outside production (dev convenience)', () => {
+    const config = loadConfig({
+      ...REQUIRED,
+      JWT_REFRESH_SECRET: VALID_ACCESS_SECRET,
+    });
+    expect(config.jwtSecret).toBe(VALID_ACCESS_SECRET);
+    expect(config.jwtRefreshSecret).toBe(VALID_ACCESS_SECRET);
+  });
 });
