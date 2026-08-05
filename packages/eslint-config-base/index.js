@@ -32,7 +32,7 @@ export default tseslint.config(
           allow: ['warn', 'error'],
         },
       ],
-      'no-debugger': 'warn',
+      'no-debugger': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
       eqeqeq: ['error', 'always'],

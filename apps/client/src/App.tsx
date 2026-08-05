@@ -123,7 +123,7 @@ function App() {
           <ChatProvider>
             <FavoritesProvider>
               <MatchAcknowledgementProvider>
-                <DevLoginPanel />
+                {import.meta.env.DEV && <DevLoginPanel />}
                 {/* ADS-497 slice 5 (CookieBanner) + slice 2 (LegalReacceptanceModal).
                   Bundled into one lazy boundary so they share a single module
                   load — see LegalUI declaration above. The banner is anchored

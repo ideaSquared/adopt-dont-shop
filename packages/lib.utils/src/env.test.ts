@@ -62,7 +62,7 @@ describe('isDebugMode', () => {
 });
 
 describe('getUrlConfig', () => {
-  it('uses production defaults in production mode', () => {
+  it('falls back to a same-origin/relative base in production when no env vars are set', () => {
     vi.stubEnv('MODE', 'production');
     vi.stubEnv('VITE_API_BASE_URL', '');
     vi.stubEnv('VITE_API_URL', '');
@@ -70,8 +70,30 @@ describe('getUrlConfig', () => {
     vi.stubEnv('VITE_WEBSOCKET_URL', '');
     vi.stubEnv('VITE_SOCKET_URL', '');
     expect(getUrlConfig()).toEqual({
-      apiBaseUrl: 'https://api.adoptdontshop.com',
-      wsBaseUrl: 'wss://api.adoptdontshop.com',
+      apiBaseUrl: '',
+      wsBaseUrl: '',
+    });
+  });
+
+  it('derives a wss:// base url from an https api base url when no ws env vars are set', () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com');
+    vi.stubEnv('VITE_WS_BASE_URL', '');
+    vi.stubEnv('VITE_WEBSOCKET_URL', '');
+    vi.stubEnv('VITE_SOCKET_URL', '');
+    expect(getUrlConfig()).toEqual({
+      apiBaseUrl: 'https://api.example.com',
+      wsBaseUrl: 'wss://api.example.com',
+    });
+  });
+
+  it('derives a ws:// base url from an http api base url when no ws env vars are set', () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:5000');
+    vi.stubEnv('VITE_WS_BASE_URL', '');
+    vi.stubEnv('VITE_WEBSOCKET_URL', '');
+    vi.stubEnv('VITE_SOCKET_URL', '');
+    expect(getUrlConfig()).toEqual({
+      apiBaseUrl: 'http://localhost:5000',
+      wsBaseUrl: 'ws://localhost:5000',
     });
   });
 
@@ -159,5 +181,13 @@ describe('validateUrlConfig', () => {
     expect(result.errors).toHaveLength(2);
     expect(result.errors[0]).toContain('Invalid API base URL');
     expect(result.errors[1]).toContain('Invalid WebSocket base URL');
+  });
+
+  it('treats the same-origin production default (empty base) as valid', () => {
+    // Production with no VITE_API_BASE_URL falls back to a same-origin ('')
+    // base (ADS-1057); `new URL('')` would throw, so it must not be reported
+    // invalid.
+    vi.stubEnv('MODE', 'production');
+    expect(validateUrlConfig()).toEqual({ isValid: true, errors: [] });
   });
 });
