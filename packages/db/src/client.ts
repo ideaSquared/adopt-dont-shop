@@ -53,10 +53,11 @@ const DEFAULT_POOL_MAX = 8;
 
 // Resolve the pool ceiling with precedence: an explicit `max` in the caller's
 // options wins, then the per-service `DB_POOL_MAX` env var, then the default.
-// A malformed `DB_POOL_MAX` (non-integer or ≤ 0) is ignored in favour of the
-// default rather than silently shrinking the pool to something unusable.
+// Both the explicit value and `DB_POOL_MAX` are validated the same way — a
+// malformed input (non-integer or ≤ 0) is ignored in favour of the next source
+// rather than silently shrinking the pool to something unusable.
 function resolvePoolMax(configMax: number | undefined): number {
-  if (configMax !== undefined) {
+  if (configMax !== undefined && Number.isInteger(configMax) && configMax > 0) {
     return configMax;
   }
   const fromEnv = Number(process.env.DB_POOL_MAX);

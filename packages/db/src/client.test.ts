@@ -111,6 +111,21 @@ describe('createDbClient', () => {
       void pool.end();
     });
 
+    it('ignores a malformed explicit max (0, negative, non-integer) and falls back', () => {
+      delete process.env.DB_POOL_MAX;
+      for (const badMax of [0, -1, 2.5]) {
+        const pool = createDbClient({
+          schema: 'test',
+          connectionString: 'postgres://localhost/test',
+          max: badMax,
+        });
+
+        expect(pool.options.max).toBe(8);
+
+        void pool.end();
+      }
+    });
+
     it('applies the same pool max to the read replica pool', () => {
       process.env.DB_POOL_MAX = '6';
       const pool = createDbClient({

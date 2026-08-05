@@ -179,6 +179,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Operations — restore procedure](./operations/restore.md) — restoring Postgres and uploads from a snapshot
 - [Operations — dependency updates (Renovate)](./operations/dependency-updates.md) — automated dependency upgrades
 - [Operations — pet CSV import](./operations/pet-csv-import.md) — bulk-loading pet records
+- [Operations — connection budget](./operations/connection-budget.md) — Postgres pool `max` / `max_connections` budget and how to re-derive it when scaling
 - [Per-service rollback](./deploy/per-service-rollback.md) — hotfix and rollback a single service
 - [Distributed tracing](./observability/tracing.md) — OpenTelemetry setup and conventions
 - [DB backup runbook](./db-backup-runbook.md) — taking and restoring backups

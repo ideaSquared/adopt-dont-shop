@@ -48,9 +48,9 @@ up to 12 attempts × 250 ms).
 
 ## Environment variables consumed
 
-- `DB_POOL_MAX` (ADS-1042) — per-service pool ceiling. Optional; falls back to
-  `DEFAULT_POOL_MAX` (8). An explicit `max` in `createDbClient` options wins
-  over it. The connection budget behind the default lives in
+- `DB_POOL_MAX` (ADS-1042) — per-service pool ceiling. Optional; defaults to a
+  per-service pool ceiling of 8. An explicit `max` in `createDbClient` options
+  wins over it. The connection budget behind the default lives in
   [`docs/operations/connection-budget.md`](../../docs/operations/connection-budget.md).
 
 Otherwise callers pass `databaseUrl` / `connectionString` (typically their own
