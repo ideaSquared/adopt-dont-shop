@@ -116,7 +116,7 @@ provider) plus Redis/NATS clustering.
   compose model. Disproportionate to today's scale if the single-host risk is
   acceptable with a documented RTO/RPO.
 
-## Recommended decision
+## Decision
 
 **Adopt Option A now; defer Options B and C to a follow-up epic.**
 
@@ -196,16 +196,18 @@ current design.
 - **Start-first requires two versions to coexist briefly.** Any start-first or
   multi-replica scheme means old and new code serve traffic simultaneously for
   a window, which is only safe if schema changes are backward-compatible. This
-  ties directly to the expand/contract migration work in ADS-1044 (ADR 0008):
-  start-first must not ship ahead of expand/contract discipline, or a
+  ties directly to the expand/contract migration work in ADS-1044 (proposed
+  ADR 0008, landing in a separate PR): start-first must not ship ahead of
+  expand/contract discipline, or a
   not-yet-contracted column can break the still-running old version.
 - **Auto-rollback and already-applied migrations.** Each service migrates its
   own schema on container start (the `Dockerfile.service` entrypoint runs
   `db:migrate`). If a deploy applies a forward migration and _then_ fails
   health, rolling the _images_ back to `.last_sha` does **not** roll the
   _schema_ back — the old image may run against a newer schema. Auto-rollback is
-  therefore only safe under the same expand/contract guarantee (ADS-1044 / ADR
-  0008): forward migrations must be additive and old-code-compatible.
+  therefore only safe under the same expand/contract guarantee (ADS-1044;
+  proposed ADR 0008): forward migrations must be additive and
+  old-code-compatible.
   Destructive/contracting migrations must never ship in the same deploy as the
   code that depends on them.
 - **Stateful singletons still SPOF under Option A.** Auto-rollback and
