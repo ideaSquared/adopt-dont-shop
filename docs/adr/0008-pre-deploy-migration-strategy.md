@@ -153,7 +153,8 @@ export const up = async (pgm: MigrationBuilder): Promise<void> => {
   pgm.createIndex('pets', [...KEYSET_COLUMNS], {
     name: 'pets_created_at_pet_id_keyset_idx',
     concurrently: true,
-    ifNotExists: true, // re-run-safe after a failed build left a leftover
+    ifNotExists: true, // only no-ops an already-succeeded re-run; a FAILED build's
+    // INVALID leftover is dropped-and-recreated by the runner (see Risks)
   });
 };
 ```
@@ -212,12 +213,16 @@ for each migration file:
 ## Risks & rollout
 
 - **INVALID indexes on failure.** A `CONCURRENTLY` build that fails (or is
-  interrupted) leaves an INVALID index that Postgres will not use and will not
-  auto-clean. The gated runner must detect this (query `pg_index.indisvalid`),
-  `DROP INDEX` the leftover, and retry — and migrations should build with
-  `ifNotExists` so a retry is safe. This risk is _worse_ under migrate-on-boot
-  (a crash-loop retries forever), which is another reason to move to the gated
-  runner.
+  interrupted) leaves an INVALID index _of the same name_ that Postgres will not
+  use and will not auto-clean. Retry-safety comes from the gated runner
+  detecting this (query `pg_index.indisvalid`), `DROP INDEX`-ing the leftover,
+  and only then recreating. Note `ifNotExists` does **not** make a failed
+  `CONCURRENTLY` build re-run-safe: on retry it sees the same index name, no-ops,
+  and the invalid index is never rebuilt — it only correctly covers the
+  already-_succeeded_ re-run (a full re-apply of a migration that completed). So
+  the drop-invalid-first step is load-bearing; `ifNotExists` is not a substitute
+  for it. This risk is _worse_ under migrate-on-boot (a crash-loop retries
+  forever), which is another reason to move to the gated runner.
 - **Migration/runtime ordering during rollout.** With a pre-cutover runner the
   new schema exists _before_ new code is live, so the currently-running (old)
   code sees it first. This is only safe under expand/contract — the discipline
