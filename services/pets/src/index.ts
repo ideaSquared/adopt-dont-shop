@@ -36,6 +36,12 @@ const main = async (): Promise<void> => {
       await ensureStream(nats);
     }
 
+    // Drain the transactional outbox (ADS-1048): the relay publishes any
+    // events the inline fast-path in withTransaction did not (a crash or NATS
+    // outage in the commit→publish window) so no committed event is lost.
+    const { startOutboxRelay } = await import('@adopt-dont-shop/events');
+    const outboxRelay = startOutboxRelay({ pool, nats, logger });
+
     grpc = await startGrpcServer({ config, pool, nats, logger });
     grpcReady = true;
     // GDPR erasure subscriber — drops the user's data in this schema.
@@ -66,8 +72,10 @@ const main = async (): Promise<void> => {
       environment: config.environment,
     });
 
-    const teardown = (): Promise<void> =>
-      runServiceShutdown({ httpServer, grpc, nats, pool, logger });
+    const teardown = (): Promise<void> => {
+      outboxRelay.stop();
+      return runServiceShutdown({ httpServer, grpc, nats, pool, logger });
+    };
 
     const shutdown = async (signal: string): Promise<void> => {
       logger.info('service.pets shutting down', { signal });

@@ -1,5 +1,13 @@
 export { withTransaction } from './publish.js';
 export type { DomainEvent, TransactionalScope, WithTransactionDeps } from './publish.js';
+export { startOutboxRelay, relayOutboxOnce, __resetOutboxMetricsForTest } from './outbox.js';
+export type {
+  OutboxRelayDeps,
+  OutboxRelayOptions,
+  OutboxRelayHandle,
+  OutboxLogger,
+} from './outbox.js';
+export { OUTBOX_TABLE } from './outbox-schema.js';
 export { subscribe } from './subscribe.js';
 export type { MessageHandler, SubscribeOptions, SubscriptionHandle } from './subscribe.js';
 export { ensureStream, DOMAIN_STREAM, DOMAIN_SUBJECTS } from './stream.js';

@@ -38,6 +38,7 @@ describe('matching migrations', () => {
     '002_create_swipe_actions.ts',
     '003_create_adopter_match_profiles.ts',
     '004_swipe_actions_user_pet_recency_idx.ts',
+    '005_create_event_outbox.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

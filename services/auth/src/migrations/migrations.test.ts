@@ -48,6 +48,7 @@ describe('auth migrations', () => {
     '007_create_revoked_tokens.ts',
     '015_add_tokens_valid_from.ts',
     '027_encrypt_totp_secrets.ts',
+    '030_create_event_outbox.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

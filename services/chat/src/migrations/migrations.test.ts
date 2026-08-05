@@ -46,6 +46,7 @@ describe('chat migrations', () => {
     '004_install_messages_search_vector_trigger.ts',
     '005_create_message_reactions.ts',
     '006_create_message_reads.ts',
+    '007_create_event_outbox.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

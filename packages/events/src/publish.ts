@@ -1,6 +1,8 @@
 import type { NatsConnection } from 'nats';
 import type { Pool, PoolClient } from 'pg';
 
+import { flushInline, insertOutboxRecords, toOutboxRecord, type OutboxLogger } from './outbox.js';
+
 export type DomainEvent<T = unknown> = {
   // NATS subject the event publishes on. Convention: `<service>.<entity>.<verb>`,
   // e.g. `pets.unit.statusChanged`. Subscribers wildcard the prefix.
@@ -33,30 +35,49 @@ export type TransactionalScope = {
 export type WithTransactionDeps = {
   pool: Pool;
   nats: NatsConnection;
+  // Optional structured logger. When present, a failed inline publish (the
+  // best-effort fast-path — see below) is logged at warn; the relay still
+  // delivers the event regardless, so a logger is never required.
+  logger?: OutboxLogger;
 };
 
-// withTransaction runs `fn` inside a Postgres transaction and publishes any
-// events staged via `scope.publish(...)` only after the commit succeeds.
+// withTransaction runs `fn` inside a Postgres transaction and delivers any
+// events staged via `scope.publish(...)` through a transactional outbox
+// (ADS-1048).
 //
-// Publishing goes through JetStream (`nc.jetstream().publish()`), which
-// returns a server-side ACK — the event is durably stored in the
-// DOMAIN_EVENTS stream before this function resolves. A consumer that was
-// offline when the event fired still receives it on reconnect
-// (at-least-once), which is the point of the migration: no domain event is
-// lost to a subscriber being mid-deploy/restart.
+// Staged events are written as rows in the `event_outbox` table INSIDE the
+// same transaction as the business write, so the event is durable atomically
+// with the state change it describes. There is no dual-write window any more:
+// if we commit, the event is durably queued; if we roll back, it never
+// existed. This closes the old hole where a crash between COMMIT and the
+// JetStream ack lost a terminal event (a notification never sent, an audit row
+// never written) forever.
+//
+// Delivery is then two-phase:
+//   1. Inline fast-path — right after COMMIT we publish the just-staged rows
+//      and DELETE them on ack, preserving the low latency the old
+//      commit-then-publish had. This is BEST-EFFORT: a failure here is
+//      swallowed (logged if a logger was passed), because the row is still in
+//      the outbox and...
+//   2. The relay (`startOutboxRelay`, started once per service at boot) sweeps
+//      any rows the inline path did not clear and publishes them. This is the
+//      durability guarantee — the process can die anywhere in the inline path
+//      and the event is still delivered.
 //
 // Failure modes:
-//  - `fn` throws → ROLLBACK, no events fire, error re-thrown.
-//  - COMMIT throws → no events fire (we never reach the publish loop), error
-//    re-thrown. Transaction is effectively rolled back.
-//  - publish throws (no JetStream ack) → does NOT roll back (commit already
-//    happened) but the error bubbles. Callers should treat this as a transient
-//    infra issue; consumers will re-derive state from the next event.
+//  - `fn` throws → ROLLBACK, nothing staged, error re-thrown.
+//  - the outbox INSERT throws → ROLLBACK, error re-thrown. The business write
+//    is abandoned too, because we could not durably stage its event — that
+//    atomicity IS the fix.
+//  - COMMIT throws → ROLLBACK, error re-thrown; nothing was published.
+//  - inline publish throws → swallowed; the row stays in the outbox for the
+//    relay. The caller sees success, because the operation DID succeed and the
+//    event is durably queued.
 //
-// This is the CAD pattern that PR #29 / #35 codified: no phantom events on
-// rollback, ever.
+// This preserves the CAD discipline (no phantom events on rollback) and adds
+// the missing half: no committed event is ever lost.
 export async function withTransaction<R>(
-  { pool, nats }: WithTransactionDeps,
+  { pool, nats, logger }: WithTransactionDeps,
   fn: (scope: TransactionalScope) => Promise<R>
 ): Promise<R> {
   const client = await pool.connect();
@@ -70,13 +91,19 @@ export async function withTransaction<R>(
         staged.push(event);
       },
     });
+
+    // Persist the staged events in the SAME transaction as the business write.
+    // A failure here rolls the whole thing back — we never commit a state
+    // change whose event we could not durably queue.
+    const records = staged.map(toOutboxRecord);
+    await insertOutboxRecords(client, records);
+
     await client.query('COMMIT');
     committed = true;
-    // Publish AFTER commit. A failure here bubbles to the caller but must NOT
-    // trigger a rollback — the commit already happened, so the `committed`
-    // guard below skips the ROLLBACK. Consumers re-derive state from the next
-    // event in that (rare, transient) case.
-    await publishStaged(nats, staged);
+
+    // Best-effort inline delivery on the just-committed client. Never throws —
+    // anything left unpublished stays in the outbox for the relay to deliver.
+    await flushInline(nats, client, records, logger);
     return result;
   } catch (err) {
     if (!committed) {
@@ -92,26 +119,5 @@ export async function withTransaction<R>(
     throw err;
   } finally {
     client.release();
-  }
-}
-
-async function publishStaged(nats: NatsConnection, staged: readonly DomainEvent[]): Promise<void> {
-  if (staged.length === 0) {
-    return;
-  }
-  const js = nats.jetstream();
-  const encoder = new TextEncoder();
-  for (const event of staged) {
-    const envelope = {
-      id: event.id,
-      occurredAt: event.occurredAt ?? new Date(),
-      payload: event.payload,
-    };
-    // Await the PubAck so a publish failure surfaces to the caller rather
-    // than being fire-and-forget. `msgID` sets Nats-Msg-Id for broker-side
-    // de-dup within the stream's duplicate window.
-    await js.publish(event.type, encoder.encode(JSON.stringify(envelope)), {
-      ...(event.id ? { msgID: event.id } : {}),
-    });
   }
 }

@@ -55,7 +55,10 @@ function makeMocks() {
   const client = {
     query: vi.fn(async (sql: string) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
-      if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
+      // Treat outbox framework queries (transactional-outbox INSERT/DELETE that
+      // withTransaction now runs) like BEGIN/COMMIT/ROLLBACK: transparent, no
+      // script consumed.
+      if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK' || /event_outbox/i.test(sql)) {
         return { rows: [], rowCount: 0 };
       }
       const next = clientScript.shift();

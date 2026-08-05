@@ -30,6 +30,11 @@ function makeMocks(authClient?: AuthCohortClient, logger?: Logger) {
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
       }
+      // event_outbox INSERT/DELETE is withTransaction's outbox plumbing — let
+      // it pass through like BEGIN/COMMIT without consuming a scripted response.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       const next = clientScript.shift();
       if (!next) {
         throw new Error(`client.query unscripted: ${sql.slice(0, 80)}`);
@@ -201,6 +206,10 @@ describe('broadcast', () => {
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
       }
+      // event_outbox writes are withTransaction's outbox plumbing.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       if (sql.includes('INSERT INTO notifications.notifications')) {
         insertCount++;
         if (insertCount === 1) {
@@ -246,6 +255,10 @@ describe('broadcast', () => {
     mocks.clientMock.query = vi.fn(async (sql: string) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
+        return { rows: [] };
+      }
+      // event_outbox writes are withTransaction's outbox plumbing.
+      if (sql.includes('event_outbox')) {
         return { rows: [] };
       }
       if (sql.includes('INSERT INTO notifications.notifications')) {
@@ -297,6 +310,10 @@ describe('broadcast', () => {
     mocks.clientMock.query = vi.fn(async (sql: string) => {
       const op = sql.trim().split(/\s+/)[0].toUpperCase();
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
+        return { rows: [] };
+      }
+      // event_outbox writes are withTransaction's outbox plumbing.
+      if (sql.includes('event_outbox')) {
         return { rows: [] };
       }
       if (sql.includes('INSERT INTO notifications.notifications')) {

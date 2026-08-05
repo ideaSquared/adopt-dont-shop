@@ -74,6 +74,11 @@ function makeMocks() {
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
       }
+      // event_outbox INSERT/DELETE is withTransaction's outbox plumbing — let
+      // it pass through like BEGIN/COMMIT without consuming a scripted response.
+      if (sql.includes('event_outbox')) {
+        return { rows: [], rowCount: 0 };
+      }
       const next = clientScript.shift();
       if (!next) {
         throw new Error(`client.query called with no scripted response for: ${sql.slice(0, 80)}`);
@@ -115,6 +120,7 @@ function makeMocks() {
 // so assertions can match on the substantive queries.
 const realClientQueries = (mocks: ReturnType<typeof makeMocks>): string[] =>
   (mocks.clientMock.query.mock.calls as Array<[string]>)
+    .filter(([sql]) => !sql.includes('event_outbox'))
     .map(([sql]) => sql.trim().split(/\s+/)[0].toUpperCase())
     .filter(op => op !== 'BEGIN' && op !== 'COMMIT' && op !== 'ROLLBACK');
 

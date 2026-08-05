@@ -114,6 +114,12 @@ function makeMocks() {
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
       }
+      // The transactional-outbox framework queries (INSERT/DELETE against
+      // event_outbox, emitted by withTransaction) are infrastructure, not
+      // business SQL — answer them transparently without consuming the script.
+      if (/event_outbox/i.test(sql)) {
+        return { rows: [], rowCount: 0 };
+      }
       const next = clientScript.shift();
       if (!next) {
         throw new Error(`client.query unscripted: ${sql.slice(0, 80)}`);

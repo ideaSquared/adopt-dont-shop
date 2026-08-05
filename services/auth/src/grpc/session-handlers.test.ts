@@ -61,7 +61,12 @@ function realQueries(mock: { mock: { calls: unknown[][] } }): string[] {
   return mock.mock.calls
     .filter(c => {
       const sql = String(c[0]);
-      return sql !== 'BEGIN' && sql !== 'COMMIT' && sql !== 'ROLLBACK';
+      // Exclude transaction control and the event_outbox INSERT/DELETE, which
+      // are framework infrastructure from withTransaction's transactional
+      // outbox rather than queries the handler under test issues.
+      return (
+        sql !== 'BEGIN' && sql !== 'COMMIT' && sql !== 'ROLLBACK' && !sql.includes('event_outbox')
+      );
     })
     .map(c => String(c[0]).trim().split(/\s+/)[0].toUpperCase());
 }

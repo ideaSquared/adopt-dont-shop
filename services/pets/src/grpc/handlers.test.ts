@@ -186,7 +186,11 @@ describe('createPet', () => {
   it('inserts inside a transaction and publishes pets.created AFTER commit', async () => {
     const order: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox queries are withTransaction's outbox plumbing, not the
+      // handler's own SQL — skip them so the verb order reflects the handler.
+      if (!sql.includes('event_outbox')) {
+        order.push(sql.trim().split(/\s+/)[0]);
+      }
       return { rows: [petRow()] };
     });
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
@@ -472,7 +476,11 @@ describe('updatePet', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const order: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox queries are withTransaction's outbox plumbing, not the
+      // handler's own SQL — skip them so the verb order reflects the handler.
+      if (!sql.includes('event_outbox')) {
+        order.push(sql.trim().split(/\s+/)[0]);
+      }
       return { rows: [petRow({ name: 'Rexy' })] };
     });
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
@@ -543,7 +551,11 @@ describe('updatePetStatus', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
     const order: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox queries are withTransaction's outbox plumbing, not the
+      // handler's own SQL — skip them so the verb order reflects the handler.
+      if (!sql.includes('event_outbox')) {
+        order.push(sql.trim().split(/\s+/)[0]);
+      }
       // The in-transaction lock read still sees `available`; the UPDATE
       // returns the post-write `pending` row.
       if (/FOR UPDATE/.test(sql)) {
@@ -636,7 +648,11 @@ describe('deletePet', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const order: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox queries are withTransaction's outbox plumbing, not the
+      // handler's own SQL — skip them so the verb order reflects the handler.
+      if (!sql.includes('event_outbox')) {
+        order.push(sql.trim().split(/\s+/)[0]);
+      }
       return { rows: [] };
     });
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
