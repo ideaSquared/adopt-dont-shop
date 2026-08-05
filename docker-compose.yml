@@ -25,6 +25,11 @@ x-service-env: &ms-env
   # services REQUIRE it (forged x-user-* headers lose). Optional — unset
   # keeps the legacy header-trust behaviour for phased rollout.
   PRINCIPAL_SIGNING_KEY: ${PRINCIPAL_SIGNING_KEY:-}
+  # ADS-1041: ship logs to Loki + traces to Tempo when the observability
+  # profile is up. Inert (empty) unless set in .env, e.g.
+  # LOKI_URL=http://loki:3100 / OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318.
+  LOKI_URL: ${LOKI_URL:-}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
 
 x-service-deps: &ms-deps
   database:
@@ -280,12 +285,16 @@ services:
     restart: unless-stopped
 
   # ============================================================================
-  # OBSERVABILITY STACK (profile: observability)
+  # OBSERVABILITY STACK (profile: observability) — mirrors the prod/staging
+  # stack in docker-compose.observability.yml (ADS-1041).
   # ----------------------------------------------------------------------------
-  # Opt-in log aggregator. Bring up with:
-  #   docker compose --profile observability up -d loki grafana
-  # The backend container ships logs via winston-loki when LOKI_URL is set;
-  # add LOKI_URL=http://loki:3100 to your .env to enable.
+  # Loki (logs) + Prometheus (metrics) + Tempo (traces) + Grafana (dashboards)
+  # + Alertmanager (routing). Bring up with:
+  #   docker compose --profile observability up -d
+  # Services ship logs/traces only when the endpoints are set in .env:
+  #   LOKI_URL=http://loki:3100
+  #   OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+  # Grafana: http://localhost:3030  ·  Prometheus: :9090  ·  Alertmanager: :9093
   # ============================================================================
 
   loki:
@@ -308,6 +317,9 @@ services:
       - '127.0.0.1:9090:9090'
     volumes:
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # ADS-1041/ADS-806: mount the committed SLO alert rules so rule_files in
+      # prometheus.yml actually loads them (dev can test firing alerts locally).
+      - ./infra/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -349,6 +361,44 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Tempo — distributed-trace backend (ADS-1041). Services export OTLP/HTTP here
+  # when OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318 is set. Added to dev so it
+  # mirrors the prod/staging stack (docker-compose.observability.yml).
+  tempo:
+    profiles: ["observability", "full"]
+    image: grafana/tempo:2.6.1
+    command: -config.file=/etc/tempo/tempo.yaml
+    ports:
+      - '127.0.0.1:3200:3200'   # Tempo API (Grafana queries here)
+      - '127.0.0.1:4318:4318'   # OTLP/HTTP ingest
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    restart: unless-stopped
+    healthcheck:
+      <<: *hc-observability-timing
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1']
+
+  # Alertmanager — routes the SLO alert rules by severity (ADS-1041/ADS-1052).
+  # Ships inert (no notifier secrets); wire Slack/email per
+  # observability/alertmanager/alertmanager.yml.
+  alertmanager:
+    profiles: ["observability", "full"]
+    image: prom/alertmanager:v0.28.0
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - '127.0.0.1:9093:9093'
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./observability/alertmanager/secrets:/etc/alertmanager/secrets:ro
+      - alertmanager_data:/alertmanager
+    restart: unless-stopped
+    healthcheck:
+      <<: *hc-observability-timing
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9093/-/ready || exit 1']
+
   # ==========================================================================
   # EXTRACTED MICROSERVICES (CAD-style). Opt-in via `--profile services`.
   # The gateway is the single REST surface fronting /api/* and routes each
@@ -366,6 +416,10 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       NATS_URL: nats://nats:4222
+      # ADS-1041: logs → Loki, traces → Tempo when the observability profile is
+      # up. Inert unless set in .env (see the *ms-env anchor above).
+      LOKI_URL: ${LOKI_URL:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # Shared Redis store for cross-replica rate limiting (ADS-805).
       # Same Redis the other microservices use; the gateway gets its own
       # key namespace via the plugin's default nameSpace.
@@ -580,6 +634,8 @@ volumes:
   loki_data:
   grafana_data:
   prometheus_data:
+  tempo_data:
+  alertmanager_data:
 
 # ============================================================================
 # NETWORKS

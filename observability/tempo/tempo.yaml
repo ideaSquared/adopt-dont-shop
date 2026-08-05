@@ -1,0 +1,39 @@
+# Tempo config for the deployed observability stack (ADS-1041).
+#
+# Single-binary, local-filesystem trace storage — matches the single-host
+# deploy. Every service's OpenTelemetry SDK (packages/observability/src/
+# opentelemetry.ts) exports OTLP/HTTP here when OTEL_EXPORTER_OTLP_ENDPOINT is
+# set (=http://tempo:4318). Grafana queries Tempo on :3200.
+server:
+  http_listen_port: 3200
+  log_level: info
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    # 3-day trace retention — enough to investigate an incident, cheap on disk.
+    # Traces are the highest-volume signal; keep the window short on one host.
+    block_retention: 72h
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+
+# Stay on our own infra — no usage phone-home (ADS-1041).
+usage_report:
+  reporting_enabled: false

@@ -2,9 +2,20 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-# Alerting rules — committed in infra/prometheus/rules/ (ADS-806).
-# rule_files:
-#   - /etc/prometheus/rules/*.yml
+# Alerting rules — committed in infra/prometheus/rules/ (ADS-806), loaded here
+# (ADS-1041). The rules dir is bind-mounted at /etc/prometheus/rules by the dev
+# `observability` profile and by docker-compose.observability.yml in prod/staging.
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+# Route firing alerts to Alertmanager (ADS-1041). Alertmanager runs alongside
+# Prometheus in the same stack (dev `observability` profile /
+# docker-compose.observability.yml). If it is not running the rules still
+# evaluate and show in the Prometheus UI; only routing/paging is unavailable.
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
 
 scrape_configs:
   # Gateway — the single REST edge and the /metrics aggregation point
@@ -42,6 +53,13 @@ scrape_configs:
       - targets: ['service-applications:5005']
     metrics_path: /metrics
 
+  # ADS-1052: service-chat was missing from the scrape config despite exposing
+  # /metrics via the same createMicroserviceServer() path as every other service.
+  - job_name: service-chat
+    static_configs:
+      - targets: ['service-chat:5006']
+    metrics_path: /metrics
+
   - job_name: service-moderation
     static_configs:
       - targets: ['service-moderation:5007']
@@ -55,4 +73,10 @@ scrape_configs:
   - job_name: service-audit
     static_configs:
       - targets: ['service-audit:5009']
+    metrics_path: /metrics
+
+  # ADS-1052: service-cms was missing from the scrape config (same gap as chat).
+  - job_name: service-cms
+    static_configs:
+      - targets: ['service-cms:5010']
     metrics_path: /metrics

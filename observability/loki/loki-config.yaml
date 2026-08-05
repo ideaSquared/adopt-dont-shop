@@ -1,0 +1,56 @@
+# Loki config for the deployed observability stack (ADS-1041).
+#
+# Dev (docker-compose.yml `observability` profile) runs Loki with its built-in
+# local-config.yaml; prod/staging mount THIS file instead so retention and
+# on-disk layout are pinned rather than left at the image default. Single-binary
+# filesystem mode — no object store, no clustering — which suits the
+# single-host deploy. All services ship logs here via winston-loki when
+# LOKI_URL=http://loki:3100 is set (packages/observability/src/logger.ts).
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  log_level: info
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # 14-day log retention. Metrics carry the 30-day SLO error-budget window
+  # (Prometheus); logs are far heavier per day, so they get a shorter window to
+  # bound disk on the single host. Tune per host capacity.
+  retention_period: 336h
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+  ingestion_rate_mb: 8
+  ingestion_burst_size_mb: 16
+
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+
+# Don't phone home usage analytics — this stack processes UK user data and stays
+# on our own infra by design (ADS-1041).
+analytics:
+  reporting_enabled: false

@@ -79,6 +79,14 @@ x-service-env: &service-env
   # service REQUIRES a valid x-principal-token (forged x-user-* headers
   # lose); the gateway signs with the same key.
   PRINCIPAL_SIGNING_KEY_FILE: /run/secrets/principal_signing_key
+  # ADS-1041: observability shipping. Inert (empty) unless set in the host .env
+  # AND the observability stack is enabled (docker-compose.observability.yml).
+  #   LOKI_URL=http://loki:3100  OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+  # SENTRY_DSN activates backend error tracking (GlitchTip) — initializeSentry
+  # runs only when SENTRY_DSN is set AND NODE_ENV is production/staging.
+  LOKI_URL: ${LOKI_URL:-}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  SENTRY_DSN: ${SENTRY_DSN:-}
 
 # Healthcheck timing tiers (mirrors the dev docker-compose.yml ADS-860
 # standard): infra probes fast without a start_period (database) or with a
@@ -263,6 +271,10 @@ services:
       # ADS-800: the gateway signs the x-principal-token it forwards on
       # every downstream gRPC call.
       PRINCIPAL_SIGNING_KEY_FILE: /run/secrets/principal_signing_key
+      # ADS-1041: observability shipping (inert unless set in the host .env).
+      LOKI_URL: ${LOKI_URL:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     # Gateway has no DB; it needs the upload-signing secret plus the
     # principal-signing key (ADS-800 — it is the token signer).
     secrets:

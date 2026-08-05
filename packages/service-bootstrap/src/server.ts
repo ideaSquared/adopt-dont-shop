@@ -7,7 +7,12 @@
 //   - x-request-id   — echoed on every response.
 //   - Error handler   — logs + returns {error:'internal_error'}.
 
-import { createLogger, registerMetrics, registerRequestId } from '@adopt-dont-shop/observability';
+import {
+  createLogger,
+  initializeSentry,
+  registerMetrics,
+  registerRequestId,
+} from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import { registerReadinessRoute, type ReadinessDeps } from './readiness.js';
@@ -34,6 +39,11 @@ export const createMicroserviceServer = (opts: CreateServerOptions): FastifyInst
   const { serviceName, config } = opts;
   const logger = opts.logger ?? createLogger({ serviceName });
   const isReady = opts.isReady ?? (() => true);
+
+  // ADS-1041: initialize backend error tracking (GlitchTip/Sentry SDK). No-op
+  // unless SENTRY_DSN is set AND NODE_ENV is production/staging, so it's safe to
+  // call unconditionally at boot — this is the call site the SDK was missing.
+  initializeSentry({ serviceName, logger });
 
   // Disable Fastify's built-in pino — winston handles service-level lines
   // (boot, shutdown, error handler) and OTel's HTTP auto-instrumentation

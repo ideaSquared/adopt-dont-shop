@@ -117,15 +117,23 @@ runbook to open on fire.
 
 ## Severity & on-call
 
-The rules label severity but **deliberately do not configure Alertmanager
-routing or receivers** — that needs a real destination (PagerDuty key / Slack
-webhook) which does not exist in this repo yet. Wire routing when a destination
-is provisioned. Until then the convention is:
+As of ADS-1041 the rules are **loaded** by Prometheus and routed by
+Alertmanager (severity-based) in the deployed observability stack
+(`docker-compose.observability.yml` / dev `observability` profile). Alertmanager
+ships **inert** — the `critical-pager` / `warning-chat` receivers carry no
+notifier config, so alerts group and show in the UI but nothing is sent until an
+operator drops a Slack webhook / SMTP secret in and uncomments the receiver block
+(`observability/alertmanager/alertmanager.yml`; see
+`docs/runbooks/observability-enable.md`). The routing convention:
 
-| Severity   | Intended routing (TODO: wire) | Response             |
-| ---------- | ----------------------------- | -------------------- |
-| `critical` | page                          | ack within 5 min     |
-| `warning`  | chat channel                  | review within 30 min |
+| Severity   | Alertmanager route | Once wired   | Response             |
+| ---------- | ------------------ | ------------ | -------------------- |
+| `critical` | `critical-pager`   | page         | ack within 5 min     |
+| `warning`  | `warning-chat`     | chat channel | review within 30 min |
+
+Retention is sized to the objectives above: Prometheus keeps **30 days** of
+metrics (the error-budget window), Loki **14 days** of logs, Tempo **3 days** of
+traces.
 
 Each `critical`/`warning` rule annotates a `runbook` — open it from the alert.
 Runbook index: [`docs/runbooks/README.md`](./runbooks/README.md).
