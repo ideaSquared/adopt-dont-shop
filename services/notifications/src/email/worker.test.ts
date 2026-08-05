@@ -1,7 +1,10 @@
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getMetricsRegistry, __resetMetricsForTest } from '@adopt-dont-shop/observability';
+
+import { __resetNotificationsMetricsForTest } from '../metrics.js';
 import { startEmailWorker } from './worker.js';
 import type { EmailProvider, ProviderSendResult, QueuedEmail } from './types.js';
 
@@ -229,6 +232,60 @@ describe('email worker', () => {
     try {
       await worker.tick();
       expect(provider.send).toHaveBeenCalledTimes(1);
+    } finally {
+      await worker.stop();
+    }
+  });
+});
+
+describe('email worker failure metrics', () => {
+  beforeEach(() => {
+    // Fresh registry + counter singletons so the counter starts at 0.
+    __resetMetricsForTest();
+    __resetNotificationsMetricsForTest();
+  });
+
+  it('counts a provider failure under notifications_email_failures_total{reason="provider"}', async () => {
+    const claimed = [queuedFixture({ emailId: 'em-P' })];
+    const { pool } = makePool([{ rows: claimed.map(toRow) }, { rows: [] }]);
+    const provider = makeProvider({ success: false, error: 'smtp 451' });
+    const worker = startEmailWorker({
+      pool,
+      nats: {} as never,
+      provider,
+      logger: quietLogger(),
+      pollIntervalMs: 60_000,
+    });
+    try {
+      await worker.tick();
+      const text = await getMetricsRegistry().metrics();
+      expect(text).toContain('notifications_email_failures_total{reason="provider"} 1');
+    } finally {
+      await worker.stop();
+    }
+  });
+
+  it('counts a dispatch throw under notifications_email_failures_total{reason="dispatch"}', async () => {
+    const claimed = [queuedFixture({ emailId: 'em-D' })];
+    const { pool } = makePool([{ rows: claimed.map(toRow) }, { rows: [] }]);
+    const provider: EmailProvider = {
+      send: vi.fn(async () => {
+        throw new Error('connection reset');
+      }),
+      getName: () => 'test-provider',
+      validateConfiguration: () => true,
+    };
+    const worker = startEmailWorker({
+      pool,
+      nats: {} as never,
+      provider,
+      logger: quietLogger(),
+      pollIntervalMs: 60_000,
+    });
+    try {
+      await worker.tick();
+      const text = await getMetricsRegistry().metrics();
+      expect(text).toContain('notifications_email_failures_total{reason="dispatch"} 1');
     } finally {
       await worker.stop();
     }

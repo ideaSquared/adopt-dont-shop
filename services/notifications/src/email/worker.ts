@@ -15,6 +15,7 @@ import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
 
+import { recordEmailFailure } from '../metrics.js';
 import { isEmailChannelOpen } from './preferences.js';
 import { claimDueEmails, markFailed, markSent } from './queue.js';
 import type { EmailProvider, QueuedEmail } from './types.js';
@@ -88,6 +89,7 @@ const dispatchOne = async (
     // Treat all provider failures as retriable — the markFailed query
     // terminates the row once current_retries >= max_retries.
     await markFailed(pool, email.emailId, result.error ?? 'provider returned failure', true);
+    recordEmailFailure('provider');
     logger.warn('email.worker.failed', {
       emailId: email.emailId,
       provider: provider.getName(),
@@ -128,6 +130,7 @@ export const startEmailWorker = (opts: EmailWorkerOptions): RunningEmailWorker =
             emailId: email.emailId,
             err,
           });
+          recordEmailFailure('dispatch');
           // Mark as retriable failure so it doesn't get stuck in 'sending'.
           return markFailed(
             opts.pool,

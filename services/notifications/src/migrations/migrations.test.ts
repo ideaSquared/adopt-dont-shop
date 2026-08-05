@@ -51,6 +51,8 @@ describe('notifications migrations', () => {
     '006_create_email_preferences.ts',
     '007_email_queue_stale_sending_idx.ts',
     '008_create_processed_events.ts',
+    '009_device_token_global_unique.ts',
+    '010_create_scheduled_job_runs.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

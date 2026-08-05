@@ -771,6 +771,9 @@ importers:
 
   packages/events:
     dependencies:
+      '@adopt-dont-shop/observability':
+        specifier: workspace:*
+        version: link:../observability
       nats:
         specifier: ^2.29.3
         version: 2.29.3

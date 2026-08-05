@@ -15,6 +15,8 @@
 
 import type { Logger } from 'winston';
 
+import { recordScheduledJobFailure } from '../metrics.js';
+
 export type ScheduledJob = {
   name: string;
   // Period between runs in milliseconds. The scheduler's tick interval
@@ -38,6 +40,13 @@ export type SchedulerOptions = {
   tickIntervalMs?: number;
   // Now provider — injectable so tests can advance time deterministically.
   now?: () => number;
+  // Cross-instance run claim. When provided, the scheduler tries to claim
+  // the job's scheduled slot before running it; only the replica that wins
+  // the claim runs the job (the others skip). `scheduledFor` is the slot the
+  // run belongs to, quantised to the job's interval so concurrent replicas
+  // compute the same key. Returns true when this replica may run the job.
+  // Omitted → no locking (single-instance / test behaviour).
+  claimRun?: (job: string, scheduledFor: Date) => Promise<boolean>;
 };
 
 export type RunningScheduler = {
@@ -62,6 +71,36 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
     nextRunAt.set(job.name, job.runOnStart ? 0 : now() + job.intervalMs);
   }
 
+  // Try to claim a job's scheduled slot across instances. Returns true when
+  // this replica may run the job — always true when no claimRun is wired
+  // (single-instance / test behaviour).
+  const claimSlot = async (job: ScheduledJob, ts: number): Promise<boolean> => {
+    if (!opts.claimRun) {
+      return true;
+    }
+    // Quantise the run to the job's interval so two replicas firing in the
+    // same window compute the same claim key.
+    const scheduledFor = new Date(Math.floor(ts / job.intervalMs) * job.intervalMs);
+    try {
+      const won = await opts.claimRun(job.name, scheduledFor);
+      if (!won) {
+        opts.logger.info('scheduler.job_claimed_elsewhere', {
+          name: job.name,
+          scheduledFor: scheduledFor.toISOString(),
+        });
+      }
+      return won;
+    } catch (err) {
+      // A claim error means we can't prove we're the sole runner — skip
+      // rather than risk a duplicate send; the next interval retries.
+      opts.logger.error('scheduler.claim_error', {
+        name: job.name,
+        err: err instanceof Error ? err.message : String(err),
+      });
+      return false;
+    }
+  };
+
   const tick = async (): Promise<string[]> => {
     if (!running) {
       return [];
@@ -73,13 +112,17 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
       if (due > ts) {
         continue;
       }
-      fired.push(job.name);
       // Schedule the next run BEFORE awaiting — a slow job can take longer
       // than intervalMs, in which case the next tick still finds it due
       // (intentional — caller may want overlapping runs blocked, but the
       // current implementation simply re-runs as soon as the previous
       // finishes).
       nextRunAt.set(job.name, ts + job.intervalMs);
+      // Cross-instance lock: only the replica that wins the slot runs it.
+      if (!(await claimSlot(job, ts))) {
+        continue;
+      }
+      fired.push(job.name);
       try {
         await job.run();
         opts.logger.info('scheduler.job_ok', { name: job.name });
@@ -88,6 +131,7 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
           name: job.name,
           err: err instanceof Error ? err.message : String(err),
         });
+        recordScheduledJobFailure(job.name);
       }
     }
     return fired;

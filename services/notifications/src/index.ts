@@ -23,6 +23,7 @@ import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { registerSubscribers } from './nats/subscribers.js';
 import { createPushProvider } from './push/providers/factory.js';
 import { startPushWorker, type RunningPushWorker } from './push/worker.js';
+import { claimScheduledRun } from './scheduler/claim.js';
 import { runWeeklyDigest } from './scheduler/jobs/weekly-digest.js';
 import { startScheduler, type RunningScheduler } from './scheduler/scheduler.js';
 import { createServer } from './server.js';
@@ -185,7 +186,12 @@ const main = async (): Promise<void> => {
             },
           },
         ],
-        { logger }
+        {
+          logger,
+          // Cross-instance run claim so multiple replicas don't each send the
+          // weekly digest — only the replica that wins the slot runs it.
+          claimRun: (jobName, scheduledFor) => claimScheduledRun(pool!, jobName, scheduledFor),
+        }
       );
     }
     const httpServer = createServer({
