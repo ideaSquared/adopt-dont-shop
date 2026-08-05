@@ -3,8 +3,10 @@
 - Status: Proposed
 - Date: 2026-08-05
 - Scope: `packages/eslint-config-react`, `packages/eslint-config-base`,
-  `Dockerfile.app`, `apps/rescue` + `apps/client` vitest coverage thresholds
-  (proposal only — no code or config changed in this PR)
+  `packages/eslint-config-node`, `Dockerfile.app`,
+  `services/gateway/src/routes/users.ts` (proto-assertion hotspot),
+  `apps/rescue` + `apps/client` vitest coverage thresholds (proposal only —
+  no code or config changed in this PR)
 
 ## Context
 
@@ -24,7 +26,8 @@ under eslint 10.
 **2. No `no-non-null-assertion` rule.** None of the three ESLint layers
 (`packages/eslint-config-base`, `eslint-config-node`, `eslint-config-react`)
 enables `@typescript-eslint/no-non-null-assertion`, so the `!` operator is
-unguarded despite the "no type assertions" mandate in the repo guidelines. A
+unguarded despite the repo's "no type assertions without clear justification"
+guideline. A
 grep for the non-null-assertion form across `apps/*/src` and
 `services/gateway/src` (excluding tests) returns on the order of 50–90 sites
 (approximate — the exact figure depends on how strictly comments/strings are
