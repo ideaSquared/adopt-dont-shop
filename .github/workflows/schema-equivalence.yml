@@ -14,30 +14,21 @@ name: Schema Equivalence
 # matching.
 
 on:
-  # ADS-1065: the migrate job is only meaningful when migration or
-  # schema-owning DB code changes, so scope both triggers to those paths.
-  # This narrow filter intentionally diverges from the canonical
-  # .github/workflow-source-paths.yml list — see the note there.
+  # The workflow triggers on ALL pushes/PRs so the required
+  # "Schema Equivalence (migrate vs sync)" gate job always reports a status.
+  #
+  # ADS-1065 originally scoped the *triggers* to migration paths to skip the
+  # ~20-min migrate job on unrelated PRs. But a required check whose workflow
+  # is filtered out at the trigger level never reports — it sits at
+  # "Expected — waiting for status" forever, permanently blocking every
+  # non-migration PR. The path scoping therefore lives in the `changes` job
+  # below instead: the expensive `compute` job is gated on it, while the
+  # lightweight gate job runs unconditionally and passes when compute is
+  # skipped. Same cost savings, no stuck required check.
   push:
     branches: [main, develop]
-    paths:
-      - 'services/*/src/migrations/**'
-      - 'services/*/src/db/**'
-      - 'packages/db/**'
-      - 'packages/observability/**'
-      - 'packages/events/**'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/schema-equivalence.yml'
   pull_request:
     branches: [main, develop]
-    paths:
-      - 'services/*/src/migrations/**'
-      - 'services/*/src/db/**'
-      - 'packages/db/**'
-      - 'packages/observability/**'
-      - 'packages/events/**'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/schema-equivalence.yml'
   workflow_dispatch:
 
 concurrency:
@@ -48,8 +39,35 @@ permissions:
   contents: read
 
 jobs:
+  # Decide whether the expensive compute job needs to run. Same
+  # migration/schema-owning paths ADS-1065 put on the triggers — the migrate
+  # job is only meaningful when these change; `packages/{db,observability,
+  # events}` are the packages the compute job builds.
+  changes:
+    name: Detect migration changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      migrations: ${{ steps.filter.outputs.migrations }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+        id: filter
+        with:
+          filters: |
+            migrations:
+              - 'services/*/src/migrations/**'
+              - 'services/*/src/db/**'
+              - 'packages/db/**'
+              - 'packages/observability/**'
+              - 'packages/events/**'
+              - 'pnpm-lock.yaml'
+              - '.github/workflows/schema-equivalence.yml'
+
   schema-equivalence-compute:
     name: Schema Equivalence (compute)
+    needs: changes
+    if: needs.changes.outputs.migrations == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -81,7 +99,7 @@ jobs:
       ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: ./.github/actions/setup-workspace
 
       - name: Build shared libraries
@@ -118,21 +136,30 @@ jobs:
 
   schema-equivalence-migrate-vs-sync:
     name: Schema Equivalence (migrate vs sync)
-    needs: schema-equivalence-compute
+    needs: [changes, schema-equivalence-compute]
+    # Always run so this required check reports on every PR — including the
+    # non-migration PRs where `compute` is skipped.
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Summarise compute result
         env:
+          CHANGES: ${{ needs.changes.result }}
           RESULT: ${{ needs.schema-equivalence-compute.result }}
         run: |
+          # A failed change-detection job is a real CI-infra failure — surface
+          # it rather than silently passing as "nothing to verify".
+          if [ "$CHANGES" != "success" ]; then
+            echo "::error::Migration-change detection job result: $CHANGES"
+            exit 1
+          fi
           case "$RESULT" in
             success)
               echo "Schema equivalence check passed."
               ;;
             skipped)
-              echo "Compute job skipped — nothing to verify."
+              echo "Compute job skipped — no migration/schema changes to verify."
               ;;
             *)
               echo "::error::Schema equivalence compute job result: $RESULT"
