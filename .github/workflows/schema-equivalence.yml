@@ -24,6 +24,8 @@ on:
       - 'services/*/src/migrations/**'
       - 'services/*/src/db/**'
       - 'packages/db/**'
+      - 'packages/observability/**'
+      - 'packages/events/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/schema-equivalence.yml'
   pull_request:
@@ -32,6 +34,8 @@ on:
       - 'services/*/src/migrations/**'
       - 'services/*/src/db/**'
       - 'packages/db/**'
+      - 'packages/observability/**'
+      - 'packages/events/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/schema-equivalence.yml'
   workflow_dispatch:

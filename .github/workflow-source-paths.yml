@@ -41,7 +41,8 @@ consumers:
   # canonical list: its migrate job only needs to run when migration or
   # schema-owning DB code changes, so both its `push` and `pull_request`
   # triggers use a narrow filter (services/*/src/migrations/**,
-  # services/*/src/db/**, packages/db/**, pnpm-lock.yaml, and the workflow
-  # file). It is therefore not a canonical consumer — the guard's drift check
+  # services/*/src/db/**, the packages the migrate job builds — packages/db/**,
+  # packages/observability/**, packages/events/** — pnpm-lock.yaml, and the
+  # workflow file). It is therefore not a canonical consumer — the guard's drift check
   # does not apply, only the literal-path-exists check. Recorded here so the
   # single source of truth documents the deliberate divergence.
