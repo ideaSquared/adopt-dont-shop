@@ -70,5 +70,11 @@ export type {
   SignPrincipalTokenOptions,
 } from './principal-token.js';
 
-export { runServiceShutdown } from './shutdown.js';
-export type { ShutdownDeps } from './shutdown.js';
+export { runServiceShutdown, withShutdownDeadline } from './shutdown.js';
+export type { ShutdownDeps, ShutdownDeadlineOptions } from './shutdown.js';
+
+export { installProcessErrorHandlers } from './process-handlers.js';
+export type { ProcessErrorHandlerDeps } from './process-handlers.js';
+
+export { checkReadiness, registerReadinessRoute } from './readiness.js';
+export type { ReadinessDeps, ReadinessResult, RegisterReadinessRouteOptions } from './readiness.js';

@@ -2,7 +2,7 @@
 // with the service name bound.
 
 import { createLogger } from '@adopt-dont-shop/observability';
-import { createMicroserviceServer } from '@adopt-dont-shop/service-bootstrap';
+import { createMicroserviceServer, type ReadinessDeps } from '@adopt-dont-shop/service-bootstrap';
 import type { FastifyInstance } from 'fastify';
 
 import type { ChatConfig } from './config.js';
@@ -18,6 +18,7 @@ export type CreateServerOptions = {
   // true. Defaults to () => true so existing call-sites compile
   // unchanged. index.ts flips a local boolean after gRPC binds.
   isReady?: () => boolean;
+  readiness?: ReadinessDeps;
 };
 
 export const createServer = (opts: CreateServerOptions): FastifyInstance => {
@@ -26,6 +27,7 @@ export const createServer = (opts: CreateServerOptions): FastifyInstance => {
     config: { environment: opts.config.environment },
     logger: opts.logger,
     isReady: opts.isReady,
+    readiness: opts.readiness,
   });
 };
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createDbClient } from './client.js';
 
 describe('createDbClient', () => {
@@ -86,6 +86,42 @@ describe('createDbClient', () => {
 
       void pool.end();
     }, 3_000); // Test-level timeout: well above the pool timeout, below the default 5s
+  });
+
+  describe('idle client error handling (ADS-1040)', () => {
+    it('attaches a persistent pool error listener so an idle-client error does not crash the process', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const pool = createDbClient({
+        schema: 'test',
+        connectionString: 'postgres://localhost/test',
+      });
+
+      try {
+        // Without a listener, an EventEmitter 'error' is re-thrown by Node and
+        // terminates the process; the persistent listener delivers it instead.
+        expect(pool.listenerCount('error')).toBeGreaterThan(0);
+        expect(() => pool.emit('error', new Error('idle client terminated'))).not.toThrow();
+        expect(errorSpy).toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+        void pool.end();
+      }
+    });
+
+    it('attaches the error listener to the read pool too when a replica is configured', () => {
+      const pool = createDbClient({
+        schema: 'pets',
+        connectionString: 'postgres://localhost/primary',
+        readUrl: 'postgres://replica.example.com/pets',
+      });
+
+      try {
+        expect(pool.read.listenerCount('error')).toBeGreaterThan(0);
+      } finally {
+        void pool.read.end();
+        void pool.end();
+      }
+    });
   });
 
   describe('read-replica routing (ADS-815)', () => {

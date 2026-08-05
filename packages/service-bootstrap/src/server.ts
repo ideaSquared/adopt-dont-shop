@@ -10,6 +10,8 @@
 import { createLogger, registerMetrics, registerRequestId } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import { registerReadinessRoute, type ReadinessDeps } from './readiness.js';
+
 export type CreateServerConfig = {
   environment: string;
 };
@@ -18,10 +20,14 @@ export type CreateServerOptions = {
   serviceName: string;
   config: CreateServerConfig;
   logger?: ReturnType<typeof createLogger>;
-  // Readiness probe — /health/simple returns 503 until this returns
-  // true. Defaults to () => true so call-sites that don't gate on gRPC
-  // readiness compile unchanged.
+  // Liveness gate — /health/simple returns 503 until this returns true.
+  // Defaults to () => true so call-sites that don't gate on gRPC readiness
+  // compile unchanged.
   isReady?: () => boolean;
+  // Downstream dependencies probed by /health/ready (DB/NATS/Redis). Omitted
+  // dependencies are not probed; omitting the whole object leaves /health/ready
+  // answering 200 with no checks (liveness-equivalent).
+  readiness?: ReadinessDeps;
 };
 
 export const createMicroserviceServer = (opts: CreateServerOptions): FastifyInstance => {
@@ -53,13 +59,23 @@ export const createMicroserviceServer = (opts: CreateServerOptions): FastifyInst
   // Prometheus /metrics + http_request_duration_seconds onResponse hook.
   registerMetrics(server);
 
-  // Health endpoint — returns 503 until the gRPC server has bound
-  // (isReady probe), then the normal 200 payload.
+  // Liveness — returns 503 until the gRPC server has bound (isReady probe),
+  // then the normal 200 payload. Deliberately does NOT reflect downstream
+  // health; that is /health/ready's job.
   server.get('/health/simple', async (_req, reply) => {
     if (!isReady()) {
       return reply.status(503).send({ status: 'starting' });
     }
     return { status: 'ok', service: serviceName, environment: config.environment };
+  });
+
+  // Readiness — actively probes DB/NATS/Redis and returns 503 when any
+  // configured dependency is unreachable.
+  registerReadinessRoute(server, {
+    serviceName,
+    environment: config.environment,
+    deps: opts.readiness ?? {},
+    logger,
   });
 
   return server;
