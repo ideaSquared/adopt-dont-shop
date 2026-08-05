@@ -200,7 +200,7 @@ function printSuccess(libName, libType) {
   log('', 'reset');
   log('📦 Use in apps:', 'bright');
   log('   Add to package.json dependencies:', 'cyan');
-  log(`   "@adopt-dont-shop/lib-${libName}": "workspace:*"`, 'cyan');
+  log(`   "@adopt-dont-shop/lib.${libName}": "workspace:*"`, 'cyan');
   log('', 'reset');
   log('📖 Documentation:', 'bright');
   log(`   See lib.${libName}/README.md for detailed usage instructions`, 'cyan');
