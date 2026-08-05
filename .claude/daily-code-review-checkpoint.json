@@ -1,0 +1,12 @@
+{
+  "description": "Checkpoint for the Daily Code Review routine. Records the last commit on the default branch (main) that has been reviewed. The next run diffs main from this SHA forward. Update after each run.",
+  "lastReviewedCommit": "823e28a7a20f5d84cc5ecc62db9139c2807759aa",
+  "lastReviewedDate": "2026-08-05",
+  "lastRun": {
+    "date": "2026-08-05",
+    "range": "b739507..823e28a",
+    "commitsReviewed": 23,
+    "ticketsFiled": ["ADS-1066"],
+    "notes": "First run of the routine. 23 commits merged 2026-08-05, almost all implementing already-tracked ADS tickets (production-readiness/Security/DevEx/Testing), most with a PR-review hardening round already applied. One new defect filed: ADS-1066 (cron claim quantised by wall-clock, not logical schedule)."
+  }
+}
