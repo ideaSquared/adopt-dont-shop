@@ -77,6 +77,7 @@ export * from './components/form/FileUpload';
 
 // UI components
 export * from './components/ui/EmptyState';
+export * from './components/ui/ErrorState';
 export { Toast, ToastContainer } from './components/ui/Toast';
 export type { ToastContainerProps, ToastPosition, ToastProps } from './components/ui/Toast';
 
