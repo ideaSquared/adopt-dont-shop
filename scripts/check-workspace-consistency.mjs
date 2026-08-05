@@ -41,9 +41,11 @@
  *  14. Every services/* and packages/lib.* declares coverage thresholds in
  *     its own vitest.config.ts — the shared default is 0%, so an override
  *     is mandatory (ADS-1004).
- *  15. Every services/* and e2e package.json ships lint, format and
- *     format:check scripts (ADS-1003) — lib.* and app.* already require
- *     these via their check #1 script lists.
+ *  15. Every services/*, e2e and non-lib.* packages/* package.json ships
+ *     lint, format and format:check scripts (ADS-1003 / ADS-1062) — lib.*
+ *     and app.* already require these via their check #1 script lists. The
+ *     non-lib shared packages (eslint-config-*, db, authz, …) are included
+ *     so their source is actually linted and format-checked.
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -1108,10 +1110,16 @@ function main() {
   // ADS-1029: every testable package must be reachable by a CI test filter.
   failures.push(...checkCiFilterReachability());
 
-  // 14. services/* and e2e must ship lint/format/format:check too — libs/apps
-  //     already require them via REQUIRED_LIB_SCRIPTS / REQUIRED_APP_SCRIPTS
-  //     (ADS-1003).
-  for (const dir of [...services.map(svc => `services/${svc}`), 'e2e']) {
+  // 14. services/*, e2e and every non-lib.* packages/* must ship
+  //     lint/format/format:check too — libs/apps already require them via
+  //     REQUIRED_LIB_SCRIPTS / REQUIRED_APP_SCRIPTS (ADS-1003), and the
+  //     non-lib shared packages (eslint-config-*, db, authz, …) are now in
+  //     scope so their source can't silently escape `pnpm lint` /
+  //     `pnpm format:check` (ADS-1062).
+  const nonLibPackageDirs = packages
+    .filter(name => !name.startsWith('lib.'))
+    .map(name => `packages/${name}`);
+  for (const dir of [...services.map(svc => `services/${svc}`), ...nonLibPackageDirs, 'e2e']) {
     let pkg;
     try {
       pkg = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8'));

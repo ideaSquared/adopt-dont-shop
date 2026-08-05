@@ -20,6 +20,20 @@ import { isWorkspaceCovered } from './lib/template-engine.mjs';
 
 const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url));
 
+// The canonical README section headings scripts/check-readmes.mjs enforces per
+// workspace family. A freshly-scaffolded package must ship all of them so
+// `pnpm check:readmes` passes with zero manual README edits (ADS-1059).
+const SHARED_README_HEADINGS = [
+  '## Purpose',
+  '## Location in the architecture',
+  '## Scripts',
+  '## Environment variables consumed',
+  '## Testing notes',
+  '## Ownership',
+];
+const APP_README_HEADINGS = [...SHARED_README_HEADINGS, '## Public surface'];
+const LIB_README_HEADINGS = [...SHARED_README_HEADINGS, '## Public API / exports'];
+
 const WORKSPACE_MANIFEST = [
   'packages:',
   "  - 'apps/*'",
@@ -66,6 +80,15 @@ describe('pnpm new-app (create-new-app.js)', () => {
     runGenerator('create-new-app.js', ['app.portal', '--template', 'minimal']);
     expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toBe(before);
   });
+
+  it('scaffolds a README with every heading check:readmes requires for apps (ADS-1059)', () => {
+    runGenerator('create-new-app.js', ['app.dashboard', '--template', 'minimal']);
+
+    const readme = readFileSync(join(root, 'apps', 'dashboard', 'README.md'), 'utf8');
+    for (const heading of APP_README_HEADINGS) {
+      expect(readme).toContain(heading);
+    }
+  });
 });
 
 describe('pnpm new-lib (create-new-lib.js)', () => {
@@ -91,6 +114,33 @@ describe('pnpm new-lib (create-new-lib.js)', () => {
     // package.json now (there isn't even one in the temp root).
     runGenerator('create-new-lib.js', ['gadgets', '--type=utility', '--skip-install']);
     expect(existsSync(join(root, 'package.json'))).toBe(false);
+  });
+
+  it('scaffolds a README with every heading check:readmes requires for libs (ADS-1059)', () => {
+    runGenerator('create-new-lib.js', [
+      'widgets',
+      'Widget helpers',
+      '--type=utility',
+      '--skip-install',
+    ]);
+
+    const readme = readFileSync(join(root, 'packages', 'lib.widgets', 'README.md'), 'utf8');
+    for (const heading of LIB_README_HEADINGS) {
+      expect(readme).toContain(heading);
+    }
+  });
+
+  it('prints a copy-pasteable workspace dependency using a dot, not a hyphen (ADS-1059)', () => {
+    const output = runGenerator('create-new-lib.js', [
+      'widgets',
+      '--type=utility',
+      '--skip-install',
+    ]);
+
+    // The "Use in apps" next-step must be a resolvable @adopt-dont-shop/lib.<name>
+    // dependency — the old generator printed an unresolvable lib-<name>.
+    expect(output).toContain('"@adopt-dont-shop/lib.widgets": "workspace:*"');
+    expect(output).not.toContain('lib-widgets');
   });
 });
 
