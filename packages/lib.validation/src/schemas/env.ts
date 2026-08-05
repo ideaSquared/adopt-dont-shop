@@ -60,8 +60,8 @@ export const envCorsOriginField = z.string().refine(
 
 /**
  * Base schema — applied to every environment. Per-environment refinements
- * (production-only requirements, etc.) live in the
- * backend validator next to the issue formatter.
+ * (production-only requirements, etc.) are layered on top of this base by
+ * productionOnlyCheck / validateEnv in this module.
  */
 export const envBaseSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']),

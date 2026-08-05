@@ -8,10 +8,9 @@ import {
 } from './env';
 
 // ADS-707: regression coverage for the shared env schema. These tests pin
-// the public contract that the backend boot validator + CLI gate both
-// depend on. Per-environment refinement logic (production-only checks,
-// db-name choice) is still owned by the backend validator, not this
-// schema, so it is exercised there.
+// the public contract the CLI env gate depends on, including the
+// production-only refinements (productionOnlyCheck / validateEnv) that this
+// module layers on top of the base schema.
 
 const STRONG_SECRET = 'A'.repeat(40);
 const STRONG_SECRET_B = 'B'.repeat(40);
