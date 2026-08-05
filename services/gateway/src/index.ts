@@ -3,7 +3,11 @@ import { connect, type NatsConnection } from 'nats';
 import type { Server as IOServer } from 'socket.io';
 
 import { createLogger } from '@adopt-dont-shop/observability';
-import { assertPrincipalVerificationConfig } from '@adopt-dont-shop/service-bootstrap';
+import {
+  assertPrincipalVerificationConfig,
+  installProcessErrorHandlers,
+  withShutdownDeadline,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { createApplicationsClient } from './grpc-clients/applications-client.js';
@@ -163,37 +167,55 @@ const main = async (): Promise<void> => {
       environment: config.environment,
     });
 
+    // ADS-1051: the gateway is the one process serving public HTTP *and*
+    // long-lived WebSockets, so io.close()/server.close() can block
+    // indefinitely. Race the whole teardown against runServiceShutdown's 25s
+    // deadline (→ process.exit(1)) so a rollout can't hang until SIGKILL,
+    // dropping connections, instead of draining.
+    const teardown = (): Promise<void> =>
+      withShutdownDeadline(
+        async () => {
+          try {
+            if (io) {
+              await new Promise<void>(resolve => io!.close(() => resolve()));
+            }
+          } catch (err) {
+            logger.error('socket.io close error', { err });
+          }
+          try {
+            socketAdapterPub?.disconnect();
+            socketAdapterSub?.disconnect();
+          } catch (err) {
+            logger.error('socket adapter redis close error', { err });
+          }
+          try {
+            await server.close();
+          } catch (err) {
+            logger.error('http close error', { err });
+          }
+          try {
+            await nats?.drain();
+          } catch (err) {
+            logger.error('nats drain error', { err });
+          }
+          closeGrpcClients(true);
+        },
+        { logger }
+      );
+
     const shutdown = async (signal: string): Promise<void> => {
       logger.info('service.gateway shutting down', { signal });
-      try {
-        if (io) {
-          await new Promise<void>(resolve => io!.close(() => resolve()));
-        }
-      } catch (err) {
-        logger.error('socket.io close error', { err });
-      }
-      try {
-        socketAdapterPub?.disconnect();
-        socketAdapterSub?.disconnect();
-      } catch (err) {
-        logger.error('socket adapter redis close error', { err });
-      }
-      try {
-        await server.close();
-      } catch (err) {
-        logger.error('http close error', { err });
-      }
-      try {
-        await nats?.drain();
-      } catch (err) {
-        logger.error('nats drain error', { err });
-      }
-      closeGrpcClients(true);
+      await teardown();
       process.exit(0);
     };
 
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
+
+    // ADS-1040: last-resort handlers so an idle DB-pool 'error' event (or any
+    // stray rejection) drains via the same teardown and exits non-zero,
+    // instead of crashing the process undrained under `restart: always`.
+    installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
     // Error's message/stack are non-enumerable — logging { err } serializes
     // to {} and hides the cause.

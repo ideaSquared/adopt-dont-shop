@@ -2,7 +2,10 @@ import { connect, type NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
-import { runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
+import {
+  installProcessErrorHandlers,
+  runServiceShutdown,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { createAuthCohortClient } from './grpc/auth-client.js';
@@ -185,7 +188,12 @@ const main = async (): Promise<void> => {
         { logger }
       );
     }
-    const httpServer = createServer({ config, logger, isReady: () => grpcReady });
+    const httpServer = createServer({
+      config,
+      logger,
+      isReady: () => grpcReady,
+      readiness: { pool, nats },
+    });
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.notifications running', {
@@ -195,6 +203,9 @@ const main = async (): Promise<void> => {
       natsUrl: config.natsUrl,
       environment: config.environment,
     });
+
+    const teardown = (): Promise<void> =>
+      runServiceShutdown({ httpServer, grpc, nats, pool, logger });
 
     const shutdown = async (signal: string): Promise<void> => {
       logger.info('service.notifications shutting down', { signal });
@@ -219,12 +230,17 @@ const main = async (): Promise<void> => {
       } catch (err) {
         logger.error('scheduler stop error', { err });
       }
-      await runServiceShutdown({ httpServer, grpc, nats, pool, logger });
+      await teardown();
       process.exit(0);
     };
 
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
+
+    // ADS-1040: last-resort handlers so an idle DB-pool 'error' event (or
+    // any stray rejection) drains via the same teardown and exits non-zero,
+    // instead of crashing the process undrained under `restart: always`.
+    installProcessErrorHandlers({ logger, onFatal: teardown });
   } catch (err) {
     logger.error('service.notifications failed to start', { err });
     try {

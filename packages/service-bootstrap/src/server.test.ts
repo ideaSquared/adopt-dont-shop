@@ -113,6 +113,68 @@ describe('createMicroserviceServer — readiness probe (isReady gate)', () => {
   });
 });
 
+describe('createMicroserviceServer — /health/ready dependency probe', () => {
+  it('returns 200 with no checks when no readiness deps are configured', async () => {
+    const server = createMicroserviceServer({
+      serviceName: 'service.test',
+      config: baseConfig,
+      logger: quietLogger,
+    });
+    try {
+      const res = await server.inject({ method: 'GET', url: '/health/ready' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ status: 'ok', service: 'service.test', checks: {} });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('returns 200 when every configured dependency is healthy', async () => {
+    const server = createMicroserviceServer({
+      serviceName: 'service.test',
+      config: baseConfig,
+      logger: quietLogger,
+      readiness: {
+        pool: { query: async () => ({ rows: [] }) },
+        nats: { isClosed: () => false },
+      },
+    });
+    try {
+      const res = await server.inject({ method: 'GET', url: '/health/ready' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ status: 'ok', checks: { database: 'ok', nats: 'ok' } });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('returns 503 degraded when a dependency is unreachable', async () => {
+    const server = createMicroserviceServer({
+      serviceName: 'service.test',
+      config: baseConfig,
+      logger: quietLogger,
+      readiness: {
+        pool: {
+          query: async () => {
+            throw new Error('connection terminated unexpectedly');
+          },
+        },
+        nats: { isClosed: () => false },
+      },
+    });
+    try {
+      const res = await server.inject({ method: 'GET', url: '/health/ready' });
+      expect(res.statusCode).toBe(503);
+      expect(res.json()).toMatchObject({
+        status: 'degraded',
+        checks: { database: 'error', nats: 'ok' },
+      });
+    } finally {
+      await server.close();
+    }
+  });
+});
+
 describe('createMicroserviceServer — /metrics endpoint', () => {
   it('exposes Prometheus metrics including http_request_duration_seconds', async () => {
     const server = createMicroserviceServer({

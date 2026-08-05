@@ -30,6 +30,7 @@ import {
   registerMetrics,
   registerRequestId,
 } from '@adopt-dont-shop/observability';
+import { registerReadinessRoute } from '@adopt-dont-shop/service-bootstrap';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -430,6 +431,17 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     service: 'service.gateway',
     environment: config.environment,
   }));
+
+  // ADS-1046: dependency-aware readiness. NATS is the gateway's hard
+  // dependency (WebSocket fan-out to clients + GDPR erasure publish); the
+  // rate-limit Redis is deliberately degraded-tolerant (in-memory fallback),
+  // so its loss must NOT pull the gateway out of rotation and is excluded here.
+  registerReadinessRoute(server, {
+    serviceName: 'service.gateway',
+    environment: config.environment,
+    deps: { nats: opts.nats },
+    logger,
+  });
 
   // Authentication middleware runs as an onRequest hook on EVERY
   // request, BEFORE any route or the catch-all proxy. The order

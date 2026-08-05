@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { runServiceShutdown } from './shutdown.js';
+import { runServiceShutdown, withShutdownDeadline } from './shutdown.js';
 
 describe('runServiceShutdown — shutdown sequencing', () => {
   it('calls close → grpc shutdown → nats drain → pool end in order', async () => {
@@ -252,5 +252,45 @@ describe('runServiceShutdown — overall deadline (timeoutMs)', () => {
     await p;
 
     expect(order).toEqual(['http', 'grpc', 'nats', 'pool']);
+  });
+});
+
+// --- withShutdownDeadline (shared bounded-shutdown primitive) --------
+
+describe('withShutdownDeadline', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('runs the sequence and returns without exiting on normal completion', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const sequence = vi.fn(async () => undefined);
+
+    await withShutdownDeadline(sequence, { logger: makeLogger() });
+
+    expect(sequence).toHaveBeenCalledTimes(1);
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
+  it('exits 1 and names the in-flight step when the sequence hangs past the deadline', async () => {
+    vi.useFakeTimers();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const logger = makeLogger();
+
+    const p = withShutdownDeadline(() => new Promise<void>(() => undefined), {
+      logger,
+      timeoutMs: 10_000,
+      currentStep: () => 'redis',
+    });
+    await vi.advanceTimersByTimeAsync(10_001);
+    await Promise.resolve();
+
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(
+      logger.errorCalls.some(([msg]) => typeof msg === 'string' && msg.includes('redis'))
+    ).toBe(true);
+
+    p.catch(() => undefined);
   });
 });

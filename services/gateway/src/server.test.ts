@@ -70,6 +70,43 @@ describe('createServer — health endpoint', () => {
   });
 });
 
+describe('createServer — /health/ready readiness probe', () => {
+  it('is ready with no checks when NATS is not wired (tests / degraded boot)', async () => {
+    const server = await createServer({ config: baseConfig, logger: quietLogger });
+    try {
+      const res = await server.inject({ method: 'GET', url: '/health/ready' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ status: 'ok', service: 'service.gateway', checks: {} });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('is ready when the NATS connection is open', async () => {
+    const nats = { isClosed: () => false } as unknown as import('nats').NatsConnection;
+    const server = await createServer({ config: baseConfig, logger: quietLogger, nats });
+    try {
+      const res = await server.inject({ method: 'GET', url: '/health/ready' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ status: 'ok', checks: { nats: 'ok' } });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('returns 503 degraded when the NATS connection has closed', async () => {
+    const nats = { isClosed: () => true } as unknown as import('nats').NatsConnection;
+    const server = await createServer({ config: baseConfig, logger: quietLogger, nats });
+    try {
+      const res = await server.inject({ method: 'GET', url: '/health/ready' });
+      expect(res.statusCode).toBe(503);
+      expect(res.json()).toMatchObject({ status: 'degraded', checks: { nats: 'error' } });
+    } finally {
+      await server.close();
+    }
+  });
+});
+
 // Phase 11: the residual service.backend monolith is gone. Anything
 // under /api/* that isn't owned by an extracted service must 404 — no
 // silent fallthrough to a backend that doesn't exist.

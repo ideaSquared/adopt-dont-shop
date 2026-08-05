@@ -46,6 +46,19 @@ const SAFE_SCHEMA = /^[A-Za-z_][A-Za-z0-9_]*$/;
 function buildPool(schema: string, config: PoolConfig): Pool {
   const pool = new Pool({ ...TIMEOUT_DEFAULTS, ...config });
 
+  // pg emits 'error' on an *idle* pooled client whenever its backend
+  // connection drops — Postgres failover/restart/idle-reap or a brief network
+  // partition, all routine in production. With NO listener, Node re-throws it
+  // as an unhandled 'error' and the process terminates → crash-loop under
+  // `restart: always`, with no logged cause. A persistent listener keeps the
+  // process alive and surfaces it; the query/transaction paths still observe
+  // their own failures through the returned promise. Logged to stderr (not a
+  // logger) because this low-level package can't assume one is configured —
+  // same reason as the search_path fallback below.
+  pool.on('error', (err: Error) => {
+    console.error(`db: pool error (schema "${schema}"):`, err);
+  });
+
   pool.on('connect', client => {
     // A connection that fails to set its search_path would silently resolve
     // unqualified table refs to `public` (wrong rows / "relation does not

@@ -27,12 +27,56 @@ export type ShutdownDeps = {
 
 const DEFAULT_TIMEOUT_MS = 25_000;
 
+export type ShutdownDeadlineOptions = {
+  logger: Logger;
+  /** Overall deadline in ms. Default 25 000. */
+  timeoutMs?: number;
+  /** Names the step in flight for the deadline log line (evaluated when the
+   *  deadline fires, so it reflects the step reached, not the step at call
+   *  time). */
+  currentStep?: () => string;
+};
+
+// withShutdownDeadline — race an arbitrary teardown `sequence` against an
+// overall deadline. On timeout it logs the step in flight and calls
+// process.exit(1); on normal completion it clears the timer and returns.
+// Extracted so both runServiceShutdown (fixed HTTP→gRPC→NATS→pool order) and
+// bespoke teardowns (the gateway's io/redis/http/nats/grpc-clients sequence)
+// share one bounded-shutdown guarantee.
+export const withShutdownDeadline = async (
+  sequence: () => Promise<void>,
+  opts: ShutdownDeadlineOptions
+): Promise<void> => {
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      const step = opts.currentStep?.();
+      reject(new Error(`shutdown deadline exceeded${step ? ` in step: ${step}` : ''}`));
+    }, timeoutMs);
+  });
+
+  try {
+    await Promise.race([sequence(), deadline]);
+  } catch (err) {
+    const step = opts.currentStep?.();
+    opts.logger.error(`shutdown deadline exceeded${step ? ` — step in flight: ${step}` : ''}`, {
+      err,
+    });
+    process.exit(1);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+};
+
 // runServiceShutdown — execute the four-step teardown sequence.
 // Each step is individually try/caught so a failure in one step
 // does not skip the remaining steps.
 export const runServiceShutdown = async (deps: ShutdownDeps): Promise<void> => {
   const { httpServer, grpc, nats, pool, logger } = deps;
-  const timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   let currentStep = 'http';
 
@@ -66,16 +110,9 @@ export const runServiceShutdown = async (deps: ShutdownDeps): Promise<void> => {
     }
   };
 
-  const deadline = new Promise<never>((_, reject) =>
-    setTimeout(() => {
-      reject(new Error(`shutdown deadline exceeded in step: ${currentStep}`));
-    }, timeoutMs)
-  );
-
-  try {
-    await Promise.race([sequence(), deadline]);
-  } catch (err) {
-    logger.error(`shutdown deadline exceeded — step in flight: ${currentStep}`, { err });
-    process.exit(1);
-  }
+  await withShutdownDeadline(sequence, {
+    logger,
+    timeoutMs: deps.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    currentStep: () => currentStep,
+  });
 };
