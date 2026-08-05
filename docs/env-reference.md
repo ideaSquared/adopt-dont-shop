@@ -335,10 +335,6 @@ LEGAL_REMINDER_CRON_DRY_RUN=false
 ## Metrics / Observability
 
 ```env
-# Bearer token required on GET /metrics (Prometheus scrape). Leave unset
-# to disable auth in dev; required in production (route 404s without it).
-# METRICS_AUTH_TOKEN=CHANGE_THIS_METRICS_BEARER_TOKEN
-
 # ADS-660: OpenTelemetry distributed tracing. When unset, the SDK does
 # NOT start — the backend boots without traces and only the W3C
 # traceparent scaffold runs. Set the endpoint to ship spans to a
@@ -413,11 +409,6 @@ EXPOSE_API_DOCS=true
 # WATCHPACK_POLLING=true
 ```
 
-`DEBUG_ERRORS=false` (in `.env.example`) includes raw error messages in API
-responses when `true` — ADS-512: **never** set `true` in production;
-startup validation refuses to boot with `DEBUG_ERRORS=true` while
-`NODE_ENV=production`.
-
 ## Seeder demo data (dev/test only)
 
 ```env
@@ -447,4 +438,3 @@ Before deploying to production, ensure you have:
 - Enabled HTTPS for all frontend URLs
 - Set `NODE_ENV=production`
 - Reviewed and limited rate limiting settings
-- Disabled debug logging / errors (`DEBUG_ERRORS=false`)

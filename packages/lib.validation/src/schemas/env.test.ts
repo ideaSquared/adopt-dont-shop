@@ -8,10 +8,9 @@ import {
 } from './env';
 
 // ADS-707: regression coverage for the shared env schema. These tests pin
-// the public contract that the backend boot validator + CLI gate both
-// depend on. Per-environment refinement logic (production-only checks,
-// DEBUG_ERRORS gates, db-name choice) is still owned by the backend
-// validator, not this schema, so it is exercised there.
+// the public contract the CLI env gate depends on, including the
+// production-only refinements (productionOnlyCheck / validateEnv) that this
+// module layers on top of the base schema.
 
 const STRONG_SECRET = 'A'.repeat(40);
 const STRONG_SECRET_B = 'B'.repeat(40);
@@ -384,14 +383,6 @@ describe('validateEnv', () => {
       expect(errorPaths(result)).toContain('STATSIG_SERVER_SECRET_KEY');
     });
 
-    it('errors when DEBUG_ERRORS=true in production', () => {
-      const env = validProdEnv();
-      env.DEBUG_ERRORS = 'true';
-      const result = validateEnv(env);
-      expect(errorPaths(result)).toContain('DEBUG_ERRORS');
-      expect(errorMessages(result)).toContain('not allowed in production');
-    });
-
     it('warns when BCRYPT_ROUNDS is below 12 in production', () => {
       const env = validProdEnv();
       env.BCRYPT_ROUNDS = '10';
@@ -421,13 +412,13 @@ describe('validateEnv', () => {
     it('separates errors and warnings by level', () => {
       const env = validProdEnv();
       env.BCRYPT_ROUNDS = '4'; // warning
-      env.DEBUG_ERRORS = 'true'; // error
+      env.CORS_ORIGIN = undefined; // error
       const result = validateEnv(env);
       expect(result.ok).toBe(false);
       expect(result.errors.every((e) => e.level === 'error')).toBe(true);
       expect(result.warnings.every((w) => w.level === 'warning')).toBe(true);
       expect(result.warnings.map((w) => w.path)).toContain('BCRYPT_ROUNDS');
-      expect(result.errors.map((e) => e.path)).toContain('DEBUG_ERRORS');
+      expect(result.errors.map((e) => e.path)).toContain('CORS_ORIGIN');
     });
 
     it('accepts an alternate valid ENCRYPTION_KEY (mixed case hex)', () => {
