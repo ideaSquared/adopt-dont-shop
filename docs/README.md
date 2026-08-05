@@ -57,7 +57,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [ADR 0004 — Postgres read-replica routing](./adr/0004-postgres-read-replica-routing.md) — optional read-replica pool in `@adopt-dont-shop/db`
 - [ADR 0005 — Pact contract tests](./adr/0005-pact-contract-tests.md) — contract-testing model for gateway ↔ service boundaries
 - [ADR 0006 — field-permission enforcement](./adr/0006-field-permission-enforcement.md) — `fieldMask`/`fieldWriteGuard` in `@adopt-dont-shop/authz`, wired into `services/rescue`; what's enforced vs. deferred
-- [ADR 0007 — Postgres backups, PITR & restore verification](./adr/0007-postgres-backups-pitr-restore.md) — proposal to add restore-verification CI, enforced S3 retention/Object Lock, and pgBackRest WAL/PITR
+- [ADR 0007 — Postgres backups, PITR & restore verification](./adr/0007-postgres-backups-pitr-restore.md) — _proposed_: restore-verification CI, enforced S3 retention/Object Lock, and pgBackRest WAL/PITR
 - [ADR 0008 — pre-deploy migration strategy](./adr/0008-pre-deploy-migration-strategy.md) — _proposed_: gated pre-deploy migration runner, `CREATE INDEX CONCURRENTLY` on populated tables, and expand/contract discipline
 - [ADR 0009 — deployment strategy & high availability](./adr/0009-deployment-strategy-and-ha.md) — _proposed_: auto-rollback-on-failed-health + documented single-host SPOF/RTO/RPO vs. multi-replica / orchestrator tradeoffs (ADS-1045)
 - [ADR 0010 — frontend quality gates](./adr/0010-frontend-quality-gates.md) — _proposed_: re-enable jsx-a11y, add `no-non-null-assertion`, tighten the container CSP, ratchet app coverage floors
