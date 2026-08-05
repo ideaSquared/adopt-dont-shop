@@ -17,16 +17,19 @@ otherwise `warning` (`P95LatencyHigh`).
 
 ## Pool config (current defaults)
 
-Pool sizing and timeouts are **not env-tunable today** — they live in
-`TIMEOUT_DEFAULTS` in [`packages/db/src/client.ts`](../../packages/db/src/client.ts):
+Timeouts live in `TIMEOUT_DEFAULTS` in
+[`packages/db/src/client.ts`](../../packages/db/src/client.ts) and are **not
+env-tunable**. The pool `max` (ADS-1042) has an explicit budgeted default and
+**is** env-tunable per service via `DB_POOL_MAX` — see
+[`docs/operations/connection-budget.md`](../operations/connection-budget.md):
 
-| Setting                   | Default  | Meaning                                                   |
-| ------------------------- | -------- | --------------------------------------------------------- |
-| `connectionTimeoutMillis` | `10_000` | How long a request waits for a connection from the pool.  |
-| `idleTimeoutMillis`       | `30_000` | Idle-connection eviction.                                 |
-| `statement_timeout`       | `30_000` | Postgres session `statement_timeout` — per-query ceiling. |
-| `query_timeout`           | `30_000` | Client-side query timeout applied by node-postgres.       |
-| `max`                     | `10`     | pg default — the code does not override it.               |
+| Setting                   | Default  | Meaning                                                      |
+| ------------------------- | -------- | ------------------------------------------------------------ |
+| `connectionTimeoutMillis` | `10_000` | How long a request waits for a connection from the pool.     |
+| `idleTimeoutMillis`       | `30_000` | Idle-connection eviction.                                    |
+| `statement_timeout`       | `30_000` | Postgres session `statement_timeout` — per-query ceiling.    |
+| `query_timeout`           | `30_000` | Client-side query timeout applied by node-postgres.          |
+| `max`                     | `8`      | `DEFAULT_POOL_MAX`; override per service with `DB_POOL_MAX`. |
 
 `packages/db/src/client.ts` does not emit a `[db] pool …` log line at
 boot; there is no boot-time report of the effective values.
@@ -78,18 +81,18 @@ is up and tracking the saturation, capacity is the cause.
 
    Watch the `state` distribution drop back to mostly `idle`.
 
-2. **Bump the pool** — the pool `max` is currently **not env-tunable**;
-   it defaults to pg's built-in `10`. To raise it, edit
-   `TIMEOUT_DEFAULTS` in [`packages/db/src/client.ts`](../../packages/db/src/client.ts)
-   to set an explicit `max`, rebuild the affected service image, and
-   redeploy. Do **not** exceed the Postgres `max_connections` ceiling
-   (typically 100 on a small managed instance). Every schema-owning
-   service holds up to `max` connections; budget across all of them
-   (auth, pets, rescue, applications, chat, notifications, moderation,
-   matching, cms, audit) and leave headroom for `psql` + the operator.
-   Because this requires a code change, it is rarely the fastest
-   mitigation — usually a targeted `pg_terminate_backend` or a
-   feature-flag flip is faster.
+2. **Bump the pool** — the pool `max` (default `8`) is env-tunable per
+   service via `DB_POOL_MAX`. Raise it for the affected service and
+   redeploy that service (no code change needed). Do **not** exceed the
+   Postgres `max_connections` ceiling (tuned to `200` in
+   `docker-compose.{prod,staging}.yml`). Every schema-owning service
+   holds up to `max` connections; budget across all of them (auth, pets,
+   rescue, applications, chat, notifications, moderation, matching, cms,
+   audit) and leave headroom for backups, migrations, `psql` + the
+   operator — the full formula is in
+   [`docs/operations/connection-budget.md`](../operations/connection-budget.md).
+   A targeted `pg_terminate_backend` or a feature-flag flip is usually a
+   faster first response than a redeploy.
 
 3. **Disable a hot endpoint** — if a known feature is driving the
    load (e.g. a search endpoint hitting a missing index), flip its

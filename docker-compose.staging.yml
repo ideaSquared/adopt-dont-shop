@@ -123,6 +123,19 @@ services:
     container_name: ads_staging_db
     restart: always
     ports: []
+    # ADS-1042: raise max_connections above the pooled connection budget so
+    # services can scale past a single replica without `FATAL: too many
+    # clients`. 10 DB-owning services × pool max 8 × 2 replicas + ~20 reserved
+    # (backups + migrations + admin) = 180 < 200. shared_buffers is bumped to
+    # ~25% of the 2g container limit to match. Staging mirrors prod so tuning
+    # regressions surface pre-prod. Budget math: docs/operations/connection-budget.md.
+    # (Do NOT fold these into the Redis/NATS command entries — Postgres only.)
+    command:
+      - postgres
+      - '-c'
+      - 'max_connections=200'
+      - '-c'
+      - 'shared_buffers=512MB'
     # ADS-752: read the DB password from the file-mounted Docker secret
     # rather than the env var. POSTGRES_PASSWORD_FILE is honoured by the
     # postgres entrypoint and keeps the value out of `docker inspect`.

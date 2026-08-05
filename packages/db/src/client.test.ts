@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDbClient } from './client.js';
 
 describe('createDbClient', () => {
@@ -45,6 +45,98 @@ describe('createDbClient', () => {
       expect(pool.options.statement_timeout).toBe(3_000);
       expect(pool.options.query_timeout).toBe(4_000);
 
+      void pool.end();
+    });
+  });
+
+  describe('pool connection budget (ADS-1042)', () => {
+    const originalPoolMax = process.env.DB_POOL_MAX;
+
+    afterEach(() => {
+      if (originalPoolMax === undefined) {
+        delete process.env.DB_POOL_MAX;
+      } else {
+        process.env.DB_POOL_MAX = originalPoolMax;
+      }
+    });
+
+    it('applies the conservative default pool max when nothing overrides it', () => {
+      delete process.env.DB_POOL_MAX;
+      const pool = createDbClient({
+        schema: 'test',
+        connectionString: 'postgres://localhost/test',
+      });
+
+      // Not node-pg's implicit 10 — an explicit budgeted ceiling so 10 services
+      // × max stays under a tuned max_connections with replica headroom.
+      expect(pool.options.max).toBe(8);
+
+      void pool.end();
+    });
+
+    it('lets DB_POOL_MAX override the default', () => {
+      process.env.DB_POOL_MAX = '5';
+      const pool = createDbClient({
+        schema: 'test',
+        connectionString: 'postgres://localhost/test',
+      });
+
+      expect(pool.options.max).toBe(5);
+
+      void pool.end();
+    });
+
+    it('ignores a malformed DB_POOL_MAX and keeps the default', () => {
+      process.env.DB_POOL_MAX = 'not-a-number';
+      const pool = createDbClient({
+        schema: 'test',
+        connectionString: 'postgres://localhost/test',
+      });
+
+      expect(pool.options.max).toBe(8);
+
+      void pool.end();
+    });
+
+    it('lets an explicit max in options win over DB_POOL_MAX and the default', () => {
+      process.env.DB_POOL_MAX = '5';
+      const pool = createDbClient({
+        schema: 'test',
+        connectionString: 'postgres://localhost/test',
+        max: 3,
+      });
+
+      expect(pool.options.max).toBe(3);
+
+      void pool.end();
+    });
+
+    it('ignores a malformed explicit max (0, negative, non-integer) and falls back', () => {
+      delete process.env.DB_POOL_MAX;
+      for (const badMax of [0, -1, 2.5]) {
+        const pool = createDbClient({
+          schema: 'test',
+          connectionString: 'postgres://localhost/test',
+          max: badMax,
+        });
+
+        expect(pool.options.max).toBe(8);
+
+        void pool.end();
+      }
+    });
+
+    it('applies the same pool max to the read replica pool', () => {
+      process.env.DB_POOL_MAX = '6';
+      const pool = createDbClient({
+        schema: 'pets',
+        connectionString: 'postgres://localhost/primary',
+        readUrl: 'postgres://replica.example.com/pets',
+      });
+
+      expect(pool.read.options.max).toBe(6);
+
+      void pool.read.end();
       void pool.end();
     });
   });

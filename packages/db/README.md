@@ -48,9 +48,14 @@ up to 12 attempts × 250 ms).
 
 ## Environment variables consumed
 
-None directly — callers pass `databaseUrl` / `connectionString` (typically
-their own `DATABASE_URL`). See
-[`docs/env-reference.md`](../../docs/env-reference.md) for the shared list.
+- `DB_POOL_MAX` (ADS-1042) — per-service pool ceiling. Optional; defaults to a
+  per-service pool ceiling of 8. An explicit `max` in `createDbClient` options
+  wins over it. The connection budget behind the default lives in
+  [`docs/operations/connection-budget.md`](../../docs/operations/connection-budget.md).
+
+Otherwise callers pass `databaseUrl` / `connectionString` (typically their own
+`DATABASE_URL`). See [`docs/env-reference.md`](../../docs/env-reference.md) for
+the shared list.
 
 ## Testing notes
 
