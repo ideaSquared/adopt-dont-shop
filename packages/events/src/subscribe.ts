@@ -7,6 +7,7 @@ import {
   type NatsConnection,
 } from 'nats';
 
+import { recordDeadLetter } from './dead-letter-metrics.js';
 import { DLQ_SUBJECT_PREFIX, DOMAIN_STREAM } from './stream.js';
 
 export type SubscribeOptions = {
@@ -210,4 +211,7 @@ export async function deadLetter(
     .publish(`${DLQ_SUBJECT_PREFIX}${originalSubject}`, new TextEncoder().encode(raw), {
       headers: h,
     });
+  // Meter the dead-letter on the shared registry so /metrics exposes
+  // events_dead_letter_total{subject}. Counted after the park succeeds.
+  recordDeadLetter(originalSubject);
 }

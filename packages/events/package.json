@@ -35,6 +35,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@adopt-dont-shop/observability": "workspace:*",
     "nats": "^2.29.3"
   },
   "peerDependencies": {
