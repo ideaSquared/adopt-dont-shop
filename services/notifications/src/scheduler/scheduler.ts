@@ -7,11 +7,14 @@
 // tick loop matches the CAD-style "minimal external surface" approach
 // and is trivial to test with a mocked clock.
 //
-// Replicas + locking: this implementation does NOT lock across
-// instances yet. The first follow-up before running multiple replicas
-// is to swap the in-memory `nextRunAt` for a row in a `scheduled_jobs`
-// table that's claimed with FOR UPDATE SKIP LOCKED (same pattern as
-// the email queue worker).
+// Replicas + locking: cross-instance locking is OPTIONAL, via the
+// `claimRun` hook (see SchedulerOptions). When wired, the scheduler claims
+// each job's interval-quantised slot before running so only one replica
+// runs the job; when omitted it runs single-instance (test / single-replica
+// behaviour). The claim is an `INSERT ... ON CONFLICT DO NOTHING` on
+// `scheduled_job_runs` (scheduler/claim.ts) — chosen over FOR UPDATE SKIP
+// LOCKED because a single-slot claim needs no pre-seeded row to lock; the
+// email queue worker still uses SKIP LOCKED to drain its many-row queue.
 
 import type { Logger } from 'winston';
 
