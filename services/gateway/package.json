@@ -24,7 +24,7 @@
     "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
     "start": "node --import ./dist/instrumentation.js ./dist/index.js",
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "test": "vitest run",
     "test:contracts:consumer": "vitest run --config vitest.contracts.config.ts --reporter=verbose test/contracts/*.consumer.test.ts",
     "test:contracts:provider": "vitest run --config vitest.contracts.config.ts --reporter=verbose test/contracts/*.provider.test.ts",

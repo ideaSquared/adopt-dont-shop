@@ -849,15 +849,15 @@ When reporting issues, include:
 
 ```bash
 # Application management
-pnpm start                    # Start application
+pnpm docker:dev               # Start full stack (Docker)
 pnpm dev                  # Start in development mode
 pnpm test                     # Run tests
 pnpm build               # Build for production
 
 # Database management
-pnpm db:migrate          # Run migrations
+docker compose exec service-auth pnpm db:migrate   # Run migrations (per service)
 pnpm db:seed            # Seed database
-pnpm db:reset           # Reset database
+pnpm docker:reset        # Reset database
 
 # Docker management
 docker compose up -d        # Start services

@@ -199,11 +199,11 @@ pnpm install
 cp .env.example .env
 
 # Start with Docker
-docker compose up
+pnpm docker:dev
 
 # Or start subsets via Turbo filters
 pnpm dev:apps           # all React apps in parallel
-pnpm dev:backend        # backend only
+pnpm dev:services       # Postgres + Redis (Docker)
 pnpm exec turbo dev --filter=@adopt-dont-shop/app.admin   # one app
 ```
 

@@ -1,5 +1,13 @@
 # Sequelize 6 → Sequelize 7 Migration Plan
 
+> **Historical record — do not run these commands.** This plan targeted the
+> `service.backend` monolith and its Sequelize ORM, both of which are gone:
+> `service.backend` was deleted when the backend was split into gRPC
+> microservices, and the codebase no longer uses Sequelize or any ORM (services
+> use raw SQL via `@adopt-dont-shop/db`). The commands below — including
+> `pnpm db:reset` — refer to that former workflow and resolve to no current
+> script. Kept for context only.
+
 **Linear**: ADS-531 (this document covers the Sequelize portion)
 **Status**: ⚠️ Partially shipped — `service.backend/package.json` already pins `"sequelize": "7.0.0-alpha.9"` and `sequelize-typescript` / `sequelize-cli` / `@types/sequelize` were removed. The remaining work is the bump to a stable 7.x release once one lands.
 **Recommended quarter**: After Sequelize 7 ships a stable (non-alpha) tag.

@@ -36,3 +36,17 @@ consumers:
       - '**/Dockerfile*'
       - 'docker-compose*.yml'
       - '.dockerignore'
+
+  # schema-equivalence.yml (ADS-1065) intentionally does NOT consume the
+  # canonical list, and it no longer carries a trigger-level `paths:` filter at
+  # all: a required check filtered out at the trigger level never reports and
+  # permanently blocks non-migration PRs. It now triggers on every push/PR and
+  # scopes the expensive migrate job INTERNALLY, via a `dorny/paths-filter`
+  # `changes` job over the migration/schema-owning paths (services/*/src/
+  # migrations/**, services/*/src/db/**, the packages the migrate job builds —
+  # packages/db/**, packages/observability/**, packages/events/** —
+  # pnpm-lock.yaml, and the workflow file); the always-on gate job reports the
+  # required check. It is therefore not a canonical consumer — the guard's
+  # drift check does not apply, only the literal-path-exists check (which also
+  # scans that in-job `filters:` block). Recorded here so the single source of
+  # truth documents the deliberate divergence.

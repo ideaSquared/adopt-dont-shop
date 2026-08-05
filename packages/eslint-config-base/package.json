@@ -12,6 +12,12 @@
     "eslint",
     "eslintconfig"
   ],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"*.js\"",
+    "format:check": "prettier --check \"*.js\""
+  },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",
     "typescript-eslint": "^8.0.0",
