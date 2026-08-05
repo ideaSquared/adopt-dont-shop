@@ -8,13 +8,13 @@ that **actually exists** in the current stack (see the metrics table in
 
 ## Files
 
-| File | Rules |
-| --- | --- |
-| `service-down.yml` | `ServiceDown` — scrape `up == 0` per service |
-| `high-error-rate.yml` | `HighErrorRate` (HTTP 5xx), `HighGrpcErrorRate` (gRPC non-OK) |
-| `p95-latency.yml` | `HttpP95LatencyHigh`, `GrpcP95LatencyHigh` |
-| `gdpr-saga.yml` | `GdprSagaFailed`, `GdprSagaTimedOut`, `GdprErasureRequestedNotCompleted` |
-| `gateway-resilience.yml` | `GatewayCircuitOpen`, `GatewayRateLimitSpike` |
+| File                     | Rules                                                                    |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `service-down.yml`       | `ServiceDown` — scrape `up == 0` per service                             |
+| `high-error-rate.yml`    | `HighErrorRate` (HTTP 5xx), `HighGrpcErrorRate` (gRPC non-OK)            |
+| `p95-latency.yml`        | `HttpP95LatencyHigh`, `GrpcP95LatencyHigh`                               |
+| `gdpr-saga.yml`          | `GdprSagaFailed`, `GdprSagaTimedOut`, `GdprErasureRequestedNotCompleted` |
+| `gateway-resilience.yml` | `GatewayCircuitOpen`, `GatewayRateLimitSpike`                            |
 
 ## Assumptions
 
@@ -63,10 +63,18 @@ promtool check rules infra/prometheus/rules/*.yml
 (YAML structure is also CI-checkable with any YAML loader; promtool
 additionally validates the PromQL expressions.)
 
-## Out of scope
+## Alertmanager (ADS-1041)
 
-**Alertmanager routing & receivers are not configured here.** Routing needs a
-real destination (PagerDuty integration key / Slack webhook) that this repo
-does not yet have. The rules set a `severity` label and a `runbook` annotation;
-wire `severity`-based routes in Alertmanager once a destination exists. See
-`docs/slo.md` for the intended severity → routing convention.
+These files are now **loaded** by Prometheus (`rule_files:` in
+`observability/prometheus/prometheus.yml`) and routed by **Alertmanager**
+(`observability/alertmanager/alertmanager.yml`) in both the dev `observability`
+profile and the prod/staging overlay (`docker-compose.observability.yml`).
+
+Routing keys off the `severity` label: `critical` → the `critical-pager`
+receiver, `warning` → `warning-chat`. Both receivers ship **inert** (no notifier
+config) so the stack starts with zero secrets and simply drops notifications.
+Wire a real destination by uncommenting the Slack/email block in
+`alertmanager.yml` and dropping the secret into
+`observability/alertmanager/secrets/` — see
+`docs/runbooks/observability-enable.md`. `docs/slo.md` documents the intended
+severity → routing convention.

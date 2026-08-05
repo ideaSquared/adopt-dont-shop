@@ -20,6 +20,17 @@ OTEL_TRACES_SAMPLER=parentbased_traceidratio  # optional
 OTEL_TRACES_SAMPLER_ARG=1.0                   # optional
 ```
 
+## Deployed backend (prod/staging, ADS-1041)
+
+In prod/staging the traces backend is self-hosted **Tempo**, part of the opt-in
+observability overlay (`docker-compose.observability.yml`). Point the services at
+the in-network Tempo by setting `OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318`
+in the host `.env` (with `OBSERVABILITY_ENABLED=true`). Tempo receives OTLP/HTTP
+on `:4318` and Grafana queries it on `:3200` via the provisioned Tempo
+datasource. Keep `OTEL_TRACES_SAMPLER_ARG` well below 1.0 in production. Verify
+spans are arriving after enabling (Grafana → Explore → Tempo). See
+`docs/runbooks/observability-enable.md`.
+
 ## Local viewer (Jaeger)
 
 We deliberately do NOT bundle Jaeger in `docker-compose.yml` — the

@@ -262,13 +262,32 @@ SERVE_LOCAL_UPLOADS=true
 # VITE_STATSIG_CLIENT_KEY=client-...
 ```
 
-## Error tracking (Sentry)
+## Error tracking (Sentry / GlitchTip)
+
+Backend error tracking uses the Sentry SDK, initialized at service boot
+(ADS-1041). It is a **no-op unless `SENTRY_DSN` is set AND `NODE_ENV` is
+`production`/`staging`**. In prod/staging the DSN points at the self-hosted
+**GlitchTip** stack (`docker-compose.glitchtip.yml`) — create a project in the
+GlitchTip UI and copy its DSN (internal form
+`http://<publicKey>@glitchtip-web:8080/<projectId>`). See
+`docs/runbooks/observability-enable.md`.
 
 ```env
-# SENTRY_DSN=your-sentry-dsn-url
-# VITE_SENTRY_DSN=your-sentry-dsn-url
-# Build/release tag reported to Sentry. CI typically sets this to the git SHA.
+# SENTRY_DSN=http://<publicKey>@glitchtip-web:8080/<projectId>
+# VITE_SENTRY_DSN=your-frontend-dsn-url
+# Build/release tag reported to Sentry/GlitchTip. CI typically sets this to the git SHA.
 # SENTRY_RELEASE=
+
+# --- Self-hosted GlitchTip (prod/staging, docker-compose.glitchtip.yml) ------
+# Enable the GlitchTip overlay on this host, then re-deploy.
+# GLITCHTIP_ENABLED=true
+# Django SECRET_KEY + its dedicated Postgres password (required when enabled).
+# GLITCHTIP_SECRET_KEY=<random 50+ chars>
+# GLITCHTIP_DB_PASSWORD=<random>
+# Base URL for links in the UI/emails; SMTP + from-address (optional).
+# GLITCHTIP_DOMAIN=https://errors.example.com
+# GLITCHTIP_EMAIL_URL=smtp://user:pass@smtp.example.com:587
+# GLITCHTIP_FROM_EMAIL=alerts@adoptdontshop.com
 ```
 
 ## Rate limiting & security
@@ -334,18 +353,30 @@ LEGAL_REMINDER_CRON_DRY_RUN=false
 
 ## Metrics / Observability
 
+The self-hosted stack (Prometheus + Loki + Tempo + Grafana + Alertmanager) is an
+**opt-in overlay** in prod/staging (`docker-compose.observability.yml`, ADS-1041).
+Turn it on per-host with `OBSERVABILITY_ENABLED=true` and point the services'
+shipping endpoints at the in-network backends. All three endpoints are inert
+(disabled) when unset. Full operator steps: `docs/runbooks/observability-enable.md`.
+
 ```env
+# Enable the observability overlay on this host, then re-deploy.
+# OBSERVABILITY_ENABLED=true
+
+# ADS-1041: ship logs to Loki (winston-loki). In prod/staging the in-network URL:
+# LOKI_URL=http://loki:3100
+
 # ADS-660: OpenTelemetry distributed tracing. When unset, the SDK does
 # NOT start — the backend boots without traces and only the W3C
-# traceparent scaffold runs. Set the endpoint to ship spans to a
-# collector (Tempo / Jaeger / OTel Collector). See
-# docs/observability/tracing.md for local-dev setup.
-# OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+# traceparent scaffold runs. In prod/staging point it at the in-network Tempo;
+# for local dev use a Jaeger/collector on :4318. See docs/observability/tracing.md.
+# OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
 # OTEL_SERVICE_NAME=adopt-dont-shop-backend
 # Sampling. `parentbased_traceidratio` honours upstream sampling
 # decisions and falls back to the ratio for new roots. Ratio in [0, 1].
+# In production keep the ratio well below 1.0 to bound trace volume.
 # OTEL_TRACES_SAMPLER=parentbased_traceidratio
-# OTEL_TRACES_SAMPLER_ARG=1.0
+# OTEL_TRACES_SAMPLER_ARG=0.1
 ```
 
 ## Grafana
@@ -360,6 +391,13 @@ to start Grafana without it, ADS-968).
 # true to opt back into read-only anonymous access — see
 # observability/grafana/README.md.
 # GRAFANA_ANONYMOUS_ENABLED=true
+
+# --- prod/staging (docker-compose.observability.yml) -------------------------
+# Required to enable the observability overlay — Grafana refuses to start
+# without it. Anonymous access is forced off; reach Grafana over an SSH tunnel.
+# GF_SECURITY_ADMIN_PASSWORD=<random>
+# Set if you front Grafana with a reverse proxy (defaults to localhost:3030).
+# GF_SERVER_ROOT_URL=https://grafana.example.com
 ```
 
 ## External verification APIs (rescue onboarding)
