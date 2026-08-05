@@ -67,7 +67,11 @@ jobs:
   schema-equivalence-compute:
     name: Schema Equivalence (compute)
     needs: changes
-    if: needs.changes.outputs.migrations == 'true'
+    # Run when migration/schema code changed, or on a manual run — a
+    # `workflow_dispatch` is an explicit request to validate migrations on
+    # demand (matching how ci.yml treats manual dispatch), so it must not be
+    # skipped by change detection.
+    if: ${{ needs.changes.outputs.migrations == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
