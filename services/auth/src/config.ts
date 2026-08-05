@@ -1,4 +1,9 @@
-import { parsePort, requireHexSecret, requireSecret } from '@adopt-dont-shop/config-secrets';
+import {
+  parsePort,
+  requireDistinctSecrets,
+  requireHexSecret,
+  requireSecret,
+} from '@adopt-dont-shop/config-secrets';
 
 export type AuthConfig = {
   // HTTP port for the boot-readiness surface (/health/simple). Distinct
@@ -59,6 +64,18 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
   const encryptionKey = requireHexSecret('ENCRYPTION_KEY', env, {
     description: 'AES-256-GCM key for encrypting TOTP secrets at rest',
   });
+
+  // The access/refresh signing secrets are separate keys by design (a leaked
+  // access secret must not also forge refresh tokens); enforce they aren't
+  // reused for the same value in production (ADS-1047).
+  requireDistinctSecrets(
+    {
+      JWT_SECRET: jwtSecret,
+      JWT_REFRESH_SECRET: jwtRefreshSecret,
+      ENCRYPTION_KEY: encryptionKey,
+    },
+    env
+  );
 
   return {
     port,

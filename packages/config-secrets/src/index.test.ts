@@ -4,7 +4,13 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { parsePort, readSecret, requireHexSecret, requireSecret } from './index.js';
+import {
+  parsePort,
+  readSecret,
+  requireDistinctSecrets,
+  requireHexSecret,
+  requireSecret,
+} from './index.js';
 
 describe('readSecret', () => {
   let tmp: string;
@@ -139,6 +145,38 @@ describe('requireSecret', () => {
       requireSecret('JWT_SECRET', { JWT_SECRET: 'env-value', JWT_SECRET_FILE: file })
     ).toThrow(/JWT_SECRET and JWT_SECRET_FILE are both set/);
   });
+
+  it('rejects a CHANGE_THIS placeholder value in production (ADS-1047)', () => {
+    expect(() =>
+      requireSecret('JWT_SECRET', { NODE_ENV: 'production', JWT_SECRET: 'CHANGE_THIS_jwt_secret' })
+    ).toThrow(/JWT_SECRET is set to a placeholder value/);
+  });
+
+  it('matches the placeholder prefix case-insensitively', () => {
+    expect(() =>
+      requireSecret('JWT_SECRET', { NODE_ENV: 'production', JWT_SECRET: 'change_this_now' })
+    ).toThrow(/JWT_SECRET is set to a placeholder value/);
+  });
+
+  it('allows a placeholder-looking value outside production (dev/test use throwaways)', () => {
+    expect(
+      requireSecret('JWT_SECRET', { NODE_ENV: 'development', JWT_SECRET: 'CHANGE_THIS_jwt_secret' })
+    ).toBe('CHANGE_THIS_jwt_secret');
+  });
+
+  it('accepts a real (non-placeholder) secret in production', () => {
+    const value = 'a-real-access-signing-secret-value-32b';
+    expect(requireSecret('JWT_SECRET', { NODE_ENV: 'production', JWT_SECRET: value })).toBe(value);
+  });
+
+  it('trims NODE_ENV so whitespace cannot fail-open the production placeholder check', () => {
+    expect(() =>
+      requireSecret('JWT_SECRET', {
+        NODE_ENV: ' production ',
+        JWT_SECRET: 'CHANGE_THIS_jwt_secret',
+      })
+    ).toThrow(/JWT_SECRET is set to a placeholder value/);
+  });
 });
 
 describe('requireHexSecret', () => {
@@ -174,6 +212,44 @@ describe('requireHexSecret', () => {
 
   it('throws when the secret is missing', () => {
     expect(() => requireHexSecret('ENCRYPTION_KEY', {})).toThrow(/ENCRYPTION_KEY is required/);
+  });
+});
+
+describe('requireDistinctSecrets', () => {
+  it('does nothing outside production, even when two secrets are reused', () => {
+    expect(() =>
+      requireDistinctSecrets(
+        { JWT_SECRET: 'same', JWT_REFRESH_SECRET: 'same' },
+        { NODE_ENV: 'development' }
+      )
+    ).not.toThrow();
+  });
+
+  it('throws in production when two secrets share a value, naming the pair', () => {
+    expect(() =>
+      requireDistinctSecrets(
+        { JWT_SECRET: 'same-value', JWT_REFRESH_SECRET: 'same-value' },
+        { NODE_ENV: 'production' }
+      )
+    ).toThrow(/JWT_SECRET and JWT_REFRESH_SECRET must be distinct/);
+  });
+
+  it('passes in production when every secret is distinct', () => {
+    expect(() =>
+      requireDistinctSecrets(
+        { JWT_SECRET: 'a', JWT_REFRESH_SECRET: 'b', ENCRYPTION_KEY: 'c' },
+        { NODE_ENV: 'production' }
+      )
+    ).not.toThrow();
+  });
+
+  it('trims NODE_ENV so whitespace cannot fail-open the production distinct check', () => {
+    expect(() =>
+      requireDistinctSecrets(
+        { JWT_SECRET: 'same', JWT_REFRESH_SECRET: 'same' },
+        { NODE_ENV: 'production\n' }
+      )
+    ).toThrow(/JWT_SECRET and JWT_REFRESH_SECRET must be distinct/);
   });
 });
 

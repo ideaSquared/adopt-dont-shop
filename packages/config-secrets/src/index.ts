@@ -13,6 +13,31 @@
 
 import { readFileSync } from 'node:fs';
 
+// ADS-1047: reject obvious `.env.example` placeholders at boot in production.
+// The length/hex checks below let a `CHANGE_THIS…`-style value (>= the byte
+// floor) boot cleanly, so a deploy that forgot to substitute real secrets runs
+// with a known, guessable credential. Match the repo-wide `CHANGE_THIS`
+// placeholder convention (see `.env.example` and lib.validation's env schema).
+// Production-gated only: dev/test/e2e legitimately use throwaway values.
+const PLACEHOLDER_PREFIX = 'change_this';
+
+const isPlaceholderValue = (value: string): boolean =>
+  value.toLowerCase().startsWith(PLACEHOLDER_PREFIX);
+
+// Trim NODE_ENV before comparing — env-file values can carry trailing/leading
+// whitespace, and a raw `=== 'production'` would then fail-open, silently
+// skipping the production-only security checks below. Mirrors how services read
+// NODE_ENV elsewhere (`env.NODE_ENV?.trim()`).
+const isProductionEnv = (env: NodeJS.ProcessEnv): boolean => env.NODE_ENV?.trim() === 'production';
+
+const assertNotPlaceholder = (name: string, value: string, env: NodeJS.ProcessEnv): void => {
+  if (isProductionEnv(env) && isPlaceholderValue(value)) {
+    throw new Error(
+      `${name} is set to a placeholder value — replace it with a real secret before deploying to production`
+    );
+  }
+};
+
 /**
  * Resolve a secret value from either a file-mounted Docker secret or a
  * plain env var.
@@ -78,6 +103,7 @@ export const requireSecret = (
     const detail = description !== undefined ? ` (${description})` : '';
     throw new Error(`${name} is required${detail}`);
   }
+  assertNotPlaceholder(name, value, env);
   if (opts?.minBytes !== undefined && Buffer.byteLength(value, 'utf8') < opts.minBytes) {
     throw new Error(`${name} must be at least ${opts.minBytes} bytes`);
   }
@@ -130,4 +156,34 @@ export const parsePort = (raw: string | undefined, fallback: number, name: strin
     throw new Error(`${name} must be a positive integer, got "${trimmed}"`);
   }
   return value;
+};
+
+/**
+ * Assert that a service's own signing/encryption secrets are all distinct
+ * (ADS-1047). Reusing one value for two secrets (e.g. `JWT_SECRET` ===
+ * `JWT_REFRESH_SECRET`) means a single disclosure compromises both, defeating
+ * the reason they are separate keys. `config-secrets` only sees one service's
+ * secrets, so this covers intra-service reuse; cross-service distinctness is a
+ * deploy-time concern (scripts/validate-env.ts).
+ *
+ * Production-gated: dev/test may reuse throwaway values. Pass the resolved
+ * values keyed by their env-var name so the error can name the offending pair.
+ */
+export const requireDistinctSecrets = (
+  secrets: Record<string, string>,
+  env: NodeJS.ProcessEnv = process.env
+): void => {
+  if (!isProductionEnv(env)) {
+    return;
+  }
+  const seenByValue = new Map<string, string>();
+  for (const [name, value] of Object.entries(secrets)) {
+    const previousName = seenByValue.get(value);
+    if (previousName !== undefined) {
+      throw new Error(
+        `${previousName} and ${name} must be distinct — reusing a secret widens the blast radius of a single disclosure`
+      );
+    }
+    seenByValue.set(value, name);
+  }
 };
