@@ -53,6 +53,13 @@ test-results
 *.local
 
 # ============================================================================
+# Secrets (deploy.yml materializes real secret files here on the host —
+# NEVER bake them into an image layer). The build context needs nothing under
+# secrets/, so exclude the whole directory's contents.
+# ============================================================================
+secrets/*
+
+# ============================================================================
 # Git files
 # ============================================================================
 .git
