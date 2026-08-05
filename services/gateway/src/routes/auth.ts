@@ -526,8 +526,6 @@ export const registerAuthRoutes = async (
                   status: { type: 'string' },
                 },
               },
-              accessToken: { type: 'string' },
-              refreshToken: { type: 'string' },
             },
           },
           400: {
@@ -562,8 +560,19 @@ export const registerAuthRoutes = async (
           },
           buildMetadata(req)
         );
-        const json = AuthV1.RegisterResponse.toJSON(res) as Record<string, unknown>;
-        return reply.code(201).send(withApiUser(json, res.user));
+        // ADS-1057: mirror /auth/login (ADS-919) — the freshly-minted token
+        // pair rides home as httpOnly cookies and is stripped from the JSON
+        // body explicitly, so a response-schema change can't silently
+        // reintroduce a token-in-body leak.
+        if (res.tokens) {
+          setAuthCookies(req, reply, res.tokens);
+        }
+        const json = AuthV1.RegisterResponse.toJSON(res) as Record<string, unknown> & {
+          tokens?: unknown;
+        };
+        const { tokens, ...jsonWithoutTokens } = json;
+        void tokens;
+        return reply.code(201).send(withApiUser(jsonWithoutTokens, res.user));
       } catch (err) {
         return handleGrpcError(err, reply);
       }

@@ -10,6 +10,7 @@ import {
   type LoginResponse,
   type LogoutResponse,
   type RefreshTokenResponse,
+  type RegisterResponse,
 } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
@@ -114,6 +115,27 @@ const LOGIN_RES: LoginResponse = {
     userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
     status: AuthV1.UserStatus.USER_STATUS_ACTIVE,
     emailVerified: true,
+    phoneVerified: false,
+    twoFactorEnabled: false,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  },
+  tokens: {
+    accessToken: 'a.jwt',
+    refreshToken: 'r.jwt',
+    accessExpiresAt: '2026-06-05T18:30:00Z',
+    refreshExpiresAt: '2026-07-05T18:00:00Z',
+  },
+  permissions: ['pets.read'],
+};
+
+const REGISTER_RES: RegisterResponse = {
+  user: {
+    userId: 'usr-1',
+    email: 'a@example.com',
+    userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
+    status: AuthV1.UserStatus.USER_STATUS_ACTIVE,
+    emailVerified: false,
     phoneVerified: false,
     twoFactorEnabled: false,
     createdAt: '2026-01-01T00:00:00Z',
@@ -543,6 +565,79 @@ describe('auth account-lifecycle routes', () => {
         privacyPolicyAccepted: true,
         userAgent: 'vitest',
       });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register sets the token pair as httpOnly cookies plus a JS-readable session marker (ADS-1057)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.registerMock.mockResolvedValueOnce(REGISTER_RES);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'a@example.com',
+          password: 'longenoughpw',
+          firstName: 'A',
+          lastName: 'B',
+          termsAccepted: true,
+          privacyPolicyAccepted: true,
+        },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const byName = Object.fromEntries(res.cookies.map(c => [c.name, c]));
+
+      expect(byName.accessToken?.value).toBe('a.jwt');
+      expect(byName.accessToken?.httpOnly).toBe(true);
+      expect(byName.accessToken?.path).toBe('/');
+
+      expect(byName.refreshToken?.value).toBe('r.jwt');
+      expect(byName.refreshToken?.httpOnly).toBe(true);
+      expect(byName.refreshToken?.path).toBe('/api/v1/auth');
+
+      expect(byName.hasSession?.value).toBe('1');
+      expect(byName.hasSession?.httpOnly).toBeFalsy();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register never returns the token pair in the JSON body (ADS-1057)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.registerMock.mockResolvedValueOnce(REGISTER_RES);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'a@example.com',
+          password: 'longenoughpw',
+          firstName: 'A',
+          lastName: 'B',
+          termsAccepted: true,
+          privacyPolicyAccepted: true,
+        },
+      });
+
+      expect(res.statusCode).toBe(201);
+      // ADS-1057: the token pair rides home as httpOnly cookies, never in the
+      // JSON body — the tokens are stripped explicitly, not left to the
+      // response schema, so a schema change can't reintroduce the leak.
+      const body = res.json() as {
+        user?: { email?: string };
+        tokens?: unknown;
+        accessToken?: unknown;
+        refreshToken?: unknown;
+      };
+      expect(body.user?.email).toBe('a@example.com');
+      expect(body.tokens).toBeUndefined();
+      expect(body.accessToken).toBeUndefined();
+      expect(body.refreshToken).toBeUndefined();
     } finally {
       await app.close();
     }
