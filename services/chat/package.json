@@ -27,7 +27,7 @@
     "db:seed": "tsx ./src/db/seed.ts",
     "db:spam": "tsx ./src/db/spam.ts",
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

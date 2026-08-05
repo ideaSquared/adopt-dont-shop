@@ -26,7 +26,7 @@
     "db:migrate": "tsx ./src/db/migrate.ts",
     "db:spam": "tsx ./src/db/spam.ts",
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "test": "vitest run",
     "test:contracts:consumer": "vitest run --config vitest.contracts.config.ts --reporter=verbose",
     "test:watch": "vitest",

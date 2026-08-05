@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src",

@@ -28,7 +28,7 @@
     "generate": "buf generate",
     "build": "buf generate && tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist src/generated",
+    "clean": "rimraf dist src/generated",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
