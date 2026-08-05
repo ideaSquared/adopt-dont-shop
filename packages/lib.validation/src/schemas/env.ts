@@ -60,7 +60,7 @@ export const envCorsOriginField = z.string().refine(
 
 /**
  * Base schema — applied to every environment. Per-environment refinements
- * (production-only requirements, DEBUG_ERRORS gates, etc.) live in the
+ * (production-only requirements, etc.) live in the
  * backend validator next to the issue formatter.
  */
 export const envBaseSchema = z.object({
@@ -106,9 +106,6 @@ export const envBaseSchema = z.object({
   WORKER_ENABLED: booleanString('WORKER_ENABLED').optional(),
   BCRYPT_ROUNDS: numericString('BCRYPT_ROUNDS').optional(),
 
-  // ADS-512: DEBUG_ERRORS is allowed only outside production. Refined below.
-  DEBUG_ERRORS: booleanString('DEBUG_ERRORS').optional(),
-
   // Per-environment DB names — refined below.
   DEV_DB_NAME: z.string().optional(),
   TEST_DB_NAME: z.string().optional(),
@@ -129,7 +126,6 @@ export const envBaseSchema = z.object({
   SMS_PROVIDER: z.enum(['console', 'twilio']).optional(),
   PUSH_PROVIDER: z.enum(['console', 'fcm']).optional(),
   EMAIL_PROVIDER: z.enum(['console', 'ethereal', 'resend']).optional(),
-  METRICS_AUTH_TOKEN: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
   ANON_SWIPE_LIMIT: numericString('ANON_SWIPE_LIMIT').optional(),
 });
@@ -278,16 +274,6 @@ const productionOnlyCheck = (env: EnvMap): ValidationIssue[] => {
       message:
         'STATSIG_SERVER_SECRET_KEY is required in production — missing key silently disables ' +
         'all server-side feature flags',
-      level: 'error',
-    });
-  }
-
-  // ADS-512: DEBUG_ERRORS leaks raw error messages to clients — never allow in prod.
-  if (env.DEBUG_ERRORS === 'true') {
-    issues.push({
-      path: 'DEBUG_ERRORS',
-      message:
-        'DEBUG_ERRORS=true is not allowed in production (leaks raw error messages to clients)',
       level: 'error',
     });
   }

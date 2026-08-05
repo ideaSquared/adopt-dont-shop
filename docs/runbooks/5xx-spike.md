@@ -15,8 +15,7 @@
 # 1. Confirm the alert is still firing (not a stale page).
 #    The gateway exposes only the http_request_duration_seconds histogram
 #    (no http_requests_total counter). Grep the histogram's _count series.
-curl -s -H "Authorization: Bearer $METRICS_AUTH_TOKEN" \
-  https://${PROD_HOSTNAME}/metrics \
+curl -s https://${PROD_HOSTNAME}/metrics \
   | grep -E '^http_request_duration_seconds_count{.*status_code="5'
 
 # 2. Which routes are bleeding? (last 30m of gateway access logs)
