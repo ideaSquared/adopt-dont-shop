@@ -10,9 +10,11 @@
 #     --env-file .env up -d
 #
 # Services attach to the base file's `default` network (ads-<env>-network), so
-# the app services resolve loki/prometheus/tempo/alertmanager by name and expose
-# no host ports — reach Grafana over an SSH tunnel (see docs/runbooks/
-# observability-enable.md). All app services must have LOKI_URL / OTEL_EXPORTER_
+# the app services resolve loki/prometheus/tempo/alertmanager by name. The
+# operator-facing UIs (Grafana, Prometheus, Alertmanager) bind to host loopback
+# (127.0.0.1) only — NOT publicly reachable; reach them via an SSH tunnel (see
+# docs/runbooks/observability-enable.md). Loki + Tempo stay internal-only
+# (Grafana proxies to them). All app services must have LOKI_URL / OTEL_EXPORTER_
 # OTLP_ENDPOINT / SENTRY_DSN set in the host .env for signals to flow.
 #
 # Config lives under ./observability/ and MUST be provisioned onto the host at
@@ -48,8 +50,10 @@ services:
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./infra/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
-    expose:
-      - "9090"
+    ports:
+      # Loopback-only — not publicly reachable; operators reach the UI (Status →
+      # Targets / Alerts) via an SSH tunnel. See observability-enable.md.
+      - '127.0.0.1:9090:9090'
     healthcheck:
       test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9090/-/ready || exit 1']
       interval: 30s
@@ -124,8 +128,9 @@ services:
       - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./observability/alertmanager/secrets:/etc/alertmanager/secrets:ro
       - alertmanager_data:/alertmanager
-    expose:
-      - "9093"
+    ports:
+      # Loopback-only — not publicly reachable; reach the UI via an SSH tunnel.
+      - '127.0.0.1:9093:9093'
     healthcheck:
       test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9093/-/ready || exit 1']
       interval: 30s
@@ -159,8 +164,10 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
-    expose:
-      - "3000"
+    ports:
+      # Loopback-only (host :3030 → container :3000) — not publicly reachable;
+      # reach it via an SSH tunnel. Matches GF_SERVER_ROOT_URL's default.
+      - '127.0.0.1:3030:3000'
     depends_on:
       prometheus:
         condition: service_healthy

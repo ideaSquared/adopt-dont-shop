@@ -215,10 +215,11 @@ describe('createMicroserviceServer — x-request-id propagation', () => {
 
 describe('createMicroserviceServer — Sentry initialization (ADS-1041)', () => {
   it('initializes error tracking at boot (reports disabled without a DSN in test env)', async () => {
-    // Sentry init logs its enablement decision via the provided logger — with
-    // no DSN in the test env it reports "disabled". Observing that line proves
-    // the boot path now invokes initializeSentry (the call site it was missing),
-    // without reaching into the SDK.
+    // initializeSentry always logs its decision via the provided logger — one of
+    // "Sentry is disabled" / "Sentry initialized successfully" / "Failed to
+    // initialize Sentry". The /sentry/i matcher below covers all three, so this
+    // proves the boot path now invokes initializeSentry (the call site it was
+    // missing) regardless of NODE_ENV / SENTRY_DSN, without reaching into the SDK.
     const infoMessages: string[] = [];
     const capturingLogger = {
       info: (msg: string) => {

@@ -671,12 +671,24 @@ jobs:
             # compose file(s) + ./observability/ config tree must already be
             # provisioned on the host (the host holds no repo checkout — see
             # docs/runbooks/observability-enable.md).
+            # Tolerant boolean read from the host .env: accepts KEY=true,
+            # KEY="true", surrounding quotes, trailing whitespace, or an inline
+            # `# comment` — the same coercions docker-compose applies — so the
+            # flag and the overlay can't disagree.
+            env_flag_true() {
+              local v
+              v="$(grep -E "^$1=" .env | head -n1 | cut -d= -f2-)" || true
+              v="${v%%#*}"                                        # strip inline comment
+              v="$(printf '%s' "$v" | tr -d '[:space:]')"         # strip whitespace
+              v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"   # strip quotes
+              [ "$v" = "true" ]
+            }
             OVERLAY_ARGS=""
-            if grep -qE '^OBSERVABILITY_ENABLED=true' .env; then
+            if env_flag_true OBSERVABILITY_ENABLED; then
               OVERLAY_ARGS="$OVERLAY_ARGS -f docker-compose.observability.yml"
               echo "Observability stack ENABLED (metrics/logs/traces/alerting)."
             fi
-            if grep -qE '^GLITCHTIP_ENABLED=true' .env; then
+            if env_flag_true GLITCHTIP_ENABLED; then
               OVERLAY_ARGS="$OVERLAY_ARGS -f docker-compose.glitchtip.yml"
               echo "GlitchTip error tracking ENABLED."
             fi

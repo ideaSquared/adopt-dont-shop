@@ -106,8 +106,8 @@ Tempo datasources and the three dashboards (`service-overview`,
 
 ## 6. GlitchTip project + DSN (if enabled)
 
-1. Tunnel to GlitchTip web (`ssh -L 8000:glitchtip-web:8080 ...`) and create an
-   org + project in the UI.
+1. Tunnel to GlitchTip web (`ssh -L 8000:localhost:8000 deploy@$HOST`, published
+   on host loopback) and create an org + project in the UI.
 2. Copy the project DSN and set it in the host `.env`:
    `SENTRY_DSN=http://<publicKey>@glitchtip-web:8080/<projectId>`
 3. Re-deploy so the app services pick it up. `initializeSentry` activates

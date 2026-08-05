@@ -116,8 +116,10 @@ services:
     image: glitchtip/glitchtip:v4.1
     environment:
       <<: *gt-env
-    expose:
-      - "8080"
+    ports:
+      # Loopback-only (host :8000 → container :8080) — not publicly reachable;
+      # reach the UI via an SSH tunnel. Matches GLITCHTIP_DOMAIN's default.
+      - '127.0.0.1:8000:8080'
     depends_on:
       glitchtip-postgres:
         condition: service_healthy
