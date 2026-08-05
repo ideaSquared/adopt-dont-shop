@@ -14,10 +14,26 @@ name: Schema Equivalence
 # matching.
 
 on:
+  # ADS-1065: the migrate job is only meaningful when migration or
+  # schema-owning DB code changes, so scope both triggers to those paths.
+  # This narrow filter intentionally diverges from the canonical
+  # .github/workflow-source-paths.yml list — see the note there.
   push:
     branches: [main, develop]
+    paths:
+      - 'services/*/src/migrations/**'
+      - 'services/*/src/db/**'
+      - 'packages/db/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/schema-equivalence.yml'
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'services/*/src/migrations/**'
+      - 'services/*/src/db/**'
+      - 'packages/db/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/schema-equivalence.yml'
   workflow_dispatch:
 
 concurrency:
