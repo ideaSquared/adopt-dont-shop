@@ -53,6 +53,14 @@ test-results
 *.local
 
 # ============================================================================
+# Secrets (deploy.yml materializes real secret files here on the host —
+# NEVER bake them into an image layer). Mirrors secrets/.gitignore: ignore
+# the contents, keep the README.
+# ============================================================================
+secrets/*
+!secrets/README.md
+
+# ============================================================================
 # Git files
 # ============================================================================
 .git

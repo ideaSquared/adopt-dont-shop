@@ -1,7 +1,7 @@
 # CodeQL scope for the JavaScript / TypeScript analysis.
 #
 # We want the security-extended queries running on production source
-# (`service.backend/src`, `lib.*`, `app.*` source) but not on:
+# (`services/*/src`, `lib.*`, `app.*` source) but not on:
 #
 #   - `scripts/*.mjs` — CLI tooling. The "clear-text logging of sensitive
 #     information" rule fires on validator output that prints variable
@@ -58,28 +58,26 @@ query-filters:
   # on real findings.
   - exclude:
       id: js/log-injection
-  # `js/missing-csrf-middleware` fires on service.backend/src/index.ts
-  # because CodeQL's static analysis cannot trace through the anonymous
-  # lambda at `app.use('/api', (req, res, next) => { ... csrfProtection ... })`.
-  # The protection is real: `doubleCsrfProtection` from `csrf-csrf` is applied
-  # to every state-changing request on every `/api` route. The lambda exists
-  # solely to skip the one unauthenticated POST webhook endpoint
-  # (`/api/v1/email/webhook/delivery`) which is authenticated via provider
-  # HMAC signature instead of cookies — there is no session/cookie to attach
-  # a CSRF token to. All other non-GET `/api` routes are CSRF-protected.
-  # The `csrf-csrf` library itself enforces `ignoredMethods: ['GET', 'HEAD',
-  # 'OPTIONS']`, providing defence-in-depth. Reviewed and confirmed that
-  # CSRF exposure does not exist in this codebase.
+  # `js/missing-csrf-middleware` and `js/missing-token-validation` were
+  # originally excluded because they fired on the Express `service.backend`
+  # monolith (`service.backend/src/index.ts` — cookieParser + `csrf-csrf`
+  # doubleCsrfProtection applied via an `app.use('/api', ...)` lambda that
+  # CodeQL couldn't trace through). That monolith has been REMOVED in the
+  # microservices migration, so those original firing sites no longer exist.
+  #
+  # CSRF is now enforced at the Fastify gateway
+  # (`services/gateway/src/middleware/csrf.ts`) as a double-submit-cookie
+  # check: GET /api/v1/csrf-token mints a random `csrfToken` cookie, the
+  # frontends echo it back in the `x-csrf-token` header, and the gateway
+  # rejects a mismatch on state-changing requests. These two queries are
+  # Express-shaped (they key off `cookieParser()` / Express CSRF middleware),
+  # so they are unlikely to fire on the Fastify gateway at all.
+  #
+  # RE-AUDIT (ADS-1053): the excludes are retained CONSERVATIVELY to avoid
+  # any advisory-noise regression, but they now guard nothing concrete. They
+  # should be re-audited against the current gateway CSRF posture and removed
+  # if a scan confirms they no longer suppress a real finding.
   - exclude:
       id: js/missing-csrf-middleware
-  # `js/missing-token-validation` fires on the cookieParser() registration
-  # in service.backend/src/index.ts because CodeQL sees cookie middleware
-  # serving route handlers and cannot trace that csrf-csrf's
-  # doubleCsrfProtection (applied in the same middleware chain) validates
-  # CSRF tokens on every state-changing request. GET/HEAD/OPTIONS are safe
-  # methods excluded via ignoredMethods. The email webhook POST is mounted
-  # before cookieParser and authenticated via HMAC, not cookies. Reviewed
-  # and confirmed: all cookie-authenticated state-changing routes are
-  # CSRF-protected.
   - exclude:
       id: js/missing-token-validation

@@ -9,6 +9,7 @@
   ],
   "labels": ["dependencies", "DevEx"],
   "rangeStrategy": "bump",
+  "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
   "packageRules": [
