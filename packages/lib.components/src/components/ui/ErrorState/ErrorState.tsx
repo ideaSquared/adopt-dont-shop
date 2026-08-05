@@ -21,7 +21,12 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   'data-testid': testId,
 }) => {
   return (
-    <div className={clsx(styles.container, className)} data-testid={testId} role='alert'>
+    <div
+      className={clsx(styles.container, className)}
+      data-testid={testId}
+      role='alert'
+      aria-live='assertive'
+    >
       <h3 className={styles.title}>{title}</h3>
       <p className={styles.message}>{message}</p>
       {onRetry && (

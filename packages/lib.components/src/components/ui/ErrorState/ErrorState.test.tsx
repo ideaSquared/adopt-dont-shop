@@ -25,7 +25,9 @@ describe('ErrorState', () => {
   it('is announced to assistive technology as an alert', () => {
     render(<ErrorState message='Failed to load pets' data-testid='error-state' />);
 
-    expect(screen.getByTestId('error-state')).toHaveAttribute('role', 'alert');
+    const errorState = screen.getByTestId('error-state');
+    expect(errorState).toHaveAttribute('role', 'alert');
+    expect(errorState).toHaveAttribute('aria-live', 'assertive');
   });
 
   it('does not render a retry button when onRetry is omitted', () => {
