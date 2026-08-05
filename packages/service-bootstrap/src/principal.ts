@@ -27,12 +27,20 @@ export class InsecurePrincipalConfigError extends Error {
   }
 }
 
-// Boot-time guard (ADS-800 hardening). Without PRINCIPAL_SIGNING_KEY,
-// extractPrincipal falls back to trusting unsigned x-user-* headers — fine
-// for dev and the phased-rollout window, but in production a missing key
-// would silently let anything that can reach the service forge identity (the
-// real cross-service authz boundary). Fail closed in production unless the
-// operator explicitly opts into header-trust via ALLOW_UNSIGNED_PRINCIPAL.
+// Environments where trusting unsigned x-user-* headers (no PRINCIPAL_SIGNING_KEY)
+// is acceptable: only a developer's machine and the automated test run. Every
+// other value — staging, production, or anything unrecognised/empty — is a
+// deployed environment reachable by other actors and must fail closed.
+const HEADER_TRUST_ALLOWED_ENVS = new Set(['development', 'test']);
+
+// Boot-time guard (ADS-800 hardening, broadened in ADS-1050). Without
+// PRINCIPAL_SIGNING_KEY, extractPrincipal falls back to trusting unsigned
+// x-user-* headers. That is only safe for local development and the automated
+// test run; in any DEPLOYED environment a missing key would silently let
+// anything that can reach the service forge identity (e.g. x-user-roles: admin
+// — the real cross-service authz boundary). So we fail closed everywhere the
+// NODE_ENV is not development/test. An unset or unrecognised NODE_ENV is
+// treated as deployed — the safe default.
 export function assertPrincipalVerificationConfig(env: NodeJS.ProcessEnv = process.env): void {
   const key = getDefaultPrincipalSigningKey();
   if (key) {
@@ -46,16 +54,22 @@ export function assertPrincipalVerificationConfig(env: NodeJS.ProcessEnv = proce
     }
     return;
   }
-  const isProduction = env.NODE_ENV === 'production';
-  const allowUnsigned = env.ALLOW_UNSIGNED_PRINCIPAL === 'true';
-  if (isProduction && !allowUnsigned) {
-    throw new InsecurePrincipalConfigError(
-      'PRINCIPAL_SIGNING_KEY is required in production: without it the service trusts ' +
-        'unsigned x-user-* headers, which any client that can reach it could forge. ' +
-        'Set PRINCIPAL_SIGNING_KEY, or set ALLOW_UNSIGNED_PRINCIPAL=true to explicitly ' +
-        'accept header-trust (phased-rollout only).'
-    );
+  // No key. Only development/test may fall back to header-trust.
+  //
+  // ALLOW_UNSIGNED_PRINCIPAL is deliberately NOT consulted here: it used to
+  // force-open production (the second bypass ADS-1050 closes), and it must not
+  // be able to open ANY deployed environment. In development/test the fallback
+  // is already allowed, so the flag is now a no-op — tracked for full removal
+  // from env docs under ADS-1039.
+  const nodeEnv = env.NODE_ENV;
+  if (nodeEnv !== undefined && HEADER_TRUST_ALLOWED_ENVS.has(nodeEnv)) {
+    return;
   }
+  throw new InsecurePrincipalConfigError(
+    `PRINCIPAL_SIGNING_KEY is required outside development/test (NODE_ENV=${nodeEnv ?? '<unset>'}): ` +
+      'without it the service trusts unsigned x-user-* headers, which any client that can ' +
+      'reach it could forge. Set PRINCIPAL_SIGNING_KEY.'
+  );
 }
 
 // Verification config (ADS-800). When a signing key is present the
