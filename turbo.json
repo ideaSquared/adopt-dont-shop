@@ -52,7 +52,7 @@
     },
     "lint": {
       "outputs": [],
-      "inputs": ["src/**", "test/**", "*.config.{js,ts,mjs}", "$TURBO_ROOT$/eslint.config.js"]
+      "inputs": ["src/**", "*.config.{js,ts,mjs}", "$TURBO_ROOT$/eslint.config.js"]
     },
     "format": {
       "outputs": [],
@@ -60,7 +60,7 @@
     },
     "format:check": {
       "outputs": [],
-      "inputs": ["src/**", "test/**", "package.json"]
+      "inputs": ["src/**", "package.json"]
     },
     "type-check": {
       "dependsOn": ["^build"],
