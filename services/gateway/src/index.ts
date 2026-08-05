@@ -2,7 +2,7 @@ import Redis from 'ioredis';
 import { connect, type NatsConnection } from 'nats';
 import type { Server as IOServer } from 'socket.io';
 
-import { createLogger } from '@adopt-dont-shop/observability';
+import { createLogger, initializeSentry } from '@adopt-dont-shop/observability';
 import {
   assertPrincipalVerificationConfig,
   installProcessErrorHandlers,
@@ -28,6 +28,12 @@ import { attachSocketServer } from './ws/socket-server.js';
 
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.gateway' });
+
+  // ADS-1041: initialize backend error tracking (GlitchTip/Sentry SDK). No-op
+  // unless SENTRY_DSN is set AND NODE_ENV is production/staging. The gateway
+  // boots its own server (not createMicroserviceServer), so it needs its own
+  // call site.
+  initializeSentry({ serviceName: 'service.gateway', logger });
 
   let nats: NatsConnection | undefined;
   let io: IOServer | undefined;

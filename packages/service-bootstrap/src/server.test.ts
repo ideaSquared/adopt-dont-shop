@@ -213,6 +213,36 @@ describe('createMicroserviceServer — x-request-id propagation', () => {
   });
 });
 
+describe('createMicroserviceServer — Sentry initialization (ADS-1041)', () => {
+  it('initializes error tracking at boot (reports disabled without a DSN in test env)', async () => {
+    // Sentry init logs its enablement decision via the provided logger — with
+    // no DSN in the test env it reports "disabled". Observing that line proves
+    // the boot path now invokes initializeSentry (the call site it was missing),
+    // without reaching into the SDK.
+    const infoMessages: string[] = [];
+    const capturingLogger = {
+      info: (msg: string) => {
+        infoMessages.push(msg);
+      },
+      error: () => undefined,
+      warn: () => undefined,
+      debug: () => undefined,
+      silly: () => undefined,
+    } as unknown as ReturnType<typeof import('@adopt-dont-shop/observability').createLogger>;
+
+    const server = createMicroserviceServer({
+      serviceName: 'service.test',
+      config: baseConfig,
+      logger: capturingLogger,
+    });
+    try {
+      expect(infoMessages.some(msg => /sentry/i.test(msg))).toBe(true);
+    } finally {
+      await server.close();
+    }
+  });
+});
+
 describe('createMicroserviceServer — error handler', () => {
   let server: FastifyInstance;
 
