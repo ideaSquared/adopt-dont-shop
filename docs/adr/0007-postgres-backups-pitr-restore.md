@@ -28,21 +28,31 @@ implies:
    a backup back into a database, so we have no evidence any snapshot is
    restorable until the day we need one.
 
-2. **Retention is cosmetic, not enforced.** The upload sets
-   `--metadata "Class=tier1,Retention=30d"` (`scripts/snapshot-postgres.sh:46`),
-   which is S3 **user-metadata** — a descriptive tag, not a lifecycle rule and
-   not Object Lock. The policy doc itself notes S3 lifecycle rules "cannot filter
-   by user-metadata, so the metadata is descriptive only"
-   (`docs/operations/snapshot-policy.md:27`). In practice nothing prunes old
-   objects and nothing prevents a snapshot from being deleted or overwritten —
-   including by an attacker or an errant `aws s3 rm` — so the "30 day" retention
-   and any ransomware-resistance the tag implies do not exist.
+2. **Retention enforcement is unverified and immutability is absent.** The upload
+   sets `--metadata "Class=tier1,Retention=30d"` (`scripts/snapshot-postgres.sh:46`),
+   which is S3 **user-metadata** — a descriptive tag, not a lifecycle rule and not
+   Object Lock; the policy doc itself notes lifecycle rules "cannot filter by
+   user-metadata, so the metadata is descriptive only"
+   (`docs/operations/snapshot-policy.md:27`). The docs then disagree on whether
+   real enforcement exists behind that tag: `db-backup-runbook.md:52,58` asserts
+   the S3 bucket's lifecycle rule sets the 30-day off-site retention "**not** the
+   script", yet `snapshot-policy.md:27-28` treats that same lifecycle pruning as
+   something that "must be configured on the `postgres/` prefix" (aspirational).
+   Crucially, there is **no lifecycle, versioning, or Object Lock configuration
+   anywhere in the repository** to verify either claim. So retention enforcement is
+   unverified — a doc-vs-reality gap — and immutability is definitively absent:
+   nothing in the repo prevents a snapshot from being deleted or overwritten (by an
+   attacker or an errant `aws s3 rm`), and Object Lock would require bucket
+   versioning that no committed config enables.
 
-3. **The drill log the policy mandates is missing.** `snapshot-policy.md`
-   requires a monthly restore drill and says "Track outcomes in
-   `docs/operations/restore-drills.md`" (`docs/operations/snapshot-policy.md:84`).
-   That file **does not exist** in the repository — there is no evidence any
-   restore drill has ever been recorded. A restore runbook exists
+3. **The drill log the policy mandates is missing — and the docs disagree on its
+   cadence.** `snapshot-policy.md:84` requires a restore drill and says "Track
+   outcomes in `docs/operations/restore-drills.md`". That file **does not exist**
+   in the repository — there is no evidence any restore drill has ever been
+   recorded. The two docs also disagree on how often to drill:
+   `snapshot-policy.md:83` mandates a **monthly** drill, while
+   `db-backup-runbook.md:54,199` mandates a **quarterly** one — a mismatch Phase 1
+   must reconcile when it stands the log up. A restore runbook exists
    (`docs/operations/restore.md`) but, per point 1, its happy path has never been
    exercised end-to-end in an automated or logged way.
 
@@ -70,8 +80,8 @@ dump, restores it into a throwaway Postgres, and asserts row counts / a schema
 diff. Add an S3 lifecycle rule + Object Lock and start the drill log.
 
 - **Pro:** Smallest change; no new backup tooling or WAL storage; directly closes
-  the "restore never proven" and "retention cosmetic" gaps that are the core of
-  ADS-1043.
+  the "restore never proven" and "retention unverified / not immutable" gaps that
+  are the core of ADS-1043.
 - **Con:** Does nothing for RPO — still up to ~24h of data loss on a failure at
   01:59 UTC. Logical restore RTO on a large DB is slow (single-threaded replay of
   a SQL stream). PITR remains impossible.
@@ -116,7 +126,7 @@ PITR.
   warrants an independent restore-verification drill regardless of provider
   claims.
 
-## Recommended decision
+## Decision
 
 **Adopt Option B (pgBackRest) as the target, delivered in phases, with Option A's
 restore-verification job shipped first.**
@@ -124,8 +134,8 @@ restore-verification job shipped first.**
 Rationale:
 
 - The two most urgent, cheapest-to-fix findings in ADS-1043 are "restore never
-  proven" and "retention cosmetic". Both are addressable **without** changing the
-  backup tool, so an automated restore-verification CI job + S3 lifecycle/Object
+  proven" and "retention unverified / not immutable". Both are addressable
+  **without** changing the backup tool, so an automated restore-verification CI job + S3 lifecycle/Object
   Lock + a drill log should land first (Phase 1) and immediately raise
   confidence.
 - The remaining finding — ~24h RPO and no PITR — genuinely needs continuous WAL
@@ -222,9 +232,11 @@ enforced by the lifecycle rule + lock, not implied by a string.
 **3. Restore-drill log.** Create the file the policy already references
 (`docs/operations/snapshot-policy.md:84`), `docs/operations/restore-drills.md`,
 as a running table (date, operator, backup key restored, target env, row-count /
-schema-diff result, RTO observed, notes). The Phase 1 CI job can append or the
-monthly manual drill can, but the log must exist and be linked from the docs
-index.
+schema-diff result, RTO observed, notes). The Phase 1 CI job can append or a
+scheduled manual drill can, but the log must exist and be linked from the docs
+index. Standing the log up also forces reconciling the monthly
+(`snapshot-policy.md:83`) vs quarterly (`db-backup-runbook.md:54,199`) cadence
+mismatch — pick one cadence and correct whichever doc is wrong.
 
 ### Phase 2 — pgBackRest WAL archiving + base backups → PITR (ADS-443)
 
