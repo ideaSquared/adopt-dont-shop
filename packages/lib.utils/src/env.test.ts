@@ -182,4 +182,12 @@ describe('validateUrlConfig', () => {
     expect(result.errors[0]).toContain('Invalid API base URL');
     expect(result.errors[1]).toContain('Invalid WebSocket base URL');
   });
+
+  it('treats the same-origin production default (empty base) as valid', () => {
+    // Production with no VITE_API_BASE_URL falls back to a same-origin ('')
+    // base (ADS-1057); `new URL('')` would throw, so it must not be reported
+    // invalid.
+    vi.stubEnv('MODE', 'production');
+    expect(validateUrlConfig()).toEqual({ isValid: true, errors: [] });
+  });
 });

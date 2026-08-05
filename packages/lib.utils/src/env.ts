@@ -175,20 +175,25 @@ export function validateUrlConfig(): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   const { apiBaseUrl, wsBaseUrl } = getUrlConfig();
 
-  // Validate API URL
-  try {
-    new URL(apiBaseUrl);
-  } catch {
-    errors.push(`Invalid API base URL: ${apiBaseUrl}`);
+  // An empty base is the intended same-origin/relative fallback (ADS-1057) —
+  // treat it as valid rather than passing it to `new URL()`, which throws on
+  // empty/relative input. Only absolute bases are parse-validated.
+  if (apiBaseUrl !== '') {
+    try {
+      new URL(apiBaseUrl);
+    } catch {
+      errors.push(`Invalid API base URL: ${apiBaseUrl}`);
+    }
   }
 
-  // Validate WebSocket URL
-  try {
-    // Convert ws:// to http:// for URL validation
-    const wsUrlForValidation = wsBaseUrl.replace(/^ws(s)?:/, 'http$1:');
-    new URL(wsUrlForValidation);
-  } catch {
-    errors.push(`Invalid WebSocket base URL: ${wsBaseUrl}`);
+  if (wsBaseUrl !== '') {
+    try {
+      // Convert ws:// to http:// for URL validation
+      const wsUrlForValidation = wsBaseUrl.replace(/^ws(s)?:/, 'http$1:');
+      new URL(wsUrlForValidation);
+    } catch {
+      errors.push(`Invalid WebSocket base URL: ${wsBaseUrl}`);
+    }
   }
 
   return {
