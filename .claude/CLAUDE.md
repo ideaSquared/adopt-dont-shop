@@ -332,7 +332,7 @@ The gateway is the only HTTP edge. Every microservice (`auth`, `pets`, `applicat
 - Fastify plugins, one file per `/api/v1/<domain>` surface (`auth.ts`, `pets.ts`, …)
 - Validate request bodies with explicit Zod / TS-typed shapes
 - Build gRPC metadata via `buildMetadata(req)` (auth headers, request ID)
-- Translate gRPC errors via `handleGrpcError(reply, err)` so clients get the right HTTP status
+- Translate gRPC errors via `handleGrpcError(err, reply)` so clients get the right HTTP status
 - NO business logic — just REST → gRPC translation, rate-limiting, and OpenAPI schema
 
 **gRPC handlers** (`services/<name>/src/grpc/*-handlers.ts`):
@@ -377,7 +377,7 @@ export async function authRoutes(app: FastifyInstance, { client }: { client: Aut
       );
       return reply.code(200).send(res);
     } catch (err) {
-      return handleGrpcError(reply, err);
+      return handleGrpcError(err, reply);
     }
   });
 }
