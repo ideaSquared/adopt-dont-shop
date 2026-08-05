@@ -103,15 +103,6 @@ export async function createThing(
     [thingId, req.name, req.description ?? null, principal.userId],
   );
 
-  // Audit (see the audit-logging skill for the full pattern).
-  await deps.audit.log({
-    actorUserId: principal.userId,
-    action: 'CREATE',
-    entity: 'Thing',
-    entityId: thingId,
-    details: { name: req.name },
-  });
-
   return { thing: { thingId, name: req.name, description: req.description ?? '' } };
 }
 ```
@@ -123,9 +114,12 @@ Key points:
 - `HandlerError` carries the gRPC status code + a human message; the
   gateway translates these to HTTP status codes via
   `handleGrpcError`.
-- Transactions: pull a client from the pool, `BEGIN` / `COMMIT` /
-  `ROLLBACK` explicitly. Read an existing multi-write handler
-  (e.g. service-rescue's invitation handlers) for the local pattern.
+- Transactions: wrap the write + any NATS event in
+  `withTransaction(deps, async ({ client, publish }) => { … })` from
+  `@adopt-dont-shop/events`. It commits + publishes atomically
+  (publish-after-commit). Read an existing state-changing handler
+  (e.g. `services/auth/src/grpc/handlers.ts` Login) for the local
+  pattern.
 - Permission checks beyond authentication go in the handler — the
   authz package's `Principal` carries the resolved roles.
 
@@ -225,13 +219,13 @@ The gateway exposes hooks for these:
 
 See the `audit-logging` skill for the full pattern. Quick rules:
 
-- Audit inside the gRPC handler when the action runs in a single
-  transaction with the DB write.
-- Audit at the gateway via the `auditRoute(...)` hook for read-only
-  / no-transaction CRUD routes that have nothing meaningful to do
-  inside a transaction.
-- **Never** combine both — it produces duplicate audit rows and
-  breaks transactional atomicity.
+- Emit audit inside the same `withTransaction` block that runs the DB
+  write, by calling `publish({ type: '<domain>.actionTaken', … })`.
+  The commit + the NATS event fire atomically (`services/audit`
+  subscribes to `*.actionTaken` and persists every row).
+- Publish exactly one `actionTaken` event per user-visible action.
+- Never emit from the gateway — the write lives in the microservice
+  and the audit row must commit with it.
 
 ## Step 6 — Write tests (TDD)
 
@@ -268,8 +262,8 @@ querystring schemas reflect the real shape so the generated
 - [ ] Gateway route in `services/gateway/src/routes/<domain>.ts`,
       registered in `server.ts`
 - [ ] Authentication / permission hook applied where appropriate
-- [ ] Audit hookup: inside the handler (transactional writes) OR via
-      `auditRoute()` on the gateway — never both
+- [ ] Audit hookup: `publish({ type: '<domain>.actionTaken', … })`
+      inside the same `withTransaction` block as the write
 - [ ] Field permissions wired if the resource is field-permissioned
 - [ ] Fastify `schema:` block populated for OpenAPI generation
 - [ ] Tests first, behaviour-focused
@@ -281,7 +275,8 @@ querystring schemas reflect the real shape so the generated
   before writing yours.
 - Skipping `handleGrpcError` and writing custom catch blocks per route
   — the helper centralises the gRPC-status → HTTP-status mapping.
-- Mixing audit-in-handler and audit-on-route — pick one per action.
+- Publishing an audit event outside the `withTransaction` block — the
+  event fires even if the DB write rolls back.
 - Forgetting to register the new route plugin in `server.ts` — the
   route never mounts and the SPA gets 404.
 - Using `app.get`/`app.post` without the type param (`<{ Body … }>`)
