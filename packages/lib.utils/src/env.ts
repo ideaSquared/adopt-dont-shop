@@ -24,21 +24,16 @@ export interface EnvironmentConfig extends EnvironmentUrls {
 }
 
 /**
- * Default URL configuration for different environments
+ * Default API base URL per environment. Production intentionally has NO
+ * hardcoded external host: when VITE_API_BASE_URL is unset a production build
+ * falls back to a same-origin/relative base ('') so it can never silently ship
+ * pointing at a pinned external host (ADS-1057). The WebSocket base URL is
+ * derived from the API base URL — see deriveWsBaseUrl.
  */
-const DEFAULT_URLS = {
-  development: {
-    apiBaseUrl: 'http://localhost:5000',
-    wsBaseUrl: 'ws://localhost:5000',
-  },
-  production: {
-    apiBaseUrl: 'https://api.adoptdontshop.com',
-    wsBaseUrl: 'wss://api.adoptdontshop.com',
-  },
-  test: {
-    apiBaseUrl: 'http://localhost:5000',
-    wsBaseUrl: 'ws://localhost:5000',
-  },
+const DEFAULT_API_BASE_URL = {
+  development: 'http://localhost:5000',
+  production: '',
+  test: 'http://localhost:5000',
 } as const;
 
 /**
@@ -85,23 +80,38 @@ export function isDebugMode(): boolean {
 }
 
 /**
+ * Derive a WebSocket base URL from an HTTP API base URL by swapping the URL
+ * scheme (http→ws, https→wss). A relative/same-origin base ('') or an already
+ * ws(s) URL is returned unchanged, so the WebSocket base falls back to the same
+ * origin rather than a hardcoded external host.
+ */
+function deriveWsBaseUrl(apiBaseUrl: string): string {
+  if (apiBaseUrl.startsWith('https://')) {
+    return `wss://${apiBaseUrl.slice('https://'.length)}`;
+  }
+  if (apiBaseUrl.startsWith('http://')) {
+    return `ws://${apiBaseUrl.slice('http://'.length)}`;
+  }
+  return apiBaseUrl;
+}
+
+/**
  * Get URL configuration with proper fallbacks
  */
 export function getUrlConfig(): EnvironmentUrls {
   const mode = getEnvironmentMode();
-  const defaults = DEFAULT_URLS[mode];
 
   // Get URLs from environment variables with fallbacks
   const apiBaseUrl =
     getEnvVar('VITE_API_BASE_URL') ||
     getEnvVar('VITE_API_URL') || // Legacy support
-    defaults.apiBaseUrl;
+    DEFAULT_API_BASE_URL[mode];
 
   const wsBaseUrl =
     getEnvVar('VITE_WS_BASE_URL') ||
     getEnvVar('VITE_WEBSOCKET_URL') || // Legacy support
     getEnvVar('VITE_SOCKET_URL') || // Legacy support
-    defaults.wsBaseUrl;
+    deriveWsBaseUrl(apiBaseUrl);
 
   return {
     apiBaseUrl: apiBaseUrl.replace(/\/+$/, ''), // Remove trailing slashes

@@ -66,7 +66,7 @@ function App() {
           </Routes>
         </Suspense>
 
-        <DevLoginPanel />
+        {import.meta.env.DEV && <DevLoginPanel />}
         <CookieBanner />
       </>
     );
@@ -126,7 +126,7 @@ function App() {
       </Suspense>
 
       {/* Dev Login Panel - only shows in development */}
-      <DevLoginPanel />
+      {import.meta.env.DEV && <DevLoginPanel />}
 
       {/* ADS-497 (slice 5): on-page cookie banner. Mounted before the
           re-acceptance modal so the modal stacks on top if both surface. */}
