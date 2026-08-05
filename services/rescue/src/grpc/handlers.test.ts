@@ -157,7 +157,9 @@ describe('createRescue', () => {
   it('inserts in a transaction and publishes rescue.created AFTER commit', async () => {
     const order: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox INSERT/DELETE are withTransaction's outbox plumbing —
+      // not part of the handler's own query sequence, so keep them out of `order`.
+      if (!sql.includes('event_outbox')) order.push(sql.trim().split(/\s+/)[0]);
       return { rows: [rescueRow()] };
     });
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
@@ -403,7 +405,9 @@ describe('updateRescue', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     const order: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox INSERT/DELETE are withTransaction's outbox plumbing —
+      // not part of the handler's own query sequence, so keep them out of `order`.
+      if (!sql.includes('event_outbox')) order.push(sql.trim().split(/\s+/)[0]);
       return { rows: [rescueRow({ name: 'Pawsome 2' })] };
     });
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
@@ -527,7 +531,9 @@ describe('verifyRescue', () => {
     const order: string[] = [];
     const publishedSubjects: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox INSERT/DELETE are withTransaction's outbox plumbing —
+      // not part of the handler's own query sequence, so keep them out of `order`.
+      if (!sql.includes('event_outbox')) order.push(sql.trim().split(/\s+/)[0]);
       return { rows: [rescueRow({ status: 'verified' })] };
     });
     mocks.natsMock.publish.mockImplementation((subject: string) => {
@@ -621,7 +627,9 @@ describe('inviteStaff', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     const order: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox INSERT/DELETE are withTransaction's outbox plumbing —
+      // not part of the handler's own query sequence, so keep them out of `order`.
+      if (!sql.includes('event_outbox')) order.push(sql.trim().split(/\s+/)[0]);
       return {
         rows: [
           {
@@ -655,7 +663,8 @@ describe('inviteStaff', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     let insertSql = '';
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      if (sql.trim().startsWith('INSERT')) {
+      // Skip withTransaction's event_outbox INSERT — capture the handler's own.
+      if (sql.trim().startsWith('INSERT') && !sql.includes('event_outbox')) {
         insertSql = sql;
       }
       return {
@@ -812,7 +821,9 @@ describe('updateRescuePlan', () => {
     const order: string[] = [];
     const publishedSubjects: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
-      order.push(sql.trim().split(/\s+/)[0]);
+      // event_outbox INSERT/DELETE are withTransaction's outbox plumbing —
+      // not part of the handler's own query sequence, so keep them out of `order`.
+      if (!sql.includes('event_outbox')) order.push(sql.trim().split(/\s+/)[0]);
       return { rows: [rescueRow({ plan: 'professional' })] };
     });
     mocks.natsMock.publish.mockImplementation((subject: string) => {

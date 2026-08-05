@@ -152,6 +152,11 @@ describe('createNotification', () => {
     // Track call order so we can assert publish-after-commit.
     const calls: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // event_outbox writes are withTransaction's outbox plumbing, not part of
+      // the handler's own query sequence — don't record them.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       calls.push(sql.trim().split(/\s+/)[0]);
       if (sql.trim().startsWith('INSERT')) {
         return { rows: [insertedRow] };
@@ -389,6 +394,11 @@ describe('dismissNotification', () => {
 
     const calls: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // event_outbox writes are withTransaction's outbox plumbing, not part of
+      // the handler's own query sequence — don't record them.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       calls.push(sql.trim().split(/\s+/)[0]);
       if (sql.trim().startsWith('UPDATE')) {
         return { rows: [updated] };
@@ -434,6 +444,11 @@ describe('createNotification idempotency (dedup)', () => {
   // claim happens before the insert, inside the one transaction.
   const wireClient = (claimRowCount: number, calls: string[]): void => {
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // event_outbox writes are withTransaction's outbox plumbing, not part of
+      // the claim/insert sequence under test — don't record them.
+      if (sql.includes('event_outbox')) {
+        return { rowCount: 0, rows: [] };
+      }
       if (sql.includes('processed_events')) {
         calls.push('CLAIM');
         return { rowCount: claimRowCount, rows: [] };

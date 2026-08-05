@@ -15,6 +15,12 @@
       "production": "./dist/index.js",
       "import": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./outbox-schema": {
+      "types": "./src/outbox-schema.ts",
+      "production": "./dist/outbox-schema.js",
+      "import": "./src/outbox-schema.ts",
+      "default": "./src/outbox-schema.ts"
     }
   },
   "files": [
@@ -39,10 +45,17 @@
     "nats": "^2.29.3"
   },
   "peerDependencies": {
+    "node-pg-migrate": "^8.0.4",
     "pg": "^8.22.0"
+  },
+  "peerDependenciesMeta": {
+    "node-pg-migrate": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/pg": "^8.15.5",
+    "node-pg-migrate": "^8.0.4",
     "pg": "^8.22.0"
   }
 }

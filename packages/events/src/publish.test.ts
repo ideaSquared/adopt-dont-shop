@@ -117,19 +117,64 @@ describe('withTransaction', () => {
     expect(mocks.clientMock.release).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces a JetStream publish failure to the caller (no silent fire-and-forget)', async () => {
+  it('does NOT fail the caller when the inline publish fails (the event is durably staged for the relay)', async () => {
+    // Post-commit publish failure is no longer lost — the event sits in the
+    // outbox and the relay delivers it — so withTransaction still resolves.
     mocks.jsPublish.mockRejectedValueOnce(new Error('no stream ack'));
 
     await expect(
       withTransaction({ pool: mocks.pool, nats: mocks.nats }, async ({ publish }) => {
         publish({ type: 'pets.created', id: 'evt-1', payload: {} });
+        return 'ok';
       })
-    ).rejects.toThrow('no stream ack');
+    ).resolves.toBe('ok');
 
-    // The commit already happened — we do NOT roll back on a publish failure.
+    // The commit happened; we do NOT roll back on a publish failure...
     expect(mocks.clientMock.query).toHaveBeenCalledWith('COMMIT');
     expect(mocks.clientMock.query).not.toHaveBeenCalledWith('ROLLBACK');
+    // ...and the row is left in the outbox (never DELETEd) for the relay.
+    const deleted = mocks.clientMock.query.mock.calls.some(([sql]: [string]) =>
+      String(sql).includes('DELETE FROM event_outbox')
+    );
+    expect(deleted).toBe(false);
     expect(mocks.clientMock.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('stages events into the outbox inside the transaction (INSERT before COMMIT)', async () => {
+    const order: string[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      order.push(sql.includes('INSERT INTO event_outbox') ? 'OUTBOX_INSERT' : sql);
+      return { rows: [] };
+    });
+
+    await withTransaction({ pool: mocks.pool, nats: mocks.nats }, async ({ publish }) => {
+      publish({ type: 'pets.created', id: 'evt-1', payload: { petId: 'p1' } });
+    });
+
+    const insertIdx = order.indexOf('OUTBOX_INSERT');
+    const commitIdx = order.indexOf('COMMIT');
+    expect(insertIdx).toBeGreaterThanOrEqual(0);
+    // The outbox row is written before COMMIT — atomic with the business write.
+    expect(insertIdx).toBeLessThan(commitIdx);
+  });
+
+  it('rolls back and never publishes when the outbox INSERT fails', async () => {
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('INSERT INTO event_outbox')) {
+        throw new Error('outbox table missing');
+      }
+      return { rows: [] };
+    });
+
+    await expect(
+      withTransaction({ pool: mocks.pool, nats: mocks.nats }, async ({ publish }) => {
+        publish({ type: 'pets.created', id: 'evt-1', payload: {} });
+      })
+    ).rejects.toThrow('outbox table missing');
+
+    expect(mocks.jsPublish).not.toHaveBeenCalled();
+    expect(mocks.clientMock.query).toHaveBeenCalledWith('ROLLBACK');
+    expect(mocks.clientMock.query).not.toHaveBeenCalledWith('COMMIT');
   });
 
   it('releases the client even when ROLLBACK also fails', async () => {

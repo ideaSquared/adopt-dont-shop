@@ -118,9 +118,15 @@ describe('registerGdprSubscriber', () => {
     });
     await flush();
 
-    // BEGIN + COMMIT bracket the erase callback.
+    // BEGIN opens the transaction and COMMIT closes it; the completion event
+    // is staged into the outbox in-transaction (INSERT before COMMIT) and the
+    // inline fast-path deletes that row after commit.
     expect(queries[0]).toBe('BEGIN');
-    expect(queries[queries.length - 1]).toBe('COMMIT');
+    expect(queries).toContain('COMMIT');
+    const commitIdx = queries.indexOf('COMMIT');
+    const insertIdx = queries.findIndex(q => q.includes('INSERT INTO event_outbox'));
+    expect(insertIdx).toBeGreaterThan(0);
+    expect(insertIdx).toBeLessThan(commitIdx);
 
     // Completion event published to JetStream after commit.
     expect(bus.published).toHaveLength(1);

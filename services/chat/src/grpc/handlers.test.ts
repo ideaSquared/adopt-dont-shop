@@ -105,6 +105,12 @@ function makeMocks() {
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
       }
+      // The transactional-outbox framework queries (INSERT/DELETE against
+      // event_outbox, emitted by withTransaction) are infrastructure, not
+      // business SQL — answer them transparently without consuming the script.
+      if (/event_outbox/i.test(sql)) {
+        return { rows: [], rowCount: 0 };
+      }
       const next = clientScript.shift();
       if (!next) {
         throw new Error(`client.query unscripted: ${sql.slice(0, 80)}`);
@@ -140,7 +146,9 @@ function makeMocks() {
 
 const realClientQueries = (mocks: ReturnType<typeof makeMocks>): string[] =>
   (mocks.clientMock.query.mock.calls as Array<[string]>)
-    .map(([sql]) => sql.trim().split(/\s+/)[0].toUpperCase())
+    .map(([sql]) => sql)
+    .filter(sql => !/event_outbox/i.test(sql))
+    .map(sql => sql.trim().split(/\s+/)[0].toUpperCase())
     .filter(op => op !== 'BEGIN' && op !== 'COMMIT' && op !== 'ROLLBACK');
 
 // --- OpenChat -------------------------------------------------------

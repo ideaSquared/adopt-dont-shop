@@ -46,6 +46,7 @@ describe('pets migrations', () => {
     '005_create_ratings.ts',
     '006_create_user_favorites.ts',
     '007_pets_list_keyset_index.ts',
+    '008_create_event_outbox.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

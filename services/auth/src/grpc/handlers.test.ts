@@ -393,6 +393,12 @@ describe('login', () => {
 
     const callOrder: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // The event_outbox INSERT/DELETE are framework infrastructure from
+      // withTransaction's transactional outbox — skip them so the recorded
+      // order reflects only the handler's own business queries.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       const verb = sql.trim().split(/\s+/)[0];
       callOrder.push(verb);
       return { rows: [] };
@@ -909,6 +915,11 @@ describe('logout', () => {
 
     const callOrder: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // Skip the event_outbox INSERT/DELETE — framework infrastructure from
+      // withTransaction's transactional outbox, not the handler's own queries.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       callOrder.push(sql.trim().split(/\s+/)[0]);
       return { rows: [] };
     });
@@ -1117,6 +1128,11 @@ describe('refreshToken', () => {
 
     const calls: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // Skip the event_outbox INSERT/DELETE — framework infrastructure from
+      // withTransaction's transactional outbox, not the handler's own queries.
+      if (sql.includes('event_outbox')) {
+        return { rows: [], rowCount: 1 };
+      }
       calls.push(sql.trim().split(/\s+/)[0]);
       // The conditional revoke UPDATE must report a row was flipped so the
       // rotation proceeds.
@@ -1196,6 +1212,11 @@ describe('refreshToken', () => {
 
     const sqls: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // Skip the event_outbox INSERT/DELETE — framework infrastructure from
+      // withTransaction's transactional outbox, not the handler's own queries.
+      if (sql.includes('event_outbox')) {
+        return { rows: [], rowCount: 1 };
+      }
       const verb = sql.trim().split(/\s+/)[0];
       sqls.push(verb);
       // The conditional revoke flips 0 rows — another request already rotated.
@@ -1335,6 +1356,11 @@ describe('refreshToken', () => {
 
     const clientCalls: Array<{ sql: string; params: unknown[] }> = [];
     mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[] = []) => {
+      // Skip the event_outbox INSERT/DELETE — framework infrastructure from
+      // withTransaction's transactional outbox, not the handler's own queries.
+      if (sql.includes('event_outbox')) {
+        return { rows: [], rowCount: 1 };
+      }
       const verb = sql.trim().split(/\s+/)[0];
       clientCalls.push({ sql, params });
       // First UPDATE is the rotation gate; return 0 rows to trigger concurrent-reuse path.
@@ -1616,6 +1642,11 @@ describe('assignRole', () => {
 
     const callOrder: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // Skip the event_outbox INSERT/DELETE — framework infrastructure from
+      // withTransaction's transactional outbox, not the handler's own queries.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       callOrder.push(sql.trim().split(/\s+/)[0]);
       return { rows: [] };
     });

@@ -81,6 +81,13 @@ function makeMocks() {
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
       }
+      // The event_outbox INSERT/DELETE are framework infrastructure owned by
+      // withTransaction's transactional outbox, not queries the handler under
+      // test issues. Make them transparent so the scripted responses still line
+      // up with the handler's own business queries.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       const next = clientScript.shift();
       if (!next) {
         throw new Error(`client.query unscripted: ${sql.slice(0, 80)}`);

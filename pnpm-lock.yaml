@@ -784,6 +784,9 @@ importers:
       '@types/pg':
         specifier: ^8.15.5
         version: 8.20.0
+      node-pg-migrate:
+        specifier: ^8.0.4
+        version: 8.0.4(@types/pg@8.20.0)(pg@8.22.0)
       pg:
         specifier: ^8.22.0
         version: 8.22.0

@@ -47,6 +47,7 @@ describe('rescue migrations', () => {
     '006_create_application_questions.ts',
     '007_invitation_pending_unique.ts',
     '008_add_rescue_plan.ts',
+    '011_create_event_outbox.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

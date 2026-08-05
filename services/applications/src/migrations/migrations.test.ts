@@ -49,6 +49,7 @@ describe('applications migrations', () => {
     '008_create_application_documents.ts',
     '009_create_application_defaults.ts',
     '010_backfill_application_actioned_at.ts',
+    '011_create_event_outbox.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;
