@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, toast } from '@adopt-dont-shop/lib.components';
+import { Card, MetricCard, toast } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
   FiUsers,
@@ -11,7 +11,6 @@ import {
 import * as styles from './Analytics.css';
 
 // Analytics Components
-import MetricCard from '../components/analytics/MetricCard';
 import StageDistributionChart from '../components/analytics/StageDistributionChart';
 import AdoptionTrendsChart from '../components/analytics/AdoptionTrendsChart';
 import ConversionFunnelChart from '../components/analytics/ConversionFunnelChart';
@@ -261,53 +260,44 @@ const Analytics: React.FC = () => {
       {/* Key Metrics */}
       <div className={styles.metricsGrid}>
         <MetricCard
-          title="Total Adoptions"
+          label="Total Adoptions"
           value={adoptionMetrics?.totalAdoptions || 0}
           icon={<FiCheckCircle />}
-          trend={
+          delta={
             adoptionMetrics?.comparisonPeriod
-              ? {
-                  value: adoptionMetrics.comparisonPeriod.percentageChange,
-                  isPositive: adoptionMetrics.comparisonPeriod.percentageChange > 0,
-                  label: 'from previous period',
-                }
+              ? adoptionMetrics.comparisonPeriod.percentageChange / 100
               : undefined
           }
+          helperText={adoptionMetrics?.comparisonPeriod ? 'from previous period' : undefined}
           loading={loading}
         />
 
         <MetricCard
-          title="Success Rate"
+          label="Success Rate"
           value={`${adoptionMetrics?.successRate.toFixed(1) || 0}%`}
           icon={<FiTrendingUp />}
-          trend={
+          delta={
             adoptionMetrics?.comparisonPeriod
-              ? {
-                  value: Math.abs(
-                    adoptionMetrics.successRate - adoptionMetrics.comparisonPeriod.successRate
-                  ),
-                  isPositive:
-                    adoptionMetrics.successRate > adoptionMetrics.comparisonPeriod.successRate,
-                  label: 'from previous period',
-                }
+              ? (adoptionMetrics.successRate - adoptionMetrics.comparisonPeriod.successRate) / 100
               : undefined
           }
+          helperText={adoptionMetrics?.comparisonPeriod ? 'from previous period' : undefined}
           loading={loading}
         />
 
         <MetricCard
-          title="Avg. Response Time"
+          label="Avg. Response Time"
           value={`${responseTimeMetrics?.averageResponseTime.toFixed(1) || 0}h`}
           icon={<FiClock />}
-          subtitle={`SLA Compliance: ${responseTimeMetrics?.slaCompliance.toFixed(1) || 0}%`}
+          helperText={`SLA Compliance: ${responseTimeMetrics?.slaCompliance.toFixed(1) || 0}%`}
           loading={loading}
         />
 
         <MetricCard
-          title="Total Applications"
+          label="Total Applications"
           value={applicationAnalytics?.totalApplications || 0}
           icon={<FiUsers />}
-          subtitle="In current period"
+          helperText="In current period"
           loading={loading}
         />
       </div>
