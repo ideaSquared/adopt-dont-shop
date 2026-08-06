@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Card } from '@adopt-dont-shop/lib.components';
+import { Button, Card, FormField, Input } from '@adopt-dont-shop/lib.components';
 import { apiService, type ImageUploadResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
 import * as styles from './PetFormModal.css';
@@ -407,17 +407,16 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
 
         <form onSubmit={handleSubmit}>
           <div className={styles.formGrid}>
-            <div className={styles.formGroup()}>
-              <label htmlFor="name">Pet Name *</label>
-              <input
+            <FormField label="Pet Name" htmlFor="name" required error={errors.name}>
+              <Input
                 id="name"
                 type="text"
                 value={formData.name}
                 onChange={e => handleInputChange('name', e.target.value)}
                 placeholder="Enter pet's name"
+                aria-invalid={!!errors.name}
               />
-              {errors.name && <div className="error">{errors.name}</div>}
-            </div>
+            </FormField>
 
             <div className={styles.formGroup()}>
               <label htmlFor="type">Pet Type *</label>
@@ -434,53 +433,48 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               </select>
             </div>
 
-            <div className={styles.formGroup()}>
-              <label htmlFor="breed">Primary Breed</label>
-              <input
+            <FormField label="Primary Breed" htmlFor="breed" error={errors.breed}>
+              <Input
                 id="breed"
                 type="text"
                 value={formData.breed}
                 onChange={e => handleInputChange('breed', e.target.value)}
                 placeholder="Enter primary breed"
               />
-              {errors.breed && <div className="error">{errors.breed}</div>}
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup()}>
-              <label htmlFor="secondaryBreed">Secondary Breed</label>
-              <input
+            <FormField label="Secondary Breed" htmlFor="secondaryBreed">
+              <Input
                 id="secondaryBreed"
                 type="text"
                 value={formData.secondaryBreed || ''}
                 onChange={e => handleInputChange('secondaryBreed', e.target.value)}
                 placeholder="Enter secondary breed (if mix)"
               />
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup()}>
-              <label htmlFor="ageYears">Age (Years)</label>
-              <input
+            <FormField label="Age (Years)" htmlFor="ageYears">
+              <Input
                 id="ageYears"
                 type="number"
-                min="0"
-                max="30"
+                min={0}
+                max={30}
                 value={formData.ageYears}
                 onChange={e => handleInputChange('ageYears', parseInt(e.target.value) || 0)}
               />
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup()}>
-              <label htmlFor="ageMonths">Age (Months)</label>
-              <input
+            <FormField label="Age (Months)" htmlFor="ageMonths" error={errors.age}>
+              <Input
                 id="ageMonths"
                 type="number"
-                min="0"
-                max="11"
+                min={0}
+                max={11}
                 value={formData.ageMonths}
                 onChange={e => handleInputChange('ageMonths', parseInt(e.target.value) || 0)}
+                aria-invalid={!!errors.age}
               />
-              {errors.age && <div className="error">{errors.age}</div>}
-            </div>
+            </FormField>
 
             <div className={styles.formGroup()}>
               <label htmlFor="ageGroup">Age Group</label>
@@ -522,37 +516,34 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               </select>
             </div>
 
-            <div className={styles.formGroup()}>
-              <label htmlFor="color">Color</label>
-              <input
+            <FormField label="Color" htmlFor="color" error={errors.color}>
+              <Input
                 id="color"
                 type="text"
                 value={formData.color}
                 onChange={e => handleInputChange('color', e.target.value)}
                 placeholder="Enter primary color"
               />
-              {errors.color && <div className="error">{errors.color}</div>}
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup()}>
-              <label htmlFor="adoptionFee">Adoption Fee</label>
+            <FormField label="Adoption Fee" htmlFor="adoptionFee" error={errors.adoptionFee}>
               <div className={styles.currencyInputWrapper}>
                 <span className={styles.currencyAdornment} aria-hidden="true">
                   £
                 </span>
-                <input
+                <Input
                   id="adoptionFee"
                   type="number"
-                  min="0"
-                  step="0.01"
+                  min={0}
+                  step={0.01}
                   inputMode="decimal"
                   value={formData.adoptionFee || ''}
                   onChange={e => handleInputChange('adoptionFee', e.target.value)}
                   placeholder="150.00"
+                  aria-invalid={!!errors.adoptionFee}
                 />
               </div>
-              {errors.adoptionFee && <div className="error">{errors.adoptionFee}</div>}
-            </div>
+            </FormField>
 
             <div className={styles.formGroup({ fullWidth: true })}>
               <label htmlFor="shortDescription">Short Description</label>

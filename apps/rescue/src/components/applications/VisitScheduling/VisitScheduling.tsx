@@ -1,4 +1,5 @@
 import React from 'react';
+import { Input } from '@adopt-dont-shop/lib.components';
 import type { HomeVisit } from '../../../types/applications';
 import type { StaffMember } from '../../../services/staffService';
 import * as styles from '../ApplicationReview.css';
@@ -121,7 +122,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
               <label className={styles.formLabel} htmlFor="visit-date">
                 Date
               </label>
-              <input
+              <Input
                 id="visit-date"
                 className={styles.formInput}
                 type="date"
@@ -134,7 +135,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
               <label className={styles.formLabel} htmlFor="visit-time">
                 Time
               </label>
-              <input
+              <Input
                 id="visit-time"
                 className={styles.formInput}
                 type="time"
@@ -384,7 +385,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                       <label className={styles.formLabel} htmlFor={`reschedule-date-${visit.id}`}>
                         New Date
                       </label>
-                      <input
+                      <Input
                         id={`reschedule-date-${visit.id}`}
                         className={styles.formInput}
                         type="date"
@@ -399,7 +400,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                       <label className={styles.formLabel} htmlFor={`reschedule-time-${visit.id}`}>
                         New Time
                       </label>
-                      <input
+                      <Input
                         id={`reschedule-time-${visit.id}`}
                         className={styles.formInput}
                         type="time"

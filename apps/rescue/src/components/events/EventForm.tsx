@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FormField, Input } from '@adopt-dont-shop/lib.components';
 import { CreateEventInput } from '../../types/events';
 import * as styles from './EventForm.css';
 
@@ -11,6 +12,30 @@ interface EventFormProps {
   // button is disabled and double-submits are prevented (ADS-483).
   submitting?: boolean;
 }
+
+type EventErrorField = 'name' | 'description' | 'startDate' | 'endDate';
+type EventErrors = Partial<Record<EventErrorField, string>>;
+
+const validateEvent = (data: CreateEventInput): EventErrors => {
+  const errors: EventErrors = {};
+
+  if (!data.name.trim()) {
+    errors.name = 'Event name is required';
+  }
+  if (!data.description.trim()) {
+    errors.description = 'Description is required';
+  }
+  if (!data.startDate) {
+    errors.startDate = 'Start date and time is required';
+  }
+  if (!data.endDate) {
+    errors.endDate = 'End date and time is required';
+  } else if (data.startDate && data.endDate < data.startDate) {
+    errors.endDate = 'End date must be after the start date';
+  }
+
+  return errors;
+};
 
 const EventForm: React.FC<EventFormProps> = ({
   initialData,
@@ -39,11 +64,24 @@ const EventForm: React.FC<EventFormProps> = ({
     assignedStaff: initialData?.assignedStaff || [],
     imageUrl: initialData?.imageUrl || '',
   });
+  const [errors, setErrors] = useState<EventErrors>({});
+
+  const clearError = (field: string) => {
+    if (
+      field === 'name' ||
+      field === 'description' ||
+      field === 'startDate' ||
+      field === 'endDate'
+    ) {
+      setErrors(prev => (prev[field] ? { ...prev, [field]: undefined } : prev));
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
+    clearError(name);
 
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
@@ -82,6 +120,13 @@ const EventForm: React.FC<EventFormProps> = ({
     if (submitting) {
       return;
     }
+
+    const validationErrors = validateEvent(formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors({});
     onSubmit(formData);
   };
 
@@ -89,14 +134,10 @@ const EventForm: React.FC<EventFormProps> = ({
     <div className={styles.formContainer}>
       <h2 className={styles.formTitle}>{isEditing ? 'Edit Event' : 'Create New Event'}</h2>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor="name">
-              Event Name *
-            </label>
-            <input
-              className={styles.input}
+          <FormField label="Event Name" htmlFor="name" required error={errors.name}>
+            <Input
               id="name"
               name="name"
               type="text"
@@ -104,9 +145,10 @@ const EventForm: React.FC<EventFormProps> = ({
               onChange={handleChange}
               required
               aria-required={true}
+              aria-invalid={!!errors.name}
               placeholder="e.g., Spring Adoption Fair"
             />
-          </div>
+          </FormField>
 
           <div className={styles.formGroup}>
             <label className={styles.label} htmlFor="description">
@@ -120,8 +162,14 @@ const EventForm: React.FC<EventFormProps> = ({
               onChange={handleChange}
               required
               aria-required={true}
+              aria-invalid={!!errors.description}
               placeholder="Provide details about the event..."
             />
+            {errors.description && (
+              <span className={styles.helperText} role="alert">
+                {errors.description}
+              </span>
+            )}
           </div>
 
           <div className={styles.formRow}>
@@ -145,30 +193,27 @@ const EventForm: React.FC<EventFormProps> = ({
               </select>
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="capacity">
-                Capacity (optional)
-              </label>
-              <input
-                className={styles.input}
+            <FormField label="Capacity (optional)" htmlFor="capacity">
+              <Input
                 id="capacity"
                 name="capacity"
                 type="number"
-                min="1"
+                min={1}
                 value={formData.capacity || ''}
                 onChange={handleChange}
                 placeholder="Max attendees"
               />
-            </div>
+            </FormField>
           </div>
 
           <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="startDate">
-                Start Date & Time *
-              </label>
-              <input
-                className={styles.input}
+            <FormField
+              label="Start Date & Time"
+              htmlFor="startDate"
+              required
+              error={errors.startDate}
+            >
+              <Input
                 id="startDate"
                 name="startDate"
                 type="datetime-local"
@@ -176,15 +221,12 @@ const EventForm: React.FC<EventFormProps> = ({
                 onChange={handleChange}
                 required
                 aria-required={true}
+                aria-invalid={!!errors.startDate}
               />
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="endDate">
-                End Date & Time *
-              </label>
-              <input
-                className={styles.input}
+            <FormField label="End Date & Time" htmlFor="endDate" required error={errors.endDate}>
+              <Input
                 id="endDate"
                 name="endDate"
                 type="datetime-local"
@@ -192,8 +234,9 @@ const EventForm: React.FC<EventFormProps> = ({
                 onChange={handleChange}
                 required
                 aria-required={true}
+                aria-invalid={!!errors.endDate}
               />
-            </div>
+            </FormField>
           </div>
 
           <div className={styles.formGroup}>
@@ -213,12 +256,8 @@ const EventForm: React.FC<EventFormProps> = ({
 
           {formData.location.type === 'physical' ? (
             <>
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="location.venue">
-                  Venue Name
-                </label>
-                <input
-                  className={styles.input}
+              <FormField label="Venue Name" htmlFor="location.venue">
+                <Input
                   id="location.venue"
                   name="location.venue"
                   type="text"
@@ -226,14 +265,10 @@ const EventForm: React.FC<EventFormProps> = ({
                   onChange={handleChange}
                   placeholder="e.g., City Park"
                 />
-              </div>
+              </FormField>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="location.address">
-                  Address
-                </label>
-                <input
-                  className={styles.input}
+              <FormField label="Address" htmlFor="location.address">
+                <Input
                   id="location.address"
                   name="location.address"
                   type="text"
@@ -241,15 +276,11 @@ const EventForm: React.FC<EventFormProps> = ({
                   onChange={handleChange}
                   placeholder="Street address"
                 />
-              </div>
+              </FormField>
 
               <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label} htmlFor="location.city">
-                    City
-                  </label>
-                  <input
-                    className={styles.input}
+                <FormField label="City" htmlFor="location.city">
+                  <Input
                     id="location.city"
                     name="location.city"
                     type="text"
@@ -257,14 +288,10 @@ const EventForm: React.FC<EventFormProps> = ({
                     onChange={handleChange}
                     placeholder="City"
                   />
-                </div>
+                </FormField>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.label} htmlFor="location.postcode">
-                    Postcode
-                  </label>
-                  <input
-                    className={styles.input}
+                <FormField label="Postcode" htmlFor="location.postcode">
+                  <Input
                     id="location.postcode"
                     name="location.postcode"
                     type="text"
@@ -272,16 +299,16 @@ const EventForm: React.FC<EventFormProps> = ({
                     onChange={handleChange}
                     placeholder="Postcode"
                   />
-                </div>
+                </FormField>
               </div>
             </>
           ) : (
-            <div className={styles.formGroup}>
-              <label className={styles.label} htmlFor="location.virtualLink">
-                Virtual Event Link
-              </label>
-              <input
-                className={styles.input}
+            <FormField
+              label="Virtual Event Link"
+              htmlFor="location.virtualLink"
+              description="Provide a link to the virtual meeting platform (Zoom, Teams, etc.)"
+            >
+              <Input
                 id="location.virtualLink"
                 name="location.virtualLink"
                 type="url"
@@ -289,18 +316,11 @@ const EventForm: React.FC<EventFormProps> = ({
                 onChange={handleChange}
                 placeholder="https://zoom.us/j/..."
               />
-              <span className={styles.helperText}>
-                Provide a link to the virtual meeting platform (Zoom, Teams, etc.)
-              </span>
-            </div>
+            </FormField>
           )}
 
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor="imageUrl">
-              Event Image URL (optional)
-            </label>
-            <input
-              className={styles.input}
+          <FormField label="Event Image URL (optional)" htmlFor="imageUrl">
+            <Input
               id="imageUrl"
               name="imageUrl"
               type="url"
@@ -308,7 +328,7 @@ const EventForm: React.FC<EventFormProps> = ({
               onChange={handleChange}
               placeholder="https://example.com/event-image.jpg"
             />
-          </div>
+          </FormField>
 
           <div className={styles.formGroup}>
             <div className={styles.checkboxGroup}>

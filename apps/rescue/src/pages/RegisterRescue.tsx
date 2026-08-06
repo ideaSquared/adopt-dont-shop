@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
+import { Button, FormField, Heading, Input, Text } from '@adopt-dont-shop/lib.components';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import * as styles from './RegisterRescue.css';
 
@@ -172,12 +172,8 @@ const RegisterRescue = () => {
     type = 'text',
     placeholder = ''
   ) => (
-    <div className={styles.field}>
-      <label className={styles.label} htmlFor={field}>
-        {labelText}
-      </label>
-      <input
-        className={styles.input}
+    <FormField label={labelText} htmlFor={field} error={errors[field]} className={styles.field}>
+      <Input
         id={field}
         name={field}
         type={type}
@@ -185,14 +181,8 @@ const RegisterRescue = () => {
         value={formData[field]}
         onChange={e => updateField(field, e.target.value)}
         aria-invalid={!!errors[field]}
-        aria-describedby={errors[field] ? `${field}-error` : undefined}
       />
-      {errors[field] && (
-        <span className={styles.fieldError} id={`${field}-error`} role="alert">
-          {errors[field]}
-        </span>
-      )}
-    </div>
+    </FormField>
   );
 
   if (submitted) {

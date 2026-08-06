@@ -97,6 +97,16 @@ function App() {
                           </RouteBoundary>
                         }
                       />
+                      {/* ADS D4: deep-linkable application detail — renders the
+                          same master-detail page, scoped to one application. */}
+                      <Route
+                        path="/applications/:id"
+                        element={
+                          <RouteBoundary name="applications">
+                            <Applications />
+                          </RouteBoundary>
+                        }
+                      />
                       <Route path="/staff" element={<StaffManagement />} />
                       <Route path="/settings" element={<RescueSettings />} />
                       <Route

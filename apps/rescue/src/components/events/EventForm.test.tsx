@@ -85,3 +85,40 @@ describe('EventForm double-submit protection', () => {
     expect(screen.getByRole('button', { name: /Saving/i })).toHaveAttribute('aria-busy', 'true');
   });
 });
+
+describe('EventForm validation', () => {
+  it('rejects an end date that is before the start date', () => {
+    const onSubmit = vi.fn();
+    render(<EventForm onSubmit={onSubmit} onCancel={vi.fn()} submitting={false} />);
+
+    fillRequiredFields();
+    fireEvent.change(screen.getByLabelText(/End Date & Time/i), {
+      target: { name: 'endDate', value: '2026-06-01T08:00' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Event/i }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/end date must be after the start date/i)).toBeInTheDocument();
+  });
+
+  it('blocks submission and reports a missing event name', () => {
+    const onSubmit = vi.fn();
+    render(<EventForm onSubmit={onSubmit} onCancel={vi.fn()} submitting={false} />);
+
+    fireEvent.change(screen.getByLabelText(/Description/i), {
+      target: { name: 'description', value: 'A great event' },
+    });
+    fireEvent.change(screen.getByLabelText(/Start Date & Time/i), {
+      target: { name: 'startDate', value: '2026-06-01T10:00' },
+    });
+    fireEvent.change(screen.getByLabelText(/End Date & Time/i), {
+      target: { name: 'endDate', value: '2026-06-01T16:00' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Event/i }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(/event name is required/i)).toBeInTheDocument();
+  });
+});

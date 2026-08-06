@@ -228,6 +228,19 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Stack: ({ children, ...props }: any) => React.createElement('div', props, children),
   TextInput: ({ children, ...props }: any) =>
     React.createElement('input', { type: 'text', ...props }),
+  // Bare input control (label/error come from the wrapping FormField). Strip the
+  // presentational-only props so they don't land on the DOM node as attributes.
+  Input: ({
+    label,
+    error,
+    helperText,
+    isFullWidth,
+    startIcon,
+    endIcon,
+    variant,
+    size,
+    ...props
+  }: any) => React.createElement('input', props),
   TextArea: ({ children, ...props }: any) => React.createElement('textarea', props, children),
   EmptyState: ({ title, description, ...props }: any) =>
     React.createElement(
@@ -245,14 +258,23 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       children
     ),
   FormRow: ({ children, ...props }: any) => React.createElement('div', props, children),
-  FormField: ({ label, error, description, children, ...props }: any) =>
+  FormField: ({
+    label,
+    htmlFor,
+    error,
+    description,
+    required,
+    fullWidth,
+    children,
+    ...props
+  }: any) =>
     React.createElement(
       'div',
       props,
-      label ? React.createElement('label', null, label) : null,
+      label ? React.createElement('label', { htmlFor }, label) : null,
       children,
       error ? React.createElement('span', { role: 'alert' }, error) : null,
-      description ? React.createElement('span', null, description) : null
+      !error && description ? React.createElement('span', null, description) : null
     ),
   // ADS-586: useConfirm / ConfirmDialog mocks so tests can intercept the
   // promise-based confirm flow without rendering the real modal. Default

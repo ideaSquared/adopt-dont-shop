@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Alert, Button, Card, ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  Card,
+  ConfirmDialog,
+  Input,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import { apiService } from '../../services/libraryServices';
 import { getApiBaseUrl } from '../../utils/env';
 import * as styles from './QuestionsBuilder.css';
@@ -515,13 +522,14 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
               <label className={styles.label} htmlFor="question-text">
                 Question text *
               </label>
-              <input
+              <Input
                 className={styles.input}
                 id="question-text"
                 data-testid="question-text-input"
                 value={formData.questionText}
                 onChange={e => handleFieldChange('questionText', e.target.value)}
                 placeholder="e.g. Do you have a garden or outdoor space?"
+                aria-invalid={!!formErrors.questionText}
               />
               {formErrors.questionText && (
                 <p className={styles.errorText}>{formErrors.questionText}</p>
@@ -570,13 +578,14 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
               <label className={styles.label} htmlFor="question-key">
                 Question key *
               </label>
-              <input
+              <Input
                 className={styles.input}
                 id="question-key"
                 data-testid="question-key-input"
                 value={formData.questionKey}
                 onChange={e => handleFieldChange('questionKey', e.target.value)}
                 placeholder="e.g. has_garden"
+                aria-invalid={!!formErrors.questionKey}
               />
               <p className={styles.helpText}>
                 Unique identifier (auto-generated from question text)
@@ -590,7 +599,7 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
               <label className={styles.label} htmlFor="question-placeholder">
                 Placeholder text
               </label>
-              <input
+              <Input
                 className={styles.input}
                 id="question-placeholder"
                 data-testid="question-placeholder-input"
@@ -604,7 +613,7 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
               <label className={styles.label} htmlFor="question-help">
                 Help text
               </label>
-              <input
+              <Input
                 className={styles.input}
                 id="question-help"
                 data-testid="question-help-input"

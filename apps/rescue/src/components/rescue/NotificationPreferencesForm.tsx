@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FormField, Input } from '@adopt-dont-shop/lib.components';
 import { apiService } from '../../services/libraryServices';
 import * as styles from './NotificationPreferencesForm.css';
 
@@ -285,32 +286,24 @@ const NotificationPreferencesForm: React.FC = () => {
         </p>
 
         <div className={styles.quietHoursGrid}>
-          <div>
-            <label className={styles.fieldLabel} htmlFor="quiet-hours-start">
-              Start time
-            </label>
-            <input
-              className={styles.timeInput}
+          <FormField label="Start time" htmlFor="quiet-hours-start">
+            <Input
               id="quiet-hours-start"
               type="time"
               value={preferences.quietHoursStart}
               onChange={e => setQuietHoursField('quietHoursStart', e.target.value)}
               aria-label="Quiet hours start time"
             />
-          </div>
-          <div>
-            <label className={styles.fieldLabel} htmlFor="quiet-hours-end">
-              End time
-            </label>
-            <input
-              className={styles.timeInput}
+          </FormField>
+          <FormField label="End time" htmlFor="quiet-hours-end">
+            <Input
               id="quiet-hours-end"
               type="time"
               value={preferences.quietHoursEnd}
               onChange={e => setQuietHoursField('quietHoursEnd', e.target.value)}
               aria-label="Quiet hours end time"
             />
-          </div>
+          </FormField>
         </div>
 
         <div>
