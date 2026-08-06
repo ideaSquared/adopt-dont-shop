@@ -52,6 +52,29 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     error: (...args: unknown[]) => toastError(...args),
     success: (...args: unknown[]) => toastSuccess(...args),
   }),
+  DataTable: ({
+    columns,
+    rows,
+  }: {
+    columns: Array<{
+      key: string;
+      label: string;
+      render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode;
+    }>;
+    rows: Record<string, unknown>[];
+  }) => (
+    <table>
+      <tbody>
+        {rows.map((row, i) => (
+          <tr key={i}>
+            {columns.map(c => (
+              <td key={c.key}>{c.render ? c.render(row[c.key], row) : String(row[c.key] ?? '')}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ),
 }));
 
 vi.mock('@adopt-dont-shop/lib.pets', () => ({
