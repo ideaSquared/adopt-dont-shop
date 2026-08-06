@@ -61,12 +61,20 @@ export type RunningScheduler = {
 
 const DEFAULT_TICK_MS = 60_000;
 
-// The next interval-aligned instant strictly after `ts`, on the grid of
+// The next interval-aligned instant at or after `ts` (inclusive — `ts`
+// itself, when already a multiple of `intervalMs`), on the grid of
 // multiples of `intervalMs` since the epoch. Two replicas booted at
 // different times but within the same interval window converge on this same
 // boundary — the shared anchor cross-instance claiming depends on.
 const nextIntervalBoundary = (ts: number, intervalMs: number): number =>
   Math.ceil(ts / intervalMs) * intervalMs;
+
+// The interval-aligned instant `ts` currently falls within — i.e. the most
+// recent boundary at or before `ts` (floor, the mirror of the boundary
+// above). Used to seed a runOnStart job: it must fire immediately, so it
+// needs the CURRENT period's boundary, not the next one.
+const currentIntervalBoundary = (ts: number, intervalMs: number): number =>
+  Math.floor(ts / intervalMs) * intervalMs;
 
 export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): RunningScheduler => {
   const tickIntervalMs = opts.tickIntervalMs ?? DEFAULT_TICK_MS;
@@ -76,19 +84,32 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
   let inflight = Promise.resolve();
 
   // nextRunAt per job — each job's own intended (logical) run instant, not
-  // an observed wall-clock reading. runOnStart=true → fire next tick (0 is
-  // already interval-aligned, so it needs no special-casing below). For a
-  // cross-instance-claimed job (claimRun set) with runOnStart=false, seed to
-  // the shared interval grid rather than `now() + intervalMs` (ADS-1066):
-  // otherwise two replicas' boot-derived due instants can straddle an
-  // arbitrary epoch-aligned boundary and permanently disagree on every
-  // subsequent claim. Jobs with no claimRun keep the plain boot-offset seed
-  // — there's no cross-replica agreement to preserve, and it avoids a
-  // thundering herd of near-immediate first runs on deploy.
+  // an observed wall-clock reading.
+  //
+  // runOnStart=true must fire on the next tick, so it seeds near "now",
+  // never to the Unix epoch (0): with the due-anchored progression below
+  // (`due + intervalMs`, not `ts + intervalMs`), an epoch-anchored due only
+  // ever advances by one intervalMs per fire while real time is far ahead —
+  // it would stay permanently "overdue" and fire on every subsequent tick
+  // instead of once per interval (a firing storm, not a one-off backlog).
+  // Claimed jobs seed to the CURRENT interval boundary (floor) so it still
+  // fires immediately while staying shared/grid-aligned across replicas
+  // that boot within the same period; unclaimed jobs just use `now()`.
+  //
+  // For a cross-instance-claimed job (claimRun set) with runOnStart=false,
+  // seed to the next shared interval grid boundary (ceil) rather than
+  // `now() + intervalMs` (ADS-1066): otherwise two replicas' boot-derived
+  // due instants can straddle an arbitrary epoch-aligned boundary and
+  // permanently disagree on every subsequent claim. Jobs with no claimRun
+  // keep the plain boot-offset seed — there's no cross-replica agreement to
+  // preserve, and it avoids a thundering herd of near-immediate first runs
+  // on deploy.
   const nextRunAt = new Map<string, number>();
   for (const job of jobs) {
     const initial = job.runOnStart
-      ? 0
+      ? opts.claimRun
+        ? currentIntervalBoundary(now(), job.intervalMs)
+        : now()
       : opts.claimRun
         ? nextIntervalBoundary(now(), job.intervalMs)
         : now() + job.intervalMs;
