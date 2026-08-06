@@ -1,4 +1,5 @@
 import { keyframes, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 const shimmer = keyframes({
   '0%': { backgroundPosition: '-400px 0' },
@@ -55,6 +56,73 @@ export const emptyText = style({
   lineHeight: 1.5,
   maxWidth: '320px',
   color: '#64748b',
+});
+
+// ADS-C5: screen-reader-only live region + visually-hidden text used by the
+// accessible controls. Standard clip technique keeps it in the a11y tree.
+export const srOnly = style({
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+});
+
+// ADS-C5: keyboard/AT-operable alternative to the swipe gestures. The group is
+// hidden off-screen until one of its buttons receives focus, at which point it
+// is revealed (the SkipLink reveal pattern) so keyboard users see the controls
+// and screen-reader users can operate like/skip without gestures.
+export const accessibleControls = style({
+  position: 'absolute',
+  left: '-9999px',
+  top: 'auto',
+  width: '1px',
+  height: '1px',
+  overflow: 'hidden',
+  zIndex: 20,
+  selectors: {
+    '&:focus-within': {
+      left: '50%',
+      top: '0.75rem',
+      transform: 'translateX(-50%)',
+      width: 'auto',
+      height: 'auto',
+      display: 'flex',
+      gap: '0.5rem',
+      padding: '0.5rem 0.75rem',
+      background: vars.background.surface,
+      borderRadius: vars.border.radius.base,
+      boxShadow: vars.shadows.lg,
+      border: `1px solid ${vars.border.color.default}`,
+    },
+  },
+});
+
+export const accessibleControlButton = style({
+  padding: '0.5rem 0.875rem',
+  minHeight: '44px',
+  minWidth: '44px',
+  borderRadius: vars.border.radius.base,
+  border: `1px solid ${vars.border.color.default}`,
+  background: vars.background.body,
+  color: vars.text.primary,
+  fontSize: '0.875rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+  selectors: {
+    '&:focus-visible': {
+      outline: `2px solid ${vars.colors.primary}`,
+      outlineOffset: '2px',
+    },
+    '&:disabled': {
+      opacity: 0.5,
+      cursor: 'not-allowed',
+    },
+  },
 });
 
 export const skeletonCard = style({

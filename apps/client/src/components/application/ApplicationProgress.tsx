@@ -1,5 +1,5 @@
 import React from 'react';
-import clsx from 'clsx';
+import { Stepper, type StepperStep } from '@adopt-dont-shop/lib.components';
 import * as styles from './ApplicationProgress.css';
 
 interface Step {
@@ -14,91 +14,31 @@ interface ApplicationProgressProps {
   onStepClick: (step: number) => void;
 }
 
+/**
+ * ADS-C1: adopts the shared `Stepper` for the guided application flow so the
+ * onboarding and application wizards share one progress/step UI. The 1-based
+ * `currentStep`/`onStepClick` contract is preserved for `ApplicationPage`;
+ * only steps the user has already completed are interactive.
+ */
 export const ApplicationProgress: React.FC<ApplicationProgressProps> = ({
   steps,
   currentStep,
   onStepClick,
 }) => {
-  const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
+  const stepperSteps: StepperStep[] = steps.map(step => ({
+    id: String(step.id),
+    title: step.title,
+    description: step.description,
+  }));
 
   return (
-    <div className={styles.progressContainer}>
-      <nav aria-label='Application steps' className={styles.stepsContainer}>
-        {steps.map((step, index) => {
-          const isActive = step.id === currentStep;
-          const isCompleted = step.id < currentStep;
-          const isClickable = step.id <= currentStep;
-
-          return (
-            <React.Fragment key={step.id}>
-              <div
-                className={clsx(
-                  styles.stepItem,
-                  isClickable ? styles.stepItemClickable : styles.stepItemDefault,
-                  isActive && styles.stepItemActiveMobile
-                )}
-                role={isClickable ? 'button' : undefined}
-                tabIndex={isClickable ? 0 : undefined}
-                aria-label={`${step.id}: ${step.title}`}
-                aria-current={isActive ? 'step' : undefined}
-                onClick={() => isClickable && onStepClick(step.id)}
-                onKeyDown={e =>
-                  isClickable && (e.key === 'Enter' || e.key === ' ') && onStepClick(step.id)
-                }
-              >
-                <div
-                  className={clsx(
-                    styles.stepNumber,
-                    isCompleted
-                      ? styles.stepNumberVariants.completed
-                      : isActive
-                        ? styles.stepNumberVariants.active
-                        : styles.stepNumberVariants.inactive
-                  )}
-                >
-                  {isCompleted ? '✓' : step.id}
-                </div>
-                <div className={styles.stepContent}>
-                  <h3
-                    className={clsx(
-                      styles.stepTitle,
-                      isCompleted || isActive
-                        ? styles.stepTitleVariants.activeOrCompleted
-                        : styles.stepTitleVariants.inactive
-                    )}
-                  >
-                    {step.title}
-                  </h3>
-                  <p
-                    className={clsx(
-                      styles.stepDescription,
-                      isCompleted || isActive
-                        ? styles.stepDescriptionVariants.activeOrCompleted
-                        : styles.stepDescriptionVariants.inactive
-                    )}
-                  >
-                    {step.description}
-                  </p>
-                </div>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={clsx(
-                    styles.stepConnector,
-                    isCompleted
-                      ? styles.stepConnectorVariants.completed
-                      : styles.stepConnectorVariants.incomplete
-                  )}
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </nav>
-
-      <div className={styles.progressBar}>
-        <div className={styles.progressFill} style={{ width: `${progressPercentage}%` }} />
-      </div>
-    </div>
+    <Stepper
+      steps={stepperSteps}
+      activeStep={currentStep - 1}
+      onStepClick={index => onStepClick(index + 1)}
+      isStepDisabled={index => index + 1 >= currentStep}
+      className={styles.progressContainer}
+      data-testid='application-stepper'
+    />
   );
 };

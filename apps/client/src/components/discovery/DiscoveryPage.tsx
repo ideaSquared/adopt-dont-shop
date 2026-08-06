@@ -20,6 +20,7 @@ import { Link, useNavigate } from 'react-router';
 import * as styles from './DiscoveryPage.css';
 import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';
+import { DiscoverySearchToggle } from './DiscoverySearchToggle';
 import { EndOfQueueEmptyState } from './EndOfQueueEmptyState';
 import { ANON_FIRST_LIKE_FIRED_KEY, AnonymousFirstLikeModal } from './AnonymousFirstLikeModal';
 import { ProfileCompletionMeter } from '../profile/ProfileCompletionMeter';
@@ -321,13 +322,11 @@ export const DiscoveryPage: React.FC = () => {
       <ProfileCompletionMeter />
       <div className={styles.header}>
         <h1 className={styles.title}>Discover Pets</h1>
+        <DiscoverySearchToggle active='discover' />
         <div className={styles.headerActions}>
           <button className={styles.filterButton({ active: showFilters })} onClick={toggleFilters}>
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
-          <Link className={styles.actionLinkSecondary} to='/search'>
-            List View
-          </Link>
           <Link className={styles.actionLinkPrimary} to='/favorites'>
             Favorites
           </Link>

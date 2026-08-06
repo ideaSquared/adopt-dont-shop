@@ -125,6 +125,63 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       )
     ),
   MatchReasonChips: () => React.createElement('div', { 'data-testid': 'match-reason-chips' }),
+  // ADS-C1: faithful Stepper mock mirroring the real component's status /
+  // clickable / aria-current logic so adopters can be behaviour-tested.
+  Stepper: ({
+    steps,
+    activeStep,
+    completedSteps,
+    onStepClick,
+    isStepDisabled,
+    className,
+    'data-testid': testId,
+  }: {
+    steps: Array<{ id: string; title: string; description?: string; optional?: boolean }>;
+    activeStep: number;
+    completedSteps?: number[];
+    onStepClick?: (index: number) => void;
+    isStepDisabled?: (index: number) => boolean;
+    className?: string;
+    'data-testid'?: string;
+  }) => {
+    const statusLabel: Record<string, string> = {
+      complete: 'Completed',
+      current: 'Current',
+      upcoming: 'Upcoming',
+    };
+    const items = steps.map((step, index) => {
+      const isComplete = completedSteps ? completedSteps.includes(index) : index < activeStep;
+      const status = index === activeStep ? 'current' : isComplete ? 'complete' : 'upcoming';
+      const disabled = isStepDisabled ? isStepDisabled(index) : false;
+      const clickable = Boolean(onStepClick) && !disabled;
+      const ariaCurrent = status === 'current' ? 'step' : undefined;
+      const content = [
+        React.createElement('span', { key: 'title' }, step.title),
+        step.description ? React.createElement('span', { key: 'desc' }, step.description) : null,
+        step.optional ? React.createElement('span', { key: 'opt' }, 'Optional') : null,
+        React.createElement('span', { key: 'status' }, statusLabel[status]),
+      ];
+      const inner = clickable
+        ? React.createElement(
+            'button',
+            { type: 'button', 'aria-current': ariaCurrent, onClick: () => onStepClick?.(index) },
+            ...content
+          )
+        : React.createElement('div', { 'aria-current': ariaCurrent }, ...content);
+      return React.createElement('li', { key: step.id }, inner);
+    });
+    const active = steps[activeStep];
+    return React.createElement(
+      'div',
+      { className, 'data-testid': testId },
+      React.createElement('ol', null, ...items),
+      React.createElement(
+        'div',
+        { role: 'status', 'aria-live': 'polite' },
+        active ? `Step ${activeStep + 1} of ${steps.length}: ${active.title}` : ''
+      )
+    );
+  },
   Alert: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', { role: 'alert', ...props }, children),
   Badge: ({
@@ -256,6 +313,48 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       )
     );
   },
+  // ADS-C3: FormField label + error scaffolding (mirrors the real component).
+  FormField: ({
+    label,
+    htmlFor,
+    required,
+    description,
+    error,
+    children,
+  }: {
+    label?: string;
+    htmlFor?: string;
+    required?: boolean;
+    description?: string;
+    error?: string;
+    children?: React.ReactNode;
+  }) =>
+    React.createElement(
+      'div',
+      null,
+      label && React.createElement('label', { htmlFor }, label, required ? ' *' : null),
+      children,
+      description && !error ? React.createElement('span', null, description) : null,
+      error ? React.createElement('span', { role: 'alert' }, error) : null
+    ),
+  FormRow: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement('div', null, children),
+  FormSection: ({
+    title,
+    description,
+    children,
+  }: {
+    title?: string;
+    description?: string;
+    children?: React.ReactNode;
+  }) =>
+    React.createElement(
+      'section',
+      null,
+      title ? React.createElement('h3', null, title) : null,
+      description ? React.createElement('p', null, description) : null,
+      children
+    ),
   // ADS-587: useConfirm / ConfirmDialog mocks so tests can intercept the
   // promise-based confirm flow without rendering the real modal.
   useConfirm: () => ({

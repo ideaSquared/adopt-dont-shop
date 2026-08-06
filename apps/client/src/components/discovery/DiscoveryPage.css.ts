@@ -69,20 +69,6 @@ export const actionLinkPrimary = style({
   },
 });
 
-export const actionLinkSecondary = style({
-  padding: '0.5rem 1rem',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  fontWeight: 500,
-  transition: 'all 0.2s ease',
-  background: '#f8f9fa',
-  color: '#333',
-  border: '1px solid #dee2e6',
-  ':hover': {
-    background: '#e9ecef',
-  },
-});
-
 export const mainContent = style({
   flex: 1,
   display: 'flex',
