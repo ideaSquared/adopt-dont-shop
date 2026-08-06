@@ -1,4 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
+import { recipe } from '@vanilla-extract/recipes';
+
+import { vars } from '../../styles/theme.css';
 
 export const scrollContainer = style({
   height: '100%',
@@ -117,5 +120,81 @@ globalStyle(`${cardsTable} td::before`, {
       color: 'var(--color-text-muted, #6b7280)',
       textAlign: 'left',
     },
+  },
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * ADS UX D2 — opt-in additive styles for selection, non-sortable headers and
+ * per-row highlighting. These use the theme `vars` contract (design-tokens
+ * skill) and are only applied when the matching opt-in props are set, so the
+ * default table appearance is unchanged.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/** Leading checkbox column — kept narrow and vertically aligned with cells. */
+export const selectCell = style({
+  width: '1%',
+  padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
+  textAlign: 'center',
+  borderBottom: `${vars.border.width.thin} solid var(--color-border, #e5e7eb)`,
+});
+
+export const selectHeaderCell = style([
+  selectCell,
+  {
+    position: 'sticky',
+    top: 0,
+    background: 'var(--color-surface-muted, #f9fafb)',
+  },
+]);
+
+export const checkbox = style({
+  cursor: 'pointer',
+  width: vars.spacing['3'],
+  height: vars.spacing['3'],
+  accentColor: vars.colors.primary,
+  selectors: {
+    '&:focus-visible': {
+      outline: `${vars.border.width.base} solid ${vars.colors.primary}`,
+      outlineOffset: vars.spacing['1'],
+    },
+  },
+});
+
+/** Non-sortable column header — plain label with the same padding as the sort button. */
+export const headerLabel = style({
+  display: 'block',
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+});
+
+/** Frameless empty state used when the table is rendered without the ChartFrame chrome. */
+export const emptyFrameless = style({
+  padding: vars.spacing['4'],
+  textAlign: 'center',
+  color: vars.text.muted,
+  fontSize: vars.typography.size.sm,
+});
+
+/**
+ * Per-row highlighting. `variant` tints the row for valid / duplicate / invalid
+ * style states; `selected` highlights a row picked via the selection column.
+ * Token-based so it stays theme-aware in light / normal / dark.
+ */
+export const rowVariant = recipe({
+  base: {},
+  variants: {
+    variant: {
+      default: {},
+      success: { backgroundColor: vars.colors.successBgSubtle },
+      warning: { backgroundColor: vars.colors.warningBgSubtle },
+      danger: { backgroundColor: vars.colors.dangerBgSubtle },
+    },
+    selected: {
+      true: { backgroundColor: vars.colors.primaryBgSubtle },
+      false: {},
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+    selected: false,
   },
 });

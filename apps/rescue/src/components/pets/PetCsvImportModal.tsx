@@ -1,5 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Button, Modal, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  DataTable,
+  Modal,
+  toast,
+  type DataTableColumn,
+  type DataTableRowVariant,
+} from '@adopt-dont-shop/lib.components';
 import {
   IMPORTABLE_FIELDS,
   type ColumnMapping,
@@ -54,6 +61,51 @@ type Props = {
   onClose: () => void;
   onImported: () => void;
 };
+
+// Row highlighting for the preview table: valid rows are tinted success, rows
+// that would be skipped as duplicates warning, and failing rows danger.
+const previewRowVariant = (row: Record<string, unknown>): DataTableRowVariant => {
+  if (row.ok === false) {
+    return 'danger';
+  }
+  if (row.isDup === true) {
+    return 'warning';
+  }
+  return 'success';
+};
+
+const previewColumns: DataTableColumn[] = [
+  { key: 'row', label: 'Row', sortable: false },
+  { key: 'name', label: 'Name', sortable: false },
+  { key: 'type', label: 'Type', sortable: false },
+  { key: 'breed', label: 'Breed', sortable: false },
+  {
+    key: 'status',
+    label: 'Status',
+    sortable: false,
+    render: (_value, row) => {
+      if (row.ok === false) {
+        const errors = Array.isArray(row.errors) ? row.errors : [];
+        return (
+          <ul className={styles.errorList}>
+            {errors.map((e, i) => (
+              <li key={i}>{String(e)}</li>
+            ))}
+          </ul>
+        );
+      }
+      if (row.isDup === true) {
+        return <span>Duplicate — will skip</span>;
+      }
+      return <span>OK</span>;
+    },
+  },
+];
+
+const failureColumns: DataTableColumn[] = [
+  { key: 'row', label: 'Row', sortable: false },
+  { key: 'reason', label: 'Reason', sortable: false },
+];
 
 const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImported }) => {
   const [step, setStep] = useState<Step>('upload');
@@ -123,6 +175,34 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
     }
     return dupes;
   }, [validatedRows, previouslyImportedIds]);
+
+  const previewRows = useMemo<Record<string, unknown>[]>(() => {
+    if (!parsed) {
+      return [];
+    }
+    return validatedRows.map(r => {
+      const isDup = duplicateRowIndexes.has(r.rowIndex);
+      const rawRow = parsed.rows[r.rowIndex - 1];
+      const cellValue = (field: ImportableField): string => {
+        const header = mapping[field];
+        return header ? String(rawRow[header] ?? '') : '';
+      };
+      return {
+        row: r.rowIndex,
+        name: cellValue('name'),
+        type: cellValue('type'),
+        breed: cellValue('breed'),
+        ok: r.ok,
+        isDup,
+        errors: r.ok ? [] : r.errors,
+      };
+    });
+  }, [parsed, validatedRows, mapping, duplicateRowIndexes]);
+
+  const failureRows = useMemo<Record<string, unknown>[]>(
+    () => (summary ? summary.failed.map(f => ({ row: f.rowIndex, reason: f.reason })) : []),
+    [summary]
+  );
 
   const requiredFieldsMapped = IMPORTABLE_FIELDS.filter(f => f.required).every(f => mapping[f.key]);
 
@@ -320,45 +400,14 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
               </div>
             )}
             <div className={styles.scrollableTable}>
-              <table className={styles.previewTable}>
-                <thead>
-                  <tr>
-                    <th className={styles.previewCell}>Row</th>
-                    <th className={styles.previewCell}>Name</th>
-                    <th className={styles.previewCell}>Type</th>
-                    <th className={styles.previewCell}>Breed</th>
-                    <th className={styles.previewCell}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {validatedRows.map(r => {
-                    const isDup = duplicateRowIndexes.has(r.rowIndex);
-                    const className = r.ok && !isDup ? styles.rowOk : styles.rowError;
-                    const rawRow = parsed.rows[r.rowIndex - 1];
-                    const cell = (field: ImportableField) =>
-                      mapping[field] ? rawRow[mapping[field]!] : '';
-                    return (
-                      <tr key={r.rowIndex} className={className}>
-                        <td className={styles.previewCell}>{r.rowIndex}</td>
-                        <td className={styles.previewCell}>{cell('name')}</td>
-                        <td className={styles.previewCell}>{cell('type')}</td>
-                        <td className={styles.previewCell}>{cell('breed')}</td>
-                        <td className={styles.previewCell}>
-                          {r.ok && !isDup && <span>OK</span>}
-                          {r.ok && isDup && <span>Duplicate — will skip</span>}
-                          {!r.ok && (
-                            <ul className={styles.errorList}>
-                              {r.errors.map((e, i) => (
-                                <li key={i}>{e}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <DataTable
+                frameless
+                columns={previewColumns}
+                rows={previewRows}
+                getRowId={row => String(row.row)}
+                getRowVariant={previewRowVariant}
+                pageSize={Math.max(previewRows.length, 1)}
+              />
             </div>
             <div className={styles.actionsRow}>
               <Button variant="outline" onClick={() => setStep('map')}>
@@ -391,22 +440,14 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
             </div>
             {summary.failed.length > 0 && (
               <div className={styles.failureTable}>
-                <table className={styles.previewTable}>
-                  <thead>
-                    <tr>
-                      <th className={styles.previewCell}>Row</th>
-                      <th className={styles.previewCell}>Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.failed.map(f => (
-                      <tr key={f.rowIndex} className={styles.rowError}>
-                        <td className={styles.previewCell}>{f.rowIndex}</td>
-                        <td className={styles.previewCell}>{f.reason}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable
+                  frameless
+                  columns={failureColumns}
+                  rows={failureRows}
+                  getRowId={row => String(row.row)}
+                  getRowVariant={() => 'danger'}
+                  pageSize={Math.max(failureRows.length, 1)}
+                />
               </div>
             )}
             <div className={styles.actionsRow}>

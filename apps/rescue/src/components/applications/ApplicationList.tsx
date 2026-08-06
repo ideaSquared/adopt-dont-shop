@@ -1,5 +1,10 @@
-import React from 'react';
-import { EmptyState, ErrorState } from '@adopt-dont-shop/lib.components';
+import React, { useMemo } from 'react';
+import {
+  DataTable,
+  EmptyState,
+  ErrorState,
+  type DataTableColumn,
+} from '@adopt-dont-shop/lib.components';
 import StatusBadge from '../common/StatusBadge';
 import type {
   ApplicationListItem,
@@ -133,7 +138,44 @@ interface ApplicationListProps {
   onApplicationSelect: (application: ApplicationListItem) => void;
   selectedIds?: Set<string>;
   onSelectionChange?: (next: Set<string>) => void;
+  onPageChange?: (page: number) => void;
 }
+
+// Column keys that map 1:1 onto server-side sort fields. Used to translate a
+// DataTable header-sort click back into an ApplicationSort without a cast.
+const sortFieldForKey = (key: string): ApplicationSort['field'] | null => {
+  switch (key) {
+    case 'submittedAt':
+      return 'submittedAt';
+    case 'status':
+      return 'status';
+    case 'petName':
+      return 'petName';
+    case 'applicantName':
+      return 'applicantName';
+    case 'priority':
+      return 'priority';
+    default:
+      return null;
+  }
+};
+
+const priorityVariant = (
+  priority: string | undefined
+): 'urgent' | 'high' | 'medium' | 'low' | 'default' => {
+  switch (priority) {
+    case 'urgent':
+      return 'urgent';
+    case 'high':
+      return 'high';
+    case 'medium':
+      return 'medium';
+    case 'low':
+      return 'low';
+    default:
+      return 'default';
+  }
+};
 
 const ApplicationList: React.FC<ApplicationListProps> = ({
   applications,
@@ -147,32 +189,176 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
   onApplicationSelect,
   selectedIds,
   onSelectionChange,
+  onPageChange,
 }) => {
   const selectionEnabled = selectedIds !== undefined && onSelectionChange !== undefined;
-  const toggleOne = (id: string) => {
-    if (!selectionEnabled) {
-      return;
-    }
-    const next = new Set(selectedIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    onSelectionChange(next);
+
+  // Look up the full application by id from a DataTable row (rows are plain
+  // records; the render callbacks resolve the typed item here).
+  const byId = useMemo(() => new Map(applications.map(a => [a.id, a])), [applications]);
+
+  const handleSelectionChange = (ids: string[]) => {
+    onSelectionChange?.(new Set(ids));
   };
-  const allSelected =
-    selectionEnabled && applications.length > 0 && applications.every(a => selectedIds.has(a.id));
-  const toggleAll = () => {
-    if (!selectionEnabled) {
-      return;
-    }
-    if (allSelected) {
-      onSelectionChange(new Set());
-    } else {
-      onSelectionChange(new Set(applications.map(a => a.id)));
+
+  const handleColumnSort = (key: string, direction: 'asc' | 'desc') => {
+    const field = sortFieldForKey(key);
+    if (field) {
+      onSortChange({ field, direction });
     }
   };
+
+  const handleRowClick = (row: Record<string, unknown>) => {
+    const app = byId.get(String(row.id));
+    if (app) {
+      onApplicationSelect(app);
+    }
+  };
+
+  const columns: DataTableColumn[] = [
+    {
+      key: 'applicantName',
+      label: 'Applicant',
+      render: (_value, row) => {
+        const app = byId.get(String(row.id));
+        if (!app) {
+          return null;
+        }
+        return (
+          <div className={styles.applicantInfo}>
+            <div className={styles.applicantName}>{app.applicantName}</div>
+            <div className={styles.applicantEmail}>
+              {app.data?.personalInfo?.email || 'No email provided'}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'petName',
+      label: 'Pet',
+      sortable: false,
+      render: (_value, row) => {
+        const app = byId.get(String(row.id));
+        if (!app) {
+          return null;
+        }
+        return (
+          <div className={styles.petInfo}>
+            <div className={styles.petName}>{app.petName || 'Unknown Pet'}</div>
+            <div className={styles.petDetails}>
+              {app.petType} • {app.petBreed}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (_value, row) => {
+        const app = byId.get(String(row.id));
+        if (!app) {
+          return null;
+        }
+        return <StatusBadge status={app.status || 'unknown'} />;
+      },
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      render: (_value, row) => {
+        const app = byId.get(String(row.id));
+        if (!app) {
+          return null;
+        }
+        return (
+          <span className={styles.priorityBadge({ priority: priorityVariant(app.priority) })}>
+            {app.priority}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'submittedAt',
+      label: 'Submitted',
+      render: (_value, row) => {
+        const app = byId.get(String(row.id));
+        if (!app) {
+          return null;
+        }
+        return app.submittedDaysAgo === 0 ? 'Today' : `${app.submittedDaysAgo} days ago`;
+      },
+    },
+    {
+      key: 'progress',
+      label: 'Progress',
+      sortable: false,
+      render: (_value, row) => {
+        const app = byId.get(String(row.id));
+        if (!app) {
+          return null;
+        }
+        const progress = getApplicationProgress(app);
+        return (
+          <div className={styles.progressIndicators}>
+            <div className={styles.progressBar}>
+              {[0, 1, 2, 3, 4].map(stepIndex => {
+                const stepStatus = getStepStatus(
+                  stepIndex,
+                  progress.current,
+                  progress.stage,
+                  progress.finalOutcome
+                );
+                return (
+                  <div
+                    key={stepIndex}
+                    className={styles.progressStep({
+                      status: stepStatus,
+                      isLast: stepIndex === 4,
+                    })}
+                  />
+                );
+              })}
+            </div>
+            <span className={styles.progressLabel}>
+              {getStepLabel(progress.current, app.stage, app.finalOutcome)}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => {
+        const app = byId.get(String(row.id));
+        if (!app) {
+          return null;
+        }
+        return (
+          <div className={styles.actionsContainer}>
+            {getActionButtons(app, onApplicationSelect).map(action => (
+              <button
+                key={action.label}
+                className={styles.actionButton({ variant: action.variant })}
+                onClick={e => {
+                  e.stopPropagation();
+                  action.action();
+                }}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        );
+      },
+    },
+  ];
+
+  const tableRows = applications.map(a => ({ id: a.id }));
+
   // Convert complex ApplicationFilter to simple string-based filters for UI
   const getDateRangeValue = () => {
     if (!filter.dateRange) {
@@ -328,21 +514,14 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
           </div>
         ) : !loading && applications.length === 0 ? (
           <EmptyState title="No applications found matching your criteria." />
-        ) : (
+        ) : loading ? (
+          // Per-row skeleton loading is a bespoke affordance kept out of the
+          // shared DataTable; it mirrors the DataTable column layout below.
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead className={styles.tableHead}>
                 <tr>
-                  {selectionEnabled && (
-                    <th className={styles.tableHeader}>
-                      <input
-                        type="checkbox"
-                        aria-label="Select all applications"
-                        checked={allSelected}
-                        onChange={toggleAll}
-                      />
-                    </th>
-                  )}
+                  {selectionEnabled && <th className={styles.tableHeader} />}
                   <th className={styles.tableHeader}>Applicant</th>
                   <th className={styles.tableHeader}>Pet</th>
                   <th className={styles.tableHeader}>Status</th>
@@ -353,149 +532,62 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                 </tr>
               </thead>
               <tbody className={styles.tableBody}>
-                {loading
-                  ? Array.from({ length: pagination.limit }, (_, i) => (
-                      <tr key={`skeleton-${i}`} className={styles.tableRow} aria-hidden="true">
-                        {selectionEnabled && (
-                          <td className={styles.tableCell}>
-                            <div className={styles.skeletonBlock} style={{ width: '1rem' }} />
-                          </td>
-                        )}
-                        <td className={styles.tableCell}>
-                          <div className={styles.skeletonBlock} style={{ width: '60%' }} />
-                          <div
-                            className={styles.skeletonBlock}
-                            style={{ width: '40%', marginTop: '0.25rem' }}
-                          />
-                        </td>
-                        <td className={styles.tableCell}>
-                          <div className={styles.skeletonBlock} style={{ width: '50%' }} />
-                        </td>
-                        <td className={styles.tableCell}>
-                          <div className={styles.skeletonBlock} style={{ width: '4rem' }} />
-                        </td>
-                        <td className={styles.tableCell}>
-                          <div className={styles.skeletonBlock} style={{ width: '3rem' }} />
-                        </td>
-                        <td className={styles.tableCell}>
-                          <div className={styles.skeletonBlock} style={{ width: '5rem' }} />
-                        </td>
-                        <td className={styles.tableCell}>
-                          <div className={styles.skeletonBlock} style={{ width: '80%' }} />
-                        </td>
-                        <td className={styles.tableCell}>
-                          <div className={styles.skeletonBlock} style={{ width: '5rem' }} />
-                        </td>
-                      </tr>
-                    ))
-                  : applications.map(application => (
-                      <tr
-                        key={application.id}
-                        className={styles.tableRow}
-                        onClick={() => onApplicationSelect(application)}
-                      >
-                        {selectionEnabled && (
-                          <td className={styles.tableCell} onClick={e => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              aria-label={`Select application ${application.id}`}
-                              checked={selectedIds.has(application.id)}
-                              onChange={() => toggleOne(application.id)}
-                            />
-                          </td>
-                        )}
-                        <td className={styles.tableCell}>
-                          <div className={styles.applicantInfo}>
-                            <div className={styles.applicantName}>{application.applicantName}</div>
-                            <div className={styles.applicantEmail}>
-                              {application.data?.personalInfo?.email || 'No email provided'}
-                            </div>
-                          </div>
-                        </td>
-                        <td className={styles.tableCell}>
-                          <div className={styles.petInfo}>
-                            <div className={styles.petName}>
-                              {application.petName || 'Unknown Pet'}
-                            </div>
-                            <div className={styles.petDetails}>
-                              {application.petType} • {application.petBreed}
-                            </div>
-                          </div>
-                        </td>
-                        <td className={styles.tableCell}>
-                          <StatusBadge status={application.status || 'unknown'} />
-                        </td>
-                        <td className={styles.tableCell}>
-                          <span
-                            className={styles.priorityBadge({
-                              priority: application.priority as
-                                | 'urgent'
-                                | 'high'
-                                | 'medium'
-                                | 'low'
-                                | 'default',
-                            })}
-                          >
-                            {application.priority}
-                          </span>
-                        </td>
-                        <td className={styles.tableCell}>
-                          {application.submittedDaysAgo === 0
-                            ? 'Today'
-                            : `${application.submittedDaysAgo} days ago`}
-                        </td>
-                        <td className={styles.tableCell}>
-                          <div className={styles.progressIndicators}>
-                            <div className={styles.progressBar}>
-                              {[0, 1, 2, 3, 4].map(stepIndex => {
-                                const progress = getApplicationProgress(application);
-                                const stepStatus = getStepStatus(
-                                  stepIndex,
-                                  progress.current,
-                                  progress.stage,
-                                  progress.finalOutcome
-                                );
-                                return (
-                                  <div
-                                    key={stepIndex}
-                                    className={styles.progressStep({
-                                      status: stepStatus,
-                                      isLast: stepIndex === 4,
-                                    })}
-                                  />
-                                );
-                              })}
-                            </div>
-                            <span className={styles.progressLabel}>
-                              {getStepLabel(
-                                getApplicationProgress(application).current,
-                                application.stage,
-                                application.finalOutcome
-                              )}
-                            </span>
-                          </div>
-                        </td>
-                        <td className={styles.tableCell} onClick={e => e.stopPropagation()}>
-                          <div className={styles.actionsContainer}>
-                            {getActionButtons(application, onApplicationSelect).map(action => (
-                              <button
-                                key={action.label}
-                                className={styles.actionButton({ variant: action.variant })}
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  action.action();
-                                }}
-                              >
-                                {action.label}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                {Array.from({ length: pagination.limit }, (_, i) => (
+                  <tr key={`skeleton-${i}`} className={styles.tableRow} aria-hidden="true">
+                    {selectionEnabled && (
+                      <td className={styles.tableCell}>
+                        <div className={styles.skeletonBlock} style={{ width: '1rem' }} />
+                      </td>
+                    )}
+                    <td className={styles.tableCell}>
+                      <div className={styles.skeletonBlock} style={{ width: '60%' }} />
+                      <div
+                        className={styles.skeletonBlock}
+                        style={{ width: '40%', marginTop: '0.25rem' }}
+                      />
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.skeletonBlock} style={{ width: '50%' }} />
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.skeletonBlock} style={{ width: '4rem' }} />
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.skeletonBlock} style={{ width: '3rem' }} />
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.skeletonBlock} style={{ width: '5rem' }} />
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.skeletonBlock} style={{ width: '80%' }} />
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.skeletonBlock} style={{ width: '5rem' }} />
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+        ) : (
+          <DataTable
+            frameless
+            columns={columns}
+            rows={tableRows}
+            getRowId={row => String(row.id)}
+            onRowClick={handleRowClick}
+            rowClassName={() => styles.tableRow}
+            selectable={selectionEnabled}
+            selectedIds={selectedIds}
+            onSelectionChange={handleSelectionChange}
+            sortBy={sort.field}
+            sortDirection={sort.direction}
+            onSortChange={handleColumnSort}
+            page={pagination.page}
+            pageSize={pagination.limit}
+            total={pagination.total}
+            onPageChange={onPageChange}
+          />
         )}
       </div>
     </div>
