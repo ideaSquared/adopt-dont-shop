@@ -192,7 +192,7 @@ describe('scheduler metrics + cross-instance claim', () => {
     }
   });
 
-  it('runs the job when the claim is won, keyed by the interval-quantised slot', async () => {
+  it('runs the job when the claim is won, keyed by the job’s own scheduled instant', async () => {
     const runs: string[] = [];
     const claimCalls: Array<{ job: string; scheduledFor: Date }> = [];
     const claimRun = vi.fn(async (job: string, scheduledFor: Date) => {
@@ -219,8 +219,156 @@ describe('scheduler metrics + cross-instance claim', () => {
       const fired = await scheduler.tick();
       expect(fired).toEqual(['weekly']);
       expect(runs).toEqual(['weekly']);
-      // slot = floor(1_000_000 / 60_000) * 60_000 = 960_000
+      // A claimed runOnStart job seeds to the CURRENT interval boundary
+      // (floor(1_000_000 / 60_000) * 60_000 = 960_000) — the job's own
+      // scheduled instant, grid-aligned for cross-replica agreement, but
+      // deliberately NOT the Unix epoch (0): with due-anchored progression,
+      // an epoch-anchored due would fire on every subsequent tick forever
+      // instead of once per interval.
       expect(claimCalls).toEqual([{ job: 'weekly', scheduledFor: new Date(960_000) }]);
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
+  it('seeds a non-runOnStart, cross-instance-claimed job to the next shared interval boundary (ADS-1066)', async () => {
+    const claimCalls: Date[] = [];
+    const claimRun = vi.fn(async (_job: string, scheduledFor: Date) => {
+      claimCalls.push(scheduledFor);
+      return true;
+    });
+    let now = 250;
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'weekly',
+        intervalMs: 1000,
+        run: async () => undefined,
+      },
+    ];
+    // Boot at 250ms into the [0, 1000) window. The old, buggy seed
+    // (now() + intervalMs) would be 1250 — this proves the new seed is the
+    // shared boundary (1000) instead, by asserting it's due (and claims)
+    // exactly there, one full 750ms earlier than the old seed would allow.
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 100,
+      now: () => now,
+      claimRun,
+    });
+    try {
+      now = 1000;
+      const fired = await scheduler.tick();
+      expect(fired).toEqual(['weekly']);
+      expect(claimCalls).toEqual([new Date(1000)]);
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
+  it(
+    'keeps independently-booted replicas agreeing on the claim slot across many periods, ' +
+      'even when their boot instants straddle an interval boundary (ADS-1066)',
+    async () => {
+      const intervalMs = 1000;
+      const claimed = new Set<string>();
+      const sharedClaimRun = async (job: string, scheduledFor: Date): Promise<boolean> => {
+        const key = `${job}::${scheduledFor.toISOString()}`;
+        if (claimed.has(key)) {
+          return false;
+        }
+        claimed.add(key);
+        return true;
+      };
+
+      const makeReplica = (bootNow: number) => {
+        let now = bootNow;
+        const runs: number[] = [];
+        const jobs: ScheduledJob[] = [
+          {
+            name: 'weekly-digest',
+            intervalMs,
+            run: async () => {
+              runs.push(now);
+            },
+          },
+        ];
+        const scheduler = startScheduler(jobs, {
+          logger: quietLogger(),
+          tickIntervalMs: 100,
+          now: () => now,
+          claimRun: sharedClaimRun,
+        });
+        return {
+          runs,
+          tickAt: (t: number) => {
+            now = t;
+            return scheduler.tick();
+          },
+          stop: () => scheduler.stop(),
+        };
+      };
+
+      // Boot phases 1ms apart, straddling the interval boundary at ts=1000 —
+      // under the pre-fix wall-clock-quantised claim this alone was enough
+      // to make the two replicas disagree on the slot for every subsequent
+      // period, not just this one.
+      const replicaA = makeReplica(999);
+      const replicaB = makeReplica(1000);
+
+      try {
+        for (let period = 1; period <= 5; period++) {
+          const due = period * intervalMs;
+          await replicaA.tickAt(due);
+          await replicaB.tickAt(due);
+        }
+        // Exactly one replica ran the job each period — never both, never
+        // neither. Asserting the exact sorted set of run instants (not just
+        // the total count) rules out a pathological double-fire in one
+        // period masked by a skipped period elsewhere.
+        const allRuns = [...replicaA.runs, ...replicaB.runs].sort((a, b) => a - b);
+        expect(allRuns).toEqual([1000, 2000, 3000, 4000, 5000]);
+      } finally {
+        await replicaA.stop();
+        await replicaB.stop();
+      }
+    }
+  );
+
+  it('does not epoch-anchor a runOnStart job — no firing storm on every tick until due catches up to real time', async () => {
+    const runs: number[] = [];
+    // A realistic "far from the epoch" boot time, with an interval much
+    // larger than the tick spacing (proportionally like a weekly digest
+    // ticking every 60s) — this is the shape that exposes the bug: with an
+    // epoch-anchored due (0) and due-anchored progression, due only ever
+    // advances by intervalMs (1000) per fire while real time starts
+    // ~100_000ms ahead, so it would stay permanently overdue and fire on
+    // literally every tick instead of once per interval.
+    let now = 100_000;
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'digest',
+        intervalMs: 1000,
+        runOnStart: true,
+        run: async () => {
+          runs.push(now);
+        },
+      },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 10,
+      now: () => now,
+    });
+    try {
+      const first = await scheduler.tick();
+      expect(first).toEqual(['digest']); // fires immediately, as documented
+
+      // Advance by far less than a full interval — a healthy scheduler must
+      // NOT consider it due again yet.
+      now += 10;
+      const second = await scheduler.tick();
+      expect(second).toEqual([]);
+      expect(runs).toEqual([100_000]);
     } finally {
       await scheduler.stop();
     }
