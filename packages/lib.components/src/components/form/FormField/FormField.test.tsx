@@ -85,4 +85,45 @@ describe('FormField', () => {
 
     expect(screen.getByText('Email')).toBeInTheDocument();
   });
+
+  it('wires the error to the control via aria-describedby and aria-invalid', () => {
+    render(
+      <FormField label='Email' htmlFor='email' error='Email is required'>
+        <input id='email' />
+      </FormField>
+    );
+
+    const input = screen.getByLabelText('Email');
+    const alert = screen.getByRole('alert');
+    expect(alert.id).toBeTruthy();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input.getAttribute('aria-describedby')).toBe(alert.id);
+  });
+
+  it('links the description to the control via aria-describedby when no error', () => {
+    render(
+      <FormField label='Email' htmlFor='email' description='Used for login'>
+        <input id='email' />
+      </FormField>
+    );
+
+    const input = screen.getByLabelText('Email');
+    const description = screen.getByText('Used for login');
+    expect(description.id).toBeTruthy();
+    expect(input.getAttribute('aria-describedby')).toBe(description.id);
+    expect(input).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('does not augment a fragment child (avoids invalid aria-* on a fragment)', () => {
+    render(
+      <FormField label='Email' error='Email is required'>
+        <>
+          <input aria-label='Email' />
+        </>
+      </FormField>
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Email is required');
+    expect(screen.getByLabelText('Email')).not.toHaveAttribute('aria-describedby');
+  });
 });

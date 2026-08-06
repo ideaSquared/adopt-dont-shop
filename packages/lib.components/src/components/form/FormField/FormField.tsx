@@ -45,6 +45,14 @@ export type FormFieldProps = {
   className?: string;
 };
 
+type ControlAriaProps = {
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean | 'true' | 'false';
+};
+
+const mergeDescribedBy = (existing: string | undefined, added: string): string =>
+  existing ? `${existing} ${added}` : added;
+
 export const FormField = ({
   label,
   htmlFor,
@@ -54,22 +62,48 @@ export const FormField = ({
   fullWidth = false,
   children,
   className,
-}: FormFieldProps) => (
-  <div className={clsx(styles.field, fullWidth && styles.fieldFullWidth, className)}>
-    {label && (
-      <label
-        htmlFor={htmlFor}
-        className={clsx(styles.fieldLabel, required && styles.fieldLabelRequired)}
-      >
-        {label}
-      </label>
-    )}
-    {children}
-    {description && !error && <span className={styles.fieldDescription}>{description}</span>}
-    {error && (
-      <span className={styles.fieldError} role='alert'>
-        {error}
-      </span>
-    )}
-  </div>
-);
+}: FormFieldProps) => {
+  const reactId = React.useId();
+  const errorId = `${reactId}-error`;
+  const descriptionId = `${reactId}-description`;
+  const showDescription = Boolean(description) && !error;
+  const describedById = error ? errorId : showDescription ? descriptionId : undefined;
+
+  // Wire the message to the control via aria-describedby so screen readers
+  // announce it when the field regains focus (role="alert" only fires when the
+  // error first appears). Only a single valid element child is augmented;
+  // anything else renders untouched.
+  const control =
+    describedById &&
+    React.isValidElement<ControlAriaProps>(children) &&
+    children.type !== React.Fragment
+      ? React.cloneElement(children, {
+          'aria-describedby': mergeDescribedBy(children.props['aria-describedby'], describedById),
+          'aria-invalid': error ? true : children.props['aria-invalid'],
+        })
+      : children;
+
+  return (
+    <div className={clsx(styles.field, fullWidth && styles.fieldFullWidth, className)}>
+      {label && (
+        <label
+          htmlFor={htmlFor}
+          className={clsx(styles.fieldLabel, required && styles.fieldLabelRequired)}
+        >
+          {label}
+        </label>
+      )}
+      {control}
+      {showDescription && (
+        <span id={descriptionId} className={styles.fieldDescription}>
+          {description}
+        </span>
+      )}
+      {error && (
+        <span id={errorId} className={styles.fieldError} role='alert'>
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
