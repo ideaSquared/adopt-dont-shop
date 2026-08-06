@@ -50,6 +50,18 @@ describe('Analytics page', () => {
     await waitFor(() => expect(analyticsService.getAdoptionMetrics).toHaveBeenCalledTimes(2));
   });
 
+  // D5: preset shortcuts (restored from the old local picker) set the range and
+  // drive a refetch.
+  it('refetches analytics when a preset shortcut is clicked', async () => {
+    renderWithProviders(<Analytics />);
+
+    await waitFor(() => expect(analyticsService.getAdoptionMetrics).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Last 7 days' }));
+
+    await waitFor(() => expect(analyticsService.getAdoptionMetrics).toHaveBeenCalledTimes(2));
+  });
+
   // D6: every data section uses the shared EmptyState when nothing is available.
   it('shows the shared empty state for each section when no data is available', async () => {
     renderWithProviders(<Analytics />);

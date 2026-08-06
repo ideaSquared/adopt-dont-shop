@@ -68,8 +68,12 @@ export type {
   FormRowProps,
   FormSectionProps,
 } from './components/form/FormField';
-export { DateRangePicker } from './components/form/DateRangePicker';
-export type { DateRangePickerProps, DateRangeValue } from './components/form/DateRangePicker';
+export { DateRangePicker, createDefaultDateRangePresets } from './components/form/DateRangePicker';
+export type {
+  DateRangePickerProps,
+  DateRangeValue,
+  DateRangePreset,
+} from './components/form/DateRangePicker';
 
 // Feedback Components
 export { Alert } from './components/ui/Alert';
