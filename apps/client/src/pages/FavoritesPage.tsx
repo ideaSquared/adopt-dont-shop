@@ -1,57 +1,45 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { petService, Pet } from '@/services';
-import { Alert, Container } from '@adopt-dont-shop/lib.components';
+import { Alert, Container, EmptyState, ErrorState } from '@adopt-dont-shop/lib.components';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { PetCard } from '../components/PetCard';
 import { useFavorites } from '../contexts/FavoritesContext';
 import * as styles from './FavoritesPage.css';
 
 export const FavoritesPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const favoritesContext = useFavorites();
   const [favorites, setFavorites] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadFavorites = useCallback(async () => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      setFavorites([]);
+      return;
+    }
 
-    const fetchFavorites = async () => {
-      if (!isAuthenticated) {
-        if (!cancelled) {
-          setLoading(false);
-          setFavorites([]);
-        }
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        const favoritePets = await petService.getFavorites();
-        if (!cancelled) {
-          setFavorites(favoritePets);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Failed to fetch favorites:', err);
-          setError('Failed to load your favorite pets. Please try again.');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchFavorites();
-    return () => {
-      cancelled = true;
-    };
+    try {
+      setLoading(true);
+      setError(null);
+      const favoritePets = await petService.getFavorites();
+      setFavorites(favoritePets);
+    } catch (err) {
+      console.error('Failed to fetch favorites:', err);
+      setError('Failed to load your favorite pets. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
 
   // ADS UX P0 #1: when an un-favorite API call fails, PetCard keeps the pet
   // in its internal state and surfaces the failure via FavoritesContext.error.
@@ -135,11 +123,7 @@ export const FavoritesPage: React.FC = () => {
       )}
 
       {/* Error state */}
-      {error && (
-        <Alert variant='error' className={styles.errorAlert}>
-          {error}
-        </Alert>
-      )}
+      {error && <ErrorState message={error} onRetry={loadFavorites} />}
 
       {/* Action error (e.g. an un-favorite call failed) */}
       {actionError && !error && (
@@ -165,21 +149,14 @@ export const FavoritesPage: React.FC = () => {
 
       {/* Empty state */}
       {!loading && !error && favorites.length === 0 && (
-        <div className={styles.emptyState}>
-          <h2>No favorites yet</h2>
-          <p>
-            You haven&apos;t saved any pets to your favorites yet. Start exploring to find pets that
-            steal your heart!
-          </p>
-          <div className={styles.ctaButtonRow}>
-            <Link to='/discover' className={styles.ctaButton}>
-              Start Swiping
-            </Link>
-            <Link to='/search' className={`${styles.ctaButton} ${styles.ctaButtonGreen}`}>
-              Browse All Pets
-            </Link>
-          </div>
-        </div>
+        <EmptyState
+          title='No favorites yet'
+          description="You haven't saved any pets to your favorites yet. Start exploring to find pets that steal your heart!"
+          actions={[
+            { label: 'Start Swiping', onClick: () => navigate('/discover') },
+            { label: 'Browse All Pets', onClick: () => navigate('/search'), variant: 'secondary' },
+          ]}
+        />
       )}
     </Container>
   );

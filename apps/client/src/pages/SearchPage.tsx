@@ -5,7 +5,14 @@ import { useSearchFilters } from '@/hooks/useSearchFilters';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, PaginatedResponse, Pet } from '@/services';
-import { Button, Container, SelectInput } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  Container,
+  EmptyState,
+  ErrorState,
+  QueryBoundary,
+  SelectInput,
+} from '@adopt-dont-shop/lib.components';
 import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -245,34 +252,44 @@ export const SearchPage: React.FC = () => {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className={styles.petGrid}>
-            <PetCardSkeletonGrid count={8} />
-          </div>
-        ) : error ? (
-          <div className={styles.emptyState}>
-            <h3>Unable to load results</h3>
-            <p>{error}</p>
-            <Button onClick={loadPets}>Retry</Button>
-          </div>
-        ) : !pets || pets.length === 0 ? (
-          <div className={styles.emptyState}>
-            <h3>No pets match your filters</h3>
-            <p>Try broadening your search by removing some filters or using different keywords.</p>
-            {hasActiveFilters && <Button onClick={handleClearAll}>Clear All Filters</Button>}
-          </div>
-        ) : (
-          <>
-            {!nearby.hasLocation && (
-              <p className={styles.locationHint}>
-                Enable your location above to see how far away each pet is.
-              </p>
-            )}
+        <QueryBoundary
+          isLoading={isLoading}
+          isError={!!error}
+          error={error}
+          isEmpty={!pets || pets.length === 0}
+          onRetry={loadPets}
+          loadingFallback={
             <div className={styles.petGrid}>
-              {pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}
+              <PetCardSkeletonGrid count={8} />
             </div>
-          </>
-        )}
+          }
+          errorFallback={
+            <ErrorState
+              title='Unable to load results'
+              message={error ?? undefined}
+              onRetry={loadPets}
+            />
+          }
+          emptyFallback={
+            <EmptyState
+              variant='search'
+              title='No pets match your filters'
+              description='Try broadening your search by removing some filters or using different keywords.'
+              actions={
+                hasActiveFilters ? [{ label: 'Clear All Filters', onClick: handleClearAll }] : []
+              }
+            />
+          }
+        >
+          {!nearby.hasLocation && (
+            <p className={styles.locationHint}>
+              Enable your location above to see how far away each pet is.
+            </p>
+          )}
+          <div className={styles.petGrid}>
+            {pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}
+          </div>
+        </QueryBoundary>
 
         {pagination && pagination.totalPages > 1 && (
           <div className={styles.pagination}>

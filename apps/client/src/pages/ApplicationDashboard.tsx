@@ -1,4 +1,4 @@
-import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { Badge, Button, Card, EmptyState, ErrorState } from '@adopt-dont-shop/lib.components';
 import { ApplicationCardSkeletonList } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
@@ -45,6 +45,8 @@ export const ApplicationDashboard: React.FC = () => {
   const loadApplications = async (signal?: { cancelled: boolean }) => {
     try {
       setLoading(true);
+      // Clear any prior error so retrying from the ErrorState actually recovers.
+      setError(null);
       const userApplications = await applicationService.getUserApplications();
       if (signal?.cancelled) return;
 
@@ -137,11 +139,11 @@ export const ApplicationDashboard: React.FC = () => {
   if (error) {
     return (
       <div className={styles.container}>
-        <div className={styles.emptyState}>
-          <h2>Error loading applications</h2>
-          <p>{error}</p>
-          <Button onClick={() => loadApplications()}>Try Again</Button>
-        </div>
+        <ErrorState
+          title='Error loading applications'
+          message={error}
+          onRetry={() => loadApplications()}
+        />
       </div>
     );
   }
@@ -152,13 +154,11 @@ export const ApplicationDashboard: React.FC = () => {
         <div className={styles.header}>
           <h1 className={styles.title}>My Applications</h1>
         </div>
-        <div className={styles.emptyState}>
-          <h2>No applications yet</h2>
-          <p>Start your adoption journey by browsing available pets.</p>
-          <Link to='/search'>
-            <Button>Browse Pets</Button>
-          </Link>
-        </div>
+        <EmptyState
+          title='No applications yet'
+          description='Start your adoption journey by browsing available pets.'
+          actions={[{ label: 'Browse Pets', onClick: () => navigate('/search') }]}
+        />
       </div>
     );
   }

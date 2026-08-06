@@ -48,34 +48,6 @@ export const petGrid = style({
   },
 });
 
-export const emptyState = style({
-  textAlign: 'center',
-  padding: '4rem 2rem',
-  background: vars.background.muted,
-  borderRadius: vars.border.radius['2xl'],
-  margin: '2rem 0',
-});
-
-globalStyle(`${emptyState} .emoji`, {
-  fontSize: '4rem',
-  marginBottom: '1rem',
-  display: 'block',
-});
-
-globalStyle(`${emptyState} h2`, {
-  fontFamily: vars.typography.family.display,
-  fontSize: '1.8rem',
-  color: vars.text.primary,
-  marginBottom: '1rem',
-});
-
-globalStyle(`${emptyState} p`, {
-  fontSize: '1.1rem',
-  color: vars.text.secondary,
-  marginBottom: '2rem',
-  lineHeight: '1.6',
-});
-
 export const ctaButton = style({
   display: 'inline-flex',
   alignItems: 'center',

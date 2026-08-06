@@ -20,7 +20,15 @@ import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { z } from 'zod';
 import * as styles from './ProfilePage.css';
+
+// C3: schema-first validation for the account-deletion confirmation form.
+// The password is required before we fire the (irreversible) delete request;
+// the optional two-factor code is validated server-side.
+const DeleteAccountSchema = z.object({
+  password: z.string().min(1, 'Please enter your password to confirm'),
+});
 
 // Extended interface for applications with pet info
 interface ApplicationWithPetInfo extends Application {
@@ -68,6 +76,7 @@ export const ProfilePage: React.FC = () => {
   const [deleteTwoFactorToken, setDeleteTwoFactorToken] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletePasswordError, setDeletePasswordError] = useState<string | null>(null);
 
   // Clear the success-message timer on unmount to prevent setState on an unmounted component.
   useEffect(() => {
@@ -243,6 +252,7 @@ export const ProfilePage: React.FC = () => {
     setDeletePassword('');
     setDeleteTwoFactorToken('');
     setDeleteError(null);
+    setDeletePasswordError(null);
     setIsDeleteModalOpen(true);
   };
 
@@ -254,15 +264,25 @@ export const ProfilePage: React.FC = () => {
     setDeletePassword('');
     setDeleteTwoFactorToken('');
     setDeleteError(null);
+    setDeletePasswordError(null);
+  };
+
+  const handleDeletePasswordChange = (value: string) => {
+    setDeletePassword(value);
+    if (deletePasswordError) {
+      setDeletePasswordError(null);
+    }
   };
 
   const submitDeleteAccount = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!deletePassword) {
-      setDeleteError('Please enter your password to confirm.');
+    const parsed = DeleteAccountSchema.safeParse({ password: deletePassword });
+    if (!parsed.success) {
+      setDeletePasswordError(parsed.error.issues[0]?.message ?? 'Please enter your password.');
       return;
     }
+    setDeletePasswordError(null);
 
     try {
       setIsDeleting(true);
@@ -504,17 +524,18 @@ export const ProfilePage: React.FC = () => {
         title='Delete account?'
         size='sm'
       >
-        <form onSubmit={submitDeleteAccount}>
+        <form onSubmit={submitDeleteAccount} noValidate>
           <p>
             This will permanently delete your profile, applications, and all associated data.
             Re-enter your password to confirm.
           </p>
-          <div style={{ marginTop: '1rem' }}>
+          <div className={styles.deleteModalField}>
             <Input
               type='password'
               label='Current password'
               value={deletePassword}
-              onChange={e => setDeletePassword(e.target.value)}
+              onChange={e => handleDeletePasswordChange(e.target.value)}
+              error={deletePasswordError ?? undefined}
               autoComplete='current-password'
               autoFocus
               required
@@ -522,7 +543,7 @@ export const ProfilePage: React.FC = () => {
             />
           </div>
           {user?.twoFactorEnabled && (
-            <div style={{ marginTop: '0.75rem' }}>
+            <div className={styles.deleteModalField}>
               <Input
                 type='text'
                 label='Two-factor code'
@@ -536,18 +557,11 @@ export const ProfilePage: React.FC = () => {
             </div>
           )}
           {deleteError && (
-            <div style={{ marginTop: '0.75rem' }} role='alert'>
+            <div className={styles.deleteModalField} role='alert'>
               <Alert variant='error'>{deleteError}</Alert>
             </div>
           )}
-          <div
-            style={{
-              marginTop: '1.25rem',
-              display: 'flex',
-              gap: '0.5rem',
-              justifyContent: 'flex-end',
-            }}
-          >
+          <div className={styles.deleteModalActions}>
             <Button
               type='button'
               variant='secondary'

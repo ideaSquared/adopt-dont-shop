@@ -69,6 +69,15 @@ export const navigationButtons = style({
     'screen and (max-width: 768px)': {
       flexDirection: 'column',
       gap: '1rem',
+      // C4: on mobile the question steps run long, so pin the step
+      // navigation (Back / Continue / Send) to the bottom of the viewport
+      // so the primary CTA is always reachable without scrolling to the end.
+      position: 'sticky',
+      bottom: '0',
+      zIndex: vars.zIndex.sticky,
+      background: vars.background.body,
+      paddingBottom: vars.spacing['3'],
+      boxShadow: vars.shadows.lg,
     },
   },
 });

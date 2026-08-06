@@ -71,6 +71,7 @@ vi.mock('@/services/notificationService', () => ({
 }));
 
 import { ProfilePage } from './ProfilePage';
+import { authService } from '@/services';
 
 const renderProfilePage = () =>
   render(
@@ -166,5 +167,57 @@ describe('ProfilePage settings save', () => {
     expect(screen.queryByText(/settings saved successfully/i)).not.toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();
+  });
+});
+
+// C3: the account-deletion confirmation form now validates through a Zod schema
+// and surfaces the error inline (via the shared Input) rather than firing the
+// irreversible delete request against an empty password.
+describe('ProfilePage delete-account confirmation (C3)', () => {
+  const deleteAccountMock = vi.mocked(authService.deleteAccount);
+
+  beforeEach(() => {
+    deleteAccountMock.mockReset();
+    deleteAccountMock.mockResolvedValue(undefined);
+    getPreferencesMock.mockResolvedValue({
+      email: true,
+      push: false,
+      sms: false,
+      applications: true,
+      messages: true,
+      system: true,
+      marketing: false,
+      reminders: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '08:00',
+    });
+  });
+
+  // The modal submit button reads "Delete account" (lower-case a); the
+  // Settings-tab danger-zone trigger reads "Delete Account" — matched here by
+  // exact case so the two never collide.
+  const getModalSubmit = () => screen.getByRole('button', { name: 'Delete account' });
+
+  it('blocks submission and shows an inline error when the password is empty', async () => {
+    const user = userEvent.setup();
+    renderProfilePage();
+
+    await user.click(getModalSubmit());
+
+    expect(await screen.findByText(/please enter your password to confirm/i)).toBeInTheDocument();
+    expect(deleteAccountMock).not.toHaveBeenCalled();
+  });
+
+  it('submits the deletion once a password is entered', async () => {
+    const user = userEvent.setup();
+    renderProfilePage();
+
+    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
+    await user.click(getModalSubmit());
+
+    await waitFor(() => {
+      expect(deleteAccountMock).toHaveBeenCalledTimes(1);
+    });
+    expect(deleteAccountMock).toHaveBeenCalledWith('hunter2', expect.any(Object));
   });
 });
