@@ -61,6 +61,13 @@ export type RunningScheduler = {
 
 const DEFAULT_TICK_MS = 60_000;
 
+// The next interval-aligned instant strictly after `ts`, on the grid of
+// multiples of `intervalMs` since the epoch. Two replicas booted at
+// different times but within the same interval window converge on this same
+// boundary — the shared anchor cross-instance claiming depends on.
+const nextIntervalBoundary = (ts: number, intervalMs: number): number =>
+  Math.ceil(ts / intervalMs) * intervalMs;
+
 export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): RunningScheduler => {
   const tickIntervalMs = opts.tickIntervalMs ?? DEFAULT_TICK_MS;
   const now = opts.now ?? Date.now;
@@ -68,22 +75,40 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
   let timer: NodeJS.Timeout | undefined;
   let inflight = Promise.resolve();
 
-  // nextRunAt per job. runOnStart=true → fire next tick.
+  // nextRunAt per job — each job's own intended (logical) run instant, not
+  // an observed wall-clock reading. runOnStart=true → fire next tick (0 is
+  // already interval-aligned, so it needs no special-casing below). For a
+  // cross-instance-claimed job (claimRun set) with runOnStart=false, seed to
+  // the shared interval grid rather than `now() + intervalMs` (ADS-1066):
+  // otherwise two replicas' boot-derived due instants can straddle an
+  // arbitrary epoch-aligned boundary and permanently disagree on every
+  // subsequent claim. Jobs with no claimRun keep the plain boot-offset seed
+  // — there's no cross-replica agreement to preserve, and it avoids a
+  // thundering herd of near-immediate first runs on deploy.
   const nextRunAt = new Map<string, number>();
   for (const job of jobs) {
-    nextRunAt.set(job.name, job.runOnStart ? 0 : now() + job.intervalMs);
+    const initial = job.runOnStart
+      ? 0
+      : opts.claimRun
+        ? nextIntervalBoundary(now(), job.intervalMs)
+        : now() + job.intervalMs;
+    nextRunAt.set(job.name, initial);
   }
 
   // Try to claim a job's scheduled slot across instances. Returns true when
   // this replica may run the job — always true when no claimRun is wired
-  // (single-instance / test behaviour).
-  const claimSlot = async (job: ScheduledJob, ts: number): Promise<boolean> => {
+  // (single-instance / test behaviour). `due` is the job's own tracked
+  // nextRunAt — a deterministic function of which logical run this is —
+  // rather than the tick's observed `now()`, which drifts with tick
+  // granularity and jitters the boundary independently per replica.
+  const claimSlot = async (job: ScheduledJob, due: number): Promise<boolean> => {
     if (!opts.claimRun) {
       return true;
     }
-    // Quantise the run to the job's interval so two replicas firing in the
-    // same window compute the same claim key.
-    const scheduledFor = new Date(Math.floor(ts / job.intervalMs) * job.intervalMs);
+    // Defensive floor — `due` is already interval-aligned by construction
+    // (see nextRunAt seeding above and the due-anchored progression below),
+    // so this is normally a no-op.
+    const scheduledFor = new Date(Math.floor(due / job.intervalMs) * job.intervalMs);
     try {
       const won = await opts.claimRun(job.name, scheduledFor);
       if (!won) {
@@ -119,10 +144,13 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
       // than intervalMs, in which case the next tick still finds it due
       // (intentional — caller may want overlapping runs blocked, but the
       // current implementation simply re-runs as soon as the previous
-      // finishes).
-      nextRunAt.set(job.name, ts + job.intervalMs);
+      // finishes). Anchored to `due` (the run we just fired), not the
+      // observed `ts` — keeps the schedule a stable, non-drifting arithmetic
+      // progression instead of walking forward by however late each tick
+      // happened to observe the job as due (ADS-1066).
+      nextRunAt.set(job.name, due + job.intervalMs);
       // Cross-instance lock: only the replica that wins the slot runs it.
-      if (!(await claimSlot(job, ts))) {
+      if (!(await claimSlot(job, due))) {
         continue;
       }
       fired.push(job.name);

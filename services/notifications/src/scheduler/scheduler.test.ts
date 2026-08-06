@@ -192,7 +192,7 @@ describe('scheduler metrics + cross-instance claim', () => {
     }
   });
 
-  it('runs the job when the claim is won, keyed by the interval-quantised slot', async () => {
+  it('runs the job when the claim is won, keyed by the job’s own scheduled instant', async () => {
     const runs: string[] = [];
     const claimCalls: Array<{ job: string; scheduledFor: Date }> = [];
     const claimRun = vi.fn(async (job: string, scheduledFor: Date) => {
@@ -219,12 +219,108 @@ describe('scheduler metrics + cross-instance claim', () => {
       const fired = await scheduler.tick();
       expect(fired).toEqual(['weekly']);
       expect(runs).toEqual(['weekly']);
-      // slot = floor(1_000_000 / 60_000) * 60_000 = 960_000
-      expect(claimCalls).toEqual([{ job: 'weekly', scheduledFor: new Date(960_000) }]);
+      // runOnStart seeds nextRunAt to 0 (already interval-aligned) — the
+      // job's own scheduled instant, not a quantisation of the observed
+      // tick time (1_000_000).
+      expect(claimCalls).toEqual([{ job: 'weekly', scheduledFor: new Date(0) }]);
     } finally {
       await scheduler.stop();
     }
   });
+
+  it('seeds a non-runOnStart, cross-instance-claimed job to the next shared interval boundary (ADS-1066)', async () => {
+    const claimCalls: Date[] = [];
+    const claimRun = vi.fn(async (_job: string, scheduledFor: Date) => {
+      claimCalls.push(scheduledFor);
+      return true;
+    });
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'weekly',
+        intervalMs: 1000,
+        run: async () => undefined,
+      },
+    ];
+    // Boot at 250ms into the [0, 1000) window — the next shared boundary is 1000.
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 100,
+      now: () => 250,
+      claimRun,
+    });
+    try {
+      await scheduler.tick(); // not due yet at ts=250
+      expect(claimRun).not.toHaveBeenCalled();
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
+  it(
+    'keeps independently-booted replicas agreeing on the claim slot across many periods, ' +
+      'even when their boot instants straddle an interval boundary (ADS-1066)',
+    async () => {
+      const intervalMs = 1000;
+      const claimed = new Set<string>();
+      const sharedClaimRun = async (job: string, scheduledFor: Date): Promise<boolean> => {
+        const key = `${job}::${scheduledFor.toISOString()}`;
+        if (claimed.has(key)) {
+          return false;
+        }
+        claimed.add(key);
+        return true;
+      };
+
+      const makeReplica = (bootNow: number) => {
+        let now = bootNow;
+        const runs: number[] = [];
+        const jobs: ScheduledJob[] = [
+          {
+            name: 'weekly-digest',
+            intervalMs,
+            run: async () => {
+              runs.push(now);
+            },
+          },
+        ];
+        const scheduler = startScheduler(jobs, {
+          logger: quietLogger(),
+          tickIntervalMs: 100,
+          now: () => now,
+          claimRun: sharedClaimRun,
+        });
+        return {
+          runs,
+          tickAt: (t: number) => {
+            now = t;
+            return scheduler.tick();
+          },
+          stop: () => scheduler.stop(),
+        };
+      };
+
+      // Boot phases 1ms apart, straddling the interval boundary at ts=1000 —
+      // under the pre-fix wall-clock-quantised claim this alone was enough
+      // to make the two replicas disagree on the slot for every subsequent
+      // period, not just this one.
+      const replicaA = makeReplica(999);
+      const replicaB = makeReplica(1000);
+
+      try {
+        for (let period = 1; period <= 5; period++) {
+          const due = period * intervalMs;
+          await replicaA.tickAt(due);
+          await replicaB.tickAt(due);
+        }
+        // Exactly one replica ran the job each period — never both, never
+        // neither — across 5 consecutive periods.
+        expect(replicaA.runs.length + replicaB.runs.length).toBe(5);
+      } finally {
+        await replicaA.stop();
+        await replicaB.stop();
+      }
+    }
+  );
 
   it('skips the job when the claim query errors — never risks a duplicate', async () => {
     const runs: string[] = [];
