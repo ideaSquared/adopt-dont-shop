@@ -31,6 +31,10 @@ export const sidebar = recipe({
         zIndex: Number(vars.zIndex.modal),
         transform: 'translateX(-100%)',
         boxShadow: vars.shadows.xl,
+        // Closed drawer is off-screen — also remove it from the tab order and
+        // the accessibility tree (a transform alone leaves it focusable).
+        visibility: 'hidden',
+        pointerEvents: 'none',
       },
     },
   },
@@ -42,7 +46,12 @@ export const sidebar = recipe({
     mobileOpen: {
       true: {
         '@media': {
-          [MOBILE]: { transform: 'translateX(0)', width: EXPANDED_WIDTH },
+          [MOBILE]: {
+            transform: 'translateX(0)',
+            width: EXPANDED_WIDTH,
+            visibility: 'visible',
+            pointerEvents: 'auto',
+          },
         },
       },
       false: {},

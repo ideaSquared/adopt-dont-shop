@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useNavigate } from 'react-router';
 import { vi } from 'vitest';
 
 import { NavSidebar, type NavSidebarGroup } from './NavSidebar';
@@ -87,5 +87,28 @@ describe('NavSidebar', () => {
   it('is not a dialog when the drawer is closed', () => {
     renderSidebar({ mobileOpen: false, 'data-testid': 'sb' });
     expect(screen.getByTestId('sb')).not.toHaveAttribute('role', 'dialog');
+  });
+
+  it('auto-closes the drawer after navigating to a new route', () => {
+    const onClose = vi.fn();
+    const Harness = () => {
+      const navigate = useNavigate();
+      return (
+        <>
+          <button type='button' onClick={() => navigate('/pets')}>
+            navigate
+          </button>
+          <NavSidebar groups={groups} mobileOpen onMobileClose={onClose} />
+        </>
+      );
+    };
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Harness />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'navigate' }));
+    expect(onClose).toHaveBeenCalled();
   });
 });
