@@ -8,6 +8,7 @@ import {
   ConfirmDialog,
   toast,
   MetricCard,
+  Badge,
 } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
@@ -27,7 +28,6 @@ import {
   FilterLabel,
   SearchInputWrapper,
   Select,
-  Badge,
 } from '../components/ui';
 import { DataTable, type Column } from '../components/data';
 import {
@@ -134,15 +134,15 @@ const Messages: React.FC = () => {
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'active':
-        return <Badge $variant='success'>Active</Badge>;
+        return <Badge variant='success'>Active</Badge>;
       case 'blocked':
-        return <Badge $variant='danger'>Blocked</Badge>;
+        return <Badge variant='error'>Blocked</Badge>;
       case 'closed':
-        return <Badge $variant='warning'>Closed</Badge>;
+        return <Badge variant='warning'>Closed</Badge>;
       case 'archived':
-        return <Badge $variant='neutral'>Archived</Badge>;
+        return <Badge variant='neutral'>Archived</Badge>;
       default:
-        return <Badge $variant='neutral'>{status || 'active'}</Badge>;
+        return <Badge variant='neutral'>{status || 'active'}</Badge>;
     }
   };
 

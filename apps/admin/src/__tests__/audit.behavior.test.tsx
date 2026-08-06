@@ -82,6 +82,20 @@ describe('Audit page', () => {
     expect(screen.getByText('10.0.0.1')).toBeInTheDocument();
   });
 
+  it('renders a status pill for each log (success and failure)', async () => {
+    mockGetAuditLogs.mockResolvedValue(
+      paginated([
+        makeLog({ id: 1, userName: 'Jane Admin', status: AuditLogStatus.SUCCESS }),
+        makeLog({ id: 2, userName: 'Bob Mod', status: AuditLogStatus.FAILURE }),
+      ])
+    );
+
+    renderWithProviders(<Audit />);
+
+    expect(await screen.findByText('Success')).toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+  });
+
   it('shows an error banner when the query fails', async () => {
     mockGetAuditLogs.mockRejectedValue(new Error('boom'));
 

@@ -1,27 +1,5 @@
 import { globalStyle, style } from '@vanilla-extract/css';
-import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
-
-// Badge
-export const badge = recipe({
-  base: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '0.25rem 0.75rem',
-    borderRadius: '9999px',
-    fontSize: '0.75rem',
-    fontWeight: '600',
-  },
-  variants: {
-    variant: {
-      success: { background: '#d1fae5', color: '#065f46' },
-      warning: { background: '#fef3c7', color: '#92400e' },
-      danger: { background: '#fee2e2', color: '#991b1b' },
-      info: { background: '#dbeafe', color: '#1e40af' },
-      neutral: { background: '#f3f4f6', color: '#374151' },
-    },
-  },
-});
 
 // Filter
 export const filterBar = style({

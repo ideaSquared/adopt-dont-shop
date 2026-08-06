@@ -51,6 +51,21 @@ vi.mock('../components/detail', () => ({
       <button onClick={onClose}>Close</button>
     </div>
   ),
+  EntityDetailLayout: ({
+    list,
+    detail,
+    detailOpen,
+  }: {
+    list: React.ReactNode;
+    detail?: React.ReactNode;
+    detailOpen: boolean;
+    onBack: () => void;
+  }) => (
+    <>
+      {list}
+      {detailOpen ? detail : null}
+    </>
+  ),
 }));
 
 import Pets from './Pets';

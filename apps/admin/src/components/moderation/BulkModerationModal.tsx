@@ -41,9 +41,15 @@ const sanctionActionLabels: Record<BulkSanctionData['actionType'], string> = {
 };
 
 const determineHighestSeverity = (severities: ReportSeverity[]): ReportSeverity => {
-  if (severities.includes('critical')) return 'critical';
-  if (severities.includes('high')) return 'high';
-  if (severities.includes('medium')) return 'medium';
+  if (severities.includes('critical')) {
+    return 'critical';
+  }
+  if (severities.includes('high')) {
+    return 'high';
+  }
+  if (severities.includes('medium')) {
+    return 'medium';
+  }
   return 'low';
 };
 
@@ -75,7 +81,9 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
   }
 
   const handleClose = () => {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
     setReason('');
     setConfirmPhrase('');
     onClose();
@@ -83,8 +91,12 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reason.trim()) return;
-    if (requiresTypedConfirm && confirmPhrase.trim() !== CONFIRM_PHRASE) return;
+    if (!reason.trim()) {
+      return;
+    }
+    if (requiresTypedConfirm && confirmPhrase.trim() !== CONFIRM_PHRASE) {
+      return;
+    }
 
     const data: BulkModerationSubmitData = {
       kind,

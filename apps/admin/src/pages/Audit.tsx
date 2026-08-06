@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Button, Input, Badge } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiUser, FiEdit, FiTrash, FiShield, FiRefreshCw } from 'react-icons/fi';
 import {
   PageContainer,
@@ -11,7 +11,6 @@ import {
   FilterLabel,
   SearchInputWrapper,
   Select,
-  Badge,
 } from '../components/ui';
 import { DataTable, type Column } from '../components/data';
 import { AuditLogsService, AuditLogStatus, type AuditLog } from '@adopt-dont-shop/lib.audit-logs';
@@ -142,9 +141,9 @@ const Audit: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     return status === 'success' ? (
-      <Badge $variant='success'>Success</Badge>
+      <Badge variant='success'>Success</Badge>
     ) : (
-      <Badge $variant='danger'>Failed</Badge>
+      <Badge variant='error'>Failed</Badge>
     );
   };
 

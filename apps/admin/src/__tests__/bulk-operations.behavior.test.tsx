@@ -14,6 +14,7 @@
  * - Non-destructive actions do not require a reason
  */
 
+import type { ReactNode } from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor, within } from '../test-utils';
 import userEvent from '@testing-library/user-event';
@@ -136,6 +137,21 @@ vi.mock('../components/modals', () => ({
 vi.mock('../components/detail', () => ({
   UserDetailPanel: () => null,
   RescueDetailPanel: () => null,
+  EntityDetailLayout: ({
+    list,
+    detail,
+    detailOpen,
+  }: {
+    list: ReactNode;
+    detail?: ReactNode;
+    detailOpen: boolean;
+    onBack: () => void;
+  }) => (
+    <>
+      {list}
+      {detailOpen ? detail : null}
+    </>
+  ),
 }));
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

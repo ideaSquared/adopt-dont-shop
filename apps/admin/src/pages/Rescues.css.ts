@@ -218,12 +218,3 @@ export const rejectButton = style({
   color: '#ef4444',
   borderColor: '#ef4444',
 });
-
-// Split-pane layout is shared across the entity-management pages.
-export {
-  splitLayout,
-  listPane,
-  listPaneNarrow,
-  detailPane,
-  backToList,
-} from '../components/detail/splitPane.css';

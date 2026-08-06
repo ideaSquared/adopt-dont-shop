@@ -8,6 +8,7 @@
  * - Selecting PDF triggers PDF generation with rescue data
  */
 
+import type { ReactNode } from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor } from '../test-utils';
 import userEvent from '@testing-library/user-event';
@@ -29,6 +30,21 @@ vi.mock('@/services/rescueService', () => ({
 
 vi.mock('@/components/detail', () => ({
   RescueDetailPanel: () => null,
+  EntityDetailLayout: ({
+    list,
+    detail,
+    detailOpen,
+  }: {
+    list: ReactNode;
+    detail?: ReactNode;
+    detailOpen: boolean;
+    onBack: () => void;
+  }) => (
+    <>
+      {list}
+      {detailOpen ? detail : null}
+    </>
+  ),
 }));
 
 vi.mock('@/components/modals', () => ({
