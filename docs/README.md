@@ -73,6 +73,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Data standards](./DATA-STANDARDS.md) — naming, identifiers, timestamp / locale conventions
 - [Backbone infra review](./backbone-infra-review.md) — audit of the shared backend substrate (`packages/{db,events,proto,storage,observability,authz}`, `services/gateway`, `service-bootstrap`)
 - [Frontend libs quality review](./frontend-libs-quality-review.md) — audit of the frontend `lib.*` packages
+- [UX review & component consolidation plan (Aug 2026)](./UX-REVIEW-2026-08.md) — cross-app UX review of `app.admin`/`app.client`/`app.rescue` + `lib.components`, with a Linear-ready backlog
 - [Services code quality review](./services-code-quality-review.md) — audit of the microservices (first pass)
 - [Services code quality review — pass 2](./services-code-quality-review-pass-2.md) — follow-up audit of the microservices
 

@@ -23,54 +23,6 @@ export const badge = recipe({
   },
 });
 
-// Stats
-export const statsBar = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '1rem',
-  marginBottom: '1rem',
-});
-
-export const statCard = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '12px',
-  padding: '1.25rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-});
-
-export const statIcon = recipe({
-  base: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '1.5rem',
-  },
-  variants: {},
-});
-
-export const statDetails = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.25rem',
-});
-
-export const statLabel = style({
-  fontSize: '0.875rem',
-  color: '#6b7280',
-});
-
-export const statValue = style({
-  fontSize: '1.5rem',
-  fontWeight: '700',
-  color: '#111827',
-});
-
 // Filter
 export const filterBar = style({
   background: '#ffffff',

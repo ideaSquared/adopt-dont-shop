@@ -47,3 +47,21 @@ describe('DataTable sortable headers', () => {
     expect(screen.getByTestId('th-age')).toHaveAttribute('aria-sort', 'ascending');
   });
 });
+
+describe('DataTable responsive layout', () => {
+  it('exposes each column label on its cells via data-label (for the card layout)', () => {
+    renderWithTheme(<DataTable title='Pets' columns={columns} rows={rows} />);
+
+    const cell = screen.getByText('Bea').closest('td');
+    expect(cell).toHaveAttribute('data-label', 'Name');
+  });
+
+  it('still renders every cell value in cards mode', () => {
+    renderWithTheme(<DataTable title='Pets' columns={columns} rows={rows} responsive='cards' />);
+
+    expect(screen.getByText('Bea')).toBeInTheDocument();
+    expect(screen.getByText('Ada')).toBeInTheDocument();
+    expect(screen.getByText('Cy')).toBeInTheDocument();
+    expect(screen.getByText('Bea').closest('td')).toHaveAttribute('data-label', 'Name');
+  });
+});

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiArchive, FiSearch, FiMenu } from 'react-icons/fi';
-import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
+import { ConfirmDialog, useConfirm, toast } from '@adopt-dont-shop/lib.components';
 import {
   cmsService,
   type Content,
@@ -214,6 +214,7 @@ const ContentManagement: React.FC = () => {
         };
         await cmsService.createContent(input);
       }
+      toast.success(editingContent ? 'Content updated' : 'Content created');
       setShowContentModal(false);
       fetchContent();
     } catch (err) {
@@ -226,18 +227,20 @@ const ContentManagement: React.FC = () => {
   const handlePublish = async (item: Content) => {
     try {
       await cmsService.publishContent(item.contentId);
+      toast.success('Content published');
       fetchContent();
     } catch {
-      // ignore
+      toast.error('Failed to publish content');
     }
   };
 
   const handleUnpublish = async (item: Content) => {
     try {
       await cmsService.unpublishContent(item.contentId);
+      toast.success('Content unpublished');
       fetchContent();
     } catch {
-      // ignore
+      toast.error('Failed to unpublish content');
     }
   };
 
@@ -254,9 +257,10 @@ const ContentManagement: React.FC = () => {
     }
     try {
       await cmsService.archiveContent(item.contentId);
+      toast.success('Content archived');
       fetchContent();
     } catch {
-      // ignore
+      toast.error('Failed to archive content');
     }
   };
 
@@ -273,9 +277,10 @@ const ContentManagement: React.FC = () => {
     }
     try {
       await cmsService.deleteContent(item.contentId);
+      toast.success('Content deleted');
       fetchContent();
     } catch {
-      // ignore
+      toast.error('Failed to delete content');
     }
   };
 
@@ -308,8 +313,11 @@ const ContentManagement: React.FC = () => {
         };
         await cmsService.createMenu(input);
       }
+      toast.success(editingMenu ? 'Menu updated' : 'Menu created');
       setShowMenuModal(false);
       fetchMenus();
+    } catch {
+      toast.error('Failed to save menu');
     } finally {
       setSaving(false);
     }
@@ -328,9 +336,10 @@ const ContentManagement: React.FC = () => {
     }
     try {
       await cmsService.deleteMenu(menu.menuId);
+      toast.success('Menu deleted');
       fetchMenus();
     } catch {
-      // ignore
+      toast.error('Failed to delete menu');
     }
   };
 

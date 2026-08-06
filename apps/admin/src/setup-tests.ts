@@ -157,6 +157,70 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       )
     ),
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),
+  // ADS-1079: shared MetricCard now backs the admin stat tiles (Analytics,
+  // Messages). Mirror the real formatting so tests asserting on grouped values
+  // (e.g. '12,543') and helper/delta text keep working.
+  MetricCard: ({
+    label,
+    value,
+    delta,
+    format,
+    helperText,
+    icon,
+    loading,
+  }: {
+    label: string;
+    value: number | string;
+    delta?: number;
+    format?: 'number' | 'percent' | 'currency' | 'duration';
+    helperText?: string;
+    icon?: React.ReactNode;
+    iconColor?: string;
+    loading?: boolean;
+  }) => {
+    const formatValue = (): string => {
+      if (typeof value !== 'number') {
+        return String(value);
+      }
+      if (format === 'percent') {
+        return `${(value * 100).toFixed(1)}%`;
+      }
+      if (format === 'currency') {
+        return new Intl.NumberFormat('en-GB', {
+          style: 'currency',
+          currency: 'GBP',
+          maximumFractionDigits: 0,
+        }).format(value);
+      }
+      if (format === 'duration') {
+        const totalSec = Math.round(value);
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = totalSec % 60;
+        return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+      }
+      return new Intl.NumberFormat(undefined).format(value);
+    };
+    return React.createElement(
+      'div',
+      { 'data-testid': 'metric-card' },
+      icon
+        ? React.createElement('div', { key: 'icon', 'data-testid': 'metric-card-icon' }, icon)
+        : null,
+      React.createElement('h4', { key: 'label' }, label),
+      loading
+        ? React.createElement('div', { key: 'value', 'data-testid': 'metric-card-skeleton' })
+        : React.createElement('div', { key: 'value' }, formatValue()),
+      !loading && typeof delta === 'number'
+        ? React.createElement(
+            'div',
+            { key: 'delta' },
+            `${delta > 0 ? '+' : ''}${(delta * 100).toFixed(1)}%`
+          )
+        : null,
+      !loading && helperText ? React.createElement('div', { key: 'helper' }, helperText) : null
+    );
+  },
   ConfirmDialog: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   SkipLink: ({

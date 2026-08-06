@@ -1,10 +1,17 @@
-import { globalStyle, style, keyframes } from '@vanilla-extract/css';
+import { style, keyframes } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const headerActions = style({
   display: 'flex',
   gap: '0.75rem',
+});
+
+export const statsGrid = style({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+  gap: '1rem',
+  marginBottom: '1rem',
 });
 
 export const analyticsGrid = style({
@@ -121,32 +128,6 @@ export const legendValue = style({
   color: vars.text.primary,
 });
 
-export const metricChangePositive = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.25rem',
-  fontSize: '0.875rem',
-  color: '#059669',
-  fontWeight: '600',
-});
-
-globalStyle(`${metricChangePositive} svg`, {
-  fontSize: '1rem',
-});
-
-export const metricChangeNegative = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.25rem',
-  fontSize: '0.875rem',
-  color: vars.colors.dangerHover,
-  fontWeight: '600',
-});
-
-globalStyle(`${metricChangeNegative} svg`, {
-  fontSize: '1rem',
-});
-
 export const topItemsList = style({
   display: 'flex',
   flexDirection: 'column',
@@ -241,16 +222,6 @@ export const filterGroupOverride = style({
 
 export const exportIcon = style({
   marginRight: '0.5rem',
-});
-
-export const skeletonStat80 = style({
-  width: '80px',
-  height: '1.5rem',
-});
-
-export const skeletonStat60 = style({
-  width: '60px',
-  height: '1.5rem',
 });
 
 export const skeletonFullHeight = style({

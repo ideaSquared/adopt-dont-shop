@@ -6,6 +6,7 @@ import {
   Heading,
   ReportRenderer,
   Text,
+  toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
 import {
@@ -74,28 +75,43 @@ const ReportViewPage: React.FC = () => {
     if (!confirmed) {
       return;
     }
-    await deleteMutation.mutateAsync(id);
-    navigate('/reports');
+    try {
+      await deleteMutation.mutateAsync(id);
+      toast.success('Report deleted');
+      navigate('/reports');
+    } catch {
+      toast.error('Failed to delete report');
+    }
   };
 
   const handleSchedule = async (): Promise<void> => {
     if (!recipientEmail) {
       return;
     }
-    await scheduleMutation.mutateAsync({
-      cron,
-      recipients: [{ email: recipientEmail }],
-      format: 'pdf',
-      isEnabled: true,
-    });
-    setScheduleOpen(false);
+    try {
+      await scheduleMutation.mutateAsync({
+        cron,
+        recipients: [{ email: recipientEmail }],
+        format: 'pdf',
+        isEnabled: true,
+      });
+      toast.success('Schedule saved');
+      setScheduleOpen(false);
+    } catch {
+      toast.error('Failed to save schedule');
+    }
   };
 
   const handleShare = async (): Promise<void> => {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const result = await tokenShareMutation.mutateAsync({ expiresAt: expires });
-    const url = `${window.location.origin}/reports/shared/${result.token}`;
-    setShareUrl(url);
+    try {
+      const result = await tokenShareMutation.mutateAsync({ expiresAt: expires });
+      const url = `${window.location.origin}/reports/shared/${result.token}`;
+      setShareUrl(url);
+      toast.success('Share link created');
+    } catch {
+      toast.error('Failed to create share link');
+    }
   };
 
   return (

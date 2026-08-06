@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import clsx from 'clsx';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Heading, Text, Button, Skeleton } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Button, Skeleton, toast } from '@adopt-dont-shop/lib.components';
 import type {
   FieldAccessLevel,
   FieldAccessMap,
@@ -176,6 +176,9 @@ const FieldPermissions: React.FC = () => {
       await fetchData();
       if (saveError !== null) {
         setError(saveError);
+        toast.error(saveError);
+      } else {
+        toast.success('Field permissions saved');
       }
       setSaving(false);
     }

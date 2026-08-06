@@ -7,6 +7,7 @@ import {
   Button,
   ConfirmDialog,
   useConfirm,
+  toast,
 } from '@adopt-dont-shop/lib.components';
 import { FiDownload, FiAlertTriangle } from 'react-icons/fi';
 import { apiService } from '../services/libraryServices';
@@ -38,11 +39,13 @@ const PrivacyTools: React.FC = () => {
       a.click();
       URL.revokeObjectURL(url);
       setMessage({ kind: 'success', text: 'Export downloaded.' });
+      toast.success('User data exported');
     } catch (err) {
       setMessage({
         kind: 'error',
         text: err instanceof Error ? err.message : 'Export failed',
       });
+      toast.error('Failed to export user data');
     } finally {
       setBusy(null);
     }
@@ -74,11 +77,13 @@ const PrivacyTools: React.FC = () => {
         kind: 'success',
         text: 'Deletion scheduled. Hard anonymisation runs after the 30-day grace window.',
       });
+      toast.success('Account deletion scheduled');
     } catch (err) {
       setMessage({
         kind: 'error',
         text: err instanceof Error ? err.message : 'Deletion request failed',
       });
+      toast.error('Failed to schedule account deletion');
     } finally {
       setBusy(null);
     }

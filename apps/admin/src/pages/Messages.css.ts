@@ -2,6 +2,13 @@ import { globalStyle, style } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
+export const statsGrid = style({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+  gap: '1rem',
+  marginBottom: '1rem',
+});
+
 export const messagePreview = style({
   display: 'flex',
   flexDirection: 'column',

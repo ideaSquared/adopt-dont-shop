@@ -63,7 +63,9 @@ the repo root with `pnpm <script>`.
 | `pnpm check:docs-index` | `node scripts/check-docs-index.mjs` |
 | `pnpm check:docs-script-refs` | `node scripts/check-docs-script-references.mjs` |
 | `pnpm check:env-example` | `node scripts/check-env-example.mjs` |
+| `pnpm check:forms` | `node scripts/check-form-primitives.mjs` |
 | `pnpm check:lib-tests` | `node scripts/check-lib-tests.mjs` |
+| `pnpm check:no-only` | `node scripts/check-no-test-only.mjs` |
 | `pnpm check:proto-fresh` | `pnpm --filter @adopt-dont-shop/proto check:fresh` |
 | `pnpm check:readmes` | `node scripts/check-readmes.mjs` |
 | `pnpm check:renovate` | `npx --package renovate -- renovate-config-validator renovate.json` |
@@ -106,7 +108,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:readmes && pnpm check:renovate && pnpm test:scripts` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:readmes && pnpm check:no-only && pnpm check:renovate && pnpm test:scripts` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks
@@ -131,7 +133,7 @@ the repo root with `pnpm <script>`.
 | --- | --- |
 | `pnpm bootstrap` | `node scripts/bootstrap.mjs` |
 | `pnpm cache:status` | `node -e "const fs=require('fs');const f='.turbo/config.json';if(!fs.existsSync(f)){console.log('Turbo remote cache: NOT linked. Run: npx turbo login then npx turbo link (see docs/infrastructure/turbo-cache.md).');process.exit(0)}const c=JSON.parse(fs.readFileSync(f,'utf8'));console.log('Turbo remote cache: linked (team '+(c.teamslug\|\|c.teamid\|\|'unknown')+'). Run: turbo run build --summarize for per-run cache hit rates.')"` |
-| `pnpm clean` | `turbo run clean && rm -rf node_modules` |
+| `pnpm clean` | `turbo run clean && rimraf node_modules` |
 | `pnpm commands` | `node scripts/generate-task-index.mjs --help` |
 | `pnpm db:seed` | `node scripts/seed.mjs` |
 | `pnpm db:spam` | `node scripts/spam.mjs` |
@@ -155,6 +157,9 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/config-secrets` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/db` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/e2e` | `format`, `format:check`, `install:browsers`, `lint`, `lint:fix`, `report`, `test`, `test:debug`, `test:headed`, `test:smoke`, `test:ui`, `type-check` |
+| `@adopt-dont-shop/eslint-config-base` | `format`, `format:check`, `lint`, `lint:fix` |
+| `@adopt-dont-shop/eslint-config-node` | `format`, `format:check`, `lint`, `lint:fix` |
+| `@adopt-dont-shop/eslint-config-react` | `format`, `format:check`, `lint`, `lint:fix` |
 | `@adopt-dont-shop/events` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.analytics` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.api` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |

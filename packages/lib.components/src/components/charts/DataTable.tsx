@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import clsx from 'clsx';
 import { ChartFrame, type ChartFrameProps } from './ChartFrame';
 import * as styles from './DataTable.css';
 
@@ -15,6 +16,12 @@ export type DataTableProps = Omit<ChartFrameProps, 'children' | 'isEmpty'> & {
   pageSize?: number;
   /** Optional callback when a row is clicked (used for drill-down). */
   onRowClick?: (row: Record<string, unknown>) => void;
+  /**
+   * Small-screen behaviour. `'scroll'` (default) keeps the table and lets it
+   * scroll horizontally; `'cards'` collapses each row into a stacked
+   * label/value card below the mobile breakpoint.
+   */
+  responsive?: 'scroll' | 'cards';
 };
 
 const compareCells = (a: unknown, b: unknown): number => {
@@ -32,6 +39,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   rows,
   pageSize = 25,
   onRowClick,
+  responsive = 'scroll',
   ...frame
 }) => {
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -66,7 +74,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   return (
     <ChartFrame {...frame} isEmpty={rows.length === 0}>
       <div className={styles.scrollContainer}>
-        <table className={styles.table}>
+        <table className={clsx(styles.table, responsive === 'cards' && styles.cardsTable)}>
           <thead>
             <tr>
               {columns.map(col => {
@@ -104,7 +112,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                 className={onRowClick ? styles.rowClickable : styles.rowDefault}
               >
                 {columns.map(col => (
-                  <td key={col.key} className={styles.td}>
+                  <td key={col.key} className={styles.td} data-label={col.label}>
                     {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '')}
                   </td>
                 ))}

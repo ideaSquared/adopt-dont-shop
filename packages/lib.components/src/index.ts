@@ -43,6 +43,14 @@ export { Card, CardContent, CardFooter, CardHeader } from './components/ui/Card'
 // Data Components
 export { EntityInspector } from './components/data/EntityInspector';
 export type { EntityInspectorProps, EntityInspectorTab } from './components/data/EntityInspector';
+export { QueryBoundary } from './components/data/QueryBoundary';
+export type { QueryBoundaryProps } from './components/data/QueryBoundary';
+export { SearchToolbar } from './components/data/SearchToolbar';
+export type {
+  SearchToolbarProps,
+  SearchToolbarActiveFilter,
+  FilterConfig,
+} from './components/data/SearchToolbar';
 
 // Form Components
 export { CheckboxInput } from './components/form/CheckboxInput';
@@ -60,6 +68,8 @@ export type {
   FormRowProps,
   FormSectionProps,
 } from './components/form/FormField';
+export { DateRangePicker } from './components/form/DateRangePicker';
+export type { DateRangePickerProps, DateRangeValue } from './components/form/DateRangePicker';
 
 // Feedback Components
 export { Alert } from './components/ui/Alert';
@@ -77,6 +87,9 @@ export * from './components/form/FileUpload';
 
 // UI components
 export * from './components/ui/EmptyState';
+export { ErrorState } from './components/ui/ErrorState';
+export type { ErrorStateProps, ErrorStateSize } from './components/ui/ErrorState';
+export * from './components/ui/Stepper';
 export { Toast, ToastContainer } from './components/ui/Toast';
 export type { ToastContainerProps, ToastPosition, ToastProps } from './components/ui/Toast';
 
