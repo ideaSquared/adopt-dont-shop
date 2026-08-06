@@ -4,6 +4,7 @@ import {
   Heading,
   ReportBuilder,
   Text,
+  toast,
   type ReportBuilderConfig,
 } from '@adopt-dont-shop/lib.components';
 import {
@@ -84,20 +85,26 @@ const ReportBuilderPage: React.FC = () => {
   };
 
   const handleSave = async (): Promise<void> => {
-    if (id) {
-      await updateMutation.mutateAsync({
-        name,
-        description: description || null,
-        config: config as unknown as ReportConfig,
-      });
-      navigate(`/reports/${id}`);
-    } else {
-      const created = await saveMutation.mutateAsync({
-        name,
-        description: description || undefined,
-        config: config as unknown as ReportConfig,
-      });
-      navigate(`/reports/${created.saved_report_id}`);
+    try {
+      if (id) {
+        await updateMutation.mutateAsync({
+          name,
+          description: description || null,
+          config: config as unknown as ReportConfig,
+        });
+        toast.success('Report saved');
+        navigate(`/reports/${id}`);
+      } else {
+        const created = await saveMutation.mutateAsync({
+          name,
+          description: description || undefined,
+          config: config as unknown as ReportConfig,
+        });
+        toast.success('Report created');
+        navigate(`/reports/${created.saved_report_id}`);
+      }
+    } catch {
+      toast.error('Failed to save report');
     }
   };
 

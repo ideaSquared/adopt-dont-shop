@@ -13,6 +13,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders, screen, waitFor, within } from '../test-utils';
 import userEvent from '@testing-library/user-event';
+import { toast } from '@adopt-dont-shop/lib.components';
 import FieldPermissions from '../pages/FieldPermissions';
 import type { FieldAccessMap, FieldPermissionRecord } from '@adopt-dont-shop/lib.permissions';
 
@@ -174,6 +175,29 @@ describe('FieldPermissions page', () => {
       await user.selectOptions(getEffectiveSelect('email'), 'read');
 
       expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('handleSave — action feedback', () => {
+    it('surfaces an error toast when the bulk save request fails', async () => {
+      setupGetMocks(usersDefaults, noOverrides);
+      mockPost.mockRejectedValue(new Error('save failed'));
+
+      const user = userEvent.setup();
+      renderWithProviders(<FieldPermissions />);
+
+      await waitFor(() => expect(screen.getByText('email')).toBeInTheDocument());
+
+      await user.selectOptions(getEffectiveSelect('email'), 'write');
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
+      );
+      await user.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Failed to save field permissions');
+      });
     });
   });
 

@@ -200,6 +200,14 @@ const Messages: React.FC = () => {
       await refetch();
     } catch (error) {
       console.error('Failed to update chat status:', error);
+      toast.error('Failed to update conversation status. Please try again.', {
+        action: {
+          label: 'Retry',
+          onClick: () => {
+            void handleUpdateStatus(chatId, status, e);
+          },
+        },
+      });
     }
   };
 

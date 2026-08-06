@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { SanctionBanner, type ActiveSanction } from '@adopt-dont-shop/lib.components';
+import { SanctionBanner, toast, type ActiveSanction } from '@adopt-dont-shop/lib.components';
 import { apiService } from '@/services/libraryServices';
 
 /**
@@ -16,7 +16,13 @@ export const SanctionBannerHost: React.FC = () => {
   }, []);
 
   const acknowledgeSanction = useCallback(async (id: string): Promise<void> => {
-    await apiService.post<void>(`/api/v1/auth/sanctions/${id}/acknowledge`);
+    try {
+      await apiService.post<void>(`/api/v1/auth/sanctions/${id}/acknowledge`);
+      toast.success('Sanction acknowledged');
+    } catch (err) {
+      toast.error('Failed to acknowledge sanction');
+      throw err;
+    }
   }, []);
 
   const props = useMemo(
