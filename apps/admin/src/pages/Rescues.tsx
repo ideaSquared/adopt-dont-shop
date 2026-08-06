@@ -382,7 +382,7 @@ const Rescues: React.FC = () => {
           </>
         }
         detail={
-          detailRescueId && (
+          detailRescueId !== null && (
             <RescueDetailPanel
               rescueId={detailRescueId}
               onClose={handleCloseDetail}
