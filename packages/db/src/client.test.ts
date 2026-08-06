@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createDbClient } from './client.js';
 
 describe('createDbClient', () => {
@@ -140,6 +140,71 @@ describe('createDbClient', () => {
 
       expect(pool.read.options.connectionTimeoutMillis).toBe(10_000);
       expect(pool.read.options.statement_timeout).toBe(30_000);
+
+      void pool.read.end();
+      void pool.end();
+    });
+  });
+
+  describe('idle-client pool errors (ADS-1040)', () => {
+    it('never lets a pool "error" event go unhandled', () => {
+      // pg re-throws an 'error' event with no listener as an unhandled
+      // Node error, crashing the process — this must never happen.
+      const pool = createDbClient({
+        schema: 'test',
+        connectionString: 'postgres://localhost/test',
+      });
+
+      expect(pool.listenerCount('error')).toBeGreaterThan(0);
+
+      void pool.end();
+    });
+
+    it('routes a pool error to the supplied onError callback instead of crashing', () => {
+      const onError = vi.fn();
+      const pool = createDbClient({
+        schema: 'test',
+        connectionString: 'postgres://localhost/test',
+        onError,
+      });
+
+      const err = new Error('connection terminated unexpectedly');
+      pool.emit('error', err);
+
+      expect(onError).toHaveBeenCalledWith(err);
+
+      void pool.end();
+    });
+
+    it('falls back to console.error when no onError is supplied', () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const pool = createDbClient({
+        schema: 'test',
+        connectionString: 'postgres://localhost/test',
+      });
+
+      const err = new Error('connection terminated unexpectedly');
+      pool.emit('error', err);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('test'), err);
+
+      consoleErrorSpy.mockRestore();
+      void pool.end();
+    });
+
+    it('routes the read-replica pool errors through the same onError callback', () => {
+      const onError = vi.fn();
+      const pool = createDbClient({
+        schema: 'pets',
+        connectionString: 'postgres://localhost/primary',
+        readUrl: 'postgres://replica.example.com/pets',
+        onError,
+      });
+
+      const err = new Error('replica connection dropped');
+      pool.read.emit('error', err);
+
+      expect(onError).toHaveBeenCalledWith(err);
 
       void pool.read.end();
       void pool.end();

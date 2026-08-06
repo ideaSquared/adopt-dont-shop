@@ -72,3 +72,5 @@ export type {
 
 export { runServiceShutdown } from './shutdown.js';
 export type { ShutdownDeps } from './shutdown.js';
+
+export { registerFatalErrorHandlers } from './process-handlers.js';

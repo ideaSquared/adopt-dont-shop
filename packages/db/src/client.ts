@@ -20,6 +20,14 @@ export type DbClientOptions = PoolConfig & {
   // every write and every transaction (withTransaction) stays on `pool`
   // (the primary). See docs/adr/0004-postgres-read-replica-routing.md.
   readUrl?: string;
+
+  // Called whenever the pool (or its read replica) emits an idle-client
+  // 'error' — e.g. Postgres failover/restart/idle-connection-reap dropping a
+  // pooled connection, all routine in production. Without a listener pg
+  // re-throws it as an unhandled 'error' event and crashes the process
+  // (ADS-1040); a listener is always attached, so this only controls where
+  // the error is reported. Defaults to console.error.
+  onError?: (err: Error) => void;
 };
 
 // A primary pool with a `read` pool for read-only routing. `read` is always
@@ -43,20 +51,21 @@ const TIMEOUT_DEFAULTS = {
 const SAFE_SCHEMA = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 // Build a single pool with the schema search_path wiring applied on connect.
-function buildPool(schema: string, config: PoolConfig): Pool {
+function buildPool(schema: string, config: PoolConfig, onError: (err: Error) => void): Pool {
   const pool = new Pool({ ...TIMEOUT_DEFAULTS, ...config });
+
+  // Always attach an 'error' listener — pg emits it on the pool whenever an
+  // idle pooled client's connection is dropped (Postgres failover, restart,
+  // idle-connection reap). With no listener, Node re-throws it as an
+  // unhandled error and crashes the process (ADS-1040).
+  pool.on('error', onError);
 
   pool.on('connect', client => {
     // A connection that fails to set its search_path would silently resolve
     // unqualified table refs to `public` (wrong rows / "relation does not
-    // exist") — surface the failure instead of swallowing it: via the pool's
-    // own error channel when a listener is attached, else stderr.
+    // exist") — surface the failure instead of swallowing it.
     client.query(`SET search_path TO "${schema}", public`).catch((err: unknown) => {
-      if (pool.listenerCount('error') > 0) {
-        pool.emit('error', err as Error, client);
-      } else {
-        console.error(`db: failed to set search_path for schema "${schema}":`, err);
-      }
+      pool.emit('error', err as Error, client);
     });
   });
 
@@ -64,12 +73,14 @@ function buildPool(schema: string, config: PoolConfig): Pool {
 }
 
 export function createDbClient(opts: DbClientOptions): DbClient {
-  const { schema, readUrl, ...config } = opts;
+  const { schema, readUrl, onError, ...config } = opts;
   if (!SAFE_SCHEMA.test(schema)) {
     throw new Error(`createDbClient: invalid schema name "${schema}" (must match ${SAFE_SCHEMA})`);
   }
+  const handleError =
+    onError ?? ((err: Error) => console.error(`db: pool error (schema "${schema}"):`, err));
 
-  const primary = buildPool(schema, config);
+  const primary = buildPool(schema, config, handleError);
 
   // No replica configured → `.read` falls back to the primary so read-only
   // call sites work unchanged in single-instance deploys.
@@ -80,6 +91,6 @@ export function createDbClient(opts: DbClientOptions): DbClient {
   // A replica IS configured: open a read-only pool against it. It inherits the
   // same timeout defaults and search_path wiring, but only the connection
   // string differs — credentials/host come from readUrl, never the primary's.
-  const read = buildPool(schema, { ...config, connectionString: readUrl });
+  const read = buildPool(schema, { ...config, connectionString: readUrl }, handleError);
   return Object.assign(primary, { read });
 }

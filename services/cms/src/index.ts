@@ -2,7 +2,7 @@ import { connect, type NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
-import { runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
+import { registerFatalErrorHandlers, runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
@@ -18,7 +18,11 @@ const main = async (): Promise<void> => {
 
   try {
     const config = loadConfig();
-    pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
+    pool = createDbClient({
+      connectionString: config.databaseUrl,
+      schema: config.schema,
+      onError: err => logger.error('idle db pool error', { err }),
+    });
     nats = await connect({ servers: config.natsUrl });
     // Create-or-update the JetStream DOMAIN_EVENTS stream before anything
     // publishes or subscribes. Idempotent across every service's boot.
@@ -59,6 +63,7 @@ const main = async (): Promise<void> => {
 
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
+    registerFatalErrorHandlers({ httpServer, grpc, nats, pool, logger });
   } catch (err) {
     logger.error('service.cms failed to start', { err });
     try {
