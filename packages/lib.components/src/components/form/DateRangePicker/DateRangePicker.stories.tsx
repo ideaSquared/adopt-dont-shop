@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { DateRangePicker } from './DateRangePicker';
+import { createDefaultDateRangePresets } from './presets';
 
 const meta: Meta<typeof DateRangePicker> = {
   title: 'Components/DateRangePicker',
@@ -21,4 +22,12 @@ export const Prefilled: Story = {
 
 export const InvalidRange: Story = {
   args: { value: { from: '2026-08-31', to: '2026-08-01' }, onChange: () => {} },
+};
+
+export const WithPresets: Story = {
+  args: {
+    value: { from: null, to: null },
+    onChange: () => {},
+    presets: createDefaultDateRangePresets(),
+  },
 };

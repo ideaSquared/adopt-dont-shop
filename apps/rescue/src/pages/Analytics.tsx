@@ -4,6 +4,7 @@ import {
   MetricCard,
   toast,
   DateRangePicker,
+  createDefaultDateRangePresets,
   EmptyState,
   type DateRangeValue,
 } from '@adopt-dont-shop/lib.components';
@@ -27,6 +28,11 @@ import ExportButton from '../components/analytics/ExportButton';
 // The shared DateRangePicker works in ISO `yyyy-mm-dd` strings, while the
 // analytics service reasons in `Date`s. Convert at the picker boundary only.
 const toIsoDate = (date: Date): string => date.toISOString().slice(0, 10);
+
+// Quick-select shortcuts restored from the previous local picker: Last 7/30/90
+// days, This month, Last month. `getRange` resolves against the current date on
+// each click.
+const dateRangePresets = createDefaultDateRangePresets();
 
 // Services
 import {
@@ -239,6 +245,7 @@ const Analytics: React.FC = () => {
             <DateRangePicker
               value={{ from: toIsoDate(dateRange.start), to: toIsoDate(dateRange.end) }}
               onChange={handleDateRangeChange}
+              presets={dateRangePresets}
             />
             <ExportButton
               onExportCSV={handleExportCSV}
