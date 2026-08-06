@@ -372,7 +372,7 @@ const Events: React.FC = () => {
 
       <div className={styles.contentArea}>
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className={styles.skeletonStack}>
             {Array.from({ length: 3 }, (_, i) => (
               <SkeletonCard key={i} lines={3} />
             ))}

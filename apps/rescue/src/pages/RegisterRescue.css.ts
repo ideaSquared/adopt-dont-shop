@@ -106,6 +106,13 @@ export const buttonRow = style({
   marginTop: vars.spacing['4'],
 });
 
+export const buttonRowCentered = style({
+  display: 'flex',
+  justifyContent: 'center',
+  gap: vars.spacing['3'],
+  marginTop: vars.spacing['5'],
+});
+
 export const reviewSection = style({
   marginBottom: vars.spacing['3'],
 });

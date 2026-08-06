@@ -9,6 +9,7 @@ import { applicationService } from '../services/applicationService';
 import type { ApplicationListItem } from '../types/applications';
 import { buildBulkUpdatePayload, type BulkStageAction } from '../utils/applicationStageTransitions';
 import type { StageAction } from '../types/applicationStages';
+import * as styles from './Applications.css';
 
 const Applications: React.FC = () => {
   // ADS-644: when deep-linked from a pet card or foster row, scope the
@@ -196,37 +197,11 @@ const Applications: React.FC = () => {
       </div>
 
       {filteredPetName && (
-        <div
-          data-testid="pet-filter-banner"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1rem',
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            borderRadius: '0.5rem',
-            marginBottom: '1rem',
-            fontSize: '0.875rem',
-            color: '#1e40af',
-          }}
-        >
+        <div data-testid="pet-filter-banner" className={styles.petFilterBanner}>
           <span>
             Filtered by: <strong>{filteredPetName}</strong>
           </span>
-          <button
-            type="button"
-            onClick={clearPetFilter}
-            style={{
-              background: 'none',
-              border: '1px solid #93c5fd',
-              borderRadius: '0.25rem',
-              cursor: 'pointer',
-              padding: '0.25rem 0.5rem',
-              fontSize: '0.75rem',
-              color: '#1e40af',
-            }}
-          >
+          <button type="button" onClick={clearPetFilter} className={styles.petFilterClearButton}>
             Clear filter
           </button>
         </div>

@@ -21,22 +21,16 @@ export const filterRow = style({
   margin: '1rem 0',
 });
 
-export const table = style({
+export const skeletonStack = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['3'],
+});
+
+export const petSearchInput = style({
   width: '100%',
-  borderCollapse: 'collapse',
-});
-
-export const tableHeadRow = style({
-  borderBottom: `1px solid ${vars.border.color.default}`,
-  textAlign: 'left',
-});
-
-export const tableCell = style({
-  padding: '0.5rem',
-});
-
-export const tableBodyRow = style({
-  borderBottom: `1px solid ${vars.background.muted}`,
+  marginBottom: vars.spacing['1'],
+  padding: vars.spacing['2'],
 });
 
 export const modalForm = style({

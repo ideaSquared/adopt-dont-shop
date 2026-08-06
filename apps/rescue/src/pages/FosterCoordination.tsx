@@ -5,7 +5,15 @@ import { petService } from '../services/libraryServices';
 import { staffService, type StaffMember } from '../services/staffService';
 import type { Pet } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Modal, useConfirm, ConfirmDialog, SkeletonCard } from '@adopt-dont-shop/lib.components';
+import {
+  Modal,
+  useConfirm,
+  ConfirmDialog,
+  SkeletonCard,
+  DataTable,
+  type DataTableColumn,
+} from '@adopt-dont-shop/lib.components';
+import { formatDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './FosterCoordination.css';
 
 const FosterCoordination: React.FC = () => {
@@ -178,6 +186,47 @@ const FosterCoordination: React.FC = () => {
     return match ? `${match.firstName} ${match.lastName} <${match.email}>` : id;
   };
 
+  const placementColumns: DataTableColumn[] = [
+    { key: 'pet', label: 'Pet' },
+    { key: 'foster', label: 'Foster user' },
+    { key: 'start', label: 'Start' },
+    { key: 'end', label: 'End' },
+    { key: 'status', label: 'Status' },
+    {
+      // ADS-644: cross-links so a placement row points at the pet card and
+      // the active applications for that pet.
+      key: 'links',
+      label: 'Links',
+      render: (_value, row) => (
+        <>
+          <Link to={`/pets?petId=${String(row.petId)}`}>View pet</Link>
+          {' · '}
+          <Link to={`/applications?petId=${String(row.petId)}`}>Applications</Link>
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_value, row) =>
+        row.status === 'active' ? (
+          <button type="button" onClick={() => setEndingId(String(row.placementId))}>
+            End placement
+          </button>
+        ) : null,
+    },
+  ];
+
+  const placementRows = visiblePlacements.map(p => ({
+    pet: petLabel(p.petId),
+    foster: staffLabel(p.fosterUserId),
+    start: formatDate(p.startDate),
+    end: p.endDate ? formatDate(p.endDate) : '—',
+    status: p.status,
+    petId: p.petId,
+    placementId: p.placementId,
+  }));
+
   return (
     <div className={`page-container ${styles.pageContainer}`}>
       <div className={`page-header ${styles.pageHeader}`}>
@@ -207,56 +256,18 @@ const FosterCoordination: React.FC = () => {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className={styles.skeletonStack}>
           {Array.from({ length: 3 }, (_, i) => (
             <SkeletonCard key={i} lines={2} />
           ))}
         </div>
-      ) : visiblePlacements.length === 0 ? (
-        <p>No foster placements found.</p>
       ) : (
-        <table className={styles.table}>
-          <thead>
-            <tr className={styles.tableHeadRow}>
-              <th className={styles.tableCell}>Pet</th>
-              <th className={styles.tableCell}>Foster user</th>
-              <th className={styles.tableCell}>Start</th>
-              <th className={styles.tableCell}>End</th>
-              <th className={styles.tableCell}>Status</th>
-              <th className={styles.tableCell}>Links</th>
-              <th className={styles.tableCell}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visiblePlacements.map(p => (
-              <tr key={p.placementId} className={styles.tableBodyRow}>
-                <td className={styles.tableCell}>{petLabel(p.petId)}</td>
-                <td className={styles.tableCell}>{staffLabel(p.fosterUserId)}</td>
-                <td className={styles.tableCell}>
-                  {new Date(p.startDate).toLocaleDateString('en-GB')}
-                </td>
-                <td className={styles.tableCell}>
-                  {p.endDate ? new Date(p.endDate).toLocaleDateString('en-GB') : '—'}
-                </td>
-                <td className={styles.tableCell}>{p.status}</td>
-                {/* ADS-644: cross-links so a placement row points at the
-                    pet card and the active applications for that pet. */}
-                <td className={styles.tableCell}>
-                  <Link to={`/pets?petId=${p.petId}`}>View pet</Link>
-                  {' · '}
-                  <Link to={`/applications?petId=${p.petId}`}>Applications</Link>
-                </td>
-                <td className={styles.tableCell}>
-                  {p.status === 'active' && (
-                    <button type="button" onClick={() => setEndingId(p.placementId)}>
-                      End placement
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          title="Foster placements"
+          columns={placementColumns}
+          rows={placementRows}
+          emptyMessage="No foster placements found."
+        />
       )}
 
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="New Foster Placement">
@@ -268,7 +279,7 @@ const FosterCoordination: React.FC = () => {
               placeholder="Search pets by name or breed..."
               value={petSearch}
               onChange={e => setPetSearch(e.target.value)}
-              style={{ width: '100%', marginBottom: '0.25rem', padding: '0.375rem' }}
+              className={styles.petSearchInput}
             />
             <select
               value={form.petId}

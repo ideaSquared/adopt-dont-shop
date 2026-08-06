@@ -198,10 +198,7 @@ const RegisterRescue = () => {
               verification email to <strong>{formData.email}</strong>. Please check your inbox and
               click the verification link to activate your account.
             </Text>
-            <div
-              className={styles.buttonRow}
-              style={{ justifyContent: 'center', marginTop: '2rem' }}
-            >
+            <div className={styles.buttonRowCentered}>
               <Button variant="primary" onClick={() => navigate('/login')}>
                 Go to Login
               </Button>

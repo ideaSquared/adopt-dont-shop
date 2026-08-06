@@ -1,4 +1,5 @@
 import React from 'react';
+import { EmptyState, ErrorState } from '@adopt-dont-shop/lib.components';
 import StatusBadge from '../common/StatusBadge';
 import type {
   ApplicationListItem,
@@ -272,16 +273,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
   // flashes an error banner; once the request settles, error renders inside
   // the table area below if it persists. Empty and populated table follow.
   if (!loading && error) {
-    return (
-      <div className={styles.errorContainer}>
-        <div className={styles.errorContent}>
-          <div className={styles.errorText}>
-            <h3 className={styles.errorTitle}>Error loading applications</h3>
-            <p className={styles.errorMessage}>{error}</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <ErrorState title="Error loading applications" message={error} />;
   }
 
   return (
@@ -335,9 +327,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
             <p className={styles.loadingText}>Loading applications...</p>
           </div>
         ) : !loading && applications.length === 0 ? (
-          <div className={styles.emptyContainer}>
-            <p className={styles.emptyText}>No applications found matching your criteria.</p>
-          </div>
+          <EmptyState title="No applications found matching your criteria." />
         ) : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>

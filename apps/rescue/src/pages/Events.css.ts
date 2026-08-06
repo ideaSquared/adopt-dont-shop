@@ -97,6 +97,12 @@ export const contentArea = style({
   gap: '1.5rem',
 });
 
+export const skeletonStack = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['3'],
+});
+
 export const errorState = style({
   textAlign: 'center',
   padding: '2rem',
