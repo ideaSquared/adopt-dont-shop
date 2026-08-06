@@ -75,6 +75,7 @@
     "check:stories": "node scripts/check-storybook-coverage.mjs",
     "check:readmes": "node scripts/check-readmes.mjs",
     "check:no-only": "node scripts/check-no-test-only.mjs",
+    "check:forms": "node scripts/check-form-primitives.mjs",
     "ratchet:coverage": "node scripts/ratchet-coverage.mjs",
     "ratchet:stories-coverage": "node scripts/check-storybook-coverage.mjs --ratchet",
     "generate:dependency-docs": "node scripts/generate-dependency-docs.mjs",

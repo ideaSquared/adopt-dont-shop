@@ -96,6 +96,12 @@ jobs:
       - name: Verify docs reference only real pnpm scripts
         run: node scripts/check-docs-script-references.mjs
 
+      # ADS-1075: ratchet the form-primitives debt — fail if the apps add new
+      # raw <input>/<select>/<textarea> or deprecated TextInput usages beyond
+      # the persisted ceiling. Forms should use FormField + Input (+ Zod).
+      - name: Verify apps do not add raw form controls
+        run: node scripts/check-form-primitives.mjs
+
       # ADS-1028: prettier formatting was enforced only by the lint-staged
       # pre-commit hook, which --no-verify, web-UI and agent commits all bypass
       # — so formatting drift reached main invisibly. Gate every PR on it here
