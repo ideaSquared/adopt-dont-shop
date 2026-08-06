@@ -52,6 +52,18 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  // ADS-B3: shared Badge now backs the admin status pills (Audit, Messages).
+  // Mirror the real component's text output + status role; badge-specific props
+  // (variant/size/etc.) are dropped so they don't leak onto the DOM node.
+  Badge: ({
+    children,
+    'data-testid': testId,
+  }: {
+    children?: React.ReactNode;
+    variant?: string;
+    'data-testid'?: string;
+    [k: string]: unknown;
+  }) => React.createElement('span', { role: 'status', 'data-testid': testId }, children),
   EmptyState: ({
     title,
     description,
@@ -67,6 +79,58 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       React.createElement('h3', null, title),
       description ? React.createElement('p', null, description) : null
     ),
+  // ADS-B4: shared error state. Mirrors the real title/message/retry surface so
+  // pages adopting QueryBoundary render an accessible alert with a retry action.
+  ErrorState: ({
+    title = 'Something went wrong',
+    message,
+    onRetry,
+  }: {
+    title?: string;
+    message?: string;
+    onRetry?: () => void;
+    [k: string]: unknown;
+  }) =>
+    React.createElement(
+      'div',
+      { role: 'alert' },
+      React.createElement('h3', null, title),
+      message ? React.createElement('p', null, message) : null,
+      onRetry
+        ? React.createElement('button', { type: 'button', onClick: onRetry }, 'Try again')
+        : null
+    ),
+  // ADS-B4: shared query boundary. Faithful branch order (loading → error →
+  // empty → children); pages pass explicit fallbacks.
+  QueryBoundary: ({
+    isLoading,
+    isError,
+    isEmpty,
+    children,
+    loadingFallback,
+    errorFallback,
+    emptyFallback,
+  }: {
+    isLoading?: boolean;
+    isError?: boolean;
+    isEmpty?: boolean;
+    children?: React.ReactNode;
+    loadingFallback?: React.ReactNode;
+    errorFallback?: React.ReactNode;
+    emptyFallback?: React.ReactNode;
+    [k: string]: unknown;
+  }) => {
+    if (isLoading) {
+      return loadingFallback ?? null;
+    }
+    if (isError) {
+      return errorFallback ?? null;
+    }
+    if (isEmpty) {
+      return emptyFallback ?? null;
+    }
+    return children;
+  },
   FormSection: ({
     title,
     description,

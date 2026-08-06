@@ -49,6 +49,21 @@ vi.mock('../components/detail', () => ({
       </button>
     </div>
   ),
+  EntityDetailLayout: ({
+    list,
+    detail,
+    detailOpen,
+  }: {
+    list: React.ReactNode;
+    detail?: React.ReactNode;
+    detailOpen: boolean;
+    onBack: () => void;
+  }) => (
+    <>
+      {list}
+      {detailOpen ? detail : null}
+    </>
+  ),
 }));
 
 import Applications from './Applications';

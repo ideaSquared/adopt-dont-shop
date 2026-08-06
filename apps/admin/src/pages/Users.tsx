@@ -9,10 +9,11 @@ import {
   Toast,
   ToastContainer,
   useDebouncedValue,
+  QueryBoundary,
+  ErrorState,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiUserPlus, FiArrowLeft } from 'react-icons/fi';
-import clsx from 'clsx';
+import { FiSearch, FiUserPlus } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import {
   useUsers,
@@ -32,7 +33,7 @@ import {
   CreateSupportTicketModal,
   BulkConfirmationModal,
 } from '../components/modals';
-import { UserDetailPanel } from '../components/detail';
+import { UserDetailPanel, EntityDetailLayout } from '../components/detail';
 import * as styles from './Users.css';
 
 type BulkActionType = 'activate' | 'deactivate' | 'delete';
@@ -341,22 +342,6 @@ const Users: React.FC = () => {
     setLastBulkSubmission(null);
   };
 
-  if (error) {
-    return (
-      <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerLeft}>
-            <Heading level='h1'>User Management</Heading>
-          </div>
-        </div>
-        <div className={styles.errorPanel}>
-          <p className={styles.errorTitle}>Failed to load users</p>
-          <p className={styles.errorMessage}>{(error as Error).message}</p>
-        </div>
-      </div>
-    );
-  }
-
   const users = data?.data || [];
 
   const userExportColumns: ExportColumn<AdminUser>[] = [
@@ -472,102 +457,114 @@ const Users: React.FC = () => {
         </div>
       </div>
 
-      <div className={styles.splitLayout}>
-        {/* List pane: table with filters and bulk actions */}
-        <div className={clsx(styles.listPane, detailOpen && styles.listPaneNarrow)}>
-          <div className={styles.filterBar}>
-            <div className={styles.searchInputWrapper}>
-              <FiSearch />
-              <Input
-                type='text'
-                placeholder='Search by name or email...'
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+      <EntityDetailLayout
+        detailOpen={detailOpen}
+        onBack={handleCloseDetail}
+        list={
+          <>
+            <div className={styles.filterBar}>
+              <div className={styles.searchInputWrapper}>
+                <FiSearch />
+                <Input
+                  type='text'
+                  placeholder='Search by name or email...'
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel} htmlFor='users-type-filter'>
+                  User Type
+                </label>
+                <select
+                  id='users-type-filter'
+                  className={styles.select}
+                  value={userTypeFilter}
+                  onChange={e => setUserTypeFilter(e.target.value)}
+                >
+                  <option value='all'>All Types</option>
+                  <option value='admin'>Admin</option>
+                  <option value='moderator'>Moderator</option>
+                  <option value='rescue_staff'>Rescue Staff</option>
+                  <option value='adopter'>Adopter</option>
+                </select>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel} htmlFor='users-status-filter'>
+                  Status
+                </label>
+                <select
+                  id='users-status-filter'
+                  className={styles.select}
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                >
+                  <option value='all'>All Statuses</option>
+                  <option value='active'>Active</option>
+                  <option value='pending'>Pending</option>
+                  <option value='suspended'>Suspended</option>
+                </select>
+              </div>
+            </div>
+
+            <BulkActionToolbar
+              selectedCount={selectedRows.size}
+              totalCount={users.length}
+              onSelectAll={() => setSelectedRows(new Set(users.map((u: AdminUser) => u.userId)))}
+              onClearSelection={() => setSelectedRows(new Set())}
+              actions={[
+                {
+                  label: 'Activate',
+                  variant: 'primary',
+                  onClick: () => setBulkAction('activate'),
+                },
+                {
+                  label: 'Deactivate',
+                  variant: 'warning',
+                  onClick: () => setBulkAction('deactivate'),
+                },
+                {
+                  label: 'Delete',
+                  variant: 'danger',
+                  onClick: () => setBulkAction('delete'),
+                },
+              ]}
+            />
+
+            <QueryBoundary
+              isLoading={false}
+              isError={Boolean(error)}
+              error={error}
+              onRetry={refetch}
+              errorFallback={
+                <ErrorState
+                  title='Failed to load users'
+                  message={error instanceof Error ? error.message : undefined}
+                  onRetry={refetch}
+                />
+              }
+            >
+              <DataTable
+                columns={columns}
+                data={users}
+                loading={isLoading}
+                emptyMessage='No users found matching your criteria. Try adjusting your search or filters.'
+                onRowClick={handleRowClick}
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                selectable
+                selectedRows={selectedRows}
+                onSelectionChange={setSelectedRows}
+                getRowId={user => user.userId}
               />
-            </div>
-
-            <div className={styles.filterGroup}>
-              <label className={styles.filterLabel} htmlFor='users-type-filter'>
-                User Type
-              </label>
-              <select
-                id='users-type-filter'
-                className={styles.select}
-                value={userTypeFilter}
-                onChange={e => setUserTypeFilter(e.target.value)}
-              >
-                <option value='all'>All Types</option>
-                <option value='admin'>Admin</option>
-                <option value='moderator'>Moderator</option>
-                <option value='rescue_staff'>Rescue Staff</option>
-                <option value='adopter'>Adopter</option>
-              </select>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <label className={styles.filterLabel} htmlFor='users-status-filter'>
-                Status
-              </label>
-              <select
-                id='users-status-filter'
-                className={styles.select}
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-              >
-                <option value='all'>All Statuses</option>
-                <option value='active'>Active</option>
-                <option value='pending'>Pending</option>
-                <option value='suspended'>Suspended</option>
-              </select>
-            </div>
-          </div>
-
-          <BulkActionToolbar
-            selectedCount={selectedRows.size}
-            totalCount={users.length}
-            onSelectAll={() => setSelectedRows(new Set(users.map((u: AdminUser) => u.userId)))}
-            onClearSelection={() => setSelectedRows(new Set())}
-            actions={[
-              {
-                label: 'Activate',
-                variant: 'primary',
-                onClick: () => setBulkAction('activate'),
-              },
-              {
-                label: 'Deactivate',
-                variant: 'warning',
-                onClick: () => setBulkAction('deactivate'),
-              },
-              {
-                label: 'Delete',
-                variant: 'danger',
-                onClick: () => setBulkAction('delete'),
-              },
-            ]}
-          />
-
-          <DataTable
-            columns={columns}
-            data={users}
-            loading={isLoading}
-            emptyMessage='No users found matching your criteria. Try adjusting your search or filters.'
-            onRowClick={handleRowClick}
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            selectable
-            selectedRows={selectedRows}
-            onSelectionChange={setSelectedRows}
-            getRowId={user => user.userId}
-          />
-        </div>
-
-        {/* Detail pane: shown when a user is selected */}
-        {detailOpen && (
-          <div className={styles.detailPane}>
-            <button type='button' className={styles.backToList} onClick={handleCloseDetail}>
-              <FiArrowLeft /> Back to list
-            </button>
+            </QueryBoundary>
+          </>
+        }
+        detail={
+          selectedUser && (
             <UserDetailPanel
               user={selectedUser}
               onClose={handleCloseDetail}
@@ -579,9 +576,9 @@ const Users: React.FC = () => {
               onResetPassword={handleResetPassword}
               onMessage={handleMessageUser}
             />
-          </div>
-        )}
-      </div>
+          )
+        }
+      />
 
       {/* Modals (only add user, support ticket, and bulk operations remain as modals) */}
       <AddUserModal

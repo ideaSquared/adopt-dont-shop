@@ -343,6 +343,23 @@ describe('User Management page', () => {
       renderUsersPage();
       expect(screen.getByText('Failed to connect to server')).toBeInTheDocument();
     });
+
+    it('retries the query when the user clicks Try again', async () => {
+      const user = userEvent.setup();
+      const refetch = vi.fn();
+      mockUseUsers.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('Network error'),
+        refetch,
+      });
+
+      renderUsersPage();
+
+      await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+      expect(refetch).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('displaying users', () => {

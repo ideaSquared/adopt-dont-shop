@@ -15,6 +15,7 @@
  * - Filters apply to narrow the rescue list
  */
 
+import type { ReactNode } from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor } from '../test-utils';
 import userEvent from '@testing-library/user-event';
@@ -57,6 +58,21 @@ vi.mock('@/components/detail', () => ({
       <span>Detail for: {rescueId}</span>
       <button onClick={onClose}>Close</button>
     </div>
+  ),
+  EntityDetailLayout: ({
+    list,
+    detail,
+    detailOpen,
+  }: {
+    list: ReactNode;
+    detail?: ReactNode;
+    detailOpen: boolean;
+    onBack: () => void;
+  }) => (
+    <>
+      {list}
+      {detailOpen ? detail : null}
+    </>
   ),
 }));
 

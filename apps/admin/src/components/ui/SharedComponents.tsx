@@ -1,20 +1,6 @@
 import React from 'react';
 import * as styles from './SharedComponents.css';
 
-// Shared Badge Component
-type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
-
-type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
-  $variant: BadgeVariant;
-};
-
-export const Badge = ({ $variant, className, ...props }: BadgeProps) => (
-  <span
-    className={`${styles.badge({ variant: $variant })}${className ? ` ${className}` : ''}`}
-    {...props}
-  />
-);
-
 // Shared Filter Components
 export const FilterBar = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.filterBar}${className ? ` ${className}` : ''}`} {...props} />

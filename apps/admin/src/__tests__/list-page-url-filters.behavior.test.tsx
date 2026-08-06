@@ -4,6 +4,7 @@
  * this for one-click drill-downs.
  */
 
+import type { ReactNode } from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor, fireEvent } from '../test-utils';
 import Applications from '../pages/Applications';
@@ -86,6 +87,21 @@ vi.mock('../components/detail', () => ({
   UserDetailPanel: () => null,
   ApplicationDetailPanel: () => null,
   PetDetailPanel: () => null,
+  EntityDetailLayout: ({
+    list,
+    detail,
+    detailOpen,
+  }: {
+    list: ReactNode;
+    detail?: ReactNode;
+    detailOpen: boolean;
+    onBack: () => void;
+  }) => (
+    <>
+      {list}
+      {detailOpen ? detail : null}
+    </>
+  ),
 }));
 
 vi.mock('../components/modals/TicketDetailModal', () => ({
