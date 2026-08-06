@@ -288,6 +288,15 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     value,
     onChange,
     options = [],
+    helperText,
+    error,
+    required,
+    disabled,
+    'data-testid': testId,
+    // Absorbed so they don't leak onto the DOM <select> as unknown attributes.
+    fullWidth: _fullWidth,
+    state: _state,
+    placeholder: _placeholder,
     ...props
   }: {
     label?: string;
@@ -295,22 +304,89 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     value?: string;
     onChange?: (v: string) => void;
     options?: Array<{ value: string; label: string }>;
+    helperText?: string;
+    error?: string;
+    required?: boolean;
+    disabled?: boolean;
+    'data-testid'?: string;
+    fullWidth?: boolean;
+    state?: string;
+    placeholder?: string;
   }) => {
-    const inputId = id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const inputId = id ?? testId ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
     return React.createElement(
       'div',
-      null,
-      label && React.createElement('label', { htmlFor: inputId }, label),
+      { 'data-testid': testId },
+      label && React.createElement('label', { htmlFor: inputId }, label, required ? ' *' : null),
       React.createElement(
         'select',
         {
           id: inputId,
           value,
+          disabled,
           onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value),
           ...props,
         },
         options.map(o => React.createElement('option', { key: o.value, value: o.value }, o.label))
-      )
+      ),
+      error
+        ? React.createElement('span', { role: 'alert' }, error)
+        : helperText
+          ? React.createElement('span', null, helperText)
+          : null
+    );
+  },
+  CheckboxInput: ({
+    label,
+    checked,
+    defaultChecked,
+    description,
+    disabled,
+    id,
+    onChange,
+    required,
+    error,
+    helperText,
+    'data-testid': testId,
+    ...props
+  }: {
+    label?: string;
+    checked?: boolean;
+    defaultChecked?: boolean;
+    description?: string;
+    disabled?: boolean;
+    id?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    required?: boolean;
+    error?: string;
+    helperText?: string;
+    'data-testid'?: string;
+    [key: string]: unknown;
+  }) => {
+    const inputId =
+      id ?? (label ? `checkbox-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
+    return React.createElement(
+      'div',
+      null,
+      React.createElement('input', {
+        type: 'checkbox',
+        id: inputId,
+        checked,
+        defaultChecked,
+        disabled,
+        required,
+        'aria-required': required ? true : undefined,
+        'data-testid': testId,
+        onChange,
+        ...props,
+      }),
+      label && React.createElement('label', { htmlFor: inputId }, label),
+      description ? React.createElement('p', null, description) : null,
+      error
+        ? React.createElement('span', { role: 'alert' }, error)
+        : helperText
+          ? React.createElement('span', null, helperText)
+          : null
     );
   },
   // ADS-C3: FormField label + error scaffolding (mirrors the real component).
