@@ -2,6 +2,10 @@ import React from 'react';
 import { describe, beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
+// SelectInput (Radix, portal-based) and CheckboxInput (visually-hidden input
+// behind a role="button" wrapper) are stubbed with plain, label-associated
+// controls so the composer's behaviour can be exercised without portal/pointer
+// plumbing. FormField, Input and TextArea render real accessible DOM.
 vi.mock('@adopt-dont-shop/lib.components', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@adopt-dont-shop/lib.components');
   return {
@@ -31,36 +35,21 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
           options.map(o => React.createElement('option', { key: o.value, value: o.value }, o.label))
         )
       ),
-    TextInput: ({
+    CheckboxInput: ({
       label,
-      value,
+      checked,
       onChange,
     }: {
       label: string;
-      value: string;
+      checked: boolean;
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     }) =>
-      React.createElement(
-        'label',
-        null,
-        label,
-        React.createElement('input', { 'aria-label': label, value, onChange })
-      ),
-    TextArea: ({
-      label,
-      value,
-      onChange,
-    }: {
-      label: string;
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    }) =>
-      React.createElement(
-        'label',
-        null,
-        label,
-        React.createElement('textarea', { 'aria-label': label, value, onChange })
-      ),
+      React.createElement('input', {
+        type: 'checkbox',
+        'aria-label': label,
+        checked,
+        onChange,
+      }),
   };
 });
 
@@ -95,9 +84,41 @@ describe('BroadcastNotifications page', () => {
     mockPreviewBroadcast.mockReset();
   });
 
-  it('disables the preview button until title and body are filled', () => {
+  it('shows inline validation errors and does not preview when title and body are empty', async () => {
     render(<BroadcastNotifications />);
-    expect(screen.getByRole('button', { name: /preview & send/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /preview & send/i }));
+
+    expect(await screen.findByText('Title is required')).toBeInTheDocument();
+    expect(screen.getByText('Body is required')).toBeInTheDocument();
+    expect(mockPreviewBroadcast).not.toHaveBeenCalled();
+  });
+
+  it('requires at least one channel to be selected', async () => {
+    render(<BroadcastNotifications />);
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Hello' } });
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Body text' } });
+    // The default in_app channel is checked — unchecking it leaves no channels.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'In-app' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /preview & send/i }));
+
+    expect(await screen.findByText('Select at least one channel')).toBeInTheDocument();
+    expect(mockPreviewBroadcast).not.toHaveBeenCalled();
+  });
+
+  it('clears a field error once the user edits the field', async () => {
+    render(<BroadcastNotifications />);
+
+    fireEvent.click(screen.getByRole('button', { name: /preview & send/i }));
+    expect(await screen.findByText('Title is required')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Hi' } });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Title is required')).not.toBeInTheDocument();
+    });
   });
 
   it('previews the audience count, then sends with an idempotency key', async () => {

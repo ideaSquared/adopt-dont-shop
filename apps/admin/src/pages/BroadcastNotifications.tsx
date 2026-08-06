@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
+import { z } from 'zod';
 import {
   Button,
+  CheckboxInput,
+  FormField,
   Heading,
+  Input,
   SelectInput,
   Text,
   TextArea,
-  TextInput,
 } from '@adopt-dont-shop/lib.components';
 import {
   Card,
@@ -17,7 +20,6 @@ import {
   PageHeader,
 } from '../components/ui';
 import {
-  BroadcastAudience,
   BroadcastChannel,
   BroadcastResult,
   previewBroadcastAudience,
@@ -39,6 +41,40 @@ const CHANNEL_OPTIONS: { value: BroadcastChannel; label: string }[] = [
   { value: 'sms', label: 'SMS' },
 ];
 
+// B5: schema-first validation. A single Zod source of truth for the composer,
+// mirroring (and narrowing) the service's BroadcastAudience / BroadcastChannel
+// unions so the parsed payload is typed without assertions.
+const BroadcastComposeSchema = z.object({
+  audience: z.enum(['all', 'all-rescues', 'all-adopters', 'all-staff']),
+  title: z
+    .string()
+    .trim()
+    .min(1, 'Title is required')
+    .max(200, 'Title must be 200 characters or less'),
+  body: z
+    .string()
+    .trim()
+    .min(1, 'Body is required')
+    .max(2000, 'Body must be 2000 characters or less'),
+  channels: z
+    .array(z.enum(['in_app', 'email', 'push', 'sms']))
+    .min(1, 'Select at least one channel'),
+});
+
+const collectErrors = (error: z.ZodError): Record<string, string> => {
+  const result: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const key = issue.path.join('.');
+    if (!(key in result)) {
+      result[key] = issue.message;
+    }
+  }
+  return result;
+};
+
+const singleValue = (value: string | string[]): string =>
+  Array.isArray(value) ? (value[0] ?? '') : value;
+
 const generateIdempotencyKey = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -50,30 +86,40 @@ const generateIdempotencyKey = (): string => {
 };
 
 const BroadcastNotifications: React.FC = () => {
-  const [audience, setAudience] = useState<BroadcastAudience>('all');
+  const [audience, setAudience] = useState('all');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [channels, setChannels] = useState<BroadcastChannel[]>(['in_app']);
+  const [channels, setChannels] = useState<string[]>(['in_app']);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const toggleChannel = (channel: BroadcastChannel) => {
+  const clearFieldError = (field: string) => {
+    setErrors(prev => (prev[field] ? { ...prev, [field]: '' } : prev));
+  };
+
+  const toggleChannel = (channel: string) => {
     setChannels(prev =>
       prev.includes(channel) ? prev.filter(c => c !== channel) : [...prev, channel]
     );
+    clearFieldError('channels');
   };
 
-  const canSend = title.trim().length > 0 && body.trim().length > 0 && channels.length > 0;
-
   const handlePreview = async () => {
+    const parsed = BroadcastComposeSchema.safeParse({ audience, title, body, channels });
+    if (!parsed.success) {
+      setErrors(collectErrors(parsed.error));
+      return;
+    }
+    setErrors({});
     setPreviewing(true);
     setError(null);
     try {
-      const count = await previewBroadcastAudience(audience);
+      const count = await previewBroadcastAudience(parsed.data.audience);
       setPreviewCount(count);
       setConfirming(true);
     } catch (err) {
@@ -84,14 +130,19 @@ const BroadcastNotifications: React.FC = () => {
   };
 
   const handleSend = async () => {
+    const parsed = BroadcastComposeSchema.safeParse({ audience, title, body, channels });
+    if (!parsed.success) {
+      setErrors(collectErrors(parsed.error));
+      return;
+    }
     setSending(true);
     setError(null);
     try {
       const broadcast = await sendBroadcast({
-        audience,
-        title,
-        body,
-        channels,
+        audience: parsed.data.audience,
+        title: parsed.data.title,
+        body: parsed.data.body,
+        channels: parsed.data.channels,
         idempotencyKey: generateIdempotencyKey(),
       });
       setResult(broadcast);
@@ -130,50 +181,57 @@ const BroadcastNotifications: React.FC = () => {
             <SelectInput
               label='Audience'
               value={audience}
-              onChange={(value: string | string[]) => setAudience(value as BroadcastAudience)}
+              onChange={value => {
+                setAudience(singleValue(value));
+                clearFieldError('audience');
+              }}
               options={AUDIENCE_OPTIONS}
-            />
-
-            <TextInput
-              label='Title'
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              maxLength={200}
-              required
+              error={errors.audience}
               fullWidth
             />
 
-            <TextArea
-              label='Body'
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              maxLength={2000}
-              rows={6}
-              required
-            />
+            <FormField label='Title' htmlFor='broadcast-title' required error={errors.title}>
+              <Input
+                id='broadcast-title'
+                value={title}
+                onChange={e => {
+                  setTitle(e.target.value);
+                  clearFieldError('title');
+                }}
+                maxLength={200}
+                aria-invalid={!!errors.title}
+              />
+            </FormField>
 
-            <div>
-              <Text>Channels</Text>
+            <FormField label='Body' htmlFor='broadcast-body' required error={errors.body}>
+              <TextArea
+                id='broadcast-body'
+                value={body}
+                onChange={e => {
+                  setBody(e.target.value);
+                  clearFieldError('body');
+                }}
+                maxLength={2000}
+                rows={6}
+                aria-invalid={!!errors.body}
+              />
+            </FormField>
+
+            <FormField label='Channels' error={errors.channels}>
               <div className={styles.channelsRow}>
                 {CHANNEL_OPTIONS.map(option => (
-                  <label key={option.value} className={styles.channelLabel}>
-                    <input
-                      type='checkbox'
-                      checked={channels.includes(option.value)}
-                      onChange={() => toggleChannel(option.value)}
-                    />
-                    {option.label}
-                  </label>
+                  <CheckboxInput
+                    key={option.value}
+                    label={option.label}
+                    checked={channels.includes(option.value)}
+                    onChange={() => toggleChannel(option.value)}
+                  />
                 ))}
               </div>
-            </div>
+            </FormField>
 
             <div className={styles.actions}>
-              <Button
-                variant='primary'
-                onClick={handlePreview}
-                disabled={!canSend || previewing || sending}
-              >
+              <Button variant='primary' onClick={handlePreview} disabled={previewing || sending}>
                 {previewing ? 'Checking audience…' : 'Preview & send'}
               </Button>
             </div>
