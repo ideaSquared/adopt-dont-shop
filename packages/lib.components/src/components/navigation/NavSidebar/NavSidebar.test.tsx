@@ -89,6 +89,18 @@ describe('NavSidebar', () => {
     expect(screen.getByTestId('sb')).not.toHaveAttribute('role', 'dialog');
   });
 
+  it('does not reference a missing heading when collapsed', () => {
+    // Collapsed hides the group headings, so no group may keep an
+    // aria-labelledby pointing at a heading id that is no longer in the DOM.
+    renderSidebar({ collapsible: true, collapsed: true });
+    for (const group of screen.getAllByRole('group')) {
+      const ref = group.getAttribute('aria-labelledby');
+      if (ref !== null) {
+        expect(document.getElementById(ref)).not.toBeNull();
+      }
+    }
+  });
+
   it('auto-closes the drawer after navigating to a new route', () => {
     const onClose = vi.fn();
     const Harness = () => {

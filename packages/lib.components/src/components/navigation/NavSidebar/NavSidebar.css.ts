@@ -28,13 +28,17 @@ export const sidebar = recipe({
         position: 'fixed',
         top: 0,
         left: 0,
-        zIndex: Number(vars.zIndex.modal),
+        zIndex: vars.zIndex.modal,
         transform: 'translateX(-100%)',
         boxShadow: vars.shadows.xl,
         // Closed drawer is off-screen — also remove it from the tab order and
         // the accessibility tree (a transform alone leaves it focusable).
         visibility: 'hidden',
         pointerEvents: 'none',
+      },
+      // Respect users who prefer reduced motion — no width/transform animation.
+      '(prefers-reduced-motion: reduce)': {
+        transition: 'none',
       },
     },
   },
@@ -67,7 +71,7 @@ export const overlay = style({
       display: 'block',
       position: 'fixed',
       inset: 0,
-      zIndex: Number(vars.zIndex.overlay),
+      zIndex: vars.zIndex.overlay,
       backgroundColor: vars.background.overlay,
     },
   },

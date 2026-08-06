@@ -180,7 +180,7 @@ export const NavSidebar = ({
                 key={group.id}
                 className={styles.group}
                 role='group'
-                aria-labelledby={group.label ? headingId : undefined}
+                aria-labelledby={group.label && !collapsed ? headingId : undefined}
               >
                 {group.label && !collapsed ? (
                   <div id={headingId} className={styles.groupLabel}>
