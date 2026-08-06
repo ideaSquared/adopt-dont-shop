@@ -113,4 +113,17 @@ describe('FormField', () => {
     expect(input.getAttribute('aria-describedby')).toBe(description.id);
     expect(input).not.toHaveAttribute('aria-invalid', 'true');
   });
+
+  it('does not augment a fragment child (avoids invalid aria-* on a fragment)', () => {
+    render(
+      <FormField label='Email' error='Email is required'>
+        <>
+          <input aria-label='Email' />
+        </>
+      </FormField>
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Email is required');
+    expect(screen.getByLabelText('Email')).not.toHaveAttribute('aria-describedby');
+  });
 });

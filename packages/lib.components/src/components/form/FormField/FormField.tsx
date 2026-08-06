@@ -74,7 +74,9 @@ export const FormField = ({
   // error first appears). Only a single valid element child is augmented;
   // anything else renders untouched.
   const control =
-    describedById && React.isValidElement<ControlAriaProps>(children)
+    describedById &&
+    React.isValidElement<ControlAriaProps>(children) &&
+    children.type !== React.Fragment
       ? React.cloneElement(children, {
           'aria-describedby': mergeDescribedBy(children.props['aria-describedby'], describedById),
           'aria-invalid': error ? true : children.props['aria-invalid'],
