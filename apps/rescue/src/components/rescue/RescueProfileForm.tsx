@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import {
   Button,
   Card,
-  TextInput,
+  Input,
+  FormField,
   SelectInput,
   TextArea as LibTextArea,
   Alert,
   type SelectOption,
 } from '@adopt-dont-shop/lib.components';
+import { validatePostcode, validatePhoneNumber } from '@adopt-dont-shop/lib.utils';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
 import * as styles from './RescueProfileForm.css';
 
@@ -16,6 +18,9 @@ interface RescueProfileFormProps {
   onSave: (profile: Partial<RescueProfile>) => Promise<void>;
   loading?: boolean;
 }
+
+type ProfileErrorField = 'name' | 'email' | 'phone' | 'website' | 'street' | 'city' | 'postcode';
+type ProfileErrors = Partial<Record<ProfileErrorField, string>>;
 
 // SelectOption arrays for dropdowns
 const rescueTypeOptions: SelectOption[] = [
@@ -36,27 +41,76 @@ const countryOptions: SelectOption[] = [
   { value: 'Other', label: 'Other' },
 ];
 
+const emptyAddress: RescueAddress = {
+  street: '',
+  city: '',
+  county: '',
+  postcode: '',
+  country: 'United Kingdom',
+};
+
+const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+const isValidWebsite = (value: string): boolean => /^https?:\/\/.+\..+/i.test(value.trim());
+
+const validateProfile = (data: Partial<RescueProfile>): ProfileErrors => {
+  const errors: ProfileErrors = {};
+  const address = data.address ?? emptyAddress;
+
+  if (!data.name?.trim()) {
+    errors.name = 'Name is required';
+  }
+
+  if (!data.email?.trim()) {
+    errors.email = 'Email is required';
+  } else if (!isValidEmail(data.email)) {
+    errors.email = 'Enter a valid email address';
+  }
+
+  if (!data.phone?.trim()) {
+    errors.phone = 'Phone number is required';
+  } else if (!validatePhoneNumber(data.phone)) {
+    errors.phone = 'Enter a valid UK phone number';
+  }
+
+  if (data.website?.trim() && !isValidWebsite(data.website)) {
+    errors.website = 'Enter a valid URL (including https://)';
+  }
+
+  if (!address.street?.trim()) {
+    errors.street = 'Street address is required';
+  }
+
+  if (!address.city?.trim()) {
+    errors.city = 'Town/City is required';
+  }
+
+  if (!address.postcode?.trim()) {
+    errors.postcode = 'Postcode is required';
+  } else if (!validatePostcode(address.postcode)) {
+    errors.postcode = 'Enter a valid UK postcode';
+  }
+
+  return errors;
+};
+
+const buildFormData = (rescue: RescueProfile | null): Partial<RescueProfile> => ({
+  name: rescue?.name ?? '',
+  rescue_type: rescue?.rescue_type ?? 'animal_shelter',
+  email: rescue?.email ?? '',
+  phone: rescue?.phone ?? '',
+  website: rescue?.website ?? '',
+  description: rescue?.description ?? '',
+  address: rescue?.address ?? { ...emptyAddress },
+});
+
 const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
   rescue,
   onSave,
   loading = false,
 }) => {
-  const [formData, setFormData] = useState<Partial<RescueProfile>>({
-    name: '',
-    rescue_type: 'animal_shelter',
-    email: '',
-    phone: '',
-    website: '',
-    description: '',
-    address: {
-      street: '',
-      city: '',
-      county: '',
-      postcode: '',
-      country: 'United Kingdom',
-    },
-  });
-
+  const [formData, setFormData] = useState<Partial<RescueProfile>>(() => buildFormData(rescue));
+  const [errors, setErrors] = useState<ProfileErrors>({});
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,54 +118,65 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
 
   useEffect(() => {
     if (rescue) {
-      setFormData({
-        name: rescue.name || '',
-        rescue_type: rescue.rescue_type || 'animal_shelter',
-        email: rescue.email || '',
-        phone: rescue.phone || '',
-        website: rescue.website || '',
-        description: rescue.description || '',
-        address: rescue.address || {
-          street: '',
-          city: '',
-          county: '',
-          postcode: '',
-          country: 'United Kingdom',
-        },
-      });
+      setFormData(buildFormData(rescue));
+      setHasChanges(false);
     }
   }, [rescue]);
 
-  const handleChange = (field: keyof RescueProfile | string, value: unknown) => {
-    setHasChanges(true);
+  const clearFeedback = () => {
     setSuccessMessage(null);
     setErrorMessage(null);
+  };
 
-    if (field.startsWith('')) {
-      const addressField = field.split('.')[1] as keyof RescueAddress;
+  const handleField = (
+    field: 'name' | 'email' | 'phone' | 'website' | 'description',
+    value: string
+  ) => {
+    setHasChanges(true);
+    clearFeedback();
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field !== 'description' && errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleAddressField = (field: keyof RescueAddress, value: string) => {
+    setHasChanges(true);
+    clearFeedback();
+    setFormData(prev => ({
+      ...prev,
+      address: { ...(prev.address ?? emptyAddress), [field]: value },
+    }));
+    if ((field === 'street' || field === 'city' || field === 'postcode') && errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleSelect = (field: 'rescue_type' | 'country', selected: string | string[]) => {
+    const value = Array.isArray(selected) ? (selected[0] ?? '') : selected;
+    setHasChanges(true);
+    clearFeedback();
+    if (field === 'country') {
       setFormData(prev => ({
         ...prev,
-        address: {
-          ...(prev.address || {}),
-          [addressField]: value,
-        } as RescueAddress,
+        address: { ...(prev.address ?? emptyAddress), country: value },
       }));
-    } else {
-      setFormData(
-        prev =>
-          ({
-            ...prev,
-            [field]: value,
-          }) as RescueProfile
-      );
+      return;
     }
+    setFormData(prev => ({ ...prev, rescue_type: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationErrors = validateProfile(formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setErrors({});
     setSaving(true);
-    setSuccessMessage(null);
-    setErrorMessage(null);
+    clearFeedback();
 
     try {
       await onSave(formData);
@@ -129,52 +194,37 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
 
   const handleReset = () => {
     if (rescue) {
-      setFormData({
-        name: rescue.name || '',
-        rescue_type: rescue.rescue_type || 'animal_shelter',
-        email: rescue.email || '',
-        phone: rescue.phone || '',
-        website: rescue.website || '',
-        description: rescue.description || '',
-        address: rescue.address || {
-          street: '',
-          city: '',
-          county: '',
-          postcode: '',
-          country: 'United Kingdom',
-        },
-      });
+      setFormData(buildFormData(rescue));
+      setErrors({});
       setHasChanges(false);
-      setSuccessMessage(null);
-      setErrorMessage(null);
+      clearFeedback();
     }
   };
 
   return (
     <Card className={styles.formContainer}>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
         {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
         <div className={styles.formSection}>
           <h3 className={styles.sectionTitle}>Basic Information</h3>
           <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <TextInput
-                label="Rescue Name *"
-                value={formData.name || ''}
-                onChange={e => handleChange('name', e.target.value)}
-                required
+            <FormField label="Rescue Name" htmlFor="rescue-name" required error={errors.name}>
+              <Input
+                id="rescue-name"
+                value={formData.name ?? ''}
+                onChange={e => handleField('name', e.target.value)}
                 placeholder="Enter rescue organisation name"
-                fullWidth
+                aria-invalid={!!errors.name}
               />
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
               <SelectInput
                 label="Rescue Type *"
                 value={formData.rescue_type || 'animal_shelter'}
-                onChange={value => handleChange('rescue_type', value)}
+                onChange={value => handleSelect('rescue_type', value)}
                 options={rescueTypeOptions}
                 required
                 fullWidth
@@ -183,44 +233,52 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
           </div>
 
           <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <TextInput
-                label="Email Address *"
+            <FormField
+              label="Email Address"
+              htmlFor="rescue-email"
+              required
+              error={errors.email}
+              description="Primary contact email for your rescue"
+            >
+              <Input
+                id="rescue-email"
                 type="email"
-                value={formData.email || ''}
-                onChange={e => handleChange('email', e.target.value)}
-                required
+                value={formData.email ?? ''}
+                onChange={e => handleField('email', e.target.value)}
                 placeholder="contact@rescue.org.uk"
-                helperText="Primary contact email for your rescue"
-                fullWidth
+                aria-invalid={!!errors.email}
               />
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-              <TextInput
-                label="Phone Number *"
+            <FormField
+              label="Phone Number"
+              htmlFor="rescue-phone"
+              required
+              error={errors.phone}
+              description="Main phone number for enquiries"
+            >
+              <Input
+                id="rescue-phone"
                 type="tel"
-                value={formData.phone || ''}
-                onChange={e => handleChange('phone', e.target.value)}
-                required
-                placeholder="(555) 123-4567"
-                helperText="Main phone number for enquiries"
-                fullWidth
+                value={formData.phone ?? ''}
+                onChange={e => handleField('phone', e.target.value)}
+                placeholder="020 7946 0958"
+                aria-invalid={!!errors.phone}
               />
-            </div>
+            </FormField>
           </div>
 
           <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <TextInput
-                label="Website"
+            <FormField label="Website" htmlFor="rescue-website" error={errors.website}>
+              <Input
+                id="rescue-website"
                 type="url"
-                value={formData.website || ''}
-                onChange={e => handleChange('website', e.target.value)}
+                value={formData.website ?? ''}
+                onChange={e => handleField('website', e.target.value)}
                 placeholder="https://www.rescue.org.uk"
-                fullWidth
+                aria-invalid={!!errors.website}
               />
-            </div>
+            </FormField>
           </div>
 
           <div className={styles.formRow}>
@@ -228,7 +286,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
               <LibTextArea
                 label="Description"
                 value={formData.description || ''}
-                onChange={e => handleChange('description', e.target.value)}
+                onChange={e => handleField('description', e.target.value)}
                 placeholder="Tell adopters about your rescue organisation..."
                 rows={4}
                 helperText="This description will be visible to potential adopters"
@@ -241,58 +299,60 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
         <div className={styles.formSection}>
           <h3 className={styles.sectionTitle}>Location</h3>
           <div className={styles.formRow}>
-            <div className={`${styles.formGroup} ${styles.formGroupFullWidth}`}>
-              <TextInput
-                label="Street Address *"
-                value={formData.address?.street || ''}
-                onChange={e => handleChange('street', e.target.value)}
-                required
+            <FormField
+              label="Street Address"
+              htmlFor="rescue-street"
+              required
+              error={errors.street}
+              className={styles.formGroupFullWidth}
+            >
+              <Input
+                id="rescue-street"
+                value={formData.address?.street ?? ''}
+                onChange={e => handleAddressField('street', e.target.value)}
                 placeholder="123 High Street"
-                fullWidth
+                aria-invalid={!!errors.street}
               />
-            </div>
+            </FormField>
           </div>
 
           <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <TextInput
-                label="Town/City *"
-                value={formData.address?.city || ''}
-                onChange={e => handleChange('city', e.target.value)}
-                required
+            <FormField label="Town/City" htmlFor="rescue-city" required error={errors.city}>
+              <Input
+                id="rescue-city"
+                value={formData.address?.city ?? ''}
+                onChange={e => handleAddressField('city', e.target.value)}
                 placeholder="London"
-                fullWidth
+                aria-invalid={!!errors.city}
               />
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-              <TextInput
-                label="County"
-                value={formData.address?.county || ''}
-                onChange={e => handleChange('address.county', e.target.value)}
+            <FormField label="County" htmlFor="rescue-county">
+              <Input
+                id="rescue-county"
+                value={formData.address?.county ?? ''}
+                onChange={e => handleAddressField('county', e.target.value)}
                 placeholder="Greater London"
-                fullWidth
               />
-            </div>
+            </FormField>
           </div>
 
           <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <TextInput
-                label="Postcode *"
-                value={formData.address?.postcode || ''}
-                onChange={e => handleChange('address.postcode', e.target.value.toUpperCase())}
-                required
+            <FormField label="Postcode" htmlFor="rescue-postcode" required error={errors.postcode}>
+              <Input
+                id="rescue-postcode"
+                value={formData.address?.postcode ?? ''}
+                onChange={e => handleAddressField('postcode', e.target.value.toUpperCase())}
                 placeholder="SW1A 1AA"
-                fullWidth
+                aria-invalid={!!errors.postcode}
               />
-            </div>
+            </FormField>
 
             <div className={styles.formGroup}>
               <SelectInput
                 label="Country *"
                 value={formData.address?.country || 'United Kingdom'}
-                onChange={value => handleChange('country', value)}
+                onChange={value => handleSelect('country', value)}
                 options={countryOptions}
                 required
                 fullWidth

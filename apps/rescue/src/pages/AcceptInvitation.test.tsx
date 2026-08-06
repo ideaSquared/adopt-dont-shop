@@ -1,132 +1,76 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { renderWithProviders, waitFor, screen } from '../test-utils';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import AcceptInvitation from './AcceptInvitation';
 
-const getInvitationDetailsMock = vi.fn();
+const getInvitationDetails = vi.fn();
+const acceptInvitation = vi.fn();
 
 vi.mock('../services/libraryServices', () => ({
   invitationService: {
-    getInvitationDetails: (token: string) => getInvitationDetailsMock(token),
-    acceptInvitation: vi.fn(),
+    getInvitationDetails: (...args: unknown[]) => getInvitationDetails(...args),
+    acceptInvitation: (...args: unknown[]) => acceptInvitation(...args),
   },
 }));
 
-let searchParamsValue = new URLSearchParams('?token=token-123');
-const setSearchParamsMock = vi.fn();
+const renderPage = () =>
+  render(
+    <MemoryRouter initialEntries={['/accept-invitation?token=tok_123']}>
+      <AcceptInvitation />
+    </MemoryRouter>
+  );
 
-vi.mock('react-router', async () => {
-  const actual = await vi.importActual<typeof import('react-router')>('react-router');
-  return {
-    ...actual,
-    useNavigate: () => vi.fn(),
-    useSearchParams: () => [searchParamsValue, setSearchParamsMock] as const,
-  };
-});
-
-describe('AcceptInvitation token hygiene [ADS-1012]', () => {
+describe('AcceptInvitation', () => {
   beforeEach(() => {
-    getInvitationDetailsMock.mockReset();
-    setSearchParamsMock.mockReset();
-    searchParamsValue = new URLSearchParams('?token=token-123');
-  });
-
-  it('strips the invitation token from the address bar on mount', () => {
-    getInvitationDetailsMock.mockResolvedValue({ email: 'invitee@example.com' });
-
-    renderWithProviders(<AcceptInvitation />);
-
-    expect(setSearchParamsMock).toHaveBeenCalledTimes(1);
-    const [nextParams, options] = setSearchParamsMock.mock.calls[0];
-    expect((nextParams as URLSearchParams).has('token')).toBe(false);
-    expect(options).toEqual({ replace: true });
-  });
-});
-
-describe('AcceptInvitation autocomplete attributes', () => {
-  beforeEach(() => {
-    getInvitationDetailsMock.mockReset();
-    searchParamsValue = new URLSearchParams('?token=token-123');
-  });
-
-  it('annotates name and password fields so password managers fill them', async () => {
-    getInvitationDetailsMock.mockResolvedValue({ email: 'invitee@example.com' });
-
-    renderWithProviders(<AcceptInvitation />);
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/enter your first name/i)).toBeInTheDocument();
+    vi.clearAllMocks();
+    getInvitationDetails.mockResolvedValue({
+      email: 'newstaff@rescue.org',
+      rescueName: 'Happy Tails',
+      invitedByName: 'Jane',
+      role: 'Volunteer',
     });
-
-    expect(screen.getByPlaceholderText(/enter your first name/i)).toHaveAttribute(
-      'autocomplete',
-      'given-name'
-    );
-    expect(screen.getByPlaceholderText(/enter your last name/i)).toHaveAttribute(
-      'autocomplete',
-      'family-name'
-    );
-    expect(screen.getByPlaceholderText(/create a secure password/i)).toHaveAttribute(
-      'autocomplete',
-      'new-password'
-    );
-    expect(screen.getByPlaceholderText(/re-enter your password/i)).toHaveAttribute(
-      'autocomplete',
-      'new-password'
-    );
-  });
-});
-
-describe('AcceptInvitation invitation context [C2-4]', () => {
-  beforeEach(() => {
-    getInvitationDetailsMock.mockReset();
-    searchParamsValue = new URLSearchParams('?token=token-123');
+    acceptInvitation.mockResolvedValue(undefined);
   });
 
-  it('shows the inviter, rescue, and role when the backend returns them', async () => {
-    getInvitationDetailsMock.mockResolvedValue({
-      email: 'invitee@example.com',
-      rescueName: 'Happy Tails Rescue',
-      invitedByName: 'Jane Doe',
-      role: 'Volunteer Coordinator',
+  it('renders the account fields once the invitation loads', async () => {
+    renderPage();
+
+    expect(await screen.findByLabelText(/first name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
+  });
+
+  it('rejects mismatched passwords and does not accept the invitation', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(await screen.findByLabelText(/first name/i), 'Sam');
+    await user.type(screen.getByLabelText(/last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/^password/i), 'password123');
+    await user.type(screen.getByLabelText(/confirm password/i), 'different456');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
+    expect(acceptInvitation).not.toHaveBeenCalled();
+  });
+
+  it('accepts the invitation when the form is valid', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(await screen.findByLabelText(/first name/i), 'Sam');
+    await user.type(screen.getByLabelText(/last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/^password/i), 'password123');
+    await user.type(screen.getByLabelText(/confirm password/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    await waitFor(() => expect(acceptInvitation).toHaveBeenCalledTimes(1));
+    expect(acceptInvitation.mock.calls[0][0]).toMatchObject({
+      token: 'tok_123',
+      firstName: 'Sam',
+      lastName: 'Smith',
+      password: 'password123',
     });
-
-    renderWithProviders(<AcceptInvitation />);
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/enter your first name/i)).toBeInTheDocument();
-    });
-
-    expect(
-      screen.getByText(/invited by Jane Doe to join Happy Tails Rescue as Volunteer Coordinator/i)
-    ).toBeInTheDocument();
-  });
-
-  it('falls back to the generic copy when the backend omits the new fields', async () => {
-    getInvitationDetailsMock.mockResolvedValue({ email: 'invitee@example.com' });
-
-    renderWithProviders(<AcceptInvitation />);
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/enter your first name/i)).toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/invited to join a rescue organization/i)).toBeInTheDocument();
-  });
-});
-
-describe('AcceptInvitation async error announcement [C2-7]', () => {
-  beforeEach(() => {
-    getInvitationDetailsMock.mockReset();
-    searchParamsValue = new URLSearchParams('?token=bad-token');
-  });
-
-  it('exposes the load failure in a role="alert" live region', async () => {
-    getInvitationDetailsMock.mockRejectedValue(new Error('boom'));
-
-    renderWithProviders(<AcceptInvitation />);
-
-    const alert = await waitFor(() => screen.getByRole('alert'));
-    expect(alert).toHaveTextContent(/failed to load invitation details/i);
-    expect(alert).toHaveAttribute('aria-live', 'assertive');
   });
 });

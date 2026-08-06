@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router';
+import { useSearchParams, useNavigate, useParams } from 'react-router';
 import { useApplications, useApplicationDetails } from '../hooks/useApplications';
 import ApplicationList from '../components/applications/ApplicationList';
 import ApplicationReview from '../components/applications/ApplicationReview';
@@ -15,8 +15,15 @@ const Applications: React.FC = () => {
   // application list to that pet via the existing petId filter.
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  // ADS D4: `/applications/:id` deep-links straight to an application's review
+  // while keeping the in-page master-detail. The route param is the source of
+  // truth for which application is open; selecting a row navigates here so the
+  // URL is always shareable, and a fresh deep-link opens the review even when
+  // the row hasn't been clicked in this session.
+  const { id: routeApplicationId } = useParams<{ id: string }>();
   const initialPetId = searchParams.get('petId');
   const [selectedApplication, setSelectedApplication] = useState<ApplicationListItem | null>(null);
+  const selectedApplicationId = routeApplicationId ?? selectedApplication?.id ?? null;
   // ADS-642: selection is stored as a map of id → application snapshot
   // so it survives pagination/filter changes (the user can select rows
   // on page 1, paginate to page 2, and the BulkActionBar still knows
@@ -69,19 +76,22 @@ const Applications: React.FC = () => {
     addTimelineEvent,
     transitionStage,
     refetch: refetchApplicationDetails,
-  } = useApplicationDetails(selectedApplication?.id || null);
+  } = useApplicationDetails(selectedApplicationId);
 
   const handleApplicationSelect = (application: ApplicationListItem) => {
     setSelectedApplication(application);
+    // Reflect the open application in the URL so staff can share a link to it.
+    navigate(`/applications/${application.id}`);
   };
 
   const handleCloseReview = () => {
     setSelectedApplication(null);
+    navigate('/applications');
   };
 
   const handleDetailStatusUpdate = async (status: string, notes?: string) => {
-    if (selectedApplication) {
-      await updateApplicationStatus(selectedApplication.id, status, notes);
+    if (selectedApplicationId) {
+      await updateApplicationStatus(selectedApplicationId, status, notes);
       // Refresh both the main list and the application details
       refetch();
       refetchApplicationDetails();
@@ -89,7 +99,7 @@ const Applications: React.FC = () => {
   };
 
   const handleStageTransition = async (action: StageAction, notes?: string) => {
-    if (selectedApplication) {
+    if (selectedApplicationId) {
       await transitionStage(action, notes);
       // Refresh both the main list and the application details
       refetch();
@@ -252,7 +262,7 @@ const Applications: React.FC = () => {
       />
 
       {/* Application Review Modal */}
-      {selectedApplication && applicationDetails && (
+      {selectedApplicationId && applicationDetails && (
         <ApplicationReview
           application={applicationDetails}
           references={references}

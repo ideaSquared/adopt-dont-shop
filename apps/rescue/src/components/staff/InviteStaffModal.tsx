@@ -1,4 +1,5 @@
 import { InvitationPayload } from '@adopt-dont-shop/lib.invitations';
+import { FormField, Input } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import * as styles from './InviteStaffModal.css';
 
@@ -102,12 +103,14 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel} htmlFor="email">
-              Email Address <span className={styles.requiredIndicator}>*</span>
-            </label>
-            <input
-              className={styles.formInput({ hasError: !!errors.email })}
+          <FormField
+            label="Email Address"
+            htmlFor="email"
+            required
+            error={errors.email}
+            description="Enter the email address of the person you want to invite"
+          >
+            <Input
               id="email"
               type="email"
               value={formData.email}
@@ -116,19 +119,17 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
               disabled={loading}
               required
               aria-required={true}
+              aria-invalid={!!errors.email}
             />
-            {errors.email && <span className={styles.formError}>{errors.email}</span>}
-            <small className={styles.formHelp}>
-              Enter the email address of the person you want to invite
-            </small>
-          </div>
+          </FormField>
 
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel} htmlFor="title">
-              Title/Role
-            </label>
-            <input
-              className={styles.formInput({ hasError: !!errors.title })}
+          <FormField
+            label="Title/Role"
+            htmlFor="title"
+            error={errors.title}
+            description="Optional: Specify the person's role or title"
+          >
+            <Input
               id="title"
               type="text"
               value={formData.title || ''}
@@ -136,10 +137,9 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
               placeholder="e.g., Volunteer, Coordinator, Manager"
               disabled={loading}
               maxLength={100}
+              aria-invalid={!!errors.title}
             />
-            {errors.title && <span className={styles.formError}>{errors.title}</span>}
-            <small className={styles.formHelp}>Optional: Specify the person's role or title</small>
-          </div>
+          </FormField>
 
           <div className={styles.formInfo}>
             <div className={styles.infoSection}>

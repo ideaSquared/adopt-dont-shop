@@ -89,8 +89,13 @@ function App() {
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/pets" element={<PetManagement />} />
+                      {/* ADS D4: a single route serves both the list and the
+                          deep-linkable detail (/applications/:id). Keeping one
+                          route element means the master-detail page stays
+                          mounted — and keeps its selection/filter state — as the
+                          URL changes between list and detail. */}
                       <Route
-                        path="/applications"
+                        path="/applications/:id?"
                         element={
                           <RouteBoundary name="applications">
                             <Applications />

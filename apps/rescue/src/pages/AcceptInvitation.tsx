@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import clsx from 'clsx';
+import { FormField, Input } from '@adopt-dont-shop/lib.components';
 import { invitationService } from '../services/libraryServices';
 import * as styles from './AcceptInvitation.css';
 
@@ -261,103 +262,91 @@ const AcceptInvitation: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="firstName">
-                First Name <span className={styles.requiredIndicator}>*</span>
-              </label>
-              <input
+          <form onSubmit={handleSubmit} noValidate>
+            <FormField label="First Name" htmlFor="firstName" required error={errors.firstName}>
+              <Input
                 id="firstName"
                 type="text"
-                className={clsx(styles.formInput, errors.firstName && styles.formInputError)}
                 value={formData.firstName}
                 onChange={e => handleInputChange('firstName', e.target.value)}
                 placeholder="Enter your first name"
                 disabled={submitting}
                 required
                 aria-required={true}
+                aria-invalid={!!errors.firstName}
                 autoFocus
                 autoComplete="given-name"
               />
-              {errors.firstName && <span className={styles.formError}>{errors.firstName}</span>}
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="lastName">
-                Last Name <span className={styles.requiredIndicator}>*</span>
-              </label>
-              <input
+            <FormField label="Last Name" htmlFor="lastName" required error={errors.lastName}>
+              <Input
                 id="lastName"
                 type="text"
-                className={clsx(styles.formInput, errors.lastName && styles.formInputError)}
                 value={formData.lastName}
                 onChange={e => handleInputChange('lastName', e.target.value)}
                 placeholder="Enter your last name"
                 disabled={submitting}
                 required
                 aria-required={true}
+                aria-invalid={!!errors.lastName}
                 autoComplete="family-name"
               />
-              {errors.lastName && <span className={styles.formError}>{errors.lastName}</span>}
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="password">
-                Password <span className={styles.requiredIndicator}>*</span>
-              </label>
-              <input
+            <FormField
+              label="Password"
+              htmlFor="password"
+              required
+              error={errors.password}
+              description="Must be at least 8 characters"
+            >
+              <Input
                 id="password"
                 type="password"
-                className={clsx(styles.formInput, errors.password && styles.formInputError)}
                 value={formData.password}
                 onChange={e => handleInputChange('password', e.target.value)}
                 placeholder="Create a secure password"
                 disabled={submitting}
                 required
                 aria-required={true}
+                aria-invalid={!!errors.password}
                 autoComplete="new-password"
               />
-              {errors.password && <span className={styles.formError}>{errors.password}</span>}
-              <small className={styles.passwordHint}>Must be at least 8 characters</small>
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="confirmPassword">
-                Confirm Password <span className={styles.requiredIndicator}>*</span>
-              </label>
-              <input
+            <FormField
+              label="Confirm Password"
+              htmlFor="confirmPassword"
+              required
+              error={errors.confirmPassword}
+            >
+              <Input
                 id="confirmPassword"
                 type="password"
-                className={clsx(styles.formInput, errors.confirmPassword && styles.formInputError)}
                 value={formData.confirmPassword}
                 onChange={e => handleInputChange('confirmPassword', e.target.value)}
                 placeholder="Re-enter your password"
                 disabled={submitting}
                 required
                 aria-required={true}
+                aria-invalid={!!errors.confirmPassword}
                 autoComplete="new-password"
               />
-              {errors.confirmPassword && (
-                <span className={styles.formError}>{errors.confirmPassword}</span>
-              )}
-            </div>
+            </FormField>
 
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="title">
-                Title/Role (Optional)
-              </label>
-              <input
+            <FormField label="Title/Role (Optional)" htmlFor="title" error={errors.title}>
+              <Input
                 id="title"
                 type="text"
-                className={clsx(styles.formInput, errors.title && styles.formInputError)}
                 value={formData.title || ''}
                 onChange={e => handleInputChange('title', e.target.value)}
                 placeholder="e.g., Volunteer, Coordinator"
                 disabled={submitting}
                 maxLength={100}
+                aria-invalid={!!errors.title}
               />
-              {errors.title && <span className={styles.formError}>{errors.title}</span>}
-            </div>
+            </FormField>
 
             <button className={styles.submitButton} type="submit" disabled={submitting}>
               {submitting ? (

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Button,
   Card,
-  TextInput,
+  Input,
+  FormField,
   TextArea as LibTextArea,
   Alert,
   CheckboxInput,
@@ -11,6 +12,18 @@ import {
 } from '@adopt-dont-shop/lib.components';
 import type { AdoptionPolicy } from '../../types/rescue';
 import * as styles from './AdoptionPolicyForm.css';
+
+type PolicyErrors = {
+  feeRange?: string;
+};
+
+const validatePolicy = (data: AdoptionPolicy): PolicyErrors => {
+  const errors: PolicyErrors = {};
+  if (data.adoptionFeeRange.max < data.adoptionFeeRange.min) {
+    errors.feeRange = 'Maximum fee must be greater than or equal to the minimum fee';
+  }
+  return errors;
+};
 
 interface AdoptionPolicyFormProps {
   policy: AdoptionPolicy | null;
@@ -37,6 +50,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
   loading = false,
 }) => {
   const [formData, setFormData] = useState<AdoptionPolicy>(DEFAULT_POLICY);
+  const [errors, setErrors] = useState<PolicyErrors>({});
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -62,6 +76,9 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
   const handleFeeChange = (type: 'min' | 'max', value: string) => {
     setHasChanges(true);
+    if (errors.feeRange) {
+      setErrors({});
+    }
     const numValue = parseFloat(value) || 0;
     setFormData(prev => ({
       ...prev,
@@ -102,6 +119,14 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validationErrors = validatePolicy(formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors({});
+
     setSaving(true);
     setSuccessMessage(null);
     setErrorMessage(null);
@@ -140,7 +165,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
   return (
     <Card className={styles.formContainer}>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
         {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
@@ -166,17 +191,18 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           {formData.requireReferences && (
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
-                <TextInput
-                  label="Minimum Number of References"
-                  type="number"
-                  min={0}
-                  max={10}
-                  value={formData.minimumReferenceCount.toString()}
-                  onChange={e =>
-                    handleChange('minimumReferenceCount', parseInt(e.target.value) || 0)
-                  }
-                  fullWidth
-                />
+                <FormField label="Minimum Number of References" htmlFor="policy-min-references">
+                  <Input
+                    id="policy-min-references"
+                    type="number"
+                    min={0}
+                    max={10}
+                    value={formData.minimumReferenceCount.toString()}
+                    onChange={e =>
+                      handleChange('minimumReferenceCount', parseInt(e.target.value) || 0)
+                    }
+                  />
+                </FormField>
               </div>
 
               <div className={styles.formGroup}>
@@ -194,25 +220,32 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
         <FormSection title="Adoption Fees">
           <FormRow columns="two">
-            <TextInput
-              label="Minimum Fee (£)"
-              type="number"
-              min={0}
-              step={0.01}
-              value={formData.adoptionFeeRange.min.toString()}
-              onChange={e => handleFeeChange('min', e.target.value)}
-              fullWidth
-            />
-            <TextInput
+            <FormField label="Minimum Fee (£)" htmlFor="policy-fee-min">
+              <Input
+                id="policy-fee-min"
+                type="number"
+                min={0}
+                step={0.01}
+                value={formData.adoptionFeeRange.min.toString()}
+                onChange={e => handleFeeChange('min', e.target.value)}
+              />
+            </FormField>
+            <FormField
               label="Maximum Fee (£)"
-              type="number"
-              min={0}
-              step={0.01}
-              value={formData.adoptionFeeRange.max.toString()}
-              onChange={e => handleFeeChange('max', e.target.value)}
-              helperText="Set the range for your adoption fees"
-              fullWidth
-            />
+              htmlFor="policy-fee-max"
+              error={errors.feeRange}
+              description="Set the range for your adoption fees"
+            >
+              <Input
+                id="policy-fee-max"
+                type="number"
+                min={0}
+                step={0.01}
+                value={formData.adoptionFeeRange.max.toString()}
+                onChange={e => handleFeeChange('max', e.target.value)}
+                aria-invalid={!!errors.feeRange}
+              />
+            </FormField>
           </FormRow>
         </FormSection>
 
@@ -221,9 +254,9 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           <div className={styles.listInput}>
             {formData.requirements.map((req, index) => (
               <div key={requirementIds.current[index]} className={styles.listItem}>
-                <input
+                <Input
                   className={styles.listItemInput}
-                  type="text"
+                  aria-label={`Requirement ${index + 1}`}
                   value={req}
                   onChange={e => updateListItem('requirements', index, e.target.value)}
                   placeholder="e.g., Must be 21 years or older"
@@ -252,9 +285,9 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           <div className={styles.listInput}>
             {formData.policies.map((p, index) => (
               <div key={policyIds.current[index]} className={styles.listItem}>
-                <input
+                <Input
                   className={styles.listItemInput}
-                  type="text"
+                  aria-label={`Policy ${index + 1}`}
                   value={p}
                   onChange={e => updateListItem('policies', index, e.target.value)}
                   placeholder="e.g., All pets must be spayed/neutered"

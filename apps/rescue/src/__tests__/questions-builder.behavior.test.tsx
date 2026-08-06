@@ -49,6 +49,8 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
       React.createElement('button', props, children as React.ReactNode),
     Alert: ({ children, ...props }: Record<string, unknown>) =>
       React.createElement('div', { role: 'alert', ...props }, children as React.ReactNode),
+    Input: ({ children: _children, ...props }: Record<string, unknown>) =>
+      React.createElement('input', props),
     useConfirm: () => ({
       isOpen: false,
       confirm: confirmFn,

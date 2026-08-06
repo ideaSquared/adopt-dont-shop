@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FormField, Input } from '@adopt-dont-shop/lib.components';
 import { NewStaffMember, StaffMember } from '../../types/staff';
 import * as styles from './StaffForm.css';
 
@@ -83,12 +84,14 @@ const StaffForm: React.FC<StaffFormProps> = ({
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel} htmlFor="userId">
-              User ID <span className={styles.requiredIndicator}>*</span>
-            </label>
-            <input
-              className={styles.formInput({ hasError: !!errors.userId })}
+          <FormField
+            label="User ID"
+            htmlFor="userId"
+            required
+            error={errors.userId}
+            description="This should be the user ID of an existing user in the system"
+          >
+            <Input
               id="userId"
               type="text"
               value={formData.userId}
@@ -97,19 +100,12 @@ const StaffForm: React.FC<StaffFormProps> = ({
               disabled={isEditing || loading}
               required
               aria-required={true}
+              aria-invalid={!!errors.userId}
             />
-            {errors.userId && <span className={styles.formError}>{errors.userId}</span>}
-            <small className={styles.formHelp}>
-              This should be the user ID of an existing user in the system
-            </small>
-          </div>
+          </FormField>
 
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel} htmlFor="title">
-              Title
-            </label>
-            <input
-              className={styles.formInput({ hasError: !!errors.title })}
+          <FormField label="Title" htmlFor="title" error={errors.title}>
+            <Input
               id="title"
               type="text"
               value={formData.title || ''}
@@ -117,9 +113,9 @@ const StaffForm: React.FC<StaffFormProps> = ({
               placeholder="e.g., Volunteer, Coordinator, Manager"
               disabled={loading}
               maxLength={100}
+              aria-invalid={!!errors.title}
             />
-            {errors.title && <span className={styles.formError}>{errors.title}</span>}
-          </div>
+          </FormField>
 
           <div className={styles.formActions}>
             <button
