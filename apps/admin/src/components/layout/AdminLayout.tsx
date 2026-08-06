@@ -13,7 +13,7 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Off-canvas drawer state for narrow viewports. On desktop the sidebar is
-  // always visible and this has no effect (see AdminSidebar.css media query).
+  // always visible and this has no effect (NavSidebar owns the media queries).
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggleSidebar = () => {

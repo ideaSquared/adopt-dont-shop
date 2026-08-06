@@ -81,6 +81,12 @@ export { Breadcrumbs } from './components/navigation/Breadcrumbs';
 export { Footer } from './components/navigation/Footer';
 export { Header } from './components/navigation/Header';
 export { Navbar } from './components/navigation/Navbar';
+export { NavSidebar } from './components/navigation/NavSidebar';
+export type {
+  NavSidebarProps,
+  NavSidebarGroup,
+  NavSidebarItem,
+} from './components/navigation/NavSidebar';
 
 // Form components
 export * from './components/form/FileUpload';
