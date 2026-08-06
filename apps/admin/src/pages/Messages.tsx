@@ -7,6 +7,7 @@ import {
   useConfirm,
   ConfirmDialog,
   toast,
+  MetricCard,
 } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
@@ -27,12 +28,6 @@ import {
   SearchInputWrapper,
   Select,
   Badge,
-  StatsBar,
-  StatCard,
-  StatIcon,
-  StatDetails,
-  StatLabel,
-  StatValue,
 } from '../components/ui';
 import { DataTable, type Column } from '../components/data';
 import {
@@ -324,47 +319,36 @@ const Messages: React.FC = () => {
         </HeaderLeft>
       </PageHeader>
 
-      <StatsBar>
-        <StatCard>
-          <StatIcon $color='#3b82f6'>
-            <FiMessageSquare />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Total Chats</StatLabel>
-            <StatValue>{stats.total}</StatValue>
-          </StatDetails>
-        </StatCard>
-
-        <StatCard>
-          <StatIcon $color='#10b981'>
-            <FiCheckCircle />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Active Chats</StatLabel>
-            <StatValue>{stats.active}</StatValue>
-          </StatDetails>
-        </StatCard>
-
-        <StatCard>
-          <StatIcon $color='#8b5cf6'>
-            <FiMessageSquare />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Total Messages</StatLabel>
-            <StatValue>{stats.messages}</StatValue>
-          </StatDetails>
-        </StatCard>
-
-        <StatCard>
-          <StatIcon $color='#f59e0b'>
-            <FiAlertCircle />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Avg Messages/Chat</StatLabel>
-            <StatValue>{stats.avgMessages}</StatValue>
-          </StatDetails>
-        </StatCard>
-      </StatsBar>
+      <div className={styles.statsGrid}>
+        <MetricCard
+          icon={<FiMessageSquare />}
+          iconColor='#3b82f6'
+          label='Total Chats'
+          value={stats.total}
+          loading={loading}
+        />
+        <MetricCard
+          icon={<FiCheckCircle />}
+          iconColor='#10b981'
+          label='Active Chats'
+          value={stats.active}
+          loading={loading}
+        />
+        <MetricCard
+          icon={<FiMessageSquare />}
+          iconColor='#8b5cf6'
+          label='Total Messages'
+          value={stats.messages}
+          loading={loading}
+        />
+        <MetricCard
+          icon={<FiAlertCircle />}
+          iconColor='#f59e0b'
+          label='Avg Messages/Chat'
+          value={stats.avgMessages}
+          loading={loading}
+        />
+      </div>
 
       <FilterBar>
         <SearchInputWrapper>

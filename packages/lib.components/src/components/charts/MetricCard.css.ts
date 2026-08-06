@@ -12,6 +12,19 @@ export const card = style({
   boxSizing: 'border-box',
 });
 
+export const icon = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '40px',
+  height: '40px',
+  borderRadius: '8px',
+  fontSize: '20px',
+  marginBottom: '8px',
+  color: 'var(--color-text-muted, #6b7280)',
+  background: 'var(--color-surface-muted, #f3f4f6)',
+});
+
 export const label = style({
   fontSize: '12px',
   textTransform: 'uppercase',

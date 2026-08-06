@@ -7,14 +7,11 @@
  * - DataTable shows empty state when data is empty
  * - FieldPermissions shows skeleton while permissions are being fetched
  * - FieldPermissions shows actual field data after load completes
- * - MetricCard shows skeleton while loading
- * - MetricCard shows actual values after data loads
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor } from '../test-utils';
 import { DataTable, type Column } from '../components/data/DataTable';
-import { MetricCard } from '../components/ui/MetricCard';
 import FieldPermissions from '../pages/FieldPermissions';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
@@ -113,49 +110,6 @@ describe('DataTable loading states', () => {
       renderWithProviders(<DataTable columns={simpleColumns} data={[]} loading={true} />);
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Status')).toBeInTheDocument();
-    });
-  });
-});
-
-// ── MetricCard loading states ─────────────────────────────────────────────────
-
-describe('MetricCard loading states', () => {
-  describe('while loading', () => {
-    it('does not show the metric value while loading', () => {
-      renderWithProviders(
-        <MetricCard icon='👥' label='Total Users' value='12,543' loading={true} />
-      );
-      expect(screen.queryByText('12,543')).not.toBeInTheDocument();
-    });
-
-    it('still shows the label while loading', () => {
-      renderWithProviders(
-        <MetricCard icon='👥' label='Total Users' value='12,543' loading={true} />
-      );
-      expect(screen.getByText('Total Users')).toBeInTheDocument();
-    });
-  });
-
-  describe('after data loads', () => {
-    it('shows the metric value once loading is complete', () => {
-      renderWithProviders(
-        <MetricCard icon='👥' label='Total Users' value='12,543' loading={false} />
-      );
-      expect(screen.getByText('12,543')).toBeInTheDocument();
-    });
-
-    it('shows the change indicator when provided', () => {
-      renderWithProviders(
-        <MetricCard
-          icon='👥'
-          label='Total Users'
-          value='12,543'
-          change='+5% this month'
-          changePositive={true}
-          loading={false}
-        />
-      );
-      expect(screen.getByText(/5% this month/)).toBeInTheDocument();
     });
   });
 });

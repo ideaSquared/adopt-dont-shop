@@ -1,15 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import clsx from 'clsx';
-import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
-import {
-  FiTrendingUp,
-  FiTrendingDown,
-  FiDownload,
-  FiUsers,
-  FiHeart,
-  FiMessageSquare,
-  FiCheckCircle,
-} from 'react-icons/fi';
+import { Heading, Text, Button, MetricCard } from '@adopt-dont-shop/lib.components';
+import { FiDownload, FiUsers, FiHeart, FiMessageSquare, FiCheckCircle } from 'react-icons/fi';
 import {
   PageContainer,
   PageHeader,
@@ -18,12 +10,6 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-  StatsBar,
-  StatCard,
-  StatIcon,
-  StatDetails,
-  StatLabel,
-  StatValue,
   FilterBar,
   FilterGroup,
   Select,
@@ -145,87 +131,46 @@ const Analytics: React.FC = () => {
         </div>
       )}
 
-      <StatsBar>
-        <StatCard>
-          <StatIcon $color='#667eea'>
-            <FiUsers />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Total Users</StatLabel>
-            {isLoading ? (
-              <div className={clsx(styles.skeletonBlock, styles.skeletonStat80)} />
-            ) : (
-              <StatValue>{totalAdopters.toLocaleString()}</StatValue>
-            )}
-            <div className={styles.metricChangePositive}>
-              <FiTrendingUp />
-              {metricsData
-                ? `${metricsData.users.newThisMonth.toLocaleString()} new this month`
-                : '—'}
-            </div>
-          </StatDetails>
-        </StatCard>
-
-        <StatCard>
-          <StatIcon $color='#10b981'>
-            <FiHeart />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Active Rescues</StatLabel>
-            {isLoading ? (
-              <div className={clsx(styles.skeletonBlock, styles.skeletonStat60)} />
-            ) : (
-              <StatValue>{activeRescues.toLocaleString()}</StatValue>
-            )}
-            <div className={styles.metricChangePositive}>
-              <FiTrendingUp />
-              {metricsData ? `${metricsData.rescues.total} total` : '—'}
-            </div>
-          </StatDetails>
-        </StatCard>
-
-        <StatCard>
-          <StatIcon $color='#f59e0b'>
-            <FiCheckCircle />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Weekly Adoptions</StatLabel>
-            {isLoading ? (
-              <div className={clsx(styles.skeletonBlock, styles.skeletonStat60)} />
-            ) : (
-              <StatValue>{weeklyAdoptions.toLocaleString()}</StatValue>
-            )}
-            <div
-              className={
-                weeklyAdoptions > 0 ? styles.metricChangePositive : styles.metricChangeNegative
-              }
-            >
-              {weeklyAdoptions > 0 ? <FiTrendingUp /> : <FiTrendingDown />}
-              {analyticsData
-                ? `${(analyticsData.adoptions.adoptionRate ?? 0).toFixed(1)}% adoption rate`
-                : '—'}
-            </div>
-          </StatDetails>
-        </StatCard>
-
-        <StatCard>
-          <StatIcon $color='#ec4899'>
-            <FiMessageSquare />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Active Listings</StatLabel>
-            {isLoading ? (
-              <div className={clsx(styles.skeletonBlock, styles.skeletonStat80)} />
-            ) : (
-              <StatValue>{totalListings.toLocaleString()}</StatValue>
-            )}
-            <div className={styles.metricChangePositive}>
-              <FiTrendingUp />
-              {metricsData ? `${metricsData.pets.total} total pets` : '—'}
-            </div>
-          </StatDetails>
-        </StatCard>
-      </StatsBar>
+      <div className={styles.statsGrid}>
+        <MetricCard
+          icon={<FiUsers />}
+          iconColor='#667eea'
+          label='Total Users'
+          value={totalAdopters}
+          loading={isLoading}
+          helperText={
+            metricsData ? `${metricsData.users.newThisMonth.toLocaleString()} new this month` : '—'
+          }
+        />
+        <MetricCard
+          icon={<FiHeart />}
+          iconColor='#10b981'
+          label='Active Rescues'
+          value={activeRescues}
+          loading={isLoading}
+          helperText={metricsData ? `${metricsData.rescues.total} total` : '—'}
+        />
+        <MetricCard
+          icon={<FiCheckCircle />}
+          iconColor='#f59e0b'
+          label='Weekly Adoptions'
+          value={weeklyAdoptions}
+          loading={isLoading}
+          helperText={
+            analyticsData
+              ? `${(analyticsData.adoptions.adoptionRate ?? 0).toFixed(1)}% adoption rate`
+              : '—'
+          }
+        />
+        <MetricCard
+          icon={<FiMessageSquare />}
+          iconColor='#ec4899'
+          label='Active Listings'
+          value={totalListings}
+          loading={isLoading}
+          helperText={metricsData ? `${metricsData.pets.total} total pets` : '—'}
+        />
+      </div>
 
       <div className={styles.analyticsGrid}>
         <Card className={styles.chartCard}>

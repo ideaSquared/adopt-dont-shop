@@ -1,5 +1,3 @@
-export { MetricCard } from './MetricCard';
-
 export { ActionMenu } from './ActionMenu';
 export type { ActionMenuItem } from './ActionMenu';
 

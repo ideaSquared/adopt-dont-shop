@@ -15,37 +15,6 @@ export const Badge = ({ $variant, className, ...props }: BadgeProps) => (
   />
 );
 
-// Shared Stats Components
-export const StatsBar = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.statsBar}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const StatCard = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.statCard}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-type StatIconProps = React.HTMLAttributes<HTMLDivElement> & { $color: string };
-
-export const StatIcon = ({ $color, style: inlineStyle, className, ...props }: StatIconProps) => (
-  <div
-    className={`${styles.statIcon({})}${className ? ` ${className}` : ''}`}
-    style={{ background: `${$color}20`, color: $color, ...inlineStyle }}
-    {...props}
-  />
-);
-
-export const StatDetails = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.statDetails}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const StatLabel = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.statLabel}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const StatValue = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.statValue}${className ? ` ${className}` : ''}`} {...props} />
-);
-
 // Shared Filter Components
 export const FilterBar = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.filterBar}${className ? ` ${className}` : ''}`} {...props} />
