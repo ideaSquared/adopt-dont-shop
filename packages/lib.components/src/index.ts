@@ -43,6 +43,8 @@ export { Card, CardContent, CardFooter, CardHeader } from './components/ui/Card'
 // Data Components
 export { EntityInspector } from './components/data/EntityInspector';
 export type { EntityInspectorProps, EntityInspectorTab } from './components/data/EntityInspector';
+export { QueryBoundary } from './components/data/QueryBoundary';
+export type { QueryBoundaryProps } from './components/data/QueryBoundary';
 
 // Form Components
 export { CheckboxInput } from './components/form/CheckboxInput';
@@ -77,6 +79,9 @@ export * from './components/form/FileUpload';
 
 // UI components
 export * from './components/ui/EmptyState';
+export { ErrorState } from './components/ui/ErrorState';
+export type { ErrorStateProps, ErrorStateSize } from './components/ui/ErrorState';
+export * from './components/ui/Stepper';
 export { Toast, ToastContainer } from './components/ui/Toast';
 export type { ToastContainerProps, ToastPosition, ToastProps } from './components/ui/Toast';
 
