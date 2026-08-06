@@ -385,7 +385,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       </div>
 
       <div className={styles.formRow}>
-        <FormField label='ZIP Code' htmlFor='zipCode' error={errors.zipCode}>
+        <FormField label='Postcode' htmlFor='zipCode' error={errors.zipCode}>
           <Input
             id='zipCode'
             type='text'
@@ -393,7 +393,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             onChange={e => handleInputChange('location.zipCode', e.target.value)}
             aria-invalid={!!errors.zipCode}
             disabled={isLoading}
-            placeholder='12345'
+            placeholder='e.g. SW1A 1AA'
           />
         </FormField>
 
