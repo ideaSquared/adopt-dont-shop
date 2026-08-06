@@ -2,11 +2,14 @@ import { User } from '@/services';
 import {
   Button,
   ConfirmDialog,
+  FormField,
   Input,
+  SelectInput,
   TextArea,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
+import { z } from 'zod';
 import * as styles from './ProfileEditForm.css';
 
 interface ProfileEditFormProps {
@@ -15,6 +18,56 @@ interface ProfileEditFormProps {
   onCancel: () => void;
   isLoading?: boolean;
 }
+
+// ADS-C3: schema-first validation. Mirrors the previous inline rules (including
+// the UK-postcode check that replaced the old US ZIP pattern) so behaviour is
+// preserved, but is now a single Zod source of truth.
+const ProfileFormSchema = z.object({
+  firstName: z.string().refine(v => v.trim().length > 0, 'First name is required'),
+  lastName: z.string().refine(v => v.trim().length > 0, 'Last name is required'),
+  email: z
+    .string()
+    .refine(v => v.trim().length > 0, 'Email is required')
+    .refine(
+      v => v.trim().length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+      'Please enter a valid email address'
+    ),
+  phone: z
+    .string()
+    .refine(v => v.length === 0 || /^\+?[\d\s\-()]+$/.test(v), 'Please enter a valid phone number'),
+  bio: z.string().max(500, 'Bio must be 500 characters or less'),
+  zipCode: z
+    .string()
+    .refine(
+      v => v.length === 0 || /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i.test(v),
+      'Please enter a valid UK postcode'
+    ),
+});
+
+const collectErrors = (error: z.ZodError): Record<string, string> => {
+  const result: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const key = issue.path.join('.');
+    if (!(key in result)) {
+      result[key] = issue.message;
+    }
+  }
+  return result;
+};
+
+const contactMethodOptions = [
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'both', label: 'Both' },
+];
+
+const countryOptions = [
+  { value: 'US', label: 'United States' },
+  { value: 'CA', label: 'Canada' },
+];
+
+const singleValue = (value: string | string[]): string =>
+  Array.isArray(value) ? (value[0] ?? '') : value;
 
 export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   user,
@@ -78,56 +131,31 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       }));
     }
 
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+    // Clear error when the user edits the field (keyed by the schema field name).
+    const errorKey = field.startsWith('location.') ? field.split('.')[1] : field;
+    if (errors[errorKey]) {
+      setErrors(prev => ({ ...prev, [errorKey]: '' }));
     }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (formData.phone && !/^\+?[\d\s\-()]+$/.test(formData.phone)) {
-      newErrors.phone = 'Please enter a valid phone number';
-    }
-
-    // UK postcode (this is a UK product) — the previous US ZIP pattern
-    // rejected every valid UK postcode, blocking UK adopters from saving.
-    if (
-      formData.location.zipCode &&
-      !/^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i.test(formData.location.zipCode)
-    ) {
-      newErrors['location.zipCode'] = 'Please enter a valid UK postcode';
-    }
-
-    if (formData.bio && formData.bio.length > 500) {
-      newErrors.bio = 'Bio must be 500 characters or less';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    const parsed = ProfileFormSchema.safeParse({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      bio: formData.bio,
+      zipCode: formData.location.zipCode,
+    });
+
+    if (!parsed.success) {
+      setErrors(collectErrors(parsed.error));
       return;
     }
+
+    setErrors({});
 
     try {
       // Transform formData to match User interface
@@ -233,100 +261,84 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     'WY',
   ];
 
+  const stateOptions = [
+    { value: '', label: 'Select State' },
+    ...usStates.map(state => ({ value: state, label: state })),
+  ];
+
   return (
-    <form id='profile-edit-form' className={styles.form} onSubmit={handleSubmit}>
+    <form id='profile-edit-form' className={styles.form} onSubmit={handleSubmit} noValidate>
       <h3 className={styles.formTitle}>
         Edit Profile
         {hasChanges && <span className={styles.unsavedBadge}>Unsaved changes</span>}
       </h3>
 
       <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label htmlFor='firstName' className={styles.label}>
-            First Name *
-          </label>
+        <FormField label='First Name' htmlFor='firstName' required error={errors.firstName}>
           <Input
             id='firstName'
             type='text'
             value={formData.firstName}
             onChange={e => handleInputChange('firstName', e.target.value)}
-            error={errors.firstName}
+            aria-invalid={!!errors.firstName}
             disabled={isLoading}
           />
-        </div>
+        </FormField>
 
-        <div className={styles.formGroup}>
-          <label htmlFor='lastName' className={styles.label}>
-            Last Name *
-          </label>
+        <FormField label='Last Name' htmlFor='lastName' required error={errors.lastName}>
           <Input
             id='lastName'
             type='text'
             value={formData.lastName}
             onChange={e => handleInputChange('lastName', e.target.value)}
-            error={errors.lastName}
+            aria-invalid={!!errors.lastName}
             disabled={isLoading}
           />
-        </div>
+        </FormField>
       </div>
 
       <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label htmlFor='email' className={styles.label}>
-            Email *
-          </label>
+        <FormField label='Email' htmlFor='email' required error={errors.email}>
           <Input
             id='email'
             type='email'
             value={formData.email}
             onChange={e => handleInputChange('email', e.target.value)}
-            error={errors.email}
+            aria-invalid={!!errors.email}
             disabled={isLoading}
           />
-        </div>
+        </FormField>
 
-        <div className={styles.formGroup}>
-          <label htmlFor='phone' className={styles.label}>
-            Phone Number
-          </label>
+        <FormField label='Phone Number' htmlFor='phone' error={errors.phone}>
           <Input
             id='phone'
             type='tel'
             value={formData.phone}
             onChange={e => handleInputChange('phone', e.target.value)}
-            error={errors.phone}
+            aria-invalid={!!errors.phone}
             disabled={isLoading}
             placeholder='07123 456789'
           />
-        </div>
+        </FormField>
       </div>
 
       <div className={styles.formGroup}>
-        <label htmlFor='preferredContactMethod' className={styles.label}>
-          Preferred Contact Method
-        </label>
-        <select
-          id='preferredContactMethod'
-          className={styles.select}
+        <SelectInput
+          label='Preferred Contact Method'
           value={formData.preferredContactMethod}
-          onChange={e => handleInputChange('preferredContactMethod', e.target.value)}
+          onChange={value => handleInputChange('preferredContactMethod', singleValue(value))}
+          options={contactMethodOptions}
           disabled={isLoading}
-        >
-          <option value='email'>Email</option>
-          <option value='phone'>Phone</option>
-          <option value='both'>Both</option>
-        </select>
+          fullWidth
+        />
       </div>
 
-      <div className={styles.formGroup}>
-        <label htmlFor='bio' className={styles.label}>
-          Bio
-        </label>
+      <FormField label='Bio' htmlFor='bio' error={errors.bio}>
         <TextArea
           id='bio'
           value={formData.bio}
           onChange={e => handleInputChange('bio', e.target.value)}
-          error={errors.bio}
+          aria-invalid={!!errors.bio}
           disabled={isLoading}
           placeholder='Tell us a little about yourself...'
           rows={4}
@@ -335,12 +347,9 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
         <div className={styles.characterCount({ isNearLimit: formData.bio.length > 400 })}>
           {formData.bio.length}/500 characters
         </div>
-      </div>
+      </FormField>
 
-      <div className={styles.formGroup}>
-        <label htmlFor='address' className={styles.label}>
-          Address
-        </label>
+      <FormField label='Address' htmlFor='address'>
         <Input
           id='address'
           type='text'
@@ -349,13 +358,10 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           disabled={isLoading}
           placeholder='123 Main Street'
         />
-      </div>
+      </FormField>
 
       <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label htmlFor='city' className={styles.label}>
-            City
-          </label>
+        <FormField label='City' htmlFor='city'>
           <Input
             id='city'
             type='text'
@@ -364,59 +370,42 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             disabled={isLoading}
             placeholder='San Francisco'
           />
-        </div>
+        </FormField>
 
         <div className={styles.formGroup}>
-          <label htmlFor='state' className={styles.label}>
-            State
-          </label>
-          <select
-            id='state'
-            className={styles.select}
+          <SelectInput
+            label='State'
             value={formData.location.state}
-            onChange={e => handleInputChange('location.state', e.target.value)}
+            onChange={value => handleInputChange('location.state', singleValue(value))}
+            options={stateOptions}
             disabled={isLoading}
-          >
-            <option value=''>Select State</option>
-            {usStates.map(state => (
-              <option key={state} value={state}>
-                {state}
-              </option>
-            ))}
-          </select>
+            fullWidth
+          />
         </div>
       </div>
 
       <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label htmlFor='zipCode' className={styles.label}>
-            ZIP Code
-          </label>
+        <FormField label='ZIP Code' htmlFor='zipCode' error={errors.zipCode}>
           <Input
             id='zipCode'
             type='text'
             value={formData.location.zipCode}
             onChange={e => handleInputChange('location.zipCode', e.target.value)}
-            error={errors['location.zipCode']}
+            aria-invalid={!!errors.zipCode}
             disabled={isLoading}
             placeholder='12345'
           />
-        </div>
+        </FormField>
 
         <div className={styles.formGroup}>
-          <label htmlFor='country' className={styles.label}>
-            Country
-          </label>
-          <select
-            id='country'
-            className={styles.select}
+          <SelectInput
+            label='Country'
             value={formData.location.country}
-            onChange={e => handleInputChange('location.country', e.target.value)}
+            onChange={value => handleInputChange('location.country', singleValue(value))}
+            options={countryOptions}
             disabled={isLoading}
-          >
-            <option value='US'>United States</option>
-            <option value='CA'>Canada</option>
-          </select>
+            fullWidth
+          />
         </div>
       </div>
 

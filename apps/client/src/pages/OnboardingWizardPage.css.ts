@@ -42,22 +42,8 @@ globalStyle(`${header} p`, {
   margin: 0,
 });
 
-export const progressBar = style({
-  display: 'flex',
-  gap: '0.5rem',
+export const stepper = style({
   marginBottom: '2rem',
-});
-
-export const progressStep = style({
-  flex: 1,
-  height: '4px',
-  borderRadius: '2px',
-  background: vars.border.color.default,
-  transition: 'background 200ms ease',
-});
-
-export const progressStepActive = style({
-  background: vars.colors.primary,
 });
 
 export const section = style({

@@ -62,6 +62,7 @@ export const SwipeStack: React.FC<SwipeStackProps> = ({
   }, [pets]);
 
   const visiblePets = pets.slice(currentIndex, currentIndex + VISIBLE_CARDS);
+  const topPet = visiblePets[0];
 
   // Preload primary images for cards just past the visible window so the next
   // swipe shows the image instantly instead of fetching on-demand.
@@ -105,6 +106,48 @@ export const SwipeStack: React.FC<SwipeStackProps> = ({
 
   return (
     <div className={`${styles.stackContainer}${className ? ` ${className}` : ''}`}>
+      {/* ADS-C5: AT/keyboard-operable alternative to the swipe gestures. These
+          controls act on the current (top) pet and are additive — the drag
+          gestures and the card's arrow-key handling are unchanged. Hidden
+          off-screen until focused (revealed via CSS :focus-within). */}
+      {topPet && (
+        <div
+          className={styles.accessibleControls}
+          role='group'
+          aria-label={`Actions for ${topPet.name}`}
+        >
+          <button
+            type='button'
+            className={styles.accessibleControlButton}
+            onClick={() => handleSwipe('pass', topPet.petId)}
+            disabled={disabled}
+          >
+            Skip {topPet.name}
+          </button>
+          <button
+            type='button'
+            className={styles.accessibleControlButton}
+            onClick={() => handleSwipe('super_like', topPet.petId)}
+            disabled={disabled}
+          >
+            Super like {topPet.name}
+          </button>
+          <button
+            type='button'
+            className={styles.accessibleControlButton}
+            onClick={() => handleSwipe('like', topPet.petId)}
+            disabled={disabled}
+          >
+            Like {topPet.name}
+          </button>
+        </div>
+      )}
+
+      {/* Announce the current pet to assistive tech as the stack advances. */}
+      <div className={styles.srOnly} role='status' aria-live='polite'>
+        {topPet ? `Showing ${topPet.name}, ${topPet.breed ?? topPet.type ?? 'pet'}` : ''}
+      </div>
+
       {visiblePets.map((pet, index) => {
         const isTop = index === 0;
         const zIndex = VISIBLE_CARDS - index;

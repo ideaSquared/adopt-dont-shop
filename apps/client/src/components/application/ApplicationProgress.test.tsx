@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@/test-utils/render';
+import { render, screen } from '@/test-utils/render';
+import userEvent from '@testing-library/user-event';
 import { ApplicationProgress } from './ApplicationProgress';
 
 const steps = [
@@ -8,32 +9,38 @@ const steps = [
   { id: 3, title: 'Review', description: 'Final check' },
 ];
 
-describe('ApplicationProgress accessibility', () => {
-  it('wraps the step list in a nav landmark labelled "Application steps"', () => {
+describe('ApplicationProgress (shared Stepper adoption)', () => {
+  it('renders every step title', () => {
     render(<ApplicationProgress steps={steps} currentStep={2} onStepClick={vi.fn()} />);
 
-    const nav = screen.getByRole('navigation', { name: /application steps/i });
-    expect(nav).toBeInTheDocument();
+    expect(screen.getByText('About you')).toBeInTheDocument();
+    expect(screen.getByText('Your home')).toBeInTheDocument();
+    expect(screen.getByText('Review')).toBeInTheDocument();
   });
 
   it('marks the active step with aria-current="step"', () => {
     render(<ApplicationProgress steps={steps} currentStep={2} onStepClick={vi.fn()} />);
 
-    const active = screen.getByRole('button', { name: /2: your home/i });
-    expect(active).toHaveAttribute('aria-current', 'step');
+    const current = screen.getByText('Your home').closest('[aria-current="step"]');
+    expect(current).not.toBeNull();
   });
 
-  it('does not set aria-current on non-active steps', () => {
+  it('renders completed steps as interactive controls and upcoming steps as non-interactive', () => {
     render(<ApplicationProgress steps={steps} currentStep={2} onStepClick={vi.fn()} />);
 
-    const completed = screen.getByRole('button', { name: /1: about you/i });
-    expect(completed).not.toHaveAttribute('aria-current');
+    // Completed step is a real button…
+    expect(screen.getByRole('button', { name: /about you/i })).toBeInTheDocument();
+    // …the current and upcoming steps are not.
+    expect(screen.queryByRole('button', { name: /your home/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /review/i })).toBeNull();
   });
 
-  it('gives each step an aria-label of "{number}: {title}"', () => {
-    render(<ApplicationProgress steps={steps} currentStep={1} onStepClick={vi.fn()} />);
+  it('invokes onStepClick with the 1-based step number when a completed step is activated', async () => {
+    const onStepClick = vi.fn();
+    const user = userEvent.setup();
+    render(<ApplicationProgress steps={steps} currentStep={3} onStepClick={onStepClick} />);
 
-    const nav = screen.getByRole('navigation', { name: /application steps/i });
-    expect(within(nav).getByLabelText('1: About you')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /about you/i }));
+    expect(onStepClick).toHaveBeenCalledWith(1);
   });
 });

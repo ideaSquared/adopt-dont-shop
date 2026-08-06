@@ -12,6 +12,7 @@ import { useSearchParams } from 'react-router';
 import * as styles from './SearchPage.css';
 import { SORT_OPTIONS } from './searchOptions';
 import { SearchFilters } from './SearchFilters';
+import { DiscoverySearchToggle } from '@/components/discovery/DiscoverySearchToggle';
 
 export const SearchPage: React.FC = () => {
   'use memo';
@@ -210,8 +211,9 @@ export const SearchPage: React.FC = () => {
         <h1>Find Your Next Pet</h1>
         <p>
           Browse adoptable pets from verified rescues. Use the filters below to find exactly what
-          you&apos;re looking for.
+          you&apos;re looking for. Prefer to browse one at a time? Switch to Discover.
         </p>
+        <DiscoverySearchToggle active='search' className={styles.browseToggle} />
       </div>
 
       <SearchFilters

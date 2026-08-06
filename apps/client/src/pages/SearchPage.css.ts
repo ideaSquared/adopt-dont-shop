@@ -12,6 +12,10 @@ export const searchHeader = style({
   marginBottom: '2rem',
 });
 
+export const browseToggle = style({
+  marginTop: '1.25rem',
+});
+
 globalStyle(`${searchHeader} h1`, {
   fontFamily: vars.typography.family.display,
   fontSize: '2.5rem',

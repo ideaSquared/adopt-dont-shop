@@ -25,26 +25,6 @@ export const formGroup = style({
   gap: '0.5rem',
 });
 
-export const label = style({
-  fontWeight: 500,
-  color: vars.text.primary,
-  fontSize: '0.875rem',
-});
-
-export const select = style({
-  padding: '0.75rem',
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
-  background: vars.background.body,
-  color: vars.text.primary,
-  fontSize: '1rem',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: vars.colors.primary,
-    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
-  },
-});
-
 export const buttonGroup = style({
   display: 'flex',
   gap: '1rem',

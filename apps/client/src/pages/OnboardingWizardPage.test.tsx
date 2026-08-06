@@ -80,14 +80,14 @@ describe('OnboardingWizardPage', () => {
     });
   });
 
-  it('renders step 1 (Home & Lifestyle) by default with a progress bar', async () => {
+  it('renders step 1 (Home & Lifestyle) by default with the shared stepper', async () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
     });
     expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.getByTestId('onboarding-stepper')).toBeInTheDocument();
     // Step 1 questions visible
     expect(screen.getByText('What kind of home do you live in?')).toBeInTheDocument();
     expect(screen.getByText('Any allergies to consider?')).toBeInTheDocument();
@@ -98,22 +98,22 @@ describe('OnboardingWizardPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
     });
 
     // Go to step 2
     await user.click(screen.getByRole('button', { name: /^next$/i }));
-    expect(screen.getByText('Pet Preferences')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pet Preferences' })).toBeInTheDocument();
     expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
 
     // Go to step 3
     await user.click(screen.getByRole('button', { name: /^next$/i }));
-    expect(screen.getByText('Discovery Settings')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Discovery Settings' })).toBeInTheDocument();
     expect(screen.getByText('Step 3 of 4')).toBeInTheDocument();
 
     // Go to step 4 (review)
     await user.click(screen.getByRole('button', { name: /^next$/i }));
-    expect(screen.getByText('Review & Submit')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Review & Submit' })).toBeInTheDocument();
     expect(screen.getByText('Step 4 of 4')).toBeInTheDocument();
   });
 
@@ -122,14 +122,14 @@ describe('OnboardingWizardPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole('button', { name: /^next$/i }));
-    expect(screen.getByText('Pet Preferences')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pet Preferences' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^back$/i }));
-    expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
   });
 
   it('shows skip warning on step 1 first click, then advances on second click', async () => {
@@ -137,7 +137,7 @@ describe('OnboardingWizardPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
     });
 
     // First click shows warning
@@ -146,11 +146,11 @@ describe('OnboardingWizardPage', () => {
       screen.getByText(/top picks won't be personalized to your lifestyle/i)
     ).toBeInTheDocument();
     // Still on step 1
-    expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
 
     // Second click advances
     await user.click(screen.getByRole('button', { name: /^skip$/i }));
-    expect(screen.getByText('Pet Preferences')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pet Preferences' })).toBeInTheDocument();
   });
 
   it('submits all data to PUT /api/v1/match/profile on step 4 and navigates to top-picks', async () => {
@@ -159,7 +159,7 @@ describe('OnboardingWizardPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
     });
 
     // Fill in step 1
@@ -174,7 +174,7 @@ describe('OnboardingWizardPage', () => {
     await user.click(screen.getByRole('button', { name: /^next$/i }));
     await user.click(screen.getByRole('button', { name: /^next$/i }));
 
-    expect(screen.getByText('Review & Submit')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Review & Submit' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /save preferences/i }));
 
@@ -197,7 +197,7 @@ describe('OnboardingWizardPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
     });
 
     // Navigate to review step
@@ -205,14 +205,14 @@ describe('OnboardingWizardPage', () => {
     await user.click(screen.getByRole('button', { name: /^next$/i }));
     await user.click(screen.getByRole('button', { name: /^next$/i }));
 
-    expect(screen.getByText('Review & Submit')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Review & Submit' })).toBeInTheDocument();
 
     // Click the first Edit button (Home & Lifestyle)
     const editButtons = screen.getAllByRole('button', { name: /^edit$/i });
     expect(editButtons.length).toBe(3);
 
     await user.click(editButtons[0]);
-    expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
     expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
   });
 
@@ -232,7 +232,7 @@ describe('OnboardingWizardPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
     });
 
     // Navigate to review to see loaded data
@@ -241,7 +241,7 @@ describe('OnboardingWizardPage', () => {
     await user.click(screen.getByRole('button', { name: /^next$/i }));
     await user.click(screen.getByRole('button', { name: /^next$/i }));
 
-    expect(screen.getByText('Review & Submit')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Review & Submit' })).toBeInTheDocument();
     // Check that loaded data appears in review
     expect(screen.getByText('Dog, Cat')).toBeInTheDocument();
     // 'Medium' appears in multiple review rows (sizes + energy); verify at least one exists
@@ -268,7 +268,7 @@ describe('OnboardingWizardPage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
       });
 
       const olderRadio = screen.getByRole('radio', { name: /older children/i });
@@ -291,7 +291,7 @@ describe('OnboardingWizardPage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
       });
 
       expect(screen.getByRole('radio', { name: /^cat\(s\)$/i })).toBeChecked();
@@ -313,7 +313,7 @@ describe('OnboardingWizardPage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
       });
 
       expect(screen.getByRole('radio', { name: /a mix/i })).toBeChecked();
@@ -325,7 +325,7 @@ describe('OnboardingWizardPage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('radio', { name: /older children/i }));

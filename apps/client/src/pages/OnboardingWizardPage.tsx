@@ -1,5 +1,12 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Alert, Button, Card, Spinner } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  Card,
+  Spinner,
+  Stepper,
+  type StepperStep,
+} from '@adopt-dont-shop/lib.components';
 import type { AdopterLifestyle } from '@adopt-dont-shop/lib.matching';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router';
@@ -103,7 +110,17 @@ const ENERGY: Option[] = [
   { value: 'very_high', label: 'Very high', icon: '⚡' },
 ];
 
-const TOTAL_STEPS = 4;
+// ADS-C1: the shared Stepper drives the progress UI (unified with the
+// application flow). Step titles live here so the header and the Stepper
+// stay in sync.
+const WIZARD_STEPS: StepperStep[] = [
+  { id: 'lifestyle', title: 'Home & Lifestyle' },
+  { id: 'preferences', title: 'Pet Preferences' },
+  { id: 'discovery', title: 'Discovery Settings' },
+  { id: 'review', title: 'Review & Submit' },
+];
+
+const TOTAL_STEPS = WIZARD_STEPS.length;
 
 const toggle = (arr: string[], v: string): string[] =>
   arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
@@ -383,24 +400,6 @@ export const OnboardingWizardPage: React.FC = () => {
     setStep(target);
     setShowSkipWarning(false);
   };
-
-  const progressBar = (
-    <div
-      className={styles.progressBar}
-      role='progressbar'
-      aria-valuenow={step}
-      aria-valuemin={1}
-      aria-valuemax={TOTAL_STEPS}
-      aria-label={`Step ${step} of ${TOTAL_STEPS}`}
-    >
-      {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-        <div
-          key={i}
-          className={`${styles.progressStep} ${i < step ? styles.progressStepActive : ''}`}
-        />
-      ))}
-    </div>
-  );
 
   const renderStep1 = () => (
     <>
@@ -686,13 +685,6 @@ export const OnboardingWizardPage: React.FC = () => {
     </>
   );
 
-  const stepTitles = [
-    'Home & Lifestyle',
-    'Pet Preferences',
-    'Discovery Settings',
-    'Review & Submit',
-  ];
-
   return (
     <div className={styles.container}>
       <Card className={styles.card}>
@@ -700,13 +692,18 @@ export const OnboardingWizardPage: React.FC = () => {
           <span className={styles.heroIcon} aria-hidden='true'>
             🐾
           </span>
-          <h1>{stepTitles[step - 1]}</h1>
+          <h1>{WIZARD_STEPS[step - 1]?.title}</h1>
           <p>
             Step {step} of {TOTAL_STEPS}
           </p>
         </div>
 
-        {progressBar}
+        <Stepper
+          steps={WIZARD_STEPS}
+          activeStep={step - 1}
+          className={styles.stepper}
+          data-testid='onboarding-stepper'
+        />
 
         {error && (
           <div className={styles.alertWrap}>
