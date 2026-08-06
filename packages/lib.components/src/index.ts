@@ -45,6 +45,12 @@ export { EntityInspector } from './components/data/EntityInspector';
 export type { EntityInspectorProps, EntityInspectorTab } from './components/data/EntityInspector';
 export { QueryBoundary } from './components/data/QueryBoundary';
 export type { QueryBoundaryProps } from './components/data/QueryBoundary';
+export { SearchToolbar } from './components/data/SearchToolbar';
+export type {
+  SearchToolbarProps,
+  SearchToolbarActiveFilter,
+  FilterConfig,
+} from './components/data/SearchToolbar';
 
 // Form Components
 export { CheckboxInput } from './components/form/CheckboxInput';
