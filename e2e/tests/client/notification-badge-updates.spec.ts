@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures';
+import { postWithCsrf } from '../../helpers/seeds';
 
 /**
  * The notification badge UI varies — sometimes it's an icon-only button,
@@ -21,10 +22,9 @@ test.describe('notification badge', () => {
     const initialCount = beforeBody.count ?? beforeBody.data?.count ?? 0;
     expect(typeof initialCount).toBe('number');
 
-    // POST mark-all-read. The gateway authenticates with Bearer tokens and
-    // exposes no /csrf-token endpoint, so the adopter's Bearer context (set by
-    // apiAs) is all that's needed — no CSRF dance.
-    const markRes = await adopterApi.context.post('/api/v1/notifications/read-all');
+    // POST mark-all-read through the gateway's CSRF double-submit gate
+    // (ADS-919) — postWithCsrf performs the handshake on the adopter context.
+    const markRes = await postWithCsrf(adopterApi.context, '/api/v1/notifications/read-all');
     expect([200, 204]).toContain(markRes.status());
 
     const afterRes = await adopterApi.context.get('/api/v1/notifications/unread/count');

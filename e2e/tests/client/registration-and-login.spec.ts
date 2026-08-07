@@ -1,5 +1,6 @@
 import { test, expect } from '../../fixtures';
 import { uniqueEmail } from '../../helpers/factories';
+import { postWithCsrf } from '../../helpers/seeds';
 import { URLS } from '../../playwright.config';
 import { request as playwrightRequest } from '@playwright/test';
 
@@ -20,23 +21,21 @@ test.describe('adopter registration and login', () => {
     // *backend's* registration endpoint is reachable and returns a sane
     // shape; that's what this test pins down.
     //
-    // No CSRF handshake: the Fastify gateway authenticates with Bearer
-    // tokens, not the deleted monolith's cookie/CSRF model, so there is no
-    // /csrf-token endpoint and mutating POSTs don't require a CSRF header.
+    // ADS-919: the gateway enforces a CSRF double-submit on state-changing
+    // requests, so register goes through postWithCsrf (which performs the
+    // GET /api/v1/csrf-token → x-csrf-token handshake), same as the SPA.
     const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
     try {
       const email = uniqueEmail('signup');
-      const response = await ctx.post('/api/v1/auth/register', {
-        data: {
-          email,
-          password: 'BehaviourTest123!',
-          firstName: 'E2E',
-          lastName: 'Tester',
-          // The auth service rejects registration (400) unless the terms
-          // and privacy policy are explicitly accepted.
-          termsAccepted: true,
-          privacyPolicyAccepted: true,
-        },
+      const response = await postWithCsrf(ctx, '/api/v1/auth/register', {
+        email,
+        password: 'BehaviourTest123!',
+        firstName: 'E2E',
+        lastName: 'Tester',
+        // The auth service rejects registration (400) unless the terms
+        // and privacy policy are explicitly accepted.
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
       });
       // Backend returns 201 on success, OR 201 with a generic message
       // when the email already exists (to prevent enumeration).

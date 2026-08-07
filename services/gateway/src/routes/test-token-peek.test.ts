@@ -1,5 +1,9 @@
+import { createHash } from 'node:crypto';
+
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const sha256Hex = (value: string): string => createHash('sha256').update(value).digest('hex');
 
 // Mock the pg Pool so the seam's SQL is exercised against a fake DB. We assert
 // on the query text + params (the behaviour that matters: which row it reads
@@ -32,13 +36,13 @@ describe('GET /api/v1/test/auth-token', () => {
     await app.close();
   });
 
-  it('returns the verification + reset tokens for a known email', async () => {
+  it('mints + returns a fresh token for whichever flow is outstanding, storing its hash', async () => {
     queryMock.mockResolvedValueOnce({
       rows: [
         {
-          verification_token: 'verify-abc',
+          minted_verification: true,
           verification_token_expires_at: new Date('2026-06-19T00:00:00Z'),
-          reset_token: 'reset-xyz',
+          minted_reset: true,
           reset_token_expiration: new Date('2026-06-18T01:00:00Z'),
         },
       ],
@@ -50,26 +54,38 @@ describe('GET /api/v1/test/auth-token', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({
-      verificationToken: 'verify-abc',
-      verificationTokenExpiresAt: '2026-06-19T00:00:00.000Z',
-      resetToken: 'reset-xyz',
-      resetTokenExpiration: '2026-06-18T01:00:00.000Z',
-    });
-    // Reads auth.users filtered by email + not-deleted.
+    const body = res.json() as {
+      verificationToken: string;
+      verificationTokenExpiresAt: string;
+      resetToken: string;
+      resetTokenExpiration: string;
+    };
+    // The raw token is freshly minted (random), but its expiry passes through.
+    expect(typeof body.verificationToken).toBe('string');
+    expect(body.verificationToken.length).toBeGreaterThan(0);
+    expect(body.verificationTokenExpiresAt).toBe('2026-06-19T00:00:00.000Z');
+    expect(typeof body.resetToken).toBe('string');
+    expect(body.resetToken.length).toBeGreaterThan(0);
+    expect(body.resetTokenExpiration).toBe('2026-06-18T01:00:00.000Z');
+
+    // Re-arms auth.users, filtered by email + not-deleted, and stores the
+    // sha256 of the raw token it returned (so verify/reset validate later).
     const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
-    expect(sql).toMatch(/FROM auth\.users/);
+    expect(sql).toMatch(/UPDATE auth\.users/);
     expect(sql).toMatch(/deleted_at IS NULL/);
-    expect(params).toEqual(['user@example.com']);
+    expect(sql).toMatch(/RETURNING/);
+    expect(params[0]).toBe('user@example.com');
+    expect(params[1]).toBe(sha256Hex(body.verificationToken));
+    expect(params[3]).toBe(sha256Hex(body.resetToken));
   });
 
-  it('returns null tokens when none are outstanding', async () => {
+  it('returns null for a flow whose hash is not outstanding', async () => {
     queryMock.mockResolvedValueOnce({
       rows: [
         {
-          verification_token: null,
+          minted_verification: null,
           verification_token_expires_at: null,
-          reset_token: null,
+          minted_reset: null,
           reset_token_expiration: null,
         },
       ],

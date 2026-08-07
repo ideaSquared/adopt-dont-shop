@@ -4,6 +4,7 @@ import { request as playwrightRequest } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
 import { uniqueEmail } from '../../helpers/factories';
+import { postWithCsrf } from '../../helpers/seeds';
 import { peekAuthTokens } from '../../helpers/token-peek';
 import { URLS } from '../../playwright.config';
 
@@ -31,31 +32,32 @@ test.describe('2FA via the login UI', () => {
     // is the login challenge below.
     const api = await playwrightRequest.newContext({ baseURL: URLS.api });
     try {
-      const reg = await api.post('/api/v1/auth/register', {
-        data: {
-          email,
-          password,
-          firstName: 'E2E',
-          lastName: 'TwoFAUI',
-          termsAccepted: true,
-          privacyPolicyAccepted: true,
-        },
+      // State-changing calls carry the CSRF double-submit header (ADS-919).
+      const reg = await postWithCsrf(api, '/api/v1/auth/register', {
+        email,
+        password,
+        firstName: 'E2E',
+        lastName: 'TwoFAUI',
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
       });
       expect([200, 201]).toContain(reg.status());
 
       // Login now requires a verified email, so verify the throwaway via the
-      // token-peek seam before the password login can mint a token.
+      // token-peek seam before the password login can establish a session.
       const { verificationToken } = await peekAuthTokens(email);
       expect(verificationToken).toBeTruthy();
-      const verifyRes = await api.post('/api/v1/auth/verify-email', {
-        data: { verificationToken },
+      const verifyRes = await postWithCsrf(api, '/api/v1/auth/verify-email', {
+        verificationToken,
       });
       expect(verifyRes.ok()).toBe(true);
 
-      const loginRes = await api.post('/api/v1/auth/login', { data: { email, password } });
+      const loginRes = await postWithCsrf(api, '/api/v1/auth/login', { email, password });
       expect(loginRes.ok()).toBe(true);
-      const loginBody = (await loginRes.json()) as { tokens?: { accessToken?: string } };
-      const accessToken = loginBody.tokens?.accessToken;
+      // ADS-919: the session rides home as httpOnly cookies; read the
+      // accessToken from the jar for the Bearer context below.
+      const { cookies } = await api.storageState();
+      const accessToken = cookies.find(c => c.name === 'accessToken')?.value;
       expect(accessToken).toBeTruthy();
 
       const authed = await playwrightRequest.newContext({
@@ -63,13 +65,14 @@ test.describe('2FA via the login UI', () => {
         extraHTTPHeaders: { Authorization: `Bearer ${accessToken!}` },
       });
       try {
-        const setupRes = await authed.post('/api/v1/auth/2fa/setup');
+        const setupRes = await postWithCsrf(authed, '/api/v1/auth/2fa/setup');
         expect(setupRes.ok()).toBe(true);
         const { secret } = (await setupRes.json()) as { secret?: string };
         expect(secret).toBeTruthy();
 
-        const enableRes = await authed.post('/api/v1/auth/2fa/enable', {
-          data: { secret, token: generateSync({ secret: secret! }) },
+        const enableRes = await postWithCsrf(authed, '/api/v1/auth/2fa/enable', {
+          secret,
+          token: generateSync({ secret: secret! }),
         });
         expect(enableRes.ok()).toBe(true);
 

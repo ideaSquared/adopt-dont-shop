@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 import { AUTH_FILES, URLS } from './playwright.config';
+import { fetchCsrfToken } from './helpers/csrf';
 import { ROLES, type RoleKey } from './fixtures/roles';
 import { loginViaUI } from './helpers/auth';
 
@@ -37,12 +38,16 @@ async function waitForUrl(url: string, label: string): Promise<void> {
 async function probeApiLogin(roleKey: RoleKey): Promise<void> {
   // Hit the gateway's login endpoint directly first so a credential / gateway
   // failure surfaces as a sharp error before we spend time driving the UI.
-  // The gateway returns `{ user, tokens: { accessToken, refreshToken } }`.
+  // ADS-919: login enforces the CSRF double-submit and returns the session as
+  // httpOnly cookies, so we do the GET /api/v1/csrf-token → x-csrf-token
+  // handshake and assert on `response.ok()` (not a body token).
   const role = ROLES[roleKey];
   const ctx = await request.newContext({ baseURL: URLS.api });
   try {
+    const csrfToken = await fetchCsrfToken(ctx);
     const response = await ctx.post('/api/v1/auth/login', {
       data: { email: role.email, password: role.password },
+      headers: { 'x-csrf-token': csrfToken },
       timeout: 15_000,
     });
     if (!response.ok()) {

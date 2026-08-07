@@ -1,8 +1,9 @@
 import { request as playwrightRequest } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
+import { fetchCsrfToken } from '../../helpers/csrf';
 import { uniqueEmail } from '../../helpers/factories';
-import { getMyRescueId } from '../../helpers/seeds';
+import { getMyRescueId, postWithCsrf } from '../../helpers/seeds';
 import { peekInvitationToken } from '../../helpers/token-peek';
 import { URLS } from '../../playwright.config';
 
@@ -26,10 +27,16 @@ test.describe('staff invitation round-trip (ADS-871)', () => {
 
     const inviteeEmail = uniqueEmail('invitee');
 
-    // 1. The rescue admin invites a new staff member.
-    const inviteRes = await rescueApi.context.post(`/api/v1/rescue/${rescueId}/invitations`, {
-      data: { email: inviteeEmail, title: 'Volunteer' },
-    });
+    // 1. The rescue admin invites a new staff member. (State-changing calls go
+    //    through the gateway's CSRF double-submit gate via postWithCsrf.)
+    const inviteRes = await postWithCsrf(
+      rescueApi.context,
+      `/api/v1/rescue/${rescueId}/invitations`,
+      {
+        email: inviteeEmail,
+        title: 'Volunteer',
+      }
+    );
     expect([200, 201]).toContain(inviteRes.status());
 
     // 2. Read the emailed invite token via the test-token-peek seam.
@@ -54,13 +61,11 @@ test.describe('staff invitation round-trip (ADS-871)', () => {
       // 4. Accept the invitation — register-on-accept. The invitee sets a
       //    password + name; the gateway provisions the auth user and
       //    attaches staff membership.
-      const acceptRes = await anon.post('/api/v1/invitations/accept', {
-        data: {
-          token,
-          password: INVITEE_PASSWORD,
-          firstName: 'Invited',
-          lastName: 'Volunteer',
-        },
+      const acceptRes = await postWithCsrf(anon, '/api/v1/invitations/accept', {
+        token,
+        password: INVITEE_PASSWORD,
+        firstName: 'Invited',
+        lastName: 'Volunteer',
       });
       expect([200, 201]).toContain(acceptRes.status());
 
@@ -69,32 +74,32 @@ test.describe('staff invitation round-trip (ADS-871)', () => {
       //    (200/201) or reports the token already consumed (404/409). Which
       //    one wins depends on invitation-state propagation timing, so accept
       //    either outcome rather than flaking on that race.
-      const acceptAgain = await anon.post('/api/v1/invitations/accept', {
-        data: {
-          token,
-          password: INVITEE_PASSWORD,
-          firstName: 'Invited',
-          lastName: 'Volunteer',
-        },
+      const acceptAgain = await postWithCsrf(anon, '/api/v1/invitations/accept', {
+        token,
+        password: INVITEE_PASSWORD,
+        firstName: 'Invited',
+        lastName: 'Volunteer',
       });
       expect([200, 201, 404, 409]).toContain(acceptAgain.status());
     } finally {
       await anon.dispose();
     }
 
-    // 6. The invitee logs in with their brand-new credentials.
+    // 6. The invitee logs in with their brand-new credentials. (ADS-919: the
+    //    login POST carries the CSRF header, and the access token comes home as
+    //    an httpOnly cookie, which we read for the Bearer context below.)
     const loginCtx = await playwrightRequest.newContext({ baseURL: URLS.api });
     try {
+      const csrfToken = await fetchCsrfToken(loginCtx);
       const loginRes = await loginCtx.post('/api/v1/auth/login', {
         data: { email: inviteeEmail, password: INVITEE_PASSWORD },
+        headers: { 'x-csrf-token': csrfToken },
         timeout: 15_000,
       });
       expect(loginRes.ok(), 'the invitee could not log in with their new password').toBe(true);
-      const loginBody = (await loginRes.json()) as {
-        tokens?: { accessToken?: string; access_token?: string };
-      };
-      const accessToken = loginBody.tokens?.accessToken ?? loginBody.tokens?.access_token;
-      expect(accessToken, 'login returned no access token').toBeTruthy();
+      const { cookies } = await loginCtx.storageState();
+      const accessToken = cookies.find(c => c.name === 'accessToken')?.value;
+      expect(accessToken, 'login returned no access token cookie').toBeTruthy();
 
       // 7. As the invitee, GET /api/v1/staff/me shows them as staff of the
       //    inviting rescue — the round-trip is complete.

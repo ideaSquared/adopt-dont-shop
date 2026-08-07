@@ -10,6 +10,7 @@
 import { request as playwrightRequest, type APIRequestContext } from '@playwright/test';
 
 import { URLS } from '../playwright.config';
+import { fetchCsrfToken } from './csrf';
 
 type AuthTokens = {
   verificationToken: string | null;
@@ -57,7 +58,13 @@ export async function verifyEmailViaPeek(email: string): Promise<void> {
     throw new Error(`no verification token outstanding for ${email} — cannot verify`);
   }
   await withAnonApi(async ctx => {
-    const res = await ctx.post('/api/v1/auth/verify-email', { data: { verificationToken } });
+    // verify-email is a state-changing request → carry the CSRF double-submit
+    // header (ADS-919), same handshake the SPA performs.
+    const csrfToken = await fetchCsrfToken(ctx);
+    const res = await ctx.post('/api/v1/auth/verify-email', {
+      data: { verificationToken },
+      headers: { 'x-csrf-token': csrfToken },
+    });
     if (!res.ok()) {
       throw new Error(
         `verify-email failed for ${email}: ${res.status()} ${(await res.text()).slice(0, 200)}`

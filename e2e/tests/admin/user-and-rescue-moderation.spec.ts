@@ -2,7 +2,7 @@ import { request as playwrightRequest } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
 import { uniqueEmail } from '../../helpers/factories';
-import { patchWithCsrf } from '../../helpers/seeds';
+import { patchWithCsrf, postWithCsrf } from '../../helpers/seeds';
 import { peekAuthTokens } from '../../helpers/token-peek';
 import { URLS } from '../../playwright.config';
 
@@ -48,21 +48,19 @@ test.describe('admin user moderation action (ADS-871)', () => {
     const email = uniqueEmail('moderation');
     const anon = await playwrightRequest.newContext({ baseURL: URLS.api });
     try {
-      const registerRes = await anon.post('/api/v1/auth/register', {
-        data: {
-          email,
-          password: 'ModBehaviour123!',
-          firstName: 'Mod',
-          lastName: 'Target',
-          termsAccepted: true,
-          privacyPolicyAccepted: true,
-        },
+      const registerRes = await postWithCsrf(anon, '/api/v1/auth/register', {
+        email,
+        password: 'ModBehaviour123!',
+        firstName: 'Mod',
+        lastName: 'Target',
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
       });
       expect([200, 201]).toContain(registerRes.status());
       const tokens = await peekAuthTokens(email);
       expect(tokens.verificationToken).toBeTruthy();
-      const verifyRes = await anon.post('/api/v1/auth/verify-email', {
-        data: { verificationToken: tokens.verificationToken },
+      const verifyRes = await postWithCsrf(anon, '/api/v1/auth/verify-email', {
+        verificationToken: tokens.verificationToken,
       });
       expect(verifyRes.ok()).toBe(true);
     } finally {

@@ -27,6 +27,8 @@
 // tokens in auth.users, invitation tokens in rescue.invitations. A single
 // pool with fully-qualified table names reads both.
 
+import { createHash, randomBytes } from 'node:crypto';
+
 import { Pool } from 'pg';
 
 import type { FastifyInstance } from 'fastify';
@@ -37,10 +39,26 @@ export type TestTokenPeekRoutesOptions = {
   databaseUrl: string;
 };
 
+// ADS-883 hashes password-reset / email-verification tokens at rest: only the
+// SHA-256 hash lives in auth.users, so the raw bearer string can no longer be
+// read back from the DB. The auth service validates verify/reset by hashing
+// the *submitted* token and comparing (services/auth/src/grpc/account-handlers
+// .ts), so this seam MINTS a fresh token for whichever flow is currently
+// outstanding, overwrites the stored hash with sha256(newToken), and returns
+// the raw newToken — which then validates end-to-end. It re-arms ONLY the
+// column whose hash is currently non-null (an outstanding token), leaving a
+// verified/idle column NULL so callers can still assert "no token outstanding".
+// These TTLs / helpers mirror account-handlers.ts so the minted token matches
+// what the auth service would have produced.
+const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h
+const mintToken = (): string => randomBytes(32).toString('base64url');
+const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
+
 type AuthTokenRow = {
-  verification_token: string | null;
+  minted_verification: boolean | null;
   verification_token_expires_at: Date | null;
-  reset_token: string | null;
+  minted_reset: boolean | null;
   reset_token_expiration: Date | null;
 };
 
@@ -68,8 +86,10 @@ export const registerTestTokenPeekRoutes = async (
   });
 
   // GET /api/v1/test/auth-token?email=…
-  // Returns the current verification + reset tokens for a user, read straight
-  // from auth.users. Either may be null when none is outstanding.
+  // Mints + returns the verification and reset tokens for a user (see the
+  // module comment): a fresh token is issued and its hash stored for whichever
+  // flow currently has an outstanding hash; a flow with no outstanding hash
+  // returns null. Reads/writes auth.users only.
   app.get(
     '/api/v1/test/auth-token',
     { schema: { hide: true }, config: { rateLimit: TEST_PEEK_RATE_LIMIT } },
@@ -80,23 +100,54 @@ export const registerTestTokenPeekRoutes = async (
         return reply.code(400).send({ error: 'email query param is required' });
       }
 
+      const verificationToken = mintToken();
+      const resetToken = mintToken();
+      const verificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
+      const resetExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+
+      // Re-arm each hash ONLY where one is currently outstanding (the CASE
+      // guards read the pre-UPDATE column value); RETURNING sees the new
+      // values, so `minted_*` is true exactly when we overwrote that hash.
       const res = await pool.query<AuthTokenRow>(
-        `SELECT verification_token, verification_token_expires_at,
-              reset_token, reset_token_expiration
-         FROM auth.users
-        WHERE email = $1 AND deleted_at IS NULL
-        LIMIT 1`,
-        [email]
+        `UPDATE auth.users
+            SET verification_token_hash =
+                  CASE WHEN verification_token_hash IS NOT NULL THEN $2
+                       ELSE verification_token_hash END,
+                verification_token_expires_at =
+                  CASE WHEN verification_token_hash IS NOT NULL THEN $3
+                       ELSE verification_token_expires_at END,
+                reset_token_hash =
+                  CASE WHEN reset_token_hash IS NOT NULL THEN $4
+                       ELSE reset_token_hash END,
+                reset_token_expiration =
+                  CASE WHEN reset_token_hash IS NOT NULL THEN $5
+                       ELSE reset_token_expiration END
+          WHERE email = $1 AND deleted_at IS NULL
+          RETURNING (verification_token_hash = $2) AS minted_verification,
+                    verification_token_expires_at,
+                    (reset_token_hash = $4) AS minted_reset,
+                    reset_token_expiration`,
+        [
+          email,
+          hashToken(verificationToken),
+          verificationExpires,
+          hashToken(resetToken),
+          resetExpires,
+        ]
       );
       const row = res.rows[0];
       if (!row) {
         return reply.code(404).send({ error: 'user not found' });
       }
+      const hasVerification = row.minted_verification === true;
+      const hasReset = row.minted_reset === true;
       return reply.send({
-        verificationToken: row.verification_token,
-        verificationTokenExpiresAt: row.verification_token_expires_at?.toISOString() ?? null,
-        resetToken: row.reset_token,
-        resetTokenExpiration: row.reset_token_expiration?.toISOString() ?? null,
+        verificationToken: hasVerification ? verificationToken : null,
+        verificationTokenExpiresAt: hasVerification
+          ? (row.verification_token_expires_at?.toISOString() ?? null)
+          : null,
+        resetToken: hasReset ? resetToken : null,
+        resetTokenExpiration: hasReset ? (row.reset_token_expiration?.toISOString() ?? null) : null,
       });
     }
   );
