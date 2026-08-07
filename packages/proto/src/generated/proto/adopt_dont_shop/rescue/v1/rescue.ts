@@ -822,6 +822,36 @@ export interface DeleteApplicationQuestionResponse {
   deleted: boolean;
 }
 
+export interface UpdateApplicationQuestionRequest {
+  questionId: string;
+  category?: string | undefined;
+  questionType?: string | undefined;
+  questionText?: string | undefined;
+  helpText?: string | undefined;
+  placeholder?: string | undefined;
+  options: string[];
+  displayOrder?: number | undefined;
+  isRequired?: boolean | undefined;
+  isEnabled?: boolean | undefined;
+}
+
+export interface UpdateApplicationQuestionResponse {
+  question?: ApplicationQuestion | undefined;
+}
+
+export interface ReorderApplicationQuestionsRequest {
+  rescueId: string;
+  /**
+   * Question ids in the desired display order; each question's
+   * display_order becomes its index in this list.
+   */
+  questionIds: string[];
+}
+
+export interface ReorderApplicationQuestionsResponse {
+  questions: ApplicationQuestion[];
+}
+
 export interface UpdateRescuePlanRequest {
   rescueId: string;
   /** 'free' | 'growth' | 'professional'. Validated by the handler. */
@@ -6840,6 +6870,473 @@ export const DeleteApplicationQuestionResponse: MessageFns<DeleteApplicationQues
   },
 };
 
+function createBaseUpdateApplicationQuestionRequest(): UpdateApplicationQuestionRequest {
+  return {
+    questionId: "",
+    category: undefined,
+    questionType: undefined,
+    questionText: undefined,
+    helpText: undefined,
+    placeholder: undefined,
+    options: [],
+    displayOrder: undefined,
+    isRequired: undefined,
+    isEnabled: undefined,
+  };
+}
+
+export const UpdateApplicationQuestionRequest: MessageFns<UpdateApplicationQuestionRequest> = {
+  encode(message: UpdateApplicationQuestionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.questionId !== "") {
+      writer.uint32(10).string(message.questionId);
+    }
+    if (message.category !== undefined) {
+      writer.uint32(18).string(message.category);
+    }
+    if (message.questionType !== undefined) {
+      writer.uint32(26).string(message.questionType);
+    }
+    if (message.questionText !== undefined) {
+      writer.uint32(34).string(message.questionText);
+    }
+    if (message.helpText !== undefined) {
+      writer.uint32(42).string(message.helpText);
+    }
+    if (message.placeholder !== undefined) {
+      writer.uint32(50).string(message.placeholder);
+    }
+    for (const v of message.options) {
+      writer.uint32(58).string(v!);
+    }
+    if (message.displayOrder !== undefined) {
+      writer.uint32(64).int32(message.displayOrder);
+    }
+    if (message.isRequired !== undefined) {
+      writer.uint32(72).bool(message.isRequired);
+    }
+    if (message.isEnabled !== undefined) {
+      writer.uint32(80).bool(message.isEnabled);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateApplicationQuestionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateApplicationQuestionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.questionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.category = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.questionType = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.questionText = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.helpText = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.placeholder = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.options.push(reader.string());
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.displayOrder = reader.int32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.isRequired = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.isEnabled = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateApplicationQuestionRequest {
+    return {
+      questionId: isSet(object.questionId)
+        ? globalThis.String(object.questionId)
+        : isSet(object.question_id)
+        ? globalThis.String(object.question_id)
+        : "",
+      category: isSet(object.category) ? globalThis.String(object.category) : undefined,
+      questionType: isSet(object.questionType)
+        ? globalThis.String(object.questionType)
+        : isSet(object.question_type)
+        ? globalThis.String(object.question_type)
+        : undefined,
+      questionText: isSet(object.questionText)
+        ? globalThis.String(object.questionText)
+        : isSet(object.question_text)
+        ? globalThis.String(object.question_text)
+        : undefined,
+      helpText: isSet(object.helpText)
+        ? globalThis.String(object.helpText)
+        : isSet(object.help_text)
+        ? globalThis.String(object.help_text)
+        : undefined,
+      placeholder: isSet(object.placeholder) ? globalThis.String(object.placeholder) : undefined,
+      options: globalThis.Array.isArray(object?.options)
+        ? object.options.map((e: any) => globalThis.String(e))
+        : [],
+      displayOrder: isSet(object.displayOrder)
+        ? globalThis.Number(object.displayOrder)
+        : isSet(object.display_order)
+        ? globalThis.Number(object.display_order)
+        : undefined,
+      isRequired: isSet(object.isRequired)
+        ? globalThis.Boolean(object.isRequired)
+        : isSet(object.is_required)
+        ? globalThis.Boolean(object.is_required)
+        : undefined,
+      isEnabled: isSet(object.isEnabled)
+        ? globalThis.Boolean(object.isEnabled)
+        : isSet(object.is_enabled)
+        ? globalThis.Boolean(object.is_enabled)
+        : undefined,
+    };
+  },
+
+  toJSON(message: UpdateApplicationQuestionRequest): unknown {
+    const obj: any = {};
+    if (message.questionId !== "") {
+      obj.questionId = message.questionId;
+    }
+    if (message.category !== undefined) {
+      obj.category = message.category;
+    }
+    if (message.questionType !== undefined) {
+      obj.questionType = message.questionType;
+    }
+    if (message.questionText !== undefined) {
+      obj.questionText = message.questionText;
+    }
+    if (message.helpText !== undefined) {
+      obj.helpText = message.helpText;
+    }
+    if (message.placeholder !== undefined) {
+      obj.placeholder = message.placeholder;
+    }
+    if (message.options?.length) {
+      obj.options = message.options;
+    }
+    if (message.displayOrder !== undefined) {
+      obj.displayOrder = Math.round(message.displayOrder);
+    }
+    if (message.isRequired !== undefined) {
+      obj.isRequired = message.isRequired;
+    }
+    if (message.isEnabled !== undefined) {
+      obj.isEnabled = message.isEnabled;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateApplicationQuestionRequest>, I>>(
+    base?: I,
+  ): UpdateApplicationQuestionRequest {
+    return UpdateApplicationQuestionRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateApplicationQuestionRequest>, I>>(
+    object: I,
+  ): UpdateApplicationQuestionRequest {
+    const message = createBaseUpdateApplicationQuestionRequest();
+    message.questionId = object.questionId ?? "";
+    message.category = object.category ?? undefined;
+    message.questionType = object.questionType ?? undefined;
+    message.questionText = object.questionText ?? undefined;
+    message.helpText = object.helpText ?? undefined;
+    message.placeholder = object.placeholder ?? undefined;
+    message.options = object.options?.map((e) => e) || [];
+    message.displayOrder = object.displayOrder ?? undefined;
+    message.isRequired = object.isRequired ?? undefined;
+    message.isEnabled = object.isEnabled ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateApplicationQuestionResponse(): UpdateApplicationQuestionResponse {
+  return { question: undefined };
+}
+
+export const UpdateApplicationQuestionResponse: MessageFns<UpdateApplicationQuestionResponse> = {
+  encode(message: UpdateApplicationQuestionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.question !== undefined) {
+      ApplicationQuestion.encode(message.question, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateApplicationQuestionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateApplicationQuestionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.question = ApplicationQuestion.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateApplicationQuestionResponse {
+    return { question: isSet(object.question) ? ApplicationQuestion.fromJSON(object.question) : undefined };
+  },
+
+  toJSON(message: UpdateApplicationQuestionResponse): unknown {
+    const obj: any = {};
+    if (message.question !== undefined) {
+      obj.question = ApplicationQuestion.toJSON(message.question);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateApplicationQuestionResponse>, I>>(
+    base?: I,
+  ): UpdateApplicationQuestionResponse {
+    return UpdateApplicationQuestionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateApplicationQuestionResponse>, I>>(
+    object: I,
+  ): UpdateApplicationQuestionResponse {
+    const message = createBaseUpdateApplicationQuestionResponse();
+    message.question = (object.question !== undefined && object.question !== null)
+      ? ApplicationQuestion.fromPartial(object.question)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseReorderApplicationQuestionsRequest(): ReorderApplicationQuestionsRequest {
+  return { rescueId: "", questionIds: [] };
+}
+
+export const ReorderApplicationQuestionsRequest: MessageFns<ReorderApplicationQuestionsRequest> = {
+  encode(message: ReorderApplicationQuestionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    for (const v of message.questionIds) {
+      writer.uint32(18).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ReorderApplicationQuestionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseReorderApplicationQuestionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.questionIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ReorderApplicationQuestionsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      questionIds: globalThis.Array.isArray(object?.questionIds)
+        ? object.questionIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.question_ids)
+        ? object.question_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ReorderApplicationQuestionsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.questionIds?.length) {
+      obj.questionIds = message.questionIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReorderApplicationQuestionsRequest>, I>>(
+    base?: I,
+  ): ReorderApplicationQuestionsRequest {
+    return ReorderApplicationQuestionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReorderApplicationQuestionsRequest>, I>>(
+    object: I,
+  ): ReorderApplicationQuestionsRequest {
+    const message = createBaseReorderApplicationQuestionsRequest();
+    message.rescueId = object.rescueId ?? "";
+    message.questionIds = object.questionIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseReorderApplicationQuestionsResponse(): ReorderApplicationQuestionsResponse {
+  return { questions: [] };
+}
+
+export const ReorderApplicationQuestionsResponse: MessageFns<ReorderApplicationQuestionsResponse> = {
+  encode(message: ReorderApplicationQuestionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.questions) {
+      ApplicationQuestion.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ReorderApplicationQuestionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseReorderApplicationQuestionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.questions.push(ApplicationQuestion.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ReorderApplicationQuestionsResponse {
+    return {
+      questions: globalThis.Array.isArray(object?.questions)
+        ? object.questions.map((e: any) => ApplicationQuestion.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ReorderApplicationQuestionsResponse): unknown {
+    const obj: any = {};
+    if (message.questions?.length) {
+      obj.questions = message.questions.map((e) => ApplicationQuestion.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReorderApplicationQuestionsResponse>, I>>(
+    base?: I,
+  ): ReorderApplicationQuestionsResponse {
+    return ReorderApplicationQuestionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReorderApplicationQuestionsResponse>, I>>(
+    object: I,
+  ): ReorderApplicationQuestionsResponse {
+    const message = createBaseReorderApplicationQuestionsResponse();
+    message.questions = object.questions?.map((e) => ApplicationQuestion.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 function createBaseUpdateRescuePlanRequest(): UpdateRescuePlanRequest {
   return { rescueId: "", plan: "", planExpiresAt: undefined };
 }
@@ -10748,6 +11245,44 @@ export const RescueServiceService = {
       DeleteApplicationQuestionResponse.decode(value),
   },
   /**
+   * Update a rescue-specific question's editable fields (only the
+   * supplied fields are written). Caller MUST have `applications.update`
+   * scoped to the question's rescue; core questions cannot be edited
+   * (FAILED_PRECONDITION). Publishes `rescue.applicationQuestionUpdated`.
+   */
+  updateApplicationQuestion: {
+    path: "/adopt_dont_shop.rescue.v1.RescueService/UpdateApplicationQuestion" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateApplicationQuestionRequest): Buffer =>
+      Buffer.from(UpdateApplicationQuestionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateApplicationQuestionRequest =>
+      UpdateApplicationQuestionRequest.decode(value),
+    responseSerialize: (value: UpdateApplicationQuestionResponse): Buffer =>
+      Buffer.from(UpdateApplicationQuestionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateApplicationQuestionResponse =>
+      UpdateApplicationQuestionResponse.decode(value),
+  },
+  /**
+   * Reorder a rescue's custom questions: each question's display_order is
+   * rewritten to its index in `question_ids`. Caller MUST have
+   * `applications.update` scoped to the rescue. Publishes
+   * `rescue.applicationQuestionsReordered`.
+   */
+  reorderApplicationQuestions: {
+    path: "/adopt_dont_shop.rescue.v1.RescueService/ReorderApplicationQuestions" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ReorderApplicationQuestionsRequest): Buffer =>
+      Buffer.from(ReorderApplicationQuestionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ReorderApplicationQuestionsRequest =>
+      ReorderApplicationQuestionsRequest.decode(value),
+    responseSerialize: (value: ReorderApplicationQuestionsResponse): Buffer =>
+      Buffer.from(ReorderApplicationQuestionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ReorderApplicationQuestionsResponse =>
+      ReorderApplicationQuestionsResponse.decode(value),
+  },
+  /**
    * Set a rescue's subscription plan tier (free / growth / professional)
    * and optional expiry. Admin-only — caller MUST have
    * `admin.security.manage`. Publishes `rescue.planUpdated` after commit.
@@ -11086,6 +11621,20 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    * questions cannot be deleted (FAILED_PRECONDITION).
    */
   deleteApplicationQuestion: handleUnaryCall<DeleteApplicationQuestionRequest, DeleteApplicationQuestionResponse>;
+  /**
+   * Update a rescue-specific question's editable fields (only the
+   * supplied fields are written). Caller MUST have `applications.update`
+   * scoped to the question's rescue; core questions cannot be edited
+   * (FAILED_PRECONDITION). Publishes `rescue.applicationQuestionUpdated`.
+   */
+  updateApplicationQuestion: handleUnaryCall<UpdateApplicationQuestionRequest, UpdateApplicationQuestionResponse>;
+  /**
+   * Reorder a rescue's custom questions: each question's display_order is
+   * rewritten to its index in `question_ids`. Caller MUST have
+   * `applications.update` scoped to the rescue. Publishes
+   * `rescue.applicationQuestionsReordered`.
+   */
+  reorderApplicationQuestions: handleUnaryCall<ReorderApplicationQuestionsRequest, ReorderApplicationQuestionsResponse>;
   /**
    * Set a rescue's subscription plan tier (free / growth / professional)
    * and optional expiry. Admin-only — caller MUST have
@@ -11564,6 +12113,48 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteApplicationQuestionResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Update a rescue-specific question's editable fields (only the
+   * supplied fields are written). Caller MUST have `applications.update`
+   * scoped to the question's rescue; core questions cannot be edited
+   * (FAILED_PRECONDITION). Publishes `rescue.applicationQuestionUpdated`.
+   */
+  updateApplicationQuestion(
+    request: UpdateApplicationQuestionRequest,
+    callback: (error: ServiceError | null, response: UpdateApplicationQuestionResponse) => void,
+  ): ClientUnaryCall;
+  updateApplicationQuestion(
+    request: UpdateApplicationQuestionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateApplicationQuestionResponse) => void,
+  ): ClientUnaryCall;
+  updateApplicationQuestion(
+    request: UpdateApplicationQuestionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateApplicationQuestionResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Reorder a rescue's custom questions: each question's display_order is
+   * rewritten to its index in `question_ids`. Caller MUST have
+   * `applications.update` scoped to the rescue. Publishes
+   * `rescue.applicationQuestionsReordered`.
+   */
+  reorderApplicationQuestions(
+    request: ReorderApplicationQuestionsRequest,
+    callback: (error: ServiceError | null, response: ReorderApplicationQuestionsResponse) => void,
+  ): ClientUnaryCall;
+  reorderApplicationQuestions(
+    request: ReorderApplicationQuestionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ReorderApplicationQuestionsResponse) => void,
+  ): ClientUnaryCall;
+  reorderApplicationQuestions(
+    request: ReorderApplicationQuestionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ReorderApplicationQuestionsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Set a rescue's subscription plan tier (free / growth / professional)

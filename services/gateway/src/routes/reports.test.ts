@@ -24,6 +24,8 @@ function makeClient(): {
     listReportTemplates: vi.fn(),
     upsertReportSchedule: vi.fn(),
     createReportShare: vi.fn(),
+    deleteReportSchedule: vi.fn(),
+    revokeReportShare: vi.fn(),
   };
   return { client: mocks as unknown as AuditClient, mocks };
 }
@@ -587,5 +589,68 @@ describe('/api/v1/reports gateway routes', () => {
     });
     expect(res.statusCode).toBe(501);
     expect(mocks.createReportShare).not.toHaveBeenCalled();
+  });
+
+  // ── delete schedule ─────────────────────────────────────────────────
+
+  it('DELETE /schedules/:scheduleId removes the schedule and returns success', async () => {
+    mocks.deleteReportSchedule.mockResolvedValue({ deleted: true });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/reports/schedules/sched-1',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { success: boolean };
+    expect(body.success).toBe(true);
+    expect(mocks.deleteReportSchedule.mock.calls[0][0].scheduleId).toBe('sched-1');
+  });
+
+  it('DELETE /schedules/:scheduleId returns 404 when nothing was deleted', async () => {
+    mocks.deleteReportSchedule.mockResolvedValue({ deleted: false });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/reports/schedules/missing',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('DELETE /schedules/:scheduleId maps gRPC PERMISSION_DENIED → 403', async () => {
+    mocks.deleteReportSchedule.mockRejectedValue({
+      code: grpcStatus.PERMISSION_DENIED,
+      details: 'no',
+    });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/reports/schedules/sched-1',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  // ── revoke share ────────────────────────────────────────────────────
+
+  it('DELETE /shares/:shareId revokes the share and returns success', async () => {
+    mocks.revokeReportShare.mockResolvedValue({ revoked: true });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/reports/shares/share-1',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { success: boolean };
+    expect(body.success).toBe(true);
+    expect(mocks.revokeReportShare.mock.calls[0][0].shareId).toBe('share-1');
+  });
+
+  it('DELETE /shares/:shareId returns 404 when the share was missing or already revoked', async () => {
+    mocks.revokeReportShare.mockResolvedValue({ revoked: false });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/reports/shares/share-x',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(404);
   });
 });

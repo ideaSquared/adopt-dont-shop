@@ -47,6 +47,8 @@ import {
   type GetFosterPlacementResponse,
   type GetInvitationByTokenRequest,
   type GetInvitationByTokenResponse,
+  type CreateStaffMemberRequest,
+  type CreateStaffMemberResponse,
   type GetMyStaffMembershipRequest,
   type GetMyStaffMembershipResponse,
   type GetRescueRequest,
@@ -55,6 +57,10 @@ import {
   type InviteStaffResponse,
   type ListApplicationQuestionsRequest,
   type ListApplicationQuestionsResponse,
+  type ReorderApplicationQuestionsRequest,
+  type ReorderApplicationQuestionsResponse,
+  type UpdateApplicationQuestionRequest,
+  type UpdateApplicationQuestionResponse,
   type ListEventsRequest,
   type ListEventsResponse,
   type ListFosterPlacementsRequest,
@@ -69,6 +75,8 @@ import {
   type RemoveStaffMemberResponse,
   type UpdateEventRequest,
   type UpdateEventResponse,
+  type UpdateStaffMemberRequest,
+  type UpdateStaffMemberResponse,
   type UpdateRescueRequest,
   type UpdateRescueResponse,
   type UpdateRescuePlanRequest,
@@ -113,6 +121,14 @@ export type RescueClient = {
     req: ListStaffMembersRequest,
     metadata: Metadata
   ): Promise<ListStaffMembersResponse>;
+  createStaffMember(
+    req: CreateStaffMemberRequest,
+    metadata: Metadata
+  ): Promise<CreateStaffMemberResponse>;
+  updateStaffMember(
+    req: UpdateStaffMemberRequest,
+    metadata: Metadata
+  ): Promise<UpdateStaffMemberResponse>;
   removeStaffMember(
     req: RemoveStaffMemberRequest,
     metadata: Metadata
@@ -157,6 +173,14 @@ export type RescueClient = {
     req: CreateApplicationQuestionRequest,
     metadata: Metadata
   ): Promise<CreateApplicationQuestionResponse>;
+  updateApplicationQuestion(
+    req: UpdateApplicationQuestionRequest,
+    metadata: Metadata
+  ): Promise<UpdateApplicationQuestionResponse>;
+  reorderApplicationQuestions(
+    req: ReorderApplicationQuestionsRequest,
+    metadata: Metadata
+  ): Promise<ReorderApplicationQuestionsResponse>;
   deleteApplicationQuestion(
     req: DeleteApplicationQuestionRequest,
     metadata: Metadata
@@ -251,6 +275,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     sendRescueEmail: (req, metadata) => callUnary(stub.sendRescueEmail, req, metadata, false),
     verify: (req, metadata) => callUnary(stub.verify, req, metadata, false),
     inviteStaff: (req, metadata) => callUnary(stub.inviteStaff, req, metadata, false),
+    createStaffMember: (req, metadata) => callUnary(stub.createStaffMember, req, metadata, false),
+    updateStaffMember: (req, metadata) => callUnary(stub.updateStaffMember, req, metadata, false),
     removeStaffMember: (req, metadata) => callUnary(stub.removeStaffMember, req, metadata, false),
     cancelRescueInvitation: (req, metadata) =>
       callUnary(stub.cancelRescueInvitation, req, metadata, false),
@@ -259,6 +285,10 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     endFosterPlacement: (req, metadata) => callUnary(stub.endFosterPlacement, req, metadata, false),
     createApplicationQuestion: (req, metadata) =>
       callUnary(stub.createApplicationQuestion, req, metadata, false),
+    updateApplicationQuestion: (req, metadata) =>
+      callUnary(stub.updateApplicationQuestion, req, metadata, false),
+    reorderApplicationQuestions: (req, metadata) =>
+      callUnary(stub.reorderApplicationQuestions, req, metadata, false),
     deleteApplicationQuestion: (req, metadata) =>
       callUnary(stub.deleteApplicationQuestion, req, metadata, false),
     acceptInvitation: (req, metadata) => callUnary(stub.acceptInvitation, req, metadata, false),

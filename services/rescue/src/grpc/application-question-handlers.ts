@@ -14,6 +14,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import { withTransaction } from '@adopt-dont-shop/events';
 import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
 import {
   RescueV1,
@@ -24,6 +25,10 @@ import {
   type DeleteApplicationQuestionResponse,
   type ListApplicationQuestionsRequest,
   type ListApplicationQuestionsResponse,
+  type ReorderApplicationQuestionsRequest,
+  type ReorderApplicationQuestionsResponse,
+  type UpdateApplicationQuestionRequest,
+  type UpdateApplicationQuestionResponse,
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './handlers.js';
@@ -229,4 +234,169 @@ export async function deleteApplicationQuestion(
     [req.questionId, principal.userId]
   );
   return { deleted: true };
+}
+
+// --- UpdateApplicationQuestion ---------------------------------------
+
+export async function updateApplicationQuestion(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: UpdateApplicationQuestionRequest
+): Promise<UpdateApplicationQuestionResponse> {
+  if (!req.questionId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'question_id is required');
+  }
+
+  const existing = await deps.pool.query<Pick<ApplicationQuestionRow, 'rescue_id' | 'scope'>>(
+    `SELECT rescue_id, scope FROM rescue.application_questions
+      WHERE question_id = $1 AND deleted_at IS NULL`,
+    [req.questionId]
+  );
+  const row = existing.rows[0];
+  if (!row) {
+    throw new HandlerError('NOT_FOUND', `application question ${req.questionId} not found`);
+  }
+  // Core questions are the shared baseline — not a rescue's to edit.
+  if (row.scope === 'core' || !row.rescue_id) {
+    throw new HandlerError('FAILED_PRECONDITION', 'core questions cannot be edited');
+  }
+  if (!requirePermission(principal, APPLICATIONS_UPDATE, { rescueId: row.rescue_id as RescueId })) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `'${APPLICATIONS_UPDATE}' required for this rescue`
+    );
+  }
+
+  // COALESCE writes ONLY the supplied fields — an unset optional passes null
+  // and the existing value is kept. options is text[]; an empty array is
+  // treated as "unset" (matches createApplicationQuestion).
+  const options = req.options.length > 0 ? req.options : null;
+  let updated: ApplicationQuestionRow | undefined;
+  try {
+    await withTransaction(deps, async ({ client, publish }) => {
+      const res = await client.query<ApplicationQuestionRow>(
+        `
+        UPDATE rescue.application_questions
+           SET category      = COALESCE($2::application_question_category, category),
+               question_type = COALESCE($3::application_question_type, question_type),
+               question_text = COALESCE($4::text, question_text),
+               help_text     = COALESCE($5::text, help_text),
+               placeholder   = COALESCE($6::varchar, placeholder),
+               options       = COALESCE($7::text[], options),
+               display_order = COALESCE($8::integer, display_order),
+               is_required   = COALESCE($9::boolean, is_required),
+               is_enabled    = COALESCE($10::boolean, is_enabled),
+               updated_by    = $11,
+               updated_at    = now(),
+               version       = version + 1
+         WHERE question_id = $1 AND deleted_at IS NULL
+         RETURNING ${QUESTION_SELECT}
+        `,
+        [
+          req.questionId,
+          req.category ?? null,
+          req.questionType ?? null,
+          req.questionText ?? null,
+          req.helpText ?? null,
+          req.placeholder ?? null,
+          options,
+          req.displayOrder ?? null,
+          req.isRequired ?? null,
+          req.isEnabled ?? null,
+          principal.userId,
+        ]
+      );
+      updated = res.rows[0];
+      if (updated) {
+        publish({
+          type: 'rescue.applicationQuestionUpdated',
+          id: `rescue.applicationQuestionUpdated.${req.questionId}.${Date.now()}`,
+          payload: {
+            rescueId: row.rescue_id,
+            questionId: req.questionId,
+            updatedBy: principal.userId,
+          },
+        });
+      }
+    });
+  } catch (err) {
+    // A bad category/question_type value fails the ENUM cast (22P02).
+    if ((err as { code?: string }).code === '22P02') {
+      throw new HandlerError('INVALID_ARGUMENT', 'invalid category or question_type');
+    }
+    throw err;
+  }
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'application question update returned no rows');
+  }
+  return { question: questionRowToProto(updated) };
+}
+
+// --- ReorderApplicationQuestions -------------------------------------
+
+export async function reorderApplicationQuestions(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ReorderApplicationQuestionsRequest
+): Promise<ReorderApplicationQuestionsResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (req.questionIds.length === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'question_ids must not be empty');
+  }
+  if (!requirePermission(principal, APPLICATIONS_UPDATE, { rescueId: req.rescueId as RescueId })) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `'${APPLICATIONS_UPDATE}' required for this rescue`
+    );
+  }
+
+  // Every id MUST be a non-deleted, rescue-owned question. Core questions
+  // (rescue_id IS NULL) are never selected here, so they cannot be reordered.
+  const owned = await deps.pool.query<Pick<ApplicationQuestionRow, 'question_id'>>(
+    `SELECT question_id FROM rescue.application_questions
+      WHERE rescue_id = $1 AND deleted_at IS NULL`,
+    [req.rescueId]
+  );
+  const ownedIds = new Set(owned.rows.map(r => r.question_id));
+  for (const id of req.questionIds) {
+    if (!ownedIds.has(id)) {
+      throw new HandlerError(
+        'NOT_FOUND',
+        `question ${id} does not belong to rescue ${req.rescueId}`
+      );
+    }
+  }
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    // display_order becomes each id's index in the supplied list.
+    for (let index = 0; index < req.questionIds.length; index += 1) {
+      await client.query(
+        `UPDATE rescue.application_questions
+            SET display_order = $2, updated_by = $3, updated_at = now(), version = version + 1
+          WHERE question_id = $1 AND rescue_id = $4 AND deleted_at IS NULL`,
+        [req.questionIds[index], index, principal.userId, req.rescueId]
+      );
+    }
+    publish({
+      type: 'rescue.applicationQuestionsReordered',
+      id: `rescue.applicationQuestionsReordered.${req.rescueId}.${Date.now()}`,
+      payload: {
+        rescueId: req.rescueId,
+        questionIds: req.questionIds,
+        reorderedBy: principal.userId,
+      },
+    });
+  });
+
+  const res = await deps.pool.query<ApplicationQuestionRow>(
+    `SELECT ${QUESTION_SELECT}
+       FROM rescue.application_questions
+      WHERE rescue_id = $1 AND question_id = ANY($2::uuid[]) AND deleted_at IS NULL
+      ORDER BY display_order ASC`,
+    [req.rescueId, req.questionIds]
+  );
+  return { questions: res.rows.map(questionRowToProto) };
 }

@@ -27,6 +27,8 @@ function makeClient(): {
   inviteStaffMock: ReturnType<typeof vi.fn>;
   listQuestionsMock: ReturnType<typeof vi.fn>;
   createQuestionMock: ReturnType<typeof vi.fn>;
+  updateQuestionMock: ReturnType<typeof vi.fn>;
+  reorderQuestionsMock: ReturnType<typeof vi.fn>;
   deleteQuestionMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
@@ -37,6 +39,8 @@ function makeClient(): {
   const inviteStaffMock = vi.fn();
   const listQuestionsMock = vi.fn();
   const createQuestionMock = vi.fn();
+  const updateQuestionMock = vi.fn();
+  const reorderQuestionsMock = vi.fn();
   const deleteQuestionMock = vi.fn();
   const client: RescueClient = {
     create: createMock,
@@ -55,6 +59,8 @@ function makeClient(): {
     getInvitationByToken: vi.fn(),
     listApplicationQuestions: listQuestionsMock,
     createApplicationQuestion: createQuestionMock,
+    updateApplicationQuestion: updateQuestionMock,
+    reorderApplicationQuestions: reorderQuestionsMock,
     deleteApplicationQuestion: deleteQuestionMock,
     close: vi.fn(),
   };
@@ -68,6 +74,8 @@ function makeClient(): {
     inviteStaffMock,
     listQuestionsMock,
     createQuestionMock,
+    updateQuestionMock,
+    reorderQuestionsMock,
     deleteQuestionMock,
   };
 }
@@ -451,6 +459,91 @@ describe('application questions routes', () => {
       expect(grpcReq.rescueId).toBe('rsc-1');
       expect(grpcReq.displayOrder).toBe(5);
       expect(grpcReq.questionKey).toBe('e2e_key');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PUT forwards the questionId + supplied fields and returns 200 with the question', async () => {
+    const { client, updateQuestionMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      updateQuestionMock.mockResolvedValueOnce({
+        question: { ...QUESTION_FIXTURE, questionText: 'Updated?' },
+      });
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/rescues/rsc-1/questions/q-1',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+        payload: { questionText: 'Updated?', isEnabled: false },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; question: { questionText: string } };
+      expect(body.success).toBe(true);
+      expect(body.question.questionText).toBe('Updated?');
+      const [grpcReq] = updateQuestionMock.mock.calls[0] as [
+        { questionId: string; questionText?: string; isEnabled?: boolean },
+      ];
+      expect(grpcReq.questionId).toBe('q-1');
+      expect(grpcReq.questionText).toBe('Updated?');
+      expect(grpcReq.isEnabled).toBe(false);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PATCH reorder derives ordered ids from { questions } by displayOrder', async () => {
+    const { client, reorderQuestionsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      reorderQuestionsMock.mockResolvedValueOnce({
+        questions: [
+          { ...QUESTION_FIXTURE, questionId: 'q-2', displayOrder: 0 },
+          { ...QUESTION_FIXTURE, questionId: 'q-1', displayOrder: 1 },
+        ],
+      });
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/rescues/rsc-1/questions/reorder',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+        payload: {
+          questions: [
+            { questionId: 'q-1', displayOrder: 1 },
+            { questionId: 'q-2', displayOrder: 0 },
+          ],
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; data: Array<{ questionId: string }> };
+      expect(body.success).toBe(true);
+      expect(body.data.map(q => q.questionId)).toEqual(['q-2', 'q-1']);
+      const [grpcReq] = reorderQuestionsMock.mock.calls[0] as [
+        { rescueId: string; questionIds: string[] },
+      ];
+      expect(grpcReq.rescueId).toBe('rsc-1');
+      // Sorted by displayOrder ascending → q-2 (0) then q-1 (1).
+      expect(grpcReq.questionIds).toEqual(['q-2', 'q-1']);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PATCH reorder accepts a plain questionIds array in order', async () => {
+    const { client, reorderQuestionsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      reorderQuestionsMock.mockResolvedValueOnce({ questions: [] });
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/rescues/rsc-1/questions/reorder',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+        payload: { questionIds: ['q-3', 'q-1', 'q-2'] },
+      });
+      expect(res.statusCode).toBe(200);
+      const [grpcReq] = reorderQuestionsMock.mock.calls[0] as [
+        { rescueId: string; questionIds: string[] },
+      ];
+      expect(grpcReq.questionIds).toEqual(['q-3', 'q-1', 'q-2']);
     } finally {
       await app.close();
     }

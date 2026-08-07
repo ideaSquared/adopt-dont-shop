@@ -577,6 +577,32 @@ describe('/api/v1/admin/users surface', () => {
     expect(body.data.status).toBe('active');
   });
 
+  it('PATCH :userId updates profile fields via adminUpdateUser', async () => {
+    const updated = { ...ADMIN_USER_FIXTURE, firstName: 'Renamed' };
+    auth.adminUpdateUserMock.mockResolvedValueOnce({ user: updated });
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/admin/users/usr-9',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({ firstName: 'Renamed', lastName: 'Person' }),
+    });
+    expect(res.statusCode).toBe(200);
+    const [grpcReq] = auth.adminUpdateUserMock.mock.calls[0] as [
+      { userId: string; firstName?: string; lastName?: string },
+      Metadata,
+    ];
+    expect(grpcReq.userId).toBe('usr-9');
+    expect(grpcReq.firstName).toBe('Renamed');
+    expect(grpcReq.lastName).toBe('Person');
+    const body = res.json() as { data: { userId: string; firstName: string } };
+    expect(body.data.userId).toBe('usr-9');
+    expect(body.data.firstName).toBe('Renamed');
+  });
+
   it('PATCH action=suspend sets status SUSPENDED and returns "suspended"', async () => {
     const suspended = { ...ADMIN_USER_FIXTURE, status: AuthV1.UserStatus.USER_STATUS_SUSPENDED };
     auth.adminUpdateUserMock.mockResolvedValueOnce({ user: suspended });

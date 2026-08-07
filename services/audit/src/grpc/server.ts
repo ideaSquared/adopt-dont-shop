@@ -21,10 +21,12 @@ import { getByTarget, getGdprErasureRequest, query } from './handlers.js';
 import {
   createReportShare,
   createSavedReport,
+  deleteReportSchedule,
   deleteSavedReport,
   getSavedReport,
   listReportTemplates,
   listSavedReports,
+  revokeReportShare,
   updateSavedReport,
   upsertReportSchedule,
 } from './reports-handlers.js';
@@ -54,6 +56,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     listReportTemplates: adapt(listReportTemplates, { deps, logger }),
     upsertReportSchedule: adapt(upsertReportSchedule, { deps, logger }),
     createReportShare: adapt(createReportShare, { deps, logger }),
+    deleteReportSchedule: adapt(deleteReportSchedule, { deps, logger }),
+    revokeReportShare: adapt(revokeReportShare, { deps, logger }),
     getGdprErasureRequest: adapt(getGdprErasureRequest, { deps, logger }),
   });
 
@@ -69,6 +73,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'listReportTemplates',
       'upsertReportSchedule',
       'createReportShare',
+      'deleteReportSchedule',
+      'revokeReportShare',
       'getGdprErasureRequest',
     ],
     grpcPort: config.grpcPort,

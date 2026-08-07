@@ -9,6 +9,7 @@
 
 import {
   ModerationV1,
+  type GetModerationMetricsResponse,
   type ModeratorAction,
   type Report,
   type SupportTicket,
@@ -222,6 +223,52 @@ export function supportTicketResponseToView(r: SupportTicketResponse): SupportTi
     content: r.content,
     isInternal: r.isInternal,
     createdAt: r.createdAt,
+  };
+}
+
+export type ModerationMetricsView = {
+  totalReports: number;
+  pendingReports: number;
+  underReviewReports: number;
+  resolvedReports: number;
+  dismissedReports: number;
+  escalatedReports: number;
+  criticalReports: number;
+  averageResolutionTime: number;
+  reportsToday: number;
+  reportsThisWeek: number;
+  reportsThisMonth: number;
+  topCategories: Array<{ category: string; count: number }>;
+  moderatorActivity: Array<{ moderatorId: string; actionsCount: number; resolvedCount: number }>;
+};
+
+// GetModerationMetrics proto → the dashboard's ModerationMetrics shape.
+// Only the report-category enum needs token-lowering; the counts pass
+// through and the moderator-activity rows are already frontend-shaped.
+export function metricsToView(m: GetModerationMetricsResponse): ModerationMetricsView {
+  return {
+    totalReports: m.totalReports,
+    pendingReports: m.pendingReports,
+    underReviewReports: m.underReviewReports,
+    resolvedReports: m.resolvedReports,
+    dismissedReports: m.dismissedReports,
+    escalatedReports: m.escalatedReports,
+    criticalReports: m.criticalReports,
+    averageResolutionTime: m.averageResolutionTime,
+    reportsToday: m.reportsToday,
+    reportsThisWeek: m.reportsThisWeek,
+    reportsThisMonth: m.reportsThisMonth,
+    topCategories: m.topCategories.map(c => ({
+      category:
+        tokenFromProto(ModerationV1.reportCategoryToJSON, c.category, 'REPORT_CATEGORY_') ??
+        'other',
+      count: c.count,
+    })),
+    moderatorActivity: m.moderatorActivity.map(a => ({
+      moderatorId: a.moderatorId,
+      actionsCount: a.actionsCount,
+      resolvedCount: a.resolvedCount,
+    })),
   };
 }
 

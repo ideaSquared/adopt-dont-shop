@@ -26,6 +26,8 @@ import {
   type CreateRescueRequest,
   type InviteStaffRequest,
   type ListRescuesRequest,
+  type ReorderApplicationQuestionsRequest,
+  type UpdateApplicationQuestionRequest,
   type UpdateRescueRequest,
   type VerifyRescueRequest,
 } from '@adopt-dont-shop/proto';
@@ -100,6 +102,42 @@ type QuestionBody = {
   displayOrder?: number;
   isRequired?: boolean;
   is_required?: boolean;
+};
+
+// PUT body — every field is optional (partial update); only the supplied
+// ones are written by the service. isEnabled powers the enable/disable
+// toggle the SPA sends on its own.
+type UpdateQuestionBody = {
+  category?: string;
+  questionType?: string;
+  question_type?: string;
+  questionText?: string;
+  question_text?: string;
+  helpText?: string;
+  help_text?: string;
+  placeholder?: string;
+  options?: string[];
+  sortOrder?: number;
+  displayOrder?: number;
+  isRequired?: boolean;
+  is_required?: boolean;
+  isEnabled?: boolean;
+  is_enabled?: boolean;
+};
+
+// PATCH reorder body. The SPA sends `{ questions: [{ questionId,
+// displayOrder }] }`; a plain ordered id list (`questionIds` / `orderedIds`)
+// is accepted too. The desired final order is derived from displayOrder.
+type ReorderQuestionEntry = {
+  questionId?: string;
+  question_id?: string;
+  displayOrder?: number;
+  display_order?: number;
+};
+type ReorderQuestionsBody = {
+  questions?: ReorderQuestionEntry[];
+  questionIds?: string[];
+  orderedIds?: string[];
 };
 
 export const registerRescueRoutes = async (
@@ -613,6 +651,182 @@ export const registerRescueRoutes = async (
     }
   );
 
+  app.patch<{ Params: { rescueId: string } }>(
+    '/api/v1/rescues/:rescueId/questions/reorder',
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.update },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Reorder a rescue application questions',
+        params: {
+          type: 'object',
+          properties: {
+            rescueId: { type: 'string' },
+          },
+          required: ['rescueId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            questions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  questionId: { type: 'string' },
+                  displayOrder: { type: 'number' },
+                },
+              },
+            },
+            questionIds: { type: 'array', items: { type: 'string' } },
+            orderedIds: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    questionId: { type: 'string' },
+                    displayOrder: { type: 'number' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as ReorderQuestionsBody;
+      const grpcReq: ReorderApplicationQuestionsRequest = {
+        rescueId: req.params.rescueId,
+        questionIds: deriveOrderedQuestionIds(body),
+      };
+      try {
+        const res = await client.reorderApplicationQuestions(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          data: res.questions.map(q => RescueV1.ApplicationQuestion.toJSON(q)),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.put<{ Params: { rescueId: string; questionId: string } }>(
+    '/api/v1/rescues/:rescueId/questions/:questionId',
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.update },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Update an application question for a rescue',
+        params: {
+          type: 'object',
+          properties: {
+            rescueId: { type: 'string' },
+            questionId: { type: 'string' },
+          },
+          required: ['rescueId', 'questionId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            category: { type: 'string' },
+            questionType: { type: 'string' },
+            questionText: { type: 'string' },
+            helpText: { type: 'string' },
+            placeholder: { type: 'string' },
+            options: { type: 'array', items: { type: 'string' } },
+            displayOrder: { type: 'number' },
+            isRequired: { type: 'boolean' },
+            isEnabled: { type: 'boolean' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              question: {
+                type: 'object',
+                properties: {
+                  questionId: { type: 'string' },
+                  questionKey: { type: 'string' },
+                  category: { type: 'string' },
+                  questionType: { type: 'string' },
+                  questionText: { type: 'string' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as UpdateQuestionBody;
+      const displayOrder =
+        typeof body.sortOrder === 'number'
+          ? body.sortOrder
+          : typeof body.displayOrder === 'number'
+            ? body.displayOrder
+            : undefined;
+      const isRequired =
+        typeof body.isRequired === 'boolean'
+          ? body.isRequired
+          : typeof body.is_required === 'boolean'
+            ? body.is_required
+            : undefined;
+      const isEnabled =
+        typeof body.isEnabled === 'boolean'
+          ? body.isEnabled
+          : typeof body.is_enabled === 'boolean'
+            ? body.is_enabled
+            : undefined;
+      const grpcReq: UpdateApplicationQuestionRequest = {
+        questionId: req.params.questionId,
+        category: body.category,
+        questionType: body.questionType ?? body.question_type,
+        questionText: body.questionText ?? body.question_text,
+        helpText: body.helpText ?? body.help_text,
+        placeholder: body.placeholder,
+        options: Array.isArray(body.options) ? body.options : [],
+        displayOrder,
+        isRequired,
+        isEnabled,
+      };
+      try {
+        const res = await client.updateApplicationQuestion(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          question: res.question ? RescueV1.ApplicationQuestion.toJSON(res.question) : null,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   app.delete<{ Params: { rescueId: string; questionId: string } }>(
     '/api/v1/rescues/:rescueId/questions/:questionId',
     {
@@ -661,6 +875,35 @@ export const registerRescueRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
+
+// Derive the ordered question-id list the service expects from whichever
+// reorder body shape the caller sent. A plain id array (questionIds /
+// orderedIds) is already ordered; the SPA's `{ questions: [{ questionId,
+// displayOrder }] }` encodes the desired order in displayOrder, so sort by it.
+function deriveOrderedQuestionIds(body: ReorderQuestionsBody): string[] {
+  if (Array.isArray(body.questionIds)) {
+    return body.questionIds;
+  }
+  if (Array.isArray(body.orderedIds)) {
+    return body.orderedIds;
+  }
+  if (Array.isArray(body.questions)) {
+    return [...body.questions]
+      .map(entry => ({
+        questionId: entry.questionId ?? entry.question_id ?? '',
+        displayOrder:
+          typeof entry.displayOrder === 'number'
+            ? entry.displayOrder
+            : typeof entry.display_order === 'number'
+              ? entry.display_order
+              : 0,
+      }))
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map(entry => entry.questionId)
+      .filter(id => id.length > 0);
+  }
+  return [];
+}
 
 // parseStatus accepts the canonical DB string ('verified', 'pending')
 // AND the SCREAMING proto form ('RESCUE_STATUS_VERIFIED'). Unknown

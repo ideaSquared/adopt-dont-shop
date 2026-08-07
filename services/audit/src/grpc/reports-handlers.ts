@@ -25,6 +25,8 @@ import {
   type AuditCreateReportShareResponse,
   type AuditCreateSavedReportRequest,
   type AuditCreateSavedReportResponse,
+  type AuditDeleteReportScheduleRequest,
+  type AuditDeleteReportScheduleResponse,
   type AuditDeleteSavedReportRequest,
   type AuditDeleteSavedReportResponse,
   type AuditGetSavedReportRequest,
@@ -33,6 +35,8 @@ import {
   type AuditListReportTemplatesResponse,
   type AuditListSavedReportsRequest,
   type AuditListSavedReportsResponse,
+  type AuditRevokeReportShareRequest,
+  type AuditRevokeReportShareResponse,
   type AuditReportSchedule,
   type AuditReportShare,
   type AuditReportTemplate,
@@ -666,4 +670,54 @@ export async function createReportShare(
     throw new HandlerError('INTERNAL', 'insert returned no row');
   }
   return { share: rowToShare(row), token };
+}
+
+// --- DeleteReportSchedule ---------------------------------------------
+//
+// Gates on reports.update like the schedule/share writes above. Mirrors
+// deleteSavedReport's response convention: a missing row is reported as
+// deleted:false rather than a NOT_FOUND error.
+
+export async function deleteReportSchedule(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AuditDeleteReportScheduleRequest
+): Promise<AuditDeleteReportScheduleResponse> {
+  if (!hasPerm(principal, REPORTS_UPDATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${REPORTS_UPDATE}' required`);
+  }
+  const scheduleId = req.scheduleId?.trim() ?? '';
+  if (scheduleId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'schedule_id is required');
+  }
+  const { rowCount } = await deps.pool.query(
+    `DELETE FROM saved_report_schedules WHERE schedule_id = $1`,
+    [scheduleId]
+  );
+  return { deleted: (rowCount ?? 0) > 0 };
+}
+
+// --- RevokeReportShare ------------------------------------------------
+//
+// Soft-revoke: stamps revoked_at once. A share that is missing or already
+// revoked matches no row, so revoked:false is returned (idempotent).
+
+export async function revokeReportShare(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AuditRevokeReportShareRequest
+): Promise<AuditRevokeReportShareResponse> {
+  if (!hasPerm(principal, REPORTS_UPDATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${REPORTS_UPDATE}' required`);
+  }
+  const shareId = req.shareId?.trim() ?? '';
+  if (shareId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'share_id is required');
+  }
+  const { rowCount } = await deps.pool.query(
+    `UPDATE saved_report_shares SET revoked_at = now()
+       WHERE share_id = $1 AND revoked_at IS NULL`,
+    [shareId]
+  );
+  return { revoked: (rowCount ?? 0) > 0 };
 }

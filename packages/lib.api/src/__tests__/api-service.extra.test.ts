@@ -204,6 +204,44 @@ describe('ApiService — additional behaviour', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
+    it('prefers the live csrfToken cookie over fetching a fresh token', async () => {
+      // ADS-919: the cookie is the value the gateway validates the header
+      // against, so it must win over an (absent or stale) in-memory cache
+      // and must not trigger a network handshake that could rotate a shared
+      // cookie.
+      document.cookie = 'csrfToken=cookie-value; path=/';
+      try {
+        const token = await apiService.getCsrfToken();
+        expect(token).toBe('cookie-value');
+        const csrfFetches = mockFetch.mock.calls.filter((c) =>
+          String(c[0]).includes('/csrf-token')
+        );
+        expect(csrfFetches).toHaveLength(0);
+      } finally {
+        document.cookie = 'csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      }
+    });
+
+    it('attaches the live cookie value as x-csrf-token on a mutation without a handshake', async () => {
+      document.cookie = 'csrfToken=live-abc; path=/';
+      mockFetch.mockResolvedValueOnce(okJson({ ok: true }));
+      try {
+        await apiService.post('/things', { a: 1 });
+        expect(mockFetch).toHaveBeenLastCalledWith(
+          'https://api.example.com/things',
+          expect.objectContaining({
+            headers: expect.objectContaining({ 'x-csrf-token': 'live-abc' }),
+          })
+        );
+        const csrfFetches = mockFetch.mock.calls.filter((c) =>
+          String(c[0]).includes('/csrf-token')
+        );
+        expect(csrfFetches).toHaveLength(0);
+      } finally {
+        document.cookie = 'csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      }
+    });
+
     it('rejects when the CSRF endpoint returns a non-ok response', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,

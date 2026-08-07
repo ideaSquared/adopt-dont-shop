@@ -21,8 +21,12 @@ import {
   type AssignReportResponse,
   type AssignSupportTicketRequest,
   type AssignSupportTicketResponse,
+  type EscalateReportRequest,
+  type EscalateReportResponse,
   type FileReportRequest,
   type FileReportResponse,
+  type GetModerationMetricsRequest,
+  type GetModerationMetricsResponse,
   type GetReportRequest,
   type GetReportResponse,
   type GetSupportTicketRequest,
@@ -57,6 +61,7 @@ export type ModerationClient = {
   listReports(req: ListReportsRequest, metadata: Metadata): Promise<ListReportsResponse>;
   assignReport(req: AssignReportRequest, metadata: Metadata): Promise<AssignReportResponse>;
   resolveReport(req: ResolveReportRequest, metadata: Metadata): Promise<ResolveReportResponse>;
+  escalateReport(req: EscalateReportRequest, metadata: Metadata): Promise<EscalateReportResponse>;
   logModeratorAction(
     req: LogModeratorActionRequest,
     metadata: Metadata
@@ -65,6 +70,10 @@ export type ModerationClient = {
     req: ListModeratorActionsRequest,
     metadata: Metadata
   ): Promise<ListModeratorActionsResponse>;
+  getModerationMetrics(
+    req: GetModerationMetricsRequest,
+    metadata: Metadata
+  ): Promise<GetModerationMetricsResponse>;
   addEvidence(req: AddEvidenceRequest, metadata: Metadata): Promise<AddEvidenceResponse>;
   issueSanction(req: IssueSanctionRequest, metadata: Metadata): Promise<IssueSanctionResponse>;
   listUserSanctions(
@@ -162,6 +171,7 @@ export const createModerationClient = (opts: CreateModerationClientOptions): Mod
     fileReport: (req, metadata) => callUnary(stub.fileReport, req, metadata, false),
     assignReport: (req, metadata) => callUnary(stub.assignReport, req, metadata, false),
     resolveReport: (req, metadata) => callUnary(stub.resolveReport, req, metadata, false),
+    escalateReport: (req, metadata) => callUnary(stub.escalateReport, req, metadata, false),
     logModeratorAction: (req, metadata) => callUnary(stub.logModeratorAction, req, metadata, false),
     addEvidence: (req, metadata) => callUnary(stub.addEvidence, req, metadata, false),
     issueSanction: (req, metadata) => callUnary(stub.issueSanction, req, metadata, false),
@@ -177,6 +187,8 @@ export const createModerationClient = (opts: CreateModerationClientOptions): Mod
     listReports: (req, metadata) => callUnary(stub.listReports, req, metadata, true),
     listModeratorActions: (req, metadata) =>
       callUnary(stub.listModeratorActions, req, metadata, true),
+    getModerationMetrics: (req, metadata) =>
+      callUnary(stub.getModerationMetrics, req, metadata, true),
     listUserSanctions: (req, metadata) => callUnary(stub.listUserSanctions, req, metadata, true),
     getSupportTicket: (req, metadata) => callUnary(stub.getSupportTicket, req, metadata, true),
     listSupportTickets: (req, metadata) => callUnary(stub.listSupportTickets, req, metadata, true),

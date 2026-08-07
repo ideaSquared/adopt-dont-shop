@@ -486,13 +486,13 @@ describe('ApiService', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         headers: mockHeaders,
-        json: () => Promise.resolve({ status: 'healthy' }),
+        json: () => Promise.resolve({ status: 'ok', service: 'service.gateway' }),
       } as Response);
 
       const isHealthy = await apiService.healthCheck();
 
       expect(isHealthy).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/health', expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith('/health/simple', expect.any(Object));
     });
 
     it('should return false for failed health check', async () => {

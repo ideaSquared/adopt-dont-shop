@@ -194,6 +194,22 @@ export class ApiService {
    * than fetching their own.
    */
   async getCsrfToken(): Promise<string> {
+    // Prefer the live `csrfToken` cookie. It is non-HttpOnly by design (the
+    // double-submit pattern needs JS to read it), and it is the exact value
+    // the gateway compares the `x-csrf-token` header against. Reading it
+    // directly on every call guarantees the header can never diverge from
+    // the cookie — even when another ApiService instance, browser tab, or
+    // the periodic analytics flush rotated the shared host cookie between
+    // this instance's token fetch and its state-changing request. That
+    // divergence was the root cause of the intermittent
+    // "missing/invalid CSRF token" 403s on login (ADS-919). We only fall
+    // back to fetching when no cookie exists yet.
+    const cookieToken = this.readCsrfCookieValue();
+    if (cookieToken) {
+      this.csrfToken = cookieToken;
+      return cookieToken;
+    }
+
     // Return cached token if available
     if (this.csrfToken) {
       return this.csrfToken;
@@ -214,6 +230,24 @@ export class ApiService {
     } finally {
       this.csrfTokenPromise = null;
     }
+  }
+
+  /**
+   * Read the current `csrfToken` cookie value directly from the browser
+   * cookie jar. Returns null outside a browser (SSR / Node tests) or when
+   * the cookie is absent. The cookie name matches the gateway's
+   * CSRF_COOKIE_NAME (services/gateway/src/middleware/csrf.ts).
+   */
+  private readCsrfCookieValue(): string | null {
+    if (typeof document === 'undefined' || typeof document.cookie !== 'string') {
+      return null;
+    }
+    const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
+    if (!match) {
+      return null;
+    }
+    const value = decodeURIComponent(match[1]);
+    return value.length > 0 ? value : null;
   }
 
   /**
@@ -592,7 +626,7 @@ export class ApiService {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.fetch('/api/v1/health');
+      await this.fetch('/health/simple');
       return true;
     } catch (error) {
       if (this.config.debug) {

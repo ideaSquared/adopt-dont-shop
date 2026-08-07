@@ -6,10 +6,12 @@ import { type HandlerDeps } from './adapter.js';
 import {
   createReportShare,
   createSavedReport,
+  deleteReportSchedule,
   deleteSavedReport,
   getSavedReport,
   listReportTemplates,
   listSavedReports,
+  revokeReportShare,
   updateSavedReport,
   upsertReportSchedule,
 } from './reports-handlers.js';
@@ -665,5 +667,87 @@ describe('createReportShare', () => {
       permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT,
     });
     expect(res.share?.permission).toBe(AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT);
+  });
+});
+
+describe('deleteReportSchedule', () => {
+  it('rejects without reports.update', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      deleteReportSchedule(deps, makePrincipal({ permissions: [] }), { scheduleId: 'sched-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('requires a non-empty schedule_id', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      deleteReportSchedule(deps, makePrincipal({ permissions: ['reports.update'] }), {
+        scheduleId: '   ',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('deletes the schedule and returns deleted=true when a row matched', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 1 });
+    const { deps } = makeDeps(q);
+    const res = await deleteReportSchedule(
+      deps,
+      makePrincipal({ permissions: ['reports.update'] }),
+      { scheduleId: 'sched-1' }
+    );
+    expect(res.deleted).toBe(true);
+    const [sql, params] = q.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('DELETE FROM saved_report_schedules');
+    expect(sql).toContain('schedule_id = $1');
+    expect(params[0]).toBe('sched-1');
+  });
+
+  it('returns deleted=false when the schedule was already gone', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 0 });
+    const { deps } = makeDeps(q);
+    const res = await deleteReportSchedule(
+      deps,
+      makePrincipal({ permissions: ['reports.update'] }),
+      { scheduleId: 'missing' }
+    );
+    expect(res.deleted).toBe(false);
+  });
+});
+
+describe('revokeReportShare', () => {
+  it('rejects without reports.update', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      revokeReportShare(deps, makePrincipal({ permissions: [] }), { shareId: 'share-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('requires a non-empty share_id', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      revokeReportShare(deps, makePrincipal({ permissions: ['reports.update'] }), { shareId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('revokes only unrevoked shares and returns revoked=true when a row matched', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 1 });
+    const { deps } = makeDeps(q);
+    const res = await revokeReportShare(deps, makePrincipal({ permissions: ['reports.update'] }), {
+      shareId: 'share-1',
+    });
+    expect(res.revoked).toBe(true);
+    const [sql, params] = q.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('UPDATE saved_report_shares SET revoked_at = now()');
+    expect(sql).toContain('revoked_at IS NULL');
+    expect(params[0]).toBe('share-1');
+  });
+
+  it('returns revoked=false when the share was missing or already revoked', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 0 });
+    const { deps } = makeDeps(q);
+    const res = await revokeReportShare(deps, makePrincipal({ permissions: ['reports.update'] }), {
+      shareId: 'share-x',
+    });
+    expect(res.revoked).toBe(false);
   });
 });

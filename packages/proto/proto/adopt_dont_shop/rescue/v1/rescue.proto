@@ -145,6 +145,20 @@ service RescueService {
   rpc DeleteApplicationQuestion(DeleteApplicationQuestionRequest)
       returns (DeleteApplicationQuestionResponse);
 
+  // Update a rescue-specific question's editable fields (only the
+  // supplied fields are written). Caller MUST have `applications.update`
+  // scoped to the question's rescue; core questions cannot be edited
+  // (FAILED_PRECONDITION). Publishes `rescue.applicationQuestionUpdated`.
+  rpc UpdateApplicationQuestion(UpdateApplicationQuestionRequest)
+      returns (UpdateApplicationQuestionResponse);
+
+  // Reorder a rescue's custom questions: each question's display_order is
+  // rewritten to its index in `question_ids`. Caller MUST have
+  // `applications.update` scoped to the rescue. Publishes
+  // `rescue.applicationQuestionsReordered`.
+  rpc ReorderApplicationQuestions(ReorderApplicationQuestionsRequest)
+      returns (ReorderApplicationQuestionsResponse);
+
   // --- Admin extras ----------------------------------------------------
 
   // Set a rescue's subscription plan tier (free / growth / professional)
@@ -696,6 +710,30 @@ message DeleteApplicationQuestionRequest {
 
 message DeleteApplicationQuestionResponse {
   bool deleted = 1;
+}
+message UpdateApplicationQuestionRequest {
+  string question_id = 1;
+  optional string category = 2;
+  optional string question_type = 3;
+  optional string question_text = 4;
+  optional string help_text = 5;
+  optional string placeholder = 6;
+  repeated string options = 7;
+  optional int32 display_order = 8;
+  optional bool is_required = 9;
+  optional bool is_enabled = 10;
+}
+message UpdateApplicationQuestionResponse {
+  ApplicationQuestion question = 1;
+}
+message ReorderApplicationQuestionsRequest {
+  string rescue_id = 1;
+  // Question ids in the desired display order; each question's
+  // display_order becomes its index in this list.
+  repeated string question_ids = 2;
+}
+message ReorderApplicationQuestionsResponse {
+  repeated ApplicationQuestion questions = 1;
 }
 
 // --- Admin extras -----------------------------------------------------

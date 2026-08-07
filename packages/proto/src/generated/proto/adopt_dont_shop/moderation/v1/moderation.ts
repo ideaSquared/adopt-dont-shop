@@ -1056,6 +1056,18 @@ export interface ResolveReportResponse {
   report?: Report | undefined;
 }
 
+export interface EscalateReportRequest {
+  reportId: string;
+  /** The senior moderator / admin the report is escalated to. */
+  escalatedTo: string;
+  /** Why it is being escalated. */
+  reason: string;
+}
+
+export interface EscalateReportResponse {
+  report?: Report | undefined;
+}
+
 export interface LogModeratorActionRequest {
   /** Optional anchor to a report that triggered this action. */
   reportId?: string | undefined;
@@ -1095,6 +1107,42 @@ export interface ListModeratorActionsRequest {
 export interface ListModeratorActionsResponse {
   actions: ModeratorAction[];
   nextCursor?: string | undefined;
+}
+
+export interface GetModerationMetricsRequest {
+}
+
+/** One (category, count) pair for the top-categories breakdown. */
+export interface ModerationCategoryCount {
+  category: ReportCategory;
+  count: number;
+}
+
+/** Per-moderator activity: total actions logged + reports resolved. */
+export interface ModerationModeratorActivity {
+  moderatorId: string;
+  actionsCount: number;
+  resolvedCount: number;
+}
+
+export interface GetModerationMetricsResponse {
+  totalReports: number;
+  pendingReports: number;
+  underReviewReports: number;
+  resolvedReports: number;
+  dismissedReports: number;
+  escalatedReports: number;
+  criticalReports: number;
+  /**
+   * Mean hours between report creation and resolution, over resolved
+   * reports; 0 when none are resolved.
+   */
+  averageResolutionTime: number;
+  reportsToday: number;
+  reportsThisWeek: number;
+  reportsThisMonth: number;
+  topCategories: ModerationCategoryCount[];
+  moderatorActivity: ModerationModeratorActivity[];
 }
 
 export interface AddEvidenceRequest {
@@ -4451,6 +4499,166 @@ export const ResolveReportResponse: MessageFns<ResolveReportResponse> = {
   },
 };
 
+function createBaseEscalateReportRequest(): EscalateReportRequest {
+  return { reportId: "", escalatedTo: "", reason: "" };
+}
+
+export const EscalateReportRequest: MessageFns<EscalateReportRequest> = {
+  encode(message: EscalateReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.reportId !== "") {
+      writer.uint32(10).string(message.reportId);
+    }
+    if (message.escalatedTo !== "") {
+      writer.uint32(18).string(message.escalatedTo);
+    }
+    if (message.reason !== "") {
+      writer.uint32(26).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EscalateReportRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEscalateReportRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.reportId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.escalatedTo = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EscalateReportRequest {
+    return {
+      reportId: isSet(object.reportId)
+        ? globalThis.String(object.reportId)
+        : isSet(object.report_id)
+        ? globalThis.String(object.report_id)
+        : "",
+      escalatedTo: isSet(object.escalatedTo)
+        ? globalThis.String(object.escalatedTo)
+        : isSet(object.escalated_to)
+        ? globalThis.String(object.escalated_to)
+        : "",
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
+    };
+  },
+
+  toJSON(message: EscalateReportRequest): unknown {
+    const obj: any = {};
+    if (message.reportId !== "") {
+      obj.reportId = message.reportId;
+    }
+    if (message.escalatedTo !== "") {
+      obj.escalatedTo = message.escalatedTo;
+    }
+    if (message.reason !== "") {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EscalateReportRequest>, I>>(base?: I): EscalateReportRequest {
+    return EscalateReportRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EscalateReportRequest>, I>>(object: I): EscalateReportRequest {
+    const message = createBaseEscalateReportRequest();
+    message.reportId = object.reportId ?? "";
+    message.escalatedTo = object.escalatedTo ?? "";
+    message.reason = object.reason ?? "";
+    return message;
+  },
+};
+
+function createBaseEscalateReportResponse(): EscalateReportResponse {
+  return { report: undefined };
+}
+
+export const EscalateReportResponse: MessageFns<EscalateReportResponse> = {
+  encode(message: EscalateReportResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.report !== undefined) {
+      Report.encode(message.report, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EscalateReportResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEscalateReportResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.report = Report.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EscalateReportResponse {
+    return { report: isSet(object.report) ? Report.fromJSON(object.report) : undefined };
+  },
+
+  toJSON(message: EscalateReportResponse): unknown {
+    const obj: any = {};
+    if (message.report !== undefined) {
+      obj.report = Report.toJSON(message.report);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EscalateReportResponse>, I>>(base?: I): EscalateReportResponse {
+    return EscalateReportResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EscalateReportResponse>, I>>(object: I): EscalateReportResponse {
+    const message = createBaseEscalateReportResponse();
+    message.report = (object.report !== undefined && object.report !== null)
+      ? Report.fromPartial(object.report)
+      : undefined;
+    return message;
+  },
+};
+
 function createBaseLogModeratorActionRequest(): LogModeratorActionRequest {
   return {
     reportId: undefined,
@@ -4964,6 +5172,547 @@ export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsRespon
     const message = createBaseListModeratorActionsResponse();
     message.actions = object.actions?.map((e) => ModeratorAction.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetModerationMetricsRequest(): GetModerationMetricsRequest {
+  return {};
+}
+
+export const GetModerationMetricsRequest: MessageFns<GetModerationMetricsRequest> = {
+  encode(_: GetModerationMetricsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetModerationMetricsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetModerationMetricsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetModerationMetricsRequest {
+    return {};
+  },
+
+  toJSON(_: GetModerationMetricsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetModerationMetricsRequest>, I>>(base?: I): GetModerationMetricsRequest {
+    return GetModerationMetricsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetModerationMetricsRequest>, I>>(_: I): GetModerationMetricsRequest {
+    const message = createBaseGetModerationMetricsRequest();
+    return message;
+  },
+};
+
+function createBaseModerationCategoryCount(): ModerationCategoryCount {
+  return { category: 0, count: 0 };
+}
+
+export const ModerationCategoryCount: MessageFns<ModerationCategoryCount> = {
+  encode(message: ModerationCategoryCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.category !== 0) {
+      writer.uint32(8).int32(message.category);
+    }
+    if (message.count !== 0) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ModerationCategoryCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseModerationCategoryCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.category = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ModerationCategoryCount {
+    return {
+      category: isSet(object.category) ? reportCategoryFromJSON(object.category) : 0,
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+    };
+  },
+
+  toJSON(message: ModerationCategoryCount): unknown {
+    const obj: any = {};
+    if (message.category !== 0) {
+      obj.category = reportCategoryToJSON(message.category);
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ModerationCategoryCount>, I>>(base?: I): ModerationCategoryCount {
+    return ModerationCategoryCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ModerationCategoryCount>, I>>(object: I): ModerationCategoryCount {
+    const message = createBaseModerationCategoryCount();
+    message.category = object.category ?? 0;
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBaseModerationModeratorActivity(): ModerationModeratorActivity {
+  return { moderatorId: "", actionsCount: 0, resolvedCount: 0 };
+}
+
+export const ModerationModeratorActivity: MessageFns<ModerationModeratorActivity> = {
+  encode(message: ModerationModeratorActivity, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.moderatorId !== "") {
+      writer.uint32(10).string(message.moderatorId);
+    }
+    if (message.actionsCount !== 0) {
+      writer.uint32(16).uint32(message.actionsCount);
+    }
+    if (message.resolvedCount !== 0) {
+      writer.uint32(24).uint32(message.resolvedCount);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ModerationModeratorActivity {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseModerationModeratorActivity();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.moderatorId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.actionsCount = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.resolvedCount = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ModerationModeratorActivity {
+    return {
+      moderatorId: isSet(object.moderatorId)
+        ? globalThis.String(object.moderatorId)
+        : isSet(object.moderator_id)
+        ? globalThis.String(object.moderator_id)
+        : "",
+      actionsCount: isSet(object.actionsCount)
+        ? globalThis.Number(object.actionsCount)
+        : isSet(object.actions_count)
+        ? globalThis.Number(object.actions_count)
+        : 0,
+      resolvedCount: isSet(object.resolvedCount)
+        ? globalThis.Number(object.resolvedCount)
+        : isSet(object.resolved_count)
+        ? globalThis.Number(object.resolved_count)
+        : 0,
+    };
+  },
+
+  toJSON(message: ModerationModeratorActivity): unknown {
+    const obj: any = {};
+    if (message.moderatorId !== "") {
+      obj.moderatorId = message.moderatorId;
+    }
+    if (message.actionsCount !== 0) {
+      obj.actionsCount = Math.round(message.actionsCount);
+    }
+    if (message.resolvedCount !== 0) {
+      obj.resolvedCount = Math.round(message.resolvedCount);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ModerationModeratorActivity>, I>>(base?: I): ModerationModeratorActivity {
+    return ModerationModeratorActivity.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ModerationModeratorActivity>, I>>(object: I): ModerationModeratorActivity {
+    const message = createBaseModerationModeratorActivity();
+    message.moderatorId = object.moderatorId ?? "";
+    message.actionsCount = object.actionsCount ?? 0;
+    message.resolvedCount = object.resolvedCount ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetModerationMetricsResponse(): GetModerationMetricsResponse {
+  return {
+    totalReports: 0,
+    pendingReports: 0,
+    underReviewReports: 0,
+    resolvedReports: 0,
+    dismissedReports: 0,
+    escalatedReports: 0,
+    criticalReports: 0,
+    averageResolutionTime: 0,
+    reportsToday: 0,
+    reportsThisWeek: 0,
+    reportsThisMonth: 0,
+    topCategories: [],
+    moderatorActivity: [],
+  };
+}
+
+export const GetModerationMetricsResponse: MessageFns<GetModerationMetricsResponse> = {
+  encode(message: GetModerationMetricsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.totalReports !== 0) {
+      writer.uint32(8).uint32(message.totalReports);
+    }
+    if (message.pendingReports !== 0) {
+      writer.uint32(16).uint32(message.pendingReports);
+    }
+    if (message.underReviewReports !== 0) {
+      writer.uint32(24).uint32(message.underReviewReports);
+    }
+    if (message.resolvedReports !== 0) {
+      writer.uint32(32).uint32(message.resolvedReports);
+    }
+    if (message.dismissedReports !== 0) {
+      writer.uint32(40).uint32(message.dismissedReports);
+    }
+    if (message.escalatedReports !== 0) {
+      writer.uint32(48).uint32(message.escalatedReports);
+    }
+    if (message.criticalReports !== 0) {
+      writer.uint32(56).uint32(message.criticalReports);
+    }
+    if (message.averageResolutionTime !== 0) {
+      writer.uint32(65).double(message.averageResolutionTime);
+    }
+    if (message.reportsToday !== 0) {
+      writer.uint32(72).uint32(message.reportsToday);
+    }
+    if (message.reportsThisWeek !== 0) {
+      writer.uint32(80).uint32(message.reportsThisWeek);
+    }
+    if (message.reportsThisMonth !== 0) {
+      writer.uint32(88).uint32(message.reportsThisMonth);
+    }
+    for (const v of message.topCategories) {
+      ModerationCategoryCount.encode(v!, writer.uint32(98).fork()).join();
+    }
+    for (const v of message.moderatorActivity) {
+      ModerationModeratorActivity.encode(v!, writer.uint32(106).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetModerationMetricsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetModerationMetricsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.totalReports = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.pendingReports = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.underReviewReports = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.resolvedReports = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.dismissedReports = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.escalatedReports = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.criticalReports = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 65) {
+            break;
+          }
+
+          message.averageResolutionTime = reader.double();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.reportsToday = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.reportsThisWeek = reader.uint32();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.reportsThisMonth = reader.uint32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.topCategories.push(ModerationCategoryCount.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.moderatorActivity.push(ModerationModeratorActivity.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetModerationMetricsResponse {
+    return {
+      totalReports: isSet(object.totalReports)
+        ? globalThis.Number(object.totalReports)
+        : isSet(object.total_reports)
+        ? globalThis.Number(object.total_reports)
+        : 0,
+      pendingReports: isSet(object.pendingReports)
+        ? globalThis.Number(object.pendingReports)
+        : isSet(object.pending_reports)
+        ? globalThis.Number(object.pending_reports)
+        : 0,
+      underReviewReports: isSet(object.underReviewReports)
+        ? globalThis.Number(object.underReviewReports)
+        : isSet(object.under_review_reports)
+        ? globalThis.Number(object.under_review_reports)
+        : 0,
+      resolvedReports: isSet(object.resolvedReports)
+        ? globalThis.Number(object.resolvedReports)
+        : isSet(object.resolved_reports)
+        ? globalThis.Number(object.resolved_reports)
+        : 0,
+      dismissedReports: isSet(object.dismissedReports)
+        ? globalThis.Number(object.dismissedReports)
+        : isSet(object.dismissed_reports)
+        ? globalThis.Number(object.dismissed_reports)
+        : 0,
+      escalatedReports: isSet(object.escalatedReports)
+        ? globalThis.Number(object.escalatedReports)
+        : isSet(object.escalated_reports)
+        ? globalThis.Number(object.escalated_reports)
+        : 0,
+      criticalReports: isSet(object.criticalReports)
+        ? globalThis.Number(object.criticalReports)
+        : isSet(object.critical_reports)
+        ? globalThis.Number(object.critical_reports)
+        : 0,
+      averageResolutionTime: isSet(object.averageResolutionTime)
+        ? globalThis.Number(object.averageResolutionTime)
+        : isSet(object.average_resolution_time)
+        ? globalThis.Number(object.average_resolution_time)
+        : 0,
+      reportsToday: isSet(object.reportsToday)
+        ? globalThis.Number(object.reportsToday)
+        : isSet(object.reports_today)
+        ? globalThis.Number(object.reports_today)
+        : 0,
+      reportsThisWeek: isSet(object.reportsThisWeek)
+        ? globalThis.Number(object.reportsThisWeek)
+        : isSet(object.reports_this_week)
+        ? globalThis.Number(object.reports_this_week)
+        : 0,
+      reportsThisMonth: isSet(object.reportsThisMonth)
+        ? globalThis.Number(object.reportsThisMonth)
+        : isSet(object.reports_this_month)
+        ? globalThis.Number(object.reports_this_month)
+        : 0,
+      topCategories: globalThis.Array.isArray(object?.topCategories)
+        ? object.topCategories.map((e: any) => ModerationCategoryCount.fromJSON(e))
+        : globalThis.Array.isArray(object?.top_categories)
+        ? object.top_categories.map((e: any) => ModerationCategoryCount.fromJSON(e))
+        : [],
+      moderatorActivity: globalThis.Array.isArray(object?.moderatorActivity)
+        ? object.moderatorActivity.map((e: any) => ModerationModeratorActivity.fromJSON(e))
+        : globalThis.Array.isArray(object?.moderator_activity)
+        ? object.moderator_activity.map((e: any) => ModerationModeratorActivity.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetModerationMetricsResponse): unknown {
+    const obj: any = {};
+    if (message.totalReports !== 0) {
+      obj.totalReports = Math.round(message.totalReports);
+    }
+    if (message.pendingReports !== 0) {
+      obj.pendingReports = Math.round(message.pendingReports);
+    }
+    if (message.underReviewReports !== 0) {
+      obj.underReviewReports = Math.round(message.underReviewReports);
+    }
+    if (message.resolvedReports !== 0) {
+      obj.resolvedReports = Math.round(message.resolvedReports);
+    }
+    if (message.dismissedReports !== 0) {
+      obj.dismissedReports = Math.round(message.dismissedReports);
+    }
+    if (message.escalatedReports !== 0) {
+      obj.escalatedReports = Math.round(message.escalatedReports);
+    }
+    if (message.criticalReports !== 0) {
+      obj.criticalReports = Math.round(message.criticalReports);
+    }
+    if (message.averageResolutionTime !== 0) {
+      obj.averageResolutionTime = message.averageResolutionTime;
+    }
+    if (message.reportsToday !== 0) {
+      obj.reportsToday = Math.round(message.reportsToday);
+    }
+    if (message.reportsThisWeek !== 0) {
+      obj.reportsThisWeek = Math.round(message.reportsThisWeek);
+    }
+    if (message.reportsThisMonth !== 0) {
+      obj.reportsThisMonth = Math.round(message.reportsThisMonth);
+    }
+    if (message.topCategories?.length) {
+      obj.topCategories = message.topCategories.map((e) => ModerationCategoryCount.toJSON(e));
+    }
+    if (message.moderatorActivity?.length) {
+      obj.moderatorActivity = message.moderatorActivity.map((e) => ModerationModeratorActivity.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetModerationMetricsResponse>, I>>(base?: I): GetModerationMetricsResponse {
+    return GetModerationMetricsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetModerationMetricsResponse>, I>>(object: I): GetModerationMetricsResponse {
+    const message = createBaseGetModerationMetricsResponse();
+    message.totalReports = object.totalReports ?? 0;
+    message.pendingReports = object.pendingReports ?? 0;
+    message.underReviewReports = object.underReviewReports ?? 0;
+    message.resolvedReports = object.resolvedReports ?? 0;
+    message.dismissedReports = object.dismissedReports ?? 0;
+    message.escalatedReports = object.escalatedReports ?? 0;
+    message.criticalReports = object.criticalReports ?? 0;
+    message.averageResolutionTime = object.averageResolutionTime ?? 0;
+    message.reportsToday = object.reportsToday ?? 0;
+    message.reportsThisWeek = object.reportsThisWeek ?? 0;
+    message.reportsThisMonth = object.reportsThisMonth ?? 0;
+    message.topCategories = object.topCategories?.map((e) => ModerationCategoryCount.fromPartial(e)) || [];
+    message.moderatorActivity = object.moderatorActivity?.map((e) => ModerationModeratorActivity.fromPartial(e)) || [];
     return message;
   },
 };
@@ -6901,6 +7650,22 @@ export const ModerationServiceService = {
     responseDeserialize: (value: Buffer): ResolveReportResponse => ResolveReportResponse.decode(value),
   },
   /**
+   * Escalate a report to a senior moderator/admin: sets status =
+   * escalated + escalated_to / escalated_at / escalation_reason and
+   * records the status transition. Publishes moderation.reportEscalated.
+   */
+  escalateReport: {
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/EscalateReport" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: EscalateReportRequest): Buffer =>
+      Buffer.from(EscalateReportRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): EscalateReportRequest => EscalateReportRequest.decode(value),
+    responseSerialize: (value: EscalateReportResponse): Buffer =>
+      Buffer.from(EscalateReportResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): EscalateReportResponse => EscalateReportResponse.decode(value),
+  },
+  /**
    * Log a moderator action (warning issued, content removed, user
    * suspended, etc.). May or may not be tied to a report. Publishes
    * moderation.actionLogged so the audit consumer captures the
@@ -6931,6 +7696,24 @@ export const ModerationServiceService = {
     responseSerialize: (value: ListModeratorActionsResponse): Buffer =>
       Buffer.from(ListModeratorActionsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListModeratorActionsResponse => ListModeratorActionsResponse.decode(value),
+  },
+  /**
+   * Aggregate report + moderator-action metrics for the admin moderation
+   * dashboard's stat cards. A single snapshot (no pagination) computed
+   * from the moderation.* tables in SQL — status/severity/age buckets,
+   * top categories, and per-moderator activity. Gated on the same
+   * reports-view permission as ListReports.
+   */
+  getModerationMetrics: {
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/GetModerationMetrics" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetModerationMetricsRequest): Buffer =>
+      Buffer.from(GetModerationMetricsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetModerationMetricsRequest => GetModerationMetricsRequest.decode(value),
+    responseSerialize: (value: GetModerationMetricsResponse): Buffer =>
+      Buffer.from(GetModerationMetricsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetModerationMetricsResponse => GetModerationMetricsResponse.decode(value),
   },
   /**
    * Attach an evidence record to a report or moderator action.
@@ -7119,6 +7902,12 @@ export interface ModerationServiceServer extends UntypedServiceImplementation {
    */
   resolveReport: handleUnaryCall<ResolveReportRequest, ResolveReportResponse>;
   /**
+   * Escalate a report to a senior moderator/admin: sets status =
+   * escalated + escalated_to / escalated_at / escalation_reason and
+   * records the status transition. Publishes moderation.reportEscalated.
+   */
+  escalateReport: handleUnaryCall<EscalateReportRequest, EscalateReportResponse>;
+  /**
    * Log a moderator action (warning issued, content removed, user
    * suspended, etc.). May or may not be tied to a report. Publishes
    * moderation.actionLogged so the audit consumer captures the
@@ -7130,6 +7919,14 @@ export interface ModerationServiceServer extends UntypedServiceImplementation {
    * action_type. Powers the user-history modal in admin UI.
    */
   listModeratorActions: handleUnaryCall<ListModeratorActionsRequest, ListModeratorActionsResponse>;
+  /**
+   * Aggregate report + moderator-action metrics for the admin moderation
+   * dashboard's stat cards. A single snapshot (no pagination) computed
+   * from the moderation.* tables in SQL — status/severity/age buckets,
+   * top categories, and per-moderator activity. Gated on the same
+   * reports-view permission as ListReports.
+   */
+  getModerationMetrics: handleUnaryCall<GetModerationMetricsRequest, GetModerationMetricsResponse>;
   /**
    * Attach an evidence record to a report or moderator action.
    * Polymorphic via (parent_type, parent_id). content is opaque text
@@ -7290,6 +8087,26 @@ export interface ModerationServiceClient extends Client {
     callback: (error: ServiceError | null, response: ResolveReportResponse) => void,
   ): ClientUnaryCall;
   /**
+   * Escalate a report to a senior moderator/admin: sets status =
+   * escalated + escalated_to / escalated_at / escalation_reason and
+   * records the status transition. Publishes moderation.reportEscalated.
+   */
+  escalateReport(
+    request: EscalateReportRequest,
+    callback: (error: ServiceError | null, response: EscalateReportResponse) => void,
+  ): ClientUnaryCall;
+  escalateReport(
+    request: EscalateReportRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: EscalateReportResponse) => void,
+  ): ClientUnaryCall;
+  escalateReport(
+    request: EscalateReportRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: EscalateReportResponse) => void,
+  ): ClientUnaryCall;
+  /**
    * Log a moderator action (warning issued, content removed, user
    * suspended, etc.). May or may not be tied to a report. Publishes
    * moderation.actionLogged so the audit consumer captures the
@@ -7328,6 +8145,28 @@ export interface ModerationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListModeratorActionsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Aggregate report + moderator-action metrics for the admin moderation
+   * dashboard's stat cards. A single snapshot (no pagination) computed
+   * from the moderation.* tables in SQL — status/severity/age buckets,
+   * top categories, and per-moderator activity. Gated on the same
+   * reports-view permission as ListReports.
+   */
+  getModerationMetrics(
+    request: GetModerationMetricsRequest,
+    callback: (error: ServiceError | null, response: GetModerationMetricsResponse) => void,
+  ): ClientUnaryCall;
+  getModerationMetrics(
+    request: GetModerationMetricsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetModerationMetricsResponse) => void,
+  ): ClientUnaryCall;
+  getModerationMetrics(
+    request: GetModerationMetricsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetModerationMetricsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Attach an evidence record to a report or moderator action.

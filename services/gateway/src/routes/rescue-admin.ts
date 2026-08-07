@@ -36,12 +36,14 @@ import type { FastifyInstance } from 'fastify';
 import {
   type AuthV1,
   RescueV1,
+  type CreateStaffMemberRequest,
   type GetRescueStatisticsRequest,
   type InviteStaffRequest,
   type ListRescueInvitationsRequest,
   type ListStaffMembersRequest,
   type SendRescueEmailRequest,
   type UpdateRescuePlanRequest,
+  type UpdateStaffMemberRequest,
   type VerifyRescueRequest,
 } from '@adopt-dont-shop/proto';
 
@@ -86,6 +88,24 @@ const staffMemberToView = (
   addedAt: member.addedAt,
   addedBy: member.addedBy,
 });
+
+// Look up a single staff member's auth user for name/email enrichment,
+// degrading to undefined (empty name/email) on any failure — the same
+// tolerant behaviour the GET /staff list uses. No-op when authClient is
+// absent (e.g. a partial test harness).
+const enrichStaffUser = async (
+  authClient: AuthClient | undefined,
+  userId: string,
+  metadata: ReturnType<typeof buildMetadata>
+): Promise<AuthV1.User | undefined> => {
+  if (!authClient) {
+    return undefined;
+  }
+  return authClient
+    .adminGetUser({ userId }, metadata)
+    .then(r => r.user)
+    .catch(() => undefined);
+};
 
 // proto Invitation → the SPA's StaffInvitation shape. Only pending (used =
 // false) rows are listed, so status is 'pending' unless the TTL lapsed.
@@ -515,6 +535,133 @@ export const registerRescueAdminRoutes = async (
             total: data.length,
             totalPages: 1,
           },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /api/v1/rescues/:rescueId/staff — add an EXISTING auth user as a
+  // staff member (RescueService.CreateStaffMember). The SPA sends
+  // { userId, title? } (apps/rescue staffService NewStaffMember /
+  // apps/admin AddStaffPayload). Inviting a NOT-yet-registered person by
+  // email is a different flow (POST …/staff/invite → InviteStaff).
+  app.post<{ Params: { rescueId: string }; Body: { userId?: string; title?: string } }>(
+    '/api/v1/rescues/:rescueId/staff',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Add an existing user as a staff member (admin)',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        body: {
+          type: 'object',
+          properties: { userId: { type: 'string' }, title: { type: 'string' } },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as { userId?: string; title?: string };
+      if (!body.userId) {
+        return reply.code(400).send({ success: false, error: 'userId is required' });
+      }
+      const grpcReq: CreateStaffMemberRequest = {
+        rescueId: req.params.rescueId,
+        userId: body.userId,
+        title: body.title,
+      };
+      try {
+        const res = await client.createStaffMember(grpcReq, metadata);
+        const member = res.staffMember;
+        if (member === undefined) {
+          return reply
+            .code(500)
+            .send({ success: false, error: 'createStaffMember returned no member' });
+        }
+        const user = await enrichStaffUser(authClient, member.userId, metadata);
+        return reply.send({
+          success: true,
+          message: 'Staff member added',
+          data: staffMemberToView(member, user),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // PUT /api/v1/rescues/:rescueId/staff/:userId — update a staff member's
+  // editable fields (title) (RescueService.UpdateStaffMember).
+  app.put<{ Params: { rescueId: string; userId: string }; Body: { title?: string } }>(
+    '/api/v1/rescues/:rescueId/staff/:userId',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Update a staff member (admin)',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' }, userId: { type: 'string' } },
+          required: ['rescueId', 'userId'],
+        },
+        body: {
+          type: 'object',
+          properties: { title: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as { title?: string };
+      const grpcReq: UpdateStaffMemberRequest = {
+        rescueId: req.params.rescueId,
+        userId: req.params.userId,
+        title: body.title,
+      };
+      try {
+        const res = await client.updateStaffMember(grpcReq, metadata);
+        const member = res.staffMember;
+        if (member === undefined) {
+          return reply
+            .code(500)
+            .send({ success: false, error: 'updateStaffMember returned no member' });
+        }
+        const user = await enrichStaffUser(authClient, member.userId, metadata);
+        return reply.send({
+          success: true,
+          message: 'Staff member updated',
+          data: staffMemberToView(member, user),
         });
       } catch (err) {
         return handleGrpcError(err, reply);

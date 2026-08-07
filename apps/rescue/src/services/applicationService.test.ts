@@ -3,6 +3,7 @@ import type { ApplicationFilter } from '../types/applications';
 
 const apiServiceMock = vi.hoisted(() => ({
   get: vi.fn<(url: string) => Promise<unknown>>(),
+  post: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
   patch: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
 }));
 
@@ -157,6 +158,54 @@ describe('RescueApplicationService.transitionStage (ADS-642)', () => {
       /nextStage/
     );
     expect(apiServiceMock.patch).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * scheduleHomeVisit posts to the service-shaped ScheduleHomeVisit route
+ * (POST /api/v1/applications/:id/home-visit/schedule), which takes a single
+ * `scheduledAt` instant + optional `note`. These tests pin the path and the
+ * date/time → ISO folding so the schedule form keeps landing on a real route.
+ */
+describe('RescueApplicationService.scheduleHomeVisit', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiServiceMock.post.mockResolvedValue({ application: { applicationId: 'app-1' } });
+  });
+
+  it('posts to the singular home-visit/schedule route with a combined ISO scheduledAt', async () => {
+    await service.scheduleHomeVisit('app-1', {
+      scheduledDate: '2026-05-01',
+      scheduledTime: '14:00',
+      assignedStaff: 'Jamie',
+      notes: 'gate code 1234',
+    });
+
+    expect(apiServiceMock.post).toHaveBeenCalledTimes(1);
+    const [url, body] = apiServiceMock.post.mock.calls[0];
+    expect(url).toBe('/api/v1/applications/app-1/home-visit/schedule');
+    expect(body).toEqual({
+      scheduledAt: new Date('2026-05-01T14:00').toISOString(),
+      note: 'gate code 1234',
+    });
+  });
+
+  it('returns the scheduled visit assembled from the submitted values', async () => {
+    const visit = await service.scheduleHomeVisit('app-1', {
+      scheduledDate: '2026-05-01',
+      scheduledTime: '14:00',
+      assignedStaff: 'Jamie',
+    });
+
+    expect(visit).toMatchObject({
+      applicationId: 'app-1',
+      scheduledDate: '2026-05-01',
+      scheduledTime: '14:00',
+      assignedStaff: 'Jamie',
+      status: 'scheduled',
+    });
   });
 });
 

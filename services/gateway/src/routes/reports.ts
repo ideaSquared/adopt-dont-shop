@@ -951,6 +951,82 @@ export const registerReportsRoutes = async (
       }
     }
   );
+
+  // DELETE /api/v1/reports/schedules/:scheduleId — remove a recurring
+  // delivery schedule. Two path segments below /reports, so it never
+  // collides with the single-segment /reports/:id delete.
+  app.delete<{ Params: { scheduleId: string } }>(
+    '/api/v1/reports/schedules/:scheduleId',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Delete a report schedule',
+        params: {
+          type: 'object',
+          properties: { scheduleId: { type: 'string' } },
+          required: ['scheduleId'],
+        },
+        response: {
+          200: { type: 'object', properties: { success: { type: 'boolean' } } },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.deleteReportSchedule(
+          { scheduleId: req.params.scheduleId },
+          buildMetadata(req)
+        );
+        if (!res.deleted) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // DELETE /api/v1/reports/shares/:shareId — revoke a token share link.
+  app.delete<{ Params: { shareId: string } }>(
+    '/api/v1/reports/shares/:shareId',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Revoke a report share',
+        params: {
+          type: 'object',
+          properties: { shareId: { type: 'string' } },
+          required: ['shareId'],
+        },
+        response: {
+          200: { type: 'object', properties: { success: { type: 'boolean' } } },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.revokeReportShare(
+          { shareId: req.params.shareId },
+          buildMetadata(req)
+        );
+        if (!res.revoked) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 };
 
 function encodeConfig(configObj: unknown, configJson: unknown, configSnake: unknown): string {

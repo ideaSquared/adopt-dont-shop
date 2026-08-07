@@ -45,6 +45,11 @@ service ModerationService {
   // transition (resolved). Publishes moderation.reportResolved.
   rpc ResolveReport(ResolveReportRequest) returns (ResolveReportResponse);
 
+  // Escalate a report to a senior moderator/admin: sets status =
+  // escalated + escalated_to / escalated_at / escalation_reason and
+  // records the status transition. Publishes moderation.reportEscalated.
+  rpc EscalateReport(EscalateReportRequest) returns (EscalateReportResponse);
+
   // ---------- Moderator actions ----------
 
   // Log a moderator action (warning issued, content removed, user
@@ -56,6 +61,15 @@ service ModerationService {
   // List moderator actions, filterable by target_user / report /
   // action_type. Powers the user-history modal in admin UI.
   rpc ListModeratorActions(ListModeratorActionsRequest) returns (ListModeratorActionsResponse);
+
+  // ---------- Metrics ----------
+
+  // Aggregate report + moderator-action metrics for the admin moderation
+  // dashboard's stat cards. A single snapshot (no pagination) computed
+  // from the moderation.* tables in SQL — status/severity/age buckets,
+  // top categories, and per-moderator activity. Gated on the same
+  // reports-view permission as ListReports.
+  rpc GetModerationMetrics(GetModerationMetricsRequest) returns (GetModerationMetricsResponse);
 
   // ---------- Evidence ----------
 
@@ -459,6 +473,16 @@ message ResolveReportRequest {
 message ResolveReportResponse {
   Report report = 1;
 }
+message EscalateReportRequest {
+  string report_id = 1;
+  // The senior moderator / admin the report is escalated to.
+  string escalated_to = 2;
+  // Why it is being escalated.
+  string reason = 3;
+}
+message EscalateReportResponse {
+  Report report = 1;
+}
 
 // --- LogModeratorAction ----------------------------------------------
 
@@ -497,6 +521,41 @@ message ListModeratorActionsRequest {
 message ListModeratorActionsResponse {
   repeated ModeratorAction actions = 1;
   optional string next_cursor = 2;
+}
+
+// --- GetModerationMetrics --------------------------------------------
+
+message GetModerationMetricsRequest {}
+
+// One (category, count) pair for the top-categories breakdown.
+message ModerationCategoryCount {
+  ReportCategory category = 1;
+  uint32 count = 2;
+}
+
+// Per-moderator activity: total actions logged + reports resolved.
+message ModerationModeratorActivity {
+  string moderator_id = 1;
+  uint32 actions_count = 2;
+  uint32 resolved_count = 3;
+}
+
+message GetModerationMetricsResponse {
+  uint32 total_reports = 1;
+  uint32 pending_reports = 2;
+  uint32 under_review_reports = 3;
+  uint32 resolved_reports = 4;
+  uint32 dismissed_reports = 5;
+  uint32 escalated_reports = 6;
+  uint32 critical_reports = 7;
+  // Mean hours between report creation and resolution, over resolved
+  // reports; 0 when none are resolved.
+  double average_resolution_time = 8;
+  uint32 reports_today = 9;
+  uint32 reports_this_week = 10;
+  uint32 reports_this_month = 11;
+  repeated ModerationCategoryCount top_categories = 12;
+  repeated ModerationModeratorActivity moderator_activity = 13;
 }
 
 // --- AddEvidence -----------------------------------------------------

@@ -68,6 +68,7 @@ import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerDevicesRoutes } from './routes/devices.js';
 import { registerBroadcastRoutes } from './routes/broadcast.js';
 import { registerEmailRoutes } from './routes/email.js';
+import { registerEmailProviderInfoRoute } from './routes/email-provider-info.js';
 import { registerEntityActivityRoutes } from './routes/entity-activity.js';
 import { registerFieldPermissionsRoutes } from './routes/field-permissions.js';
 import { registerGdprRoutes } from './routes/gdpr.js';
@@ -737,6 +738,11 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   if (config.config.publicEnabled) {
     await registerConfigRoutes(server);
   }
+  // GET /api/v1/email/provider-info — dev-only email provider descriptor
+  // (lib.dev-tools' Ethereal preview widget). Gateway-folded, no upstream:
+  // see routes/email-provider-info.ts for why the gateway can only report
+  // the provider name + public URLs, not live per-send credentials.
+  await registerEmailProviderInfoRoute(server);
   // Analytics ingestion (pageviews + custom events) — the monolith
   // implementation was log-only (winston → Loki, no DB). Folds here so
   // the SPA's analytics flushes don't pay an extra http-proxy hop.

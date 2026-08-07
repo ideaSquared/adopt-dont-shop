@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ModerationV1,
   type AssignReportRequest,
+  type EscalateReportRequest,
   type FileReportRequest,
   type GetReportRequest,
   type ListReportsRequest,
@@ -11,7 +12,14 @@ import {
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import { encodeCursor } from './cursor.js';
-import { assignReport, fileReport, getReport, listReports, resolveReport } from './handlers.js';
+import {
+  assignReport,
+  escalateReport,
+  fileReport,
+  getReport,
+  listReports,
+  resolveReport,
+} from './handlers.js';
 
 function makePrincipal(
   overrides: Partial<{ userId: string; permissions: string[]; roles: string[] }> = {}
@@ -563,5 +571,76 @@ describe('resolveReport', () => {
     expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_RESOLVED);
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.reportResolved' });
+  });
+});
+
+describe('escalateReport', () => {
+  it('throws PERMISSION_DENIED without moderation.reports.manage', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      escalateReport(deps, makePrincipal({ permissions: [] }), {
+        reportId: 'rpt-1',
+        escalatedTo: 'mod-9',
+        reason: 'needs senior review',
+      } as EscalateReportRequest)
+    ).rejects.toBeInstanceOf(HandlerError);
+  });
+
+  it('throws INVALID_ARGUMENT on missing escalatedTo', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      escalateReport(deps, makePrincipal(), {
+        reportId: 'rpt-1',
+        escalatedTo: '',
+        reason: 'needs senior review',
+      } as EscalateReportRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws INVALID_ARGUMENT on missing reason', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      escalateReport(deps, makePrincipal(), {
+        reportId: 'rpt-1',
+        escalatedTo: 'mod-9',
+        reason: '',
+      } as EscalateReportRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws NOT_FOUND on a missing report', async () => {
+    const { deps } = makeDeps([{ rows: [] }]);
+    await expect(
+      escalateReport(deps, makePrincipal(), {
+        reportId: 'gone',
+        escalatedTo: 'mod-9',
+        reason: 'needs senior review',
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('writes escalation + transition + publishes reportEscalated', async () => {
+    const { deps } = makeDeps([
+      { rows: [{ status: 'under_review' }] }, // SELECT status FOR UPDATE
+      {
+        rows: [
+          reportRow({
+            status: 'escalated',
+            escalated_to: 'mod-9',
+            escalation_reason: 'needs senior review',
+          }),
+        ],
+      }, // UPDATE RETURNING
+      { rows: [] }, // INSERT transition
+    ]);
+    const res = await escalateReport(deps, makePrincipal(), {
+      reportId: 'rpt-1',
+      escalatedTo: 'mod-9',
+      reason: 'needs senior review',
+    });
+    expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_ESCALATED);
+    expect(res.report.escalatedTo).toBe('mod-9');
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.reportEscalated' });
   });
 });
