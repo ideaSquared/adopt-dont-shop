@@ -214,7 +214,7 @@ export const PetCard: React.FC<PetCardProps> = ({
               isFavorite ? `Remove ${pet.name} from favorites` : `Add ${pet.name} to favorites`
             }
           >
-            {isFavorite ? <Heart size={24} /> : <Heart size={24} />}
+            {isFavorite ? <Heart size={24} fill='currentColor' /> : <Heart size={24} />}
           </button>
         )}
       </div>
