@@ -18,7 +18,14 @@ import type { ModerationConfig } from '../config.js';
 
 import { addEvidence, listModeratorActions, logModeratorAction } from './action-handlers.js';
 import { adapt } from './adapter.js';
-import { assignReport, fileReport, getReport, listReports, resolveReport } from './handlers.js';
+import {
+  assignReport,
+  escalateReport,
+  fileReport,
+  getReport,
+  listReports,
+  resolveReport,
+} from './handlers.js';
 import { getModerationMetrics } from './metrics-handlers.js';
 import {
   acknowledgeSanction,
@@ -55,6 +62,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     listReports: adapt(listReports, { deps, logger }),
     assignReport: adapt(assignReport, { deps, logger }),
     resolveReport: adapt(resolveReport, { deps, logger }),
+    escalateReport: adapt(escalateReport, { deps, logger }),
     // Moderator actions + evidence (action-handlers.ts)
     logModeratorAction: adapt(logModeratorAction, { deps, logger }),
     listModeratorActions: adapt(listModeratorActions, { deps, logger }),
@@ -74,7 +82,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   });
 
   logger.info('gRPC ModerationService registered', {
-    methodCount: 18,
+    methodCount: 19,
     grpcPort: config.grpcPort,
   });
 

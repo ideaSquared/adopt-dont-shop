@@ -19,6 +19,7 @@ function makeClient(): {
     'listReports',
     'assignReport',
     'resolveReport',
+    'escalateReport',
     'logModeratorAction',
     'listModeratorActions',
     'getModerationMetrics',
@@ -176,6 +177,25 @@ describe('moderation admin reports', () => {
       moderatorId: 'mod-2',
       reason: 'experienced',
     });
+  });
+
+  it('POST /admin/moderation/reports/:id/escalate threads escalatedTo + reason', async () => {
+    mocks.escalateReport.mockResolvedValueOnce({
+      report: { ...REPORT, status: ModerationV1.ReportStatus.REPORT_STATUS_ESCALATED },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/moderation/reports/rpt-1/escalate',
+      headers: ADMIN,
+      payload: { escalatedTo: 'mod-9', reason: 'needs senior review' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.escalateReport.mock.calls[0][0]).toMatchObject({
+      reportId: 'rpt-1',
+      escalatedTo: 'mod-9',
+      reason: 'needs senior review',
+    });
+    expect((res.json() as { data: { status: string } }).data.status).toBe('escalated');
   });
 
   it('POST /admin/moderation/reports/bulk-update (resolve) calls ResolveReport per id', async () => {

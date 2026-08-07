@@ -26,6 +26,8 @@ import { MODERATION_REPORTS_MANAGE, MODERATION_REPORTS_VIEW } from '@adopt-dont-
 import type {
   AssignReportRequest,
   AssignReportResponse,
+  EscalateReportRequest,
+  EscalateReportResponse,
   FileReportRequest,
   FileReportResponse,
   GetReportRequest,
@@ -497,6 +499,80 @@ export async function resolveReport(
     );
 
     return { report: reportRowToProto(final.rows[0]) };
+  });
+}
+
+// --- EscalateReport --------------------------------------------------
+
+export async function escalateReport(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: EscalateReportRequest
+): Promise<EscalateReportResponse> {
+  ensureReportsManagePermission(principal);
+
+  if (req.reportId === undefined || req.reportId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'report_id is required');
+  }
+  if (req.escalatedTo === undefined || req.escalatedTo === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'escalated_to is required');
+  }
+  if (req.reason === undefined || req.reason === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'reason is required');
+  }
+
+  return withTransaction(deps, async ({ client, publish }) => {
+    const existing = await client.query<ReportRow>(
+      `SELECT status FROM reports WHERE report_id = $1 FOR UPDATE`,
+      [req.reportId]
+    );
+
+    if (existing.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `report ${req.reportId} not found`);
+    }
+
+    const fromStatus = existing.rows[0].status;
+
+    const updated = await client.query<ReportRow>(
+      `UPDATE reports
+       SET status = 'escalated',
+           escalated_to = $1,
+           escalated_at = NOW(),
+           escalation_reason = $2,
+           updated_at = NOW()
+       WHERE report_id = $3
+       RETURNING report_id, reporter_id, reported_entity_type, reported_entity_id,
+                 reported_user_id, category, severity, status, title, description,
+                 metadata, assigned_moderator, assigned_at, resolved_by, resolved_at,
+                 resolution, resolution_notes, escalated_to, escalated_at,
+                 escalation_reason, created_at, updated_at`,
+      [req.escalatedTo, req.reason, req.reportId]
+    );
+
+    if (updated.rows.length !== 1) {
+      throw new HandlerError('INTERNAL', 'update returned no rows');
+    }
+
+    await client.query(
+      `INSERT INTO report_status_transitions (
+         transition_id, report_id, from_status, to_status, transitioned_by, reason
+       )
+       VALUES ($1, $2, $3, 'escalated', $4, $5)`,
+      [randomUUID(), req.reportId, fromStatus, principal.userId, req.reason]
+    );
+
+    publish({
+      type: 'moderation.reportEscalated',
+      id: req.reportId,
+      payload: {
+        reportId: req.reportId,
+        escalatedBy: principal.userId,
+        escalatedTo: req.escalatedTo,
+        reason: req.reason,
+      },
+    });
+
+    return { report: reportRowToProto(updated.rows[0]) };
   });
 }
 

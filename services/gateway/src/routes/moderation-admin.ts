@@ -16,6 +16,7 @@ import {
   ModerationV1,
   type AssignReportRequest,
   type AssignSupportTicketRequest,
+  type EscalateReportRequest,
   type FileReportRequest,
   type ListModeratorActionsRequest,
   type ListReportsRequest,
@@ -300,6 +301,43 @@ export const registerModerationAdminRoutes = async (
       };
       try {
         const res = await client.assignReport(grpcReq, buildMetadata(req));
+        if (res.report === undefined) {
+          return reply.code(404).send({ error: 'report not found' });
+        }
+        return reply.send(dataEnvelope(reportToView(res.report)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/admin/moderation/reports/:id/escalate',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+        summary: 'Escalate a moderation report (admin)',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          properties: { escalatedTo: { type: 'string' }, reason: { type: 'string' } },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: EscalateReportRequest = {
+        reportId: req.params.id,
+        escalatedTo: (b.escalatedTo as string) ?? '',
+        reason: (b.reason as string) ?? '',
+      };
+      try {
+        const res = await client.escalateReport(grpcReq, buildMetadata(req));
         if (res.report === undefined) {
           return reply.code(404).send({ error: 'report not found' });
         }
