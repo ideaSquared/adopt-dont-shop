@@ -150,6 +150,14 @@ runs:
     - name: Start database and cache
       shell: bash
       run: |
+        # ADS-878: the redis service reads --requirepass from the file-mounted
+        # secret ./secrets/redis_password (a top-level `secrets:` in
+        # docker-compose.yml), NOT from `environment:`. That file must exist
+        # before `up`, or the container fails with "bind source path does not
+        # exist: .../secrets/redis_password". Materialise it from the .env we
+        # just wrote — the same step `pnpm dev:services` runs before its own
+        # `docker compose up -d database redis`.
+        node scripts/write-redis-secret.mjs
         docker compose -f docker-compose.yml up -d database redis
         timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
 
