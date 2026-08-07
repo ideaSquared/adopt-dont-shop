@@ -183,6 +183,36 @@ describe('AuthProvider auth_session_authenticated event', () => {
     expect(sessionEventCalls).toHaveLength(1);
   });
 
+  it('rehydrates the session from the hasSession cookie when the localStorage user cache is empty', async () => {
+    // ADS-919 regression guard: a restored browser context (Playwright
+    // storageState) or a fresh device can carry the HttpOnly session cookie
+    // without the optional localStorage user cache. isAuthenticated() reflects
+    // the `hasSession` marker cookie (true here); getCurrentUser() — the cache
+    // — is empty. The boot must still rehydrate the session via /me rather than
+    // stranding a valid session on the logged-out UI.
+    const onAuthEvent = vi.fn();
+    mockAuthService.getCurrentUser.mockReturnValue(null);
+    mockAuthService.isAuthenticated.mockReturnValue(true);
+    mockAuthService.getProfile.mockResolvedValue(adopterUser);
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client" onAuthEvent={onAuthEvent}>
+        <></>
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(mockAuthService.getProfile).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(onAuthEvent).toHaveBeenCalledWith('auth_session_authenticated', {
+        user_id: adopterUser.userId,
+        user_type: adopterUser.userType,
+        email: adopterUser.email,
+      });
+    });
+  });
+
   it('fires auth_session_authenticated once when rehydrating a dev user on mount', async () => {
     vi.stubEnv('DEV', true);
 

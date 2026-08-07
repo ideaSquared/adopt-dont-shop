@@ -121,9 +121,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           }
         }
 
-        const currentUser = authService.getCurrentUser();
-        if (currentUser && authService.isAuthenticated()) {
-          // Verify token is still valid by fetching fresh user data
+        // ADS-919: the HttpOnly session (surfaced by the `hasSession` marker
+        // cookie) is the source of truth on boot. Rehydrate from it via /me
+        // rather than gating on the optional localStorage user cache — a
+        // restored browser context or a fresh device can carry the session
+        // cookie without that cache, and gating on it would strand a valid
+        // session on the logged-out UI.
+        if (authService.isAuthenticated()) {
+          // Verify the session is still valid by fetching fresh user data
           const freshUser = await authService.getProfile();
 
           // Check if user type is allowed in this app
