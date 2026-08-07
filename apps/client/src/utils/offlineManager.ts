@@ -3,8 +3,6 @@
  * Handles offline message queuing, connection monitoring, and sync capabilities
  */
 
-import { api } from '@/services';
-
 export interface QueuedMessage {
   id: string;
   conversationId: string;
@@ -38,8 +36,6 @@ class OfflineManager {
   private syncCallback: SyncCallback | null = null;
   private listeners: OfflineStateChangeListener[] = [];
   private syncInterval: ReturnType<typeof setInterval> | null = null;
-  private connectionCheckInterval: ReturnType<typeof setInterval> | null = null;
-  private consecutiveFailures: number = 0;
   // Bound listener refs stored so removeEventListener can remove the same function reference.
   private readonly boundHandleOnline: () => void;
   private readonly boundHandleOffline: () => void;
@@ -50,7 +46,6 @@ class OfflineManager {
     this.initializeNetworkListeners();
     this.loadPersistedData();
     this.startPeriodicSync();
-    this.startConnectionQualityCheck();
   }
 
   private initializeNetworkListeners() {
@@ -77,61 +72,6 @@ class OfflineManager {
         this.trySync();
       }
     }, 30000); // Sync every 30 seconds
-  }
-
-  private startConnectionQualityCheck() {
-    // Do an initial check after a short delay
-    setTimeout(() => this.checkConnectionQuality(), 2000);
-
-    // Check every 2 minutes in development to reduce log noise, or 30 seconds in production
-    // ADS-423: import.meta.env.DEV is statically replaced by Vite at build time.
-    const isDev = import.meta.env.DEV === true || window.location.hostname === 'localhost';
-    const interval = isDev ? 120000 : 30000; // 2 minutes for dev, 30 seconds for prod
-
-    this.connectionCheckInterval = setInterval(() => {
-      this.checkConnectionQuality();
-    }, interval);
-  }
-
-  private async checkConnectionQuality() {
-    if (!this.isOnline) {
-      this.connectionQuality = 'offline';
-      return;
-    }
-
-    try {
-      const startTime = Date.now();
-
-      // Use the simple health endpoint for quick connection quality checks
-      await api.fetch('/api/v1/health/simple', {
-        method: 'GET',
-        timeout: 3000, // Reduced timeout to 3 seconds
-      });
-
-      const endTime = Date.now();
-      const latency = endTime - startTime;
-
-      // If we got here without throwing, the response was successful
-      this.connectionQuality = latency < 1000 ? 'good' : 'poor';
-      this.consecutiveFailures = 0; // Reset on success
-    } catch (error) {
-      this.consecutiveFailures++;
-      // Only log connection errors occasionally to avoid spam
-      if (this.connectionQuality !== 'poor' && this.consecutiveFailures <= 3) {
-        console.warn('Health check failed, marking connection as poor:', error);
-      }
-      this.connectionQuality = 'poor';
-
-      // If there are 5 consecutive failures, back off the check interval to every 2 minutes
-      if (this.consecutiveFailures >= 5) {
-        clearInterval(this.connectionCheckInterval!);
-        this.connectionCheckInterval = setInterval(() => {
-          this.checkConnectionQuality();
-        }, 120000); // 2 minutes
-      }
-    }
-
-    this.notifyListeners();
   }
 
   private loadPersistedData() {
@@ -268,10 +208,6 @@ class OfflineManager {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
       this.syncInterval = null;
-    }
-    if (this.connectionCheckInterval) {
-      clearInterval(this.connectionCheckInterval);
-      this.connectionCheckInterval = null;
     }
     window.removeEventListener('online', this.boundHandleOnline);
     window.removeEventListener('offline', this.boundHandleOffline);

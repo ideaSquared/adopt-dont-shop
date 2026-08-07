@@ -11,14 +11,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const apiFetch = vi.fn();
-
-vi.mock('@/services', () => ({
-  api: {
-    fetch: (...args: unknown[]) => apiFetch(...args),
-  },
-}));
-
 // Fake timers must be active before the module's singleton constructor runs.
 vi.useFakeTimers();
 

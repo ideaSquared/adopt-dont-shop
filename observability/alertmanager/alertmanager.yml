@@ -42,35 +42,33 @@ inhibit_rules:
     equal: ['alertname', 'job']
 
 receivers:
-  # ---- CRITICAL → paging channel -----------------------------------------
-  # Inert until a notifier is added. Recommended: Slack (or PagerDuty/Opsgenie
-  # for true on-call escalation). To activate Slack, create the secret file
-  #   observability/alertmanager/secrets/slack_api_url   (the incoming-webhook URL)
-  # and uncomment:
-  - name: 'critical-pager'
-    # slack_configs:
-    #   - channel: '#alerts-critical'
-    #     api_url_file: /etc/alertmanager/secrets/slack_api_url
-    #     send_resolved: true
-    #     title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
-    #     text: >-
-    #       {{ range .Alerts }}{{ .Annotations.summary }}
-    #       {{ .Annotations.description }}
-    #       Runbook: {{ .Annotations.runbook }}
-    #       {{ end }}
+  # Delivery goes to Discord via an incoming webhook (ADS-1041). The webhook
+  # URL is a secret: it lives in observability/alertmanager/secrets/discord_webhook_url
+  # on the host (gitignored, mounted read-only at /etc/alertmanager/secrets/),
+  # NOT in this file — webhook_url_file keeps it out of `docker inspect` too.
+  # Reload after editing: `docker compose kill -s HUP alertmanager`.
 
-  # ---- WARNING → chat channel --------------------------------------------
-  # Inert until a notifier is added. Slack example (create
-  #   observability/alertmanager/secrets/slack_api_url) or SMTP email:
+  # ---- CRITICAL → alerts channel -----------------------------------------
+  - name: 'critical-pager'
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        message: >-
+          {{ range .Alerts }}{{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          {{ if .Annotations.runbook }}Runbook: {{ .Annotations.runbook }}{{ end }}
+          {{ end }}
+
+  # ---- WARNING → alerts channel ------------------------------------------
+  # Same webhook for now (single channel). Point at a separate webhook secret
+  # if you split #alerts-critical from #alerts later.
   - name: 'warning-chat'
-    # slack_configs:
-    #   - channel: '#alerts'
-    #     api_url_file: /etc/alertmanager/secrets/slack_api_url
-    #     send_resolved: true
-    # email_configs:
-    #   - to: 'oncall@adoptdontshop.com'
-    #     from: 'alertmanager@adoptdontshop.com'
-    #     smarthost: 'smtp.example.com:587'
-    #     auth_username: 'alertmanager@adoptdontshop.com'
-    #     auth_password_file: /etc/alertmanager/secrets/smtp_password
-    #     send_resolved: true
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        message: >-
+          {{ range .Alerts }}{{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          {{ end }}
