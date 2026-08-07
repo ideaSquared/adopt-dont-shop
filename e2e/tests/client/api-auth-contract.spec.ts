@@ -11,13 +11,20 @@ import { URLS } from '../../playwright.config';
  *   2. A state-changing request that carries the csrfToken cookie is rejected
  *      (403) without a matching x-csrf-token header, and reaches the auth layer
  *      once the header matches (bad creds → 400/401, never 403).
- *   3. An unauthenticated read is not rejected at the gateway edge (the
- *      strangler-fig forwards it, middleware/authenticate.ts) but must not
- *      expose an authenticated identity.
+ *   3. A read without credentials is rejected (401/404), not served as an
+ *      authenticated identity.
+ *
+ * Every context here is created with an EMPTY storageState: the [client]
+ * project ships an authenticated adopter storageState, and a bare
+ * `request.newContext()` inherits it — which would make these "anonymous"
+ * checks run as the seeded adopter. Passing an empty state forces a genuinely
+ * unauthenticated context.
  */
+const ANON = { cookies: [], origins: [] } as const;
+
 test.describe('gateway auth contract (cookies + CSRF, ADS-919)', () => {
   test('GET /api/v1/csrf-token issues a double-submit token', async () => {
-    const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
+    const ctx = await playwrightRequest.newContext({ baseURL: URLS.api, storageState: ANON });
     try {
       const res = await ctx.get('/api/v1/csrf-token');
       expect(res.status()).toBe(200);
@@ -30,7 +37,7 @@ test.describe('gateway auth contract (cookies + CSRF, ADS-919)', () => {
   });
 
   test('the CSRF gate blocks a mismatched mutation and clears a matching one', async () => {
-    const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
+    const ctx = await playwrightRequest.newContext({ baseURL: URLS.api, storageState: ANON });
     try {
       // fetchCsrfToken sets the csrfToken cookie on this context, so the gate
       // now enforces the double-submit on state-changing requests.
@@ -55,16 +62,15 @@ test.describe('gateway auth contract (cookies + CSRF, ADS-919)', () => {
     }
   });
 
-  test('an unauthenticated read is forwarded (200) but exposes no identity', async () => {
-    const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
+  test('an unauthenticated read is rejected, not served as an identity', async () => {
+    const ctx = await playwrightRequest.newContext({ baseURL: URLS.api, storageState: ANON });
     try {
       const res = await ctx.get('/api/v1/auth/me');
-      // The gateway does not 401 unauthenticated reads at the edge (strangler-
-      // fig — see middleware/authenticate.ts); it forwards them. The contract
-      // that matters is that no authenticated identity leaks back.
-      expect(res.status()).toBe(200);
-      const body = (await res.json()) as { user?: { email?: string } };
-      expect(body.user?.email).toBeFalsy();
+      // With no credentials, GetMe resolves no principal — the request must not
+      // come back as an authenticated user (401 unauthenticated / 404 no such
+      // user, depending on the layer that rejects it).
+      expect(res.ok()).toBe(false);
+      expect([401, 404]).toContain(res.status());
     } finally {
       await ctx.dispose();
     }
