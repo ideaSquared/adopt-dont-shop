@@ -442,6 +442,47 @@ describe('GET /api/v1/auth/me', () => {
       await app.close();
     }
   });
+
+  it('echoes the editable account-profile fields (incl. bio) so the SPA can rehydrate them', async () => {
+    // Regression (e2e profile-update-persistence): the response schema must not
+    // strip bio/timezone/language/country/city. The client profile summary only
+    // renders the Bio row when the rehydrated user carries a bio, so a persisted
+    // bio silently vanished on reload when GET /auth/me dropped it — even though
+    // PATCH /users/account echoes it back. GET must be symmetric with PATCH.
+    const { client, getMeMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const getMeRes: GetMeResponse = {
+        user: {
+          ...LOGIN_RES.user!,
+          bio: 'loves long walks',
+          timezone: 'Europe/London',
+          language: 'en',
+          country: 'GB',
+          city: 'Bristol',
+        },
+        roles: [AuthV1.UserRole.USER_ROLE_ADOPTER],
+        permissions: ['pets.read'],
+      };
+      getMeMock.mockResolvedValueOnce(getMeRes);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { user: Record<string, unknown> };
+      expect(body.user.bio).toBe('loves long walks');
+      expect(body.user.timezone).toBe('Europe/London');
+      expect(body.user.language).toBe('en');
+      expect(body.user.country).toBe('GB');
+      expect(body.user.city).toBe('Bristol');
+    } finally {
+      await app.close();
+    }
+  });
 });
 
 describe('POST /api/v1/auth/assign-role', () => {
