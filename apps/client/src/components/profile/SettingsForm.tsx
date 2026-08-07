@@ -1,6 +1,13 @@
 import notificationService from '@/services/notificationService';
 import { User } from '@/types';
-import { Button, ThemeToggle } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  CheckboxInput,
+  FormField,
+  SelectInput,
+  ThemeToggle,
+  type SelectOption,
+} from '@adopt-dont-shop/lib.components';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import React, { useEffect, useState } from 'react';
 import * as styles from './SettingsForm.css';
@@ -36,6 +43,29 @@ interface SettingsFormProps {
   onDeleteAccount?: () => void;
   isLoading?: boolean;
 }
+
+const profileVisibilityOptions: SelectOption[] = [
+  { value: 'public', label: 'Public' },
+  { value: 'private', label: 'Private' },
+];
+
+const searchRadiusOptions: SelectOption[] = [
+  { value: '10', label: '10 miles' },
+  { value: '25', label: '25 miles' },
+  { value: '50', label: '50 miles' },
+  { value: '100', label: '100 miles' },
+  { value: '250', label: '250 miles' },
+  { value: '500', label: '500+ miles' },
+];
+
+const hourOptions: SelectOption[] = Array.from({ length: 24 }, (_, i) => {
+  const hour = i.toString().padStart(2, '0');
+  return { value: `${hour}:00`, label: `${hour}:00` };
+});
+
+// SelectInput yields `string | string[]`; every select here is single-value.
+const singleValue = (value: string | string[]): string =>
+  Array.isArray(value) ? (value[0] ?? '') : value;
 
 export const SettingsForm: React.FC<SettingsFormProps> = ({
   user,
@@ -193,147 +223,91 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
           <h3 className={styles.sectionTitle}>Notification Preferences</h3>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Email Notifications</h4>
-              <p>Receive updates about your applications and new pet matches</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Email Notifications'>
-                <input
-                  type='checkbox'
-                  checked={settings.notifications.email}
-                  onChange={() => handleToggle('notifications', 'email')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Receive updates about your applications and new pet matches'>
+              <CheckboxInput
+                label='Email Notifications'
+                checked={settings.notifications.email}
+                onChange={() => handleToggle('notifications', 'email')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Push Notifications</h4>
-              <p>Get instant updates on your device</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Push Notifications'>
-                <input
-                  type='checkbox'
-                  checked={settings.notifications.push}
-                  onChange={() => handleToggle('notifications', 'push')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Get instant updates on your device'>
+              <CheckboxInput
+                label='Push Notifications'
+                checked={settings.notifications.push}
+                onChange={() => handleToggle('notifications', 'push')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>SMS Notifications</h4>
-              <p>Receive text messages for urgent updates</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='SMS Notifications'>
-                <input
-                  type='checkbox'
-                  checked={settings.notifications.sms}
-                  onChange={() => handleToggle('notifications', 'sms')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Receive text messages for urgent updates'>
+              <CheckboxInput
+                label='SMS Notifications'
+                checked={settings.notifications.sms}
+                onChange={() => handleToggle('notifications', 'sms')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Application Updates</h4>
-              <p>Get notified when your adoption applications change status</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Application Updates'>
-                <input
-                  type='checkbox'
-                  checked={settings.notifications.applications}
-                  onChange={() => handleToggle('notifications', 'applications')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Get notified when your adoption applications change status'>
+              <CheckboxInput
+                label='Application Updates'
+                checked={settings.notifications.applications}
+                onChange={() => handleToggle('notifications', 'applications')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Messages</h4>
-              <p>Receive notifications for new messages from rescue organizations</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Messages'>
-                <input
-                  type='checkbox'
-                  checked={settings.notifications.messages}
-                  onChange={() => handleToggle('notifications', 'messages')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Receive notifications for new messages from rescue organizations'>
+              <CheckboxInput
+                label='Messages'
+                checked={settings.notifications.messages}
+                onChange={() => handleToggle('notifications', 'messages')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>System Notifications</h4>
-              <p>Important system updates and announcements</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='System Notifications'>
-                <input
-                  type='checkbox'
-                  checked={settings.notifications.system}
-                  onChange={() => handleToggle('notifications', 'system')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Important system updates and announcements'>
+              <CheckboxInput
+                label='System Notifications'
+                checked={settings.notifications.system}
+                onChange={() => handleToggle('notifications', 'system')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Marketing &amp; Promotions</h4>
-              <p>Receive updates about special events and adoption promotions</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Marketing &amp; Promotions'>
-                <input
-                  type='checkbox'
-                  checked={settings.notifications.marketing}
-                  onChange={() => handleToggle('notifications', 'marketing')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Receive updates about special events and adoption promotions'>
+              <CheckboxInput
+                label='Marketing & Promotions'
+                checked={settings.notifications.marketing}
+                onChange={() => handleToggle('notifications', 'marketing')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Reminders</h4>
-              <p>Get reminders about incomplete applications and follow-ups</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Reminders'>
-                <input
-                  type='checkbox'
-                  checked={settings.notifications.reminders}
-                  onChange={() => handleToggle('notifications', 'reminders')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Get reminders about incomplete applications and follow-ups'>
+              <CheckboxInput
+                label='Reminders'
+                checked={settings.notifications.reminders}
+                onChange={() => handleToggle('notifications', 'reminders')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
         </div>
 
@@ -341,57 +315,40 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
           <h3 className={styles.sectionTitle}>Privacy Settings</h3>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Profile Visibility</h4>
-              <p>Control who can see your profile information</p>
-            </div>
-            <div className={styles.settingControl}>
-              <select
-                className={styles.select}
-                value={settings.privacy.profileVisibility}
-                onChange={e => handleSelectChange('privacy', 'profileVisibility', e.target.value)}
+            <SelectInput
+              label='Profile Visibility'
+              helperText='Control who can see your profile information'
+              value={settings.privacy.profileVisibility}
+              onChange={value =>
+                handleSelectChange('privacy', 'profileVisibility', singleValue(value))
+              }
+              options={profileVisibilityOptions}
+              disabled={isLoading}
+              data-testid='setting-profile-visibility'
+              fullWidth
+            />
+          </div>
+
+          <div className={styles.settingItem}>
+            <FormField description='Allow rescue organizations to see your email'>
+              <CheckboxInput
+                label='Show Email Address'
+                checked={settings.privacy.showEmail}
+                onChange={() => handleToggle('privacy', 'showEmail')}
                 disabled={isLoading}
-              >
-                <option value='public'>Public</option>
-                <option value='private'>Private</option>
-              </select>
-            </div>
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Show Email Address</h4>
-              <p>Allow rescue organizations to see your email</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Show Email Address'>
-                <input
-                  type='checkbox'
-                  checked={settings.privacy.showEmail}
-                  onChange={() => handleToggle('privacy', 'showEmail')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
-          </div>
-
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Show Phone Number</h4>
-              <p>Allow rescue organizations to see your phone number</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Show Phone Number'>
-                <input
-                  type='checkbox'
-                  checked={settings.privacy.showPhone}
-                  onChange={() => handleToggle('privacy', 'showPhone')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Allow rescue organizations to see your phone number'>
+              <CheckboxInput
+                label='Show Phone Number'
+                checked={settings.privacy.showPhone}
+                onChange={() => handleToggle('privacy', 'showPhone')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
         </div>
 
@@ -399,45 +356,29 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
           <h3 className={styles.sectionTitle}>Pet Preferences</h3>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Newsletter Subscription</h4>
-              <p>Receive weekly updates about new pets and adoption stories</p>
-            </div>
-            <div className={styles.settingControl}>
-              <label className={styles.switchLabel} aria-label='Newsletter Subscription'>
-                <input
-                  type='checkbox'
-                  checked={settings.preferences.newsletterOptIn}
-                  onChange={() => handleToggle('preferences', 'newsletterOptIn')}
-                  disabled={isLoading}
-                />
-                <span />
-              </label>
-            </div>
+            <FormField description='Receive weekly updates about new pets and adoption stories'>
+              <CheckboxInput
+                label='Newsletter Subscription'
+                checked={settings.preferences.newsletterOptIn}
+                onChange={() => handleToggle('preferences', 'newsletterOptIn')}
+                disabled={isLoading}
+              />
+            </FormField>
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Search Radius</h4>
-              <p>Maximum distance to search for pets (miles)</p>
-            </div>
-            <div className={styles.settingControl}>
-              <select
-                className={styles.select}
-                value={settings.preferences.maxDistance.toString()}
-                onChange={e =>
-                  handleNumberChange('preferences', 'maxDistance', parseInt(e.target.value))
-                }
-                disabled={isLoading}
-              >
-                <option value='10'>10 miles</option>
-                <option value='25'>25 miles</option>
-                <option value='50'>50 miles</option>
-                <option value='100'>100 miles</option>
-                <option value='250'>250 miles</option>
-                <option value='500'>500+ miles</option>
-              </select>
-            </div>
+            <SelectInput
+              label='Search Radius'
+              helperText='Maximum distance to search for pets (miles)'
+              value={settings.preferences.maxDistance.toString()}
+              onChange={value =>
+                handleNumberChange('preferences', 'maxDistance', parseInt(singleValue(value), 10))
+              }
+              options={searchRadiusOptions}
+              disabled={isLoading}
+              data-testid='setting-search-radius'
+              fullWidth
+            />
           </div>
         </div>
 
@@ -445,53 +386,33 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
           <h3 className={styles.sectionTitle}>Quiet Hours</h3>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Quiet Hours Start</h4>
-              <p>Time when non-urgent notifications will be paused</p>
-            </div>
-            <div className={styles.settingControl}>
-              <select
-                className={styles.select}
-                value={settings.notifications.quietHoursStart || '22:00'}
-                onChange={e =>
-                  handleSelectChange('notifications', 'quietHoursStart', e.target.value)
-                }
-                disabled={isLoading}
-              >
-                {Array.from({ length: 24 }, (_, i) => {
-                  const hour = i.toString().padStart(2, '0');
-                  return (
-                    <option key={hour} value={`${hour}:00`}>
-                      {hour}:00
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <SelectInput
+              label='Quiet Hours Start'
+              helperText='Time when non-urgent notifications will be paused'
+              value={settings.notifications.quietHoursStart || '22:00'}
+              onChange={value =>
+                handleSelectChange('notifications', 'quietHoursStart', singleValue(value))
+              }
+              options={hourOptions}
+              disabled={isLoading}
+              data-testid='setting-quiet-hours-start'
+              fullWidth
+            />
           </div>
 
           <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              <h4>Quiet Hours End</h4>
-              <p>Time when notifications will resume</p>
-            </div>
-            <div className={styles.settingControl}>
-              <select
-                className={styles.select}
-                value={settings.notifications.quietHoursEnd || '08:00'}
-                onChange={e => handleSelectChange('notifications', 'quietHoursEnd', e.target.value)}
-                disabled={isLoading}
-              >
-                {Array.from({ length: 24 }, (_, i) => {
-                  const hour = i.toString().padStart(2, '0');
-                  return (
-                    <option key={hour} value={`${hour}:00`}>
-                      {hour}:00
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <SelectInput
+              label='Quiet Hours End'
+              helperText='Time when notifications will resume'
+              value={settings.notifications.quietHoursEnd || '08:00'}
+              onChange={value =>
+                handleSelectChange('notifications', 'quietHoursEnd', singleValue(value))
+              }
+              options={hourOptions}
+              disabled={isLoading}
+              data-testid='setting-quiet-hours-end'
+              fullWidth
+            />
           </div>
         </div>
 

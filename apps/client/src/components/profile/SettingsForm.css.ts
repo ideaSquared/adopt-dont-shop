@@ -68,65 +68,6 @@ export const settingControl = style({
   gap: '1rem',
 });
 
-export const switchLabel = style({
-  position: 'relative',
-  display: 'inline-block',
-  width: '50px',
-  height: '24px',
-});
-
-globalStyle(`${switchLabel} input`, {
-  opacity: 0,
-  width: 0,
-  height: 0,
-});
-
-globalStyle(`${switchLabel} span`, {
-  position: 'absolute',
-  cursor: 'pointer',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: vars.border.color.default,
-  transition: '0.3s',
-  borderRadius: '24px',
-});
-
-globalStyle(`${switchLabel} span:before`, {
-  position: 'absolute',
-  content: '""',
-  height: '18px',
-  width: '18px',
-  left: '3px',
-  bottom: '3px',
-  backgroundColor: 'white',
-  transition: '0.3s',
-  borderRadius: '50%',
-});
-
-globalStyle(`${switchLabel} input:checked + span`, {
-  backgroundColor: vars.colors.primary,
-});
-
-globalStyle(`${switchLabel} input:checked + span:before`, {
-  transform: 'translateX(26px)',
-});
-
-export const select = style({
-  padding: '0.5rem',
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '6px',
-  background: vars.background.body,
-  color: vars.text.primary,
-  fontSize: '0.875rem',
-  minWidth: '150px',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: vars.colors.primary,
-  },
-});
-
 export const buttonGroup = style({
   display: 'flex',
   gap: '1rem',
