@@ -1004,6 +1004,79 @@ export const registerUsersRoutes = async (
     }
   );
 
+  // PATCH /api/v1/admin/users/:userId — general admin profile update
+  // (the admin console's userManagementService.updateUser). Maps the
+  // editable profile fields onto AdminUpdateUser. The separate
+  // .../:userId/action route below handles the suspend/reactivate
+  // moderation verbs; this route is the plain field edit.
+  app.patch<{ Params: { userId: string } }>(
+    '/api/v1/admin/users/:userId',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Update a user (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            userType: { type: 'string' },
+            user_type: { type: 'string' },
+            emailVerified: { type: 'boolean' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: USER_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: AdminUpdateUserRequest = {
+        userId: req.params.userId,
+        status: statusFilterFromString(typeof body.status === 'string' ? body.status : undefined),
+        userType: userTypeFilterFromString(
+          typeof body.userType === 'string'
+            ? body.userType
+            : typeof body.user_type === 'string'
+              ? body.user_type
+              : undefined
+        ),
+        emailVerified: typeof body.emailVerified === 'boolean' ? body.emailVerified : undefined,
+        firstName: typeof body.firstName === 'string' ? body.firstName : undefined,
+        lastName: typeof body.lastName === 'string' ? body.lastName : undefined,
+      };
+      try {
+        const res = await authClient.adminUpdateUser(grpcReq, metadata);
+        return reply.send({ success: true, data: userToApiJson(res.user!) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // PATCH /api/v1/admin/users/:userId/action — the per-user moderation
   // action the admin UI's bulk button calls once per row. Maps a small
   // action vocabulary onto the existing admin RPCs.
