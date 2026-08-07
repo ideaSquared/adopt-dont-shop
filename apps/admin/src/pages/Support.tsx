@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import {
+  DataTable,
+  type DataTableColumn,
   Heading,
   Text,
   Input,
@@ -11,7 +13,6 @@ import {
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
-import { DataTable, type Column } from '../components/data';
 import {
   useTickets,
   useTicketStats,
@@ -229,76 +230,95 @@ const Support: React.FC = () => {
     await refetch();
   };
 
-  const columns: Column<SupportTicket>[] = [
+  // Columns use the shared DataTable's key/label/render shape. Server-side sort
+  // was never wired for support tickets (the list query hard-codes
+  // sortBy/sortOrder and ignores the URL params the old table wrote), so every
+  // column is explicitly non-sortable rather than opting into the shared table's
+  // client-side sort of the current page only.
+  const columns: DataTableColumn[] = [
     {
-      id: 'ticket',
-      header: 'Ticket',
-      accessor: row => (
-        <div className={styles.ticketInfo}>
-          <div className={styles.ticketSubject}>
-            #{row.ticketId.slice(-6)} - {row.subject}
-          </div>
-          <div className={styles.ticketMeta}>
-            {row.userName || 'Unknown'} ({row.userEmail})
-          </div>
-        </div>
-      ),
+      key: 'ticket',
+      label: 'Ticket',
       width: '400px',
+      sortable: false,
+      render: (_value, row) => {
+        const ticket = row as SupportTicket;
+        return (
+          <div className={styles.ticketInfo}>
+            <div className={styles.ticketSubject}>
+              #{ticket.ticketId.slice(-6)} - {ticket.subject}
+            </div>
+            <div className={styles.ticketMeta}>
+              {ticket.userName || 'Unknown'} ({ticket.userEmail})
+            </div>
+          </div>
+        );
+      },
     },
     {
-      id: 'category',
-      header: 'Category',
-      accessor: row => getCategoryLabel(row.category),
+      key: 'category',
+      label: 'Category',
       width: '150px',
+      sortable: false,
+      render: (_value, row) => getCategoryLabel((row as SupportTicket).category),
     },
     {
-      id: 'priority',
-      header: 'Priority',
-      accessor: row => {
+      key: 'priority',
+      label: 'Priority',
+      width: '120px',
+      sortable: false,
+      render: (_value, row) => {
+        const ticket = row as SupportTicket;
         const icon =
-          row.priority === 'urgent' || row.priority === 'critical' || row.priority === 'high' ? (
+          ticket.priority === 'urgent' ||
+          ticket.priority === 'critical' ||
+          ticket.priority === 'high' ? (
             <FiAlertCircle />
           ) : (
             <FiClock />
           );
-        const level = getPriorityLevel(row.priority);
+        const level = getPriorityLevel(ticket.priority);
         return (
           <span className={getPriorityBadgeClass(level)}>
             {icon}
-            {getPriorityLabel(row.priority)}
+            {getPriorityLabel(ticket.priority)}
           </span>
         );
       },
-      width: '120px',
-      sortable: true,
     },
     {
-      id: 'status',
-      header: 'Status',
-      accessor: row => (
-        <span className={getStatusBadgeClass(row.status)}>{getStatusLabel(row.status)}</span>
-      ),
+      key: 'status',
+      label: 'Status',
       width: '140px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => {
+        const ticket = row as SupportTicket;
+        return (
+          <span className={getStatusBadgeClass(ticket.status)}>
+            {getStatusLabel(ticket.status)}
+          </span>
+        );
+      },
     },
     {
-      id: 'messages',
-      header: 'Replies',
-      accessor: row => (
-        <div className={styles.replyCount}>
-          <FiMessageSquare />
-          {row.responses?.length || 0}
-        </div>
-      ),
+      key: 'messages',
+      label: 'Replies',
       width: '100px',
       align: 'center',
+      sortable: false,
+      render: (_value, row) => (
+        <div className={styles.replyCount}>
+          <FiMessageSquare />
+          {(row as SupportTicket).responses?.length || 0}
+        </div>
+      ),
     },
     {
-      id: 'updated',
-      header: 'Last Updated',
-      accessor: row => formatRelativeTime(row.updatedAt),
+      key: 'updated',
+      label: 'Last Updated',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => formatRelativeTime((row as SupportTicket).updatedAt),
     },
   ];
 
@@ -433,15 +453,18 @@ const Support: React.FC = () => {
       )}
 
       <DataTable
+        frameless
+        surface
         columns={columns}
-        data={tickets}
+        rows={tickets as unknown as Record<string, unknown>[]}
         loading={loading}
         emptyMessage='No support tickets found matching your criteria'
-        onRowClick={handleRowClick}
-        currentPage={page}
-        totalPages={totalPages}
+        page={page}
+        total={totalPages * 20}
+        pageSize={20}
         onPageChange={setPage}
-        getRowId={ticket => ticket.ticketId}
+        onRowClick={row => handleRowClick(row as SupportTicket)}
+        getRowId={row => (row as SupportTicket).ticketId}
       />
 
       <TicketDetailModal

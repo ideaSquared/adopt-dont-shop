@@ -1,8 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router';
-import { Input, toast, useDebouncedValue } from '@adopt-dont-shop/lib.components';
+import {
+  DataTable,
+  type DataTableColumn,
+  Input,
+  toast,
+  useDebouncedValue,
+} from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiAlertTriangle, FiCheckCircle, FiEye, FiShield } from 'react-icons/fi';
-import { DataTable, type Column } from '../components/data';
 import { BulkActionToolbar } from '../components/ui';
 import {
   useReports,
@@ -327,72 +332,94 @@ const Moderation: React.FC = () => {
     }
   };
 
-  const columns: Column<Report>[] = [
+  // Columns use the shared DataTable's key/label/render shape. Server-side sort
+  // was never wired for moderation (useReports receives a hard-coded
+  // sortBy/sortOrder, never one derived from a column header), so every column
+  // is explicitly non-sortable rather than opting into the shared table's
+  // client-side sort of the current page only.
+  const columns: DataTableColumn[] = [
     {
-      id: 'title',
-      header: 'Report',
-      sortable: true,
-      accessor: (report: Report) => (
-        <div>
-          <div className={styles.reportTitle}>{report.title}</div>
-          <div className={styles.reportSummary}>{report.description.substring(0, 80)}...</div>
+      key: 'title',
+      label: 'Report',
+      sortable: false,
+      render: (_value, row) => {
+        const report = row as Report;
+        return (
+          <div>
+            <div className={styles.reportTitle}>{report.title}</div>
+            <div className={styles.reportSummary}>{report.description.substring(0, 80)}...</div>
 
-          <div className={styles.reportTagRow}>
-            <span className={getContentTypeTagClass(report.reportedEntityType)}>
-              {report.reportedEntityType}
-            </span>
+            <div className={styles.reportTagRow}>
+              <span className={getContentTypeTagClass(report.reportedEntityType)}>
+                {report.reportedEntityType}
+              </span>
+            </div>
           </div>
-        </div>
+        );
+      },
+    },
+    {
+      key: 'severity',
+      label: 'Severity',
+      sortable: false,
+      render: (_value, row) => getPriorityDisplay((row as Report).severity),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: false,
+      render: (_value, row) => {
+        const report = row as Report;
+        return (
+          <span className={getStatusBadgeClass(report.status)}>
+            {getStatusBadgeLabel(report.status)}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'createdAt',
+      label: 'Reported',
+      sortable: false,
+      render: (_value, row) => (
+        <div className={styles.reportedAt}>{formatRelativeTime((row as Report).createdAt)}</div>
       ),
     },
     {
-      id: 'severity',
-      header: 'Severity',
-      sortable: true,
-      accessor: (report: Report) => getPriorityDisplay(report.severity),
-    },
-    {
-      id: 'status',
-      header: 'Status',
-      sortable: true,
-      accessor: (report: Report) => (
-        <span className={getStatusBadgeClass(report.status)}>
-          {getStatusBadgeLabel(report.status)}
-        </span>
-      ),
-    },
-    {
-      id: 'createdAt',
-      header: 'Reported',
-      sortable: true,
-      accessor: (report: Report) => (
-        <div className={styles.reportedAt}>{formatRelativeTime(report.createdAt)}</div>
-      ),
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      accessor: (report: Report) => (
-        <div className={styles.actionButtons}>
-          <button
-            className={styles.iconButton}
-            title='View Details'
-            onClick={() => handleOpenDetailModal(report)}
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => {
+        const report = row as Report;
+        return (
+          <div
+            className={styles.actionButtons}
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
+            role='presentation'
           >
-            <FiEye />
-          </button>
-          {report.status === 'pending' || report.status === 'under_review' ? (
             <button
               className={styles.iconButton}
-              title='Take Action'
-              onClick={() => handleOpenActionModal(report)}
-              disabled={isActionLoading}
+              title='View Details'
+              aria-label='View Details'
+              onClick={() => handleOpenDetailModal(report)}
             >
-              <FiShield />
+              <FiEye aria-hidden />
             </button>
-          ) : null}
-        </div>
-      ),
+            {report.status === 'pending' || report.status === 'under_review' ? (
+              <button
+                className={styles.iconButton}
+                title='Take Action'
+                aria-label='Take Action'
+                onClick={() => handleOpenActionModal(report)}
+                disabled={isActionLoading}
+              >
+                <FiShield aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        );
+      },
     },
   ];
 
@@ -545,18 +572,21 @@ const Moderation: React.FC = () => {
       />
 
       <DataTable
-        data={reports}
+        frameless
+        surface
         columns={columns}
+        rows={reports as unknown as Record<string, unknown>[]}
         loading={isLoading}
         emptyMessage='No reports found matching your criteria. Try adjusting your filters or search query.'
-        onRowClick={handleOpenDetailModal}
-        currentPage={pagination?.page || 1}
-        totalPages={pagination?.totalPages || 1}
+        onRowClick={row => handleOpenDetailModal(row as Report)}
+        page={pagination?.page ?? 1}
+        total={pagination?.total ?? 0}
+        pageSize={pageSize}
         onPageChange={page => setCurrentPage(page)}
         selectable
-        selectedRows={selectedRows}
-        onSelectionChange={setSelectedRows}
-        getRowId={report => report.reportId}
+        selectedIds={selectedRows}
+        onSelectionChange={ids => setSelectedRows(new Set(ids))}
+        getRowId={row => String((row as Report).reportId)}
       />
 
       <ReportDetailModal

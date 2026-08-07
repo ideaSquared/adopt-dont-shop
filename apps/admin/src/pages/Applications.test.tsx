@@ -1,8 +1,8 @@
 /**
- * UX P2 H: when the underlying applications query errors, the DataTable now
- * renders the inline error row (introduced by UX #5) in addition to whatever
- * top-of-page error treatment already existed. This pins down the wiring so
- * future refactors don't silently drop the inline affordance.
+ * UX P2 H: when the underlying applications query errors, the page surfaces a
+ * single page-level error banner (role="alert") above the list. The shared
+ * DataTable no longer carries an inline error row, so this pins the wiring so
+ * future refactors don't silently drop the error affordance.
  *
  * Deep-link wiring (ADS): the Applications page is driven by the
  * `/applications/:applicationId` route param. Row clicks navigate, the
@@ -141,7 +141,7 @@ beforeEach(() => {
 // ── Pre-existing behaviour ───────────────────────────────────────────────────
 
 describe('Applications page error wiring (UX P2 H)', () => {
-  it('renders the inline DataTable error row when the applications query fails', () => {
+  it('surfaces a page-level error banner when the applications query fails', () => {
     mockUseApplications.mockReturnValue({
       data: undefined,
       isLoading: false,

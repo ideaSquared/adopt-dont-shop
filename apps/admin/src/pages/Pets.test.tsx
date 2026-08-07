@@ -132,7 +132,7 @@ beforeEach(() => {
 });
 
 describe('Pets page error wiring (UX P2 H)', () => {
-  it('renders the inline DataTable error row when the pets query fails', () => {
+  it('surfaces a page-level error banner when the pets query fails', () => {
     mockPetsResponse = undefined;
     mockIsLoading = false;
     mockError = new Error('Failed to fetch pets from server');

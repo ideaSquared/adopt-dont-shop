@@ -389,6 +389,9 @@ describe('Content Moderation page', () => {
 
       expect(screen.getByTestId('action-selection-modal')).toBeInTheDocument();
       expect(screen.getByText('Action for: Harassment Report')).toBeInTheDocument();
+      // The action button lives inside the clickable row; its click must not
+      // bubble to the row and also open the detail modal.
+      expect(screen.queryByTestId('report-detail-modal')).not.toBeInTheDocument();
     });
 
     it('does not show Take Action button for resolved reports', () => {

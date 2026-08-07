@@ -179,6 +179,134 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Heading: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) =>
     React.createElement('h1', props, children),
   Input: (props: React.ComponentPropsWithoutRef<'input'>) => React.createElement('input', props),
+  // ADS-1085: shared DataTable now backs the admin list pages. Mirror the real
+  // key/label/render column contract plus row-click, per-row + header select-all
+  // selection, loading and empty states so migrated pages keep their table
+  // behaviour under test.
+  DataTable: ({
+    columns,
+    rows,
+    loading,
+    emptyMessage,
+    selectable,
+    selectedIds,
+    onSelectionChange,
+    getRowId,
+    onRowClick,
+  }: {
+    columns: Array<{
+      key: string;
+      label?: React.ReactNode;
+      render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode;
+    }>;
+    rows: Array<Record<string, unknown>>;
+    loading?: boolean;
+    emptyMessage?: string;
+    selectable?: boolean;
+    selectedIds?: Iterable<string>;
+    onSelectionChange?: (ids: string[]) => void;
+    getRowId?: (row: Record<string, unknown>) => string;
+    onRowClick?: (row: Record<string, unknown>) => void;
+    [k: string]: unknown;
+  }) => {
+    const rowKey = (row: Record<string, unknown>, index: number): string =>
+      getRowId ? getRowId(row) : String(index);
+    const selected = new Set<string>(selectedIds ? Array.from(selectedIds) : []);
+    const toggle = (id: string): void => {
+      const next = new Set(selected);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      onSelectionChange?.(Array.from(next));
+    };
+    const rowIds = rows.map((row, index) => rowKey(row, index));
+    const allSelected = rowIds.length > 0 && rowIds.every(id => selected.has(id));
+    const toggleAll = (): void => {
+      const next = new Set(selected);
+      if (allSelected) {
+        rowIds.forEach(id => next.delete(id));
+      } else {
+        rowIds.forEach(id => next.add(id));
+      }
+      onSelectionChange?.(Array.from(next));
+    };
+    const columnCount = columns.length + (selectable ? 1 : 0);
+
+    const bodyRows = loading
+      ? [
+          React.createElement(
+            'tr',
+            { key: 'loading', 'aria-hidden': 'true', 'data-testid': 'skeleton-row' },
+            ...Array.from({ length: columnCount }, (_, i) => React.createElement('td', { key: i }))
+          ),
+        ]
+      : rows.length === 0
+        ? [
+            React.createElement(
+              'tr',
+              { key: 'empty' },
+              React.createElement('td', { colSpan: columnCount }, emptyMessage ?? 'No data')
+            ),
+          ]
+        : rows.map((row, index) => {
+            const id = rowKey(row, index);
+            return React.createElement(
+              'tr',
+              { key: id, onClick: onRowClick ? () => onRowClick(row) : undefined },
+              selectable
+                ? React.createElement(
+                    'td',
+                    {
+                      key: '__select',
+                      onClick: (e: React.MouseEvent) => e.stopPropagation(),
+                    },
+                    React.createElement('input', {
+                      type: 'checkbox',
+                      checked: selected.has(id),
+                      onChange: () => toggle(id),
+                      'aria-label': `Select row ${id}`,
+                    })
+                  )
+                : null,
+              ...columns.map(col =>
+                React.createElement(
+                  'td',
+                  { key: col.key },
+                  col.render ? col.render(row[col.key], row) : (row[col.key] as React.ReactNode)
+                )
+              )
+            );
+          });
+
+    return React.createElement(
+      'table',
+      { 'data-testid': 'data-table' },
+      React.createElement(
+        'thead',
+        null,
+        React.createElement(
+          'tr',
+          null,
+          selectable
+            ? React.createElement(
+                'th',
+                { key: '__select' },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  'aria-label': 'Select all',
+                  checked: allSelected,
+                  onChange: toggleAll,
+                })
+              )
+            : null,
+          ...columns.map(col => React.createElement('th', { key: col.key }, col.label))
+        )
+      ),
+      React.createElement('tbody', null, ...bodyRows)
+    );
+  },
   Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),

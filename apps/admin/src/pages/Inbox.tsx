@@ -1,9 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { Input, toast, useDebouncedValue } from '@adopt-dont-shop/lib.components';
+import {
+  DataTable,
+  type DataTableColumn,
+  Input,
+  toast,
+  useDebouncedValue,
+} from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { FiSearch, FiUserPlus, FiUser } from 'react-icons/fi';
-import { DataTable, type Column } from '../components/data';
 import {
   useInbox,
   useInboxAssign,
@@ -177,7 +182,6 @@ const Inbox: React.FC = () => {
 
   const { data: inboxData, isLoading, error } = useInbox(filters);
   const items = inboxData?.data ?? [];
-  const totalPages = inboxData?.pagination?.totalPages ?? 1;
 
   const handleAssignToMe = (item: InboxItem, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -207,98 +211,122 @@ const Inbox: React.FC = () => {
     navigate(getDetailPath(item));
   };
 
-  const columns: Column<InboxItem>[] = [
+  // Columns use the shared DataTable's key/label/render shape. Server-side sort
+  // was never wired for the inbox (the list query hard-codes sortBy/sortOrder and
+  // ignores the URL params the old table wrote), so every column is explicitly
+  // non-sortable rather than opting into the shared table's client-side sort of
+  // the current page only.
+  const columns: DataTableColumn[] = [
     {
-      id: 'source',
-      header: 'Source',
-      accessor: (item: InboxItem) => (
-        <span className={getSourceBadgeClass(item.source)}>{getSourceLabel(item.source)}</span>
-      ),
+      key: 'source',
+      label: 'Source',
       width: '100px',
+      sortable: false,
+      render: (_value, row) => {
+        const item = row as InboxItem;
+        return (
+          <span className={getSourceBadgeClass(item.source)}>{getSourceLabel(item.source)}</span>
+        );
+      },
     },
     {
-      id: 'title',
-      header: 'Item',
-      accessor: (item: InboxItem) => (
-        <div>
-          <div className={item.assignedTo ? styles.itemTitle : styles.itemTitleUnassigned}>
-            {item.title}
-          </div>
-          <div className={styles.itemSummary}>{item.summary}</div>
-          {item.relatedUserEmail && (
-            <div className={styles.itemMeta}>
-              {item.relatedUserId ? (
-                <Link
-                  to={`/users/${item.relatedUserId}`}
-                  className={styles.relatedUserEmailLink}
-                  onClick={e => e.stopPropagation()}
-                >
-                  {item.relatedUserEmail}
-                </Link>
-              ) : (
-                item.relatedUserEmail
-              )}
-            </div>
-          )}
-        </div>
-      ),
+      key: 'title',
+      label: 'Item',
       width: '350px',
+      sortable: false,
+      render: (_value, row) => {
+        const item = row as InboxItem;
+        return (
+          <div>
+            <div className={item.assignedTo ? styles.itemTitle : styles.itemTitleUnassigned}>
+              {item.title}
+            </div>
+            <div className={styles.itemSummary}>{item.summary}</div>
+            {item.relatedUserEmail && (
+              <div className={styles.itemMeta}>
+                {item.relatedUserId ? (
+                  <Link
+                    to={`/users/${item.relatedUserId}`}
+                    className={styles.relatedUserEmailLink}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {item.relatedUserEmail}
+                  </Link>
+                ) : (
+                  item.relatedUserEmail
+                )}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
-      id: 'status',
-      header: 'Status',
-      accessor: (item: InboxItem) => (
-        <span className={getStatusBadgeClass(item.status)}>{item.status.replace(/_/g, ' ')}</span>
-      ),
+      key: 'status',
+      label: 'Status',
       width: '130px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => {
+        const item = row as InboxItem;
+        return (
+          <span className={getStatusBadgeClass(item.status)}>{item.status.replace(/_/g, ' ')}</span>
+        );
+      },
     },
     {
-      id: 'severity',
-      header: 'Severity',
-      accessor: (item: InboxItem) => (
-        <div className={styles.severityLabel}>
-          <div className={getSeverityDotClass(item.severity)} />
-          {item.severity}
-        </div>
-      ),
+      key: 'severity',
+      label: 'Severity',
       width: '100px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => {
+        const item = row as InboxItem;
+        return (
+          <div className={styles.severityLabel}>
+            <div className={getSeverityDotClass(item.severity)} />
+            {item.severity}
+          </div>
+        );
+      },
     },
     {
-      id: 'assignedTo',
-      header: 'Assigned',
-      accessor: (item: InboxItem) =>
-        item.assignedTo ? (
+      key: 'assignedTo',
+      label: 'Assigned',
+      width: '100px',
+      sortable: false,
+      render: (_value, row) =>
+        (row as InboxItem).assignedTo ? (
           <span className={styles.badgeInfo}>Assigned</span>
         ) : (
           <span className={styles.badgeWarning}>Unassigned</span>
         ),
-      width: '100px',
     },
     {
-      id: 'age',
-      header: 'Age',
-      accessor: (item: InboxItem) => (
-        <span className={styles.timestamp}>{formatRelativeTime(item.createdAt)}</span>
+      key: 'age',
+      label: 'Age',
+      width: '100px',
+      sortable: false,
+      render: (_value, row) => (
+        <span className={styles.timestamp}>{formatRelativeTime((row as InboxItem).createdAt)}</span>
       ),
-      width: '100px',
-      sortable: true,
     },
     {
-      id: 'updated',
-      header: 'Updated',
-      accessor: (item: InboxItem) => (
-        <span className={styles.timestamp}>{formatRelativeTime(item.updatedAt)}</span>
+      key: 'updated',
+      label: 'Updated',
+      width: '100px',
+      sortable: false,
+      render: (_value, row) => (
+        <span className={styles.timestamp}>{formatRelativeTime((row as InboxItem).updatedAt)}</span>
       ),
-      width: '100px',
-      sortable: true,
     },
     {
-      id: 'actions',
-      header: '',
-      accessor: (item: InboxItem) =>
-        !item.assignedTo ? (
+      key: 'actions',
+      label: '',
+      width: '100px',
+      align: 'center',
+      sortable: false,
+      render: (_value, row) => {
+        const item = row as InboxItem;
+        return !item.assignedTo ? (
           <button
             className={styles.assignButton}
             onClick={e => handleAssignToMe(item, e)}
@@ -308,9 +336,8 @@ const Inbox: React.FC = () => {
             <FiUserPlus size={14} />
             Assign
           </button>
-        ) : null,
-      width: '100px',
-      align: 'center',
+        ) : null;
+      },
     },
   ];
 
@@ -413,15 +440,18 @@ const Inbox: React.FC = () => {
       </div>
 
       <DataTable
-        data={items as InboxItem[]}
+        frameless
+        surface
         columns={columns}
+        rows={items as unknown as Record<string, unknown>[]}
         loading={isLoading}
         emptyMessage='No items found matching your criteria. Try adjusting your filters.'
-        onRowClick={handleRowClick}
-        currentPage={page}
-        totalPages={totalPages}
+        page={page}
+        total={inboxData?.pagination?.total ?? 0}
+        pageSize={20}
         onPageChange={setPage}
-        getRowId={(item: InboxItem) => `${item.source}-${item.id}`}
+        onRowClick={row => handleRowClick(row as InboxItem)}
+        getRowId={row => `${(row as InboxItem).source}-${(row as InboxItem).id}`}
       />
     </div>
   );

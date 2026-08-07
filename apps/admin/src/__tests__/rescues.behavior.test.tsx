@@ -241,8 +241,8 @@ describe('Rescue Management page', () => {
     it('shows an error message when the rescue API fails', async () => {
       mockGetAll.mockRejectedValue(new Error('Failed to load rescue data'));
       renderWithProviders(<Rescues />);
-      // UX P2 H: the error now surfaces both as the top banner AND the inline
-      // DataTable error row, so there can be more than one match.
+      // ADS-1085: after the shared-DataTable migration the failure surfaces only
+      // as the page-level error banner (the inline table error row is gone).
       await waitFor(() => {
         expect(screen.getAllByText('Failed to load rescue data').length).toBeGreaterThan(0);
       });

@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
-import { Heading, Text, Input, toast, useDebouncedValue } from '@adopt-dont-shop/lib.components';
+import {
+  DataTable,
+  type DataTableColumn,
+  Heading,
+  Input,
+  Text,
+  toast,
+  useDebouncedValue,
+} from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiPackage } from 'react-icons/fi';
-import { DataTable, type Column } from '../components/data';
 import { usePets, useBulkUpdatePets, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
@@ -92,8 +99,6 @@ const Pets: React.FC = () => {
     limit: 20,
   });
 
-  const totalPages = data?.pagination?.pages ?? 1;
-
   const bulkUpdatePets = useBulkUpdatePets();
 
   const pets: AdminPet[] = data?.data ?? [];
@@ -151,52 +156,65 @@ const Pets: React.FC = () => {
     setBulkResult(null);
   };
 
-  const columns: Column<AdminPet>[] = [
+  // Columns use the shared DataTable's key/label/render shape. Server-side sort
+  // was never wired for pets (the old table's sort only wrote URL params the
+  // query ignored), so every column is explicitly non-sortable rather than
+  // opting into the shared table's client-side sort of the current page only.
+  const columns: DataTableColumn[] = [
     {
-      id: 'pet',
-      header: 'Pet',
-      accessor: row => (
-        <div className={styles.petInfo}>
-          <div className={styles.petName}>{row.name}</div>
-          <div className={styles.petDetail}>
-            <FiPackage size={12} />
-            {row.type} · {row.breed}
-          </div>
-        </div>
-      ),
+      key: 'pet',
+      label: 'Pet',
       width: '250px',
+      sortable: false,
+      render: (_value, row) => {
+        const pet = row as AdminPet;
+        return (
+          <div className={styles.petInfo}>
+            <div className={styles.petName}>{pet.name}</div>
+            <div className={styles.petDetail}>
+              <FiPackage size={12} />
+              {pet.type} · {pet.breed}
+            </div>
+          </div>
+        );
+      },
     },
     {
-      id: 'status',
-      header: 'Status',
-      accessor: row => getStatusBadge(row.status, row.archived),
+      key: 'status',
+      label: 'Status',
       width: '130px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => {
+        const pet = row as AdminPet;
+        return getStatusBadge(pet.status, pet.archived);
+      },
     },
     {
-      id: 'rescue',
-      header: 'Rescue',
-      accessor: row => row.rescueName ?? '-',
+      key: 'rescue',
+      label: 'Rescue',
       width: '200px',
+      sortable: false,
+      render: (_value, row) => (row as AdminPet).rescueName ?? '-',
     },
     {
-      id: 'featured',
-      header: 'Featured',
-      accessor: row =>
-        row.featured ? (
+      key: 'featured',
+      label: 'Featured',
+      width: '100px',
+      align: 'center',
+      sortable: false,
+      render: (_value, row) =>
+        (row as AdminPet).featured ? (
           <span className={styles.badgeInfo}>Featured</span>
         ) : (
           <span className={styles.dimDash}>-</span>
         ),
-      width: '100px',
-      align: 'center',
     },
     {
-      id: 'createdAt',
-      header: 'Listed',
-      accessor: row => formatDate(row.createdAt),
+      key: 'createdAt',
+      label: 'Listed',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => formatDate((row as AdminPet).createdAt),
     },
   ];
 
@@ -210,7 +228,9 @@ const Pets: React.FC = () => {
       </div>
 
       {error instanceof Error && (
-        <div className={styles.errorMessage}>Failed to load pets: {error.message}</div>
+        <div className={styles.errorMessage} role='alert'>
+          Failed to load pets: {error.message}
+        </div>
       )}
 
       <EntityDetailLayout
@@ -325,19 +345,21 @@ const Pets: React.FC = () => {
             />
 
             <DataTable
+              frameless
+              surface
               columns={columns}
-              data={pets}
+              rows={pets as unknown as Record<string, unknown>[]}
               loading={isLoading}
-              error={error instanceof Error ? error.message : null}
               emptyMessage='No pets found matching your criteria'
-              currentPage={page}
-              totalPages={totalPages}
+              page={page}
+              total={data?.pagination?.total ?? 0}
+              pageSize={20}
               onPageChange={setPage}
               selectable
-              selectedRows={selectedRows}
-              onSelectionChange={setSelectedRows}
-              getRowId={pet => pet.petId}
-              onRowClick={handleRowClick}
+              selectedIds={selectedRows}
+              onSelectionChange={ids => setSelectedRows(new Set(ids))}
+              getRowId={row => String((row as AdminPet).petId)}
+              onRowClick={row => handleRowClick(row as AdminPet)}
             />
           </>
         }
