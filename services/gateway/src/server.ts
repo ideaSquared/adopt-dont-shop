@@ -503,12 +503,22 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // that hasn't come up), its routes are skipped and those paths fall to
   // the 404 handler. There is no monolith fall-through — the gateway is
   // the single REST surface.
+  // e2e override: a full Playwright run logs in / registers the SAME seeded
+  // personas many times across parallel workers (all from one docker-side IP),
+  // tripping these strict PER-EMAIL anti-abuse caps. GATEWAY_AUTH_RATE_LIMIT_MAX
+  // (set only in the e2e stack, and which already lifts the per-route caps in
+  // routes/auth.ts) raises the per-email max too; unset in dev/prod, so the
+  // strict defaults below stand.
+  const e2eAuthMax = Number(process.env.GATEWAY_AUTH_RATE_LIMIT_MAX);
+  const emailLimiterMax = (def: number): number =>
+    Number.isFinite(e2eAuthMax) && e2eAuthMax > 0 ? e2eAuthMax : def;
+
   // Per-email rate limiter for the auth surface (ADS-844). Layered on top of
   // the per-IP @fastify/rate-limit cap to throttle an email-flood spread across
   // many IPs. Reuses the rate-limit Redis store when available so the cap is
   // N-replica-safe; otherwise an in-memory per-replica counter. ~5/min/email.
   const emailRateLimiter = createEmailRateLimiter({
-    max: 5,
+    max: emailLimiterMax(5),
     windowMs: 60_000,
     redis: rateLimitRedis,
   });
@@ -519,7 +529,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // 5/minute, so a credential-stuffing attack spread across many IPs (or a
   // rotating X-Forwarded-For) is still capped per targeted account.
   const loginEmailRateLimiter = createEmailRateLimiter({
-    max: 5,
+    max: emailLimiterMax(5),
     windowMs: 5 * 60_000,
     redis: rateLimitRedis,
   });

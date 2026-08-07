@@ -60,6 +60,9 @@ test.describe('CSRF double-submit enforcement (ADS-919)', () => {
 
     const validRes = await page.request.post(logoutUrl, {
       headers: { 'x-csrf-token': csrfToken },
+      // logout's body schema requires an object; the refresh token itself is
+      // read from its httpOnly cookie (auth.ts), so an empty object suffices.
+      data: {},
     });
     expect(validRes.ok()).toBe(true);
   });
