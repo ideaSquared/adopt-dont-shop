@@ -320,22 +320,25 @@ const Messages: React.FC = () => {
                 setSelectedChatId(chat.id);
               }}
               title='View chat'
+              aria-label='View chat'
             >
-              <FiEye />
+              <FiEye aria-hidden />
             </button>
             <button
               className={styles.actionButton}
               onClick={e => handleUpdateStatus(chat.id, 'archived', e)}
               title='Archive chat'
+              aria-label='Archive chat'
             >
-              <FiFlag />
+              <FiFlag aria-hidden />
             </button>
             <button
               className={styles.actionButton}
               onClick={e => handleDeleteChat(chat.id, e)}
               title='Delete chat'
+              aria-label='Delete chat'
             >
-              <FiTrash />
+              <FiTrash aria-hidden />
             </button>
           </div>
         );

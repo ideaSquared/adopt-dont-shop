@@ -392,22 +392,29 @@ const Moderation: React.FC = () => {
       render: (_value, row) => {
         const report = row as Report;
         return (
-          <div className={styles.actionButtons}>
+          <div
+            className={styles.actionButtons}
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
+            role='presentation'
+          >
             <button
               className={styles.iconButton}
               title='View Details'
+              aria-label='View Details'
               onClick={() => handleOpenDetailModal(report)}
             >
-              <FiEye />
+              <FiEye aria-hidden />
             </button>
             {report.status === 'pending' || report.status === 'under_review' ? (
               <button
                 className={styles.iconButton}
                 title='Take Action'
+                aria-label='Take Action'
                 onClick={() => handleOpenActionModal(report)}
                 disabled={isActionLoading}
               >
-                <FiShield />
+                <FiShield aria-hidden />
               </button>
             ) : null}
           </div>

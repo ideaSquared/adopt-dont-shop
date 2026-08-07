@@ -277,34 +277,38 @@ const Rescues: React.FC = () => {
             <button
               className={styles.iconButton}
               title='View details'
+              aria-label='View details'
               onClick={() => handleViewDetails(rescue.rescueId)}
             >
-              <FiEye />
+              <FiEye aria-hidden />
             </button>
             {rescue.status === 'pending' && (
               <>
                 <button
                   className={clsx(styles.iconButton, styles.approveButton)}
                   title='Approve'
+                  aria-label='Approve'
                   onClick={() => handleApprove(rescue)}
                 >
-                  <FiCheckCircle />
+                  <FiCheckCircle aria-hidden />
                 </button>
                 <button
                   className={clsx(styles.iconButton, styles.rejectButton)}
                   title='Reject'
+                  aria-label='Reject'
                   onClick={() => handleReject(rescue)}
                 >
-                  <FiXCircle />
+                  <FiXCircle aria-hidden />
                 </button>
               </>
             )}
             <button
               className={styles.iconButton}
               title='Send email'
+              aria-label='Send email'
               onClick={() => handleSendEmail(rescue)}
             >
-              <FiMail />
+              <FiMail aria-hidden />
             </button>
           </div>
         );
