@@ -57,6 +57,10 @@ import {
   type InviteStaffResponse,
   type ListApplicationQuestionsRequest,
   type ListApplicationQuestionsResponse,
+  type ReorderApplicationQuestionsRequest,
+  type ReorderApplicationQuestionsResponse,
+  type UpdateApplicationQuestionRequest,
+  type UpdateApplicationQuestionResponse,
   type ListEventsRequest,
   type ListEventsResponse,
   type ListFosterPlacementsRequest,
@@ -169,6 +173,14 @@ export type RescueClient = {
     req: CreateApplicationQuestionRequest,
     metadata: Metadata
   ): Promise<CreateApplicationQuestionResponse>;
+  updateApplicationQuestion(
+    req: UpdateApplicationQuestionRequest,
+    metadata: Metadata
+  ): Promise<UpdateApplicationQuestionResponse>;
+  reorderApplicationQuestions(
+    req: ReorderApplicationQuestionsRequest,
+    metadata: Metadata
+  ): Promise<ReorderApplicationQuestionsResponse>;
   deleteApplicationQuestion(
     req: DeleteApplicationQuestionRequest,
     metadata: Metadata
@@ -273,6 +285,10 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     endFosterPlacement: (req, metadata) => callUnary(stub.endFosterPlacement, req, metadata, false),
     createApplicationQuestion: (req, metadata) =>
       callUnary(stub.createApplicationQuestion, req, metadata, false),
+    updateApplicationQuestion: (req, metadata) =>
+      callUnary(stub.updateApplicationQuestion, req, metadata, false),
+    reorderApplicationQuestions: (req, metadata) =>
+      callUnary(stub.reorderApplicationQuestions, req, metadata, false),
     deleteApplicationQuestion: (req, metadata) =>
       callUnary(stub.deleteApplicationQuestion, req, metadata, false),
     acceptInvitation: (req, metadata) => callUnary(stub.acceptInvitation, req, metadata, false),

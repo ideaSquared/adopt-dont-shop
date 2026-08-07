@@ -10,6 +10,8 @@ import {
   createApplicationQuestion,
   deleteApplicationQuestion,
   listApplicationQuestions,
+  reorderApplicationQuestions,
+  updateApplicationQuestion,
 } from './application-question-handlers.js';
 
 const RESCUE_ID = 'rsc-1';
@@ -35,14 +37,21 @@ const UNPRIVILEGED: Principal = {
 };
 
 function makeMocks() {
-  const pool = { query: vi.fn() };
+  // withTransaction (used by update/reorder) checks out a client via
+  // pool.connect(); the read-path handlers use pool.query directly.
+  const client = { query: vi.fn(), release: vi.fn() };
+  client.query.mockResolvedValue({ rows: [] });
+  const pool = { query: vi.fn(), connect: vi.fn().mockResolvedValue(client) };
   pool.query.mockResolvedValue({ rows: [] });
-  const nats = { publish: vi.fn(), jetstream: () => ({ publish: vi.fn() }) };
+  // JetStream publish routes to the same spy so publish assertions can observe
+  // withTransaction's inline delivery.
+  const natsPublish = vi.fn();
+  const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
   const deps: HandlerDeps = {
     pool: pool as unknown as Pool,
     nats: nats as unknown as NatsConnection,
   };
-  return { deps, poolMock: pool };
+  return { deps, poolMock: pool, clientMock: client, natsMock: nats };
 }
 
 const questionRow = (overrides: Record<string, unknown> = {}) => ({
@@ -191,5 +200,178 @@ describe('deleteApplicationQuestion', () => {
     await expect(
       deleteApplicationQuestion(mocks.deps, READ_ONLY_STAFF, { questionId: 'q-1' })
     ).rejects.toThrow(/applications.update/);
+  });
+});
+
+describe('updateApplicationQuestion', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  const baseReq = {
+    questionId: 'q-1',
+    questionText: 'What is your full name?',
+    options: [],
+  };
+
+  it('writes only the supplied fields in a transaction and publishes after commit', async () => {
+    const order: string[] = [];
+    // First pool.query loads the row (ownership + scope); the tx UPDATE runs
+    // on the client.
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: RESCUE_ID, scope: 'rescue_specific' }],
+    });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // event_outbox INSERT/DELETE are withTransaction's plumbing.
+      if (!sql.includes('event_outbox')) {
+        order.push(sql.trim().split(/\s+/)[0]);
+      }
+      if (sql.includes('UPDATE')) {
+        return { rows: [questionRow({ question_text: 'What is your full name?' })] };
+      }
+      return { rows: [] };
+    });
+    mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
+
+    const res = await updateApplicationQuestion(mocks.deps, STAFF, baseReq);
+
+    expect(res.question?.questionText).toBe('What is your full name?');
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    // The UPDATE COALESCEs and passes the supplied text; an empty options
+    // array is treated as "unset" (null).
+    const updateCall = mocks.clientMock.query.mock.calls.find(c =>
+      (c[0] as string).includes('UPDATE')
+    ) as [string, unknown[]];
+    expect(updateCall[0]).toContain('COALESCE');
+    expect(updateCall[1]).toContain('What is your full name?');
+    expect(updateCall[1]).toContain(null);
+  });
+
+  it('rejects a missing question_id with INVALID_ARGUMENT', async () => {
+    await expect(
+      updateApplicationQuestion(mocks.deps, STAFF, { ...baseReq, questionId: '' })
+    ).rejects.toThrow(/question_id is required/);
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('returns NOT_FOUND for an unknown question', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      updateApplicationQuestion(mocks.deps, STAFF, { ...baseReq, questionId: 'ghost' })
+    ).rejects.toThrow(/not found/);
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  });
+
+  it('refuses to edit a core question with FAILED_PRECONDITION', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: null, scope: 'core' }],
+    });
+    await expect(
+      updateApplicationQuestion(mocks.deps, STAFF, { ...baseReq, questionId: 'core-1' })
+    ).rejects.toMatchObject({ code: 'FAILED_PRECONDITION' });
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  });
+
+  it('denies a caller without applications.update for the owning rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: RESCUE_ID, scope: 'rescue_specific' }],
+    });
+    await expect(updateApplicationQuestion(mocks.deps, READ_ONLY_STAFF, baseReq)).rejects.toThrow(
+      /applications.update/
+    );
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  });
+
+  it('maps a bad enum value (22P02) to INVALID_ARGUMENT', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: RESCUE_ID, scope: 'rescue_specific' }],
+    });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('UPDATE')) {
+        throw Object.assign(new Error('bad'), { code: '22P02' });
+      }
+      return { rows: [] };
+    });
+    await expect(
+      updateApplicationQuestion(mocks.deps, STAFF, { ...baseReq, category: 'nonsense' })
+    ).rejects.toThrow(/invalid category or question_type/);
+  });
+});
+
+describe('reorderApplicationQuestions', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('rewrites display_order to each id index in a transaction and publishes', async () => {
+    const order: string[] = [];
+    // Ownership check returns both ids as rescue-owned.
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ question_id: 'q-1' }, { question_id: 'q-2' }] })
+      // Final ordered read.
+      .mockResolvedValueOnce({
+        rows: [
+          questionRow({ question_id: 'q-2', display_order: 0 }),
+          questionRow({ question_id: 'q-1', display_order: 1 }),
+        ],
+      });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (!sql.includes('event_outbox')) {
+        order.push(sql.trim().split(/\s+/)[0]);
+      }
+      return { rows: [] };
+    });
+    mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
+
+    const res = await reorderApplicationQuestions(mocks.deps, STAFF, {
+      rescueId: RESCUE_ID,
+      questionIds: ['q-2', 'q-1'],
+    });
+
+    expect(res.questions.map(q => q.questionId)).toEqual(['q-2', 'q-1']);
+    // One UPDATE per id, wrapped by BEGIN/COMMIT, publish after commit.
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    const updateCalls = mocks.clientMock.query.mock.calls.filter(c =>
+      (c[0] as string).includes('UPDATE')
+    ) as Array<[string, unknown[]]>;
+    // display_order = index: q-2 → 0, q-1 → 1.
+    expect(updateCalls[0][1]).toEqual(['q-2', 0, 'usr-staff', RESCUE_ID]);
+    expect(updateCalls[1][1]).toEqual(['q-1', 1, 'usr-staff', RESCUE_ID]);
+  });
+
+  it('rejects an empty question_ids list with INVALID_ARGUMENT', async () => {
+    await expect(
+      reorderApplicationQuestions(mocks.deps, STAFF, { rescueId: RESCUE_ID, questionIds: [] })
+    ).rejects.toThrow(/question_ids must not be empty/);
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing rescue_id with INVALID_ARGUMENT', async () => {
+    await expect(
+      reorderApplicationQuestions(mocks.deps, STAFF, { rescueId: '', questionIds: ['q-1'] })
+    ).rejects.toThrow(/rescue_id is required/);
+  });
+
+  it('rejects an id that does not belong to the rescue with NOT_FOUND', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ question_id: 'q-1' }] });
+    await expect(
+      reorderApplicationQuestions(mocks.deps, STAFF, {
+        rescueId: RESCUE_ID,
+        questionIds: ['q-1', 'not-mine'],
+      })
+    ).rejects.toThrow(/does not belong to rescue/);
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  });
+
+  it('denies a caller without applications.update for the rescue', async () => {
+    await expect(
+      reorderApplicationQuestions(mocks.deps, READ_ONLY_STAFF, {
+        rescueId: RESCUE_ID,
+        questionIds: ['q-1'],
+      })
+    ).rejects.toThrow(/applications.update/);
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
   });
 });

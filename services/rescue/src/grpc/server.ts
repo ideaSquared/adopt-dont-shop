@@ -48,6 +48,8 @@ import {
   createApplicationQuestion,
   deleteApplicationQuestion,
   listApplicationQuestions,
+  reorderApplicationQuestions,
+  updateApplicationQuestion,
 } from './application-question-handlers.js';
 import {
   addEventAttendee,
@@ -107,7 +109,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     acceptInvitation: adaptUnauth(acceptInvitation, { deps, logger }),
     listApplicationQuestions: adapt(listApplicationQuestions, { deps, logger }),
     createApplicationQuestion: adapt(createApplicationQuestion, { deps, logger }),
+    updateApplicationQuestion: adapt(updateApplicationQuestion, { deps, logger }),
     deleteApplicationQuestion: adapt(deleteApplicationQuestion, { deps, logger }),
+    reorderApplicationQuestions: adapt(reorderApplicationQuestions, { deps, logger }),
     updateRescuePlan: adapt(updateRescuePlan, { deps, logger }),
     getRescueStatistics: adapt(getRescueStatistics, { deps, logger }),
     countRescues: adapt(countRescues, { deps, logger }),
@@ -146,7 +150,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'acceptInvitation',
       'listApplicationQuestions',
       'createApplicationQuestion',
+      'updateApplicationQuestion',
       'deleteApplicationQuestion',
+      'reorderApplicationQuestions',
       'updateRescuePlan',
       'getRescueStatistics',
       'countRescues',
