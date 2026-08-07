@@ -148,6 +148,28 @@ describe('SearchToolbar', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('renders as a filter-only bar with no search field when onSearchChange is omitted', () => {
+    renderToolbar(
+      <SearchToolbar
+        filterConfig={[{ name: 'range', label: 'Date range', type: 'text' }]}
+        filters={{ range: '' }}
+        onFilterChange={vi.fn()}
+        data-testid='toolbar'
+      />
+    );
+
+    expect(screen.getByTestId('toolbar')).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Date range')).toBeInTheDocument();
+  });
+
+  it('still renders the result count when there is no search field', () => {
+    renderToolbar(<SearchToolbar resultCount={5} />);
+
+    expect(screen.getByText('5 results')).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+  });
+
   it('applies a custom className to the container', () => {
     renderToolbar(
       <SearchToolbar

@@ -17,8 +17,8 @@ export type SearchToolbarActiveFilter = {
 type FilterValues = Record<string, string | boolean | number | undefined>;
 
 export type SearchToolbarProps = {
-  searchValue: string;
-  onSearchChange: (value: string) => void;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   searchLabel?: string;
   filterConfig?: FilterConfig[];
@@ -57,8 +57,10 @@ export const SearchToolbar = ({
   'data-testid': testId,
 }: SearchToolbarProps) => {
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onSearchChange(event.target.value);
+    onSearchChange?.(event.target.value);
   };
+
+  const showSearchField = onSearchChange !== undefined;
 
   return (
     <div
@@ -67,23 +69,27 @@ export const SearchToolbar = ({
       aria-label='Search and filter'
       data-testid={testId}
     >
-      <div className={styles.searchRow}>
-        <div className={styles.searchField}>
-          <Input
-            type='search'
-            label={searchLabel}
-            value={searchValue}
-            onChange={handleSearchChange}
-            placeholder={searchPlaceholder}
-          />
-        </div>
+      {(showSearchField || resultCount !== undefined) && (
+        <div className={styles.searchRow}>
+          {showSearchField && (
+            <div className={styles.searchField}>
+              <Input
+                type='search'
+                label={searchLabel}
+                value={searchValue ?? ''}
+                onChange={handleSearchChange}
+                placeholder={searchPlaceholder}
+              />
+            </div>
+          )}
 
-        {resultCount !== undefined && (
-          <p className={styles.resultSummary} role='status' aria-live='polite'>
-            {formatCount(resultCount, resultNoun)}
-          </p>
-        )}
-      </div>
+          {resultCount !== undefined && (
+            <p className={styles.resultSummary} role='status' aria-live='polite'>
+              {formatCount(resultCount, resultNoun)}
+            </p>
+          )}
+        </div>
+      )}
 
       {filterConfig && filters !== undefined && onFilterChange && (
         <FilterPanel
