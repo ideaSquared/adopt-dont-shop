@@ -113,6 +113,14 @@ runs:
           # `new URL(REDIS_URL)` rejects it with "Invalid URL"
           # before validateEnv can finish.
           echo "REDIS_PASSWORD=$(openssl rand -hex 32)"
+          # ADS-968 made GF_SECURITY_ADMIN_PASSWORD a required secret in
+          # docker-compose.yml (${GF_SECURITY_ADMIN_PASSWORD:?} on the grafana
+          # service, which lives in the `full` profile this job brings up).
+          # Compose interpolates every service's environment block up front,
+          # before it selects services/profiles, so a missing value fails
+          # EVERY `docker compose -f docker-compose.yml ...` command here —
+          # including the first `up -d database redis` — not just grafana.
+          echo "GF_SECURITY_ADMIN_PASSWORD=$(openssl rand -hex 24)"
           # ADS-542 made UPLOAD_SIGNING_SECRET a required env var on
           # the backend (32+ chars). Without it the /health probe
           # never goes ready and the Wait-for-services step times
