@@ -127,6 +127,71 @@ globalStyle(`${emptyRow} td`, {
   color: '#6b7280',
 });
 
+/**
+ * ADS UX B6 — responsive card fallback. Below the mobile breakpoint every admin
+ * table row collapses into a stacked label/value card: the header row is
+ * visually hidden and each data cell shows its column label (from `data-label`)
+ * beside the value, so data-dense tables stay usable on small screens without
+ * horizontal scrolling. Applied to every admin table by default. The
+ * empty/error colspan row carries no `data-label`, so it keeps its centred
+ * message rather than becoming a label/value pair.
+ */
+const MOBILE_CARDS = 'screen and (max-width: 640px)';
+
+export const responsiveCards = style({});
+
+globalStyle(`${responsiveCards} thead`, {
+  '@media': {
+    [MOBILE_CARDS]: {
+      position: 'absolute',
+      width: '1px',
+      height: '1px',
+      padding: 0,
+      margin: '-1px',
+      overflow: 'hidden',
+      clip: 'rect(0, 0, 0, 0)',
+      whiteSpace: 'nowrap',
+      border: 0,
+    },
+  },
+});
+
+globalStyle(`${responsiveCards} tbody tr`, {
+  '@media': {
+    [MOBILE_CARDS]: {
+      display: 'block',
+      marginBottom: '12px',
+      border: '1px solid #e5e7eb',
+      borderRadius: '8px',
+      padding: '4px 8px',
+    },
+  },
+});
+
+globalStyle(`${responsiveCards} td[data-label]`, {
+  '@media': {
+    [MOBILE_CARDS]: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      gap: '12px',
+      padding: '6px 4px',
+      textAlign: 'right',
+    },
+  },
+});
+
+globalStyle(`${responsiveCards} td[data-label]::before`, {
+  '@media': {
+    [MOBILE_CARDS]: {
+      content: 'attr(data-label)',
+      fontWeight: 600,
+      color: '#6b7280',
+      textAlign: 'left',
+    },
+  },
+});
+
 export const paginationContainer = style({
   display: 'flex',
   alignItems: 'center',

@@ -145,7 +145,7 @@ export function DataTable<T extends object>({
   return (
     <div className={styles.tableContainer}>
       <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+        <table className={`${styles.table} ${styles.responsiveCards}`}>
           <thead className={styles.thead}>
             <tr>
               {selectable && (
@@ -244,6 +244,7 @@ export function DataTable<T extends object>({
                     {selectable && (
                       <td
                         className={styles.td({ align: 'center' })}
+                        data-label='Select'
                         onClick={e => e.stopPropagation()}
                       >
                         <input
@@ -256,7 +257,11 @@ export function DataTable<T extends object>({
                       </td>
                     )}
                     {columns.map(column => (
-                      <td key={column.id} className={styles.td({ align: column.align ?? 'left' })}>
+                      <td
+                        key={column.id}
+                        className={styles.td({ align: column.align ?? 'left' })}
+                        data-label={column.header}
+                      >
                         {getCellValue(row, column)}
                       </td>
                     ))}

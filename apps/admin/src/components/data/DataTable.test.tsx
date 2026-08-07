@@ -162,3 +162,28 @@ describe('DataTable load-state differentiation', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
+
+describe('DataTable responsive card fallback (B6)', () => {
+  it('labels each data cell with its column header via data-label', () => {
+    // Below the mobile breakpoint the CSS turns rows into stacked label/value
+    // cards using these data-label attributes; assert the contract that drives it.
+    render(<DataTable columns={columns} data={rows} />);
+    expect(screen.getByText('Alice').closest('td')).toHaveAttribute('data-label', 'Name');
+    expect(screen.getByText('active').closest('td')).toHaveAttribute('data-label', 'Status');
+  });
+
+  it('labels the selection checkbox cell so the mobile card shows it clearly', () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        selectable
+        selectedRows={new Set()}
+        onSelectionChange={vi.fn()}
+        getRowId={row => row.id}
+      />
+    );
+    const checkbox = screen.getByLabelText('Select row 1');
+    expect(checkbox.closest('td')).toHaveAttribute('data-label', 'Select');
+  });
+});
