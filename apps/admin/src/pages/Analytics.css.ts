@@ -78,12 +78,6 @@ export const barValue = style({
   color: vars.text.primary,
 });
 
-export const lineChart = style({
-  height: '100%',
-  padding: '1rem 0',
-  position: 'relative',
-});
-
 export const pieChartContainer = style({
   display: 'flex',
   alignItems: 'center',

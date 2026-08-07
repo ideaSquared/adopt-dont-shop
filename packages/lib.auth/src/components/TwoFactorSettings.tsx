@@ -351,5 +351,3 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
     </div>
   );
 };
-
-export default TwoFactorSettings;

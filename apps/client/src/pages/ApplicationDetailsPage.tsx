@@ -275,5 +275,3 @@ export const ApplicationDetailsPage: React.FC = () => {
     </div>
   );
 };
-
-export default ApplicationDetailsPage;

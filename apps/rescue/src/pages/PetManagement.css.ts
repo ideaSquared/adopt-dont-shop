@@ -109,14 +109,6 @@ export const statLabel = style({
   letterSpacing: '0.05em',
 });
 
-export const loadingContainer = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  height: '150px',
-  color: vars.text.tertiary,
-});
-
 export const errorContainer = style({
   padding: '2rem',
   textAlign: 'center',

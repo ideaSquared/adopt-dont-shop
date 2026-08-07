@@ -32,7 +32,6 @@ import {
   type Permission,
 } from '@adopt-dont-shop/lib.types';
 import {
-  ApplicationsV1,
   type ApproveRequest,
   type ApproveResponse,
   type CompleteHomeVisitRequest,
@@ -341,8 +340,3 @@ export async function markAdopted(
 
   return { application: stateToProto(state) };
 }
-
-// Re-export so the gRPC server boot can register the proto enum
-// helper without a deep import (keeps the server's import surface
-// small).
-export { ApplicationsV1 };

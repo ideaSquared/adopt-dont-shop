@@ -11,11 +11,7 @@
  */
 
 import { type ReactNode } from 'react';
-import {
-  ChatProvider as LibChatProvider,
-  useChat as useLibChat,
-  type ChatContextValue,
-} from '@adopt-dont-shop/lib.chat';
+import { ChatProvider as LibChatProvider, useChat as useLibChat } from '@adopt-dont-shop/lib.chat';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { chatService } from '../services/libraryServices';
 import { resolveFileUrl } from '../utils/fileUtils';
@@ -48,5 +44,3 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 }
 
 export const useChat = useLibChat;
-
-export type ChatContextType = ChatContextValue;

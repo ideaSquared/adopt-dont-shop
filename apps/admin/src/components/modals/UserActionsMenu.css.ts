@@ -55,16 +55,6 @@ export const buttonGroup = style({
   borderTop: '1px solid #e5e7eb',
 });
 
-export const warningBox = style({
-  padding: '0.75rem 1rem',
-  background: '#fef3c7',
-  border: '1px solid #fde68a',
-  borderRadius: '8px',
-  color: '#92400e',
-  fontSize: '0.875rem',
-  fontWeight: '500',
-});
-
 export const dangerBox = style({
   padding: '0.75rem 1rem',
   background: '#fee2e2',

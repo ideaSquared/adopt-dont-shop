@@ -45,7 +45,6 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import {
-  ALL_USER_ROLES_DB,
   roleFromDb,
   roleToDb,
   statusFromDb,
@@ -1051,17 +1050,5 @@ export async function assignRole(
   return { roles: rolesToProto(post.roles) };
 }
 
-// Tiny exported helper for adapter tests that want to assert the
-// HandlerError code table is exhaustive.
-export const ALL_HANDLER_ERROR_CODES: ReadonlyArray<HandlerErrorCode> = [
-  'INVALID_ARGUMENT',
-  'UNAUTHENTICATED',
-  'PERMISSION_DENIED',
-  'NOT_FOUND',
-  'ALREADY_EXISTS',
-  'INTERNAL',
-];
-
 // Re-export for adapter convenience.
 export type { UserRoleDb, UserStatusDb };
-export { ALL_USER_ROLES_DB };

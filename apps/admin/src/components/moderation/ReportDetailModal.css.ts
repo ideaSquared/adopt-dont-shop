@@ -26,19 +26,6 @@ export const modalContainer = style({
   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
 });
 
-export const modalHeader = style({
-  padding: '1.5rem',
-  borderBottom: '1px solid #e5e7eb',
-  display: 'flex',
-  alignItems: 'flex-start',
-  justifyContent: 'space-between',
-  gap: '1rem',
-});
-
-export const headerContent = style({
-  flex: 1,
-});
-
 export const title = style({
   fontSize: '1.25rem',
   fontWeight: '700',
@@ -52,27 +39,6 @@ export const subtitle = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.5rem',
-});
-
-export const closeButton = style({
-  background: 'none',
-  border: 'none',
-  color: '#6b7280',
-  cursor: 'pointer',
-  padding: '0.5rem',
-  borderRadius: '6px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#f3f4f6',
-    color: '#111827',
-  },
-});
-
-export const modalBody = style({
-  padding: '1.5rem',
 });
 
 export const section = style({

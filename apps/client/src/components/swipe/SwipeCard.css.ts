@@ -345,33 +345,6 @@ export const description = style({
   overflow: 'hidden',
 });
 
-export const chipsRow = style({
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '6px',
-  marginTop: '10px',
-});
-
-export const chip = recipe({
-  base: {
-    padding: '4px 10px',
-    borderRadius: '999px',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    background: 'rgba(255, 255, 255, 0.18)',
-    color: 'white',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255, 255, 255, 0.25)',
-  },
-  variants: {
-    variant: {
-      default: {},
-      breed: { background: 'rgba(255, 255, 255, 0.22)' },
-    },
-  },
-  defaultVariants: { variant: 'default' },
-});
-
 /* Info button (chevron) to expand details */
 export const infoButton = style({
   position: 'absolute',

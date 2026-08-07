@@ -61,15 +61,6 @@ export const barsContainer = style({
   height: '40px',
 });
 
-export const bar = style({
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  height: '100%',
-  borderRadius: '8px',
-  transition: 'all 0.3s ease',
-});
-
 export const targetBar = style({
   background: vars.border.color.muted,
   opacity: 0.6,

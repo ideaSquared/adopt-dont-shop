@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -297,20 +297,4 @@ export const badgeNeutral = style({
   fontWeight: '600',
   background: vars.background.muted,
   color: vars.text.secondary,
-});
-
-// ── Admin notes tab ──────────────────────────────────────────────
-
-export const notesPlaceholder = style({
-  padding: '2rem 1rem',
-  textAlign: 'center',
-  color: vars.text.muted,
-  fontSize: '0.875rem',
-});
-
-globalStyle(`${notesPlaceholder} code`, {
-  fontSize: '0.75rem',
-  background: vars.background.muted,
-  padding: '0.125rem 0.375rem',
-  borderRadius: '4px',
 });

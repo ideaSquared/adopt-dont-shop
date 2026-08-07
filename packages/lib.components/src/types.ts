@@ -43,7 +43,6 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
 }
 
 // Re-export additional component types from their respective files
-export type { SortDirection, TableColumn, TableProps } from './components/data/Table';
 export type {
   CheckboxInputProps,
   CheckboxSize,

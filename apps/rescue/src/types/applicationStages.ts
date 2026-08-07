@@ -12,15 +12,6 @@ export type FinalOutcome =
   | 'REJECTED' // Application rejected
   | 'WITHDRAWN'; // Application withdrawn by applicant
 
-// Stage progression tracking
-export interface StageProgress {
-  stage: ApplicationStage;
-  completedAt?: Date;
-  assignedStaff?: string;
-  notes?: string;
-  automaticTransition?: boolean;
-}
-
 // Stage-specific actions and transitions
 export interface StageAction {
   type:
@@ -34,91 +25,6 @@ export interface StageAction {
   nextStage?: ApplicationStage;
   requiresInput?: boolean;
   data?: Record<string, unknown>;
-}
-
-// Updated Application interface for stage-based workflow
-export interface ApplicationWithStages {
-  // Existing fields
-  id: string;
-  petId: string;
-  userId: string;
-  rescueId: string;
-  submittedAt: Date;
-
-  // Legacy status (for backward compatibility)
-  status: string;
-
-  // New stage-based system
-  stage: ApplicationStage;
-  finalOutcome?: FinalOutcome;
-
-  // Stage progress tracking
-  stageHistory: StageProgress[];
-  currentStageStarted: Date;
-
-  // Stage-specific timestamps
-  reviewStartedAt?: Date;
-  visitScheduledAt?: Date;
-  visitCompletedAt?: Date;
-  resolvedAt?: Date;
-
-  // Outcome documentation
-  withdrawalReason?: string;
-  rejectionReason?: string;
-  approvalConditions?: string;
-
-  // Progress metrics
-  stageProgressPercentage: number; // 0-100% completion
-  estimatedCompletionDate?: Date;
-
-  // Staff assignments
-  assignedReviewer?: string;
-  assignedVisitor?: string;
-
-  // References and visits
-  references?: ApplicationReference[];
-  homeVisits?: ApplicationHomeVisit[];
-
-  // Application data
-  answers: Record<string, unknown>;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
-  tags?: string[];
-}
-
-export interface ApplicationReference {
-  id: string;
-  name: string;
-  relationship: string;
-  phone: string;
-  email?: string;
-  status: 'pending' | 'contacted' | 'completed' | 'failed';
-  notes?: string;
-  contactedAt?: Date;
-  completedAt?: Date;
-}
-
-export interface ApplicationHomeVisit {
-  id: string;
-  scheduledDate: Date;
-  scheduledTime: string;
-  assignedStaff: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  outcome?: 'positive' | 'negative' | 'conditional';
-  notes?: string;
-  completedAt?: Date;
-}
-
-// Stage-based analytics types
-export interface StageAnalytics {
-  stageDistribution: Record<ApplicationStage, number>;
-  stageConversionRates: Record<ApplicationStage, number>;
-  averageTimePerStage: Record<ApplicationStage, number>;
-  stagePerfectionRate: Record<ApplicationStage, number>;
-  bottlenecks: Array<{
-    stage: ApplicationStage;
-    averageTime: number;
-    applicationsStuck: number;
-  }>;
 }
 
 // Action definitions for each stage

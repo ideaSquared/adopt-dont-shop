@@ -174,13 +174,6 @@ globalStyle(`${ctaSection} p`, {
   color: 'rgba(255,255,255,0.92)',
 });
 
-export const loadingContainer = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '200px',
-});
-
 export const errorMessage = style({
   textAlign: 'center',
   padding: '2rem',

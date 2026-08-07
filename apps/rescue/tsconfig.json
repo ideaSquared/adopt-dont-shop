@@ -33,7 +33,6 @@
     "**/*.spec.*",
     "src/test-utils",
     "src/setup-tests.ts",
-    "src/setup-tests.tsx",
     "src/__mocks__"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]

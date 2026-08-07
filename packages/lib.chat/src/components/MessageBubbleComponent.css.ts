@@ -343,11 +343,6 @@ export const imageButtonWrapper = style({
   display: 'flex',
 });
 
-// Reaction picker trigger visibility — controlled via parent hover
-export const reactionPickerTrigger = style({
-  opacity: '0',
-});
-
 globalStyle(`${messageBubbleWrapper}:hover .reaction-picker-trigger`, {
   opacity: '0.6',
 });

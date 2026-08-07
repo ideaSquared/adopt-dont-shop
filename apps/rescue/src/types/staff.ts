@@ -14,19 +14,3 @@ export interface NewStaffMember {
   userId: string;
   title?: string;
 }
-
-export interface StaffRole {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-}
-
-export interface StaffActivity {
-  id: string;
-  staffId: string;
-  action: string;
-  description: string;
-  timestamp: string;
-  metadata?: Record<string, unknown>;
-}

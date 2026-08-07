@@ -57,4 +57,3 @@ class FosterServiceClient {
 }
 
 export const fosterService = new FosterServiceClient();
-export default fosterService;

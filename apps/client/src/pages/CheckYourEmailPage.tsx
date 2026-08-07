@@ -68,5 +68,3 @@ export const CheckYourEmailPage: React.FC = () => {
     </div>
   );
 };
-
-export default CheckYourEmailPage;

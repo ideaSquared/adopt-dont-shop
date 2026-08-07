@@ -395,4 +395,3 @@ export class RescueEventsService {
 export const eventsService = new RescueEventsService();
 
 // Export the class as default for custom configurations
-export default RescueEventsService;

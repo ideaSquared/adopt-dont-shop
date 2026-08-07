@@ -13,7 +13,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { AuthV1, type RevokeSessionRequest } from '@adopt-dont-shop/proto';
+import { type RevokeSessionRequest } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -111,9 +111,3 @@ export const registerSessionsRoutes = async (
     }
   );
 };
-
-// --- Helpers ---------------------------------------------------------
-
-// Re-export AuthV1 so tests can use the proto namespace without
-// pulling it in separately.
-export { AuthV1 };

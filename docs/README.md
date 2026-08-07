@@ -139,8 +139,6 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 
 ### lib.components — component READMEs
 
-- [ListGroup](../packages/lib.components/src/components/data/ListGroup/README.md)
-- [Table](../packages/lib.components/src/components/data/Table/README.md)
 - [CheckboxInput](../packages/lib.components/src/components/form/CheckboxInput/README.md)
 - [DateInput](../packages/lib.components/src/components/form/DateInput/README.md)
 - [FileUpload](../packages/lib.components/src/components/form/FileUpload/README.md)
@@ -157,7 +155,6 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [DropdownMenu](../packages/lib.components/src/components/ui/DropdownMenu/README.md)
 - [EmptyState](../packages/lib.components/src/components/ui/EmptyState/README.md)
 - [ImageGallery](../packages/lib.components/src/components/ui/ImageGallery/README.md)
-- [Pagination](../packages/lib.components/src/components/ui/Pagination/README.md)
 - [ProgressBar](../packages/lib.components/src/components/ui/ProgressBar/README.md)
 - [ThemeToggle](../packages/lib.components/src/components/ui/ThemeToggle/README.md)
 - [Toast](../packages/lib.components/src/components/ui/Toast/README.md)

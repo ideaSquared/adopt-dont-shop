@@ -299,20 +299,10 @@ const subscribeToConsent = (callback: () => void): (() => void) => {
  * return the previous parsed instance when the bytes are unchanged.
  *
  * These module-level variables are intentionally mutable (the cache
- * pattern requires mutation). Call `_resetSnapshotCache()` in test
- * teardown to prevent cross-test pollution and avoid SSR state leaks.
+ * pattern requires mutation).
  */
 let cachedSnapshotRaw: string | null = null;
 let cachedSnapshot: StoredCookieConsent | null = null;
-
-/**
- * Reset the module-level snapshot cache. Exported for test teardown only
- * — do not call in production code.
- */
-export const _resetSnapshotCache = (): void => {
-  cachedSnapshotRaw = null;
-  cachedSnapshot = null;
-};
 
 const getConsentSnapshot = (): StoredCookieConsent | null => {
   const parsed = readStoredConsentRaw();

@@ -192,5 +192,3 @@ export const TopPicksPage: React.FC = () => {
     </div>
   );
 };
-
-export default TopPicksPage;

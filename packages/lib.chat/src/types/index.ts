@@ -4,8 +4,6 @@ export type {
   MessageDeliveryStatus,
   MessageAttachment,
   MessageReaction,
-  MessageReadReceipt,
-  Participant,
   Message,
   Conversation,
   TypingIndicator,

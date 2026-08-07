@@ -53,68 +53,6 @@ globalStyle(`${infoBanner} a:hover`, {
   textDecoration: 'underline',
 });
 
-export const gateItem = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '1rem',
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '8px',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    borderColor: vars.border.color.muted,
-    background: vars.background.body,
-  },
-});
-
-export const gateInfo = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.375rem',
-  flex: 1,
-});
-
-export const gateName = style({
-  fontWeight: '600',
-  color: vars.text.primary,
-  fontSize: '0.9375rem',
-});
-
-export const gateDescription = style({
-  fontSize: '0.8125rem',
-  color: vars.text.tertiary,
-  lineHeight: 1.4,
-});
-
-export const gateKey = style({
-  fontFamily: 'monospace',
-  fontSize: '0.75rem',
-  color: vars.text.muted,
-  marginTop: '0.25rem',
-});
-
-export const statusBadgeEnabled = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.75rem',
-  borderRadius: '6px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: vars.colors.successBgSubtle,
-  color: vars.colors.successTextEmphasis,
-});
-
-export const statusBadgeDisabled = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '0.375rem 0.75rem',
-  borderRadius: '6px',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  background: vars.background.muted,
-  color: vars.text.tertiary,
-});
-
 export const settingItem = style({
   display: 'flex',
   flexDirection: 'column',

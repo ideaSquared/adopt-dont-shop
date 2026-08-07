@@ -21,11 +21,6 @@ export const actions = style({
   alignItems: 'center',
 });
 
-export const previewLabel = style({
-  fontSize: '0.875rem',
-  color: vars.text.tertiary,
-});
-
 export const result = style({
   marginTop: '1rem',
   padding: '0.875rem 1rem',

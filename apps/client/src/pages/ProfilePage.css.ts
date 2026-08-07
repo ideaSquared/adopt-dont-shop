@@ -185,13 +185,6 @@ export const statusBadge = recipe({
   },
 });
 
-export const loadingContainer = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '200px',
-});
-
 export const sectionGap = style({
   marginBottom: '1rem',
 });

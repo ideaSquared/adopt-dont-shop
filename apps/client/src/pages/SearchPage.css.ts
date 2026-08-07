@@ -111,13 +111,6 @@ export const petGrid = style({
   },
 });
 
-export const loadingContainer = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '200px',
-});
-
 export const emptyState = style({
   textAlign: 'center',
   padding: '3rem 1rem',

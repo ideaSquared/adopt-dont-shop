@@ -34,19 +34,6 @@ export const label = style({
   color: '#111827',
 });
 
-export const input = style({
-  padding: '0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  transition: 'all 0.2s ease',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px #dbeafe',
-  },
-});
-
 export const textArea = style({
   padding: '0.75rem',
   border: '1px solid #d1d5db',

@@ -9,7 +9,6 @@ import { useMemo, type ReactNode } from 'react';
 import {
   ChatProvider as LibChatProvider,
   useChat as useLibChat,
-  type ChatContextValue,
   type FeatureFlagsAdapter,
   type OfflineAdapter,
   type OfflineState,
@@ -17,11 +16,7 @@ import {
   type OfflineSyncCallback,
   type ConnectionQuality,
 } from '@adopt-dont-shop/lib.chat';
-import {
-  chatService,
-  type Conversation as LibConversation,
-  type Message as LibMessage,
-} from '@/services';
+import { chatService } from '@/services';
 import {
   getConnectionQuality,
   isCurrentlyOnline,
@@ -132,8 +127,3 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 }
 
 export const useChat = useLibChat;
-
-// Re-exports so downstream components using `@/contexts/ChatContext` keep working.
-export type ChatContextType = ChatContextValue;
-export type Conversation = LibConversation;
-export type Message = LibMessage;

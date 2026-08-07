@@ -186,15 +186,6 @@ export const loadMoreButton = style({
   display: 'block',
 });
 
-export const loadingContainer = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '400px',
-  fontSize: '1.1rem',
-  color: vars.text.tertiary,
-});
-
 export const errorContainer = style({
   textAlign: 'center',
   padding: '3rem',

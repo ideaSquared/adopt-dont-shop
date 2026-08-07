@@ -73,32 +73,6 @@ export const field = style({
   gap: vars.spacing['1'],
 });
 
-export const label = style({
-  fontSize: vars.typography.size.sm,
-  fontWeight: 500,
-  color: vars.text.primary,
-});
-
-export const input = style({
-  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-  borderRadius: vars.border.radius.base,
-  border: `${vars.border.width.thin} solid ${vars.border.color.default}`,
-  fontSize: vars.typography.size.base,
-  lineHeight: vars.typography.lineHeight.normal,
-  color: vars.text.primary,
-  backgroundColor: vars.background.surface,
-  outline: 'none',
-  transition: 'border-color 0.2s',
-  ':focus': {
-    borderColor: vars.border.color.focus,
-  },
-});
-
-export const fieldError = style({
-  fontSize: vars.typography.size.xs,
-  color: vars.text.danger,
-});
-
 export const buttonRow = style({
   display: 'flex',
   justifyContent: 'space-between',

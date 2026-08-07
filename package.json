@@ -98,7 +98,6 @@
     "@typescript-eslint/parser": "^8.61.1",
     "@vitest/coverage-v8": "^4.1.9",
     "@vitest/ui": "^4.1.9",
-    "concurrently": "^10.0.3",
     "esbuild": "^0.28.1",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.0.0",
@@ -115,8 +114,7 @@
     "turbo": "^2.9.16",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.1",
-    "vitest": "^4.1.9",
-    "whatwg-fetch": "^3.6.20"
+    "vitest": "^4.1.9"
   },
   "overridesDocumentation": {
     "lodash": "Force lodash to >=4.17.21 to mitigate the prototype-pollution vulnerability tracked by CVE-2019-10744 / CVE-2020-8203 (GHSA-jf85-cpcp-j695, GHSA-p6mc-m468-83gw). The constraint is intentionally permissive (^4.18.1) so npm resolves the latest patched 4.x release across all transitive consumers. Do not remove without first verifying every transitive lodash dependency satisfies >=4.17.21.",

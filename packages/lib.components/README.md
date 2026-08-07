@@ -46,7 +46,7 @@ The canonical list lives in [`src/index.ts`](src/index.ts), grouped:
 
 Styles are imported via `@adopt-dont-shop/lib.components/styles`. Each component
 owns its directory (`*.tsx`, `*.css.ts`, `*.test.tsx`, and where present
-`*.stories.tsx`); use `cn()` from `src/utils/cn.ts` to merge class strings.
+`*.stories.tsx`).
 
 ## Environment variables consumed
 
@@ -71,4 +71,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 6 workspace package(s) depend on this library. See [lib.components-consumers.md](../../docs/libraries/lib.components-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->
