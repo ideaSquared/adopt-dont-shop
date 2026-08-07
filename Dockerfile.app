@@ -117,9 +117,11 @@ COPY --from=pruner --chown=viteuser:nodejs /app/out/full/ ./
 # turbo prune --docker doesn't copy root-level config files into out/full/.
 # Workspace tsconfigs extend the root tier files (ADS-988: tsconfig.base.json
 # plus the lib/service tier bases; lib.types additionally extends
-# ../tsconfig.cjs.base.json for its dual ESM+CJS build).
-# Mirrors Dockerfile.service.
-COPY --chown=viteuser:nodejs tsconfig.base.json tsconfig.cjs.base.json tsconfig.lib.base.json tsconfig.service.base.json ./
+# ../tsconfig.cjs.base.json for its dual ESM+CJS build). The tsconfig copies
+# mirror Dockerfile.service.
+# vite.shared.config.ts is app-only (ADS-895): each app's vite.config.ts imports
+# getLibraryAliases from it, so `vite build` can't load its config without it.
+COPY --chown=viteuser:nodejs tsconfig.base.json tsconfig.cjs.base.json tsconfig.lib.base.json tsconfig.service.base.json vite.shared.config.ts ./
 
 # Build libraries first, then the specific app using Turbo
 # Use cache mount for Turbo cache
