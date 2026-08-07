@@ -20,7 +20,7 @@ import { URLS } from '../../playwright.config';
  * checks run as the seeded adopter. Passing an empty state forces a genuinely
  * unauthenticated context.
  */
-const ANON = { cookies: [], origins: [] } as const;
+const ANON: { cookies: []; origins: [] } = { cookies: [], origins: [] };
 
 test.describe('gateway auth contract (cookies + CSRF, ADS-919)', () => {
   test('GET /api/v1/csrf-token issues a double-submit token', async () => {
