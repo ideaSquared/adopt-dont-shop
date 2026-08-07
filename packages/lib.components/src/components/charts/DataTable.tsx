@@ -14,6 +14,10 @@ export type DataTableColumn = {
    * original behaviour where every column header is a sort control.
    */
   sortable?: boolean;
+  /** Fixed column width (any CSS length), applied to the header cell. */
+  width?: string;
+  /** Horizontal alignment for the column's header and cells. Defaults to left. */
+  align?: 'left' | 'center' | 'right';
 };
 
 export type SortDirection = 'asc' | 'desc';
@@ -237,7 +241,12 @@ export const DataTable: React.FC<DataTableProps> = ({
               const sortable = col.sortable ?? true;
               if (!sortable) {
                 return (
-                  <th key={col.key} className={styles.th} data-testid={`th-${col.key}`}>
+                  <th
+                    key={col.key}
+                    className={styles.th}
+                    data-testid={`th-${col.key}`}
+                    style={{ width: col.width, textAlign: col.align }}
+                  >
                     <span className={styles.headerLabel}>{col.label}</span>
                   </th>
                 );
@@ -254,6 +263,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                   className={styles.th}
                   data-testid={`th-${col.key}`}
                   aria-sort={ariaSort}
+                  style={{ width: col.width, textAlign: col.align }}
                 >
                   <button
                     type='button'
@@ -306,7 +316,12 @@ export const DataTable: React.FC<DataTableProps> = ({
                       </td>
                     ) : null}
                     {columns.map(col => (
-                      <td key={col.key} className={styles.td} data-label={col.label}>
+                      <td
+                        key={col.key}
+                        className={styles.td}
+                        data-label={col.label}
+                        style={{ textAlign: col.align }}
+                      >
                         {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '')}
                       </td>
                     ))}

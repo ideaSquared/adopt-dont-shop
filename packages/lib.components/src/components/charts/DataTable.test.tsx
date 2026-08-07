@@ -407,3 +407,16 @@ describe('DataTable loading state', () => {
     expect(screen.getByText('Bea')).toBeInTheDocument();
   });
 });
+
+describe('DataTable column width + alignment', () => {
+  it('applies per-column width and alignment to the header cell', () => {
+    renderWithTheme(
+      <DataTable
+        title='Pets'
+        columns={[{ key: 'name', label: 'Name', width: '200px', align: 'center' }]}
+        rows={idRows}
+      />
+    );
+    expect(screen.getByTestId('th-name')).toHaveStyle({ width: '200px', textAlign: 'center' });
+  });
+});
