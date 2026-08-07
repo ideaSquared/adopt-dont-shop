@@ -11,22 +11,6 @@
 
 import { Counter, getMetricsRegistry } from '@adopt-dont-shop/observability';
 
-export type LoginOutcome =
-  | 'success'
-  | 'invalid_credentials'
-  | 'account_locked'
-  | 'account_suspended'
-  | 'email_unverified';
-
-export type RegistrationOutcome = 'success' | 'duplicate_email' | 'invalid_input';
-
-export type TokenRefreshOutcome =
-  | 'success'
-  | 'invalid_token'
-  | 'token_revoked'
-  | 'concurrent_reuse'
-  | 'family_revoked_on_reuse';
-
 export type AuthMetrics = {
   loginCounter: InstanceType<typeof Counter<'outcome'>>;
   registrationCounter: InstanceType<typeof Counter<'outcome'>>;

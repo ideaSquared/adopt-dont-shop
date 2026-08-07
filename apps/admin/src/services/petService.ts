@@ -34,8 +34,6 @@ export type BulkPetResult = {
   errors: Array<{ petId: string; error: string }>;
 };
 
-export type { PetType } from '@adopt-dont-shop/lib.types';
-
 type PetsPaginatedResponse = {
   success: boolean;
   data: AdminPet[];

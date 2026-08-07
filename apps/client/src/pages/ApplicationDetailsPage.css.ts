@@ -114,13 +114,6 @@ export const statusBadge = recipe({
   },
 });
 
-export const loadingContainer = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '300px',
-});
-
 export const buttonGroup = style({
   display: 'flex',
   gap: '1rem',

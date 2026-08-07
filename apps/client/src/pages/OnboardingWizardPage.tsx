@@ -746,5 +746,3 @@ export const OnboardingWizardPage: React.FC = () => {
     </div>
   );
 };
-
-export default OnboardingWizardPage;

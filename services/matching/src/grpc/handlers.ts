@@ -24,7 +24,6 @@ import { hasPermission, requirePermission, type Principal } from '@adopt-dont-sh
 import { withTransaction } from '@adopt-dont-shop/events';
 import { PETS_VIEW } from '@adopt-dont-shop/lib.types';
 import {
-  MatchingV1,
   type EndSessionRequest,
   type EndSessionResponse,
   type ListSwipeHistoryRequest,
@@ -468,8 +467,3 @@ function parseFiltersJson(raw: string | undefined): string {
     throw new HandlerError('INVALID_ARGUMENT', `filters_json invalid: ${(err as Error).message}`);
   }
 }
-
-// Re-export the MatchingV1 helpers some adjacent modules want at the
-// matching service boundary. Keeps the import surface small for the
-// follow-up handler files.
-export { MatchingV1 };

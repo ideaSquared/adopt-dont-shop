@@ -30,5 +30,3 @@ export const PlanGate: React.FC<PlanGateProps> = ({ minPlan, feature, children, 
 
   return <>{children}</>;
 };
-
-export default PlanGate;

@@ -166,4 +166,3 @@ export class RescueStaffService {
 export const staffService = new RescueStaffService();
 
 // Export the class as default for custom configurations
-export default RescueStaffService;

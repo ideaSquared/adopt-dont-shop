@@ -44,14 +44,6 @@ export const avatarSpacer = style({
   flex: '0 0 auto',
 });
 
-export const senderName = style({
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  color: vars.text.tertiary,
-  margin: '0 0 0.25rem 3rem',
-  letterSpacing: '0.01em',
-});
-
 export const senderRow = style({
   display: 'flex',
   alignItems: 'center',

@@ -1,4 +1,4 @@
-export { PetCardSkeleton, PetCardSkeletonGrid } from './PetCardSkeleton';
+export { PetCardSkeletonGrid } from './PetCardSkeleton';
 export { PetDetailSkeleton } from './PetDetailSkeleton';
 export { ApplicationCardSkeletonList } from './ApplicationCardSkeleton';
 export { ApplicationDetailSkeleton } from './ApplicationDetailSkeleton';

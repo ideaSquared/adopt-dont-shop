@@ -1,11 +1,7 @@
 // Thin adapter shim — delegates to @adopt-dont-shop/service-bootstrap
 // with the service name bound.
 
-import {
-  adapt as adaptShared,
-  HandlerError,
-  type HandlerErrorCode,
-} from '@adopt-dont-shop/service-bootstrap';
+import { adapt as adaptShared, HandlerError } from '@adopt-dont-shop/service-bootstrap';
 
 import type { WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Principal } from '@adopt-dont-shop/authz';
@@ -16,7 +12,6 @@ const SERVICE_NAME = 'service.moderation';
 
 export type HandlerDeps = WithTransactionDeps;
 
-export type { HandlerErrorCode };
 export { HandlerError };
 
 export function adapt<Req, Res>(

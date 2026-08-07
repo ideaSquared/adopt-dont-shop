@@ -212,8 +212,3 @@ globalStyle(`${emptyState} h3`, {
 globalStyle(`${emptyState} p`, {
   margin: '0 0 1.5rem 0',
 });
-
-export const loadingState = style({
-  padding: '3rem',
-  textAlign: 'center',
-});

@@ -189,33 +189,6 @@ export const userEmail = style({
   color: vars.text.tertiary,
 });
 
-export const actionButtons = style({
-  display: 'flex',
-  gap: '0.5rem',
-});
-
-export const iconButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '32px',
-  height: '32px',
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '6px',
-  background: vars.background.surface,
-  color: vars.text.tertiary,
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: vars.background.body,
-    color: vars.text.primary,
-    borderColor: vars.border.color.muted,
-  },
-  ':active': {
-    transform: 'scale(0.95)',
-  },
-});
-
 export const addUserIcon = style({
   marginRight: '0.5rem',
 });

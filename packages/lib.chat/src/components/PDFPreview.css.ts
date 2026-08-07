@@ -127,21 +127,3 @@ export const pdfError = style({
   textAlign: 'center',
   color: '#6c757d',
 });
-
-export const downloadLink = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '8px',
-  padding: '8px 16px',
-  background: '#007bff',
-  color: 'white',
-  textDecoration: 'none',
-  borderRadius: '6px',
-  fontSize: '0.875rem',
-  transition: 'background-color 0.2s ease',
-  selectors: {
-    '&:hover': {
-      background: '#0056b3',
-    },
-  },
-});

@@ -22,7 +22,7 @@ export const permissionsService = new PermissionsService(
 );
 
 // Re-export types for convenience
-export type { User, AdminUser, UserType, UserStatus } from '../types/user';
+export type { AdminUser } from '../types/user';
 
 // NOTE: The original lib-admin package does not exist in this monorepo.
 // Admin-specific services should be created in app.admin/src/services/ as needed.

@@ -18,23 +18,6 @@ export function createAppContext<T>(name: string) {
 }
 
 /**
- * Common error state interface
- */
-export interface ErrorState {
-  error: string | null;
-  setError: (error: string | null) => void;
-  clearError: () => void;
-}
-
-/**
- * Common loading state interface
- */
-export interface LoadingState {
-  isLoading: boolean;
-  setLoading: (loading: boolean) => void;
-}
-
-/**
  * Base async action handler with consistent error handling
  */
 export async function handleAsyncAction<T>(

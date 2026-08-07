@@ -65,38 +65,6 @@ export const select = style({
   },
 });
 
-// Action Buttons
-export const actionButtons = style({
-  display: 'flex',
-  gap: '0.5rem',
-});
-
-export const iconButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '32px',
-  height: '32px',
-  border: '1px solid #e5e7eb',
-  borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    background: '#f9fafb',
-    color: '#111827',
-    borderColor: '#d1d5db',
-  },
-  ':active': {
-    transform: 'scale(0.95)',
-  },
-  ':disabled': {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
-});
-
 // Page Layout
 export const pageContainer = style({
   display: 'flex',
@@ -127,11 +95,6 @@ globalStyle(`${headerLeft} p`, {
   margin: '0',
 });
 
-export const headerActions = style({
-  display: 'flex',
-  gap: '0.75rem',
-});
-
 // Card
 export const card = style({
   background: '#ffffff',
@@ -156,24 +119,4 @@ export const cardTitle = style({
 
 export const cardContent = style({
   color: '#374151',
-});
-
-// Utility
-export const emptyState = style({
-  textAlign: 'center',
-  padding: '3rem 2rem',
-  color: '#6b7280',
-});
-
-export const emptyStateIcon = style({
-  fontSize: '3rem',
-  marginBottom: '1rem',
-});
-
-export const loadingSpinner = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '3rem',
-  color: '#6b7280',
 });

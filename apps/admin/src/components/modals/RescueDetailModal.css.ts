@@ -1,38 +1,5 @@
 import { style } from '@vanilla-extract/css';
 
-export const overlay = style({
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-  padding: '1rem',
-});
-
-export const modalContainer = style({
-  background: '#ffffff',
-  borderRadius: '16px',
-  width: '100%',
-  maxWidth: '900px',
-  maxHeight: '90vh',
-  display: 'flex',
-  flexDirection: 'column',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-});
-
-export const modalHeader = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  padding: '1.5rem',
-  borderBottom: '1px solid #e5e7eb',
-});
-
 export const headerContent = style({
   flex: 1,
 });
@@ -54,41 +21,6 @@ export const closeButton = style({
     background: '#e5e7eb',
     color: '#111827',
   },
-});
-
-export const modalBody = style({
-  flex: 1,
-  overflowY: 'auto',
-  padding: '1.5rem',
-});
-
-export const tabContainer = style({
-  display: 'flex',
-  gap: '0.5rem',
-  borderBottom: '2px solid #e5e7eb',
-  marginBottom: '1.5rem',
-});
-
-export const tab = style({
-  padding: '0.75rem 1.25rem',
-  border: 'none',
-  background: 'none',
-  color: '#6b7280',
-  fontWeight: '500',
-  fontSize: '0.875rem',
-  cursor: 'pointer',
-  borderBottom: '2px solid transparent',
-  marginBottom: '-2px',
-  transition: 'all 0.2s ease',
-  ':hover': {
-    color: '#667eea',
-  },
-});
-
-export const tabActive = style({
-  color: '#667eea',
-  fontWeight: '600',
-  borderBottom: '2px solid #667eea',
 });
 
 export const section = style({
@@ -500,14 +432,6 @@ export const skeletonAvatarText = style({
 
 export const skeletonName = style({
   marginBottom: '0.5rem',
-});
-
-export const modalFooter = style({
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: '0.75rem',
-  padding: '1.25rem 1.5rem',
-  borderTop: '1px solid #e5e7eb',
 });
 
 export const successMessage = style({

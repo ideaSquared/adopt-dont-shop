@@ -59,16 +59,6 @@ export const actionLinkPrimary = style({
   },
 });
 
-export const actionLinkOutline = style({
-  background: 'transparent',
-  color: vars.text.primary,
-  border: `1px solid ${vars.border.color.default}`,
-  ':hover': {
-    background: vars.background.muted,
-    borderColor: vars.border.color.muted,
-  },
-});
-
 export const actionLinkLarge = style({
   padding: '1rem 2rem',
   fontSize: '1.1rem',
@@ -362,15 +352,6 @@ globalStyle(`${descriptionCard} p`, {
   lineHeight: '1.6',
   color: vars.text.secondary,
   whiteSpace: 'pre-wrap',
-});
-
-export const loadingContainer = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '400px',
-  fontSize: '1.1rem',
-  color: vars.text.secondary,
 });
 
 export const errorContainer = style({

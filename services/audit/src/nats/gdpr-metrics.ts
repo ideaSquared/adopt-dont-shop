@@ -19,8 +19,6 @@ import { getMetricsRegistry } from '@adopt-dont-shop/observability';
 // The four terminal/stuck states we track.
 const SAGA_STATES = ['in_progress', 'completed', 'failed', 'timed_out'] as const;
 
-export type SagaState = (typeof SAGA_STATES)[number];
-
 export type GdprSagaMetrics = {
   gauge: InstanceType<typeof Gauge<'state'>>;
 };
@@ -82,10 +80,4 @@ export const recordGdprSagaStates = async ({
   for (const state of SAGA_STATES) {
     metrics.gauge.set({ state }, byState.get(state) ?? 0);
   }
-};
-
-// --- Test-only helper -------------------------------------------------------
-
-export const __resetGdprMetricsForTest = (): void => {
-  _metrics = null;
 };

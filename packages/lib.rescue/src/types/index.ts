@@ -2,8 +2,6 @@
 export type {
   RescueStatus,
   RescueType,
-  VerificationSource,
-  RescueLocation,
   AdoptionPolicy,
   Rescue,
   RescueAPIResponse,

@@ -5,4 +5,4 @@
 // The table is resolved via the connection search_path (set to `notifications`
 // by @adopt-dont-shop/db createDbClient), and is created by migration 008.
 
-export { claimEvent, type DedupConn } from '@adopt-dont-shop/events';
+export { claimEvent } from '@adopt-dont-shop/events';

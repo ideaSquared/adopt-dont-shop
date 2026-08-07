@@ -63,90 +63,10 @@ globalStyle(`${mobileMenuButton} svg`, {
   fontSize: '1.25rem',
 });
 
-export const searchContainer = style({
-  flex: 1,
-  maxWidth: '500px',
-  position: 'relative',
-});
-
-export const searchInput = style({
-  width: '100%',
-  padding: '0.75rem 1rem 0.75rem 2.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '8px',
-  fontSize: '0.875rem',
-  background: '#f9fafb',
-  transition: 'all 0.2s ease',
-  ':focus-visible': {
-    outline: 'none',
-    borderColor: vars.colors.primary,
-    background: '#ffffff',
-    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
-  },
-  '::placeholder': {
-    color: '#9ca3af',
-  },
-});
-
-export const searchIcon = style({
-  position: 'absolute',
-  left: '1rem',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  color: '#9ca3af',
-  fontSize: '1rem',
-  pointerEvents: 'none',
-});
-
 export const headerActions = style({
   display: 'flex',
   alignItems: 'center',
   gap: '1rem',
-});
-
-export const iconButton = recipe({
-  base: {
-    position: 'relative',
-    background: 'transparent',
-    border: '1px solid #d1d5db',
-    padding: '0.625rem',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#6b7280',
-    transition: 'all 0.2s ease',
-    ':hover': {
-      background: '#f9fafb',
-      borderColor: vars.colors.primary,
-      color: vars.colors.primaryHover,
-    },
-  },
-  variants: {
-    hasNotification: {
-      true: {
-        selectors: {
-          '&::after': {
-            content: "''",
-            position: 'absolute',
-            top: '6px',
-            right: '6px',
-            width: '8px',
-            height: '8px',
-            background: '#ef4444',
-            borderRadius: '50%',
-            border: '2px solid #ffffff',
-          },
-        },
-      },
-      false: {},
-    },
-  },
-});
-
-globalStyle(`${iconButton.classNames.base} svg`, {
-  fontSize: '1.25rem',
 });
 
 export const userMenu = style({

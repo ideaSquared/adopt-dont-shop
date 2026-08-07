@@ -9,14 +9,6 @@ export const modalContent = style({
   minHeight: '600px',
 });
 
-export const chatHeader = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1rem',
-  paddingBottom: '1.5rem',
-  borderBottom: '1px solid #e5e7eb',
-});
-
 export const chatTitle = style({
   margin: '0',
   fontSize: '1.25rem',
@@ -31,58 +23,6 @@ export const chatId = style({
   fontSize: '0.875rem',
   color: '#6b7280',
   fontFamily: "'Courier New', monospace",
-});
-
-export const tabBar = style({
-  display: 'flex',
-  gap: '0.5rem',
-  borderBottom: '1px solid #e5e7eb',
-});
-
-export const tab = recipe({
-  base: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.75rem 1rem',
-    border: 'none',
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    borderRadius: '6px 6px 0 0',
-    transition: 'all 0.2s ease',
-  },
-  variants: {
-    active: {
-      true: {
-        background: '#3b82f6',
-        color: '#ffffff',
-        ':hover': {
-          background: '#3b82f6',
-        },
-      },
-      false: {
-        background: 'transparent',
-        color: '#6b7280',
-        ':hover': {
-          background: '#f3f4f6',
-        },
-      },
-    },
-  },
-  defaultVariants: {
-    active: false,
-  },
-});
-
-globalStyle(`${tab.classNames.base} svg`, {
-  fontSize: '1rem',
-});
-
-export const tabContent = style({
-  flex: '1',
-  overflowY: 'auto',
-  padding: '1rem 0',
 });
 
 export const messageTimeline = style({

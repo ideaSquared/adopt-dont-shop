@@ -70,23 +70,3 @@ export interface AdoptionPolicy {
   spayNeuterPolicy?: string;
   followUpPolicy?: string;
 }
-
-export interface RescuePreferences {
-  notificationSettings: {
-    emailNotifications: boolean;
-    newApplicationAlerts: boolean;
-    reminderAlerts: boolean;
-    weeklyDigest: boolean;
-  };
-  autoResponseSettings: {
-    enabled: boolean;
-    applicationReceivedMessage?: string;
-    applicationApprovedMessage?: string;
-    applicationRejectedMessage?: string;
-  };
-  workflowSettings: {
-    defaultApplicationWorkflow: 'standard' | 'expedited' | 'thorough';
-    autoProgressEnabled: boolean;
-    requireApprovalForProgress: boolean;
-  };
-}

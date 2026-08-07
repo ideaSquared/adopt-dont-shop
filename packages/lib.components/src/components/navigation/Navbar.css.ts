@@ -53,10 +53,6 @@ export const navbar = recipe({
   },
 });
 
-export const navbarSolidContent = style({
-  color: `${vars.background.body} !important`,
-});
-
 export const brand = style({
   display: 'flex',
   alignItems: 'center',

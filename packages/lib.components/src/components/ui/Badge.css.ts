@@ -238,5 +238,3 @@ export const removeButton = recipe({
   },
   defaultVariants: { size: 'md' },
 });
-
-export const dotIndicator = style({});

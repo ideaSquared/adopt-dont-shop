@@ -20,12 +20,6 @@ export const petImageContainer = style({
   overflow: 'hidden',
 });
 
-export const petImage = style({
-  width: '100%',
-  height: '100%',
-  objectFit: 'cover',
-});
-
 export const placeholderImage = style({
   width: '100%',
   height: '100%',

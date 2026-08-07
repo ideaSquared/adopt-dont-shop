@@ -120,5 +120,3 @@ export const BackupCodesReveal: React.FC<BackupCodesRevealProps> = ({
     </div>
   );
 };
-
-export default BackupCodesReveal;

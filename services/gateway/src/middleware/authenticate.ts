@@ -32,7 +32,7 @@
 // the same as no auth at all.
 
 import { status as grpcStatus, Metadata } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Logger } from 'winston';
 
 import { signPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
@@ -310,8 +310,3 @@ function stringifyRole(role: number): string {
 // Exported for tests so the constant stays in sync with the middleware
 // behaviour without duplication.
 export const __TEST_PUBLIC_PATH_PREFIXES = PUBLIC_PATH_PREFIXES;
-export const __TEST_SPOOFABLE_HEADERS = SPOOFABLE_HEADERS;
-
-// Helper handler reply type — used by the protected-without-token return
-// branch shape so the FastifyReply isn't `void`d by accident.
-export type AuthReply = FastifyReply;

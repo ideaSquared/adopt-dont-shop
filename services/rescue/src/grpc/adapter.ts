@@ -4,8 +4,6 @@
 import {
   adapt as adaptShared,
   adaptUnauth as adaptUnauthShared,
-  HandlerError,
-  type HandlerErrorCode,
 } from '@adopt-dont-shop/service-bootstrap';
 
 import type { Principal } from '@adopt-dont-shop/authz';
@@ -15,9 +13,6 @@ import type { Logger } from 'winston';
 import type { HandlerDeps } from './handlers.js';
 
 const SERVICE_NAME = 'service.rescue';
-
-export type { HandlerErrorCode };
-export { HandlerError };
 
 export function adapt<Req, Res>(
   handler: (deps: HandlerDeps, principal: Principal, req: Req) => Promise<Res>,

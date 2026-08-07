@@ -131,13 +131,6 @@ export const analyticsGrid = style({
   },
 });
 
-export const loadingState = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  height: '200px',
-});
-
 export const errorCard = style({
   padding: '1.5rem',
   textAlign: 'center',

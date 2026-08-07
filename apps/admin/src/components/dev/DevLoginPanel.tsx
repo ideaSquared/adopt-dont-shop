@@ -17,5 +17,4 @@ const DevLoginPanel: React.FC = () => {
   );
 };
 
-export { DevLoginPanel };
 export default DevLoginPanel;

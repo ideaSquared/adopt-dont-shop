@@ -5,15 +5,12 @@
  */
 
 // Import library services (removed unused ApiService import)
-import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
 import { ApplicationsService } from '@adopt-dont-shop/lib.applications';
 import { DiscoveryService } from '@adopt-dont-shop/lib.discovery';
 import { PetsService } from '@adopt-dont-shop/lib.pets';
 import { RescueService } from '@adopt-dont-shop/lib.rescue';
 import { ChatService } from '@adopt-dont-shop/lib.chat';
 import { MatchingService } from '@adopt-dont-shop/lib.matching';
-import { SearchService } from '@adopt-dont-shop/lib.search';
-import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
 import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
 
 // ✅ INDUSTRY STANDARD: Configure the global apiService FIRST
@@ -37,8 +34,6 @@ const serviceConfig = {
 };
 
 // Create configured service instances with centralized configuration
-export const analyticsService = new AnalyticsService(serviceConfig);
-
 export const applicationService = new ApplicationsService(globalApiService, serviceConfig);
 
 export const discoveryService = new DiscoveryService(serviceConfig);
@@ -76,64 +71,19 @@ export const chatService = new ChatService({
   csrfToken: () => globalApiService.getCsrfToken(),
 });
 
-export const searchService = new SearchService({
-  ...serviceConfig,
-  debug: import.meta.env.MODE === 'development',
-});
-
-export const notificationsService = new NotificationsService(serviceConfig);
-
 export const permissionsService = new PermissionsService({
   debug: import.meta.env.DEV,
 });
 
 // Re-export types for convenience
-export type { UserEngagementEvent, PageViewEvent } from '@adopt-dont-shop/lib.analytics';
+export type { Application, ApplicationStatus } from '@adopt-dont-shop/lib.applications';
 
-export type {
-  Application,
-  ApplicationData,
-  ApplicationStatus,
-} from '@adopt-dont-shop/lib.applications';
-
-export type {
-  DiscoveryPet,
-  SwipeAction,
-  SwipeStats,
-  SwipeSession,
-} from '@adopt-dont-shop/lib.discovery';
+export type { DiscoveryPet, SwipeAction, SwipeSession } from '@adopt-dont-shop/lib.discovery';
 
 export type { Pet, PetSearchFilters, PaginatedResponse } from '@adopt-dont-shop/lib.pets';
 
-export type {
-  Rescue,
-  RescueSearchFilters,
-  RescueStatus,
-  RescueType,
-  RescueLocation,
-} from '@adopt-dont-shop/lib.rescue';
+export type { Rescue } from '@adopt-dont-shop/lib.rescue';
 
-export type { User, AuthResponse, LoginRequest, RegisterRequest } from '@adopt-dont-shop/lib.auth';
+export type { User } from '@adopt-dont-shop/lib.auth';
 
-export type {
-  ChatServiceConfig,
-  Conversation,
-  Message,
-  MessageReaction,
-  MessageReadReceipt,
-  MessageDeliveryStatus,
-  ReactionUpdateEvent,
-  ReadStatusUpdateEvent,
-  TypingIndicator,
-  ConnectionStatus,
-  ReconnectionConfig,
-  QueuedMessage,
-} from '@adopt-dont-shop/lib.chat';
-
-export { useConnectionStatus } from '@adopt-dont-shop/lib.chat';
-
-export type { SearchServiceConfig, SearchServiceOptions } from '@adopt-dont-shop/lib.search';
-
-export type { Notification, NotificationPreferences } from '@adopt-dont-shop/lib.notifications';
-
-export type { Permission, UserWithPermissions } from '@adopt-dont-shop/lib.permissions';
+export type { Conversation, Message, ReadStatusUpdateEvent } from '@adopt-dont-shop/lib.chat';

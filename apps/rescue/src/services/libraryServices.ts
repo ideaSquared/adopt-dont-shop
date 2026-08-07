@@ -4,8 +4,6 @@
  */
 
 // Import library services
-import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
-import { ApplicationsService } from '@adopt-dont-shop/lib.applications';
 import { PetsService } from '@adopt-dont-shop/lib.pets';
 import { RescueService } from '@adopt-dont-shop/lib.rescue';
 import { ChatService } from '@adopt-dont-shop/lib.chat';
@@ -26,9 +24,6 @@ globalApiService.updateConfig({
   // Tokens are stored in HttpOnly cookies — no localStorage fallback needed
 });
 
-// Now import AuthService AFTER configuring the global apiService
-import { AuthService } from '@adopt-dont-shop/lib.auth';
-
 // Centralized service configuration
 const serviceConfig = {
   apiUrl: baseUrl,
@@ -36,13 +31,8 @@ const serviceConfig = {
 };
 
 // Create configured service instances
-export const analyticsService = new AnalyticsService(serviceConfig);
-export const applicationService = new ApplicationsService(globalApiService, serviceConfig);
 export const petService = new PetsService(globalApiService);
 export const rescueService = new RescueService(globalApiService, serviceConfig);
-
-// AuthService uses the pre-configured global apiService.
-export const authService = new AuthService();
 
 // ✅ Configure chatService with the Socket.IO URL. ADS-919: no Authorization
 // header is built here anymore — auth rides along automatically on both the
@@ -65,11 +55,3 @@ export const invitationService = new InvitationsService(globalApiService, servic
 
 // Export the configured API service for direct use
 export const apiService = globalApiService;
-
-// Export Socket.IO hooks and types
-export { useConnectionStatus } from '@adopt-dont-shop/lib.chat';
-export type {
-  ConnectionStatus,
-  ReconnectionConfig,
-  QueuedMessage,
-} from '@adopt-dont-shop/lib.chat';

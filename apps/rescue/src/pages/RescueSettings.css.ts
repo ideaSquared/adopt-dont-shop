@@ -67,15 +67,6 @@ export const tabPanelHidden = style({
   display: 'none',
 });
 
-export const loadingContainer = style({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  height: '400px',
-  fontSize: '1.125rem',
-  color: vars.text.tertiary,
-});
-
 export const errorContainer = style({
   backgroundColor: vars.colors.dangerBgSubtle,
   color: vars.colors.dangerTextEmphasis,

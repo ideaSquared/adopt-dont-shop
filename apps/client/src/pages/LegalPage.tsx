@@ -62,5 +62,3 @@ export const LegalPage: React.FC<LegalPageProps> = ({ slug }) => {
     </Container>
   );
 };
-
-export default LegalPage;

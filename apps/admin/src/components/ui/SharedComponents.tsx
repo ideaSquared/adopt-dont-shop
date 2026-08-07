@@ -57,8 +57,3 @@ export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHead
 export const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.cardContent}${className ? ` ${className}` : ''}`} {...props} />
 );
-
-// Utility Components
-export const EmptyState = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.emptyState}${className ? ` ${className}` : ''}`} {...props} />
-);

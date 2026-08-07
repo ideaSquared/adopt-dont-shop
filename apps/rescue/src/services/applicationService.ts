@@ -968,4 +968,3 @@ export class RescueApplicationService {
 export const applicationService = new RescueApplicationService();
 
 // Export the class as default for custom configurations
-export default RescueApplicationService;
