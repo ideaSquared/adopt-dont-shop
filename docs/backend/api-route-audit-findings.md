@@ -5,11 +5,15 @@ packages/lib._) against every gateway route. 301 gateway routes vs 342
 distinct frontend call sites; **88 genuine mismatches** were found — far
 more than the four that showed up in the gateway logs.
 
-The gaps fall into three buckets. **This PR fixes bucket 0 (the real
-gateway bugs + the CSRF login failure); buckets 1 and 2 are the
-roadmap for follow-up work.**
+**Status:** this PR fixes the CSRF login bug plus every mismatch that
+could be resolved without a product decision — the gateway-route bugs
+(section 0), the ~15 frontend path/method repoints whose backing RPC
+already existed (section 0b), and 5 clean CRUD-gap RPCs (section 0c). The
+remaining ~36 calls (section 2) target features that were never built on
+the backend and each need a design/product decision, so they are left as
+a prioritized backlog rather than fabricated.
 
-## 0. Fixed in this PR
+## 0. Fixed in this PR — gateway-route bugs
 
 | Area                                          | Change                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -19,6 +23,32 @@ roadmap for follow-up work.**
 | `PATCH /api/v1/admin/users/:userId`           | Add the plain profile-update route (only the `/action` moderation variant existed) → `AuthService.AdminUpdateUser`.                                                                                                                                                                                                                                                                                                    |
 | `GET /api/v1/admin/moderation/metrics`        | New `ModerationService.GetModerationMetrics` aggregation RPC (SQL over reports + moderator_actions) + gateway route. Restores the admin Moderation dashboard stat cards.                                                                                                                                                                                                                                               |
 | `GET /api/v1/email/provider-info`             | Small gateway-folded dev route so lib.dev-tools' Ethereal widget stops 404-ing.                                                                                                                                                                                                                                                                                                                                        |
+
+## 0b. Fixed in this PR — frontend repoints (backing RPC existed elsewhere)
+
+Repointed to the correct existing gateway path/method (with tests):
+notifications mark-all-read / preferences read / template preview /
+unread-count; pets by-rescue + updatePet (PUT→PATCH) + updatePetStatus
+(PATCH→POST); chat message reactions (flat path); discovery swipe
+session start/end → matching sessions; permissions assignRole + health;
+lib.api healthCheck → /health/simple; rescue scheduleHomeVisit → singular
+path. Repoints whose target contract was genuinely incompatible (e.g.
+bulk-by-ids mark-read, cursor-vs-page notification list, nested
+preference writes, admin support reply/my-tickets, audit-logs,
+custom-reports) were left unchanged and folded into section 2.
+
+## 0c. Fixed in this PR — new CRUD-gap RPCs
+
+Well-specified endpoints whose entity already existed but had no RPC —
+added end-to-end (proto → handler → gateway route → tests):
+
+| Endpoint                                             | New RPC                              |
+| ---------------------------------------------------- | ------------------------------------ |
+| `POST /api/v1/admin/moderation/reports/:id/escalate` | `moderation.EscalateReport`          |
+| `PUT /api/v1/rescues/:id/questions/:qid`             | `rescue.UpdateApplicationQuestion`   |
+| `PATCH /api/v1/rescues/:id/questions/reorder`        | `rescue.ReorderApplicationQuestions` |
+| `DELETE /api/v1/reports/schedules/:id`               | `audit.DeleteReportSchedule`         |
+| `DELETE /api/v1/reports/shares/:id`                  | `audit.RevokeReportShare`            |
 
 ## 1. Backing RPC exists elsewhere — needs a path/method repoint (or gateway alias)
 
