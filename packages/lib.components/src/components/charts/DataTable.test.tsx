@@ -392,3 +392,18 @@ describe('DataTable frameless mode', () => {
     expect(screen.getByText('Bea')).toBeInTheDocument();
   });
 });
+
+describe('DataTable loading state', () => {
+  it('renders skeleton rows while loading, so a load reads as loading not empty', () => {
+    renderWithTheme(<DataTable title='Pets' columns={columns} rows={[]} loading />);
+    expect(screen.getAllByTestId('skeleton-row')).toHaveLength(5);
+    // No empty state while loading.
+    expect(screen.queryByTestId('chart-empty')).not.toBeInTheDocument();
+  });
+
+  it('shows real rows (no skeletons) once loaded', () => {
+    renderWithTheme(<DataTable title='Pets' columns={columns} rows={idRows} />);
+    expect(screen.queryAllByTestId('skeleton-row')).toHaveLength(0);
+    expect(screen.getByText('Bea')).toBeInTheDocument();
+  });
+});

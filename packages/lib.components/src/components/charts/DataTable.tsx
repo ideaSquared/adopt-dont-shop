@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { ChartFrame, type ChartFrameProps } from './ChartFrame';
+import { SkeletonTableRow } from '../ui/Skeleton';
 import * as styles from './DataTable.css';
 
 export type DataTableColumn = {
@@ -26,6 +27,12 @@ export type DataTableProps = Omit<ChartFrameProps, 'children' | 'isEmpty' | 'tit
   columns: DataTableColumn[];
   rows: Record<string, unknown>[];
   pageSize?: number;
+  /**
+   * When true, the body renders skeleton rows instead of data (initial load),
+   * so a load in progress reads as "loading" rather than "empty". Works in
+   * frameless mode too, unlike ChartFrame's framed `isLoading` text state.
+   */
+  loading?: boolean;
   /** Optional callback when a row is clicked (used for drill-down). */
   onRowClick?: (row: Record<string, unknown>) => void;
   /**
@@ -96,11 +103,14 @@ const defaultGetRowId = (row: Record<string, unknown>, index: number): string =>
   return id === undefined || id === null ? String(index) : String(id);
 };
 
+const SKELETON_ROW_COUNT = 5;
+
 export const DataTable: React.FC<DataTableProps> = ({
   title,
   columns,
   rows,
   pageSize = 25,
+  loading = false,
   onRowClick,
   responsive = 'scroll',
   selectable = false,
@@ -259,42 +269,50 @@ export const DataTable: React.FC<DataTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {visibleRows.map((row, i) => {
-            const rowId = getRowIdFn(row, i);
-            const isSelected = selectable && selectedSet.has(rowId);
-            const variant = getRowVariant?.(row, i) ?? 'default';
-            return (
-              <tr
-                key={rowId}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                data-variant={variant === 'default' ? undefined : variant}
-                className={clsx(
-                  onRowClick ? styles.rowClickable : styles.rowDefault,
-                  styles.rowVariant({ variant, selected: isSelected }),
-                  rowClassName?.(row, i)
-                )}
-              >
-                {selectable ? (
-                  <td className={styles.selectCell} onClick={e => e.stopPropagation()}>
-                    <input
-                      type='checkbox'
-                      className={styles.checkbox}
-                      aria-label={
-                        getRowLabel ? `Select ${getRowLabel(row, i)}` : `Select row ${rowId}`
-                      }
-                      checked={selectedSet.has(rowId)}
-                      onChange={() => toggleOne(rowId)}
-                    />
-                  </td>
-                ) : null}
-                {columns.map(col => (
-                  <td key={col.key} className={styles.td} data-label={col.label}>
-                    {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '')}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+          {loading
+            ? Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
+                <SkeletonTableRow
+                  key={`skeleton-${i}`}
+                  columnCount={columns.length}
+                  hasCheckbox={selectable}
+                />
+              ))
+            : visibleRows.map((row, i) => {
+                const rowId = getRowIdFn(row, i);
+                const isSelected = selectable && selectedSet.has(rowId);
+                const variant = getRowVariant?.(row, i) ?? 'default';
+                return (
+                  <tr
+                    key={rowId}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    data-variant={variant === 'default' ? undefined : variant}
+                    className={clsx(
+                      onRowClick ? styles.rowClickable : styles.rowDefault,
+                      styles.rowVariant({ variant, selected: isSelected }),
+                      rowClassName?.(row, i)
+                    )}
+                  >
+                    {selectable ? (
+                      <td className={styles.selectCell} onClick={e => e.stopPropagation()}>
+                        <input
+                          type='checkbox'
+                          className={styles.checkbox}
+                          aria-label={
+                            getRowLabel ? `Select ${getRowLabel(row, i)}` : `Select row ${rowId}`
+                          }
+                          checked={selectedSet.has(rowId)}
+                          onChange={() => toggleOne(rowId)}
+                        />
+                      </td>
+                    ) : null}
+                    {columns.map(col => (
+                      <td key={col.key} className={styles.td} data-label={col.label}>
+                        {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
         </tbody>
       </table>
       {pageCount > 1 ? (
@@ -322,14 +340,14 @@ export const DataTable: React.FC<DataTableProps> = ({
   );
 
   if (frameless) {
-    if (rows.length === 0) {
+    if (!loading && rows.length === 0) {
       return <div className={styles.emptyFrameless}>{frame.emptyMessage ?? 'No data'}</div>;
     }
     return content;
   }
 
   return (
-    <ChartFrame {...frame} title={title ?? ''} isEmpty={rows.length === 0}>
+    <ChartFrame {...frame} title={title ?? ''} isEmpty={!loading && rows.length === 0}>
       {content}
     </ChartFrame>
   );
