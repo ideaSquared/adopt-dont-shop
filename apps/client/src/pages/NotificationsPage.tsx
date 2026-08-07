@@ -3,13 +3,13 @@ import { Navigate } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { Button, Card } from '@adopt-dont-shop/lib.components';
+import { Button, Card, EmptyState, QueryBoundary, Skeleton } from '@adopt-dont-shop/lib.components';
 import type { Notification } from '@adopt-dont-shop/lib.notifications';
 import * as styles from './NotificationsPage.css';
 
 export const NotificationsPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useNotifications();
   const { trackPageView, trackEvent } = useAnalytics();
 
   React.useEffect(() => {
@@ -93,16 +93,25 @@ export const NotificationsPage: React.FC = () => {
         )}
       </div>
 
-      {notifications.length === 0 ? (
-        <div className={styles.emptyState}>
-          <div className='icon'>🔔</div>
-          <h3>No notifications yet</h3>
-          <p>
-            You'll see notifications about your adoption applications, favorite pets, and more here.
-          </p>
-        </div>
-      ) : (
-        notifications.map(notification => (
+      <QueryBoundary
+        isLoading={isLoading}
+        isEmpty={notifications.length === 0}
+        loadingFallback={
+          <div className={styles.loadingList} aria-busy='true'>
+            <Skeleton height='72px' />
+            <Skeleton height='72px' />
+            <Skeleton height='72px' />
+          </div>
+        }
+        emptyFallback={
+          <EmptyState
+            icon={<span aria-hidden='true'>🔔</span>}
+            title='No notifications yet'
+            description="You'll see notifications about your adoption applications, favorite pets, and more here."
+          />
+        }
+      >
+        {notifications.map(notification => (
           <Card
             key={notification.id}
             className={styles.notificationCard({ isRead: isNotificationRead(notification) })}
@@ -116,8 +125,8 @@ export const NotificationsPage: React.FC = () => {
               <div className='timestamp'>{formatTimestamp(notification.createdAt)}</div>
             </div>
           </Card>
-        ))
-      )}
+        ))}
+      </QueryBoundary>
     </div>
   );
 };

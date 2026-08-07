@@ -29,7 +29,7 @@ export const DashboardSkeleton: React.FC = () => (
         <Skeleton height="1rem" width="140px" />
         <div className={styles.activityLines}>
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div key={i} className={styles.activityLine}>
               <Skeleton height="0.625rem" width="80px" />
               <Skeleton height="0.875rem" width="100%" />
             </div>

@@ -5,51 +5,6 @@ export const listContainer = style({
   width: '100%',
 });
 
-export const table = style({
-  width: '100%',
-  borderCollapse: 'collapse',
-});
-
-export const tableHeader = style({
-  background: '#f9fafb',
-  borderBottom: '2px solid #e5e7eb',
-});
-
-export const tableHeaderCell = style({
-  padding: '0.75rem 1rem',
-  textAlign: 'left',
-  fontSize: '0.75rem',
-  fontWeight: '600',
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: '0.025em',
-});
-
-export const tableRow = recipe({
-  base: {
-    borderBottom: '1px solid #e5e7eb',
-    transition: 'background 0.15s ease',
-    ':hover': {
-      background: '#f9fafb',
-    },
-  },
-  variants: {
-    checkedIn: {
-      true: { background: '#eff6ff' },
-      false: {},
-    },
-  },
-  defaultVariants: {
-    checkedIn: false,
-  },
-});
-
-export const tableCell = style({
-  padding: '1rem',
-  fontSize: '0.875rem',
-  color: '#111827',
-});
-
 export const checkInBadge = recipe({
   base: {
     display: 'inline-flex',
@@ -88,13 +43,6 @@ export const checkInButton = style({
     opacity: 0.5,
     cursor: 'not-allowed',
   },
-});
-
-export const emptyState = style({
-  padding: '3rem',
-  textAlign: 'center',
-  color: '#6b7280',
-  fontSize: '0.875rem',
 });
 
 export const checkedInBadge = style({

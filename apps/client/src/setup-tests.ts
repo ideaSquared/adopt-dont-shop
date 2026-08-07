@@ -80,7 +80,47 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('div', props, children),
   Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
     React.createElement('button', props, children),
-  Input: (props: React.ComponentPropsWithoutRef<'input'>) => React.createElement('input', props),
+  Input: ({
+    label,
+    error,
+    helperText,
+    id,
+    required,
+    isFullWidth: _isFullWidth,
+    size: _size,
+    variant: _variant,
+    startIcon: _startIcon,
+    endIcon: _endIcon,
+    ...props
+  }: {
+    label?: string;
+    error?: string;
+    helperText?: string;
+    id?: string;
+    required?: boolean;
+    isFullWidth?: boolean;
+    size?: string;
+    variant?: string;
+    startIcon?: React.ReactNode;
+    endIcon?: React.ReactNode;
+    [key: string]: unknown;
+  }) => {
+    const inputId = id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const help = error ?? helperText;
+    return React.createElement(
+      'div',
+      null,
+      label
+        ? React.createElement('label', { htmlFor: inputId }, label, required ? ' *' : null)
+        : null,
+      React.createElement('input', {
+        id: inputId,
+        'aria-invalid': error ? true : undefined,
+        ...props,
+      }),
+      help ? React.createElement('p', null, help) : null
+    );
+  },
   TextArea: (props: React.ComponentPropsWithoutRef<'textarea'>) =>
     React.createElement('textarea', props),
   Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
@@ -184,6 +224,119 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   },
   Alert: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', { role: 'alert', ...props }, children),
+  // ADS-C6: shared load-state components. Faithful to the real
+  // ErrorState / EmptyState / QueryBoundary so state handling can be
+  // behaviour-tested (role, retry button, actions, branch selection).
+  ErrorState: ({
+    title = 'Something went wrong',
+    message,
+    onRetry,
+    'data-testid': testId,
+  }: {
+    title?: string;
+    message?: string;
+    onRetry?: () => void;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      { role: 'alert', 'data-testid': testId },
+      React.createElement('h3', null, title),
+      message ? React.createElement('p', null, message) : null,
+      onRetry
+        ? React.createElement('button', { type: 'button', onClick: onRetry }, 'Try again')
+        : null
+    ),
+  EmptyState: ({
+    title,
+    description,
+    icon,
+    actions = [],
+    'data-testid': testId,
+  }: {
+    title: string;
+    description?: string;
+    icon?: React.ReactNode;
+    actions?: Array<{ label: string; onClick: () => void; disabled?: boolean }>;
+    'data-testid'?: string;
+  }) =>
+    React.createElement(
+      'div',
+      { role: 'status', 'aria-live': 'polite', 'data-testid': testId },
+      icon ? React.createElement('div', { 'aria-hidden': 'true' }, icon) : null,
+      React.createElement('h3', null, title),
+      description ? React.createElement('p', null, description) : null,
+      actions.length > 0
+        ? React.createElement(
+            'div',
+            null,
+            ...actions.map((action, index) =>
+              React.createElement(
+                'button',
+                {
+                  key: index,
+                  type: 'button',
+                  onClick: action.onClick,
+                  disabled: action.disabled,
+                },
+                action.label
+              )
+            )
+          )
+        : null
+    ),
+  QueryBoundary: ({
+    isLoading,
+    isError = false,
+    error,
+    isEmpty = false,
+    onRetry,
+    children,
+    loadingFallback,
+    errorFallback,
+    emptyFallback,
+  }: {
+    isLoading?: boolean;
+    isError?: boolean;
+    error?: unknown;
+    isEmpty?: boolean;
+    onRetry?: () => void;
+    children?: React.ReactNode;
+    loadingFallback?: React.ReactNode;
+    errorFallback?: React.ReactNode;
+    emptyFallback?: React.ReactNode;
+  }) => {
+    if (isLoading) {
+      return React.createElement(
+        React.Fragment,
+        null,
+        loadingFallback ?? React.createElement('div', { 'aria-hidden': 'true' })
+      );
+    }
+    if (isError) {
+      const message =
+        typeof error === 'string' ? error : error instanceof Error ? error.message : undefined;
+      return React.createElement(
+        React.Fragment,
+        null,
+        errorFallback ??
+          React.createElement(
+            'div',
+            { role: 'alert' },
+            React.createElement('button', { type: 'button', onClick: onRetry }, 'Try again'),
+            message
+          )
+      );
+    }
+    if (isEmpty) {
+      return React.createElement(
+        React.Fragment,
+        null,
+        emptyFallback ?? React.createElement('div', { role: 'status' }, 'Nothing here yet')
+      );
+    }
+    return React.createElement(React.Fragment, null, children);
+  },
   Badge: ({
     children,
     max,

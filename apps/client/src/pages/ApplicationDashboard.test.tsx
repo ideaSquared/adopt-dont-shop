@@ -135,6 +135,26 @@ describe('ApplicationDashboard (ADS-634)', () => {
     });
   });
 
+  // C6: the ad-hoc error markup is replaced by the shared ErrorState (retryable).
+  it('renders a retryable error state when loading applications fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    getUserApplicationsMock.mockRejectedValueOnce(new Error('boom'));
+
+    render(<ApplicationDashboard />);
+
+    expect(await screen.findByText(/error loading applications/i)).toBeInTheDocument();
+
+    getUserApplicationsMock.mockResolvedValueOnce([]);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /try again/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /no applications yet/i })).toBeInTheDocument();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
   it('renders pet thumbnail and rescue name on each card', async () => {
     getUserApplicationsMock.mockResolvedValue([makeApplication()]);
     getPetByIdMock.mockResolvedValue(makePet());

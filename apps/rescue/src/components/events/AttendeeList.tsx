@@ -1,4 +1,5 @@
 import React from 'react';
+import { DataTable, type DataTableColumn } from '@adopt-dont-shop/lib.components';
 import { EventAttendee } from '../../types/events';
 import { formatDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './AttendeeList.css';
@@ -9,60 +10,59 @@ interface AttendeeListProps {
 }
 
 const AttendeeList: React.FC<AttendeeListProps> = ({ attendees, onCheckIn }) => {
-  if (!attendees || attendees.length === 0) {
-    return (
-      <div className={styles.listContainer}>
-        <div className={styles.emptyState}>No attendees registered yet.</div>
-      </div>
-    );
-  }
+  const columns: DataTableColumn[] = [
+    { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'registered', label: 'Registered' },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (_value, row) => (
+        <span className={styles.checkInBadge({ checkedIn: Boolean(row.checkedIn) })}>
+          {String(row.statusLabel)}
+        </span>
+      ),
+    },
+    ...(onCheckIn
+      ? [
+          {
+            key: 'action',
+            label: 'Action',
+            render: (_value, row) =>
+              row.checkedIn ? (
+                <span className={styles.checkedInBadge}>✓ Checked In</span>
+              ) : (
+                <button
+                  className={styles.checkInButton}
+                  onClick={() => onCheckIn?.(String(row.userId))}
+                >
+                  Check In
+                </button>
+              ),
+          } satisfies DataTableColumn,
+        ]
+      : []),
+  ];
+
+  const rows = attendees.map(attendee => ({
+    name: attendee.name,
+    email: attendee.email,
+    registered: formatDate(attendee.registeredAt),
+    checkedIn: attendee.checkedIn,
+    statusLabel: attendee.checkedIn
+      ? `✓ Checked In${attendee.checkedInAt ? ` - ${formatDate(attendee.checkedInAt)}` : ''}`
+      : 'Not Checked In',
+    userId: attendee.userId,
+  }));
 
   return (
     <div className={styles.listContainer}>
-      <table className={styles.table}>
-        <thead className={styles.tableHeader}>
-          <tr>
-            <th className={styles.tableHeaderCell}>Name</th>
-            <th className={styles.tableHeaderCell}>Email</th>
-            <th className={styles.tableHeaderCell}>Registered</th>
-            <th className={styles.tableHeaderCell}>Status</th>
-            {onCheckIn && <th className={styles.tableHeaderCell}>Action</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {attendees.map(attendee => (
-            <tr
-              key={attendee.userId}
-              className={styles.tableRow({ checkedIn: attendee.checkedIn })}
-            >
-              <td className={styles.tableCell}>{attendee.name}</td>
-              <td className={styles.tableCell}>{attendee.email}</td>
-              <td className={styles.tableCell}>{formatDate(new Date(attendee.registeredAt))}</td>
-              <td className={styles.tableCell}>
-                <span className={styles.checkInBadge({ checkedIn: attendee.checkedIn })}>
-                  {attendee.checkedIn
-                    ? `✓ Checked In${attendee.checkedInAt ? ` - ${formatDate(new Date(attendee.checkedInAt))}` : ''}`
-                    : 'Not Checked In'}
-                </span>
-              </td>
-              {onCheckIn && (
-                <td className={styles.tableCell}>
-                  {!attendee.checkedIn ? (
-                    <button
-                      className={styles.checkInButton}
-                      onClick={() => onCheckIn(attendee.userId)}
-                    >
-                      Check In
-                    </button>
-                  ) : (
-                    <span className={styles.checkedInBadge}>✓ Checked In</span>
-                  )}
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataTable
+        title="Attendees"
+        columns={columns}
+        rows={rows}
+        emptyMessage="No attendees registered yet."
+      />
     </div>
   );
 };

@@ -87,15 +87,6 @@ export const loadingText = style({
   color: '#6b7280',
 });
 
-export const emptyContainer = style({
-  padding: '2rem',
-  textAlign: 'center',
-});
-
-export const emptyText = style({
-  color: '#6b7280',
-});
-
 export const tableWrapper = style({
   overflowX: 'auto',
 });
@@ -347,34 +338,6 @@ export const actionButton = recipe({
   defaultVariants: {
     variant: 'secondary',
   },
-});
-
-export const errorContainer = style({
-  background: '#fef2f2',
-  border: '1px solid #fecaca',
-  borderRadius: '0.375rem',
-  padding: '1rem',
-});
-
-export const errorContent = style({
-  display: 'flex',
-});
-
-export const errorText = style({
-  marginLeft: '0.75rem',
-});
-
-export const errorTitle = style({
-  fontSize: '0.875rem',
-  fontWeight: '500',
-  color: '#991b1b',
-  margin: '0 0 0.25rem 0',
-});
-
-export const errorMessage = style({
-  fontSize: '0.875rem',
-  color: '#b91c1c',
-  margin: 0,
 });
 
 const shimmer = keyframes({

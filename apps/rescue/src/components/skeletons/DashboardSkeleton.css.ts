@@ -40,3 +40,9 @@ export const activityLines = style({
   flexDirection: 'column',
   gap: vars.spacing[2],
 });
+
+export const activityLine = style({
+  display: 'flex',
+  gap: vars.spacing[2],
+  alignItems: 'center',
+});

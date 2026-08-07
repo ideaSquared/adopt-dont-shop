@@ -15,6 +15,8 @@ export const pageContainer = style({
 export const backLink = style({
   display: 'inline-flex',
   alignItems: 'center',
+  // C4: keep the tap target at least 44px tall on touch devices.
+  minHeight: vars.spacing['6'],
   padding: '0.5rem 1rem',
   marginBottom: '2rem',
   textDecoration: 'none',
@@ -37,6 +39,8 @@ export const actionLink = style({
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
+  // C4: primary/secondary CTAs must clear the 44px minimum touch target.
+  minHeight: vars.spacing['6'],
   padding: '0.75rem 1.5rem',
   textDecoration: 'none',
   borderRadius: vars.border.radius.lg,
@@ -74,6 +78,7 @@ export const errorActionLink = style({
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
+  minHeight: vars.spacing['6'],
   padding: '0.75rem 1.5rem',
   textDecoration: 'none',
   borderRadius: vars.border.radius.lg,
@@ -248,6 +253,17 @@ export const sidebar = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '2rem',
+  '@media': {
+    // C4: on desktop the details column is long, so pin the sidebar (which
+    // holds the Apply CTA) so the primary action stays in view while the
+    // adopter scrolls the description. `align-self: start` lets the grid
+    // child shrink to content height so `position: sticky` engages.
+    '(min-width: 768px)': {
+      position: 'sticky',
+      top: vars.spacing['4'],
+      alignSelf: 'start',
+    },
+  },
 });
 
 export const infoCard = style({
@@ -381,7 +397,11 @@ export const contactButton = style({
 // primary (Apply) and secondary (Ask a question) actions, so it reads as
 // a low-emphasis affordance rather than competing for attention.
 export const tertiaryLink = style({
-  display: 'inline-block',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  // C4: even the low-emphasis link keeps a comfortable tap target.
+  minHeight: vars.spacing['6'],
   marginTop: '0.5rem',
   fontSize: '0.9rem',
   color: vars.text.secondary,

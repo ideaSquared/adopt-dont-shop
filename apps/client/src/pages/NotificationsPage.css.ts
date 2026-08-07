@@ -64,13 +64,8 @@ globalStyle(`${notificationContent} .timestamp`, {
   color: vars.text.muted,
 });
 
-export const emptyState = style({
-  textAlign: 'center',
-  padding: '3rem',
-  color: vars.text.tertiary,
-});
-
-globalStyle(`${emptyState} .icon`, {
-  fontSize: '3rem',
-  marginBottom: '1rem',
+export const loadingList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['3'],
 });

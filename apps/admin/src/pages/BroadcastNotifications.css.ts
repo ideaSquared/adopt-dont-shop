@@ -15,13 +15,6 @@ export const channelsRow = style({
   gap: '1rem',
 });
 
-export const channelLabel = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  fontSize: '0.875rem',
-});
-
 export const actions = style({
   display: 'flex',
   gap: '0.75rem',

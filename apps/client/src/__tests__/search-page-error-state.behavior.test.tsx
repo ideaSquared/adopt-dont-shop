@@ -1,7 +1,8 @@
 /**
  * UX P0/P1 #5: when the pet-search API fails, SearchPage must render a
- * recoverable error state with a "Retry" button rather than dropping
- * the user into an empty-state look-alike.
+ * recoverable error state with a retry affordance rather than dropping
+ * the user into an empty-state look-alike. (C6: the state is now the shared
+ * ErrorState, whose retry control reads "Try again".)
  */
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -105,7 +106,7 @@ describe('SearchPage error state', () => {
   it('renders a Retry button when the initial pet search fails', async () => {
     renderWithProviders(<SearchPage />);
 
-    const retry = await screen.findByRole('button', { name: /retry/i }, { timeout: 10_000 });
+    const retry = await screen.findByRole('button', { name: /try again/i }, { timeout: 10_000 });
     expect(retry).toBeInTheDocument();
     expect(screen.getByText(/unable to load results/i)).toBeInTheDocument();
     // Empty-state copy must not be shown on a load failure.
@@ -116,7 +117,7 @@ describe('SearchPage error state', () => {
     const user = userEvent.setup();
     renderWithProviders(<SearchPage />);
 
-    const retry = await screen.findByRole('button', { name: /retry/i }, { timeout: 10_000 });
+    const retry = await screen.findByRole('button', { name: /try again/i }, { timeout: 10_000 });
     await user.click(retry);
 
     // Second call returns 200 with an empty data array — empty state appears.

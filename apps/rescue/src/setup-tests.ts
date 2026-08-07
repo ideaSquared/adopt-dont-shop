@@ -249,6 +249,80 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       React.createElement('h3', null, title),
       description ? React.createElement('p', null, description) : null
     ),
+  // ADS UX D6: shared error state. Mirror title/message/retry so tests can
+  // assert on the copy and drive the retry button.
+  ErrorState: ({ title = 'Something went wrong', message, onRetry, ...props }: any) =>
+    React.createElement(
+      'div',
+      { role: 'alert', ...props },
+      React.createElement('h3', null, title),
+      message ? React.createElement('p', null, message) : null,
+      onRetry
+        ? React.createElement('button', { type: 'button', onClick: onRetry }, 'Try again')
+        : null
+    ),
+  // ADS UX D5: shared date-range picker. Render labelled From/To date inputs
+  // and mirror the real onChange semantics (each field patches its own side).
+  DateRangePicker: ({ value, onChange, fromLabel = 'From', toLabel = 'To' }: any) =>
+    React.createElement(
+      'div',
+      null,
+      React.createElement('label', { htmlFor: 'drp-from' }, fromLabel),
+      React.createElement('input', {
+        id: 'drp-from',
+        type: 'date',
+        value: value?.from ?? '',
+        onChange: (e: any) => onChange({ from: e.target.value || null, to: value?.to ?? null }),
+      }),
+      React.createElement('label', { htmlFor: 'drp-to' }, toLabel),
+      React.createElement('input', {
+        id: 'drp-to',
+        type: 'date',
+        value: value?.to ?? '',
+        onChange: (e: any) => onChange({ from: value?.from ?? null, to: e.target.value || null }),
+      })
+    ),
+  // ADS UX D2: shared responsive DataTable. Mirror the real cell rendering
+  // (col.render or stringified value) and empty handling so behaviour tests
+  // for the migrated tables keep exercising rows, links and actions.
+  DataTable: ({ title, columns, rows, emptyMessage }: any) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'data-table' },
+      title ? React.createElement('h4', null, title) : null,
+      rows.length === 0
+        ? React.createElement('div', null, emptyMessage ?? 'No data')
+        : React.createElement(
+            'table',
+            null,
+            React.createElement(
+              'thead',
+              null,
+              React.createElement(
+                'tr',
+                null,
+                ...columns.map((c: any) => React.createElement('th', { key: c.key }, c.label))
+              )
+            ),
+            React.createElement(
+              'tbody',
+              null,
+              ...rows.map((row: any, i: number) =>
+                React.createElement(
+                  'tr',
+                  { key: i },
+                  ...columns.map((c: any) =>
+                    React.createElement(
+                      'td',
+                      { key: c.key },
+                      c.render ? c.render(row[c.key], row) : String(row[c.key] ?? '')
+                    )
+                  )
+                )
+              )
+            )
+          )
+    ),
   FormSection: ({ title, description, children, ...props }: any) =>
     React.createElement(
       'section',

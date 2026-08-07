@@ -120,3 +120,42 @@ describe('FavoritesPage error handling on un-favorite', () => {
     expect(screen.getByText('Buddy')).toBeInTheDocument();
   });
 });
+
+// C6: standardise the load states on the shared ErrorState / EmptyState.
+describe('FavoritesPage load states (C6)', () => {
+  beforeEach(() => {
+    getFavoritesMock.mockReset();
+    removeFromFavoritesMock.mockReset();
+    favoritesState.error = null;
+    favoritesState.favoritePetIds = new Set<string>();
+  });
+
+  it('renders a retryable error state when the favourites fetch fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    getFavoritesMock.mockRejectedValueOnce(new Error('boom'));
+
+    render(<FavoritesPage />);
+
+    expect(await screen.findByText(/failed to load your favorite pets/i)).toBeInTheDocument();
+
+    // Retrying re-runs the fetch; this time it succeeds and the pet renders.
+    getFavoritesMock.mockResolvedValueOnce([pet]);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /try again/i }));
+
+    expect(await screen.findByText('Buddy')).toBeInTheDocument();
+    expect(getFavoritesMock).toHaveBeenCalledTimes(2);
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('renders the shared empty state with browse actions when there are no favourites', async () => {
+    getFavoritesMock.mockResolvedValueOnce([]);
+
+    render(<FavoritesPage />);
+
+    expect(await screen.findByText(/no favorites yet/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /start swiping/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /browse all pets/i })).toBeInTheDocument();
+  });
+});

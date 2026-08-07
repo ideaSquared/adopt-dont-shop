@@ -136,29 +136,6 @@ export const cardBody = style({
   padding: '1.5rem',
 });
 
-export const emptyState = style({
-  textAlign: 'center',
-  padding: '3rem 1rem',
-  color: vars.text.tertiary,
-});
-
-globalStyle(`${emptyState} svg`, {
-  fontSize: '3rem',
-  color: vars.border.color.muted,
-  marginBottom: '1rem',
-});
-
-globalStyle(`${emptyState} h3`, {
-  fontSize: '1.125rem',
-  fontWeight: 600,
-  color: vars.text.primary,
-  margin: '0 0 0.5rem 0',
-});
-
-globalStyle(`${emptyState} p`, {
-  margin: 0,
-});
-
 export const breedList = style({
   display: 'grid',
   gap: '1rem',
@@ -276,6 +253,10 @@ export const emailModalInput = style({
     backgroundColor: '#f8f9fa',
     color: '#6c757d',
   },
+});
+
+export const requiredMark = style({
+  color: vars.colors.danger,
 });
 
 export const emailModalError = style({

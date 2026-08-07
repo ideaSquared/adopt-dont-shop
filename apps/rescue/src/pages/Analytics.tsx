@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, MetricCard, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Card,
+  MetricCard,
+  toast,
+  DateRangePicker,
+  EmptyState,
+  type DateRangeValue,
+} from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
   FiUsers,
@@ -15,8 +22,11 @@ import StageDistributionChart from '../components/analytics/StageDistributionCha
 import AdoptionTrendsChart from '../components/analytics/AdoptionTrendsChart';
 import ConversionFunnelChart from '../components/analytics/ConversionFunnelChart';
 import ResponseTimeChart from '../components/analytics/ResponseTimeChart';
-import DateRangePicker from '../components/analytics/DateRangePicker';
 import ExportButton from '../components/analytics/ExportButton';
+
+// The shared DateRangePicker works in ISO `yyyy-mm-dd` strings, while the
+// analytics service reasons in `Date`s. Convert at the picker boundary only.
+const toIsoDate = (date: Date): string => date.toISOString().slice(0, 10);
 
 // Services
 import {
@@ -60,6 +70,13 @@ const Analytics: React.FC = () => {
   const [emailError, setEmailError] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDateRangeChange = (value: DateRangeValue) => {
+    if (!value.from || !value.to) {
+      return;
+    }
+    setDateRange({ start: new Date(value.from), end: new Date(value.to) });
+  };
 
   // Fetch analytics data. Each metric is fetched and applied independently
   // so that one failing endpoint (e.g. response-time, which has no backend
@@ -219,7 +236,10 @@ const Analytics: React.FC = () => {
           </div>
 
           <div className={styles.headerActions}>
-            <DateRangePicker value={dateRange} onChange={setDateRange} />
+            <DateRangePicker
+              value={{ from: toIsoDate(dateRange.start), to: toIsoDate(dateRange.end) }}
+              onChange={handleDateRangeChange}
+            />
             <ExportButton
               onExportCSV={handleExportCSV}
               onExportPDF={handleExportPDF}
@@ -315,11 +335,11 @@ const Analytics: React.FC = () => {
             {adoptionMetrics?.adoptionTrends ? (
               <AdoptionTrendsChart data={adoptionMetrics.adoptionTrends} loading={loading} />
             ) : (
-              <div className={styles.emptyState}>
-                <FiBarChart2 />
-                <h3>No Data Available</h3>
-                <p>Adoption trends will appear here once data is available.</p>
-              </div>
+              <EmptyState
+                title="No data available"
+                description="Adoption trends will appear here once data is available."
+                icon={<FiBarChart2 />}
+              />
             )}
           </div>
         </Card>
@@ -342,11 +362,11 @@ const Analytics: React.FC = () => {
                 loading={loading}
               />
             ) : (
-              <div className={styles.emptyState}>
-                <FiTrendingUp />
-                <h3>No Data Available</h3>
-                <p>Conversion data will appear here once available.</p>
-              </div>
+              <EmptyState
+                title="No data available"
+                description="Conversion data will appear here once available."
+                icon={<FiTrendingUp />}
+              />
             )}
           </div>
         </Card>
@@ -363,11 +383,11 @@ const Analytics: React.FC = () => {
             {stageDistribution.length > 0 ? (
               <StageDistributionChart data={stageDistribution} loading={loading} />
             ) : (
-              <div className={styles.emptyState}>
-                <FiPieChart />
-                <h3>No Data Available</h3>
-                <p>Stage distribution will appear here once available.</p>
-              </div>
+              <EmptyState
+                title="No data available"
+                description="Stage distribution will appear here once available."
+                icon={<FiPieChart />}
+              />
             )}
           </div>
         </Card>
@@ -386,11 +406,11 @@ const Analytics: React.FC = () => {
             {responseTimeMetrics?.responseTimeByStage ? (
               <ResponseTimeChart data={responseTimeMetrics.responseTimeByStage} loading={loading} />
             ) : (
-              <div className={styles.emptyState}>
-                <FiClock />
-                <h3>No Data Available</h3>
-                <p>Response time metrics will appear here once available.</p>
-              </div>
+              <EmptyState
+                title="No data available"
+                description="Response time metrics will appear here once available."
+                icon={<FiClock />}
+              />
             )}
           </div>
         </Card>
@@ -423,11 +443,11 @@ const Analytics: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className={styles.emptyState}>
-                <FiBarChart2 />
-                <h3>No Data Available</h3>
-                <p>Pet performance data will appear here once available.</p>
-              </div>
+              <EmptyState
+                title="No data available"
+                description="Pet performance data will appear here once available."
+                icon={<FiBarChart2 />}
+              />
             )}
           </div>
         </Card>
@@ -455,7 +475,7 @@ const Analytics: React.FC = () => {
             <form onSubmit={handleEmailModalSubmit} className={styles.emailModalForm}>
               <div className={styles.emailModalFormGroup}>
                 <label className={styles.emailModalLabel} htmlFor="report-email">
-                  Email Address <span style={{ color: '#dc3545' }}>*</span>
+                  Email Address <span className={styles.requiredMark}>*</span>
                 </label>
                 <input
                   ref={emailInputRef}

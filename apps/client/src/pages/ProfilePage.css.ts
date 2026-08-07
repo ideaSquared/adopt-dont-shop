@@ -212,3 +212,16 @@ export const centeredEmpty = style({
   textAlign: 'center',
   padding: '2rem',
 });
+
+// C3: delete-account modal layout — replaces inline style attributes so the
+// modal form is styled through tokens like the rest of the app.
+export const deleteModalField = style({
+  marginTop: vars.spacing['3'],
+});
+
+export const deleteModalActions = style({
+  marginTop: vars.spacing['4'],
+  display: 'flex',
+  gap: vars.spacing['2'],
+  justifyContent: 'flex-end',
+});
