@@ -16,6 +16,8 @@ import {
   type AuditCreateReportShareResponse,
   type AuditCreateSavedReportRequest,
   type AuditCreateSavedReportResponse,
+  type AuditDeleteReportScheduleRequest,
+  type AuditDeleteReportScheduleResponse,
   type AuditDeleteSavedReportRequest,
   type AuditDeleteSavedReportResponse,
   type AuditGetByTargetRequest,
@@ -30,6 +32,8 @@ import {
   type AuditListSavedReportsResponse,
   type AuditQueryRequest,
   type AuditQueryResponse,
+  type AuditRevokeReportShareRequest,
+  type AuditRevokeReportShareResponse,
   type AuditUpdateSavedReportRequest,
   type AuditUpdateSavedReportResponse,
   type AuditUpsertReportScheduleRequest,
@@ -79,6 +83,14 @@ export type AuditClient = {
     req: AuditCreateReportShareRequest,
     metadata: Metadata
   ): Promise<AuditCreateReportShareResponse>;
+  deleteReportSchedule(
+    req: AuditDeleteReportScheduleRequest,
+    metadata: Metadata
+  ): Promise<AuditDeleteReportScheduleResponse>;
+  revokeReportShare(
+    req: AuditRevokeReportShareRequest,
+    metadata: Metadata
+  ): Promise<AuditRevokeReportShareResponse>;
   close(): void;
 };
 
@@ -148,6 +160,9 @@ export const createAuditClient = (opts: CreateAuditClientOptions): AuditClient =
     upsertReportSchedule: (req, metadata) =>
       callUnary(stub.upsertReportSchedule, req, metadata, false),
     createReportShare: (req, metadata) => callUnary(stub.createReportShare, req, metadata, false),
+    deleteReportSchedule: (req, metadata) =>
+      callUnary(stub.deleteReportSchedule, req, metadata, false),
+    revokeReportShare: (req, metadata) => callUnary(stub.revokeReportShare, req, metadata, false),
     // ── Idempotent (reads / queries) ─────────────────────────────────
     query: (req, metadata) => callUnary(stub.query, req, metadata, true),
     getByTarget: (req, metadata) => callUnary(stub.getByTarget, req, metadata, true),
