@@ -16,6 +16,8 @@ type Mocks = {
   sendEmail: ReturnType<typeof vi.fn>;
   verify: ReturnType<typeof vi.fn>;
   listStaffMembers: ReturnType<typeof vi.fn>;
+  createStaffMember: ReturnType<typeof vi.fn>;
+  updateStaffMember: ReturnType<typeof vi.fn>;
   removeStaffMember: ReturnType<typeof vi.fn>;
   listRescueInvitations: ReturnType<typeof vi.fn>;
   inviteStaff: ReturnType<typeof vi.fn>;
@@ -28,6 +30,8 @@ function makeClient(): Mocks {
   const sendEmail = vi.fn();
   const verify = vi.fn();
   const listStaffMembers = vi.fn();
+  const createStaffMember = vi.fn();
+  const updateStaffMember = vi.fn();
   const removeStaffMember = vi.fn();
   const listRescueInvitations = vi.fn();
   const inviteStaff = vi.fn();
@@ -46,6 +50,8 @@ function makeClient(): Mocks {
     inviteStaff,
     getMyStaffMembership: vi.fn(),
     listStaffMembers,
+    createStaffMember,
+    updateStaffMember,
     removeStaffMember,
     listRescueInvitations,
     cancelRescueInvitation,
@@ -67,6 +73,8 @@ function makeClient(): Mocks {
     sendEmail,
     verify,
     listStaffMembers,
+    createStaffMember,
+    updateStaffMember,
     removeStaffMember,
     listRescueInvitations,
     inviteStaff,
@@ -539,6 +547,129 @@ describe('GET /api/v1/rescues/:rescueId/staff', () => {
         headers: ADMIN_HEADERS,
       });
       expect(res.statusCode).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('POST /api/v1/rescues/:rescueId/staff', () => {
+  it('adds an existing user as staff and returns the enriched member', async () => {
+    const m = makeClient();
+    const getUser = vi.fn().mockResolvedValue({
+      user: { userId: 'usr-1', firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.com' },
+    });
+    const app = await makeApp(m.client, makeAuthClient(getUser));
+    try {
+      m.createStaffMember.mockResolvedValue({ staffMember: staffMember({ title: 'Coordinator' }) });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescues/rsc-1/staff',
+        headers: ADMIN_HEADERS,
+        payload: { userId: 'usr-1', title: 'Coordinator' },
+      });
+
+      expect(m.createStaffMember.mock.calls[0][0]).toMatchObject({
+        rescueId: 'rsc-1',
+        userId: 'usr-1',
+        title: 'Coordinator',
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({
+        success: true,
+        data: {
+          staffMemberId: 'stf-1',
+          userId: 'usr-1',
+          firstName: 'Ada',
+          email: 'ada@example.com',
+          title: 'Coordinator',
+        },
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a body with no userId as 400 (no gRPC call)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescues/rsc-1/staff',
+        headers: ADMIN_HEADERS,
+        payload: { title: 'Coordinator' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.createStaffMember).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps a gRPC ALREADY_EXISTS to 409', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.createStaffMember.mockRejectedValue({ code: grpcStatus.ALREADY_EXISTS });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescues/rsc-1/staff',
+        headers: ADMIN_HEADERS,
+        payload: { userId: 'usr-1' },
+      });
+      expect(res.statusCode).toBe(409);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('PUT /api/v1/rescues/:rescueId/staff/:userId', () => {
+  it('updates the staff member title and returns the enriched member', async () => {
+    const m = makeClient();
+    const getUser = vi.fn().mockResolvedValue({
+      user: { userId: 'usr-1', firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.com' },
+    });
+    const app = await makeApp(m.client, makeAuthClient(getUser));
+    try {
+      m.updateStaffMember.mockResolvedValue({ staffMember: staffMember({ title: 'Lead' }) });
+
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/rescues/rsc-1/staff/usr-1',
+        headers: ADMIN_HEADERS,
+        payload: { title: 'Lead' },
+      });
+
+      expect(m.updateStaffMember.mock.calls[0][0]).toMatchObject({
+        rescueId: 'rsc-1',
+        userId: 'usr-1',
+        title: 'Lead',
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({
+        success: true,
+        data: { userId: 'usr-1', title: 'Lead', email: 'ada@example.com' },
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps a gRPC NOT_FOUND to 404', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.updateStaffMember.mockRejectedValue({ code: grpcStatus.NOT_FOUND });
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/rescues/rsc-1/staff/usr-1',
+        headers: ADMIN_HEADERS,
+        payload: { title: 'Lead' },
+      });
+      expect(res.statusCode).toBe(404);
     } finally {
       await app.close();
     }

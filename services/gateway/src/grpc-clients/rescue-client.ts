@@ -47,6 +47,8 @@ import {
   type GetFosterPlacementResponse,
   type GetInvitationByTokenRequest,
   type GetInvitationByTokenResponse,
+  type CreateStaffMemberRequest,
+  type CreateStaffMemberResponse,
   type GetMyStaffMembershipRequest,
   type GetMyStaffMembershipResponse,
   type GetRescueRequest,
@@ -69,6 +71,8 @@ import {
   type RemoveStaffMemberResponse,
   type UpdateEventRequest,
   type UpdateEventResponse,
+  type UpdateStaffMemberRequest,
+  type UpdateStaffMemberResponse,
   type UpdateRescueRequest,
   type UpdateRescueResponse,
   type UpdateRescuePlanRequest,
@@ -113,6 +117,14 @@ export type RescueClient = {
     req: ListStaffMembersRequest,
     metadata: Metadata
   ): Promise<ListStaffMembersResponse>;
+  createStaffMember(
+    req: CreateStaffMemberRequest,
+    metadata: Metadata
+  ): Promise<CreateStaffMemberResponse>;
+  updateStaffMember(
+    req: UpdateStaffMemberRequest,
+    metadata: Metadata
+  ): Promise<UpdateStaffMemberResponse>;
   removeStaffMember(
     req: RemoveStaffMemberRequest,
     metadata: Metadata
@@ -251,6 +263,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     sendRescueEmail: (req, metadata) => callUnary(stub.sendRescueEmail, req, metadata, false),
     verify: (req, metadata) => callUnary(stub.verify, req, metadata, false),
     inviteStaff: (req, metadata) => callUnary(stub.inviteStaff, req, metadata, false),
+    createStaffMember: (req, metadata) => callUnary(stub.createStaffMember, req, metadata, false),
+    updateStaffMember: (req, metadata) => callUnary(stub.updateStaffMember, req, metadata, false),
     removeStaffMember: (req, metadata) => callUnary(stub.removeStaffMember, req, metadata, false),
     cancelRescueInvitation: (req, metadata) =>
       callUnary(stub.cancelRescueInvitation, req, metadata, false),
