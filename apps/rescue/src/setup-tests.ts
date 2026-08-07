@@ -263,10 +263,19 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     ),
   // ADS UX D5: shared date-range picker. Render labelled From/To date inputs
   // and mirror the real onChange semantics (each field patches its own side).
-  DateRangePicker: ({ value, onChange, fromLabel = 'From', toLabel = 'To' }: any) =>
+  DateRangePicker: ({ value, onChange, fromLabel = 'From', toLabel = 'To', presets }: any) =>
     React.createElement(
       'div',
       null,
+      ...(Array.isArray(presets)
+        ? presets.map((preset: any) =>
+            React.createElement(
+              'button',
+              { key: preset.label, type: 'button', onClick: () => onChange(preset.getRange()) },
+              preset.label
+            )
+          )
+        : []),
       React.createElement('label', { htmlFor: 'drp-from' }, fromLabel),
       React.createElement('input', {
         id: 'drp-from',
@@ -282,6 +291,15 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         onChange: (e: any) => onChange({ from: value?.from ?? null, to: e.target.value || null }),
       })
     ),
+  // Deterministic stand-in for the shared preset builder — distinct fixed
+  // ranges so a preset click always changes the range and drives a refetch.
+  createDefaultDateRangePresets: () => [
+    { label: 'Last 7 days', getRange: () => ({ from: '2026-01-01', to: '2026-01-08' }) },
+    { label: 'Last 30 days', getRange: () => ({ from: '2026-01-01', to: '2026-01-31' }) },
+    { label: 'Last 90 days', getRange: () => ({ from: '2025-10-01', to: '2026-01-01' }) },
+    { label: 'This month', getRange: () => ({ from: '2026-01-01', to: '2026-01-31' }) },
+    { label: 'Last month', getRange: () => ({ from: '2025-12-01', to: '2025-12-31' }) },
+  ],
   // ADS UX D2: shared responsive DataTable. Mirror the real cell rendering
   // (col.render or stringified value) and empty handling so behaviour tests
   // for the migrated tables keep exercising rows, links and actions.

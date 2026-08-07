@@ -68,8 +68,12 @@ export type {
   FormRowProps,
   FormSectionProps,
 } from './components/form/FormField';
-export { DateRangePicker } from './components/form/DateRangePicker';
-export type { DateRangePickerProps, DateRangeValue } from './components/form/DateRangePicker';
+export { DateRangePicker, createDefaultDateRangePresets } from './components/form/DateRangePicker';
+export type {
+  DateRangePickerProps,
+  DateRangeValue,
+  DateRangePreset,
+} from './components/form/DateRangePicker';
 
 // Feedback Components
 export { Alert } from './components/ui/Alert';
@@ -144,7 +148,12 @@ export type { AreaChartProps } from './components/charts/AreaChart';
 export { MetricCard } from './components/charts/MetricCard';
 export type { MetricCardProps, MetricCardFormat } from './components/charts/MetricCard';
 export { DataTable } from './components/charts/DataTable';
-export type { DataTableProps, DataTableColumn } from './components/charts/DataTable';
+export type {
+  DataTableProps,
+  DataTableColumn,
+  DataTableRowVariant,
+  SortDirection,
+} from './components/charts/DataTable';
 export { PALETTE as ChartPalette } from './components/charts/types';
 export type { ChartSeries, ChartDatum } from './components/charts/types';
 

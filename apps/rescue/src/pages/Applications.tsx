@@ -46,6 +46,7 @@ const Applications: React.FC = () => {
     pagination,
     updateFilter,
     updateSort,
+    changePage,
     updateApplicationStatus,
     refetch,
   } = useApplications();
@@ -234,6 +235,7 @@ const Applications: React.FC = () => {
         onApplicationSelect={handleApplicationSelect}
         selectedIds={selectedIds}
         onSelectionChange={updateSelection}
+        onPageChange={changePage}
       />
 
       {/* Application Review Modal */}
