@@ -14,7 +14,7 @@ import {
   useAdminChatMutations,
   type Conversation,
 } from '@adopt-dont-shop/lib.chat';
-import { FiMessageSquare, FiTrash2, FiArchive, FiX } from 'react-icons/fi';
+import { Archive, MessageSquare, Trash2, X } from 'lucide-react';
 import { MessagesTab } from './MessagesTab';
 import { ParticipantsTab } from './ParticipantsTab';
 import { DetailsTab } from './DetailsTab';
@@ -135,7 +135,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
 
   const header = (
     <div className={styles.chatTitle}>
-      <FiMessageSquare />
+      <MessageSquare size='1em' />
       Conversation Details
       {conversation && (
         <>
@@ -202,17 +202,17 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
         <div className={styles.actionBar}>
           <Button
             variant='secondary'
-            leftIcon={<FiArchive />}
+            leftIcon={<Archive size='1em' />}
             onClick={handleArchiveChat}
             disabled={conversation?.status === 'archived'}
           >
             Archive
           </Button>
-          <Button variant='danger' leftIcon={<FiTrash2 />} onClick={handleDeleteChat}>
+          <Button variant='danger' leftIcon={<Trash2 size='1em' />} onClick={handleDeleteChat}>
             Delete
           </Button>
           <div className={styles.closeButtonWrapper}>
-            <Button variant='secondary' leftIcon={<FiX />} onClick={onClose}>
+            <Button variant='secondary' leftIcon={<X size='1em' />} onClick={onClose}>
               Close
             </Button>
           </div>

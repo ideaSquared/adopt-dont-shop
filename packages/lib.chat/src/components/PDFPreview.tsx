@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MdClose, MdDownload, MdZoomIn, MdZoomOut } from 'react-icons/md';
+import { Download, X, ZoomIn, ZoomOut } from 'lucide-react';
 import * as styles from './PDFPreview.css';
 
 interface PDFPreviewProps {
@@ -135,14 +135,14 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                   onClick={handleZoomOut}
                   disabled={zoom <= 0.5}
                 >
-                  <MdZoomOut size={18} />
+                  <ZoomOut size={18} />
                 </button>
                 <button
                   className={styles.pdfButtonDefault}
                   onClick={handleZoomIn}
                   disabled={zoom >= 2}
                 >
-                  <MdZoomIn size={18} />
+                  <ZoomIn size={18} />
                 </button>
               </>
             )}
@@ -153,10 +153,10 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
               target="_blank"
               rel="noopener noreferrer"
             >
-              <MdDownload size={18} />
+              <Download size={18} />
             </a>
             <button className={styles.pdfButtonDefault} onClick={onClose}>
-              <MdClose size={18} />
+              <X size={18} />
             </button>
           </div>
         </div>

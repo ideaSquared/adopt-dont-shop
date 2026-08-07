@@ -10,7 +10,7 @@ import type {
   UserRole,
 } from '@adopt-dont-shop/lib.permissions';
 import { apiService } from '../services/libraryServices';
-import { FiShield, FiSave, FiRefreshCw, FiInfo } from 'react-icons/fi';
+import { Info, RefreshCw, Save, Shield } from 'lucide-react';
 import {
   PageContainer,
   PageHeader,
@@ -191,17 +191,17 @@ const FieldPermissions: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
-          <FiShield size={24} />
+          <Shield size={24} />
           <Heading level='h1'>Field Permissions</Heading>
         </HeaderLeft>
         <div className={styles.headerActions}>
           <Button variant='secondary' onClick={fetchData} disabled={loading}>
-            <FiRefreshCw size={16} />
+            <RefreshCw size={16} />
             Refresh
           </Button>
           {pendingCount > 0 && (
             <Button variant='primary' onClick={handleSave} disabled={saving}>
-              <FiSave size={16} />
+              <Save size={16} />
               {saving ? 'Saving...' : `Save ${pendingCount} Change${pendingCount > 1 ? 's' : ''}`}
             </Button>
           )}
@@ -209,7 +209,7 @@ const FieldPermissions: React.FC = () => {
       </PageHeader>
 
       <div className={styles.infoBanner}>
-        <FiInfo size={16} />
+        <Info size={16} />
         <div>
           <Text>
             Field permissions control which data fields are visible or editable for each role.

@@ -4,7 +4,7 @@ import { useStatsig } from '@/hooks/useStatsig';
 import { Pet } from '@/services';
 import { Badge, Button, Card, PetImage } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
-import { MdFavorite, MdFavoriteBorder, MdLocationOn } from 'react-icons/md';
+import { Heart, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { resolveFileUrl } from '../utils/fileUtils';
 import { LoginPromptModal } from './modals/LoginPromptModal';
@@ -200,7 +200,7 @@ export const PetCard: React.FC<PetCardProps> = ({
 
         {pet.distance !== undefined && pet.distance !== null && (
           <div className={styles.distanceBadge}>
-            <MdLocationOn size={13} />
+            <MapPin size={13} />
             {pet.distance} mi
           </div>
         )}
@@ -214,7 +214,7 @@ export const PetCard: React.FC<PetCardProps> = ({
               isFavorite ? `Remove ${pet.name} from favorites` : `Add ${pet.name} to favorites`
             }
           >
-            {isFavorite ? <MdFavorite size={24} /> : <MdFavoriteBorder size={24} />}
+            {isFavorite ? <Heart size={24} fill='currentColor' /> : <Heart size={24} />}
           </button>
         )}
       </div>

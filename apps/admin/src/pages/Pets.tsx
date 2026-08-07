@@ -9,7 +9,7 @@ import {
   toast,
   useDebouncedValue,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiPackage } from 'react-icons/fi';
+import { Package, Search } from 'lucide-react';
 import { usePets, useBulkUpdatePets, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
@@ -172,7 +172,7 @@ const Pets: React.FC = () => {
           <div className={styles.petInfo}>
             <div className={styles.petName}>{pet.name}</div>
             <div className={styles.petDetail}>
-              <FiPackage size={12} />
+              <Package size={12} />
               {pet.type} · {pet.breed}
             </div>
           </div>
@@ -240,7 +240,7 @@ const Pets: React.FC = () => {
           <>
             <div className={styles.filterBar}>
               <div className={styles.searchInputWrapper}>
-                <FiSearch />
+                <Search size='1em' />
                 <Input
                   type='text'
                   placeholder='Search by name or breed...'

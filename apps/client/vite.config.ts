@@ -181,7 +181,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('react-router')) {
               return 'router-vendor';
             }
-            if (id.includes('react-icons')) {
+            if (id.includes('lucide-react')) {
               return 'icons-vendor';
             }
             if (id.includes('/socket.io')) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
-import { FiPlus, FiEdit2, FiTrash2, FiEye, FiArchive, FiSearch, FiMenu } from 'react-icons/fi';
+import { Archive, Eye, Menu, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { ConfirmDialog, useConfirm, toast } from '@adopt-dont-shop/lib.components';
 import {
   cmsService,
@@ -353,13 +353,13 @@ const ContentManagement: React.FC = () => {
         <div className={styles.headerActions}>
           {activeTab === 'content' && (
             <button className={styles.primaryButton} onClick={openCreateContent}>
-              <FiPlus size={16} />
+              <Plus size={16} />
               New Content
             </button>
           )}
           {activeTab === 'menus' && (
             <button className={styles.primaryButton} onClick={openCreateMenu}>
-              <FiPlus size={16} />
+              <Plus size={16} />
               New Menu
             </button>
           )}
@@ -377,7 +377,7 @@ const ContentManagement: React.FC = () => {
           className={clsx(styles.tab, activeTab === 'menus' && styles.tabActive)}
           onClick={() => setActiveTab('menus')}
         >
-          <FiMenu size={14} />
+          <Menu size={14} />
           Navigation Menus
         </button>
       </div>
@@ -386,7 +386,7 @@ const ContentManagement: React.FC = () => {
         <div className={styles.card}>
           <div className={styles.filterBar}>
             <div className={styles.searchWrapper}>
-              <FiSearch size={16} />
+              <Search size={16} />
               <input
                 className={styles.searchInput}
                 placeholder='Search by title or slug…'
@@ -470,7 +470,7 @@ const ContentManagement: React.FC = () => {
                           title='Edit'
                           onClick={() => openEditContent(item)}
                         >
-                          <FiEdit2 size={14} />
+                          <Pencil size={14} />
                         </button>
                         {item.status !== 'published' && (
                           <button
@@ -478,7 +478,7 @@ const ContentManagement: React.FC = () => {
                             title='Publish'
                             onClick={() => handlePublish(item)}
                           >
-                            <FiEye size={14} />
+                            <Eye size={14} />
                           </button>
                         )}
                         {item.status === 'published' && (
@@ -487,7 +487,7 @@ const ContentManagement: React.FC = () => {
                             title='Unpublish'
                             onClick={() => handleUnpublish(item)}
                           >
-                            <FiEye size={14} />
+                            <Eye size={14} />
                           </button>
                         )}
                         {item.status !== 'archived' && (
@@ -496,7 +496,7 @@ const ContentManagement: React.FC = () => {
                             title='Archive'
                             onClick={() => handleArchive(item)}
                           >
-                            <FiArchive size={14} />
+                            <Archive size={14} />
                           </button>
                         )}
                         <button
@@ -504,7 +504,7 @@ const ContentManagement: React.FC = () => {
                           title='Delete'
                           onClick={() => handleDeleteContent(item)}
                         >
-                          <FiTrash2 size={14} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -557,14 +557,14 @@ const ContentManagement: React.FC = () => {
                           title='Edit'
                           onClick={() => openEditMenu(menu)}
                         >
-                          <FiEdit2 size={14} />
+                          <Pencil size={14} />
                         </button>
                         <button
                           className={styles.iconButtonDanger}
                           title='Delete'
                           onClick={() => handleDeleteMenu(menu)}
                         >
-                          <FiTrash2 size={14} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>

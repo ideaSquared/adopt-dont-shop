@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { FiArrowLeft } from 'react-icons/fi';
+import { ArrowLeft } from 'lucide-react';
 
 import * as styles from './splitPane.css';
 
@@ -41,7 +41,7 @@ export const EntityDetailLayout = ({
     {detailOpen && (
       <div className={styles.detailPane}>
         <button type='button' className={styles.backToList} onClick={onBack}>
-          <FiArrowLeft aria-hidden /> {backLabel}
+          <ArrowLeft size='1em' aria-hidden /> {backLabel}
         </button>
         {detail}
       </div>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router';
 import * as styles from '../ChatDetailModal.css';
 import { type Conversation } from '@adopt-dont-shop/lib.chat';
-import { FiInfo, FiClock, FiUsers, FiMessageSquare } from 'react-icons/fi';
+import { Clock, Info, MessageSquare, Users } from 'lucide-react';
 
 type DetailsTabProps = {
   conversation: Conversation;
@@ -41,7 +41,7 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
   <div className={styles.detailGrid}>
     <div className={styles.detailItem}>
       <div className={styles.detailLabel}>
-        <FiInfo />
+        <Info size='1em' />
         Chat ID
       </div>
       <div className={styles.detailValue}>{conversation.id}</div>
@@ -84,7 +84,7 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
 
     <div className={styles.detailItem}>
       <div className={styles.detailLabel}>
-        <FiClock />
+        <Clock size='1em' />
         Created
       </div>
       <div className={styles.detailValue}>{formatTimestamp(conversation.createdAt)}</div>
@@ -92,7 +92,7 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
 
     <div className={styles.detailItem}>
       <div className={styles.detailLabel}>
-        <FiClock />
+        <Clock size='1em' />
         Last Updated
       </div>
       <div className={styles.detailValue}>{formatTimestamp(conversation.updatedAt)}</div>
@@ -100,7 +100,7 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
 
     <div className={styles.detailItem}>
       <div className={styles.detailLabel}>
-        <FiUsers />
+        <Users size='1em' />
         Participants
       </div>
       <div className={styles.detailValue}>{conversation.participants.length}</div>
@@ -109,7 +109,7 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({
     {conversation.lastMessage && (
       <div className={styles.detailItem}>
         <div className={styles.detailLabel}>
-          <FiMessageSquare />
+          <MessageSquare size='1em' />
           Last Message
         </div>
         <div className={styles.detailValue}>

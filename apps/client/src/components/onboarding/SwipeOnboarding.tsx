@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MdArrowForward, MdClose, MdFavorite, MdInfo, MdSwipe } from 'react-icons/md';
+import { ArrowRight, Hand, Heart, Info, X } from 'lucide-react';
 import { Link } from 'react-router';
 import * as styles from './SwipeOnboarding.css';
 
@@ -54,12 +54,12 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
     >
       <div className={styles.modalContent} onClick={e => e.stopPropagation()} role='presentation'>
         <button className={styles.closeButton} onClick={handleClose} aria-label='Close'>
-          <MdClose />
+          <X size='1em' />
         </button>
 
         <div className={styles.iconContainer}>
           <div className={styles.swipeIcon}>
-            <MdSwipe />
+            <Hand size='1em' />
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
 
         <div className={styles.features}>
           <div className={styles.feature}>
-            <MdArrowForward className='icon' />
+            <ArrowRight size='1em' className='icon' />
             <div className='content'>
               <div className='title'>Swipe Right to Like</div>
               <div className='desc'>Found a cutie? Swipe right to add them to your favorites!</div>
@@ -79,7 +79,7 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
           </div>
 
           <div className={styles.feature}>
-            <MdFavorite className='icon' />
+            <Heart size='1em' className='icon' />
             <div className='content'>
               <div className='title'>Smart Matching</div>
               <div className='desc'>
@@ -89,7 +89,7 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
           </div>
 
           <div className={styles.feature}>
-            <MdInfo className='icon' />
+            <Info size='1em' className='icon' />
             <div className='content'>
               <div className='title'>Quick Info</div>
               <div className='desc'>Swipe down to see more details about any pet</div>
@@ -99,7 +99,7 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
 
         <div className={styles.buttonContainer}>
           <Link className={styles.primaryButton} to='/discover' onClick={handleStartSwiping}>
-            <MdSwipe />
+            <Hand size='1em' />
             Start Swiping
           </Link>
           <button className={styles.secondaryButton} onClick={handleClose}>

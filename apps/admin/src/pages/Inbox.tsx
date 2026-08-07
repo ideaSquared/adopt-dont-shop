@@ -8,7 +8,7 @@ import {
   useDebouncedValue,
 } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { FiSearch, FiUserPlus, FiUser } from 'react-icons/fi';
+import { Search, User, UserPlus } from 'lucide-react';
 import {
   useInbox,
   useInboxAssign,
@@ -333,7 +333,7 @@ const Inbox: React.FC = () => {
             title='Assign to me'
             disabled={assignMutation.isPending}
           >
-            <FiUserPlus size={14} />
+            <UserPlus size={14} />
             Assign
           </button>
         ) : null;
@@ -361,7 +361,7 @@ const Inbox: React.FC = () => {
       <div className={styles.filterBar}>
         <div className={styles.searchWrapper}>
           <div className={styles.searchIcon}>
-            <FiSearch />
+            <Search size='1em' />
           </div>
           <Input
             className={styles.searchInputPadded}
@@ -379,7 +379,7 @@ const Inbox: React.FC = () => {
           disabled={!user}
           title='Show only items assigned to me'
         >
-          <FiUser size={14} />
+          <User size={14} />
           My Queue
         </button>
 

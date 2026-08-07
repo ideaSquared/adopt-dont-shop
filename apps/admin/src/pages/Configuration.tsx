@@ -2,7 +2,7 @@ import React from 'react';
 import { useConfigValue, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
 import { openExternal } from '../utils/openExternal';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
-import { FiRefreshCw, FiSettings, FiFlag, FiExternalLink, FiInfo } from 'react-icons/fi';
+import { ExternalLink, Flag, Info, RefreshCw, Settings } from 'lucide-react';
 import {
   PageContainer,
   PageHeader,
@@ -96,7 +96,7 @@ const Configuration: React.FC = () => {
         </HeaderLeft>
         <div className={styles.headerActions}>
           <Button variant='outline' size='md' onClick={handleRefresh}>
-            <FiRefreshCw className={styles.inlineIcon} />
+            <RefreshCw size='1em' className={styles.inlineIcon} />
             Reload
           </Button>
           <Button
@@ -104,14 +104,14 @@ const Configuration: React.FC = () => {
             size='md'
             onClick={() => openExternal('https://console.statsig.com')}
           >
-            <FiExternalLink className={styles.inlineIcon} />
+            <ExternalLink size='1em' className={styles.inlineIcon} />
             Open Statsig Console
           </Button>
         </div>
       </PageHeader>
 
       <div className={styles.infoBanner}>
-        <FiInfo size={20} />
+        <Info size={20} />
         <div>
           This page displays read-only configuration from Statsig. To modify feature gates or
           settings, use the{' '}
@@ -122,7 +122,7 @@ const Configuration: React.FC = () => {
             rel='noopener noreferrer'
           >
             Statsig Console
-            <FiExternalLink size={14} />
+            <ExternalLink size={14} />
           </a>
           . Changes will be reflected here after refresh.
         </div>
@@ -132,7 +132,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiFlag className={styles.sectionIcon} />
+              <Flag size='1em' className={styles.sectionIcon} />
               Feature Gates
             </CardTitle>
           </CardHeader>
@@ -146,7 +146,7 @@ const Configuration: React.FC = () => {
               size='sm'
               onClick={() => openExternal('https://console.statsig.com')}
             >
-              <FiExternalLink className={styles.inlineIcon} />
+              <ExternalLink size='1em' className={styles.inlineIcon} />
               Manage gates in Statsig
             </Button>
           </CardContent>
@@ -155,7 +155,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings className={styles.sectionIcon} />
+              <Settings size='1em' className={styles.sectionIcon} />
               Application Settings
             </CardTitle>
           </CardHeader>
@@ -192,7 +192,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings className={styles.sectionIcon} />
+              <Settings size='1em' className={styles.sectionIcon} />
               System Settings
             </CardTitle>
           </CardHeader>
@@ -219,7 +219,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings className={styles.sectionIcon} />
+              <Settings size='1em' className={styles.sectionIcon} />
               Moderation Settings
             </CardTitle>
           </CardHeader>

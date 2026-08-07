@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as styles from './ActionMenu.css';
-import { FiMoreVertical } from 'react-icons/fi';
+import { EllipsisVertical } from 'lucide-react';
 
 export interface ActionMenuItem {
   id: string;
@@ -76,7 +76,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({ items, trigger }) => {
         aria-haspopup='menu'
         aria-expanded={isOpen}
       >
-        {trigger || <FiMoreVertical />}
+        {trigger || <EllipsisVertical size='1em' />}
       </button>
 
       {isOpen && (

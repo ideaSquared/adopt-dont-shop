@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Input, Modal } from '@adopt-dont-shop/lib.components';
-import { FiMail, FiAlertCircle, FiFileText } from 'react-icons/fi';
+import { CircleAlert, FileText, Mail } from 'lucide-react';
 import clsx from 'clsx';
 import type { AdminRescue, RescueEmailPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
@@ -117,7 +117,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
 
   const modalHeader = (
     <div className={styles.modalHeader}>
-      <FiMail size={20} />
+      <Mail size={20} />
       <div>
         <div className={styles.modalHeaderTitle}>Send Email</div>
         <div className={styles.modalHeaderSubtitle}>Send an email to {rescue.name}</div>
@@ -155,14 +155,14 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
       <form onSubmit={handleSubmit}>
         {error && (
           <div className={styles.errorMessage}>
-            <FiAlertCircle />
+            <CircleAlert size='1em' />
             {error}
           </div>
         )}
 
         {success && (
           <div className={styles.successMessage}>
-            <FiMail />
+            <Mail size='1em' />
             Email sent successfully!
           </div>
         )}
@@ -192,7 +192,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
                     selectedTemplate === template.id && styles.templateIconSelected
                   )}
                 >
-                  <FiFileText />
+                  <FileText size='1em' />
                 </div>
                 <div className={styles.templateName}>{template.name}</div>
                 <div className={styles.templateDescription}>{template.description}</div>
@@ -213,7 +213,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
                   selectedTemplate === 'custom' && styles.templateIconSelected
                 )}
               >
-                <FiMail />
+                <Mail size='1em' />
               </div>
               <div className={styles.templateName}>Custom Email</div>
               <div className={styles.templateDescription}>Write your own message</div>

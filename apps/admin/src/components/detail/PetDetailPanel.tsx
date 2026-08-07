@@ -1,7 +1,7 @@
 import React from 'react';
 import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
-import { FiPackage, FiHome, FiCalendar, FiClock, FiTag, FiArchive, FiStar } from 'react-icons/fi';
+import { Archive, Calendar, Clock, House, Package, Star, Tag } from 'lucide-react';
 import type { AdminPet } from '@/services/petService';
 import { useEntityActivity } from '../../hooks';
 import * as styles from './PetDetailPanel.css';
@@ -55,15 +55,23 @@ const DetailField: React.FC<{
 
 const OverviewTab: React.FC<{ pet: AdminPet }> = ({ pet }) => (
   <div className={styles.detailGrid}>
-    <DetailField icon={<FiTag />} label='ID' value={pet.petId} />
-    <DetailField icon={<FiPackage />} label='Type' value={pet.type} />
-    <DetailField icon={<FiPackage />} label='Breed' value={pet.breed} />
-    <DetailField icon={<FiTag />} label='Status' value={pet.status} />
-    <DetailField icon={<FiArchive />} label='Archived' value={pet.archived ? 'Yes' : 'No'} />
-    <DetailField icon={<FiStar />} label='Featured' value={pet.featured ? 'Yes' : 'No'} />
-    <DetailField icon={<FiHome />} label='Rescue' value={pet.rescueName ?? pet.rescueId} />
-    <DetailField icon={<FiCalendar />} label='Created' value={formatDate(pet.createdAt)} />
-    <DetailField icon={<FiClock />} label='Updated' value={formatDate(pet.updatedAt)} />
+    <DetailField icon={<Tag size='1em' />} label='ID' value={pet.petId} />
+    <DetailField icon={<Package size='1em' />} label='Type' value={pet.type} />
+    <DetailField icon={<Package size='1em' />} label='Breed' value={pet.breed} />
+    <DetailField icon={<Tag size='1em' />} label='Status' value={pet.status} />
+    <DetailField
+      icon={<Archive size='1em' />}
+      label='Archived'
+      value={pet.archived ? 'Yes' : 'No'}
+    />
+    <DetailField icon={<Star size='1em' />} label='Featured' value={pet.featured ? 'Yes' : 'No'} />
+    <DetailField
+      icon={<House size='1em' />}
+      label='Rescue'
+      value={pet.rescueName ?? pet.rescueId}
+    />
+    <DetailField icon={<Calendar size='1em' />} label='Created' value={formatDate(pet.createdAt)} />
+    <DetailField icon={<Clock size='1em' />} label='Updated' value={formatDate(pet.updatedAt)} />
   </div>
 );
 
@@ -126,7 +134,7 @@ export const PetDetailPanel: React.FC<PetDetailPanelProps> = ({ pet, onClose }) 
       header={
         <>
           <div className={styles.avatar}>
-            <FiPackage />
+            <Package size='1em' />
           </div>
           <div className={styles.headerInfo}>
             <h3 className={styles.headerName}>{pet.name}</h3>

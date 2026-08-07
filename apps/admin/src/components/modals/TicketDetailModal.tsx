@@ -17,15 +17,7 @@ import {
   formatDate,
   formatTicketId,
 } from '@adopt-dont-shop/lib.support-tickets';
-import {
-  FiUser,
-  FiClock,
-  FiTag,
-  FiAlertCircle,
-  FiCheckCircle,
-  FiMessageSquare,
-  FiSend,
-} from 'react-icons/fi';
+import { CircleAlert, CircleCheck, Clock, MessageSquare, Send, Tag, User } from 'lucide-react';
 import clsx from 'clsx';
 import * as styles from './TicketDetailModal.css';
 import { ModalBreadcrumbNav, type BreadcrumbSegment } from './ModalBreadcrumbNav';
@@ -86,7 +78,7 @@ const OverviewTab: React.FC<{
       <div className={styles.detailGrid}>
         <div className={styles.detailItem}>
           <div className={styles.detailLabel}>
-            <FiUser />
+            <User size='1em' />
             Customer
           </div>
           <div className={styles.detailValue}>{renderCustomer()}</div>
@@ -97,7 +89,7 @@ const OverviewTab: React.FC<{
 
         <div className={styles.detailItem}>
           <div className={styles.detailLabel}>
-            <FiUser />
+            <User size='1em' />
             Assigned To
           </div>
           <div className={styles.detailValue}>
@@ -107,7 +99,7 @@ const OverviewTab: React.FC<{
 
         <div className={styles.detailItem}>
           <div className={styles.detailLabel}>
-            <FiClock />
+            <Clock size='1em' />
             Created
           </div>
           <div className={styles.detailValue}>
@@ -118,7 +110,7 @@ const OverviewTab: React.FC<{
 
         <div className={styles.detailItem}>
           <div className={styles.detailLabel}>
-            <FiClock />
+            <Clock size='1em' />
             Last Updated
           </div>
           <div className={styles.detailValue}>
@@ -130,7 +122,7 @@ const OverviewTab: React.FC<{
         {ticket.firstResponseAt && (
           <div className={styles.detailItem}>
             <div className={styles.detailLabel}>
-              <FiMessageSquare />
+              <MessageSquare size='1em' />
               First Response
             </div>
             <div className={styles.detailValue}>{formatRelativeTime(ticket.firstResponseAt)}</div>
@@ -140,7 +132,7 @@ const OverviewTab: React.FC<{
         {ticket.resolvedAt && (
           <div className={styles.detailItem}>
             <div className={styles.detailLabel}>
-              <FiCheckCircle />
+              <CircleCheck size='1em' />
               Resolved
             </div>
             <div className={styles.detailValue}>{formatRelativeTime(ticket.resolvedAt)}</div>
@@ -206,7 +198,7 @@ const ResponsesTab: React.FC<{
     <>
       <div className={styles.responsesSection}>
         <div className={styles.responsesHeader}>
-          <FiMessageSquare />
+          <MessageSquare size='1em' />
           Responses ({ticket.responses?.length || 0})
         </div>
 
@@ -244,7 +236,7 @@ const ResponsesTab: React.FC<{
 
       <form className={styles.replyForm} onSubmit={handleSubmitReply}>
         <div className={styles.detailLabel}>
-          <FiSend />
+          <Send size='1em' />
           Add Response
         </div>
         <textarea
@@ -384,18 +376,18 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           className={styles.badge}
           style={{ background: statusColors.bg, color: statusColors.color }}
         >
-          <FiCheckCircle />
+          <CircleCheck size='1em' />
           {getStatusLabel(ticket.status)}
         </span>
         <span
           className={styles.badge}
           style={{ background: priorityColors.bg, color: priorityColors.color }}
         >
-          <FiAlertCircle />
+          <CircleAlert size='1em' />
           {getPriorityLabel(ticket.priority)}
         </span>
         <span className={styles.badge}>
-          <FiTag />
+          <Tag size='1em' />
           {getCategoryLabel(ticket.category)}
         </span>
       </div>

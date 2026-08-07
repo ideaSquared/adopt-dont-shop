@@ -1,6 +1,6 @@
 import React from 'react';
 import * as styles from '../RescueDetailModal.css';
-import { FiMapPin } from 'react-icons/fi';
+import { MapPin } from 'lucide-react';
 import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
 import type { AdminRescue } from '@/types/rescue';
 
@@ -82,7 +82,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ rescue }) => (
       <div className={styles.infoGrid}>
         <div className={styles.infoItem}>
           <div className={styles.infoLabel}>
-            <FiMapPin /> Address
+            <MapPin size='1em' /> Address
           </div>
           <div className={styles.infoValue}>{rescue.address}</div>
         </div>

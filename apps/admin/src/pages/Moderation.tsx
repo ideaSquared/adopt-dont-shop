@@ -7,7 +7,7 @@ import {
   toast,
   useDebouncedValue,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiAlertTriangle, FiCheckCircle, FiEye, FiShield } from 'react-icons/fi';
+import { CircleCheck, Eye, Search, Shield, TriangleAlert } from 'lucide-react';
 import { BulkActionToolbar } from '../components/ui';
 import {
   useReports,
@@ -404,7 +404,7 @@ const Moderation: React.FC = () => {
               aria-label='View Details'
               onClick={() => handleOpenDetailModal(report)}
             >
-              <FiEye aria-hidden />
+              <Eye size='1em' aria-hidden />
             </button>
             {report.status === 'pending' || report.status === 'under_review' ? (
               <button
@@ -414,7 +414,7 @@ const Moderation: React.FC = () => {
                 onClick={() => handleOpenActionModal(report)}
                 disabled={isActionLoading}
               >
-                <FiShield aria-hidden />
+                <Shield size='1em' aria-hidden />
               </button>
             ) : null}
           </div>
@@ -443,7 +443,7 @@ const Moderation: React.FC = () => {
       <div className={styles.statsBar}>
         <div className={styles.statCard}>
           <div className={styles.statIconRed}>
-            <FiAlertTriangle />
+            <TriangleAlert size='1em' />
           </div>
           <div className={styles.statDetails}>
             <div className={styles.statLabel}>Pending Reviews</div>
@@ -453,7 +453,7 @@ const Moderation: React.FC = () => {
 
         <div className={styles.statCard}>
           <div className={styles.statIconBlue}>
-            <FiShield />
+            <Shield size='1em' />
           </div>
           <div className={styles.statDetails}>
             <div className={styles.statLabel}>Under Review</div>
@@ -463,7 +463,7 @@ const Moderation: React.FC = () => {
 
         <div className={styles.statCard}>
           <div className={styles.statIconOrange}>
-            <FiAlertTriangle />
+            <TriangleAlert size='1em' />
           </div>
           <div className={styles.statDetails}>
             <div className={styles.statLabel}>Critical Priority</div>
@@ -473,7 +473,7 @@ const Moderation: React.FC = () => {
 
         <div className={styles.statCard}>
           <div className={styles.statIconGreen}>
-            <FiCheckCircle />
+            <CircleCheck size='1em' />
           </div>
           <div className={styles.statDetails}>
             <div className={styles.statLabel}>Resolved</div>
@@ -485,7 +485,7 @@ const Moderation: React.FC = () => {
       <div className={styles.filterBar}>
         <div className={styles.searchWrapper}>
           <div className={styles.searchIcon}>
-            <FiSearch />
+            <Search size='1em' />
           </div>
           <Input
             className={styles.searchInputPadded}

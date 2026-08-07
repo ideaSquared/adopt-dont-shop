@@ -1,14 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
-import {
-  FiAlertTriangle,
-  FiUser,
-  FiCalendar,
-  FiFileText,
-  FiExternalLink,
-  FiShield,
-  FiClock,
-} from 'react-icons/fi';
+import { Calendar, Clock, ExternalLink, FileText, Shield, TriangleAlert, User } from 'lucide-react';
 import clsx from 'clsx';
 import { z } from 'zod';
 import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
@@ -166,7 +158,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
     <>
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
-          <FiAlertTriangle size={16} />
+          <TriangleAlert size={16} />
           Report Status
         </h3>
         <div className={styles.infoGrid}>
@@ -203,7 +195,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
 
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
-          <FiFileText size={16} />
+          <FileText size={16} />
           Description
         </h3>
         <div className={styles.description}>{report.description}</div>
@@ -213,7 +205,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
 
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
-          <FiUser size={16} />
+          <User size={16} />
           Reported Entity
         </h3>
         <div className={styles.entityCard}>
@@ -264,12 +256,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
                 data-testid='view-entity-button'
                 data-view-url={viewUrl}
               >
-                <FiExternalLink size={16} />
+                <ExternalLink size={16} />
                 View {getEntityTypeLabel(report.reportedEntityType)}
               </button>
               {(entityContext?.deleted || entityContext?.error) && (
                 <div className={styles.warningBox}>
-                  <FiAlertTriangle size={16} />
+                  <TriangleAlert size={16} />
                   <div>
                     {entityContext.deleted
                       ? 'This entity was deleted. The link may not work.'
@@ -286,7 +278,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
 
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
-          <FiUser size={16} />
+          <User size={16} />
           Reporter Information
         </h3>
         <div className={styles.infoGrid}>
@@ -312,7 +304,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
             navigate(`/users/${report.reporterId}`);
           }}
         >
-          <FiExternalLink size={16} />
+          <ExternalLink size={16} />
           View Reporter Profile
         </button>
       </div>
@@ -321,7 +313,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
 
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
-          <FiCalendar size={16} />
+          <Calendar size={16} />
           Timeline
         </h3>
         <div className={styles.infoGrid}>
@@ -365,7 +357,7 @@ const PriorHistorySection: React.FC<PriorHistorySectionProps> = ({
   return (
     <div className={styles.section}>
       <h3 className={styles.sectionTitle}>
-        <FiClock size={16} />
+        <Clock size={16} />
         Prior Report History
       </h3>
       {isLoading ? (
@@ -406,7 +398,7 @@ const ActiveSanctionsSection: React.FC<ActiveSanctionsSectionProps> = ({ reporte
   return (
     <div className={styles.section}>
       <h3 className={styles.sectionTitle}>
-        <FiShield size={16} />
+        <Shield size={16} />
         Active Sanctions
       </h3>
       {isLoading ? (
@@ -571,7 +563,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               <div className={styles.headerInfo}>
                 <h2 className={styles.title}>{report.title}</h2>
                 <div className={styles.subtitle}>
-                  <FiCalendar size={14} />
+                  <Calendar size={14} />
                   Reported {formatRelativeTime(report.createdAt)}
                 </div>
               </div>

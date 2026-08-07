@@ -7,7 +7,7 @@ import {
   useConfirm,
   Skeleton,
 } from '@adopt-dont-shop/lib.components';
-import { FiUserPlus, FiUserMinus, FiCheck, FiClock, FiX } from 'react-icons/fi';
+import { Check, Clock, UserMinus, UserPlus, X } from 'lucide-react';
 import type { StaffMember, StaffInvitation, InviteStaffPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 
@@ -124,7 +124,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
           <div className={styles.staffSectionHeader}>
             <span>Staff Members ({staff?.length || 0})</span>
             <Button variant='primary' size='sm' onClick={() => setShowInviteForm(!showInviteForm)}>
-              <FiUserPlus className={styles.userPlusIcon} />
+              <UserPlus size='1em' className={styles.userPlusIcon} />
               Invite Staff
             </Button>
           </div>
@@ -218,7 +218,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                 <div className={styles.staffInfo}>
                   <div className={styles.staffName}>
                     {member.firstName} {member.lastName}
-                    {member.isVerified && <FiCheck className={styles.acceptedBadge} size={16} />}
+                    {member.isVerified && <Check className={styles.acceptedBadge} size={16} />}
                   </div>
                   <div className={styles.staffEmail}>{member.email}</div>
                   <div className={styles.staffMeta}>
@@ -233,7 +233,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                     onClick={() => handleRemoveStaff(member.userId)}
                     disabled={loadingStaff}
                   >
-                    <FiUserMinus color='#ef4444' />
+                    <UserMinus size='1em' color='#ef4444' />
                   </button>
                 </div>
               </div>
@@ -266,7 +266,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                         : styles.invitationBadgeDefault
                     }
                   >
-                    <FiClock size={12} />
+                    <Clock size={12} />
                     {invitation.status}
                   </span>
                   <button
@@ -275,7 +275,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                     onClick={() => handleCancelInvitation(invitation.invitationId)}
                     disabled={loadingStaff}
                   >
-                    <FiX color='#ef4444' />
+                    <X size='1em' color='#ef4444' />
                   </button>
                 </div>
               </div>

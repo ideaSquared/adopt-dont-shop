@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
-import { FiAlertCircle, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { CircleAlert, CircleCheck, CircleX } from 'lucide-react';
 import type { AdminRescue, RescueVerificationPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import * as styles from './RescueVerificationModal.css';
@@ -80,7 +80,7 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
         <form onSubmit={handleSubmit}>
           <div className={isApproval ? styles.modalHeaderApprove : styles.modalHeaderReject}>
             <div className={isApproval ? styles.iconWrapperApprove : styles.iconWrapperReject}>
-              {isApproval ? <FiCheckCircle /> : <FiXCircle />}
+              {isApproval ? <CircleCheck size='1em' /> : <CircleX size='1em' />}
             </div>
             <div className={styles.headerContent}>
               <Heading level='h3' className={styles.headerHeading}>
@@ -97,7 +97,7 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
           <div className={styles.modalBody}>
             {error && (
               <div className={styles.errorMessage}>
-                <FiAlertCircle />
+                <CircleAlert size='1em' />
                 {error}
               </div>
             )}

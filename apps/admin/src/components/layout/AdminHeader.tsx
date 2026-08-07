@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { FiUser, FiLogOut, FiSettings, FiChevronDown, FiMenu } from 'react-icons/fi';
+import { ChevronDown, LogOut, Menu, Settings, User } from 'lucide-react';
 import * as styles from './AdminHeader.css';
 
 interface AdminHeaderProps {
@@ -42,7 +42,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
         onClick={onMobileMenuOpen}
         aria-label='Open navigation menu'
       >
-        <FiMenu />
+        <Menu size='1em' />
       </button>
       {/* Global search and notifications removed (ADS-744) — both were non-functional dead UI.
           Re-add once product specs an actual search/notifications backend. */}
@@ -62,7 +62,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
               </span>
               <span className={styles.userRole}>{getUserRole()}</span>
             </div>
-            <FiChevronDown />
+            <ChevronDown size='1em' />
           </button>
 
           <div className={styles.dropdownMenu({ isOpen: userMenuOpen })}>
@@ -73,7 +73,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
                 navigate('/account');
               }}
             >
-              <FiUser />
+              <User size='1em' />
               Profile
             </button>
             <button
@@ -83,12 +83,12 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
                 navigate('/account');
               }}
             >
-              <FiSettings />
+              <Settings size='1em' />
               Account Settings
             </button>
             <div className={styles.dropdownDivider} />
             <button className={styles.dropdownItem({ danger: true })} onClick={handleLogout}>
-              <FiLogOut />
+              <LogOut size='1em' />
               Sign Out
             </button>
           </div>

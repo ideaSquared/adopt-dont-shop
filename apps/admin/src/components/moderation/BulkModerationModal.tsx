@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FiX, FiAlertTriangle } from 'react-icons/fi';
+import { TriangleAlert, X } from 'lucide-react';
 import clsx from 'clsx';
 import type { ReportSeverity, ActionType, ActionSeverity } from '@adopt-dont-shop/lib.moderation';
 import * as styles from './BulkModerationModal.css';
@@ -143,7 +143,7 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
             disabled={isLoading}
             aria-label='Close'
           >
-            <FiX />
+            <X size='1em' />
           </button>
         </div>
 
@@ -182,7 +182,7 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
                     data-testid='severity-warning'
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FiAlertTriangle />
+                      <TriangleAlert size='1em' />
                       <strong>
                         {highestSeverity === 'critical' ? 'Critical' : 'High'} severity reports
                         selected

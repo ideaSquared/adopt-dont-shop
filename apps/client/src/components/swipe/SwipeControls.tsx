@@ -1,5 +1,5 @@
 import React from 'react';
-import { MdClose, MdFavorite, MdInfoOutline, MdReplay, MdStar } from 'react-icons/md';
+import { Heart, Info, RotateCcw, Star, X } from 'lucide-react';
 import * as styles from './SwipeControls.css';
 
 interface SwipeControlsProps {
@@ -39,7 +39,7 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
           type='button'
         >
           <span className={styles.buttonIcon}>
-            <MdReplay />
+            <RotateCcw size='1em' />
           </span>
         </button>
       )}
@@ -53,7 +53,7 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         type='button'
       >
         <span className={styles.buttonIcon}>
-          <MdClose />
+          <X size='1em' />
         </span>
       </button>
 
@@ -66,7 +66,7 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         type='button'
       >
         <span className={styles.buttonIcon}>
-          <MdStar />
+          <Star size='1em' />
         </span>
       </button>
 
@@ -79,7 +79,7 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         type='button'
       >
         <span className={styles.buttonIcon}>
-          <MdFavorite />
+          <Heart size='1em' />
         </span>
       </button>
 
@@ -92,7 +92,7 @@ export const SwipeControls: React.FC<SwipeControlsProps> = ({
         type='button'
       >
         <span className={styles.buttonIcon}>
-          <MdInfoOutline />
+          <Info size='1em' />
         </span>
       </button>
     </div>

@@ -1,14 +1,7 @@
 import React, { useId, useRef, useEffect, useState } from 'react';
 import * as styles from './BulkConfirmationModal.css';
 import { Button } from '@adopt-dont-shop/lib.components';
-import {
-  FiAlertTriangle,
-  FiCheckCircle,
-  FiChevronDown,
-  FiChevronRight,
-  FiInfo,
-  FiX,
-} from 'react-icons/fi';
+import { ChevronDown, ChevronRight, CircleCheck, Info, TriangleAlert, X } from 'lucide-react';
 
 export type BulkConfirmationVariant = 'danger' | 'warning' | 'info';
 
@@ -32,9 +25,9 @@ type BulkConfirmationModalProps = {
 };
 
 const variantIcon: Record<BulkConfirmationVariant, React.ReactNode> = {
-  danger: <FiAlertTriangle />,
-  warning: <FiAlertTriangle />,
-  info: <FiInfo />,
+  danger: <TriangleAlert size='1em' />,
+  warning: <TriangleAlert size='1em' />,
+  info: <Info size='1em' />,
 };
 
 export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
@@ -120,7 +113,7 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
             disabled={isLoading}
             aria-label='Close'
           >
-            <FiX />
+            <X size='1em' />
           </button>
         </div>
 
@@ -128,7 +121,7 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
           {resultSummary ? (
             <>
               <div className={styles.resultBanner({ hasFailures: resultSummary.failed > 0 })}>
-                <FiCheckCircle className={styles.resultIcon} />
+                <CircleCheck size='1em' className={styles.resultIcon} />
                 {resultSummary.succeeded} succeeded
                 {resultSummary.failed > 0 && `, ${resultSummary.failed} failed`}
               </div>
@@ -146,7 +139,7 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
                     onClick={() => setFailedIdsExpanded(prev => !prev)}
                     aria-expanded={failedIdsExpanded}
                   >
-                    {failedIdsExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                    {failedIdsExpanded ? <ChevronDown size='1em' /> : <ChevronRight size='1em' />}
                     {failedIds.length} failed item{failedIds.length !== 1 ? 's' : ''}
                   </button>
                   {failedIdsExpanded && (

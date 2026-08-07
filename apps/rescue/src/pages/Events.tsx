@@ -7,7 +7,7 @@ import {
   toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
-import { FiCalendar, FiPlus } from 'react-icons/fi';
+import { Calendar, Plus } from 'lucide-react';
 import * as styles from './Events.css';
 
 // Event Components
@@ -356,7 +356,7 @@ const Events: React.FC = () => {
               onClick={() => setShowCreateModal(true)}
               disabled={loading}
             >
-              <FiPlus />
+              <Plus size="1em" />
               Create Event
             </button>
           </div>
@@ -380,7 +380,7 @@ const Events: React.FC = () => {
         ) : filteredEvents.length === 0 && !loading ? (
           <Card>
             <div className={styles.emptyState}>
-              <FiCalendar />
+              <Calendar size="1em" />
               <h3>No Events Found</h3>
               <p>
                 {events.length === 0
@@ -389,7 +389,7 @@ const Events: React.FC = () => {
               </p>
               {events.length === 0 && (
                 <button className={styles.primaryButton} onClick={() => setShowCreateModal(true)}>
-                  <FiPlus />
+                  <Plus size="1em" />
                   Create Your First Event
                 </button>
               )}

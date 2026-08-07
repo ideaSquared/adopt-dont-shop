@@ -8,18 +8,18 @@ import {
 } from '@adopt-dont-shop/lib.components';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import {
-  FiMail,
-  FiPhone,
-  FiCalendar,
-  FiClock,
-  FiUser,
-  FiShield,
-  FiPause,
-  FiPlay,
-  FiCheckCircle,
-  FiTrash2,
-  FiKey,
-} from 'react-icons/fi';
+  Calendar,
+  CircleCheck,
+  Clock,
+  Key,
+  Mail,
+  Pause,
+  Phone,
+  Play,
+  Shield,
+  Trash2,
+  User,
+} from 'lucide-react';
 import clsx from 'clsx';
 import type { AdminUser, UserType, UserStatus } from '@/types';
 import { useEntityActivity } from '../../hooks';
@@ -75,37 +75,45 @@ const getStatusBadge = (status: string, emailVerified: boolean): React.ReactElem
 
 const OverviewTab: React.FC<{ user: AdminUser }> = ({ user }) => (
   <div className={styles.detailGrid}>
-    <DetailField icon={<FiMail />} label='Email' value={user.email} />
+    <DetailField icon={<Mail size='1em' />} label='Email' value={user.email} />
     <DetailField
-      icon={<FiPhone />}
+      icon={<Phone size='1em' />}
       label='Phone'
       value={user.phoneNumber}
       emptyText='Not provided'
     />
     <DetailField
-      icon={<FiUser />}
+      icon={<User size='1em' />}
       label='User Type'
       value={user.userType.replace('_', ' ').toUpperCase()}
     />
-    <DetailField icon={<FiShield />} label='Status' value={user.status.toUpperCase()} />
+    <DetailField icon={<Shield size='1em' />} label='Status' value={user.status.toUpperCase()} />
     <DetailField
-      icon={<FiShield />}
+      icon={<Shield size='1em' />}
       label='Email Verified'
       value={(user.emailVerified ?? false) ? 'Yes' : 'No'}
     />
     {(user.rescueName ?? '') !== '' && (
-      <DetailField icon={<FiUser />} label='Rescue Organization' value={user.rescueName ?? ''} />
+      <DetailField
+        icon={<User size='1em' />}
+        label='Rescue Organization'
+        value={user.rescueName ?? ''}
+      />
     )}
-    <DetailField icon={<FiCalendar />} label='Joined' value={formatDisplayDate(user.createdAt)} />
     <DetailField
-      icon={<FiClock />}
+      icon={<Calendar size='1em' />}
+      label='Joined'
+      value={formatDisplayDate(user.createdAt)}
+    />
+    <DetailField
+      icon={<Clock size='1em' />}
       label='Last Login'
       value={user.lastLogin ? formatDisplayDate(user.lastLogin) : null}
       emptyText='Never'
     />
     {user.updatedAt && (
       <DetailField
-        icon={<FiClock />}
+        icon={<Clock size='1em' />}
         label='Last Updated'
         value={formatDisplayDate(user.updatedAt)}
       />
@@ -333,7 +341,7 @@ const ActionsTab: React.FC<{
       <div className={styles.actionGroup}>
         <span className={styles.actionGroupLabel}>Communication</span>
         <button type='button' className={styles.actionButton} onClick={() => onMessage(user)}>
-          <FiMail /> Send Message
+          <Mail size='1em' /> Send Message
         </button>
       </div>
 
@@ -345,7 +353,7 @@ const ActionsTab: React.FC<{
             className={styles.actionButton}
             onClick={() => onUnsuspend(user.userId)}
           >
-            <FiPlay /> Unsuspend User
+            <Play size='1em' /> Unsuspend User
           </button>
         ) : (
           <button
@@ -353,7 +361,7 @@ const ActionsTab: React.FC<{
             className={styles.actionButton}
             onClick={() => setConfirmType('suspend')}
           >
-            <FiPause /> Suspend User
+            <Pause size='1em' /> Suspend User
           </button>
         )}
         {!user.emailVerified && (
@@ -362,7 +370,7 @@ const ActionsTab: React.FC<{
             className={styles.actionButton}
             onClick={() => onVerify(user.userId)}
           >
-            <FiCheckCircle /> Verify Email
+            <CircleCheck size='1em' /> Verify Email
           </button>
         )}
         <button
@@ -370,7 +378,7 @@ const ActionsTab: React.FC<{
           className={styles.actionButton}
           onClick={() => onResetPassword(user.userId)}
         >
-          <FiKey /> Reset Password
+          <Key size='1em' /> Reset Password
         </button>
       </div>
 
@@ -381,7 +389,7 @@ const ActionsTab: React.FC<{
           className={clsx(styles.actionButton, styles.actionButtonDanger)}
           onClick={() => setConfirmType('delete')}
         >
-          <FiTrash2 /> Delete User
+          <Trash2 size='1em' /> Delete User
         </button>
       </div>
 

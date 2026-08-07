@@ -1,6 +1,6 @@
 import React from 'react';
 import * as styles from '../RescueDetailModal.css';
-import { FiMail, FiPhone, FiGlobe } from 'react-icons/fi';
+import { Globe, Mail, Phone } from 'lucide-react';
 import { safeHref } from '@adopt-dont-shop/lib.utils';
 import type { AdminRescue } from '@/types/rescue';
 
@@ -14,19 +14,19 @@ export const ContactTab: React.FC<ContactTabProps> = ({ rescue }) => (
     <div className={styles.infoGrid}>
       <div className={styles.infoItem}>
         <div className={styles.infoLabel}>
-          <FiMail /> Email
+          <Mail size='1em' /> Email
         </div>
         <div className={styles.infoValue}>{rescue.email}</div>
       </div>
       <div className={styles.infoItem}>
         <div className={styles.infoLabel}>
-          <FiPhone /> Phone
+          <Phone size='1em' /> Phone
         </div>
         <div className={styles.infoValue}>{rescue.phone || 'N/A'}</div>
       </div>
       <div className={styles.infoItem}>
         <div className={styles.infoLabel}>
-          <FiGlobe /> Website
+          <Globe size='1em' /> Website
         </div>
         <div className={styles.infoValue}>
           {rescue.website ? (

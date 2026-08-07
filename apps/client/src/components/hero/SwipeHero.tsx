@@ -1,5 +1,5 @@
 import React from 'react';
-import { MdAutoFixHigh, MdFlashOn, MdSearch, MdSwipe, MdTrendingUp } from 'react-icons/md';
+import { Hand, Search, TrendingUp, WandSparkles, Zap } from 'lucide-react';
 import { Link } from 'react-router';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import * as styles from './SwipeHero.css';
@@ -25,7 +25,7 @@ export const SwipeHero: React.FC = () => {
     <section className={styles.heroContainer}>
       <div className={styles.heroContent}>
         <div className={styles.swipeBadge}>
-          <MdAutoFixHigh className={styles.sparkle} />
+          <WandSparkles size='1em' className={styles.sparkle} />
           New: Smart Pet Matching
         </div>
 
@@ -47,7 +47,7 @@ export const SwipeHero: React.FC = () => {
             title='Swipe through matches'
             onClick={() => trackHeroCtaClick('discover')}
           >
-            <MdSwipe className={styles.primaryButtonIcon} />
+            <Hand size='1em' className={styles.primaryButtonIcon} />
             Start Swiping Now
           </Link>
           <Link
@@ -56,26 +56,26 @@ export const SwipeHero: React.FC = () => {
             title='Filter and browse all pets'
             onClick={() => trackHeroCtaClick('search')}
           >
-            <MdSearch />
+            <Search size='1em' />
             Browse All Pets
           </Link>
         </div>
 
         <div className={styles.featureCards}>
           <div className={styles.featureCard}>
-            <MdSwipe className='icon' />
+            <Hand size='1em' className='icon' />
             <h3>Smart Swiping</h3>
             <p>Swipe right to like, left to pass. Matches improve as you set more preferences.</p>
           </div>
 
           <div className={styles.featureCard}>
-            <MdTrendingUp className='icon' />
+            <TrendingUp size='1em' className='icon' />
             <h3>Preference Matching</h3>
             <p>See pets that fit your home, lifestyle, and experience level first.</p>
           </div>
 
           <div className={styles.featureCard}>
-            <MdFlashOn className='icon' />
+            <Zap size='1em' className='icon' />
             <h3>Quick & Fun</h3>
             <p>A faster way to browse adoptable pets — no endless scrolling required.</p>
           </div>

@@ -9,15 +9,7 @@ import {
   Input,
   useDebouncedValue,
 } from '@adopt-dont-shop/lib.components';
-import {
-  FiSearch,
-  FiCheckCircle,
-  FiXCircle,
-  FiEye,
-  FiMail,
-  FiMapPin,
-  FiAlertCircle,
-} from 'react-icons/fi';
+import { CircleAlert, CircleCheck, CircleX, Eye, Mail, MapPin, Search } from 'lucide-react';
 import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import { exportData, type ExportColumn } from '@/services/exportService';
@@ -223,11 +215,11 @@ const Rescues: React.FC = () => {
           <div className={styles.rescueInfo}>
             <div className={styles.rescueName}>{rescue.name}</div>
             <div className={styles.rescueDetail}>
-              <FiMail />
+              <Mail size='1em' />
               {rescue.email}
             </div>
             <div className={styles.rescueDetail}>
-              <FiMapPin />
+              <MapPin size='1em' />
               {rescue.city}
               {rescue.county ? `, ${rescue.county}` : ''}
             </div>
@@ -280,7 +272,7 @@ const Rescues: React.FC = () => {
               aria-label='View details'
               onClick={() => handleViewDetails(rescue.rescueId)}
             >
-              <FiEye aria-hidden />
+              <Eye size='1em' aria-hidden />
             </button>
             {rescue.status === 'pending' && (
               <>
@@ -290,7 +282,7 @@ const Rescues: React.FC = () => {
                   aria-label='Approve'
                   onClick={() => handleApprove(rescue)}
                 >
-                  <FiCheckCircle aria-hidden />
+                  <CircleCheck size='1em' aria-hidden />
                 </button>
                 <button
                   className={clsx(styles.iconButton, styles.rejectButton)}
@@ -298,7 +290,7 @@ const Rescues: React.FC = () => {
                   aria-label='Reject'
                   onClick={() => handleReject(rescue)}
                 >
-                  <FiXCircle aria-hidden />
+                  <CircleX size='1em' aria-hidden />
                 </button>
               </>
             )}
@@ -308,7 +300,7 @@ const Rescues: React.FC = () => {
               aria-label='Send email'
               onClick={() => handleSendEmail(rescue)}
             >
-              <FiMail aria-hidden />
+              <Mail size='1em' aria-hidden />
             </button>
           </div>
         );
@@ -330,7 +322,7 @@ const Rescues: React.FC = () => {
 
       {error && (
         <div className={styles.errorMessage} role='alert'>
-          <FiAlertCircle />
+          <CircleAlert size='1em' />
           {error}
         </div>
       )}
@@ -342,7 +334,7 @@ const Rescues: React.FC = () => {
           <>
             <div className={styles.filterBar}>
               <div className={styles.searchInputWrapper}>
-                <FiSearch />
+                <Search size='1em' />
                 <Input
                   type='text'
                   placeholder='Search by name, city, or email...'

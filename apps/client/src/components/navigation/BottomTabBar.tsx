@@ -1,5 +1,5 @@
 import React from 'react';
-import { MdChat, MdFavoriteBorder, MdOutlineSearch, MdStarBorder, MdSwipe } from 'react-icons/md';
+import { Hand, Heart, MessageCircle, Search, Star } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { Badge } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
@@ -27,24 +27,24 @@ export const BottomTabBar: React.FC = () => {
   // appear once authenticated.
   const tabs: TabDef[] = isAuthenticated
     ? [
-        { to: '/discover', label: 'Discover', icon: <MdSwipe aria-hidden='true' /> },
-        { to: '/search', label: 'Search', icon: <MdOutlineSearch aria-hidden='true' /> },
+        { to: '/discover', label: 'Discover', icon: <Hand size='1em' aria-hidden='true' /> },
+        { to: '/search', label: 'Search', icon: <Search size='1em' aria-hidden='true' /> },
         {
           to: hasPreferences ? '/match/top-picks' : '/onboarding',
           label: 'Top Picks',
-          icon: <MdStarBorder aria-hidden='true' />,
+          icon: <Star size='1em' aria-hidden='true' />,
         },
-        { to: '/favorites', label: 'Favorites', icon: <MdFavoriteBorder aria-hidden='true' /> },
+        { to: '/favorites', label: 'Favorites', icon: <Heart size='1em' aria-hidden='true' /> },
         {
           to: '/chat',
           label: 'Messages',
-          icon: <MdChat aria-hidden='true' />,
+          icon: <MessageCircle size='1em' aria-hidden='true' />,
           badge: unreadMessageCount,
         },
       ]
     : [
-        { to: '/discover', label: 'Discover', icon: <MdSwipe aria-hidden='true' /> },
-        { to: '/search', label: 'Search', icon: <MdOutlineSearch aria-hidden='true' /> },
+        { to: '/discover', label: 'Discover', icon: <Hand size='1em' aria-hidden='true' /> },
+        { to: '/search', label: 'Search', icon: <Search size='1em' aria-hidden='true' /> },
       ];
 
   const isActive = (to: string) =>

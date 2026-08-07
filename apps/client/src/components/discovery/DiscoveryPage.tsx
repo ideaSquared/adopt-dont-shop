@@ -15,7 +15,7 @@ import {
   resetAnonSwipeBudget,
 } from '@/utils/anonSwipeBudget';
 import { useStatsig } from '@/hooks/useStatsig';
-import { MdWarning } from 'react-icons/md';
+import { TriangleAlert } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import * as styles from './DiscoveryPage.css';
 import { SwipeControls } from '../swipe/SwipeControls';
@@ -402,7 +402,7 @@ export const DiscoveryPage: React.FC = () => {
         ) : error ? (
           <div className={styles.errorState}>
             <div className={styles.errorIcon}>
-              <MdWarning />
+              <TriangleAlert size='1em' />
             </div>
             <div className={styles.errorMessageText}>{error}</div>
             <button className={styles.retryButton} onClick={retryLoading}>

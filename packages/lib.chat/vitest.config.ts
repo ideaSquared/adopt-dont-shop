@@ -41,7 +41,7 @@ export default mergeConfig(
           __dirname,
           './src/__mocks__/lib.components.tsx'
         ),
-        'react-icons/md': path.resolve(__dirname, './src/__mocks__/react-icons.tsx'),
+        'lucide-react': path.resolve(__dirname, './src/__mocks__/lucide-react.tsx'),
         '@vanilla-extract/css': path.resolve(__dirname, './src/__mocks__/vanilla-extract-css.ts'),
         '@vanilla-extract/recipes': path.resolve(
           __dirname,
