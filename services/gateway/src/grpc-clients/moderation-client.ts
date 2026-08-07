@@ -23,6 +23,8 @@ import {
   type AssignSupportTicketResponse,
   type FileReportRequest,
   type FileReportResponse,
+  type GetModerationMetricsRequest,
+  type GetModerationMetricsResponse,
   type GetReportRequest,
   type GetReportResponse,
   type GetSupportTicketRequest,
@@ -65,6 +67,10 @@ export type ModerationClient = {
     req: ListModeratorActionsRequest,
     metadata: Metadata
   ): Promise<ListModeratorActionsResponse>;
+  getModerationMetrics(
+    req: GetModerationMetricsRequest,
+    metadata: Metadata
+  ): Promise<GetModerationMetricsResponse>;
   addEvidence(req: AddEvidenceRequest, metadata: Metadata): Promise<AddEvidenceResponse>;
   issueSanction(req: IssueSanctionRequest, metadata: Metadata): Promise<IssueSanctionResponse>;
   listUserSanctions(
@@ -177,6 +183,8 @@ export const createModerationClient = (opts: CreateModerationClientOptions): Mod
     listReports: (req, metadata) => callUnary(stub.listReports, req, metadata, true),
     listModeratorActions: (req, metadata) =>
       callUnary(stub.listModeratorActions, req, metadata, true),
+    getModerationMetrics: (req, metadata) =>
+      callUnary(stub.getModerationMetrics, req, metadata, true),
     listUserSanctions: (req, metadata) => callUnary(stub.listUserSanctions, req, metadata, true),
     getSupportTicket: (req, metadata) => callUnary(stub.getSupportTicket, req, metadata, true),
     listSupportTickets: (req, metadata) => callUnary(stub.listSupportTickets, req, metadata, true),

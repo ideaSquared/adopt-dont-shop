@@ -21,6 +21,7 @@ function makeClient(): {
     'resolveReport',
     'logModeratorAction',
     'listModeratorActions',
+    'getModerationMetrics',
     'addEvidence',
     'issueSanction',
     'listUserSanctions',
@@ -277,6 +278,60 @@ describe('moderation admin actions + tickets', () => {
     expect((res.json() as { data: Array<{ actionType: string }> }).data[0].actionType).toBe(
       'warning_issued'
     );
+  });
+
+  it('GET /admin/moderation/metrics → { success, data } with lowercased category tokens', async () => {
+    mocks.getModerationMetrics.mockResolvedValueOnce({
+      totalReports: 10,
+      pendingReports: 3,
+      underReviewReports: 1,
+      resolvedReports: 4,
+      dismissedReports: 1,
+      escalatedReports: 1,
+      criticalReports: 2,
+      averageResolutionTime: 12.5,
+      reportsToday: 1,
+      reportsThisWeek: 5,
+      reportsThisMonth: 9,
+      topCategories: [
+        { category: ModerationV1.ReportCategory.REPORT_CATEGORY_HARASSMENT, count: 6 },
+        { category: ModerationV1.ReportCategory.REPORT_CATEGORY_SPAM, count: 4 },
+      ],
+      moderatorActivity: [{ moderatorId: 'mod-1', actionsCount: 7, resolvedCount: 3 }],
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/moderation/metrics',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      success: boolean;
+      data: {
+        totalReports: number;
+        averageResolutionTime: number;
+        topCategories: Array<{ category: string; count: number }>;
+        moderatorActivity: Array<{ moderatorId: string; actionsCount: number }>;
+      };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.totalReports).toBe(10);
+    expect(body.data.averageResolutionTime).toBe(12.5);
+    expect(body.data.topCategories).toEqual([
+      { category: 'harassment', count: 6 },
+      { category: 'spam', count: 4 },
+    ]);
+    expect(body.data.moderatorActivity[0]).toMatchObject({ moderatorId: 'mod-1', actionsCount: 7 });
+  });
+
+  it('GET /admin/moderation/metrics → 403 when the service denies', async () => {
+    mocks.getModerationMetrics.mockRejectedValueOnce({ code: grpcStatus.PERMISSION_DENIED });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/moderation/metrics',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(403);
   });
 
   it('GET /admin/support/tickets → list envelope', async () => {

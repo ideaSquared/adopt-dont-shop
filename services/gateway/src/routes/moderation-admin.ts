@@ -31,6 +31,7 @@ import type { ModerationClient } from '../grpc-clients/moderation-client.js';
 import {
   dataEnvelope,
   listEnvelope,
+  metricsToView,
   moderatorActionToView,
   reportToView,
   supportTicketResponseToView,
@@ -502,6 +503,34 @@ export const registerModerationAdminRoutes = async (
           return reply.code(500).send({ error: 'logModeratorAction returned no action' });
         }
         return reply.code(201).send(dataEnvelope(moderatorActionToView(res.action)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // ---------- Metrics ----------
+
+  // GET /api/v1/admin/moderation/metrics — the dashboard stat-card snapshot
+  // (lib.moderation useModerationMetrics). Envelope is { success, data } —
+  // the client parses `data` with ModerationMetricsSchema.
+  app.get(
+    '/api/v1/admin/moderation/metrics',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+        summary: 'Aggregate moderation metrics for the admin dashboard',
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          403: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getModerationMetrics({}, buildMetadata(req));
+        return reply.send({ success: true, data: metricsToView(res) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
