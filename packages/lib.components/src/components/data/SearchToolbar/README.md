@@ -34,21 +34,21 @@ function PetsList() {
 
 ## Props
 
-| Prop                | Type                                                       | Default    | Description                                                                 |
-| ------------------- | ---------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
-| `searchValue`       | `string`                                                   | -          | Controlled value of the search field (required)                             |
-| `onSearchChange`    | `(value: string) => void`                                  | -          | Called with the new value on every keystroke — debounce upstream (required) |
-| `searchPlaceholder` | `string`                                                   | -          | Placeholder text for the search field                                       |
-| `searchLabel`       | `string`                                                   | `'Search'` | Accessible label rendered above the search field                            |
-| `filterConfig`      | `FilterConfig[]`                                           | -          | Passed straight through to the shared `FilterPanel`                         |
-| `filters`           | `Record<string, string \| boolean \| number \| undefined>` | -          | Current filter values for `FilterPanel`                                     |
-| `onFilterChange`    | `(name: string, value: string \| boolean) => void`         | -          | Called by `FilterPanel` when a filter changes                               |
-| `activeFilters`     | `SearchToolbarActiveFilter[]`                              | `[]`       | Renders one removable chip per entry                                        |
-| `onRemoveFilter`    | `(name: string) => void`                                   | -          | Called with the filter name when a chip's remove button is activated        |
-| `resultCount`       | `number`                                                   | -          | Renders a polite live-region summary (e.g. `3 results`); `0` is honoured    |
-| `resultNoun`        | `string`                                                   | `'result'` | Singular noun for the summary; pluralised automatically                     |
-| `className`         | `string`                                                   | -          | Extra class on the container                                                |
-| `data-testid`       | `string`                                                   | -          | Test id on the container                                                    |
+| Prop                | Type                                                       | Default    | Description                                                                                                                                         |
+| ------------------- | ---------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `searchValue`       | `string`                                                   | -          | Controlled value of the search field                                                                                                                |
+| `onSearchChange`    | `(value: string) => void`                                  | -          | Called with the new value on every keystroke — debounce upstream. Omit both this and `searchValue` to render a filter-only bar with no search field |
+| `searchPlaceholder` | `string`                                                   | -          | Placeholder text for the search field                                                                                                               |
+| `searchLabel`       | `string`                                                   | `'Search'` | Accessible label rendered above the search field                                                                                                    |
+| `filterConfig`      | `FilterConfig[]`                                           | -          | Passed straight through to the shared `FilterPanel`                                                                                                 |
+| `filters`           | `Record<string, string \| boolean \| number \| undefined>` | -          | Current filter values for `FilterPanel`                                                                                                             |
+| `onFilterChange`    | `(name: string, value: string \| boolean) => void`         | -          | Called by `FilterPanel` when a filter changes                                                                                                       |
+| `activeFilters`     | `SearchToolbarActiveFilter[]`                              | `[]`       | Renders one removable chip per entry                                                                                                                |
+| `onRemoveFilter`    | `(name: string) => void`                                   | -          | Called with the filter name when a chip's remove button is activated                                                                                |
+| `resultCount`       | `number`                                                   | -          | Renders a polite live-region summary (e.g. `3 results`); `0` is honoured                                                                            |
+| `resultNoun`        | `string`                                                   | `'result'` | Singular noun for the summary; pluralised automatically                                                                                             |
+| `className`         | `string`                                                   | -          | Extra class on the container                                                                                                                        |
+| `data-testid`       | `string`                                                   | -          | Test id on the container                                                                                                                            |
 
 The filter panel only renders when `filterConfig`, `filters` and `onFilterChange` are all provided.
 

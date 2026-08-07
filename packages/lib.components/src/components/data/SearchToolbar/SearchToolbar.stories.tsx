@@ -78,3 +78,12 @@ export const CustomNoun: Story = {
     resultNoun: 'application',
   },
 };
+
+export const FilterOnly: Story = {
+  args: {
+    searchValue: undefined,
+    onSearchChange: undefined,
+    filterConfig,
+    filters: { species: '', status: 'available' },
+  },
+};
