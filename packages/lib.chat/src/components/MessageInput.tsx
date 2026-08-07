@@ -1,6 +1,6 @@
 import { TextArea } from '@adopt-dont-shop/lib.components';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MdAttachFile, MdClose, MdSend } from 'react-icons/md';
+import { Paperclip, Send, X } from 'lucide-react';
 import * as styles from './MessageInput.css';
 
 interface MessageInputProps {
@@ -184,7 +184,7 @@ export function MessageInput({
                 aria-label={`Remove ${file.name}`}
                 type="button"
               >
-                <MdClose />
+                <X size="1em" />
               </button>
             </div>
           ))}
@@ -218,7 +218,7 @@ export function MessageInput({
             aria-describedby="file-input-help"
             className={styles.hiddenFileInput}
           />
-          <MdAttachFile size={20} aria-hidden="true" />
+          <Paperclip size={20} aria-hidden="true" />
           <span className={styles.visuallyHidden}>Attach files</span>
         </label>
 
@@ -229,7 +229,7 @@ export function MessageInput({
           aria-label="Send message"
           type="button"
         >
-          <MdSend size={20} aria-hidden="true" />
+          <Send size={20} aria-hidden="true" />
         </button>
       </div>
 

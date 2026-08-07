@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { MdNotificationsActive } from 'react-icons/md';
+import { BellRing } from 'lucide-react';
 import notificationService from '@/services/notificationService';
 import { useStatsig } from '@/hooks/useStatsig';
 import * as styles from './DiscoveryPage.css';
@@ -38,7 +38,7 @@ export const EndOfQueueEmptyState: React.FC = () => {
   return (
     <div className={styles.emptyQueueState} role='status' aria-live='polite'>
       <div className={styles.emptyQueueIcon}>
-        <MdNotificationsActive />
+        <BellRing size='1em' />
       </div>
       <h2 className={styles.emptyQueueTitle}>You&apos;ve seen your top matches</h2>
       <p className={styles.emptyQueueSubtitle}>We&apos;ll have more for you tomorrow.</p>

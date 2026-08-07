@@ -5,15 +5,7 @@ import { RescueDetailSkeleton } from '@/components/skeletons';
 import { rescueStatusLabel } from '@adopt-dont-shop/lib.types';
 import { safeHref } from '@adopt-dont-shop/lib.utils';
 import React, { useEffect, useState } from 'react';
-import {
-  MdEmail,
-  MdInfo,
-  MdLanguage,
-  MdLocationOn,
-  MdPets,
-  MdPhone,
-  MdVerified,
-} from 'react-icons/md';
+import { BadgeCheck, Globe, Info, Mail, MapPin, PawPrint, Phone } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { AdoptionPoliciesDisplay } from '@/components/rescue/AdoptionPoliciesDisplay';
 import * as styles from './RescueDetailsPage.css';
@@ -123,19 +115,19 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
         <h1>{rescue.name}</h1>
         <div className='rescue-meta'>
           <div className='meta-item'>
-            <MdLocationOn className='icon' />
+            <MapPin size='1em' className='icon' />
             <span>
               {rescue.city}
               {rescue.county ? `, ${rescue.county}` : ''}
             </span>
           </div>
           <div className='meta-item'>
-            <MdPets className='icon' />
+            <PawPrint size='1em' className='icon' />
             <span>{formatRescueType(rescue)}</span>
           </div>
           {rescue.status && (
             <div className='meta-item'>
-              <MdVerified className='icon' />
+              <BadgeCheck size='1em' className='icon' />
               <span>{rescueStatusLabel(rescue.status)}</span>
             </div>
           )}
@@ -201,7 +193,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           )}
 
           <div className='contact-item'>
-            <MdEmail className='icon' />
+            <Mail size='1em' className='icon' />
             <div className='details'>
               <div className='label'>Email</div>
               <div className='value'>{rescue.email}</div>
@@ -210,7 +202,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
 
           {rescue.contactEmail && rescue.contactEmail !== rescue.email && (
             <div className='contact-item'>
-              <MdEmail className='icon' />
+              <Mail size='1em' className='icon' />
               <div className='details'>
                 <div className='label'>Contact Email</div>
                 <div className='value'>{rescue.contactEmail}</div>
@@ -220,7 +212,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
 
           {rescue.phone && (
             <div className='contact-item'>
-              <MdPhone className='icon' />
+              <Phone size='1em' className='icon' />
               <div className='details'>
                 <div className='label'>Phone</div>
                 <div className='value'>{rescue.phone}</div>
@@ -230,7 +222,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
 
           {rescue.contactPhone && rescue.contactPhone !== rescue.phone && (
             <div className='contact-item'>
-              <MdPhone className='icon' />
+              <Phone size='1em' className='icon' />
               <div className='details'>
                 <div className='label'>Contact Phone</div>
                 <div className='value'>{rescue.contactPhone}</div>
@@ -239,7 +231,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           )}
 
           <div className='contact-item'>
-            <MdLocationOn className='icon' />
+            <MapPin size='1em' className='icon' />
             <div className='details'>
               <div className='label'>Location</div>
               <div className='value'>
@@ -254,7 +246,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
 
           {rescue.website && (
             <div className='contact-item'>
-              <MdLanguage className='icon' />
+              <Globe size='1em' className='icon' />
               <div className='details'>
                 <div className='label'>Website</div>
                 <div className='value'>
@@ -273,7 +265,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
 
           {rescue.companiesHouseNumber && (
             <div className='contact-item'>
-              <MdInfo className='icon' />
+              <Info size='1em' className='icon' />
               <div className='details'>
                 <div className='label'>Companies House Number</div>
                 <div className='value'>{rescue.companiesHouseNumber}</div>
@@ -332,7 +324,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           </>
         ) : (
           <div className={styles.emptyState}>
-            <MdPets className='icon' />
+            <PawPrint size='1em' className='icon' />
             <h3>No Pets Available</h3>
             <p>
               {rescue.name} doesn&apos;t have any pets available for adoption at the moment. Please

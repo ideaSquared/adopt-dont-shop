@@ -12,7 +12,7 @@ import {
   useDebouncedValue,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { CircleAlert, CircleCheck, Clock, MessageSquare, Search } from 'lucide-react';
 import {
   useTickets,
   useTicketStats,
@@ -273,9 +273,9 @@ const Support: React.FC = () => {
           ticket.priority === 'urgent' ||
           ticket.priority === 'critical' ||
           ticket.priority === 'high' ? (
-            <FiAlertCircle />
+            <CircleAlert size='1em' />
           ) : (
-            <FiClock />
+            <Clock size='1em' />
           );
         const level = getPriorityLevel(ticket.priority);
         return (
@@ -308,7 +308,7 @@ const Support: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className={styles.replyCount}>
-          <FiMessageSquare />
+          <MessageSquare size='1em' />
           {(row as SupportTicket).responses?.length || 0}
         </div>
       ),
@@ -334,7 +334,7 @@ const Support: React.FC = () => {
       <div className={styles.statsBar}>
         <div className={styles.statCard}>
           <div className={styles.statIconRed}>
-            <FiAlertCircle />
+            <CircleAlert size='1em' />
           </div>
           <div className={styles.statDetails}>
             <div className={styles.statLabel}>Open Tickets</div>
@@ -344,7 +344,7 @@ const Support: React.FC = () => {
 
         <div className={styles.statCard}>
           <div className={styles.statIconBlue}>
-            <FiClock />
+            <Clock size='1em' />
           </div>
           <div className={styles.statDetails}>
             <div className={styles.statLabel}>In Progress</div>
@@ -354,7 +354,7 @@ const Support: React.FC = () => {
 
         <div className={styles.statCard}>
           <div className={styles.statIconAmber}>
-            <FiMessageSquare />
+            <MessageSquare size='1em' />
           </div>
           <div className={styles.statDetails}>
             <div className={styles.statLabel}>Waiting on User</div>
@@ -364,7 +364,7 @@ const Support: React.FC = () => {
 
         <div className={styles.statCard}>
           <div className={styles.statIconGreen}>
-            <FiCheckCircle />
+            <CircleCheck size='1em' />
           </div>
           <div className={styles.statDetails}>
             <div className={styles.statLabel}>Resolved Today</div>
@@ -375,7 +375,7 @@ const Support: React.FC = () => {
 
       <div className={styles.filterBar}>
         <div className={styles.searchInputWrapper}>
-          <FiSearch />
+          <Search size='1em' />
           <Input
             type='text'
             placeholder='Search tickets by subject, user, or email...'

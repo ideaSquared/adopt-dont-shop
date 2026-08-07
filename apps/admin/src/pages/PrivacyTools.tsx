@@ -9,7 +9,7 @@ import {
   useConfirm,
   toast,
 } from '@adopt-dont-shop/lib.components';
-import { FiDownload, FiAlertTriangle } from 'react-icons/fi';
+import { Download, TriangleAlert } from 'lucide-react';
 import { apiService } from '../services/libraryServices';
 import * as styles from './PrivacyTools.css';
 
@@ -113,7 +113,7 @@ const PrivacyTools: React.FC = () => {
         <Heading level='h2'>Data Export (GDPR Art. 20)</Heading>
         <Text>Downloads a JSON archive of user-owned data.</Text>
         <Button variant='primary' onClick={handleExport} disabled={busy !== null}>
-          <FiDownload className={styles.buttonIcon} />
+          <Download size='1em' className={styles.buttonIcon} />
           {busy === 'export' ? 'Exporting…' : 'Export user data'}
         </Button>
       </section>
@@ -140,7 +140,7 @@ const PrivacyTools: React.FC = () => {
           disabled={busy !== null}
           className={styles.deleteButton}
         >
-          <FiAlertTriangle className={styles.buttonIcon} />
+          <TriangleAlert size='1em' className={styles.buttonIcon} />
           {busy === 'delete' ? 'Scheduling…' : 'Schedule deletion'}
         </Button>
       </section>

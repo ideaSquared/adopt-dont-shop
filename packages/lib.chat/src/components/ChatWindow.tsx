@@ -1,6 +1,6 @@
 import { Button, Spinner } from '@adopt-dont-shop/lib.components';
 import { useEffect, useRef, useState } from 'react';
-import { MdArrowBack } from 'react-icons/md';
+import { ArrowLeft } from 'lucide-react';
 import { useChat } from '../context/use-chat';
 import type { Conversation } from '../types';
 import * as styles from './ChatWindow.css';
@@ -178,7 +178,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
           onClick={handleBackClick}
           aria-label="Back to conversations"
         >
-          <MdArrowBack size={20} />
+          <ArrowLeft size={20} />
         </Button>
 
         <div className={styles.headerAvatar} aria-hidden>

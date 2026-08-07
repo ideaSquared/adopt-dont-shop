@@ -12,15 +12,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from '@adopt-dont-shop/lib.components';
-import {
-  FiSearch,
-  FiMessageSquare,
-  FiAlertCircle,
-  FiCheckCircle,
-  FiEye,
-  FiFlag,
-  FiTrash,
-} from 'react-icons/fi';
+import { CircleAlert, CircleCheck, Eye, Flag, MessageSquare, Search, Trash } from 'lucide-react';
 import {
   PageContainer,
   PageHeader,
@@ -322,7 +314,7 @@ const Messages: React.FC = () => {
               title='View chat'
               aria-label='View chat'
             >
-              <FiEye aria-hidden />
+              <Eye size='1em' aria-hidden />
             </button>
             <button
               className={styles.actionButton}
@@ -330,7 +322,7 @@ const Messages: React.FC = () => {
               title='Archive chat'
               aria-label='Archive chat'
             >
-              <FiFlag aria-hidden />
+              <Flag size='1em' aria-hidden />
             </button>
             <button
               className={styles.actionButton}
@@ -338,7 +330,7 @@ const Messages: React.FC = () => {
               title='Delete chat'
               aria-label='Delete chat'
             >
-              <FiTrash aria-hidden />
+              <Trash size='1em' aria-hidden />
             </button>
           </div>
         );
@@ -357,28 +349,28 @@ const Messages: React.FC = () => {
 
       <div className={styles.statsGrid}>
         <MetricCard
-          icon={<FiMessageSquare />}
+          icon={<MessageSquare size='1em' />}
           iconColor='#3b82f6'
           label='Total Chats'
           value={stats.total}
           loading={loading}
         />
         <MetricCard
-          icon={<FiCheckCircle />}
+          icon={<CircleCheck size='1em' />}
           iconColor='#10b981'
           label='Active Chats'
           value={stats.active}
           loading={loading}
         />
         <MetricCard
-          icon={<FiMessageSquare />}
+          icon={<MessageSquare size='1em' />}
           iconColor='#8b5cf6'
           label='Total Messages'
           value={stats.messages}
           loading={loading}
         />
         <MetricCard
-          icon={<FiAlertCircle />}
+          icon={<CircleAlert size='1em' />}
           iconColor='#f59e0b'
           label='Avg Messages/Chat'
           value={stats.avgMessages}
@@ -388,7 +380,7 @@ const Messages: React.FC = () => {
 
       <FilterBar>
         <SearchInputWrapper>
-          <FiSearch />
+          <Search size='1em' />
           <Input
             type='text'
             placeholder='Search conversations, participants, or messages...'

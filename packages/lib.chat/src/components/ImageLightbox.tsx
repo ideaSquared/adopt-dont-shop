@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MdClose, MdNavigateBefore, MdNavigateNext, MdZoomIn, MdZoomOut } from 'react-icons/md';
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 import * as styles from './ImageLightbox.css';
 
 interface ImageAttachment {
@@ -114,13 +114,13 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       <div className={styles.lightboxContainer}>
         <div className={styles.lightboxControls}>
           <button className={styles.lightboxButton} onClick={handleZoomOut} disabled={zoom <= 0.5}>
-            <MdZoomOut size={20} />
+            <ZoomOut size={20} />
           </button>
           <button className={styles.lightboxButton} onClick={handleZoomIn} disabled={zoom >= 3}>
-            <MdZoomIn size={20} />
+            <ZoomIn size={20} />
           </button>
           <button className={styles.lightboxButton} onClick={onClose}>
-            <MdClose size={20} />
+            <X size={20} />
           </button>
         </div>
 
@@ -132,14 +132,14 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               onClick={() => onNavigate(safeCurrentIndex - 1)}
               disabled={safeCurrentIndex === 0}
             >
-              <MdNavigateBefore size={24} />
+              <ChevronLeft size={24} />
             </button>
             <button
               className={`${styles.navigationButton} ${styles.navigationButtonNext}`}
               onClick={() => onNavigate(safeCurrentIndex + 1)}
               disabled={safeCurrentIndex === images.length - 1}
             >
-              <MdNavigateNext size={24} />
+              <ChevronRight size={24} />
             </button>
           </>
         )}

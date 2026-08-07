@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  MdDownload,
-  MdImage,
-  MdInsertDriveFile,
-  MdPictureAsPdf,
-  MdVisibility,
-} from 'react-icons/md';
+import { Download, Eye, File, FileText, Image } from 'lucide-react';
 import { useChat } from '../context/use-chat';
 import type { Message } from '../types';
 import { safeFormatDistanceToNow } from '../utils/date-helpers';
@@ -30,11 +24,11 @@ const formatFileSize = (bytes: number): string => {
 
 const getFileIcon = (mimeType: string) => {
   if (mimeType.startsWith('image/')) {
-    return <MdImage size={20} />;
+    return <Image size={20} />;
   } else if (mimeType === 'application/pdf') {
-    return <MdPictureAsPdf size={20} />;
+    return <FileText size={20} />;
   } else {
-    return <MdInsertDriveFile size={20} />;
+    return <File size={20} />;
   }
 };
 
@@ -193,7 +187,7 @@ export function MessageBubbleComponent({
                           }}
                           aria-label={`Preview ${attachment.filename}`}
                         >
-                          <MdVisibility size={16} />
+                          <Eye size={16} />
                         </a>
                         <a
                           className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
@@ -202,7 +196,7 @@ export function MessageBubbleComponent({
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <MdDownload size={16} />
+                          <Download size={16} />
                         </a>
                       </>
                     ) : (
@@ -225,7 +219,7 @@ export function MessageBubbleComponent({
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <MdDownload size={16} />
+                          <Download size={16} />
                         </a>
                       </>
                     )}

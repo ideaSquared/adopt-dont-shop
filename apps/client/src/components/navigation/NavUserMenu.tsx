@@ -1,12 +1,6 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import React from 'react';
-import {
-  MdHelpOutline,
-  MdLogout,
-  MdOutlineDescription,
-  MdOutlineSettings,
-  MdPersonOutline,
-} from 'react-icons/md';
+import { CircleHelp, FileText, LogOut, Settings, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { Avatar } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
@@ -54,31 +48,31 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({ className }) => {
           <DropdownMenu.Separator className={styles.separator} />
           <DropdownMenu.Item className={styles.item} asChild>
             <Link to='/profile'>
-              <MdPersonOutline />
+              <User size='1em' />
               Profile
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item className={styles.item} asChild>
             <Link to='/applications'>
-              <MdOutlineDescription />
+              <FileText size='1em' />
               My applications
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item className={styles.item} asChild>
             <Link to='/profile?tab=settings'>
-              <MdOutlineSettings />
+              <Settings size='1em' />
               Settings
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item className={styles.item} asChild>
             <Link to='/help'>
-              <MdHelpOutline />
+              <CircleHelp size='1em' />
               Help
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator className={styles.separator} />
           <DropdownMenu.Item className={styles.dangerItem} onSelect={handleLogout}>
-            <MdLogout />
+            <LogOut size='1em' />
             Log out
           </DropdownMenu.Item>
         </DropdownMenu.Content>

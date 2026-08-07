@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import clsx from 'clsx';
 import { Heading, Text, Button, MetricCard } from '@adopt-dont-shop/lib.components';
-import { FiDownload, FiUsers, FiHeart, FiMessageSquare, FiCheckCircle } from 'react-icons/fi';
+import { CircleCheck, Download, Heart, MessageSquare, Users } from 'lucide-react';
 import {
   PageContainer,
   PageHeader,
@@ -119,7 +119,7 @@ const Analytics: React.FC = () => {
             </FilterGroup>
           </FilterBar>
           <Button variant='outline' size='md'>
-            <FiDownload className={styles.exportIcon} />
+            <Download size='1em' className={styles.exportIcon} />
             Export Report
           </Button>
         </div>
@@ -133,7 +133,7 @@ const Analytics: React.FC = () => {
 
       <div className={styles.statsGrid}>
         <MetricCard
-          icon={<FiUsers />}
+          icon={<Users size='1em' />}
           iconColor='#667eea'
           label='Total Users'
           value={totalAdopters}
@@ -143,7 +143,7 @@ const Analytics: React.FC = () => {
           }
         />
         <MetricCard
-          icon={<FiHeart />}
+          icon={<Heart size='1em' />}
           iconColor='#10b981'
           label='Active Rescues'
           value={activeRescues}
@@ -151,7 +151,7 @@ const Analytics: React.FC = () => {
           helperText={metricsData ? `${metricsData.rescues.total} total` : '—'}
         />
         <MetricCard
-          icon={<FiCheckCircle />}
+          icon={<CircleCheck size='1em' />}
           iconColor='#f59e0b'
           label='Weekly Adoptions'
           value={weeklyAdoptions}
@@ -163,7 +163,7 @@ const Analytics: React.FC = () => {
           }
         />
         <MetricCard
-          icon={<FiMessageSquare />}
+          icon={<MessageSquare size='1em' />}
           iconColor='#ec4899'
           label='Active Listings'
           value={totalListings}

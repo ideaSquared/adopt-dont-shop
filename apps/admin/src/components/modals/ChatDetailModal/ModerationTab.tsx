@@ -4,7 +4,7 @@ import { Button, toast } from '@adopt-dont-shop/lib.components';
 import { type Conversation, type Participant } from '@adopt-dont-shop/lib.chat';
 import { moderationService, type Report } from '@adopt-dont-shop/lib.moderation';
 import { reportStatusLabel } from '@adopt-dont-shop/lib.types';
-import { FiFlag, FiFileText, FiInfo, FiAlertTriangle } from 'react-icons/fi';
+import { FileText, Flag, Info, TriangleAlert } from 'lucide-react';
 
 type ModerationTabProps = {
   chat: Conversation;
@@ -70,7 +70,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
     <div className={styles.detailGrid}>
       <div className={styles.detailItem}>
         <div className={styles.detailLabel}>
-          <FiFlag />
+          <Flag size='1em' />
           Flag Conversation
         </div>
         <div className={styles.detailValue}>
@@ -90,7 +90,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
 
       <div className={styles.detailItem}>
         <div className={styles.detailLabel}>
-          <FiFileText />
+          <FileText size='1em' />
           Existing Reports ({reports.length})
         </div>
         <div className={styles.detailValue}>
@@ -141,7 +141,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
 
       <div className={styles.detailItem}>
         <div className={styles.detailLabel}>
-          <FiInfo />
+          <Info size='1em' />
           Full Moderation History
         </div>
         <div className={styles.detailValue}>
@@ -160,7 +160,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
 
       <div className={styles.detailItem}>
         <div className={styles.detailLabel}>
-          <FiAlertTriangle />
+          <TriangleAlert size='1em' />
           Participant Actions
         </div>
         <div className={styles.detailValue}>

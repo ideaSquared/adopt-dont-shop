@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router';
 import * as styles from '../ChatDetailModal.css';
 import { type Participant } from '@adopt-dont-shop/lib.chat';
-import { FiUsers } from 'react-icons/fi';
+import { Users } from 'lucide-react';
 
 type ParticipantsTabProps = {
   participants: Participant[];
@@ -21,7 +21,7 @@ export const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ participants, 
   if (participants.length === 0) {
     return (
       <div className={styles.emptyState}>
-        <FiUsers />
+        <Users size='1em' />
         <div>No participants found</div>
       </div>
     );

@@ -5,15 +5,7 @@ import { MatchReasonChips, ProgressiveImage } from '@adopt-dont-shop/lib.compone
 import { animated, to, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';
-import {
-  MdCheckCircle,
-  MdExpandLess,
-  MdLocationOn,
-  MdLock,
-  MdPets,
-  MdRefresh,
-  MdStar,
-} from 'react-icons/md';
+import { ChevronUp, CircleCheck, Lock, MapPin, PawPrint, RefreshCw, Star } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { resolveFileUrl } from '../../utils/fileUtils';
 import * as styles from './SwipeCard.css';
@@ -39,15 +31,15 @@ const PlaceholderIcon: React.FC<{ isLoading?: boolean; petType?: string }> = ({
   petType,
 }) => {
   if (isLoading) {
-    return <MdRefresh className={styles.placeholderIconSpin} />;
+    return <RefreshCw size='1em' className={styles.placeholderIconSpin} />;
   }
   switch (petType) {
     case 'dog':
-      return <MdPets className='placeholder-icon' />;
+      return <PawPrint size='1em' className='placeholder-icon' />;
     case 'cat':
-      return <MdStar className='placeholder-icon' />;
+      return <Star size='1em' className='placeholder-icon' />;
     default:
-      return <MdCheckCircle className='placeholder-icon' />;
+      return <CircleCheck size='1em' className='placeholder-icon' />;
   }
 };
 
@@ -428,18 +420,18 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
                 onClick={openSignup}
                 aria-label='Sign up to see your match score'
               >
-                <MdLock /> See Your Match
+                <Lock size='1em' /> See Your Match
               </button>
             ) : (
               matchTier && (
                 <span className={styles.topBadge({ variant: matchTier.variant })}>
-                  <MdStar /> {matchTier.label}
+                  <Star size='1em' /> {matchTier.label}
                 </span>
               )
             )}
             {pet.isSponsored && (
               <span className={styles.topBadge({ variant: 'sponsored' })}>
-                <MdStar /> Featured
+                <Star size='1em' /> Featured
               </span>
             )}
             {pet.activityLabel && (
@@ -511,7 +503,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             <div className={styles.metaRow}>
               {distanceLabel && (
                 <span className={styles.metaItem}>
-                  <MdLocationOn /> {distanceLabel}
+                  <MapPin size='1em' /> {distanceLabel}
                 </span>
               )}
               {pet.rescueName && distanceLabel && <span className={styles.metaDot} />}
@@ -529,7 +521,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             onClick={openDetails}
             aria-label={`View full details for ${pet.name}`}
           >
-            <MdExpandLess />
+            <ChevronUp size='1em' />
           </button>
         )}
       </div>

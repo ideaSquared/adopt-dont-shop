@@ -1,6 +1,6 @@
 import React from 'react';
 import * as styles from './BulkActionToolbar.css';
-import { FiX, FiCheckSquare } from 'react-icons/fi';
+import { SquareCheck, X } from 'lucide-react';
 
 export type BulkAction = {
   label: string;
@@ -31,7 +31,7 @@ export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
   return (
     <div className={styles.toolbar} role='toolbar' aria-label='Bulk actions'>
       <div className={styles.selectionInfo}>
-        <FiCheckSquare />
+        <SquareCheck size='1em' />
         {selectedCount} selected
       </div>
 
@@ -63,7 +63,7 @@ export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
         type='button'
         aria-label='Clear selection'
       >
-        <FiX />
+        <X size='1em' />
         Clear
       </button>
     </div>

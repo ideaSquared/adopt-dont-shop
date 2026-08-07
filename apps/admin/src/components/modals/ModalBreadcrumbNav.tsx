@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import * as styles from './ModalBreadcrumbNav.css';
 
 export type BreadcrumbSegment = {
@@ -87,7 +87,7 @@ export const ModalBreadcrumbNav: React.FC<ModalBreadcrumbNavProps> = ({
             disabled={prevId === undefined}
             aria-label='Previous item'
           >
-            <FiChevronLeft />
+            <ChevronLeft size='1em' />
           </button>
           <button
             type='button'
@@ -96,7 +96,7 @@ export const ModalBreadcrumbNav: React.FC<ModalBreadcrumbNavProps> = ({
             disabled={nextId === undefined}
             aria-label='Next item'
           >
-            <FiChevronRight />
+            <ChevronRight size='1em' />
           </button>
         </div>
       )}

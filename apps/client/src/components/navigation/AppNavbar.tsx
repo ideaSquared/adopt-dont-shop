@@ -1,5 +1,5 @@
 import React from 'react';
-import { MdChat, MdFavorite, MdNotifications, MdSearch, MdStar, MdSwipe } from 'react-icons/md';
+import { Bell, Hand, Heart, MessageCircle, Search, Star } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { Badge, Logo } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
@@ -88,7 +88,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
         <div className={styles.primaryLinks}>
           <NavLink
             to='/discover'
-            icon={<MdSwipe aria-hidden='true' />}
+            icon={<Hand size='1em' aria-hidden='true' />}
             primary
             description='Swipe through matches'
             onClick={() => trackNavClick('discover')}
@@ -97,7 +97,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
           </NavLink>
           <NavLink
             to='/search'
-            icon={<MdSearch aria-hidden='true' />}
+            icon={<Search size='1em' aria-hidden='true' />}
             description='Filter and browse all pets'
             onClick={() => trackNavClick('search')}
           >
@@ -106,7 +106,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
           {isAuthenticated && (
             <NavLink
               to='/favorites'
-              icon={<MdFavorite aria-hidden='true' />}
+              icon={<Heart size='1em' aria-hidden='true' />}
               onClick={() => trackNavClick('favorites')}
             >
               Favorites
@@ -115,7 +115,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
           {isAuthenticated && (
             <NavLink
               to={hasPreferences ? '/match/top-picks' : '/onboarding'}
-              icon={<MdStar aria-hidden='true' />}
+              icon={<Star size='1em' aria-hidden='true' />}
               description='Pets matched to your preferences'
               onClick={() => trackNavClick('top_picks')}
             >
@@ -130,13 +130,13 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
               <IconLink
                 to='/chat'
                 label='Messages'
-                icon={<MdChat aria-hidden='true' />}
+                icon={<MessageCircle size='1em' aria-hidden='true' />}
                 count={unreadMessageCount}
               />
               <IconLink
                 to='/notifications'
                 label='Notifications'
-                icon={<MdNotifications aria-hidden='true' />}
+                icon={<Bell size='1em' aria-hidden='true' />}
                 count={notificationsUnread}
               />
               <NavUserMenu />

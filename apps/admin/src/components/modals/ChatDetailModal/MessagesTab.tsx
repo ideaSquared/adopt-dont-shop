@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import * as styles from '../ChatDetailModal.css';
 import { Button, toast } from '@adopt-dont-shop/lib.components';
 import { useAdminChatMessages, useAdminChatMutations } from '@adopt-dont-shop/lib.chat';
-import { FiMessageSquare, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
+import { MessageSquare, Trash2, TriangleAlert } from 'lucide-react';
 
 type MessagesTabProps = {
   chatId: string;
@@ -98,7 +98,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
   if (messages.length === 0 && !messagesLoading) {
     return (
       <div className={styles.emptyState}>
-        <FiMessageSquare />
+        <MessageSquare size='1em' />
         <div>No messages in this conversation</div>
       </div>
     );
@@ -136,7 +136,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
                         onClick={() => handleDeleteMessageClick(message.id)}
                         title='Delete message'
                       >
-                        <FiTrash2 />
+                        <Trash2 size='1em' />
                       </button>
                     </div>
                   )}
@@ -163,7 +163,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
         <div className={styles.deletePrompt} onClick={handleCancelDelete}>
           <div className={styles.deletePromptContent} onClick={e => e.stopPropagation()}>
             <div className={styles.deletePromptTitle}>
-              <FiAlertTriangle />
+              <TriangleAlert size='1em' />
               Delete Message
             </div>
             <p className={styles.deletePromptText}>

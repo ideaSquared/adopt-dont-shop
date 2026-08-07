@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiX } from 'react-icons/fi';
+import { X } from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from '@adopt-dont-shop/lib.components';
 import * as styles from './ActionSelectionModal.css';
@@ -105,7 +105,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>Take Moderation Action</h2>
           <button className={styles.closeButton} onClick={handleClose} disabled={isLoading}>
-            <FiX />
+            <X size='1em' />
           </button>
         </div>
 

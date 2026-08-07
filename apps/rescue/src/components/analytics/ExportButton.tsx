@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiDownload, FiMail, FiFileText, FiFile } from 'react-icons/fi';
+import { Download, File, FileText, Mail } from 'lucide-react';
 import * as styles from './ExportButton.css';
 
 interface ExportButtonProps {
@@ -53,7 +53,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         className={styles.trigger({ disabled })}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
-        <FiDownload />
+        <Download size="1em" />
         <span>Export Report</span>
       </button>
 
@@ -62,7 +62,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           className={styles.exportOption({ loading: loadingState === 'csv' })}
           onClick={() => handleExport('csv', onExportCSV)}
         >
-          {loadingState === 'csv' ? <div className={styles.loadingSpinner} /> : <FiFile />}
+          {loadingState === 'csv' ? <div className={styles.loadingSpinner} /> : <File size="1em" />}
           <span className={styles.optionLabel}>Export as CSV</span>
         </button>
 
@@ -70,7 +70,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           className={styles.exportOption({ loading: loadingState === 'pdf' })}
           onClick={() => handleExport('pdf', onExportPDF)}
         >
-          {loadingState === 'pdf' ? <div className={styles.loadingSpinner} /> : <FiFileText />}
+          {loadingState === 'pdf' ? (
+            <div className={styles.loadingSpinner} />
+          ) : (
+            <FileText size="1em" />
+          )}
           <span className={styles.optionLabel}>Export as PDF</span>
         </button>
 
@@ -78,7 +82,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           className={styles.exportOption({ loading: loadingState === 'email' })}
           onClick={() => handleExport('email', onEmailReport)}
         >
-          {loadingState === 'email' ? <div className={styles.loadingSpinner} /> : <FiMail />}
+          {loadingState === 'email' ? (
+            <div className={styles.loadingSpinner} />
+          ) : (
+            <Mail size="1em" />
+          )}
           <span className={styles.optionLabel}>Email Report</span>
         </button>
       </div>

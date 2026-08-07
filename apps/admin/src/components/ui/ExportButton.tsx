@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as styles from './ExportButton.css';
-import { FiDownload, FiFileText, FiFile } from 'react-icons/fi';
+import { Download, File, FileText } from 'lucide-react';
 import type { ExportFormat } from '../../services/exportService';
 
 type ExportButtonProps = {
@@ -46,7 +46,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
         aria-expanded={isOpen}
         data-testid='export-button'
       >
-        <FiDownload />
+        <Download size='1em' />
         {isExporting ? 'Exporting...' : 'Export'}
       </button>
 
@@ -58,7 +58,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           onClick={() => handleExport('csv')}
           data-testid='export-csv'
         >
-          <FiFileText />
+          <FileText size='1em' />
           <div className={styles.formatLabel}>
             CSV
             <div className={styles.formatDesc}>Spreadsheet-compatible</div>
@@ -70,7 +70,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
           onClick={() => handleExport('pdf')}
           data-testid='export-pdf'
         >
-          <FiFile />
+          <File size='1em' />
           <div className={styles.formatLabel}>
             PDF
             <div className={styles.formatDesc}>Formatted report</div>

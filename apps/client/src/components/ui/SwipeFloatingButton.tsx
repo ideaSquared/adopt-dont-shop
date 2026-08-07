@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MdClose, MdSwipe } from 'react-icons/md';
+import { Hand, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import * as styles from './SwipeFloatingButton.css';
 
@@ -58,7 +58,7 @@ export const SwipeFloatingButton: React.FC<SwipeFloatingButtonProps> = ({ classN
     <div className={`${styles.floatingContainer({ show })}${className ? ` ${className}` : ''}`}>
       <div className={styles.calloutBubble({ show: showCallout && !dismissed })}>
         <button className={styles.closeButton} onClick={handleDismiss} aria-label='Dismiss'>
-          <MdClose />
+          <X size='1em' />
         </button>
         <h4>Try Swiping! 🐾</h4>
         <p>Discover pets faster with our fun swipe feature</p>
@@ -69,7 +69,7 @@ export const SwipeFloatingButton: React.FC<SwipeFloatingButtonProps> = ({ classN
         className={styles.floatingButton}
         aria-label='Start swiping to discover pets'
       >
-        <MdSwipe className='icon' />
+        <Hand size='1em' className='icon' />
       </Link>
     </div>
   );

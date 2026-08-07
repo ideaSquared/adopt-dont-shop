@@ -9,7 +9,7 @@ import {
   DataTable,
   type DataTableColumn,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiUser, FiEdit, FiTrash, FiShield, FiRefreshCw } from 'react-icons/fi';
+import { RefreshCw, Search, Shield, SquarePen, Trash, User } from 'lucide-react';
 import {
   PageContainer,
   PageHeader,
@@ -101,17 +101,17 @@ const Audit: React.FC = () => {
   const getActionIcon = (action: string) => {
     switch (action) {
       case 'create':
-        return <FiEdit />;
+        return <SquarePen size='1em' />;
       case 'update':
-        return <FiEdit />;
+        return <SquarePen size='1em' />;
       case 'delete':
-        return <FiTrash />;
+        return <Trash size='1em' />;
       case 'login':
-        return <FiShield />;
+        return <Shield size='1em' />;
       case 'logout':
-        return <FiUser />;
+        return <User size='1em' />;
       default:
-        return <FiEdit />;
+        return <SquarePen size='1em' />;
     }
   };
 
@@ -265,7 +265,7 @@ const Audit: React.FC = () => {
         </HeaderLeft>
         <div className={styles.headerActions}>
           <Button variant='outline' size='md' onClick={() => refetch()} disabled={isLoading}>
-            <FiRefreshCw className={styles.buttonIcon} />
+            <RefreshCw size='1em' className={styles.buttonIcon} />
             Refresh
           </Button>
         </div>
@@ -273,7 +273,7 @@ const Audit: React.FC = () => {
 
       <FilterBar>
         <SearchInputWrapper>
-          <FiSearch />
+          <Search size='1em' />
           <Input
             type='text'
             placeholder='Search by user, action, or resource...'

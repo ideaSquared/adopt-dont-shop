@@ -15,7 +15,7 @@ import {
   ErrorState,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiUserPlus } from 'react-icons/fi';
+import { Search, UserPlus } from 'lucide-react';
 import {
   useUsers,
   useSuspendUser,
@@ -470,7 +470,7 @@ const Users: React.FC = () => {
         <div className={styles.headerActions}>
           <ExportButton onExport={handleExport} disabled={isLoading || users.length === 0} />
           <Button variant='primary' size='md' onClick={() => setIsAddModalOpen(true)}>
-            <FiUserPlus className={styles.addUserIcon} />
+            <UserPlus size='1em' className={styles.addUserIcon} />
             Add User
           </Button>
         </div>
@@ -483,7 +483,7 @@ const Users: React.FC = () => {
           <>
             <div className={styles.filterBar}>
               <div className={styles.searchInputWrapper}>
-                <FiSearch />
+                <Search size='1em' />
                 <Input
                   type='text'
                   placeholder='Search by name or email...'

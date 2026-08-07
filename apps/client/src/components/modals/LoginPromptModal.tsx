@@ -1,5 +1,5 @@
 import React from 'react';
-import { MdClose, MdFavorite, MdPerson } from 'react-icons/md';
+import { Heart, User, X } from 'lucide-react';
 import { Link } from 'react-router';
 import * as styles from './LoginPromptModal.css';
 
@@ -33,9 +33,9 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
     switch (action) {
       case 'like':
       case 'super_like':
-        return <MdFavorite />;
+        return <Heart size='1em' />;
       default:
-        return <MdPerson />;
+        return <User size='1em' />;
     }
   };
 
@@ -59,7 +59,7 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
         role='presentation'
       >
         <button className={styles.closeButton} onClick={onClose}>
-          <MdClose />
+          <X size='1em' />
         </button>
 
         <div className={styles.icon}>{getActionIcon()}</div>
@@ -73,7 +73,7 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
 
         <div className={styles.buttonGroup}>
           <Link className={styles.primaryButton} to='/register'>
-            <MdPerson />
+            <User size='1em' />
             Create Account
           </Link>
 

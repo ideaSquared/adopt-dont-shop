@@ -185,6 +185,9 @@ importers:
       jspdf-autotable:
         specifier: ^5.0.8
         version: 5.0.8(jspdf@4.2.1)
+      lucide-react:
+        specifier: ^1.30.0
+        version: 1.30.0(react@19.2.7)
       papaparse:
         specifier: ^5.5.4
         version: 5.5.4
@@ -194,9 +197,6 @@ importers:
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
-      react-icons:
-        specifier: ^5.6.0
-        version: 5.6.0(react@19.2.7)
       react-router:
         specifier: ^8.3.0
         version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -372,6 +372,9 @@ importers:
       dompurify:
         specifier: ^3.4.12
         version: 3.4.12
+      lucide-react:
+        specifier: ^1.30.0
+        version: 1.30.0(react@19.2.7)
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -381,9 +384,6 @@ importers:
       react-hook-form:
         specifier: ^7.80.0
         version: 7.80.0(react@19.2.7)
-      react-icons:
-        specifier: ^5.6.0
-        version: 5.6.0(react@19.2.7)
       react-router:
         specifier: ^8.3.0
         version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -550,15 +550,15 @@ importers:
       date-fns:
         specifier: ^4.3.0
         version: 4.4.0
+      lucide-react:
+        specifier: ^1.30.0
+        version: 1.30.0(react@19.2.7)
       react:
         specifier: 19.2.7
         version: 19.2.7
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
-      react-icons:
-        specifier: ^5.6.0
-        version: 5.6.0(react@19.2.7)
       react-router:
         specifier: ^8.3.0
         version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -927,9 +927,9 @@ importers:
       date-fns:
         specifier: ^4.3.0
         version: 4.4.0
-      react-icons:
-        specifier: ^5.6.0
-        version: 5.6.0(react@19.2.7)
+      lucide-react:
+        specifier: ^1.30.0
+        version: 1.30.0(react@19.2.7)
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
@@ -7906,6 +7906,11 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
+  lucide-react@1.30.0:
+    resolution: {integrity: sha512-tUIr2jXLbWpCkdtH8XP7P7YppM9ueWgTky99lpWDY6z5REs6B+O6ZQ3U5tHkUUY59ANyOv/PBcs8E4Fe3KO3eA==}
+    peerDependencies:
+      react: 19.2.7
+
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
@@ -8448,11 +8453,6 @@ packages:
   react-hook-form@7.80.0:
     resolution: {integrity: sha512-4P+fk6oXsxY+6xSj7Euhc2sumQD8zQqCuVHoJwoyp9EchP+IUW9OESB7uHFJOKsIBQ4MQqYE84INJFqUCYNoOg==}
     engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: 19.2.7
-
-  react-icons@5.6.0:
-    resolution: {integrity: sha512-RH93p5ki6LfOiIt0UtDyNg/cee+HLVR6cHHtW3wALfo+eOHTp8RnU2kRkI6E+H19zMIs03DyxUG/GfZMOGvmiA==}
     peerDependencies:
       react: 19.2.7
 
@@ -15965,6 +15965,10 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
+  lucide-react@1.30.0(react@19.2.7):
+    dependencies:
+      react: 19.2.7
+
   lz-string@1.5.0: {}
 
   magic-string@0.30.21:
@@ -16581,10 +16585,6 @@ snapshots:
       scheduler: 0.27.0
 
   react-hook-form@7.80.0(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-
-  react-icons@5.6.0(react@19.2.7):
     dependencies:
       react: 19.2.7
 

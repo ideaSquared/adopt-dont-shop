@@ -9,13 +9,13 @@ import {
   type DateRangeValue,
 } from '@adopt-dont-shop/lib.components';
 import {
-  FiTrendingUp,
-  FiUsers,
-  FiClock,
-  FiCheckCircle,
-  FiBarChart2,
-  FiPieChart,
-} from 'react-icons/fi';
+  ChartColumnIncreasing,
+  ChartPie,
+  CircleCheck,
+  Clock,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 import * as styles from './Analytics.css';
 
 // Analytics Components
@@ -294,7 +294,7 @@ const Analytics: React.FC = () => {
         <MetricCard
           label="Total Adoptions"
           value={adoptionMetrics?.totalAdoptions || 0}
-          icon={<FiCheckCircle />}
+          icon={<CircleCheck size="1em" />}
           delta={
             adoptionMetrics?.comparisonPeriod
               ? adoptionMetrics.comparisonPeriod.percentageChange / 100
@@ -307,7 +307,7 @@ const Analytics: React.FC = () => {
         <MetricCard
           label="Success Rate"
           value={`${adoptionMetrics?.successRate.toFixed(1) || 0}%`}
-          icon={<FiTrendingUp />}
+          icon={<TrendingUp size="1em" />}
           delta={
             adoptionMetrics?.comparisonPeriod
               ? (adoptionMetrics.successRate - adoptionMetrics.comparisonPeriod.successRate) / 100
@@ -320,7 +320,7 @@ const Analytics: React.FC = () => {
         <MetricCard
           label="Avg. Response Time"
           value={`${responseTimeMetrics?.averageResponseTime.toFixed(1) || 0}h`}
-          icon={<FiClock />}
+          icon={<Clock size="1em" />}
           helperText={`SLA Compliance: ${responseTimeMetrics?.slaCompliance.toFixed(1) || 0}%`}
           loading={loading}
         />
@@ -328,7 +328,7 @@ const Analytics: React.FC = () => {
         <MetricCard
           label="Total Applications"
           value={applicationAnalytics?.totalApplications || 0}
-          icon={<FiUsers />}
+          icon={<Users size="1em" />}
           helperText="In current period"
           loading={loading}
         />
@@ -339,7 +339,7 @@ const Analytics: React.FC = () => {
         <Card>
           <div className={styles.cardHeader}>
             <div className={styles.cardTitle}>
-              <FiBarChart2 />
+              <ChartColumnIncreasing size="1em" />
               <h3>Adoption Trends</h3>
             </div>
           </div>
@@ -350,7 +350,7 @@ const Analytics: React.FC = () => {
               <EmptyState
                 title="No data available"
                 description="Adoption trends will appear here once data is available."
-                icon={<FiBarChart2 />}
+                icon={<ChartColumnIncreasing size="1em" />}
               />
             )}
           </div>
@@ -363,7 +363,7 @@ const Analytics: React.FC = () => {
         <Card>
           <div className={styles.cardHeader}>
             <div className={styles.cardTitle}>
-              <FiTrendingUp />
+              <TrendingUp size="1em" />
               <h3>Application Conversion Funnel</h3>
             </div>
           </div>
@@ -377,7 +377,7 @@ const Analytics: React.FC = () => {
               <EmptyState
                 title="No data available"
                 description="Conversion data will appear here once available."
-                icon={<FiTrendingUp />}
+                icon={<TrendingUp size="1em" />}
               />
             )}
           </div>
@@ -387,7 +387,7 @@ const Analytics: React.FC = () => {
         <Card>
           <div className={styles.cardHeader}>
             <div className={styles.cardTitle}>
-              <FiPieChart />
+              <ChartPie size="1em" />
               <h3>Stage Distribution</h3>
             </div>
           </div>
@@ -398,7 +398,7 @@ const Analytics: React.FC = () => {
               <EmptyState
                 title="No data available"
                 description="Stage distribution will appear here once available."
-                icon={<FiPieChart />}
+                icon={<ChartPie size="1em" />}
               />
             )}
           </div>
@@ -410,7 +410,7 @@ const Analytics: React.FC = () => {
         <Card>
           <div className={styles.cardHeader}>
             <div className={styles.cardTitle}>
-              <FiClock />
+              <Clock size="1em" />
               <h3>Response Time by Stage</h3>
             </div>
           </div>
@@ -421,7 +421,7 @@ const Analytics: React.FC = () => {
               <EmptyState
                 title="No data available"
                 description="Response time metrics will appear here once available."
-                icon={<FiClock />}
+                icon={<Clock size="1em" />}
               />
             )}
           </div>
@@ -433,7 +433,7 @@ const Analytics: React.FC = () => {
         <Card>
           <div className={styles.cardHeader}>
             <div className={styles.cardTitle}>
-              <FiBarChart2 />
+              <ChartColumnIncreasing size="1em" />
               <h3>Most Popular Breeds</h3>
             </div>
           </div>
@@ -458,7 +458,7 @@ const Analytics: React.FC = () => {
               <EmptyState
                 title="No data available"
                 description="Pet performance data will appear here once available."
-                icon={<FiBarChart2 />}
+                icon={<ChartColumnIncreasing size="1em" />}
               />
             )}
           </div>

@@ -10,7 +10,7 @@ import {
   type EntityInspectorTab,
 } from '@adopt-dont-shop/lib.components';
 import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
-import { FiCheckCircle, FiXCircle, FiMail } from 'react-icons/fi';
+import { CircleCheck, CircleX, Mail } from 'lucide-react';
 import type { AdminRescue, RescueStatistics } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import { useEntityActivity } from '../../hooks';
@@ -104,13 +104,13 @@ const ActionsTab: React.FC<{
         <span className={styles.actionGroupLabel}>Verification</span>
         {onApprove && (
           <Button variant='primary' onClick={() => onApprove(rescue)}>
-            <FiCheckCircle className={styles.actionButtonIcon} />
+            <CircleCheck size='1em' className={styles.actionButtonIcon} />
             Approve
           </Button>
         )}
         {onReject && (
           <Button variant='danger' onClick={() => onReject(rescue)}>
-            <FiXCircle className={styles.actionButtonIcon} />
+            <CircleX size='1em' className={styles.actionButtonIcon} />
             Reject
           </Button>
         )}
@@ -120,7 +120,7 @@ const ActionsTab: React.FC<{
       <div className={styles.actionGroup}>
         <span className={styles.actionGroupLabel}>Communication</span>
         <Button variant='secondary' onClick={() => onSendEmail(rescue)}>
-          <FiMail className={styles.actionButtonIcon} />
+          <Mail size='1em' className={styles.actionButtonIcon} />
           Send Email
         </Button>
       </div>

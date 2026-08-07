@@ -11,7 +11,7 @@ import {
   ToastContainer,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch } from 'react-icons/fi';
+import { Search } from 'lucide-react';
 import { useApplications, useBulkUpdateApplications, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
@@ -226,7 +226,7 @@ const Applications: React.FC = () => {
           <>
             <div className={styles.filterBar}>
               <div className={styles.searchInputWrapper}>
-                <FiSearch />
+                <Search size='1em' />
                 <Input
                   type='text'
                   placeholder='Search by applicant name or email...'

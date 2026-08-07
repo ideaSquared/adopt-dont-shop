@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from '@adopt-dont-shop/lib.components';
-import { MdCheckCircle, MdHome, MdPeople, MdPets, MdAttachMoney } from 'react-icons/md';
+import { CircleCheck, DollarSign, House, PawPrint, Users } from 'lucide-react';
 import * as styles from './AdoptionPoliciesDisplay.css';
 
 interface AdoptionPolicy {
@@ -32,11 +32,11 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
     return (
       <Card className={styles.policyCard}>
         <h2 className={styles.sectionTitle}>
-          <MdPets className='icon' />
+          <PawPrint size='1em' className='icon' />
           Adoption Information
         </h2>
         <div className={styles.emptyState}>
-          <MdPets className='icon' />
+          <PawPrint size='1em' className='icon' />
           <h3>No adoption information available</h3>
           <p>
             {rescueName} hasn't provided adoption policies yet. Please contact them directly for
@@ -57,13 +57,13 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
   return (
     <Card className={styles.policyCard}>
       <h2 className={styles.sectionTitle}>
-        <MdPets className='icon' />
+        <PawPrint size='1em' className='icon' />
         Adoption Information
       </h2>
 
       {/* Adoption Fee Range */}
       <div className={styles.feeRange}>
-        <MdAttachMoney className='icon' />
+        <DollarSign size='1em' className='icon' />
         <div className='fee-info'>
           <div className='label'>Adoption Fee Range</div>
           <div className='amount'>
@@ -77,13 +77,13 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
       <div className={styles.requirementsGrid}>
         {adoptionPolicies.requireHomeVisit && (
           <div className={styles.requirementItem}>
-            <MdHome className='icon' />
+            <House size='1em' className='icon' />
             <span className='text'>Home visit required</span>
           </div>
         )}
         {adoptionPolicies.requireReferences && (
           <div className={styles.requirementItem}>
-            <MdPeople className='icon' />
+            <Users size='1em' className='icon' />
             <span className='text'>
               {adoptionPolicies.minimumReferenceCount} reference
               {adoptionPolicies.minimumReferenceCount !== 1 ? 's' : ''} required
@@ -92,7 +92,7 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
         )}
         {adoptionPolicies.requireVeterinarianReference && (
           <div className={styles.requirementItem}>
-            <MdCheckCircle className='icon' />
+            <CircleCheck size='1em' className='icon' />
             <span className='text'>Veterinarian reference required</span>
           </div>
         )}
