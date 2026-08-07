@@ -1056,6 +1056,18 @@ export interface ResolveReportResponse {
   report?: Report | undefined;
 }
 
+export interface EscalateReportRequest {
+  reportId: string;
+  /** The senior moderator / admin the report is escalated to. */
+  escalatedTo: string;
+  /** Why it is being escalated. */
+  reason: string;
+}
+
+export interface EscalateReportResponse {
+  report?: Report | undefined;
+}
+
 export interface LogModeratorActionRequest {
   /** Optional anchor to a report that triggered this action. */
   reportId?: string | undefined;
@@ -4487,6 +4499,166 @@ export const ResolveReportResponse: MessageFns<ResolveReportResponse> = {
   },
 };
 
+function createBaseEscalateReportRequest(): EscalateReportRequest {
+  return { reportId: "", escalatedTo: "", reason: "" };
+}
+
+export const EscalateReportRequest: MessageFns<EscalateReportRequest> = {
+  encode(message: EscalateReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.reportId !== "") {
+      writer.uint32(10).string(message.reportId);
+    }
+    if (message.escalatedTo !== "") {
+      writer.uint32(18).string(message.escalatedTo);
+    }
+    if (message.reason !== "") {
+      writer.uint32(26).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EscalateReportRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEscalateReportRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.reportId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.escalatedTo = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EscalateReportRequest {
+    return {
+      reportId: isSet(object.reportId)
+        ? globalThis.String(object.reportId)
+        : isSet(object.report_id)
+        ? globalThis.String(object.report_id)
+        : "",
+      escalatedTo: isSet(object.escalatedTo)
+        ? globalThis.String(object.escalatedTo)
+        : isSet(object.escalated_to)
+        ? globalThis.String(object.escalated_to)
+        : "",
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
+    };
+  },
+
+  toJSON(message: EscalateReportRequest): unknown {
+    const obj: any = {};
+    if (message.reportId !== "") {
+      obj.reportId = message.reportId;
+    }
+    if (message.escalatedTo !== "") {
+      obj.escalatedTo = message.escalatedTo;
+    }
+    if (message.reason !== "") {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EscalateReportRequest>, I>>(base?: I): EscalateReportRequest {
+    return EscalateReportRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EscalateReportRequest>, I>>(object: I): EscalateReportRequest {
+    const message = createBaseEscalateReportRequest();
+    message.reportId = object.reportId ?? "";
+    message.escalatedTo = object.escalatedTo ?? "";
+    message.reason = object.reason ?? "";
+    return message;
+  },
+};
+
+function createBaseEscalateReportResponse(): EscalateReportResponse {
+  return { report: undefined };
+}
+
+export const EscalateReportResponse: MessageFns<EscalateReportResponse> = {
+  encode(message: EscalateReportResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.report !== undefined) {
+      Report.encode(message.report, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EscalateReportResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEscalateReportResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.report = Report.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EscalateReportResponse {
+    return { report: isSet(object.report) ? Report.fromJSON(object.report) : undefined };
+  },
+
+  toJSON(message: EscalateReportResponse): unknown {
+    const obj: any = {};
+    if (message.report !== undefined) {
+      obj.report = Report.toJSON(message.report);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EscalateReportResponse>, I>>(base?: I): EscalateReportResponse {
+    return EscalateReportResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EscalateReportResponse>, I>>(object: I): EscalateReportResponse {
+    const message = createBaseEscalateReportResponse();
+    message.report = (object.report !== undefined && object.report !== null)
+      ? Report.fromPartial(object.report)
+      : undefined;
+    return message;
+  },
+};
+
 function createBaseLogModeratorActionRequest(): LogModeratorActionRequest {
   return {
     reportId: undefined,
@@ -7478,6 +7650,22 @@ export const ModerationServiceService = {
     responseDeserialize: (value: Buffer): ResolveReportResponse => ResolveReportResponse.decode(value),
   },
   /**
+   * Escalate a report to a senior moderator/admin: sets status =
+   * escalated + escalated_to / escalated_at / escalation_reason and
+   * records the status transition. Publishes moderation.reportEscalated.
+   */
+  escalateReport: {
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/EscalateReport" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: EscalateReportRequest): Buffer =>
+      Buffer.from(EscalateReportRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): EscalateReportRequest => EscalateReportRequest.decode(value),
+    responseSerialize: (value: EscalateReportResponse): Buffer =>
+      Buffer.from(EscalateReportResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): EscalateReportResponse => EscalateReportResponse.decode(value),
+  },
+  /**
    * Log a moderator action (warning issued, content removed, user
    * suspended, etc.). May or may not be tied to a report. Publishes
    * moderation.actionLogged so the audit consumer captures the
@@ -7714,6 +7902,12 @@ export interface ModerationServiceServer extends UntypedServiceImplementation {
    */
   resolveReport: handleUnaryCall<ResolveReportRequest, ResolveReportResponse>;
   /**
+   * Escalate a report to a senior moderator/admin: sets status =
+   * escalated + escalated_to / escalated_at / escalation_reason and
+   * records the status transition. Publishes moderation.reportEscalated.
+   */
+  escalateReport: handleUnaryCall<EscalateReportRequest, EscalateReportResponse>;
+  /**
    * Log a moderator action (warning issued, content removed, user
    * suspended, etc.). May or may not be tied to a report. Publishes
    * moderation.actionLogged so the audit consumer captures the
@@ -7891,6 +8085,26 @@ export interface ModerationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ResolveReportResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Escalate a report to a senior moderator/admin: sets status =
+   * escalated + escalated_to / escalated_at / escalation_reason and
+   * records the status transition. Publishes moderation.reportEscalated.
+   */
+  escalateReport(
+    request: EscalateReportRequest,
+    callback: (error: ServiceError | null, response: EscalateReportResponse) => void,
+  ): ClientUnaryCall;
+  escalateReport(
+    request: EscalateReportRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: EscalateReportResponse) => void,
+  ): ClientUnaryCall;
+  escalateReport(
+    request: EscalateReportRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: EscalateReportResponse) => void,
   ): ClientUnaryCall;
   /**
    * Log a moderator action (warning issued, content removed, user

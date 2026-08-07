@@ -45,6 +45,11 @@ service ModerationService {
   // transition (resolved). Publishes moderation.reportResolved.
   rpc ResolveReport(ResolveReportRequest) returns (ResolveReportResponse);
 
+  // Escalate a report to a senior moderator/admin: sets status =
+  // escalated + escalated_to / escalated_at / escalation_reason and
+  // records the status transition. Publishes moderation.reportEscalated.
+  rpc EscalateReport(EscalateReportRequest) returns (EscalateReportResponse);
+
   // ---------- Moderator actions ----------
 
   // Log a moderator action (warning issued, content removed, user
@@ -466,6 +471,16 @@ message ResolveReportRequest {
 }
 
 message ResolveReportResponse {
+  Report report = 1;
+}
+message EscalateReportRequest {
+  string report_id = 1;
+  // The senior moderator / admin the report is escalated to.
+  string escalated_to = 2;
+  // Why it is being escalated.
+  string reason = 3;
+}
+message EscalateReportResponse {
   Report report = 1;
 }
 

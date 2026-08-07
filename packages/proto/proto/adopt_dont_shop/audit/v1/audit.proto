@@ -50,6 +50,16 @@ service AuditQueryService {
   // Permission: reports.update[:any].
   rpc CreateReportShare(CreateReportShareRequest) returns (CreateReportShareResponse);
 
+  // Delete a saved report's recurring delivery schedule by schedule_id.
+  // Idempotent-ish: NOT_FOUND when the schedule doesn't exist. Permission:
+  // reports.update[:any].
+  rpc DeleteReportSchedule(DeleteReportScheduleRequest) returns (DeleteReportScheduleResponse);
+
+  // Revoke a token-link share by share_id (sets revoked_at; the token
+  // stops resolving). NOT_FOUND when the share doesn't exist. Permission:
+  // reports.update[:any].
+  rpc RevokeReportShare(RevokeReportShareRequest) returns (RevokeReportShareResponse);
+
   // GDPR saga status. Returns a single row from
   // audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
   // the saga hasn't been requested. Gated on admin.gdpr.read OR
@@ -358,4 +368,16 @@ message CreateReportShareResponse {
   // Plaintext token — present ONLY in this response. Only its hash is
   // persisted, so it cannot be recovered later.
   string token = 2;
+}
+message DeleteReportScheduleRequest {
+  string schedule_id = 1;
+}
+message DeleteReportScheduleResponse {
+  bool deleted = 1;
+}
+message RevokeReportShareRequest {
+  string share_id = 1;
+}
+message RevokeReportShareResponse {
+  bool revoked = 1;
 }

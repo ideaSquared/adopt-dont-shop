@@ -526,6 +526,22 @@ export interface CreateReportShareResponse {
   token: string;
 }
 
+export interface DeleteReportScheduleRequest {
+  scheduleId: string;
+}
+
+export interface DeleteReportScheduleResponse {
+  deleted: boolean;
+}
+
+export interface RevokeReportShareRequest {
+  shareId: string;
+}
+
+export interface RevokeReportShareResponse {
+  revoked: boolean;
+}
+
 function createBaseGdprErasureRequest(): GdprErasureRequest {
   return {
     correlationId: "",
@@ -4152,6 +4168,250 @@ export const CreateReportShareResponse: MessageFns<CreateReportShareResponse> = 
   },
 };
 
+function createBaseDeleteReportScheduleRequest(): DeleteReportScheduleRequest {
+  return { scheduleId: "" };
+}
+
+export const DeleteReportScheduleRequest: MessageFns<DeleteReportScheduleRequest> = {
+  encode(message: DeleteReportScheduleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.scheduleId !== "") {
+      writer.uint32(10).string(message.scheduleId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteReportScheduleRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteReportScheduleRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.scheduleId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteReportScheduleRequest {
+    return {
+      scheduleId: isSet(object.scheduleId)
+        ? globalThis.String(object.scheduleId)
+        : isSet(object.schedule_id)
+        ? globalThis.String(object.schedule_id)
+        : "",
+    };
+  },
+
+  toJSON(message: DeleteReportScheduleRequest): unknown {
+    const obj: any = {};
+    if (message.scheduleId !== "") {
+      obj.scheduleId = message.scheduleId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteReportScheduleRequest>, I>>(base?: I): DeleteReportScheduleRequest {
+    return DeleteReportScheduleRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteReportScheduleRequest>, I>>(object: I): DeleteReportScheduleRequest {
+    const message = createBaseDeleteReportScheduleRequest();
+    message.scheduleId = object.scheduleId ?? "";
+    return message;
+  },
+};
+
+function createBaseDeleteReportScheduleResponse(): DeleteReportScheduleResponse {
+  return { deleted: false };
+}
+
+export const DeleteReportScheduleResponse: MessageFns<DeleteReportScheduleResponse> = {
+  encode(message: DeleteReportScheduleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.deleted !== false) {
+      writer.uint32(8).bool(message.deleted);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteReportScheduleResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteReportScheduleResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.deleted = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteReportScheduleResponse {
+    return { deleted: isSet(object.deleted) ? globalThis.Boolean(object.deleted) : false };
+  },
+
+  toJSON(message: DeleteReportScheduleResponse): unknown {
+    const obj: any = {};
+    if (message.deleted !== false) {
+      obj.deleted = message.deleted;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteReportScheduleResponse>, I>>(base?: I): DeleteReportScheduleResponse {
+    return DeleteReportScheduleResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteReportScheduleResponse>, I>>(object: I): DeleteReportScheduleResponse {
+    const message = createBaseDeleteReportScheduleResponse();
+    message.deleted = object.deleted ?? false;
+    return message;
+  },
+};
+
+function createBaseRevokeReportShareRequest(): RevokeReportShareRequest {
+  return { shareId: "" };
+}
+
+export const RevokeReportShareRequest: MessageFns<RevokeReportShareRequest> = {
+  encode(message: RevokeReportShareRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.shareId !== "") {
+      writer.uint32(10).string(message.shareId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RevokeReportShareRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRevokeReportShareRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.shareId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RevokeReportShareRequest {
+    return {
+      shareId: isSet(object.shareId)
+        ? globalThis.String(object.shareId)
+        : isSet(object.share_id)
+        ? globalThis.String(object.share_id)
+        : "",
+    };
+  },
+
+  toJSON(message: RevokeReportShareRequest): unknown {
+    const obj: any = {};
+    if (message.shareId !== "") {
+      obj.shareId = message.shareId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RevokeReportShareRequest>, I>>(base?: I): RevokeReportShareRequest {
+    return RevokeReportShareRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RevokeReportShareRequest>, I>>(object: I): RevokeReportShareRequest {
+    const message = createBaseRevokeReportShareRequest();
+    message.shareId = object.shareId ?? "";
+    return message;
+  },
+};
+
+function createBaseRevokeReportShareResponse(): RevokeReportShareResponse {
+  return { revoked: false };
+}
+
+export const RevokeReportShareResponse: MessageFns<RevokeReportShareResponse> = {
+  encode(message: RevokeReportShareResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.revoked !== false) {
+      writer.uint32(8).bool(message.revoked);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RevokeReportShareResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRevokeReportShareResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.revoked = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RevokeReportShareResponse {
+    return { revoked: isSet(object.revoked) ? globalThis.Boolean(object.revoked) : false };
+  },
+
+  toJSON(message: RevokeReportShareResponse): unknown {
+    const obj: any = {};
+    if (message.revoked !== false) {
+      obj.revoked = message.revoked;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RevokeReportShareResponse>, I>>(base?: I): RevokeReportShareResponse {
+    return RevokeReportShareResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RevokeReportShareResponse>, I>>(object: I): RevokeReportShareResponse {
+    const message = createBaseRevokeReportShareResponse();
+    message.revoked = object.revoked ?? false;
+    return message;
+  },
+};
+
 /**
  * AuditQueryService is the gRPC contract for the audit vertical's
  * READ surface. The audit service is the sole producer (NATS
@@ -4304,6 +4564,38 @@ export const AuditQueryServiceService = {
     responseDeserialize: (value: Buffer): CreateReportShareResponse => CreateReportShareResponse.decode(value),
   },
   /**
+   * Delete a saved report's recurring delivery schedule by schedule_id.
+   * Idempotent-ish: NOT_FOUND when the schedule doesn't exist. Permission:
+   * reports.update[:any].
+   */
+  deleteReportSchedule: {
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/DeleteReportSchedule" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteReportScheduleRequest): Buffer =>
+      Buffer.from(DeleteReportScheduleRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteReportScheduleRequest => DeleteReportScheduleRequest.decode(value),
+    responseSerialize: (value: DeleteReportScheduleResponse): Buffer =>
+      Buffer.from(DeleteReportScheduleResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteReportScheduleResponse => DeleteReportScheduleResponse.decode(value),
+  },
+  /**
+   * Revoke a token-link share by share_id (sets revoked_at; the token
+   * stops resolving). NOT_FOUND when the share doesn't exist. Permission:
+   * reports.update[:any].
+   */
+  revokeReportShare: {
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/RevokeReportShare" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RevokeReportShareRequest): Buffer =>
+      Buffer.from(RevokeReportShareRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RevokeReportShareRequest => RevokeReportShareRequest.decode(value),
+    responseSerialize: (value: RevokeReportShareResponse): Buffer =>
+      Buffer.from(RevokeReportShareResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RevokeReportShareResponse => RevokeReportShareResponse.decode(value),
+  },
+  /**
    * GDPR saga status. Returns a single row from
    * audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
    * the saga hasn't been requested. Gated on admin.gdpr.read OR
@@ -4365,6 +4657,18 @@ export interface AuditQueryServiceServer extends UntypedServiceImplementation {
    * Permission: reports.update[:any].
    */
   createReportShare: handleUnaryCall<CreateReportShareRequest, CreateReportShareResponse>;
+  /**
+   * Delete a saved report's recurring delivery schedule by schedule_id.
+   * Idempotent-ish: NOT_FOUND when the schedule doesn't exist. Permission:
+   * reports.update[:any].
+   */
+  deleteReportSchedule: handleUnaryCall<DeleteReportScheduleRequest, DeleteReportScheduleResponse>;
+  /**
+   * Revoke a token-link share by share_id (sets revoked_at; the token
+   * stops resolving). NOT_FOUND when the share doesn't exist. Permission:
+   * reports.update[:any].
+   */
+  revokeReportShare: handleUnaryCall<RevokeReportShareRequest, RevokeReportShareResponse>;
   /**
    * GDPR saga status. Returns a single row from
    * audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
@@ -4556,6 +4860,46 @@ export interface AuditQueryServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CreateReportShareResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Delete a saved report's recurring delivery schedule by schedule_id.
+   * Idempotent-ish: NOT_FOUND when the schedule doesn't exist. Permission:
+   * reports.update[:any].
+   */
+  deleteReportSchedule(
+    request: DeleteReportScheduleRequest,
+    callback: (error: ServiceError | null, response: DeleteReportScheduleResponse) => void,
+  ): ClientUnaryCall;
+  deleteReportSchedule(
+    request: DeleteReportScheduleRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteReportScheduleResponse) => void,
+  ): ClientUnaryCall;
+  deleteReportSchedule(
+    request: DeleteReportScheduleRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteReportScheduleResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Revoke a token-link share by share_id (sets revoked_at; the token
+   * stops resolving). NOT_FOUND when the share doesn't exist. Permission:
+   * reports.update[:any].
+   */
+  revokeReportShare(
+    request: RevokeReportShareRequest,
+    callback: (error: ServiceError | null, response: RevokeReportShareResponse) => void,
+  ): ClientUnaryCall;
+  revokeReportShare(
+    request: RevokeReportShareRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RevokeReportShareResponse) => void,
+  ): ClientUnaryCall;
+  revokeReportShare(
+    request: RevokeReportShareRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RevokeReportShareResponse) => void,
   ): ClientUnaryCall;
   /**
    * GDPR saga status. Returns a single row from
