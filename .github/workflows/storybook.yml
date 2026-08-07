@@ -46,9 +46,10 @@ jobs:
         uses: ./.github/actions/setup-workspace
       # ADS-909: cache the built output, keyed on every source file that can
       # affect it — component source, stories, theme (src/**), Storybook and
-      # Vite config, the package manifest, tsconfig and the lockfile. A
-      # doc-only change still triggers the job (via the path filter) but
-      # restores on a hit.
+      # Vite config, the package manifest, tsconfig and the lockfile. The
+      # workflow's path filter (packages/lib.components/**) is broader than
+      # this key, so a change outside these inputs (e.g. the package-level
+      # README) still triggers the job but restores on a hit.
       #
       # The key MUST be source-only. A broad `packages/lib.components/**` glob
       # also hashes node_modules, which is present here (after setup-workspace
