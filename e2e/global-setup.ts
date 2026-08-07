@@ -137,6 +137,20 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
       throw error;
     }
 
+    // Suppress first-run onboarding overlays for the seeded session. The client
+    // app's SwipeOnboarding is a global, pointer-intercepting modal that pops
+    // ~1s after load for a logged-in adopter and would flakily block clicks in
+    // interactive specs (e.g. the profile "Save Changes" button). Seeded e2e
+    // users are not onboarding, so bake the "seen" marker into the captured
+    // storageState. Harmless on the admin/rescue origins, which don't read it.
+    await page.evaluate(() => {
+      try {
+        localStorage.setItem('hasSeenSwipeOnboarding', 'true');
+      } catch {
+        // localStorage can be unavailable on some origins — ignore.
+      }
+    });
+
     const filePath = resolve(import.meta.dirname, AUTH_FILES[roleKey]);
     mkdirSync(dirname(filePath), { recursive: true });
     await context.storageState({ path: filePath });
