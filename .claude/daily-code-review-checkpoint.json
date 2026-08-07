@@ -1,12 +1,12 @@
 {
   "description": "Checkpoint for the Daily Code Review routine. Records the last commit on the default branch (main) that has been reviewed. The next run diffs main from this SHA forward. Update after each run.",
-  "lastReviewedCommit": "823e28a7a20f5d84cc5ecc62db9139c2807759aa",
-  "lastReviewedDate": "2026-08-05",
+  "lastReviewedCommit": "f700a3a3c45dba06a205deeea39403f4e6c1319f",
+  "lastReviewedDate": "2026-08-07",
   "lastRun": {
-    "date": "2026-08-05",
-    "range": "b739507..823e28a",
-    "commitsReviewed": 23,
-    "ticketsFiled": ["ADS-1066"],
-    "notes": "First run of the routine. 23 commits merged 2026-08-05, almost all implementing already-tracked ADS tickets (production-readiness/Security/DevEx/Testing), most with a PR-review hardening round already applied. One new defect filed: ADS-1066 (cron claim quantised by wall-clock, not logical schedule)."
+    "date": "2026-08-07",
+    "range": "823e28a..f700a3a",
+    "commitsReviewed": 16,
+    "ticketsFiled": ["ADS-1123", "ADS-1124", "ADS-1125", "ADS-1126", "ADS-1127"],
+    "notes": "Diff was almost entirely the tracked cross-app UX-review epics (ADS-1067..1098): shared design-system components (Stepper, DateRangePicker, NavSidebar, ErrorState, QueryBoundary, DataTable) and form/table/nav migrations across admin/client/rescue — planned work, reviewed for regressions introduced. app.admin and app.client migrations reviewed clean. Filed: ADS-1123 (DataTable page-local row-id collides across pages, breaking cross-page selection), ADS-1124 (form-primitives ratchet ceiling 269 vs actual 195 — the ADS-1075 guard is defeated), ADS-1125 (rescue /applications/:id deep-link shows nothing for invalid/deleted id), ADS-1126 (migrated DataTables sort DD/MM/YYYY date columns lexicographically; sortable-by-default systemic), ADS-1127 (weekly digest silently moved to Thu 00:00 UTC by the ADS-1066 grid-alignment fix). Noted-but-not-filed (low signal): scheduler due-anchored progression is untested — every scheduler test ticks at ts==due, so reverting scheduler.ts to ts+intervalMs stays green; worth a test but below the filing bar. ADS-1066 fix itself verified correct/complete."
   }
 }
