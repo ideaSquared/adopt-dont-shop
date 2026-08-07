@@ -70,9 +70,10 @@ test.describe('2FA enrollment', () => {
       expect(generateSync({ secret: secret! })).toMatch(/^\d{6}$/);
 
       // 2. Enable with a current code turns 2FA on.
+      const enableToken = generateSync({ secret: secret! });
       const enableRes = await postWithCsrf(api, '/api/v1/auth/2fa/enable', {
         secret,
-        token: generateSync({ secret: secret! }),
+        token: enableToken,
       });
       expect(enableRes.ok()).toBe(true);
 
@@ -88,9 +89,21 @@ test.describe('2FA enrollment', () => {
         await challenge.dispose();
       }
 
-      // 4. Disable with a fresh code turns it back off.
+      // 4. Disable with a fresh code turns it back off. The code MUST come from
+      // a later TOTP step than enable consumed: the server rejects a code it
+      // already accepted (replay protection), and enable + disable land in the
+      // same 30s window often enough to flake. Wait for the code to roll over
+      // (bounded, well under the 60s test timeout) so disable always presents a
+      // code the server hasn't seen.
+      let disableToken = generateSync({ secret: secret! });
+      const rollDeadline = Date.now() + 32_000;
+      while (disableToken === enableToken && Date.now() < rollDeadline) {
+        await new Promise(resolve => setTimeout(resolve, 1_000));
+        disableToken = generateSync({ secret: secret! });
+      }
+      expect(disableToken).not.toBe(enableToken);
       const disableRes = await postWithCsrf(api, '/api/v1/auth/2fa/disable', {
-        token: generateSync({ secret: secret! }),
+        token: disableToken,
       });
       expect(disableRes.ok()).toBe(true);
     } finally {
