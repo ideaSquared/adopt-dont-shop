@@ -61,26 +61,6 @@ export const select = style({
   width: '100%',
 });
 
-export const previewTable = style({
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.85rem',
-});
-
-export const previewCell = style({
-  border: '1px solid #e5e7eb',
-  padding: '0.4rem 0.5rem',
-  verticalAlign: 'top',
-});
-
-export const rowOk = style({
-  background: '#f0fdf4',
-});
-
-export const rowError = style({
-  background: '#fef2f2',
-});
-
 export const errorList = style({
   margin: 0,
   paddingLeft: '1.25rem',

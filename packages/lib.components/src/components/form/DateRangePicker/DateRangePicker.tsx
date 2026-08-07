@@ -9,6 +9,16 @@ export type DateRangeValue = {
   to: string | null;
 };
 
+/**
+ * A quick-select shortcut. `getRange` is evaluated at click time, so relative
+ * ranges (e.g. "Last 7 days") always resolve against the current date without
+ * the component itself reaching for the clock.
+ */
+export type DateRangePreset = {
+  label: string;
+  getRange: () => DateRangeValue;
+};
+
 export type DateRangePickerProps = {
   value: DateRangeValue;
   onChange: (value: DateRangeValue) => void;
@@ -19,6 +29,7 @@ export type DateRangePickerProps = {
   disabled?: boolean;
   error?: string;
   required?: boolean;
+  presets?: DateRangePreset[];
   className?: string;
   'data-testid'?: string;
 };
@@ -32,6 +43,10 @@ const isInvalidRange = (from: string | null, to: string | null): boolean =>
  * user's locale — dd/mm/yyyy for en-GB). Values are ISO `yyyy-mm-dd` strings
  * (or `null`). Selecting a range where `to` precedes `from` surfaces an
  * accessible error, and each field constrains the other's min/max.
+ *
+ * Pass `presets` to render quick-select shortcuts above the fields — each sets
+ * the from/to value on click. Omit it and the component renders exactly as a
+ * plain from/to range control.
  */
 export const DateRangePicker = ({
   value,
@@ -43,6 +58,7 @@ export const DateRangePicker = ({
   disabled = false,
   error,
   required = false,
+  presets,
   className,
   'data-testid': testId,
 }: DateRangePickerProps) => {
@@ -63,6 +79,22 @@ export const DateRangePicker = ({
 
   return (
     <div className={clsx(styles.container, className)} data-testid={testId}>
+      {presets && presets.length > 0 ? (
+        <div className={styles.presets} role='group' aria-label='Quick date ranges'>
+          {presets.map(preset => (
+            <button
+              key={preset.label}
+              type='button'
+              className={styles.presetButton}
+              onClick={() => onChange(preset.getRange())}
+              disabled={disabled}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className={styles.field}>
         <label htmlFor={fromId} className={styles.label}>
           {fromLabel}

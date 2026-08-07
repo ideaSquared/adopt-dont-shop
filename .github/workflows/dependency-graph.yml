@@ -3,23 +3,33 @@ name: Dependency Graph
 # Publishes docs/dependency-graph.html and the per-lib.* "who consumes me"
 # docs (ADS-957). docs/dependency-graph.md previously documented `pnpm graph`
 # as a local-only, git-ignored render — this workflow regenerates both
-# artefacts on every push to main and commits them, so they're always
-# current without anyone having to run the commands by hand.
+# artefacts on every push to main, so they're always current without anyone
+# having to run the commands by hand.
 #
-# Choice made here (see PR description for the full option comparison):
-# committing the regenerated files straight to `main` via the default
-# GITHUB_TOKEN, rather than standing up a second GitHub Pages deployment
-# (a repo can only have one Pages site, and it's already claimed by
-# storybook.yml, which this batch of work must not touch) or opening a PR
-# on every push (heavier than the ticket's acceptance criteria call for).
-# This assumes the default GITHUB_TOKEN has push access to `main`; if branch
-# protection blocks that, switch the final step to
-# peter-evans/create-pull-request instead.
+# Delivery: the regenerated files are proposed as a pull request (via
+# peter-evans/create-pull-request) rather than committed straight to `main`.
+# The original implementation pushed directly to `main` with the default
+# GITHUB_TOKEN, but `main` is now governed by a repository ruleset that
+# requires every change to go through a PR with passing status checks, so a
+# direct push is rejected (GH013). Opening a PR is the fallback the earlier
+# revision of this file already anticipated.
 #
-# The commit message carries `[skip ci]` so the push this workflow makes
-# doesn't retrigger itself (or any other push-triggered workflow) — without
-# it, committing to packages/lib.*/README.md would match this workflow's own
-# `packages/**` path filter and fire again.
+# Two prerequisites for the auto-PR to work end to end:
+#   1. "Allow GitHub Actions to create and approve pull requests" must be
+#      enabled (Settings → Actions → General → Workflow permissions), or the
+#      GITHUB_TOKEN cannot open the PR.
+#   2. A PR opened by the default GITHUB_TOKEN does NOT trigger the
+#      `pull_request` workflows (CI, Quality) that supply the ruleset's
+#      required checks — this is a documented GitHub safeguard against
+#      recursive runs. The PR is therefore created but its required checks
+#      stay "Expected" until a maintainer nudges them (close/reopen, or push
+#      an empty commit). To make it fully hands-off, give the action a GitHub
+#      App token (actions/create-github-app-token) in place of GITHUB_TOKEN;
+#      events from an App identity DO start the required check runs.
+#
+# The PR targets a fixed `chore/dependency-graph` branch, so repeated runs
+# update the same PR instead of opening a new one each time; `delete-branch`
+# cleans it up (and closes the PR) on any run that finds no doc changes.
 
 on:
   push:
@@ -34,6 +44,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: dependency-graph-${{ github.ref }}
@@ -52,14 +63,28 @@ jobs:
         run: pnpm graph
       - name: Regenerate per-library consumer docs
         run: node scripts/generate-dependency-docs.mjs
-      - name: Commit regenerated artefacts
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/dependency-graph.html docs/libraries docs/README.md packages/lib.*/README.md
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-          git commit -m "chore(docs): regenerate dependency graph + consumer lists [skip ci]"
-          git push
+      - name: Open PR with regenerated artefacts
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676  # v7.0.11
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: |
+            docs/dependency-graph.html
+            docs/libraries
+            docs/README.md
+            packages/lib.*/README.md
+          branch: chore/dependency-graph
+          delete-branch: true
+          commit-message: 'chore(docs): regenerate dependency graph + consumer lists'
+          author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          title: 'chore(docs): regenerate dependency graph + consumer lists'
+          body: |
+            Automated regeneration of the Turbo dependency graph and the
+            per-`lib.*` "who consumes me" docs (ADS-957).
+
+            - `docs/dependency-graph.html` — `pnpm graph`
+            - `docs/libraries/*`, `docs/README.md`, `packages/lib.*/README.md`
+              — `node scripts/generate-dependency-docs.mjs`
+
+            Opened automatically by `.github/workflows/dependency-graph.yml`
+            because the `main` ruleset requires changes to land via PR.

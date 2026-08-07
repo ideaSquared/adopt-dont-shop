@@ -2,7 +2,8 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 
-import { DateRangePicker } from './DateRangePicker';
+import { DateRangePicker, type DateRangePreset } from './DateRangePicker';
+import { createDefaultDateRangePresets } from './presets';
 
 describe('DateRangePicker', () => {
   it('renders two labelled date fields', () => {
@@ -81,5 +82,104 @@ describe('DateRangePicker', () => {
 
     expect(screen.getByLabelText('From')).toBeDisabled();
     expect(screen.getByLabelText('To')).toBeDisabled();
+  });
+
+  describe('presets', () => {
+    const presets: DateRangePreset[] = [
+      { label: 'Last 7 days', getRange: () => ({ from: '2026-07-30', to: '2026-08-06' }) },
+      { label: 'This month', getRange: () => ({ from: '2026-08-01', to: '2026-08-31' }) },
+    ];
+
+    it('renders each preset as a button in a labelled group', () => {
+      render(
+        <DateRangePicker value={{ from: null, to: null }} onChange={() => {}} presets={presets} />
+      );
+
+      expect(screen.getByRole('group', { name: 'Quick date ranges' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Last 7 days' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'This month' })).toBeInTheDocument();
+    });
+
+    it('fires onChange with the preset range when a preset is clicked', () => {
+      const onChange = vi.fn();
+      render(
+        <DateRangePicker value={{ from: null, to: null }} onChange={onChange} presets={presets} />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Last 7 days' }));
+      expect(onChange).toHaveBeenCalledWith({ from: '2026-07-30', to: '2026-08-06' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'This month' }));
+      expect(onChange).toHaveBeenCalledWith({ from: '2026-08-01', to: '2026-08-31' });
+    });
+
+    it('renders no preset controls when presets are omitted', () => {
+      render(<DateRangePicker value={{ from: null, to: null }} onChange={() => {}} />);
+
+      expect(screen.queryByRole('group')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('renders no preset controls when presets is an empty array', () => {
+      render(<DateRangePicker value={{ from: null, to: null }} onChange={() => {}} presets={[]} />);
+
+      expect(screen.queryByRole('group')).not.toBeInTheDocument();
+    });
+
+    it('disables preset buttons when disabled', () => {
+      render(
+        <DateRangePicker
+          value={{ from: null, to: null }}
+          onChange={() => {}}
+          presets={presets}
+          disabled
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Last 7 days' })).toBeDisabled();
+    });
+  });
+});
+
+describe('createDefaultDateRangePresets', () => {
+  // 6 August 2026, local time.
+  const now = () => new Date(2026, 7, 6);
+
+  it('offers the standard shortcut set', () => {
+    expect(createDefaultDateRangePresets(now).map(preset => preset.label)).toEqual([
+      'Last 7 days',
+      'Last 30 days',
+      'Last 90 days',
+      'This month',
+      'Last month',
+    ]);
+  });
+
+  it('computes relative day ranges ending today', () => {
+    const [sevenDays, thirtyDays, ninetyDays] = createDefaultDateRangePresets(now);
+
+    expect(sevenDays.getRange()).toEqual({ from: '2026-07-30', to: '2026-08-06' });
+    expect(thirtyDays.getRange()).toEqual({ from: '2026-07-07', to: '2026-08-06' });
+    expect(ninetyDays.getRange()).toEqual({ from: '2026-05-08', to: '2026-08-06' });
+  });
+
+  it('computes calendar-month ranges', () => {
+    const byLabel = new Map(
+      createDefaultDateRangePresets(now).map(preset => [preset.label, preset])
+    );
+
+    expect(byLabel.get('This month')?.getRange()).toEqual({
+      from: '2026-08-01',
+      to: '2026-08-31',
+    });
+    expect(byLabel.get('Last month')?.getRange()).toEqual({
+      from: '2026-07-01',
+      to: '2026-07-31',
+    });
+  });
+
+  it('defaults to the real clock when none is injected', () => {
+    const labels = createDefaultDateRangePresets().map(preset => preset.label);
+    expect(labels).toContain('Last 7 days');
   });
 });
