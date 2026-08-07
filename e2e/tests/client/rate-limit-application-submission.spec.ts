@@ -1,4 +1,6 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
+
+import { fetchCsrfToken } from '../../helpers/csrf';
 import { URLS } from '../../playwright.config';
 
 /**
@@ -6,18 +8,20 @@ import { URLS } from '../../playwright.config';
  * the standard X-RateLimit-* headers on the response. In e2e the ceiling
  * is lifted (GATEWAY_AUTH_RATE_LIMIT_MAX) so suites don't trip a 429, but
  * the headers are still emitted — they're the same contract production
- * exposes. We assert on those headers; no CSRF token is needed because the
- * gateway is Bearer-only.
+ * exposes. We assert on those headers; the login carries the CSRF
+ * double-submit header (ADS-919) so it reaches the limiter/auth layer.
  */
 test.describe('rate limiting', () => {
   test('login responses carry standard rate-limit headers', async () => {
     const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
     try {
       // Bogus credentials are fine — the request is still counted by the
-      // limiter, which is all we're probing for here. No CSRF token: the
-      // gateway is Bearer-only and has no /csrf-token endpoint.
+      // limiter, which is all we're probing for here. The CSRF handshake lets
+      // it clear the gate and reach the limiter/auth layer (ADS-919).
+      const csrfToken = await fetchCsrfToken(ctx);
       const res = await ctx.post('/api/v1/auth/login', {
         data: { email: 'rate-limit-probe@e2e.test', password: 'whatever' },
+        headers: { 'x-csrf-token': csrfToken },
       });
 
       const headers = res.headers();

@@ -1,5 +1,6 @@
 import { request as playwrightRequest, type APIRequestContext } from '@playwright/test';
 
+import { fetchCsrfToken } from '../helpers/csrf';
 import { URLS } from '../playwright.config';
 import { ROLES, type RoleKey } from './roles';
 
@@ -34,13 +35,16 @@ async function getRoleToken(roleKey: RoleKey): Promise<{ accessToken: string; us
     return cached;
   }
   const role = ROLES[roleKey];
-  // The Fastify gateway authenticates with Bearer tokens, not the deleted
-  // monolith's httpOnly-cookie + CSRF model: login returns
-  // `{ user, tokens: { accessToken, refreshToken } }` in the body.
+  // ADS-919: the gateway now issues httpOnly auth cookies and enforces a CSRF
+  // double-submit on state-changing requests. Perform the SPA's handshake —
+  // GET /api/v1/csrf-token, then POST login with the matching x-csrf-token
+  // header — so login is accepted regardless of any cookie the context holds.
   const loginCtx = await playwrightRequest.newContext({ baseURL: URLS.api });
   try {
+    const csrfToken = await fetchCsrfToken(loginCtx);
     const response = await loginCtx.post('/api/v1/auth/login', {
       data: { email: role.email, password: role.password },
+      headers: { 'x-csrf-token': csrfToken },
       timeout: 15_000,
     });
     if (!response.ok()) {
@@ -48,11 +52,16 @@ async function getRoleToken(roleKey: RoleKey): Promise<{ accessToken: string; us
       const text = await response.text();
       throw new Error(`API login failed for ${role.email}: ${status} ${text.slice(0, 500)}`);
     }
-    const body = (await response.json()) as LoginResponse;
-    const accessToken = body.tokens?.accessToken ?? body.tokens?.access_token;
+    // ADS-919: the token pair rides home as httpOnly cookies, not in the JSON
+    // body. Read the accessToken from the context's cookie jar (Playwright
+    // captures httpOnly cookies) — the gateway's authenticate hook accepts it
+    // as an `Authorization: Bearer` credential on the client context below.
+    const { cookies } = await loginCtx.storageState();
+    const accessToken = cookies.find(c => c.name === 'accessToken')?.value;
     if (!accessToken) {
-      throw new Error(`API login for ${role.email} returned no access token`);
+      throw new Error(`API login for ${role.email} returned no access token cookie`);
     }
+    const body = (await response.json()) as LoginResponse;
     const token = { accessToken, userId: readUserId(body) };
     tokenCache.set(roleKey, token);
     return token;

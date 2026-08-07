@@ -216,11 +216,16 @@ describe('AuthService', () => {
       expect(authService.isAuthenticated()).toBe(true);
     });
 
-    it('returns false when the session cookie is present but no user is stored', () => {
+    it('returns true from the session cookie alone, even when no user is cached (ADS-919)', () => {
+      // The HttpOnly session is the source of truth. A restored browser
+      // context / fresh device can hold the hasSession cookie without the
+      // optional localStorage user cache; isAuthenticated() must still report a
+      // live session so the app rehydrates it via /me instead of stranding the
+      // user on the logged-out UI.
       mockLocalStorage.getItem.mockReturnValue(null);
       document.cookie = 'hasSession=1';
 
-      expect(authService.isAuthenticated()).toBe(false);
+      expect(authService.isAuthenticated()).toBe(true);
     });
 
     it('returns false when a user is stored but the session cookie is absent', () => {

@@ -3,6 +3,7 @@ import { generateSync } from 'otplib';
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 
 import { uniqueEmail } from '../../helpers/factories';
+import { postWithCsrf } from '../../helpers/seeds';
 import { verifyEmailViaPeek } from '../../helpers/token-peek';
 import { URLS } from '../../playwright.config';
 
@@ -30,28 +31,29 @@ test.describe('2FA enrollment', () => {
     const email = uniqueEmail('twofa');
     const password = 'BehaviourTest123!';
 
-    // Register + log in the throwaway account.
+    // Register + log in the throwaway account. (State-changing calls carry the
+    // CSRF double-submit header via postWithCsrf — ADS-919.)
     const anon = await playwrightRequest.newContext({ baseURL: URLS.api });
-    const reg = await anon.post('/api/v1/auth/register', {
-      data: {
-        email,
-        password,
-        firstName: 'E2E',
-        lastName: 'TwoFA',
-        termsAccepted: true,
-        privacyPolicyAccepted: true,
-      },
+    const reg = await postWithCsrf(anon, '/api/v1/auth/register', {
+      email,
+      password,
+      firstName: 'E2E',
+      lastName: 'TwoFA',
+      termsAccepted: true,
+      privacyPolicyAccepted: true,
     });
     expect([200, 201]).toContain(reg.status());
 
     // Login now requires a verified email, so verify the throwaway account via
-    // the token-peek seam before the password login can mint tokens.
+    // the token-peek seam before the password login can establish a session.
     await verifyEmailViaPeek(email);
 
-    const loginRes = await anon.post('/api/v1/auth/login', { data: { email, password } });
+    const loginRes = await postWithCsrf(anon, '/api/v1/auth/login', { email, password });
     expect(loginRes.ok()).toBe(true);
-    const loginBody = (await loginRes.json()) as { tokens?: { accessToken?: string } };
-    const accessToken = loginBody.tokens?.accessToken;
+    // ADS-919: the session rides home as httpOnly cookies; read the accessToken
+    // from the jar to drive the Bearer-authenticated 2FA context below.
+    const { cookies } = await anon.storageState();
+    const accessToken = cookies.find(c => c.name === 'accessToken')?.value;
     expect(accessToken).toBeTruthy();
     await anon.dispose();
 
@@ -61,22 +63,24 @@ test.describe('2FA enrollment', () => {
     });
     try {
       // 1. Setup mints a secret the client can drive with otplib.
-      const setupRes = await api.post('/api/v1/auth/2fa/setup');
+      const setupRes = await postWithCsrf(api, '/api/v1/auth/2fa/setup');
       expect(setupRes.ok()).toBe(true);
       const { secret } = (await setupRes.json()) as { secret?: string };
       expect(secret).toBeTruthy();
       expect(generateSync({ secret: secret! })).toMatch(/^\d{6}$/);
 
       // 2. Enable with a current code turns 2FA on.
-      const enableRes = await api.post('/api/v1/auth/2fa/enable', {
-        data: { secret, token: generateSync({ secret: secret! }) },
+      const enableToken = generateSync({ secret: secret! });
+      const enableRes = await postWithCsrf(api, '/api/v1/auth/2fa/enable', {
+        secret,
+        token: enableToken,
       });
       expect(enableRes.ok()).toBe(true);
 
       // 3. A password-only login now returns two_factor_required + no tokens.
       const challenge = await playwrightRequest.newContext({ baseURL: URLS.api });
       try {
-        const reLogin = await challenge.post('/api/v1/auth/login', { data: { email, password } });
+        const reLogin = await postWithCsrf(challenge, '/api/v1/auth/login', { email, password });
         expect(reLogin.ok()).toBe(true);
         const body = (await reLogin.json()) as { twoFactorRequired?: boolean; tokens?: unknown };
         expect(body.twoFactorRequired).toBe(true);
@@ -85,9 +89,21 @@ test.describe('2FA enrollment', () => {
         await challenge.dispose();
       }
 
-      // 4. Disable with a fresh code turns it back off.
-      const disableRes = await api.post('/api/v1/auth/2fa/disable', {
-        data: { token: generateSync({ secret: secret! }) },
+      // 4. Disable with a fresh code turns it back off. The code MUST come from
+      // a later TOTP step than enable consumed: the server rejects a code it
+      // already accepted (replay protection), and enable + disable land in the
+      // same 30s window often enough to flake. Wait for the code to roll over
+      // (bounded, well under the 60s test timeout) so disable always presents a
+      // code the server hasn't seen.
+      let disableToken = generateSync({ secret: secret! });
+      const rollDeadline = Date.now() + 32_000;
+      while (disableToken === enableToken && Date.now() < rollDeadline) {
+        await new Promise(resolve => setTimeout(resolve, 1_000));
+        disableToken = generateSync({ secret: secret! });
+      }
+      expect(disableToken).not.toBe(enableToken);
+      const disableRes = await postWithCsrf(api, '/api/v1/auth/2fa/disable', {
+        token: disableToken,
       });
       expect(disableRes.ok()).toBe(true);
     } finally {

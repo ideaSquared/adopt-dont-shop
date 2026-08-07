@@ -1,47 +1,39 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
+
+import { postWithCsrf } from '../../helpers/seeds';
 import { URLS } from '../../playwright.config';
 import { ROLES } from '../../fixtures/roles';
 
 /**
- * Logout under the gateway's Bearer model. There is no CSRF endpoint and
- * access tokens are stateless JWTs — logout's job is to revoke the
- * *refresh* token (recording its jti in the denylist). So the contract is
- * a plain authenticated POST that carries the refresh token minted at
- * login; no CSRF dance is involved. We then assert the React app drops to
- * its anonymous "Login Required" surface once the browser session is wiped.
+ * Logout under ADS-919's cookie model. Login establishes an httpOnly session
+ * (accessToken + refreshToken + hasSession cookies); logout's job is to revoke
+ * the *refresh* token — which the gateway reads from its httpOnly cookie, not
+ * the body (auth.ts) — and clear the auth cookies. Logout is a state-changing
+ * request, so it carries the CSRF double-submit header like every mutation. We
+ * then assert the React app drops to its anonymous "Login Required" surface
+ * once the browser session is wiped.
  */
 test.describe('logout flow', () => {
   test('an adopter can log out by revoking their refresh token', async ({ page }) => {
     const { email, password } = ROLES.adopter;
 
-    // Fresh login so we hold BOTH tokens — the shared apiAs cache keeps only
-    // the access token, but logout needs the refresh token. No CSRF header.
+    // Fresh login on a dedicated context so it holds the session cookies
+    // (the shared apiAs client caches only a Bearer token). postWithCsrf does
+    // the CSRF handshake; the tokens land as httpOnly cookies on this context.
     const anon = await playwrightRequest.newContext({ baseURL: URLS.api });
-    const loginRes = await anon.post('/api/v1/auth/login', { data: { email, password } });
-    expect(loginRes.ok()).toBe(true);
-    const body = (await loginRes.json()) as {
-      tokens?: { accessToken?: string; refreshToken?: string };
-    };
-    const accessToken = body.tokens?.accessToken;
-    const refreshToken = body.tokens?.refreshToken;
-    expect(accessToken).toBeTruthy();
-    expect(refreshToken).toBeTruthy();
-    await anon.dispose();
-
-    const authed = await playwrightRequest.newContext({
-      baseURL: URLS.api,
-      extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` },
-    });
     try {
-      // Sanity: the access token authenticates before logout.
-      expect((await authed.get('/api/v1/auth/me')).ok()).toBe(true);
+      const loginRes = await postWithCsrf(anon, '/api/v1/auth/login', { email, password });
+      expect(loginRes.ok()).toBe(true);
 
-      // Logout takes no CSRF token — the Bearer context plus the refresh
-      // token in the body is the whole contract. It revokes idempotently.
-      const logoutRes = await authed.post('/api/v1/auth/logout', { data: { refreshToken } });
+      // Sanity: the cookie session authenticates before logout.
+      expect((await anon.get('/api/v1/auth/me')).ok()).toBe(true);
+
+      // Logout revokes the refresh token (read from its httpOnly cookie) and
+      // clears the auth cookies. It revokes idempotently.
+      const logoutRes = await postWithCsrf(anon, '/api/v1/auth/logout', {});
       expect([200, 204]).toContain(logoutRes.status());
     } finally {
-      await authed.dispose();
+      await anon.dispose();
     }
 
     // Browser side: load the client origin while authenticated, wipe the

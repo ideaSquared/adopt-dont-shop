@@ -1,6 +1,7 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 
 import { uniqueEmail } from '../../helpers/factories';
+import { postWithCsrf } from '../../helpers/seeds';
 import { peekAuthTokens } from '../../helpers/token-peek';
 import { URLS } from '../../playwright.config';
 
@@ -20,51 +21,47 @@ test.describe('email verification round-trip (ADS-871)', () => {
     const email = uniqueEmail('verify');
     const api = await playwrightRequest.newContext({ baseURL: URLS.api });
     try {
-      // 1. Register a throwaway adopter.
-      const registerRes = await api.post('/api/v1/auth/register', {
-        data: {
-          email,
-          password: PASSWORD,
-          firstName: 'Verify',
-          lastName: 'Roundtrip',
-          termsAccepted: true,
-          privacyPolicyAccepted: true,
-        },
+      // 1. Register a throwaway adopter. (State-changing calls go through the
+      //    gateway's CSRF double-submit gate via postWithCsrf — ADS-919.)
+      const registerRes = await postWithCsrf(api, '/api/v1/auth/register', {
+        email,
+        password: PASSWORD,
+        firstName: 'Verify',
+        lastName: 'Roundtrip',
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
       });
       expect([200, 201]).toContain(registerRes.status());
 
-      // 2. Login is blocked while the account is unverified. Mirroring the
-      //    2FA flow, the gateway answers 200 with an
-      //    `emailVerificationRequired` flag and NO tokens — the client turns
-      //    that into a "verify your email" prompt rather than a session.
-      const unverifiedLogin = await api.post('/api/v1/auth/login', {
-        data: { email, password: PASSWORD },
+      // 2. Login is blocked while the account is unverified. The auth service
+      //    answers with an OPAQUE 401 "invalid credentials" (handlers.ts) — it
+      //    deliberately does NOT reveal that the account merely needs
+      //    verifying; the client surfaces a resend-verification option
+      //    alongside the invalid-credentials error. No session is established.
+      const unverifiedLogin = await postWithCsrf(api, '/api/v1/auth/login', {
+        email,
+        password: PASSWORD,
       });
-      expect(unverifiedLogin.ok()).toBe(true);
-      const unverifiedBody = (await unverifiedLogin.json()) as {
-        emailVerificationRequired?: boolean;
-        tokens?: { accessToken?: string };
-      };
-      expect(unverifiedBody.emailVerificationRequired).toBe(true);
-      expect(unverifiedBody.tokens?.accessToken).toBeUndefined();
+      expect(unverifiedLogin.ok()).toBe(false);
+      expect(unverifiedLogin.status()).toBe(401);
 
       // 3. Read the verification token via the test-token-peek seam.
       const tokens = await peekAuthTokens(email);
       expect(tokens.verificationToken).toBeTruthy();
 
       // 4. Verify the email.
-      const verifyRes = await api.post('/api/v1/auth/verify-email', {
-        data: { verificationToken: tokens.verificationToken },
+      const verifyRes = await postWithCsrf(api, '/api/v1/auth/verify-email', {
+        verificationToken: tokens.verificationToken,
       });
       expect(verifyRes.ok()).toBe(true);
 
-      // 5. Login now succeeds and returns an access token.
-      const verifiedLogin = await api.post('/api/v1/auth/login', {
-        data: { email, password: PASSWORD },
+      // 5. Login now succeeds (ADS-919: the session rides home as httpOnly
+      //    cookies, so success is `res.ok()` rather than a body token).
+      const verifiedLogin = await postWithCsrf(api, '/api/v1/auth/login', {
+        email,
+        password: PASSWORD,
       });
       expect(verifiedLogin.ok()).toBe(true);
-      const body = (await verifiedLogin.json()) as { tokens?: { accessToken?: string } };
-      expect(body.tokens?.accessToken).toBeTruthy();
 
       // 6. The verification token is single-use — it's cleared after verifying.
       const afterVerify = await peekAuthTokens(email);

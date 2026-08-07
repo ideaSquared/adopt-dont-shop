@@ -1,6 +1,7 @@
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 
 import type { ApiClient } from '../fixtures/api';
+import { withCsrfHeader } from './csrf';
 import { uniquePetName } from './factories';
 
 /**
@@ -21,12 +22,12 @@ export async function expectOk(res: APIResponse, label: string): Promise<void> {
 }
 
 /**
- * Issue a state-changing request. The Fastify gateway authenticates with
- * Bearer tokens — the `apiAs` context already carries the Authorization
- * header — and does NOT use the deleted monolith's cookie/CSRF model (there
- * is no /csrf-token endpoint), so this is a thin passthrough. The
- * `*WithCsrf` export names are retained only to avoid churning every call
- * site; no CSRF handshake happens.
+ * Issue a state-changing request through the gateway's CSRF double-submit
+ * gate (ADS-919). It fetches GET /api/v1/csrf-token on this context (setting
+ * the `csrfToken` cookie) and echoes the value back as the `x-csrf-token`
+ * header — the same handshake the SPA performs — so the mutation is accepted
+ * whether the context authenticates by Bearer header or by session cookie.
+ * See helpers/csrf.ts (the handshake is cached per context).
  */
 async function withCsrf<T extends 'post' | 'patch' | 'put' | 'delete'>(
   ctx: APIRequestContext,
@@ -34,7 +35,8 @@ async function withCsrf<T extends 'post' | 'patch' | 'put' | 'delete'>(
   url: string,
   options: { data?: unknown; headers?: Record<string, string> } = {}
 ): Promise<APIResponse> {
-  return ctx[method](url, options);
+  const headers = await withCsrfHeader(ctx, options.headers);
+  return ctx[method](url, { ...options, headers });
 }
 
 export const postWithCsrf = (

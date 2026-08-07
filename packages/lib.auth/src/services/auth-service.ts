@@ -154,15 +154,16 @@ export class AuthService {
   }
 
   /**
-   * Check if a session is present. Both the stored user record and the
-   * gateway's non-secret `hasSession` marker cookie must be present — the
-   * user drives UI gating, while the cookie reflects whether the gateway
-   * currently considers this browser logged in (set on login/refresh,
-   * cleared on logout). Neither the real access nor refresh token is ever
-   * JS-readable, so this is the closest synchronous equivalent.
+   * Whether the gateway currently considers this browser logged in, read
+   * synchronously from the non-secret `hasSession` marker cookie the gateway
+   * sets on login/refresh and clears on logout. This cookie is the source of
+   * truth for session presence: the real access/refresh tokens are HttpOnly
+   * and never JS-readable, and the localStorage user record is only an
+   * optional cache (a restored browser context or a fresh device may carry
+   * the session cookie without it), so it must not gate session detection.
    */
   isAuthenticated(): boolean {
-    return !!this.getCurrentUser() && hasSessionCookie();
+    return hasSessionCookie();
   }
 
   /**

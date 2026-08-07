@@ -30,24 +30,21 @@ test.describe('adopter profile updates', () => {
       .first()
       .click();
 
-    // Settle for any of: success toast, edit-form closed, bio in summary.
-    await page.waitForTimeout(3_000);
+    // Wait for the save to actually land rather than a blind timeout: on
+    // success the edit form closes and a confirmation appears. Navigating
+    // before the PATCH resolves would abort the request and lose the update.
+    await expect(page.getByText(/profile updated/i).first()).toBeVisible({ timeout: 15_000 });
 
-    // Round-trip: navigate away and back; the bio should still be
-    // visible (either in the summary or the edit-form pre-fill).
+    // Round-trip: navigate away and back. The persisted bio is rendered in the
+    // profile summary from the freshly rehydrated user — the authoritative
+    // "did it persist" signal. (The edit form's textarea pre-fills from the
+    // same source, so asserting the summary is equivalent and free of the
+    // form's mount-time hydration timing.)
     await page.goto('/');
     await page.goto('/profile');
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });
-
-    // Re-open edit form to read the value back.
-    const editBtnAfter = page.getByRole('button', { name: /edit profile/i }).first();
-    if (await editBtnAfter.count()) {
-      await editBtnAfter.click();
-      const bioAfter = page.locator('textarea#bio').first();
-      await expect(bioAfter).toHaveValue(newBio, { timeout: 15_000 });
-    } else {
-      // Fall back to scanning the page for the bio text in the summary.
-      await expect(page.getByText(newBio).first()).toBeVisible({ timeout: 15_000 });
-    }
+    await expect(page.getByRole('heading', { level: 1, name: /my profile/i })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByText(newBio).first()).toBeVisible({ timeout: 15_000 });
   });
 });

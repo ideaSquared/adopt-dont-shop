@@ -1,6 +1,7 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 
 import { uniqueEmail } from '../../helpers/factories';
+import { postWithCsrf } from '../../helpers/seeds';
 import { peekAuthTokens } from '../../helpers/token-peek';
 import { URLS } from '../../playwright.config';
 
@@ -22,16 +23,15 @@ test.describe('password reset round-trip (ADS-871)', () => {
     const email = uniqueEmail('pwreset');
     const api = await playwrightRequest.newContext({ baseURL: URLS.api });
     try {
-      // 1. Register a throwaway adopter.
-      const registerRes = await api.post('/api/v1/auth/register', {
-        data: {
-          email,
-          password: OLD_PASSWORD,
-          firstName: 'Reset',
-          lastName: 'Roundtrip',
-          termsAccepted: true,
-          privacyPolicyAccepted: true,
-        },
+      // 1. Register a throwaway adopter. (All state-changing calls go through
+      //    the gateway's CSRF double-submit gate via postWithCsrf — ADS-919.)
+      const registerRes = await postWithCsrf(api, '/api/v1/auth/register', {
+        email,
+        password: OLD_PASSWORD,
+        firstName: 'Reset',
+        lastName: 'Roundtrip',
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
       });
       expect([200, 201]).toContain(registerRes.status());
 
@@ -39,13 +39,13 @@ test.describe('password reset round-trip (ADS-871)', () => {
       // verification-first: status stays pending_verification until verified).
       const afterRegister = await peekAuthTokens(email);
       expect(afterRegister.verificationToken).toBeTruthy();
-      const verifyRes = await api.post('/api/v1/auth/verify-email', {
-        data: { verificationToken: afterRegister.verificationToken },
+      const verifyRes = await postWithCsrf(api, '/api/v1/auth/verify-email', {
+        verificationToken: afterRegister.verificationToken,
       });
       expect(verifyRes.ok()).toBe(true);
 
       // 3. Request a password reset.
-      const forgotRes = await api.post('/api/v1/auth/forgot-password', { data: { email } });
+      const forgotRes = await postWithCsrf(api, '/api/v1/auth/forgot-password', { email });
       expect(forgotRes.ok()).toBe(true);
 
       // 4. Read the reset token via the test-token-peek seam.
@@ -53,22 +53,25 @@ test.describe('password reset round-trip (ADS-871)', () => {
       expect(afterForgot.resetToken).toBeTruthy();
 
       // 5. Reset the password using the token.
-      const resetRes = await api.post('/api/v1/auth/reset-password', {
-        data: { resetToken: afterForgot.resetToken, newPassword: NEW_PASSWORD },
+      const resetRes = await postWithCsrf(api, '/api/v1/auth/reset-password', {
+        resetToken: afterForgot.resetToken,
+        newPassword: NEW_PASSWORD,
       });
       expect(resetRes.ok()).toBe(true);
 
-      // 6. Logging in with the NEW password succeeds.
-      const newLogin = await api.post('/api/v1/auth/login', {
-        data: { email, password: NEW_PASSWORD },
+      // 6. Logging in with the NEW password succeeds (ADS-919: the token pair
+      //    comes back as httpOnly cookies, so success is `res.ok()`, not a body
+      //    token).
+      const newLogin = await postWithCsrf(api, '/api/v1/auth/login', {
+        email,
+        password: NEW_PASSWORD,
       });
       expect(newLogin.ok()).toBe(true);
-      const body = (await newLogin.json()) as { tokens?: { accessToken?: string } };
-      expect(body.tokens?.accessToken).toBeTruthy();
 
       // 7. The OLD password is now rejected.
-      const oldLogin = await api.post('/api/v1/auth/login', {
-        data: { email, password: OLD_PASSWORD },
+      const oldLogin = await postWithCsrf(api, '/api/v1/auth/login', {
+        email,
+        password: OLD_PASSWORD,
       });
       expect(oldLogin.ok()).toBe(false);
       expect([400, 401]).toContain(oldLogin.status());

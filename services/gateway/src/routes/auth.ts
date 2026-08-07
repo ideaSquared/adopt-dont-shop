@@ -404,6 +404,15 @@ export const registerAuthRoutes = async (
                   userType: { type: 'string' },
                   status: { type: 'string' },
                   emailVerified: { type: 'boolean' },
+                  // Editable account-profile fields must round-trip on GET the
+                  // same way they do on PATCH /users/account — otherwise the
+                  // serializer strips them and a persisted bio (etc.) vanishes
+                  // when the SPA rehydrates the user on reload.
+                  bio: { type: 'string' },
+                  timezone: { type: 'string' },
+                  language: { type: 'string' },
+                  country: { type: 'string' },
+                  city: { type: 'string' },
                 },
               },
               roles: {
@@ -1155,6 +1164,14 @@ export const registerAuthRoutes = async (
                   userType: { type: 'string' },
                   status: { type: 'string' },
                   emailVerified: { type: 'boolean' },
+                  // Keep symmetric with the PATCH /users/account response and
+                  // GET /auth/me so the editable account-profile fields survive
+                  // serialization instead of being silently stripped.
+                  bio: { type: 'string' },
+                  timezone: { type: 'string' },
+                  language: { type: 'string' },
+                  country: { type: 'string' },
+                  city: { type: 'string' },
                 },
               },
               roles: {

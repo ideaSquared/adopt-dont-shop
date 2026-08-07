@@ -1,25 +1,23 @@
 import { expect, request as playwrightRequest, test } from '@playwright/test';
 
+import { fetchCsrfToken } from '../../helpers/csrf';
 import { URLS } from '../../playwright.config';
 import { ROLES, type RoleKey } from '../../fixtures/roles';
 
 /**
  * Gateway smoke — the minimum signal CI gets today (Phase 11 follow-up).
  *
- * The full app-driven Playwright suite is parked while lib.auth and the
- * three React apps are reworked against the gateway's Bearer-token auth
- * contract (the deleted monolith used httpOnly cookies + CSRF, the gateway
- * returns `{ user, tokens: { accessToken, refreshToken } }` in the JSON
- * body). What we CAN gate on right now:
+ * What we gate on:
  *
  *   1. The gateway is reachable on the documented health endpoint.
- *   2. Each seeded persona (#1000) logs in cleanly through
- *      POST /api/v1/auth/login and the response contains an accessToken.
+ *   2. Each seeded persona logs in cleanly through POST /api/v1/auth/login
+ *      and the session is established. Under ADS-919 the token pair rides
+ *      home as httpOnly cookies (not in the body), so success is proven by
+ *      the `accessToken` cookie being set plus the `user` echo — and the
+ *      login POST carries the CSRF double-submit header like the SPA.
  *
- * If either regresses, this spec fails — which is the smallest meaningful
- * smoke we can offer without lying about coverage. Re-add `test-e2e` to
- * branch protection's `ci-required` once lib.auth is reworked and the
- * legacy specs are re-enabled.
+ * If either regresses, this spec fails — the smallest meaningful smoke we can
+ * offer without lying about coverage.
  */
 test.describe('gateway smoke', () => {
   test('health endpoint reports ok @smoke', async () => {
@@ -41,8 +39,10 @@ test.describe('gateway smoke', () => {
       const role = ROLES[roleKey];
       const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
       try {
+        const csrfToken = await fetchCsrfToken(ctx);
         const res = await ctx.post('/api/v1/auth/login', {
           data: { email: role.email, password: role.password },
+          headers: { 'x-csrf-token': csrfToken },
           timeout: 15_000,
         });
         if (!res.ok()) {
@@ -50,12 +50,11 @@ test.describe('gateway smoke', () => {
             `login failed for ${roleKey} (${role.email}): ${res.status()} ${(await res.text()).slice(0, 500)}`
           );
         }
-        const body = (await res.json()) as {
-          tokens?: { accessToken?: string; access_token?: string };
-          user?: { email?: string };
-        };
-        const accessToken = body.tokens?.accessToken ?? body.tokens?.access_token;
-        expect(accessToken).toBeTruthy();
+        // ADS-919: the session is delivered as httpOnly cookies, not a body
+        // token. Prove it landed via the context's cookie jar + the user echo.
+        const { cookies } = await ctx.storageState();
+        expect(cookies.some(c => c.name === 'accessToken' && c.value.length > 0)).toBe(true);
+        const body = (await res.json()) as { user?: { email?: string } };
         expect(body.user?.email).toBe(role.email);
       } finally {
         await ctx.dispose();
