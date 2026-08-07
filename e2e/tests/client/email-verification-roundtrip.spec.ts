@@ -33,21 +33,17 @@ test.describe('email verification round-trip (ADS-871)', () => {
       });
       expect([200, 201]).toContain(registerRes.status());
 
-      // 2. Login is blocked while the account is unverified. Mirroring the
-      //    2FA flow, the gateway answers 200 with an
-      //    `emailVerificationRequired` flag and NO session — no auth cookies,
-      //    and (ADS-919) no tokens in the body either.
+      // 2. Login is blocked while the account is unverified. The auth service
+      //    answers with an OPAQUE 401 "invalid credentials" (handlers.ts) — it
+      //    deliberately does NOT reveal that the account merely needs
+      //    verifying; the client surfaces a resend-verification option
+      //    alongside the invalid-credentials error. No session is established.
       const unverifiedLogin = await postWithCsrf(api, '/api/v1/auth/login', {
         email,
         password: PASSWORD,
       });
-      expect(unverifiedLogin.ok()).toBe(true);
-      const unverifiedBody = (await unverifiedLogin.json()) as {
-        emailVerificationRequired?: boolean;
-        tokens?: { accessToken?: string };
-      };
-      expect(unverifiedBody.emailVerificationRequired).toBe(true);
-      expect(unverifiedBody.tokens?.accessToken).toBeUndefined();
+      expect(unverifiedLogin.ok()).toBe(false);
+      expect(unverifiedLogin.status()).toBe(401);
 
       // 3. Read the verification token via the test-token-peek seam.
       const tokens = await peekAuthTokens(email);
