@@ -101,13 +101,13 @@ describe('PetManagementService', () => {
   describe('updatePet', () => {
     const updateData: PetUpdateData = { name: 'Rex', adoptionFee: '150.00' };
 
-    it('PUTs transformed data to the pet-by-id endpoint', async () => {
-      mockApiService.put.mockResolvedValueOnce({ success: true, data: samplePet });
+    it('PATCHes transformed data to the pet-by-id endpoint', async () => {
+      mockApiService.patch.mockResolvedValueOnce({ success: true, data: samplePet });
 
       const result = await service.updatePet('pet-1', updateData);
 
       expect(result).toEqual(samplePet);
-      const [endpoint, body] = mockApiService.put.mock.calls[0];
+      const [endpoint, body] = mockApiService.patch.mock.calls[0];
       expect(endpoint).toBe('/api/v1/pets/pet-1');
       const sent = body as Record<string, unknown>;
       expect(sent.adoption_fee).toBe('150.00');
@@ -115,7 +115,7 @@ describe('PetManagementService', () => {
     });
 
     it('throws on an unsuccessful response', async () => {
-      mockApiService.put.mockResolvedValueOnce({ success: false });
+      mockApiService.patch.mockResolvedValueOnce({ success: false });
 
       await expect(service.updatePet('pet-1', updateData)).rejects.toThrow('Failed to update pet');
     });
@@ -144,20 +144,20 @@ describe('PetManagementService', () => {
   });
 
   describe('updatePetStatus', () => {
-    it('PATCHes the status sub-resource with status and notes', async () => {
-      mockApiService.patch.mockResolvedValueOnce({ success: true, data: samplePet });
+    it('POSTs the status sub-resource with toStatus and reason', async () => {
+      mockApiService.post.mockResolvedValueOnce({ success: true, data: samplePet });
 
       const result = await service.updatePetStatus('pet-1', 'adopted' as PetStatus, 'Found home');
 
       expect(result).toEqual(samplePet);
-      expect(mockApiService.patch).toHaveBeenCalledWith('/api/v1/pets/pet-1/status', {
-        status: 'adopted',
-        notes: 'Found home',
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/pets/pet-1/status', {
+        toStatus: 'adopted',
+        reason: 'Found home',
       });
     });
 
     it('throws when the status update is unsuccessful', async () => {
-      mockApiService.patch.mockResolvedValueOnce({ success: false });
+      mockApiService.post.mockResolvedValueOnce({ success: false });
 
       await expect(service.updatePetStatus('pet-1', 'adopted' as PetStatus)).rejects.toThrow(
         'Failed to update pet status'

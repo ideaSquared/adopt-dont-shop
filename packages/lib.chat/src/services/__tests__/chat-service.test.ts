@@ -658,10 +658,10 @@ describe('ChatService', () => {
       await expect(service.addReaction('conv-123', 'msg-123', '\u{1F44D}')).resolves.not.toThrow();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/v1/chats/conv-123/messages/msg-123/reactions',
+        'http://localhost:5000/api/v1/messages/msg-123/reactions',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ emoji: '\u{1F44D}' }),
+          body: JSON.stringify({ emoji: '\u{1F44D}', remove: false }),
         })
       );
     });
@@ -681,10 +681,10 @@ describe('ChatService', () => {
       ).resolves.not.toThrow();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/v1/chats/conv-123/messages/msg-123/reactions',
+        'http://localhost:5000/api/v1/messages/msg-123/reactions',
         expect.objectContaining({
-          method: 'DELETE',
-          body: JSON.stringify({ emoji: '\u{1F44D}' }),
+          method: 'POST',
+          body: JSON.stringify({ emoji: '\u{1F44D}', remove: true }),
         })
       );
     });

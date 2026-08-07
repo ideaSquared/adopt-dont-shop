@@ -215,7 +215,11 @@ export class PermissionsService {
    */
   public async assignRole(request: RoleAssignmentRequest): Promise<boolean> {
     try {
-      await this.apiService.post('/api/v1/users/assign-role', request);
+      await this.apiService.post('/api/v1/auth/assign-role', {
+        targetUserId: request.userId,
+        role: request.role,
+        reason: request.reason,
+      });
 
       // Clear cache for the user
       this.permissionsCache.delete(request.userId);
@@ -342,7 +346,7 @@ export class PermissionsService {
    */
   public async healthCheck(): Promise<boolean> {
     try {
-      await this.apiService.get('/api/v1/permissions/health');
+      await this.apiService.get('/health/ready');
       return true;
     } catch (error) {
       if (this.config.debug) {

@@ -626,7 +626,7 @@ export class ApiService {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.fetch('/api/v1/health');
+      await this.fetch('/health/simple');
       return true;
     } catch (error) {
       if (this.config.debug) {

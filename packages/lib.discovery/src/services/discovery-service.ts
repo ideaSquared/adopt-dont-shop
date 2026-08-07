@@ -13,6 +13,26 @@ import {
 } from '../types';
 
 /**
+ * Shape of the gateway's matching-session response
+ * (POST /api/v1/matching/sessions and .../:id/end). The proto
+ * `SwipeSession` is serialised with ts-proto `toJSON`, so fields at their
+ * default value (0 counters, empty strings) are omitted — hence every
+ * field is optional here and defaulted when mapping to `SwipeSession`.
+ */
+type MatchingSessionResponse = {
+  session?: {
+    sessionId?: string;
+    userId?: string;
+    startTime?: string;
+    endTime?: string;
+    totalSwipes?: number;
+    likes?: number;
+    passes?: number;
+    superLikes?: number;
+  };
+};
+
+/**
  * Pet Discovery Service
  *
  * Provides intelligent pet discovery functionality with swipe-based interface,
@@ -243,16 +263,22 @@ export class DiscoveryService {
    */
   async startSwipeSession(userId?: string, filters: PetSearchFilters = {}): Promise<SwipeSession> {
     try {
-      const requestBody = {
-        userId,
-        filters,
-        startTime: new Date().toISOString(),
-      };
+      const res = await this.apiService.post<MatchingSessionResponse>('/api/v1/matching/sessions', {
+        filtersJson: JSON.stringify(filters),
+      });
 
-      return await this.apiService.post<SwipeSession>(
-        `${this.API_BASE_URL}/swipe/session/start`,
-        requestBody
-      );
+      const session = res.session ?? {};
+      return {
+        sessionId: session.sessionId ?? '',
+        userId: session.userId ?? userId,
+        startTime: session.startTime ?? new Date().toISOString(),
+        endTime: session.endTime,
+        totalSwipes: session.totalSwipes ?? 0,
+        likes: session.likes ?? 0,
+        passes: session.passes ?? 0,
+        superLikes: session.superLikes ?? 0,
+        filters,
+      };
     } catch (error) {
       if (this.config.debug) {
         console.warn('Failed to start swipe session, creating local session:', error);
@@ -279,10 +305,7 @@ export class DiscoveryService {
    */
   async endSwipeSession(sessionId: string): Promise<void> {
     try {
-      await this.apiService.post(`${this.API_BASE_URL}/swipe/session/end`, {
-        sessionId,
-        endTime: new Date().toISOString(),
-      });
+      await this.apiService.post(`/api/v1/matching/sessions/${sessionId}/end`);
     } catch (error) {
       if (this.config.debug) {
         console.warn('Failed to end swipe session:', error);

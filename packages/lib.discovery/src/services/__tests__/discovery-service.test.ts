@@ -302,18 +302,25 @@ describe('DiscoveryService', () => {
       };
 
       it('should start a new swipe session successfully', async () => {
-        mockApiService.post.mockResolvedValue(mockSession);
+        mockApiService.post.mockResolvedValue({
+          session: {
+            sessionId: 'session-123',
+            userId: 'user-123',
+            startTime: '2024-01-01T12:00:00Z',
+            totalSwipes: 0,
+            likes: 0,
+            passes: 0,
+            superLikes: 0,
+            filtersJson: JSON.stringify({ type: 'dog' }),
+          },
+          created: true,
+        });
 
         const result = await service.startSwipeSession('user-123', { type: 'dog' });
 
-        expect(mockApiService.post).toHaveBeenCalledWith(
-          '/api/v1/discovery/swipe/session/start',
-          expect.objectContaining({
-            userId: 'user-123',
-            filters: { type: 'dog' },
-            startTime: expect.any(String),
-          })
-        );
+        expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/matching/sessions', {
+          filtersJson: JSON.stringify({ type: 'dog' }),
+        });
         expect(result).toEqual(mockSession);
       });
 
@@ -341,10 +348,9 @@ describe('DiscoveryService', () => {
 
         await service.endSwipeSession('session-123');
 
-        expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/discovery/swipe/session/end', {
-          sessionId: 'session-123',
-          endTime: expect.any(String),
-        });
+        expect(mockApiService.post).toHaveBeenCalledWith(
+          '/api/v1/matching/sessions/session-123/end'
+        );
       });
 
       it('should handle API failure gracefully', async () => {

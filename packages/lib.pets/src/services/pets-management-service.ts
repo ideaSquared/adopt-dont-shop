@@ -76,7 +76,7 @@ export class PetManagementService {
    */
   async updatePet(petId: string, petData: PetUpdateData): Promise<Pet> {
     try {
-      const response = await this.apiService.put<ApiResponse<Pet>>(
+      const response = await this.apiService.patch<ApiResponse<Pet>>(
         PETS_ENDPOINTS.PET_BY_ID(petId),
         this.transformPetDataForAPI(petData)
       );
@@ -121,9 +121,9 @@ export class PetManagementService {
    */
   async updatePetStatus(petId: string, status: PetStatus, notes?: string): Promise<Pet> {
     try {
-      const response = await this.apiService.patch<ApiResponse<Pet>>(
+      const response = await this.apiService.post<ApiResponse<Pet>>(
         `${PETS_ENDPOINTS.PET_BY_ID(petId)}/status`,
-        { status, notes }
+        { toStatus: status, reason: notes }
       );
 
       if (response.success && response.data) {

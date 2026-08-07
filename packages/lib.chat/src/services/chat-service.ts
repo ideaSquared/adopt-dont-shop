@@ -811,15 +811,15 @@ export class ChatService {
   /**
    * Add a reaction to a message
    */
-  async addReaction(conversationId: string, messageId: string, emoji: string): Promise<void> {
+  async addReaction(_conversationId: string, messageId: string, emoji: string): Promise<void> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
+        `${this.config.apiUrl}/api/v1/messages/${messageId}/reactions`,
         {
           method: 'POST',
           credentials: 'include',
           headers: await this.getMutatingHeaders(),
-          body: JSON.stringify({ emoji }),
+          body: JSON.stringify({ emoji, remove: false }),
         }
       );
 
@@ -837,15 +837,15 @@ export class ChatService {
   /**
    * Remove a reaction from a message
    */
-  async removeReaction(conversationId: string, messageId: string, emoji: string): Promise<void> {
+  async removeReaction(_conversationId: string, messageId: string, emoji: string): Promise<void> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
+        `${this.config.apiUrl}/api/v1/messages/${messageId}/reactions`,
         {
-          method: 'DELETE',
+          method: 'POST',
           credentials: 'include',
           headers: await this.getMutatingHeaders(),
-          body: JSON.stringify({ emoji }),
+          body: JSON.stringify({ emoji, remove: true }),
         }
       );
 

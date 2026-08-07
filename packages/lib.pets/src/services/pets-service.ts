@@ -259,7 +259,8 @@ export class PetsService {
           hasNext: boolean;
           hasPrev: boolean;
         };
-      }>(PETS_ENDPOINTS.PETS_BY_RESCUE(rescueId), {
+      }>(PETS_ENDPOINTS.PETS, {
+        rescueId,
         page,
         limit: 20,
       });

@@ -415,7 +415,8 @@ describe('PetsService', () => {
       expect(result.data[0].pet_id).toBe('p1');
       expect(result.pagination.page).toBe(3);
       expect(result.pagination.limit).toBe(20);
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/rescue/rescue-1', {
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets', {
+        rescueId: 'rescue-1',
         page: 3,
         limit: 20,
       });

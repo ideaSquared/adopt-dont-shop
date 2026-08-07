@@ -269,10 +269,10 @@ describe('PermissionsService', () => {
       });
 
       expect(result).toBe(true);
-      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/users/assign-role', {
-        userId: 'user123',
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/auth/assign-role', {
+        targetUserId: 'user123',
         role: 'rescue_staff',
-        assignedBy: 'admin-1',
+        reason: undefined,
       });
 
       // Cache cleared — the next read must re-fetch.
@@ -558,7 +558,7 @@ describe('PermissionsService', () => {
 
       const result = await service.healthCheck();
 
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/permissions/health');
+      expect(mockApiService.get).toHaveBeenCalledWith('/health/ready');
       expect(result).toBe(true);
     });
 

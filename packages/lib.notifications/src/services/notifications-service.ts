@@ -190,13 +190,24 @@ export class NotificationsService {
   /**
    * Mark all notifications as read for a user
    */
-  public async markAllAsRead(userId: string): Promise<BaseResponse<{ updated: number }>> {
+  public async markAllAsRead(_userId: string): Promise<BaseResponse<{ updated: number }>> {
     try {
-      const response = await this.apiService.patch<BaseResponse<{ updated: number }>>(
-        `/api/v1/notifications/user/${userId}/mark-all-read`
-      );
+      // Principal-scoped: the gateway derives the user from the session, so
+      // no userId is sent. Gateway returns `data.affectedCount`; map it onto
+      // the caller's `data.updated` contract.
+      const response = await this.apiService.post<{
+        success: boolean;
+        message?: string;
+        timestamp?: string;
+        data: { affectedCount: number };
+      }>('/api/v1/notifications/read-all');
 
-      return response;
+      return {
+        data: { updated: response.data.affectedCount },
+        success: response.success,
+        message: response.message,
+        timestamp: response.timestamp ?? new Date().toISOString(),
+      };
     } catch (error) {
       if (this.config.debug) {
         console.error(`${NotificationsService.name} markAllAsRead failed:`, error);
@@ -230,10 +241,11 @@ export class NotificationsService {
   /**
    * Get user notification preferences
    */
-  public async getUserPreferences(userId: string): Promise<BaseResponse<NotificationPreferences>> {
+  public async getUserPreferences(_userId: string): Promise<BaseResponse<NotificationPreferences>> {
     try {
+      // Principal-scoped: the gateway resolves the user from the session.
       const response = await this.apiService.get<BaseResponse<NotificationPreferences>>(
-        `/api/v1/notifications/preferences/${userId}`
+        '/api/v1/notifications/preferences'
       );
 
       return response;
@@ -348,13 +360,29 @@ export class NotificationsService {
     sampleData: Record<string, unknown>
   ): Promise<BaseResponse<{ title: string; message: string; html?: string }>> {
     try {
-      const response = await this.apiService.post<
-        BaseResponse<{ title: string; message: string; html?: string }>
-      >(`/api/v1/notifications/templates/${templateId}/preview`, {
-        sampleData,
+      // The email-template preview route (service.notifications owns
+      // email_templates) reads `variables` and returns
+      // `{ subject, htmlContent, textContent }`. Map those onto the caller's
+      // `{ title, message, html }` contract.
+      const response = await this.apiService.post<{
+        success: boolean;
+        message?: string;
+        timestamp?: string;
+        data: { subject: string; htmlContent: string; textContent?: string };
+      }>(`/api/v1/email/templates/${templateId}/preview`, {
+        variables: sampleData,
       });
 
-      return response;
+      return {
+        data: {
+          title: response.data.subject,
+          message: response.data.textContent ?? '',
+          html: response.data.htmlContent,
+        },
+        success: response.success,
+        message: response.message,
+        timestamp: response.timestamp ?? new Date().toISOString(),
+      };
     } catch (error) {
       if (this.config.debug) {
         console.error(`${NotificationsService.name} previewTemplate failed:`, error);
@@ -388,10 +416,11 @@ export class NotificationsService {
   /**
    * Get unread notification count for a user
    */
-  public async getUnreadCount(userId: string): Promise<BaseResponse<{ count: number }>> {
+  public async getUnreadCount(_userId: string): Promise<BaseResponse<{ count: number }>> {
     try {
+      // Principal-scoped: the gateway resolves the user from the session.
       const response = await this.apiService.get<BaseResponse<{ count: number }>>(
-        `/api/v1/notifications/user/${userId}/unread-count`
+        '/api/v1/notifications/unread/count'
       );
 
       return response;

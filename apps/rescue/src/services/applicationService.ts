@@ -100,6 +100,17 @@ const buildSingleStageTransitionUpdates = (
 };
 
 /**
+ * Combine the schedule form's date (YYYY-MM-DD) and time (HH:mm) into a
+ * single ISO instant for the ScheduleHomeVisit request, which takes one
+ * `scheduledAt` timestamp rather than separate fields. Falls back to the
+ * raw date when the combined value can't be parsed.
+ */
+const combineDateTime = (date: string, time: string): string => {
+  const parsed = new Date(`${date}T${time || '00:00'}`);
+  return Number.isNaN(parsed.getTime()) ? date : parsed.toISOString();
+};
+
+/**
  * Application Service for Rescue App
  * Uses the configured API service with authentication
  */
@@ -517,7 +528,16 @@ export class RescueApplicationService {
   }
 
   /**
-   * Schedule a home visit
+   * Schedule a home visit.
+   *
+   * Backed by POST /api/v1/applications/:id/home-visit/schedule
+   * (ScheduleHomeVisit): the service models the visit on the application
+   * itself, so the route takes a single `scheduledAt` instant plus an
+   * optional `note` and returns the updated application (not a standalone
+   * visit row). We fold the form's date + time into one ISO timestamp for
+   * the request and return the scheduled visit assembled from the submitted
+   * values — the consuming hook re-fetches the application afterwards, so the
+   * assigned-staff field (which the service does not persist) stays local.
    */
   async scheduleHomeVisit(
     applicationId: string,
@@ -529,30 +549,23 @@ export class RescueApplicationService {
     }
   ): Promise<HomeVisit> {
     try {
-      const response = await this.apiService.post<{
-        success: boolean;
-        message: string;
-        visit: HomeVisit;
-      }>(`/api/v1/applications/${applicationId}/home-visits`, {
-        scheduled_date: visitData.scheduledDate,
-        scheduled_time: visitData.scheduledTime,
-        assigned_staff: visitData.assignedStaff,
-        notes: visitData.notes,
+      await this.apiService.post<{ application?: unknown }>(
+        `/api/v1/applications/${applicationId}/home-visit/schedule`,
+        {
+          scheduledAt: combineDateTime(visitData.scheduledDate, visitData.scheduledTime),
+          note: visitData.notes,
+        }
+      );
+
+      return {
+        id: `visit-${applicationId}`,
+        applicationId,
+        scheduledDate: visitData.scheduledDate,
+        scheduledTime: visitData.scheduledTime,
+        assignedStaff: visitData.assignedStaff,
         status: 'scheduled',
-      });
-
-      // Handle backend response format { success: true, visit: {...} }
-      if (response.success && response.visit) {
-        return response.visit;
-      }
-
-      // Fallback for direct HomeVisit response (backward compatibility)
-      const fallback = response as unknown as Record<string, unknown>;
-      if (fallback.id || fallback.scheduledDate) {
-        return fallback as unknown as HomeVisit;
-      }
-
-      throw new Error('Invalid response format from server');
+        notes: visitData.notes,
+      };
     } catch (error) {
       console.error('Error scheduling home visit:', error);
       throw new Error('Failed to schedule home visit. Please try again.');

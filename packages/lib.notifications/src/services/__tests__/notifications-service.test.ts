@@ -258,21 +258,19 @@ describe('NotificationsService', () => {
     });
 
     describe('markAllAsRead', () => {
-      it('should mark all notifications as read for a user', async () => {
+      it('should mark all notifications as read for the calling user', async () => {
         const userId = 'user123';
         const mockResponse = {
-          data: { updated: 5 },
           success: true,
-          timestamp: new Date().toISOString(),
+          message: 'Marked 5 notifications as read',
+          data: { affectedCount: 5 },
         };
 
-        mockApiService.patch = vi.fn().mockResolvedValue(mockResponse);
+        mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.markAllAsRead(userId);
 
-        expect(mockApiService.patch).toHaveBeenCalledWith(
-          '/api/v1/notifications/user/user123/mark-all-read'
-        );
+        expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/notifications/read-all');
         expect(result.data.updated).toBe(5);
       });
     });
@@ -321,9 +319,7 @@ describe('NotificationsService', () => {
 
         const result = await service.getUserPreferences(userId);
 
-        expect(mockApiService.get).toHaveBeenCalledWith(
-          '/api/v1/notifications/preferences/user123'
-        );
+        expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/notifications/preferences');
         expect(result.data.userId).toBe(userId);
       });
     });
@@ -374,9 +370,7 @@ describe('NotificationsService', () => {
 
         const result = await service.getUnreadCount(userId);
 
-        expect(mockApiService.get).toHaveBeenCalledWith(
-          '/api/v1/notifications/user/user123/unread-count'
-        );
+        expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/notifications/unread/count');
         expect(result.data.count).toBe(5);
       });
     });
@@ -477,7 +471,7 @@ describe('NotificationsService', () => {
 
     describe('markAllAsRead errors', () => {
       it('should propagate API errors', async () => {
-        mockApiService.patch = vi.fn().mockRejectedValue(new Error('mark-all failed'));
+        mockApiService.post = vi.fn().mockRejectedValue(new Error('mark-all failed'));
 
         await expect(service.markAllAsRead('user123')).rejects.toThrow('mark-all failed');
       });
@@ -601,18 +595,22 @@ describe('NotificationsService', () => {
       it('should preview a template with sample data', async () => {
         const sampleData = { name: 'Rex' };
         const mockResponse = {
-          data: { title: 'Hi Rex', message: 'Sample', html: '<p>Hi Rex</p>' },
           success: true,
-          timestamp: new Date().toISOString(),
+          data: {
+            subject: 'Hi Rex',
+            htmlContent: '<p>Hi Rex</p>',
+            textContent: 'Sample',
+          },
         };
         mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.previewTemplate('tpl1', sampleData);
 
-        expect(mockApiService.post).toHaveBeenCalledWith(
-          '/api/v1/notifications/templates/tpl1/preview',
-          { sampleData }
-        );
+        expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/email/templates/tpl1/preview', {
+          variables: sampleData,
+        });
+        expect(result.data.title).toBe('Hi Rex');
+        expect(result.data.message).toBe('Sample');
         expect(result.data.html).toBe('<p>Hi Rex</p>');
       });
 
