@@ -98,6 +98,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 ## Backend development
 
 - [API endpoints](./backend/api-endpoints.md) — REST endpoints reference
+- [API route audit findings](./backend/api-route-audit-findings.md) — frontend-call ↔ gateway-route mismatch audit and remediation roadmap
 - [API versioning & deprecation](./api-versioning.md) — `/api/v<N>/` scheme, breaking-change definition, deprecation lifecycle
 - [Database schema](./backend/database-schema.md) — service-owned schemas and relationships
 - [Writing migrations](./backend/writing-migrations.md) — numbering, up/down, testing, failure recovery
