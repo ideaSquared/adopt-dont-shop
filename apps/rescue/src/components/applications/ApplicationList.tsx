@@ -149,8 +149,6 @@ const sortFieldForKey = (key: string): ApplicationSort['field'] | null => {
       return 'submittedAt';
     case 'status':
       return 'status';
-    case 'petName':
-      return 'petName';
     case 'applicantName':
       return 'applicantName';
     case 'priority':
@@ -575,6 +573,10 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
             columns={columns}
             rows={tableRows}
             getRowId={row => String(row.id)}
+            getRowLabel={row => {
+              const app = byId.get(String(row.id));
+              return app ? `application from ${app.applicantName}` : 'application';
+            }}
             onRowClick={handleRowClick}
             rowClassName={() => styles.tableRow}
             selectable={selectionEnabled}

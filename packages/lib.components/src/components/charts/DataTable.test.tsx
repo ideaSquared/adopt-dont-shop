@@ -183,6 +183,40 @@ describe('DataTable row selection', () => {
     await user.click(rowCheckboxes[1]);
     expect(onSelectionChange).toHaveBeenCalledWith(['r1', 'r2']);
   });
+
+  it('gives each row checkbox a distinct accessible name (via row id by default)', () => {
+    renderWithTheme(
+      <DataTable
+        title='Pets'
+        columns={columns}
+        rows={idRows}
+        selectable
+        selectedIds={[]}
+        onSelectionChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('checkbox', { name: 'Select row r1' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Select row r2' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Select row r3' })).toBeInTheDocument();
+  });
+
+  it('labels row checkboxes via getRowLabel when provided', () => {
+    renderWithTheme(
+      <DataTable
+        title='Pets'
+        columns={columns}
+        rows={idRows}
+        selectable
+        selectedIds={[]}
+        onSelectionChange={vi.fn()}
+        getRowLabel={row => `pet ${String(row.name)}`}
+      />
+    );
+
+    expect(screen.getByRole('checkbox', { name: 'Select pet Bea' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Select pet Ada' })).toBeInTheDocument();
+  });
 });
 
 describe('DataTable controlled sort', () => {
@@ -296,6 +330,24 @@ describe('DataTable controlled pagination', () => {
 
     expect(screen.getByRole('button', { name: /prev/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /next/i })).toBeEnabled();
+  });
+
+  it('clamps an out-of-range controlled page to the last page for display and nav', () => {
+    renderWithTheme(
+      <DataTable
+        title='Pets'
+        columns={columns}
+        rows={idRows}
+        page={99}
+        pageSize={10}
+        total={25}
+        onPageChange={vi.fn()}
+      />
+    );
+
+    // ceil(25 / 10) === 3 pages; an out-of-range page 99 clamps to 3.
+    expect(screen.getByText('Page 3 of 3')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
   });
 });
 

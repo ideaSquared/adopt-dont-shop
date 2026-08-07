@@ -44,6 +44,12 @@ export type DataTableProps = Omit<ChartFrameProps, 'children' | 'isEmpty' | 'tit
   onSelectionChange?: (selectedIds: string[]) => void;
   /** Derives a stable id for a row (defaults to `row.id`, falling back to index). */
   getRowId?: (row: Record<string, unknown>, index: number) => string;
+  /**
+   * Accessible label for a row's selection checkbox. Defaults to
+   * `Select row <id>` so each checkbox has a distinct name; supply this for a
+   * human-friendly label (e.g. the row's name).
+   */
+  getRowLabel?: (row: Record<string, unknown>, index: number) => string;
 
   // ── Controlled (server-side) sort (opt-in) ─────────────────────────────
   /** When `onSortChange` is provided the table stops sorting locally. */
@@ -101,6 +107,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   selectedIds,
   onSelectionChange,
   getRowId,
+  getRowLabel,
   sortBy,
   sortDirection,
   onSortChange,
@@ -139,7 +146,7 @@ export const DataTable: React.FC<DataTableProps> = ({
     ? Math.max(1, Math.ceil((total ?? 0) / pageSize))
     : Math.max(1, Math.ceil(sortedRows.length / pageSize));
   const currentPageIndex = controlledPagination
-    ? Math.max(0, (page ?? 1) - 1)
+    ? Math.min(pageCount - 1, Math.max(0, (page ?? 1) - 1))
     : Math.min(internalPage, pageCount - 1);
   const visibleRows = controlledPagination
     ? sortedRows
@@ -272,7 +279,9 @@ export const DataTable: React.FC<DataTableProps> = ({
                     <input
                       type='checkbox'
                       className={styles.checkbox}
-                      aria-label='Select row'
+                      aria-label={
+                        getRowLabel ? `Select ${getRowLabel(row, i)}` : `Select row ${rowId}`
+                      }
                       checked={selectedSet.has(rowId)}
                       onChange={() => toggleOne(rowId)}
                     />
