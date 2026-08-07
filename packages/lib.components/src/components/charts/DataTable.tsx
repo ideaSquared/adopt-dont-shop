@@ -269,6 +269,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     type='button'
                     className={styles.sortButton}
                     onClick={() => handleSort(col.key)}
+                    style={{ textAlign: col.align }}
                   >
                     {col.label}
                     {isSorted ? (activeSortDir === 'asc' ? ' ▲' : ' ▼') : ''}
@@ -320,7 +321,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                         key={col.key}
                         className={styles.td}
                         data-label={col.label}
-                        style={{ textAlign: col.align }}
+                        style={{ width: col.width, textAlign: col.align }}
                       >
                         {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '')}
                       </td>
@@ -362,7 +363,12 @@ export const DataTable: React.FC<DataTableProps> = ({
   }
 
   return (
-    <ChartFrame {...frame} title={title ?? ''} isEmpty={!loading && rows.length === 0}>
+    <ChartFrame
+      {...frame}
+      title={title ?? ''}
+      isLoading={loading ? false : frame.isLoading}
+      isEmpty={!loading && rows.length === 0}
+    >
       {content}
     </ChartFrame>
   );

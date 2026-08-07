@@ -406,17 +406,39 @@ describe('DataTable loading state', () => {
     expect(screen.queryAllByTestId('skeleton-row')).toHaveLength(0);
     expect(screen.getByText('Bea')).toBeInTheDocument();
   });
+
+  it('prefers skeleton rows over ChartFrame isLoading when both are set', () => {
+    renderWithTheme(<DataTable title='Pets' columns={columns} rows={[]} loading isLoading />);
+    expect(screen.getAllByTestId('skeleton-row')).toHaveLength(5);
+    // ChartFrame's own "Loading…" state is suppressed so the skeleton table shows.
+    expect(screen.queryByTestId('chart-loading')).not.toBeInTheDocument();
+  });
 });
 
 describe('DataTable column width + alignment', () => {
-  it('applies per-column width and alignment to the header cell', () => {
+  it('applies per-column width + alignment to the header and body cells', () => {
     renderWithTheme(
       <DataTable
         title='Pets'
-        columns={[{ key: 'name', label: 'Name', width: '200px', align: 'center' }]}
+        columns={[{ key: 'name', label: 'Name', width: '200px', align: 'center', sortable: false }]}
         rows={idRows}
       />
     );
     expect(screen.getByTestId('th-name')).toHaveStyle({ width: '200px', textAlign: 'center' });
+    expect(screen.getByText('Bea').closest('td')).toHaveStyle({
+      width: '200px',
+      textAlign: 'center',
+    });
+  });
+
+  it('aligns a sortable header label via its sort button (not just the th)', () => {
+    renderWithTheme(
+      <DataTable
+        title='Pets'
+        columns={[{ key: 'name', label: 'Name', align: 'right', sortable: true }]}
+        rows={idRows}
+      />
+    );
+    expect(screen.getByRole('button', { name: /name/i })).toHaveStyle({ textAlign: 'right' });
   });
 });
