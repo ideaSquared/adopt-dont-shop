@@ -83,6 +83,12 @@ export type DataTableProps = Omit<ChartFrameProps, 'children' | 'isEmpty' | 'tit
 
   /** Render the bare table without the ChartFrame chrome (title/border/states). */
   frameless?: boolean;
+  /**
+   * Frameless tables are bare by default; set `surface` to wrap them in a
+   * bordered, rounded container (no ChartFrame title/state chrome) — the shell
+   * admin list tables use.
+   */
+  surface?: boolean;
 };
 
 const compareCells = (a: unknown, b: unknown): number => {
@@ -131,6 +137,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   getRowVariant,
   rowClassName,
   frameless = false,
+  surface = false,
   ...frame
 }) => {
   const [internalSortKey, setInternalSortKey] = useState<string | null>(null);
@@ -356,10 +363,13 @@ export const DataTable: React.FC<DataTableProps> = ({
   );
 
   if (frameless) {
-    if (!loading && rows.length === 0) {
-      return <div className={styles.emptyFrameless}>{frame.emptyMessage ?? 'No data'}</div>;
-    }
-    return content;
+    const body =
+      !loading && rows.length === 0 ? (
+        <div className={styles.emptyFrameless}>{frame.emptyMessage ?? 'No data'}</div>
+      ) : (
+        content
+      );
+    return surface ? <div className={styles.surface}>{body}</div> : body;
   }
 
   return (

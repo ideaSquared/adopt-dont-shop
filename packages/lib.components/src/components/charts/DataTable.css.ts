@@ -174,6 +174,14 @@ export const emptyFrameless = style({
   fontSize: vars.typography.size.sm,
 });
 
+/** Frameless bordered shell — the admin list-table surface (no ChartFrame title). */
+export const surface = style({
+  border: `${vars.border.width.thin} solid var(--color-border, #e5e7eb)`,
+  borderRadius: vars.border.radius.base,
+  overflow: 'hidden',
+  backgroundColor: vars.background.surface,
+});
+
 /**
  * Per-row highlighting. `variant` tints the row for valid / duplicate / invalid
  * style states; `selected` highlights a row picked via the selection column.
