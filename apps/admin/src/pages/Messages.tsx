@@ -9,6 +9,8 @@ import {
   toast,
   MetricCard,
   Badge,
+  DataTable,
+  type DataTableColumn,
 } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
@@ -29,7 +31,6 @@ import {
   SearchInputWrapper,
   Select,
 } from '../components/ui';
-import { DataTable, type Column } from '../components/data';
 import {
   useAdminChats,
   useAdminChatStats,
@@ -211,110 +212,134 @@ const Messages: React.FC = () => {
     }
   };
 
-  const columns: Column<Conversation>[] = [
+  // Columns use the shared DataTable's key/label/render shape. This table is
+  // client-side (no server pagination or server sort was ever wired — the old
+  // table's sort only wrote URL params the query ignored, and the 'status_badge'
+  // key does not map to a data field), so every column is explicitly
+  // non-sortable rather than opting into the shared table's client-side sort.
+  const columns: DataTableColumn[] = [
     {
-      id: 'status',
-      header: '',
-      accessor: row => <div className={getStatusDotClass(row.status || 'active')} />,
+      key: 'status',
+      label: '',
       width: '40px',
+      sortable: false,
+      render: (_value, row) => (
+        <div className={getStatusDotClass((row as Conversation).status || 'active')} />
+      ),
     },
     {
-      id: 'conversation',
-      header: 'Conversation',
-      accessor: row => (
-        <div className={styles.messagePreview}>
-          <div className={styles.messageParticipants}>
-            {row.participants.map((p, i) => (
-              <React.Fragment key={p.id}>
-                {i > 0 && ' ↔ '}
-                {p.name}
-              </React.Fragment>
-            ))}
-          </div>
-          <div className={styles.messageSubject}>
-            Chat #{row.id.slice(-6)}
-            {row.rescueName && ` - ${row.rescueName}`}
-            {row.petId && ` (Pet: ${row.petId.slice(-6)})`}
-          </div>
-          <div className={styles.messageMeta}>
-            <span>{row.participants.length} participants</span>
-            {row.unreadCount > 0 && <span>• {row.unreadCount} unread</span>}
-            <span>• Last activity: {formatTimestamp(row.updatedAt)}</span>
-          </div>
-        </div>
-      ),
+      key: 'conversation',
+      label: 'Conversation',
       width: '420px',
-    },
-    {
-      id: 'lastMessage',
-      header: 'Last Message',
-      accessor: row => (
-        <div className={styles.lastMessageCell}>
-          {row.lastMessage?.content || (
-            <span className={styles.noMessagesPlaceholder}>No messages</span>
-          )}
-        </div>
-      ),
-      width: '250px',
-    },
-    {
-      id: 'participants',
-      header: 'Participants',
-      accessor: row => (
-        <div className={styles.participantsList}>
-          {row.participants.slice(0, 2).map(p => (
-            <div key={p.id} className={styles.participantInfo}>
-              <div className={styles.participantName}>{p.name}</div>
-              <div className={styles.participantRole}>{p.type}</div>
+      sortable: false,
+      render: (_value, row) => {
+        const chat = row as Conversation;
+        return (
+          <div className={styles.messagePreview}>
+            <div className={styles.messageParticipants}>
+              {chat.participants.map((p, i) => (
+                <React.Fragment key={p.id}>
+                  {i > 0 && ' ↔ '}
+                  {p.name}
+                </React.Fragment>
+              ))}
             </div>
-          ))}
-          {row.participants.length > 2 && (
-            <div className={styles.participantMore}>+{row.participants.length - 2} more</div>
-          )}
-        </div>
-      ),
+            <div className={styles.messageSubject}>
+              Chat #{chat.id.slice(-6)}
+              {chat.rescueName && ` - ${chat.rescueName}`}
+              {chat.petId && ` (Pet: ${chat.petId.slice(-6)})`}
+            </div>
+            <div className={styles.messageMeta}>
+              <span>{chat.participants.length} participants</span>
+              {chat.unreadCount > 0 && <span>• {chat.unreadCount} unread</span>}
+              <span>• Last activity: {formatTimestamp(chat.updatedAt)}</span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'lastMessage',
+      label: 'Last Message',
+      width: '250px',
+      sortable: false,
+      render: (_value, row) => {
+        const chat = row as Conversation;
+        return (
+          <div className={styles.lastMessageCell}>
+            {chat.lastMessage?.content || (
+              <span className={styles.noMessagesPlaceholder}>No messages</span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'participants',
+      label: 'Participants',
       width: '180px',
+      sortable: false,
+      render: (_value, row) => {
+        const chat = row as Conversation;
+        return (
+          <div className={styles.participantsList}>
+            {chat.participants.slice(0, 2).map(p => (
+              <div key={p.id} className={styles.participantInfo}>
+                <div className={styles.participantName}>{p.name}</div>
+                <div className={styles.participantRole}>{p.type}</div>
+              </div>
+            ))}
+            {chat.participants.length > 2 && (
+              <div className={styles.participantMore}>+{chat.participants.length - 2} more</div>
+            )}
+          </div>
+        );
+      },
     },
     {
-      id: 'status_badge',
-      header: 'Status',
-      accessor: row => getStatusBadge(row.status),
+      key: 'status_badge',
+      label: 'Status',
       width: '100px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => getStatusBadge((row as Conversation).status),
     },
     {
-      id: 'actions',
-      header: 'Actions',
-      accessor: row => (
-        <div className={styles.actionButtons}>
-          <button
-            className={styles.actionButton}
-            onClick={e => {
-              e.stopPropagation();
-              setSelectedChatId(row.id);
-            }}
-            title='View chat'
-          >
-            <FiEye />
-          </button>
-          <button
-            className={styles.actionButton}
-            onClick={e => handleUpdateStatus(row.id, 'archived', e)}
-            title='Archive chat'
-          >
-            <FiFlag />
-          </button>
-          <button
-            className={styles.actionButton}
-            onClick={e => handleDeleteChat(row.id, e)}
-            title='Delete chat'
-          >
-            <FiTrash />
-          </button>
-        </div>
-      ),
+      key: 'actions',
+      label: 'Actions',
       width: '120px',
       align: 'center',
+      sortable: false,
+      render: (_value, row) => {
+        const chat = row as Conversation;
+        return (
+          <div className={styles.actionButtons}>
+            <button
+              className={styles.actionButton}
+              onClick={e => {
+                e.stopPropagation();
+                setSelectedChatId(chat.id);
+              }}
+              title='View chat'
+            >
+              <FiEye />
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={e => handleUpdateStatus(chat.id, 'archived', e)}
+              title='Archive chat'
+            >
+              <FiFlag />
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={e => handleDeleteChat(chat.id, e)}
+              title='Delete chat'
+            >
+              <FiTrash />
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -388,12 +413,17 @@ const Messages: React.FC = () => {
       )}
 
       <DataTable
+        frameless
+        surface
         columns={columns}
-        data={chats}
+        rows={chats as unknown as Record<string, unknown>[]}
         loading={loading}
         emptyMessage='No conversations found matching your criteria'
-        onRowClick={chat => setSelectedChatId(chat.id)}
-        getRowId={chat => chat.id}
+        // No server pagination for chats; keep every returned row on one page
+        // rather than letting the shared table client-paginate at its default.
+        pageSize={Math.max(chats.length, 1)}
+        getRowId={row => (row as Conversation).id}
+        onRowClick={row => setSelectedChatId((row as Conversation).id)}
       />
 
       <ChatDetailModal

@@ -180,8 +180,9 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('h1', props, children),
   Input: (props: React.ComponentPropsWithoutRef<'input'>) => React.createElement('input', props),
   // ADS-1085: shared DataTable now backs the admin list pages. Mirror the real
-  // key/label/render column contract plus row-click, selection, loading and
-  // empty states so migrated pages keep their table behaviour under test.
+  // key/label/render column contract plus row-click, per-row + header select-all
+  // selection, loading and empty states so migrated pages keep their table
+  // behaviour under test.
   DataTable: ({
     columns,
     rows,
@@ -217,6 +218,17 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         next.delete(id);
       } else {
         next.add(id);
+      }
+      onSelectionChange?.(Array.from(next));
+    };
+    const rowIds = rows.map((row, index) => rowKey(row, index));
+    const allSelected = rowIds.length > 0 && rowIds.every(id => selected.has(id));
+    const toggleAll = (): void => {
+      const next = new Set(selected);
+      if (allSelected) {
+        rowIds.forEach(id => next.delete(id));
+      } else {
+        rowIds.forEach(id => next.add(id));
       }
       onSelectionChange?.(Array.from(next));
     };
@@ -277,7 +289,18 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         React.createElement(
           'tr',
           null,
-          selectable ? React.createElement('th', { key: '__select' }) : null,
+          selectable
+            ? React.createElement(
+                'th',
+                { key: '__select' },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  'aria-label': 'Select all',
+                  checked: allSelected,
+                  onChange: toggleAll,
+                })
+              )
+            : null,
           ...columns.map(col => React.createElement('th', { key: col.key }, col.label))
         )
       ),

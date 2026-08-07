@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
-import { Heading, Text, Input, useDebouncedValue } from '@adopt-dont-shop/lib.components';
+import {
+  DataTable,
+  type DataTableColumn,
+  Heading,
+  Text,
+  Input,
+  useDebouncedValue,
+} from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiCheckCircle,
@@ -11,7 +18,6 @@ import {
   FiMapPin,
   FiAlertCircle,
 } from 'react-icons/fi';
-import { DataTable, type Column } from '../components/data';
 import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import { exportData, type ExportColumn } from '@/services/exportService';
@@ -200,93 +206,109 @@ const Rescues: React.FC = () => {
     setBulkResult(null);
   };
 
-  const columns: Column<AdminRescue>[] = [
+  // Columns use the shared DataTable's key/label/render shape. Server-side sort
+  // was never wired for rescues (fetchRescues never reads sortBy/sortOrder from
+  // the URL nor passes them to rescueService.getAll), so every column is
+  // explicitly non-sortable rather than opting into the shared table's
+  // client-side sort of the current page only.
+  const columns: DataTableColumn[] = [
     {
-      id: 'rescue',
-      header: 'Rescue Organization',
-      accessor: row => (
-        <div className={styles.rescueInfo}>
-          <div className={styles.rescueName}>{row.name}</div>
-          <div className={styles.rescueDetail}>
-            <FiMail />
-            {row.email}
-          </div>
-          <div className={styles.rescueDetail}>
-            <FiMapPin />
-            {row.city}
-            {row.county ? `, ${row.county}` : ''}
-          </div>
-        </div>
-      ),
+      key: 'rescue',
+      label: 'Rescue Organization',
       width: '350px',
+      sortable: false,
+      render: (_value, row) => {
+        const rescue = row as unknown as AdminRescue;
+        return (
+          <div className={styles.rescueInfo}>
+            <div className={styles.rescueName}>{rescue.name}</div>
+            <div className={styles.rescueDetail}>
+              <FiMail />
+              {rescue.email}
+            </div>
+            <div className={styles.rescueDetail}>
+              <FiMapPin />
+              {rescue.city}
+              {rescue.county ? `, ${rescue.county}` : ''}
+            </div>
+          </div>
+        );
+      },
     },
     {
-      id: 'status',
-      header: 'Status',
-      accessor: row => getStatusBadge(row.status),
+      key: 'status',
+      label: 'Status',
       width: '140px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => getStatusBadge((row as unknown as AdminRescue).status),
     },
     {
-      id: 'createdAt',
-      header: 'Registered',
-      accessor: row => formatDate(row.createdAt),
+      key: 'createdAt',
+      label: 'Registered',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => formatDate((row as unknown as AdminRescue).createdAt),
     },
     {
-      id: 'verified',
-      header: 'Verified',
-      accessor: row => (row.verifiedAt ? formatDate(row.verifiedAt) : '-'),
+      key: 'verified',
+      label: 'Verified',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => {
+        const rescue = row as unknown as AdminRescue;
+        return rescue.verifiedAt ? formatDate(rescue.verifiedAt) : '-';
+      },
     },
     {
-      id: 'actions',
-      header: 'Actions',
-      accessor: row => (
-        <div
-          className={styles.actionButtons}
-          onClick={e => e.stopPropagation()}
-          onKeyDown={e => e.stopPropagation()}
-          role='presentation'
-        >
-          <button
-            className={styles.iconButton}
-            title='View details'
-            onClick={() => handleViewDetails(row.rescueId)}
-          >
-            <FiEye />
-          </button>
-          {row.status === 'pending' && (
-            <>
-              <button
-                className={clsx(styles.iconButton, styles.approveButton)}
-                title='Approve'
-                onClick={() => handleApprove(row)}
-              >
-                <FiCheckCircle />
-              </button>
-              <button
-                className={clsx(styles.iconButton, styles.rejectButton)}
-                title='Reject'
-                onClick={() => handleReject(row)}
-              >
-                <FiXCircle />
-              </button>
-            </>
-          )}
-          <button
-            className={styles.iconButton}
-            title='Send email'
-            onClick={() => handleSendEmail(row)}
-          >
-            <FiMail />
-          </button>
-        </div>
-      ),
+      key: 'actions',
+      label: 'Actions',
       width: '140px',
       align: 'center',
+      sortable: false,
+      render: (_value, row) => {
+        const rescue = row as unknown as AdminRescue;
+        return (
+          <div
+            className={styles.actionButtons}
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
+            role='presentation'
+          >
+            <button
+              className={styles.iconButton}
+              title='View details'
+              onClick={() => handleViewDetails(rescue.rescueId)}
+            >
+              <FiEye />
+            </button>
+            {rescue.status === 'pending' && (
+              <>
+                <button
+                  className={clsx(styles.iconButton, styles.approveButton)}
+                  title='Approve'
+                  onClick={() => handleApprove(rescue)}
+                >
+                  <FiCheckCircle />
+                </button>
+                <button
+                  className={clsx(styles.iconButton, styles.rejectButton)}
+                  title='Reject'
+                  onClick={() => handleReject(rescue)}
+                >
+                  <FiXCircle />
+                </button>
+              </>
+            )}
+            <button
+              className={styles.iconButton}
+              title='Send email'
+              onClick={() => handleSendEmail(rescue)}
+            >
+              <FiMail />
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -303,7 +325,7 @@ const Rescues: React.FC = () => {
       </div>
 
       {error && (
-        <div className={styles.errorMessage}>
+        <div className={styles.errorMessage} role='alert'>
           <FiAlertCircle />
           {error}
         </div>
@@ -365,19 +387,21 @@ const Rescues: React.FC = () => {
             />
 
             <DataTable
+              frameless
+              surface
               columns={columns}
-              data={rescues}
+              rows={rescues as unknown as Record<string, unknown>[]}
               loading={loading}
-              error={error}
               emptyMessage='No rescue organizations found matching your criteria. Try adjusting your search or filters.'
-              onRowClick={rescue => handleViewDetails(rescue.rescueId)}
-              currentPage={currentPage}
-              totalPages={totalPages}
+              onRowClick={row => handleViewDetails((row as unknown as AdminRescue).rescueId)}
+              page={currentPage}
+              total={totalPages * itemsPerPage}
+              pageSize={itemsPerPage}
               onPageChange={setCurrentPage}
               selectable
-              selectedRows={selectedRows}
-              onSelectionChange={setSelectedRows}
-              getRowId={rescue => rescue.rescueId}
+              selectedIds={selectedRows}
+              onSelectionChange={ids => setSelectedRows(new Set(ids))}
+              getRowId={row => String((row as unknown as AdminRescue).rescueId)}
             />
           </>
         }

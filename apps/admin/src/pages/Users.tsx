@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import {
+  DataTable,
+  type DataTableColumn,
   Heading,
   Text,
   Button,
@@ -14,7 +16,6 @@ import {
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiUserPlus } from 'react-icons/fi';
-import { DataTable, type Column } from '../components/data';
 import {
   useUsers,
   useSuspendUser,
@@ -131,8 +132,6 @@ const Users: React.FC = () => {
     page,
     limit: 20,
   });
-
-  const totalPages = data?.pagination?.totalPages ?? 1;
 
   const suspendUser = useSuspendUser();
   const unsuspendUser = useUnsuspendUser();
@@ -378,64 +377,84 @@ const Users: React.FC = () => {
     });
   };
 
-  const columns: Column<AdminUser>[] = [
+  // Columns use the shared DataTable's key/label/render shape. Server-side sort
+  // was never wired for users (the old table's sort only wrote URL params the
+  // query ignored), so every column is explicitly non-sortable rather than
+  // opting into the shared table's client-side sort of the current page only.
+  const columns: DataTableColumn[] = [
     {
-      id: 'user',
-      header: 'User',
-      accessor: row => (
-        <div className={styles.userInfo}>
-          <div className={styles.userAvatar}>{getUserInitials(row.firstName, row.lastName)}</div>
-          <div className={styles.userDetails}>
-            <div className={styles.userName}>
-              {row.firstName} {row.lastName}
-            </div>
-            <div className={styles.userEmail}>{row.email}</div>
-          </div>
-        </div>
-      ),
+      key: 'user',
+      label: 'User',
       width: '300px',
+      sortable: false,
+      render: (_value, row) => {
+        const user = row as unknown as AdminUser;
+        return (
+          <div className={styles.userInfo}>
+            <div className={styles.userAvatar}>
+              {getUserInitials(user.firstName, user.lastName)}
+            </div>
+            <div className={styles.userDetails}>
+              <div className={styles.userName}>
+                {user.firstName} {user.lastName}
+              </div>
+              <div className={styles.userEmail}>{user.email}</div>
+            </div>
+          </div>
+        );
+      },
     },
     {
-      id: 'userType',
-      header: 'Type',
-      accessor: row => (
-        <span className={getUserTypeBadgeClass(row.userType)}>
-          {getUserTypeBadgeLabel(row.userType)}
-        </span>
-      ),
+      key: 'userType',
+      label: 'Type',
       width: '140px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => {
+        const user = row as unknown as AdminUser;
+        return (
+          <span className={getUserTypeBadgeClass(user.userType)}>
+            {getUserTypeBadgeLabel(user.userType)}
+          </span>
+        );
+      },
     },
     {
-      id: 'status',
-      header: 'Status',
-      accessor: row => (
-        <span className={getStatusBadgeClass(row.status, row.emailVerified)}>
-          {getStatusBadgeLabel(row.status, row.emailVerified)}
-        </span>
-      ),
+      key: 'status',
+      label: 'Status',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => {
+        const user = row as unknown as AdminUser;
+        return (
+          <span className={getStatusBadgeClass(user.status, user.emailVerified)}>
+            {getStatusBadgeLabel(user.status, user.emailVerified)}
+          </span>
+        );
+      },
     },
     {
-      id: 'rescue',
-      header: 'Rescue',
-      accessor: row => row.rescueName || '-',
+      key: 'rescue',
+      label: 'Rescue',
       width: '180px',
+      sortable: false,
+      render: (_value, row) => (row as unknown as AdminUser).rescueName || '-',
     },
     {
-      id: 'createdAt',
-      header: 'Joined',
-      accessor: row => formatDate(row.createdAt),
+      key: 'createdAt',
+      label: 'Joined',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => formatDate((row as unknown as AdminUser).createdAt),
     },
     {
-      id: 'lastLogin',
-      header: 'Last Login',
-      accessor: row => (row.lastLogin ? formatDate(row.lastLogin) : 'Never'),
+      key: 'lastLogin',
+      label: 'Last Login',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => {
+        const user = row as unknown as AdminUser;
+        return user.lastLogin ? formatDate(user.lastLogin) : 'Never';
+      },
     },
   ];
 
@@ -547,18 +566,21 @@ const Users: React.FC = () => {
               }
             >
               <DataTable
+                frameless
+                surface
                 columns={columns}
-                data={users}
+                rows={users as unknown as Record<string, unknown>[]}
                 loading={isLoading}
                 emptyMessage='No users found matching your criteria. Try adjusting your search or filters.'
-                onRowClick={handleRowClick}
-                currentPage={page}
-                totalPages={totalPages}
+                onRowClick={row => handleRowClick(row as unknown as AdminUser)}
+                page={page}
+                total={data?.pagination?.total ?? 0}
+                pageSize={20}
                 onPageChange={setPage}
                 selectable
-                selectedRows={selectedRows}
-                onSelectionChange={setSelectedRows}
-                getRowId={user => user.userId}
+                selectedIds={selectedRows}
+                onSelectionChange={ids => setSelectedRows(new Set(ids))}
+                getRowId={row => String((row as unknown as AdminUser).userId)}
               />
             </QueryBoundary>
           </>

@@ -1,6 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { Heading, Text, Button, Input, Badge } from '@adopt-dont-shop/lib.components';
+import {
+  Heading,
+  Text,
+  Button,
+  Input,
+  Badge,
+  DataTable,
+  type DataTableColumn,
+} from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiUser, FiEdit, FiTrash, FiShield, FiRefreshCw } from 'react-icons/fi';
 import {
   PageContainer,
@@ -12,7 +20,6 @@ import {
   SearchInputWrapper,
   Select,
 } from '../components/ui';
-import { DataTable, type Column } from '../components/data';
 import { AuditLogsService, AuditLogStatus, type AuditLog } from '@adopt-dont-shop/lib.audit-logs';
 import * as styles from './Audit.css';
 
@@ -75,7 +82,6 @@ const Audit: React.FC = () => {
   });
 
   const logs = data?.data || [];
-  const totalPages = data?.pagination?.pages ?? 1;
 
   const filteredLogs = useMemo(() => {
     if (!searchQuery) {
@@ -154,81 +160,99 @@ const Audit: React.FC = () => {
       .join(' ');
   };
 
-  const columns: Column<AuditLog>[] = [
+  // Columns use the shared DataTable's key/label/render shape. Server-side sort
+  // was never wired for audit logs (the old table's sort only wrote URL params
+  // the query ignored), so every column is explicitly non-sortable rather than
+  // opting into the shared table's client-side sort of the current page only.
+  const columns: DataTableColumn[] = [
     {
-      id: 'action',
-      header: 'Action',
-      accessor: row => (
-        <div className={styles.logDetails}>
-          <div className={styles.logAction}>
-            <div className={getActionIconClass(row.action.toLowerCase())}>
-              {getActionIcon(row.action.toLowerCase())}
-            </div>
-            {row.action} {formatResourceName(row.category)}
-          </div>
-          {row.metadata?.entityId && (
-            <div className={styles.logResource}>ID: {row.metadata.entityId}</div>
-          )}
-        </div>
-      ),
+      key: 'action',
+      label: 'Action',
       width: '280px',
+      sortable: false,
+      render: (_value, row) => {
+        const log = row as AuditLog;
+        return (
+          <div className={styles.logDetails}>
+            <div className={styles.logAction}>
+              <div className={getActionIconClass(log.action.toLowerCase())}>
+                {getActionIcon(log.action.toLowerCase())}
+              </div>
+              {log.action} {formatResourceName(log.category)}
+            </div>
+            {log.metadata?.entityId && (
+              <div className={styles.logResource}>ID: {log.metadata.entityId}</div>
+            )}
+          </div>
+        );
+      },
     },
     {
-      id: 'user',
-      header: 'User',
-      accessor: row => (
-        <div className={styles.userInfo}>
-          <div className={styles.userAvatar}>
-            {row.userName ? getUserInitials(row.userName) : 'NA'}
-          </div>
-          <div>
-            <div className={styles.userName}>{row.userName || 'System'}</div>
-            <div className={styles.subUserType}>{row.userType || 'system'}</div>
-          </div>
-        </div>
-      ),
+      key: 'user',
+      label: 'User',
       width: '180px',
+      sortable: false,
+      render: (_value, row) => {
+        const log = row as AuditLog;
+        return (
+          <div className={styles.userInfo}>
+            <div className={styles.userAvatar}>
+              {log.userName ? getUserInitials(log.userName) : 'NA'}
+            </div>
+            <div>
+              <div className={styles.userName}>{log.userName || 'System'}</div>
+              <div className={styles.subUserType}>{log.userType || 'system'}</div>
+            </div>
+          </div>
+        );
+      },
     },
     {
-      id: 'changes',
-      header: 'Changes',
-      accessor: row =>
-        row.metadata?.details ? (
+      key: 'changes',
+      label: 'Changes',
+      width: '100px',
+      align: 'center',
+      sortable: false,
+      render: (_value, row) => {
+        const log = row as AuditLog;
+        return log.metadata?.details ? (
           <button
             className={styles.changesButton}
             onClick={e => {
               e.stopPropagation();
-              setSelectedLog(row);
+              setSelectedLog(log);
             }}
           >
             View Details
           </button>
         ) : (
           <span className={styles.subUserType}>—</span>
-        ),
-      width: '100px',
-      align: 'center',
+        );
+      },
     },
     {
-      id: 'ipAddress',
-      header: 'IP Address',
-      accessor: row =>
-        row.ip_address ? <span className={styles.ipAddress}>{row.ip_address}</span> : '—',
+      key: 'ipAddress',
+      label: 'IP Address',
       width: '140px',
+      sortable: false,
+      render: (_value, row) => {
+        const log = row as AuditLog;
+        return log.ip_address ? <span className={styles.ipAddress}>{log.ip_address}</span> : '—';
+      },
     },
     {
-      id: 'status',
-      header: 'Status',
-      accessor: row => getStatusBadge(row.status || 'success'),
+      key: 'status',
+      label: 'Status',
       width: '100px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => getStatusBadge((row as AuditLog).status || 'success'),
     },
     {
-      id: 'timestamp',
-      header: 'Time',
-      accessor: row => formatTimestamp(row.timestamp.toString()),
+      key: 'timestamp',
+      label: 'Time',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => formatTimestamp((row as AuditLog).timestamp.toString()),
     },
   ];
 
@@ -301,15 +325,18 @@ const Audit: React.FC = () => {
       )}
 
       <DataTable
+        frameless
+        surface
         columns={columns}
-        data={filteredLogs}
+        rows={filteredLogs as unknown as Record<string, unknown>[]}
         loading={isLoading}
         emptyMessage='No audit logs found matching your criteria'
-        onRowClick={log => setSelectedLog(log)}
-        currentPage={page}
-        totalPages={totalPages}
+        page={page}
+        total={data?.pagination?.total ?? 0}
+        pageSize={50}
         onPageChange={setPage}
-        getRowId={log => log.id.toString()}
+        getRowId={row => (row as AuditLog).id.toString()}
+        onRowClick={row => setSelectedLog(row as AuditLog)}
       />
 
       {selectedLog && (

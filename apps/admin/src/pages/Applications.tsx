@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
+  DataTable,
+  type DataTableColumn,
   Heading,
   Text,
   Input,
@@ -10,7 +12,6 @@ import {
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
 import { FiSearch } from 'react-icons/fi';
-import { DataTable, type Column } from '../components/data';
 import { useApplications, useBulkUpdateApplications, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
@@ -94,8 +95,6 @@ const Applications: React.FC = () => {
     limit: 20,
   });
 
-  const totalPages = data?.pagination?.pages ?? 1;
-
   const bulkUpdateApplications = useBulkUpdateApplications();
 
   const applications: AdminApplication[] = data?.data ?? [];
@@ -155,43 +154,53 @@ const Applications: React.FC = () => {
     setBulkResult(null);
   };
 
-  const columns: Column<AdminApplication>[] = [
+  // Columns use the shared DataTable's key/label/render shape. Server-side sort
+  // was never wired for applications (the old table's sort only wrote URL params
+  // the query ignored), so every column is explicitly non-sortable rather than
+  // opting into the shared table's client-side sort of the current page only.
+  const columns: DataTableColumn[] = [
     {
-      id: 'applicant',
-      header: 'Applicant',
-      accessor: row => (
-        <div className={styles.applicantInfo}>
-          <div className={styles.applicantName}>{row.applicantName}</div>
-          <div className={styles.applicantEmail}>{row.applicantEmail}</div>
-        </div>
-      ),
+      key: 'applicant',
+      label: 'Applicant',
       width: '240px',
+      sortable: false,
+      render: (_value, row) => {
+        const app = row as AdminApplication;
+        return (
+          <div className={styles.applicantInfo}>
+            <div className={styles.applicantName}>{app.applicantName}</div>
+            <div className={styles.applicantEmail}>{app.applicantEmail}</div>
+          </div>
+        );
+      },
     },
     {
-      id: 'pet',
-      header: 'Pet',
-      accessor: row => row.petName,
+      key: 'pet',
+      label: 'Pet',
       width: '160px',
+      sortable: false,
+      render: (_value, row) => (row as AdminApplication).petName,
     },
     {
-      id: 'rescue',
-      header: 'Rescue',
-      accessor: row => row.rescueName,
+      key: 'rescue',
+      label: 'Rescue',
       width: '200px',
+      sortable: false,
+      render: (_value, row) => (row as AdminApplication).rescueName,
     },
     {
-      id: 'status',
-      header: 'Status',
-      accessor: row => getStatusBadge(row.status),
+      key: 'status',
+      label: 'Status',
       width: '130px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => getStatusBadge((row as AdminApplication).status),
     },
     {
-      id: 'createdAt',
-      header: 'Submitted',
-      accessor: row => formatDate(row.createdAt),
+      key: 'createdAt',
+      label: 'Submitted',
       width: '120px',
-      sortable: true,
+      sortable: false,
+      render: (_value, row) => formatDate((row as AdminApplication).createdAt),
     },
   ];
 
@@ -205,7 +214,9 @@ const Applications: React.FC = () => {
       </div>
 
       {error instanceof Error && (
-        <div className={styles.errorMessage}>Failed to load applications: {error.message}</div>
+        <div className={styles.errorMessage} role='alert'>
+          Failed to load applications: {error.message}
+        </div>
       )}
 
       <EntityDetailLayout
@@ -304,19 +315,21 @@ const Applications: React.FC = () => {
             />
 
             <DataTable
+              frameless
+              surface
               columns={columns}
-              data={applications}
+              rows={applications as unknown as Record<string, unknown>[]}
               loading={isLoading}
-              error={error instanceof Error ? error.message : null}
               emptyMessage='No applications found matching your criteria'
-              currentPage={page}
-              totalPages={totalPages}
+              page={page}
+              total={data?.pagination?.total ?? 0}
+              pageSize={20}
               onPageChange={setPage}
               selectable
-              selectedRows={selectedRows}
-              onSelectionChange={setSelectedRows}
-              getRowId={app => app.applicationId}
-              onRowClick={handleRowClick}
+              selectedIds={selectedRows}
+              onSelectionChange={ids => setSelectedRows(new Set(ids))}
+              getRowId={row => String((row as AdminApplication).applicationId)}
+              onRowClick={row => handleRowClick(row as AdminApplication)}
             />
           </>
         }
