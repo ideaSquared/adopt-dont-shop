@@ -5,13 +5,12 @@ import { ChevronDown, LogOut, Menu, Settings, User } from 'lucide-react';
 import * as styles from './AdminHeader.css';
 
 interface AdminHeaderProps {
-  sidebarCollapsed: boolean;
   // Opens the off-canvas sidebar drawer on narrow viewports. The trigger is
   // hidden on desktop where the sidebar is always visible.
   onMobileMenuOpen?: () => void;
 }
 
-export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMobileMenuOpen }) => {
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ onMobileMenuOpen }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -36,7 +35,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
   };
 
   return (
-    <header className={styles.headerContainer({ sidebarCollapsed })}>
+    <header className={styles.headerContainer}>
       <button
         className={styles.mobileMenuButton}
         onClick={onMobileMenuOpen}

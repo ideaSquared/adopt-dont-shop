@@ -3,11 +3,18 @@ import { style } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
 
-// Below this width the sidebar becomes an off-canvas drawer.
-const MOBILE = 'screen and (max-width: 1024px)';
+// Below this width the sidebar becomes an off-canvas drawer. Exported so app
+// shells can align their own responsive rules with the drawer breakpoint —
+// a shell that switches at a different width leaves a band where the sidebar
+// is off-canvas but the content is still offset for it.
+export const SIDEBAR_MOBILE_MAX_WIDTH = '1024px';
+const MOBILE = `screen and (max-width: ${SIDEBAR_MOBILE_MAX_WIDTH})`;
 
-const EXPANDED_WIDTH = '260px';
-const COLLAPSED_WIDTH = '72px';
+export const SIDEBAR_EXPANDED_WIDTH = '260px';
+export const SIDEBAR_COLLAPSED_WIDTH = '72px';
+
+const EXPANDED_WIDTH = SIDEBAR_EXPANDED_WIDTH;
+const COLLAPSED_WIDTH = SIDEBAR_COLLAPSED_WIDTH;
 
 export const sidebar = recipe({
   base: {

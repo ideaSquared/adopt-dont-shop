@@ -1,12 +1,18 @@
 import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
+import { SIDEBAR_MOBILE_MAX_WIDTH } from '@adopt-dont-shop/lib.components';
+
+// Must match NavSidebar's drawer breakpoint. If this is narrower, there is a
+// band where the sidebar is off-canvas but the hamburger is still hidden —
+// leaving no way to reach the navigation at all.
+const MOBILE = `(max-width: ${SIDEBAR_MOBILE_MAX_WIDTH})`;
 
 // Slim top bar with the hamburger trigger. Only visible on mobile; the
 // NavSidebar drawer itself carries the branding/footer on desktop.
 export const mobileBar = style({
   display: 'none',
   '@media': {
-    '(max-width: 768px)': {
+    [MOBILE]: {
       display: 'flex',
       alignItems: 'center',
       gap: '0.75rem',

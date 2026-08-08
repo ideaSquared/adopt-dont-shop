@@ -86,6 +86,11 @@ export { Footer } from './components/navigation/Footer';
 export { Header } from './components/navigation/Header';
 export { Navbar } from './components/navigation/Navbar';
 export { NavSidebar } from './components/navigation/NavSidebar';
+export {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+  SIDEBAR_MOBILE_MAX_WIDTH,
+} from './components/navigation/NavSidebar';
 export type {
   NavSidebarProps,
   NavSidebarGroup,
