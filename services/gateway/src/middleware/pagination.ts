@@ -55,3 +55,61 @@ export const parsePagination = (
   }
   return { ok: true, page, limit };
 };
+
+// Canonical pagination envelope. Every list route embeds the same
+// `pagination` block so all datatables read one vocabulary regardless of
+// whether the backend paginates by offset or keyset:
+//
+//   { page, limit, hasNext, hasPrev, total?, totalPages?, nextCursor? }
+//
+// Offset/datatable surfaces carry a real `total` (+ derived `totalPages`)
+// so the shared DataTable can render "Page X of Y" and gate Next. Keyset
+// feeds carry `nextCursor` and omit the count they can't cheaply produce.
+export type PaginationMeta = {
+  page: number;
+  limit: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+  total?: number;
+  totalPages?: number;
+  nextCursor?: string;
+};
+
+type OffsetPaginationInput = {
+  mode: 'offset';
+  page: number;
+  limit: number;
+  total: number;
+};
+
+type KeysetPaginationInput = {
+  mode: 'keyset';
+  limit: number;
+  hasNext: boolean;
+  nextCursor?: string;
+};
+
+export type PaginationInput = OffsetPaginationInput | KeysetPaginationInput;
+
+export const buildPaginationEnvelope = (input: PaginationInput): PaginationMeta => {
+  if (input.mode === 'offset') {
+    const { page, limit, total } = input;
+    const totalPages = limit > 0 ? Math.max(1, Math.ceil(total / limit)) : 1;
+    return {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    };
+  }
+  const { limit, hasNext, nextCursor } = input;
+  return {
+    page: 1,
+    limit,
+    hasNext,
+    hasPrev: false,
+    ...(nextCursor !== undefined ? { nextCursor } : {}),
+  };
+};
