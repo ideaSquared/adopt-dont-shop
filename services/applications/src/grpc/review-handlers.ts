@@ -23,6 +23,8 @@
 // and routes through runCommand: load → handle → append → project →
 // publish-after-commit.
 
+import { randomUUID } from 'node:crypto';
+
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import {
   APPLICATIONS_APPROVE,
@@ -140,7 +142,68 @@ export async function scheduleHomeVisit(
     s => requireRescueScope(principal, APPLICATIONS_PROCESS, s)
   );
 
+  // ADS-1152: seed/refresh the granular home_visits row so UpdateHomeVisit
+  // (home-visit-handlers.ts) has something to drive. Runs outside the
+  // aggregate's transaction — same auxiliary-table convention as
+  // document-handlers.ts.
+  await ensureHomeVisitRow(deps, id, req.scheduledAt, req.note ?? null, principal.userId);
+
   return { application: stateToProto(state) };
+}
+
+// Upsert the application's active (scheduled | in_progress) home_visits
+// row from a ScheduleHomeVisit call. Updates the existing row's date/time
+// when one is already open (a reschedule via the coarse RPC); otherwise
+// inserts a fresh row + its opening transitions-log entry.
+async function ensureHomeVisitRow(
+  deps: HandlerDeps,
+  applicationId: string,
+  scheduledAt: string,
+  note: string | null,
+  actorUserId: string
+): Promise<void> {
+  const { date, time } = splitScheduledAt(scheduledAt);
+
+  const { rows } = await deps.pool.query<{ visit_id: string }>(
+    `SELECT visit_id FROM home_visits
+      WHERE application_id = $1 AND status IN ('scheduled', 'in_progress')
+      ORDER BY created_at DESC
+      LIMIT 1`,
+    [applicationId]
+  );
+
+  if (rows.length > 0) {
+    await deps.pool.query(
+      `UPDATE home_visits
+          SET scheduled_date = $1, scheduled_time = $2, notes = COALESCE($3, notes),
+              updated_by = $4, updated_at = now()
+        WHERE visit_id = $5`,
+      [date, time, note, actorUserId, rows[0].visit_id]
+    );
+    return;
+  }
+
+  const visitId = randomUUID();
+  await deps.pool.query(
+    `INSERT INTO home_visits
+       (visit_id, application_id, scheduled_date, scheduled_time, status, notes, created_by)
+     VALUES ($1, $2, $3, $4, 'scheduled', $5, $6)`,
+    [visitId, applicationId, date, time, note, actorUserId]
+  );
+  await deps.pool.query(
+    `INSERT INTO home_visit_status_transitions
+       (transition_id, visit_id, from_status, to_status, transitioned_by)
+     VALUES ($1, $2, NULL, 'scheduled', $3)`,
+    [randomUUID(), visitId, actorUserId]
+  );
+}
+
+// scheduled_at arrives as an ISO instant ("2026-08-10T14:00:00.000Z"); the
+// home_visits table stores separate date/time columns.
+function splitScheduledAt(scheduledAt: string): { date: string; time: string } {
+  const [datePart, timePartRaw] = scheduledAt.split('T');
+  const time = (timePartRaw ?? '').replace(/Z$/, '').split('.')[0];
+  return { date: datePart, time: time === '' ? '00:00:00' : time };
 }
 
 // --- CompleteHomeVisit -----------------------------------------------

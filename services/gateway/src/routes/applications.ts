@@ -41,12 +41,29 @@ import {
   type ScheduleHomeVisitRequest,
   type StartReviewRequest,
   type SubmitDraftRequest,
+  type UpdateHomeVisitRequest,
+  type UpdateReferenceCheckRequest,
   type WithdrawRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 
-import { applicationToView, statsToView, type ApplicationView } from './applications-view.js';
+import {
+  applicationToView,
+  buildTimeline,
+  buildTimelineStats,
+  homeVisitToView,
+  referenceCheckToView,
+  statsToView,
+  timelineNoteToView,
+  type ApplicationView,
+} from './applications-view.js';
+import {
+  buildProfileCompletionResponse,
+  buildQuickApplicationCapability,
+  withPreferenceDefaults,
+  type ApplicationDefaults,
+} from './profile-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { GRPC_TO_HTTP, handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
@@ -1314,6 +1331,364 @@ export const registerApplicationsRoutes = async (
           buildMetadata(req)
         );
         return reply.send({ data: JSON.parse(res.defaultsJson) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // ---------- Home visits (ADS-1152) ----------
+  //
+  // Granular per-visit detail — apps/rescue's applicationService.ts
+  // getHomeVisits() / updateHomeVisit(). Registered as two more segments
+  // under /:id, so it never collides with the one-segment
+  // /api/v1/applications/:id route.
+
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/home-visits',
+    { config: { rateLimit: RL_READ }, schema: { tags: ['applications'] } },
+    async (req, reply) => {
+      try {
+        const res = await client.listHomeVisits(
+          { applicationId: req.params.id },
+          buildMetadata(req)
+        );
+        return reply.send({ success: true, visits: res.visits.map(homeVisitToView) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.put<{ Params: { id: string; visitId: string } }>(
+    '/api/v1/applications/:id/home-visits/:visitId',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        body: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            scheduled_date: { type: 'string' },
+            scheduled_time: { type: 'string' },
+            assigned_staff: { type: 'string' },
+            notes: { type: 'string' },
+            outcome: { type: 'string' },
+            conditions: { type: 'string' },
+            reschedule_reason: { type: 'string' },
+            cancelled_at: { type: 'string' },
+            completed_at: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: UpdateHomeVisitRequest = {
+        applicationId: req.params.id,
+        visitId: req.params.visitId,
+        status: b.status as string | undefined,
+        scheduledDate: b.scheduled_date as string | undefined,
+        scheduledTime: b.scheduled_time as string | undefined,
+        assignedStaff: b.assigned_staff as string | undefined,
+        notes: b.notes as string | undefined,
+        outcome: b.outcome as string | undefined,
+        // conditions has no dedicated home_visits column; it's a
+        // rescue-supplied elaboration of a 'conditional' outcome, so it
+        // folds into outcome_notes.
+        outcomeNotes: b.conditions as string | undefined,
+        rescheduleReason: b.reschedule_reason as string | undefined,
+        cancelledReason: b.cancel_reason as string | undefined,
+        completedAt: b.completed_at as string | undefined,
+      };
+      try {
+        const res = await client.updateHomeVisit(grpcReq, buildMetadata(req));
+        if (res.visit === undefined) {
+          return reply.code(500).send({ error: 'unexpected home visit state' });
+        }
+        return reply.send({
+          success: true,
+          message: 'Home visit updated',
+          visit: homeVisitToView(res.visit),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // ---------- Reference checks (ADS-1140) ----------
+
+  app.patch<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/references',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        body: {
+          type: 'object',
+          properties: {
+            referenceId: { type: 'string' },
+            status: { type: 'string' },
+            notes: { type: 'string' },
+            contacted_at: { type: 'string' },
+          },
+          required: ['referenceId'],
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const referenceId = b.referenceId as string | undefined;
+      if (referenceId === undefined || referenceId === '') {
+        return reply.code(400).send({ error: 'referenceId is required' });
+      }
+      const grpcReq: UpdateReferenceCheckRequest = {
+        applicationId: req.params.id,
+        referenceId,
+        status: b.status as string | undefined,
+        notes: b.notes as string | undefined,
+        contactedAt: b.contacted_at as string | undefined,
+      };
+      try {
+        const res = await client.updateReferenceCheck(grpcReq, buildMetadata(req));
+        if (res.reference === undefined) {
+          return reply.code(500).send({ error: 'unexpected reference check state' });
+        }
+        return reply.send({ success: true, data: referenceCheckToView(res.reference) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // ---------- Timeline (ADS-1139) ----------
+  //
+  // Composes the event-sourced status-transition timeline
+  // (GetApplication's include_timeline) with the plain-table timeline
+  // notes into one chronological list — see applications-view.ts's
+  // buildTimeline / buildTimelineStats.
+
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/timeline',
+    { config: { rateLimit: RL_READ }, schema: { tags: ['applications'] } },
+    async (req, reply) => {
+      try {
+        const meta = buildMetadata(req);
+        const [got, notes] = await Promise.all([
+          client.get({ applicationId: req.params.id, includeTimeline: true }, meta),
+          client.listTimelineNotes({ applicationId: req.params.id }, meta),
+        ]);
+        return reply.send({ data: buildTimeline(got.timeline, notes.notes) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/timeline/stats',
+    { config: { rateLimit: RL_READ }, schema: { tags: ['applications'] } },
+    async (req, reply) => {
+      try {
+        const meta = buildMetadata(req);
+        const [got, notes] = await Promise.all([
+          client.get({ applicationId: req.params.id, includeTimeline: true }, meta),
+          client.listTimelineNotes({ applicationId: req.params.id }, meta),
+        ]);
+        return reply.send(buildTimelineStats(buildTimeline(got.timeline, notes.notes)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST .../timeline/notes and .../timeline/events both write to the
+  // same application_timeline_notes store (timeline-notes-handlers.ts) —
+  // a manually-added timeline entry is a "note" either way; `events`
+  // additionally carries an event_type the note store keeps as note_type.
+  const addTimelineNoteHandler = async (
+    req: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    const b = (req.body ?? {}) as Record<string, unknown>;
+    const noteType = (b.event_type ?? b.note_type) as string | undefined;
+    try {
+      const res = await client.addTimelineNote(
+        {
+          applicationId: req.params.id,
+          title: (b.title as string) ?? '',
+          description: (b.description as string) ?? '',
+          noteType,
+          metadataJson: b.metadata !== undefined ? JSON.stringify(b.metadata) : undefined,
+        },
+        buildMetadata(req)
+      );
+      if (res.note === undefined) {
+        return reply.code(500).send({ error: 'unexpected timeline note state' });
+      }
+      return reply.code(201).send({ success: true, data: timelineNoteToView(res.note) });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  };
+
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/timeline/notes',
+    { config: { rateLimit: RL_WRITE }, schema: { tags: ['applications'] } },
+    addTimelineNoteHandler
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/timeline/events',
+    { config: { rateLimit: RL_WRITE }, schema: { tags: ['applications'] } },
+    addTimelineNoteHandler
+  );
+
+  // ---------- Applicant profile (ADS-1140) ----------
+  //
+  // apps/client's applicationProfileService.ts. application-preferences
+  // is a separate feature-toggle store from application-defaults above;
+  // completion / pre-population / quick-application are all composed
+  // from the stored ApplicationDefaults (no dedicated proto surface) —
+  // see profile-view.ts.
+
+  app.get(
+    '/api/v1/profile/application-preferences',
+    { config: { rateLimit: RL_READ }, schema: { tags: ['applications'] } },
+    async (req, reply) => {
+      try {
+        const res = await client.getApplicationPreferences({}, buildMetadata(req));
+        const stored = res.preferencesJson === '' ? {} : JSON.parse(res.preferencesJson);
+        return reply.send(withPreferenceDefaults(stored));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.put(
+    '/api/v1/profile/application-preferences',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        body: {
+          type: 'object',
+          properties: { applicationPreferences: { type: 'object' } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const patch = b.applicationPreferences ?? {};
+      try {
+        const res = await client.updateApplicationPreferences(
+          { preferencesPatchJson: JSON.stringify(patch) },
+          buildMetadata(req)
+        );
+        return reply.send(withPreferenceDefaults(JSON.parse(res.preferencesJson)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.get(
+    '/api/v1/profile/completion',
+    { config: { rateLimit: RL_READ }, schema: { tags: ['applications'] } },
+    async (req, reply) => {
+      try {
+        const res = await client.getApplicationDefaults({}, buildMetadata(req));
+        const defaults: ApplicationDefaults =
+          res.defaultsJson === '' ? {} : JSON.parse(res.defaultsJson);
+        return reply.send(buildProfileCompletionResponse(defaults, null));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.get(
+    '/api/v1/profile/pre-population',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['applications'],
+        querystring: { type: 'object', properties: { petId: { type: 'string' } } },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getApplicationDefaults({}, buildMetadata(req));
+        return reply.send(res.defaultsJson === '' ? {} : JSON.parse(res.defaultsJson));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /quick-application — pre-fills + submits a new application from
+  // the adopter's saved defaults (the event-sourced create path: the same
+  // StartDraft → SaveDraftAnswers → SubmitDraft orchestration POST
+  // /api/v1/applications uses). Rejects with 400 + the missing sections
+  // when the saved profile isn't complete enough to quick-apply with.
+  app.post(
+    '/api/v1/profile/quick-application',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        body: {
+          type: 'object',
+          properties: { petId: { type: 'string' } },
+          required: ['petId'],
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const petId = (b.petId as string) ?? '';
+      if (petId === '') {
+        return reply.code(400).send({ error: 'petId is required' });
+      }
+      const meta = buildMetadata(req);
+      try {
+        const defaultsRes = await client.getApplicationDefaults({}, meta);
+        const defaults: ApplicationDefaults =
+          defaultsRes.defaultsJson === '' ? {} : JSON.parse(defaultsRes.defaultsJson);
+
+        const capability = buildQuickApplicationCapability(defaults);
+        if (!capability.canProceed) {
+          return reply.code(400).send({
+            error: 'profile is not complete enough for a quick application',
+            data: { missingFields: capability.missingFields },
+          });
+        }
+
+        const adopterId = headerUserId(req) ?? '';
+        const started = await client.startDraft({ adopterId, petId }, meta);
+        const draft = requireApplication(started.application);
+        const saved = await client.saveDraftAnswers(
+          {
+            applicationId: draft.applicationId,
+            expectedVersion: draft.version,
+            answersPatchJson: JSON.stringify(defaults),
+          },
+          meta
+        );
+        const withAnswers = requireApplication(saved.application);
+        const submitted = await client.submitDraft(
+          { applicationId: withAnswers.applicationId, expectedVersion: withAnswers.version },
+          meta
+        );
+        const application = requireApplication(submitted.application);
+
+        return reply.code(201).send({
+          applicationId: application.applicationId,
+          prePopulationData: { defaults },
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

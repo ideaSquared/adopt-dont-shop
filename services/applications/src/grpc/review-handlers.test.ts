@@ -151,6 +151,55 @@ describe('scheduleHomeVisit', () => {
       type: 'applications.homeVisitScheduled',
     });
   });
+
+  // ADS-1152: scheduleHomeVisit seeds the granular home_visits row that
+  // UpdateHomeVisit later drives.
+  it('inserts a home_visits row + opening transition when none is active', async () => {
+    const { deps, query } = makeDeps(underReviewStream());
+    await scheduleHomeVisit(deps, makePrincipal({ userId: 'staff-1' }), {
+      applicationId: 'app-1',
+      scheduledAt: '2026-06-10T14:00:00.000Z',
+      note: 'bring a leash',
+    });
+
+    const insertVisit = query.mock.calls.find(([sql]) =>
+      (sql as string).includes('INSERT INTO home_visits')
+    );
+    expect(insertVisit?.[1]).toEqual([
+      expect.any(String),
+      'app-1',
+      '2026-06-10',
+      '14:00:00',
+      'bring a leash',
+      'staff-1',
+    ]);
+    const insertTransition = query.mock.calls.find(([sql]) =>
+      (sql as string).includes('INSERT INTO home_visit_status_transitions')
+    );
+    expect(insertTransition).toBeDefined();
+  });
+
+  it('updates the existing active home_visits row instead of inserting a new one', async () => {
+    const { deps, query } = makeDeps(underReviewStream());
+    query.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT visit_id FROM home_visits')) {
+        return Promise.resolve({ rows: [{ visit_id: 'visit-9' }] });
+      }
+      return Promise.resolve({ rows: [] });
+    });
+
+    await scheduleHomeVisit(deps, makePrincipal({ userId: 'staff-1' }), {
+      applicationId: 'app-1',
+      scheduledAt: '2026-06-11T09:30:00.000Z',
+    });
+
+    const update = query.mock.calls.find(([sql]) => (sql as string).includes('UPDATE home_visits'));
+    expect(update?.[1]).toEqual(['2026-06-11', '09:30:00', null, 'staff-1', 'visit-9']);
+    const insertVisit = query.mock.calls.find(([sql]) =>
+      (sql as string).includes('INSERT INTO home_visits')
+    );
+    expect(insertVisit).toBeUndefined();
+  });
 });
 
 describe('completeHomeVisit', () => {

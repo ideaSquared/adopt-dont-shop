@@ -26,12 +26,19 @@ import {
   getApplicationDraft,
   saveApplicationDraft,
 } from './application-draft-handlers.js';
+import {
+  getApplicationPreferences,
+  updateApplicationPreferences,
+} from './application-preferences-handlers.js';
 import { countAdoptedAdopters } from './attribution-handlers.js';
 import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
+import { listHomeVisits, updateHomeVisit } from './home-visit-handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 import { addDocument, listDocuments, removeDocument } from './document-handlers.js';
+import { updateReferenceCheck } from './reference-check-handlers.js';
 import { getApplication, listApplications } from './read-handlers.js';
 import { getStats } from './stats-handlers.js';
+import { addTimelineNote, listTimelineNotes } from './timeline-notes-handlers.js';
 import {
   approve,
   completeHomeVisit,
@@ -93,6 +100,17 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getApplicationDraft: adapt(getApplicationDraft, { deps, logger }),
     saveApplicationDraft: adapt(saveApplicationDraft, { deps, logger }),
     deleteApplicationDraft: adapt(deleteApplicationDraft, { deps, logger }),
+    // Home visit scheduling detail (home-visit-handlers.ts)
+    listHomeVisits: adapt(listHomeVisits, { deps, logger }),
+    updateHomeVisit: adapt(updateHomeVisit, { deps, logger }),
+    // Applicant application preferences (application-preferences-handlers.ts)
+    getApplicationPreferences: adapt(getApplicationPreferences, { deps, logger }),
+    updateApplicationPreferences: adapt(updateApplicationPreferences, { deps, logger }),
+    // Reference checks (reference-check-handlers.ts)
+    updateReferenceCheck: adapt(updateReferenceCheck, { deps, logger }),
+    // Timeline notes (timeline-notes-handlers.ts)
+    addTimelineNote: adapt(addTimelineNote, { deps, logger }),
+    listTimelineNotes: adapt(listTimelineNotes, { deps, logger }),
   });
 
   logger.info('gRPC ApplicationService registered', {
@@ -119,6 +137,13 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getApplicationDraft',
       'saveApplicationDraft',
       'deleteApplicationDraft',
+      'listHomeVisits',
+      'updateHomeVisit',
+      'getApplicationPreferences',
+      'updateApplicationPreferences',
+      'updateReferenceCheck',
+      'addTimelineNote',
+      'listTimelineNotes',
     ],
     grpcPort: config.grpcPort,
   });
