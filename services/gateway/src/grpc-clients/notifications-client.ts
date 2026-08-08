@@ -32,6 +32,8 @@ import {
   type ListNotificationsResponse,
   type MarkAllReadRequest,
   type MarkAllReadResponse,
+  type MarkNotificationsReadRequest,
+  type MarkNotificationsReadResponse,
   type RegisterDeviceTokenRequest,
   type RegisterDeviceTokenResponse,
   type UnregisterDeviceTokenRequest,
@@ -85,6 +87,10 @@ export type NotificationsClient = {
   ): Promise<GetNotificationResponse>;
   getUnreadCount(req: GetUnreadCountRequest, metadata: Metadata): Promise<GetUnreadCountResponse>;
   markAllRead(req: MarkAllReadRequest, metadata: Metadata): Promise<MarkAllReadResponse>;
+  markRead(
+    req: MarkNotificationsReadRequest,
+    metadata: Metadata
+  ): Promise<MarkNotificationsReadResponse>;
   deleteNotification(
     req: DeleteNotificationRequest,
     metadata: Metadata
@@ -212,6 +218,7 @@ export const createNotificationsClient = (
     unregisterDeviceToken: (req, metadata) =>
       callUnary(stub.unregisterDeviceToken, req, metadata, false),
     markAllRead: (req, metadata) => callUnary(stub.markAllRead, req, metadata, false),
+    markRead: (req, metadata) => callUnary(stub.markRead, req, metadata, false),
     deleteNotification: (req, metadata) => callUnary(stub.deleteNotification, req, metadata, false),
     updateNotificationPreferences: (req, metadata) =>
       callUnary(stub.updateNotificationPreferences, req, metadata, false),

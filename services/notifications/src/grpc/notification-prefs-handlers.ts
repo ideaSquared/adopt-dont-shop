@@ -24,6 +24,8 @@ import {
   type GetUnreadCountResponse,
   type MarkAllReadRequest,
   type MarkAllReadResponse,
+  type MarkNotificationsReadRequest,
+  type MarkNotificationsReadResponse,
   type NotificationPreferences as NotificationPreferencesProto,
   type ResetNotificationPreferencesRequest,
   type ResetNotificationPreferencesResponse,
@@ -203,6 +205,53 @@ export async function markAllRead(
       publish({
         type: 'notifications.allRead',
         id: `notifications.allRead.${principal.userId}.${Date.now()}`,
+        payload: { userId: principal.userId, affectedCount: affected },
+      });
+    }
+  });
+
+  return { affectedCount: affected };
+}
+
+// --- MarkRead (specific ids) -----------------------------------------
+//
+// Ownership-scoped by user_id so a caller can only ever flip its own
+// notifications, and idempotent (already-read / unknown ids contribute
+// 0). Mirrors markAllRead but narrowed to the supplied id set.
+
+export async function markRead(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: MarkNotificationsReadRequest
+): Promise<MarkNotificationsReadResponse> {
+  if (!hasPermission(principal, NOTIFICATIONS_UPDATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${NOTIFICATIONS_UPDATE}' required`);
+  }
+  const ids = req.notificationIds ?? [];
+  if (ids.length === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'notification_ids is required');
+  }
+
+  let affected = 0;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<{ notification_id: string }>(
+      `
+      UPDATE notifications.notifications
+      SET status = 'read', read_at = now(), updated_at = now(), version = version + 1
+      WHERE user_id = $1
+        AND notification_id = ANY($2::uuid[])
+        AND deleted_at IS NULL
+        AND read_at IS NULL
+      RETURNING notification_id
+      `,
+      [principal.userId, ids]
+    );
+    affected = result.rowCount ?? 0;
+
+    if (affected > 0) {
+      publish({
+        type: 'notifications.read',
+        id: `notifications.read.${principal.userId}.${Date.now()}`,
         payload: { userId: principal.userId, affectedCount: affected },
       });
     }

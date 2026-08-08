@@ -238,6 +238,45 @@ export const registerNotificationsRoutes = async (
     }
   );
 
+  // PATCH /api/v1/notifications/mark-read — mark a specific set of the
+  // caller's notifications read. Static segment, so it wins over /:id.
+  app.patch<{ Body?: { notificationIds?: string[] } }>(
+    '/api/v1/notifications/mark-read',
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: 'Mark specific notifications as read',
+        body: {
+          type: 'object',
+          properties: { notificationIds: { type: 'array', items: { type: 'string' } } },
+          required: ['notificationIds'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', properties: { updated: { type: 'integer' } } },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const ids = (req.body ?? {}).notificationIds ?? [];
+      if (ids.length === 0) {
+        return reply.code(400).send({ error: 'notificationIds is required' });
+      }
+      try {
+        const res = await client.markRead({ notificationIds: ids }, buildMetadata(req));
+        return reply.send({ success: true, data: { updated: res.affectedCount } });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // In-app notification preferences (user_notification_prefs).
   app.get(
     '/api/v1/notifications/preferences',

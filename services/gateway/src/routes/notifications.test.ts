@@ -39,6 +39,7 @@ function makeClient(): NotificationsClient & {
   getNotificationMock: ReturnType<typeof vi.fn>;
   getUnreadCountMock: ReturnType<typeof vi.fn>;
   markAllReadMock: ReturnType<typeof vi.fn>;
+  markReadMock: ReturnType<typeof vi.fn>;
   deleteNotificationMock: ReturnType<typeof vi.fn>;
   getNotificationPreferencesMock: ReturnType<typeof vi.fn>;
   updateNotificationPreferencesMock: ReturnType<typeof vi.fn>;
@@ -50,6 +51,7 @@ function makeClient(): NotificationsClient & {
   const getNotificationMock = vi.fn();
   const getUnreadCountMock = vi.fn();
   const markAllReadMock = vi.fn();
+  const markReadMock = vi.fn();
   const deleteNotificationMock = vi.fn();
   const getNotificationPreferencesMock = vi.fn();
   const updateNotificationPreferencesMock = vi.fn();
@@ -61,6 +63,7 @@ function makeClient(): NotificationsClient & {
     getNotification: getNotificationMock,
     getUnreadCount: getUnreadCountMock,
     markAllRead: markAllReadMock,
+    markRead: markReadMock,
     deleteNotification: deleteNotificationMock,
     getNotificationPreferences: getNotificationPreferencesMock,
     updateNotificationPreferences: updateNotificationPreferencesMock,
@@ -72,6 +75,7 @@ function makeClient(): NotificationsClient & {
     getNotificationMock,
     getUnreadCountMock,
     markAllReadMock,
+    markReadMock,
     deleteNotificationMock,
     getNotificationPreferencesMock,
     updateNotificationPreferencesMock,
@@ -417,6 +421,50 @@ describe('POST /api/v1/notifications/read-all', () => {
       success: true,
       data: { affectedCount: 3 },
     });
+  });
+});
+
+describe('PATCH /api/v1/notifications/mark-read', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('forwards the id list and returns the updated count', async () => {
+    client.markReadMock.mockResolvedValueOnce({ affectedCount: 2 });
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/mark-read',
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+      payload: { notificationIds: ['n-1', 'n-2'] },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ success: true, data: { updated: 2 } });
+    expect(client.markReadMock.mock.calls[0][0]).toEqual({ notificationIds: ['n-1', 'n-2'] });
+  });
+
+  it('rejects an empty id list with 400 and does not call the service', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/mark-read',
+      headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+      payload: { notificationIds: [] },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(client.markReadMock).not.toHaveBeenCalled();
   });
 });
 
