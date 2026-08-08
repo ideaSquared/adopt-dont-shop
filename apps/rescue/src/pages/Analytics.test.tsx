@@ -10,7 +10,6 @@ vi.mock('../services/analyticsService', () => ({
     getAdoptionMetrics: vi.fn(),
     getApplicationAnalytics: vi.fn(),
     getPetPerformance: vi.fn(),
-    getResponseTimeMetrics: vi.fn(),
     getStageDistribution: vi.fn(),
     exportToCSV: vi.fn(),
     exportToPDF: vi.fn(),
@@ -27,7 +26,6 @@ describe('Analytics page', () => {
     vi.mocked(analyticsService.getAdoptionMetrics).mockRejectedValue(new Error('no data'));
     vi.mocked(analyticsService.getApplicationAnalytics).mockRejectedValue(new Error('no data'));
     vi.mocked(analyticsService.getPetPerformance).mockRejectedValue(new Error('no data'));
-    vi.mocked(analyticsService.getResponseTimeMetrics).mockRejectedValue(new Error('no data'));
     vi.mocked(analyticsService.getStageDistribution).mockRejectedValue(new Error('no data'));
   });
 
@@ -67,6 +65,6 @@ describe('Analytics page', () => {
     renderWithProviders(<Analytics />);
 
     const empties = await screen.findAllByText('No data available');
-    expect(empties).toHaveLength(5);
+    expect(empties).toHaveLength(4);
   });
 });
