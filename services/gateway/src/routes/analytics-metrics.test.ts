@@ -242,4 +242,88 @@ describe('/api/v1/analytics gateway routes', () => {
       expect(applicationsMocks.getStats.mock.calls[0][0]).toEqual({});
     });
   });
+
+  describe('POST /api/v1/analytics/export/csv', () => {
+    const validPayload = {
+      reportType: 'full-analytics',
+      filters: {
+        dateRange: { start: '2026-01-08T00:00:00.000Z', end: '2026-01-15T00:00:00.000Z' },
+      },
+    };
+
+    it('returns 400 when the date range is missing', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/export/csv',
+        payload: { reportType: 'full-analytics', filters: {} },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('composes the four reads into a CSV download with the dashboard figures', async () => {
+      petsMocks.getAdoptionTrend
+        .mockResolvedValueOnce({
+          points: [
+            { date: '2026-01-08', count: 3 },
+            { date: '2026-01-09', count: 5 },
+          ],
+        })
+        .mockResolvedValueOnce({ points: [{ date: '2026-01-01', count: 4 }] });
+      petsMocks.getStats.mockResolvedValue({ averageDaysToAdoption: 14 });
+      petsMocks.getTopBreedsByAdoptions.mockResolvedValue({
+        breeds: [
+          { breed: 'Labrador', count: 24, averageAdoptionDays: 13 },
+          { breed: 'Siamese', count: 12, averageAdoptionDays: 14 },
+        ],
+      });
+      applicationsMocks.getStats
+        .mockResolvedValueOnce(APP_STATS_FIXTURE) // current range → success rate + funnel
+        .mockResolvedValueOnce({ ...APP_STATS_FIXTURE, total: 80, adopted: 20 }) // prior range
+        .mockResolvedValueOnce(APP_STATS_FIXTURE); // snapshot → stage distribution
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/export/csv',
+        payload: validPayload,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toContain('text/csv');
+      expect(res.headers['content-disposition']).toContain(
+        'attachment; filename="analytics-2026-01-08-to-2026-01-15.csv"'
+      );
+
+      const csv = res.body;
+      // Adoption section: 3 + 5 = 8 total; rate(94,156) = 60.26; avg days 14.
+      expect(csv).toContain('Total Adoptions,8');
+      expect(csv).toContain('Success Rate (%),60.26');
+      expect(csv).toContain('Average Time to Adoption (days),14');
+      // Adoption trend rows.
+      expect(csv).toContain('2026-01-08,3');
+      expect(csv).toContain('2026-01-09,5');
+      // Funnel: Submitted anchors at 137 (100%), Adopted at 94 ((94/137)*100 = 68.61).
+      expect(csv).toContain('Submitted,137,100');
+      expect(csv).toContain('Adopted,94,68.61');
+      // Breeds passed straight through.
+      expect(csv).toContain('Labrador,24,13');
+      expect(csv).toContain('Siamese,12,14');
+      // Stage distribution (current snapshot): Adopted 94 of 156 = 60.26%.
+      expect(csv).toContain('Stage Distribution (current)');
+      expect(csv).toContain('Adopted,94,60.26');
+    });
+
+    it('maps an upstream error to its HTTP status', async () => {
+      petsMocks.getAdoptionTrend.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED });
+      petsMocks.getStats.mockResolvedValue({ averageDaysToAdoption: 0 });
+      petsMocks.getTopBreedsByAdoptions.mockResolvedValue({ breeds: [] });
+      applicationsMocks.getStats.mockResolvedValue(APP_STATS_FIXTURE);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/export/csv',
+        payload: validPayload,
+      });
+      expect(res.statusCode).toBe(403);
+    });
+  });
 });
