@@ -129,6 +129,55 @@ const STATS = {
   averageTimeToAdoption: 0,
 };
 
+describe('GET /api/v1/admin/rescues', () => {
+  let app: FastifyInstance;
+  let m: Mocks;
+
+  beforeEach(async () => {
+    m = makeClient();
+    app = await makeApp(m.client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('offset-paginates with a real total in the canonical envelope, defaulting to all statuses', async () => {
+    const listMock = m.client.list as ReturnType<typeof vi.fn>;
+    listMock.mockResolvedValue({ rescues: [makeRescue()], total: 42 });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/rescues?page=2&limit=20',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(listMock.mock.calls[0][0]).toMatchObject({ page: 2, limit: 20, allStatuses: true });
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: [{ rescue_id: 'rsc-1' }],
+      pagination: { page: 2, limit: 20, total: 42, totalPages: 3, hasNext: true, hasPrev: true },
+    });
+  });
+
+  it('narrows to a concrete status without the all-statuses scope', async () => {
+    const listMock = m.client.list as ReturnType<typeof vi.fn>;
+    listMock.mockResolvedValue({ rescues: [], total: 0 });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/rescues?status=pending',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(listMock.mock.calls[0][0]).toMatchObject({
+      allStatuses: false,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_PENDING,
+    });
+  });
+});
+
 describe('PATCH /api/v1/admin/rescues/:rescueId/plan', () => {
   let app: FastifyInstance;
   let m: Mocks;

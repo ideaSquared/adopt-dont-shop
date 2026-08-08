@@ -368,6 +368,54 @@ describe('listRescues', () => {
     expect(res.rescues).toHaveLength(2);
     expect(res.nextCursor).toBeDefined();
   });
+
+  it('offset mode (page set) returns a real total and a LIMIT/OFFSET page, not a cursor', async () => {
+    const rows = [rescueRow({ rescue_id: 'rsc-0' }), rescueRow({ rescue_id: 'rsc-1' })];
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows }) // page SELECT
+      .mockResolvedValueOnce({ rows: [{ total: '42' }] }); // COUNT(*)
+    const res = await listRescues(mocks.deps, ADMIN, {
+      page: 3,
+      limit: 10,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+    } as never);
+    expect(res.total).toBe(42);
+    expect(res.nextCursor).toBeUndefined();
+    const pageSql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const pageParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(pageSql).toContain('OFFSET');
+    // limit 10, offset (3 - 1) * 10 = 20
+    expect(pageParams).toEqual(expect.arrayContaining([10, 20]));
+    const countSql = mocks.poolMock.query.mock.calls[1][0] as string;
+    expect(countSql).toContain('COUNT(*)');
+  });
+
+  it('all-statuses scope requires the platform-admin permission', async () => {
+    await expect(
+      listRescues(mocks.deps, ADOPTER, {
+        page: 1,
+        limit: 20,
+        allStatuses: true,
+        statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+      } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('all-statuses (admin) drops the status filter so pending/suspended are visible', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [rescueRow()] })
+      .mockResolvedValueOnce({ rows: [{ total: '5' }] });
+    const res = await listRescues(mocks.deps, ADMIN, {
+      page: 1,
+      limit: 20,
+      allStatuses: true,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+    } as never);
+    expect(res.total).toBe(5);
+    // no verified-only default was applied
+    const pageParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(pageParams).not.toContain('verified');
+  });
 });
 
 // --- updateRescue ----------------------------------------------------

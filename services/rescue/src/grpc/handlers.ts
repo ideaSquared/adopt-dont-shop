@@ -372,11 +372,16 @@ export async function listRescues(
   const params: unknown[] = [];
   let n = 1;
 
-  // UNSPECIFIED in the filter slot = the public default ("verified
-  // only"). super_admin bypasses the default by passing a concrete
-  // status; everyone else can still filter on PENDING / SUSPENDED /
-  // etc. but won't see them in the default list.
-  if (req.statusFilter === RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED) {
+  // Status visibility. UNSPECIFIED in the filter slot = the public default
+  // ("verified only"). A caller can filter to a concrete status. all_statuses
+  // is the admin datatable's "show everything" scope — it drops the status
+  // predicate entirely and so is gated on the platform-admin permission
+  // (defence-in-depth; the gateway also gates the /admin route).
+  if (req.allStatuses) {
+    if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+      throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+    }
+  } else if (req.statusFilter === RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED) {
     where.push(`status = $${n}`);
     params.push('verified');
     n++;
@@ -419,6 +424,33 @@ export async function listRescues(
   }
 
   const orderBy = useRandom ? 'random()' : 'created_at DESC, rescue_id DESC';
+
+  // Offset mode: admin datatables pass `page` and need a real total so the
+  // shared DataTable can render "Page X of Y" and gate Next. Keyset cursors
+  // can't cheaply produce a count, so this path issues a COUNT(*) over the
+  // same filter. Offset callers never send a cursor, so no cursor predicate
+  // is present in `where`.
+  if (req.page !== undefined && req.page > 0) {
+    const offset = (req.page - 1) * limit;
+    const pageResult = await deps.pool.query<RescueRow>(
+      `
+      SELECT ${RESCUES_SELECT} FROM rescue.rescues
+      WHERE ${where.join(' AND ')}
+      ORDER BY ${orderBy}
+      LIMIT $${n} OFFSET $${n + 1}
+      `,
+      [...params, limit, offset]
+    );
+    const countResult = await deps.pool.query<{ total: string }>(
+      `SELECT COUNT(*)::text AS total FROM rescue.rescues WHERE ${where.join(' AND ')}`,
+      params
+    );
+    const accessMap = resolveFieldAccessMap('rescues', principal.roles);
+    return {
+      rescues: pageResult.rows.map(row => maskRescueWithAccessMap(rowToProto(row), accessMap)),
+      total: Number(countResult.rows[0]?.total ?? 0),
+    };
+  }
 
   const result = await deps.pool.query<RescueRow>(
     `
