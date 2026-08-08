@@ -194,11 +194,24 @@ export interface ListChatsRequest {
   limit: number;
   /** Optional unread-only filter. */
   unreadOnly: boolean;
+  /**
+   * Offset pagination for the admin chats datatable. When set (>0) the
+   * handler returns an OFFSET page plus a real `total` (COUNT) instead of a
+   * keyset cursor, so the shared DataTable can render "Page X of Y".
+   */
+  page?: number | undefined;
 }
 
 export interface ListChatsResponse {
   chats: Chat[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total row count for the current filter — present only in offset mode
+   * (page set). Keyset responses omit it.
+   */
+  total?: number | undefined;
 }
 
 export interface MarkReadRequest {
@@ -1542,7 +1555,7 @@ export const ListMessagesResponse: MessageFns<ListMessagesResponse> = {
 };
 
 function createBaseListChatsRequest(): ListChatsRequest {
-  return { cursor: undefined, limit: 0, unreadOnly: false };
+  return { cursor: undefined, limit: 0, unreadOnly: false, page: undefined };
 }
 
 export const ListChatsRequest: MessageFns<ListChatsRequest> = {
@@ -1555,6 +1568,9 @@ export const ListChatsRequest: MessageFns<ListChatsRequest> = {
     }
     if (message.unreadOnly !== false) {
       writer.uint32(24).bool(message.unreadOnly);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(32).uint32(message.page);
     }
     return writer;
   },
@@ -1590,6 +1606,14 @@ export const ListChatsRequest: MessageFns<ListChatsRequest> = {
           message.unreadOnly = reader.bool();
           continue;
         }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1608,6 +1632,7 @@ export const ListChatsRequest: MessageFns<ListChatsRequest> = {
         : isSet(object.unread_only)
         ? globalThis.Boolean(object.unread_only)
         : false,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
     };
   },
 
@@ -1622,6 +1647,9 @@ export const ListChatsRequest: MessageFns<ListChatsRequest> = {
     if (message.unreadOnly !== false) {
       obj.unreadOnly = message.unreadOnly;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
     return obj;
   },
 
@@ -1633,12 +1661,13 @@ export const ListChatsRequest: MessageFns<ListChatsRequest> = {
     message.cursor = object.cursor ?? undefined;
     message.limit = object.limit ?? 0;
     message.unreadOnly = object.unreadOnly ?? false;
+    message.page = object.page ?? undefined;
     return message;
   },
 };
 
 function createBaseListChatsResponse(): ListChatsResponse {
-  return { chats: [], nextCursor: undefined };
+  return { chats: [], nextCursor: undefined, total: undefined };
 }
 
 export const ListChatsResponse: MessageFns<ListChatsResponse> = {
@@ -1648,6 +1677,9 @@ export const ListChatsResponse: MessageFns<ListChatsResponse> = {
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -1675,6 +1707,14 @@ export const ListChatsResponse: MessageFns<ListChatsResponse> = {
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1692,6 +1732,7 @@ export const ListChatsResponse: MessageFns<ListChatsResponse> = {
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -1703,6 +1744,9 @@ export const ListChatsResponse: MessageFns<ListChatsResponse> = {
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -1713,6 +1757,7 @@ export const ListChatsResponse: MessageFns<ListChatsResponse> = {
     const message = createBaseListChatsResponse();
     message.chats = object.chats?.map((e) => Chat.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };

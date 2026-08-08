@@ -701,6 +701,38 @@ export async function listChats(
   const limit = clampLimit(req.limit, DEFAULT_CHAT_LIMIT, MAX_CHAT_LIMIT);
   const cursor = req.cursor ? decodeCursor<ChatCursor>(req.cursor) : null;
 
+  // Offset mode: the admin chats datatable passes `page` and needs a real
+  // total so the shared DataTable can render "Page X of Y". Keyset cursors
+  // can't cheaply produce a count, so this path issues a COUNT over the same
+  // participant-scoped filter. Offset callers never send a cursor. The filter
+  // is identical to the keyset path below — always self-scoped by
+  // participant_id, so this never widens who can see which chats.
+  if (req.page !== undefined && req.page > 0) {
+    const offset = (req.page - 1) * limit;
+    const pageResult = await deps.pool.query<ChatRow>(
+      `
+      SELECT DISTINCT c.*
+      FROM chats c
+      JOIN chat_participants p ON p.chat_id = c.chat_id
+      WHERE p.participant_id = $1 AND p.deleted_at IS NULL AND c.deleted_at IS NULL
+      ORDER BY c.updated_at DESC, c.chat_id DESC
+      LIMIT $2 OFFSET $3
+      `,
+      [principal.userId, limit, offset]
+    );
+    const countResult = await deps.pool.query<{ total: string }>(
+      `
+      SELECT COUNT(DISTINCT c.chat_id)::text AS total
+      FROM chats c
+      JOIN chat_participants p ON p.chat_id = c.chat_id
+      WHERE p.participant_id = $1 AND p.deleted_at IS NULL AND c.deleted_at IS NULL
+      `,
+      [principal.userId]
+    );
+    const chats = await Promise.all(pageResult.rows.map(row => chatRowToProto(deps, row)));
+    return { chats, total: Number.parseInt(countResult.rows[0]?.total ?? '0', 10) };
+  }
+
   // Always self-scoped by participant_id. super_admin still goes
   // through the participant filter — staff-tooling that needs to see
   // all chats should call a different RPC (not exposed today).
