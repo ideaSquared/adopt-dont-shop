@@ -73,18 +73,6 @@ export interface ReportFilters {
   staffMemberId?: string;
 }
 
-export interface CustomReport {
-  id?: string;
-  name: string;
-  metrics: string[];
-  visualizations: string[];
-  filters: ReportFilters;
-  schedule?: {
-    frequency: 'daily' | 'weekly' | 'monthly';
-    recipients: string[];
-  };
-}
-
 export class AnalyticsService {
   /**
    * Get adoption metrics for the specified date range
@@ -241,51 +229,6 @@ export class AnalyticsService {
       });
     } catch (error) {
       console.error('Failed to email report:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Save a custom report template
-   */
-  async saveCustomReport(report: CustomReport): Promise<CustomReport> {
-    try {
-      const response = await apiService.post<{ success: boolean; data: CustomReport }>(
-        '/api/v1/analytics/custom-reports',
-        report
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error('Failed to save custom report:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get saved custom reports
-   */
-  async getCustomReports(): Promise<CustomReport[]> {
-    try {
-      const response = await apiService.get<{ success: boolean; data: CustomReport[] }>(
-        '/api/v1/analytics/custom-reports'
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch custom reports:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Delete a custom report
-   */
-  async deleteCustomReport(reportId: string): Promise<void> {
-    try {
-      await apiService.delete(`/api/v1/analytics/custom-reports/${reportId}`);
-    } catch (error) {
-      console.error('Failed to delete custom report:', error);
       throw error;
     }
   }

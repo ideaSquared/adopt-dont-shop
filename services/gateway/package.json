@@ -55,6 +55,8 @@
     "fastify": "^5.8.5",
     "file-type": "^22.0.1",
     "ioredis": "^5.11.1",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.8",
     "nats": "^2.29.3",
     "pg": "^8.22.0",
     "prom-client": "^15.1.3",

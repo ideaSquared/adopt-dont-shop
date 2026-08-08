@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
+import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
 import { registerAnalyticsMetricsRoutes } from './analytics-metrics.js';
@@ -27,6 +28,14 @@ function makeApplicationsClient(): {
   return { applicationsClient: mocks as unknown as ApplicationsClient, mocks };
 }
 
+function makeNotificationsClient(): {
+  notificationsClient: NotificationsClient;
+  mocks: { sendEmail: ReturnType<typeof vi.fn> };
+} {
+  const mocks = { sendEmail: vi.fn() };
+  return { notificationsClient: mocks as unknown as NotificationsClient, mocks };
+}
+
 // Mutually-exclusive per-status counts (each application has exactly one
 // current status) that sum to `total`.
 const APP_STATS_FIXTURE = {
@@ -46,14 +55,21 @@ describe('/api/v1/analytics gateway routes', () => {
   let app: FastifyInstance;
   let petsMocks: ReturnType<typeof makePetsClient>['mocks'];
   let applicationsMocks: ReturnType<typeof makeApplicationsClient>['mocks'];
+  let notificationsMocks: ReturnType<typeof makeNotificationsClient>['mocks'];
 
   beforeEach(async () => {
     app = Fastify({ logger: false });
     const { petsClient, mocks: pm } = makePetsClient();
     const { applicationsClient, mocks: am } = makeApplicationsClient();
+    const { notificationsClient, mocks: nm } = makeNotificationsClient();
     petsMocks = pm;
     applicationsMocks = am;
-    await registerAnalyticsMetricsRoutes(app, { petsClient, applicationsClient });
+    notificationsMocks = nm;
+    await registerAnalyticsMetricsRoutes(app, {
+      petsClient,
+      applicationsClient,
+      notificationsClient,
+    });
   });
 
   afterEach(async () => {
@@ -322,6 +338,134 @@ describe('/api/v1/analytics gateway routes', () => {
         method: 'POST',
         url: '/api/v1/analytics/export/csv',
         payload: validPayload,
+      });
+      expect(res.statusCode).toBe(403);
+    });
+  });
+
+  describe('POST /api/v1/analytics/export/pdf', () => {
+    const validPayload = {
+      reportType: 'full-analytics',
+      filters: {
+        dateRange: { start: '2026-01-08T00:00:00.000Z', end: '2026-01-15T00:00:00.000Z' },
+      },
+    };
+
+    const primeReads = (): void => {
+      petsMocks.getAdoptionTrend
+        .mockResolvedValueOnce({ points: [{ date: '2026-01-08', count: 3 }] })
+        .mockResolvedValueOnce({ points: [] });
+      petsMocks.getStats.mockResolvedValue({ averageDaysToAdoption: 14 });
+      petsMocks.getTopBreedsByAdoptions.mockResolvedValue({
+        breeds: [{ breed: 'Labrador', count: 24, averageAdoptionDays: 13 }],
+      });
+      applicationsMocks.getStats.mockResolvedValue(APP_STATS_FIXTURE);
+    };
+
+    it('returns 400 when the date range is missing', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/export/pdf',
+        payload: { filters: {} },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('renders a real PDF document from the composed figures', async () => {
+      primeReads();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/export/pdf',
+        payload: validPayload,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toBe('application/pdf');
+      expect(res.headers['content-disposition']).toContain(
+        'attachment; filename="analytics-2026-01-08-to-2026-01-15.pdf"'
+      );
+      // A real PDF payload begins with the %PDF- signature and is non-trivial.
+      expect(res.rawPayload.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+      expect(res.rawPayload.length).toBeGreaterThan(500);
+    });
+
+    it('maps an upstream error to its HTTP status', async () => {
+      petsMocks.getAdoptionTrend.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED });
+      petsMocks.getStats.mockResolvedValue({ averageDaysToAdoption: 0 });
+      petsMocks.getTopBreedsByAdoptions.mockResolvedValue({ breeds: [] });
+      applicationsMocks.getStats.mockResolvedValue(APP_STATS_FIXTURE);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/export/pdf',
+        payload: validPayload,
+      });
+      expect(res.statusCode).toBe(403);
+    });
+  });
+
+  describe('POST /api/v1/analytics/email-report', () => {
+    const base = {
+      reportType: 'full-analytics',
+      filters: {
+        dateRange: { start: '2026-01-08T00:00:00.000Z', end: '2026-01-15T00:00:00.000Z' },
+      },
+    };
+
+    const primeReads = (): void => {
+      petsMocks.getAdoptionTrend
+        .mockResolvedValueOnce({ points: [{ date: '2026-01-08', count: 3 }] })
+        .mockResolvedValueOnce({ points: [] });
+      petsMocks.getStats.mockResolvedValue({ averageDaysToAdoption: 14 });
+      petsMocks.getTopBreedsByAdoptions.mockResolvedValue({
+        breeds: [{ breed: 'Labrador', count: 24, averageAdoptionDays: 13 }],
+      });
+      applicationsMocks.getStats.mockResolvedValue(APP_STATS_FIXTURE);
+    };
+
+    it('returns 400 when the date range is missing', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/email-report',
+        payload: { recipients: ['a@rescue.org'], filters: {} },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('returns 400 when no recipients are given', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/email-report',
+        payload: { ...base, recipients: [] },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('emails the composed HTML report to each recipient', async () => {
+      primeReads();
+      notificationsMocks.sendEmail.mockResolvedValue({});
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/email-report',
+        payload: { ...base, recipients: ['a@rescue.org', 'b@rescue.org'] },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ success: true, sent: 2 });
+      expect(notificationsMocks.sendEmail).toHaveBeenCalledTimes(2);
+      const firstArg = notificationsMocks.sendEmail.mock.calls[0][0];
+      expect(firstArg.toEmail).toBe('a@rescue.org');
+      expect(firstArg.subject).toContain('2026-01-08');
+      expect(firstArg.htmlContent).toContain('Adoption Metrics');
+      expect(firstArg.htmlContent).toContain('Labrador');
+    });
+
+    it('maps an upstream error to its HTTP status', async () => {
+      petsMocks.getAdoptionTrend.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED });
+      petsMocks.getStats.mockResolvedValue({ averageDaysToAdoption: 0 });
+      petsMocks.getTopBreedsByAdoptions.mockResolvedValue({ breeds: [] });
+      applicationsMocks.getStats.mockResolvedValue(APP_STATS_FIXTURE);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/email-report',
+        payload: { ...base, recipients: ['a@rescue.org'] },
       });
       expect(res.statusCode).toBe(403);
     });
