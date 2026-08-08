@@ -22,7 +22,12 @@
 import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance } from 'fastify';
 
-import { PetsV1, type ListPetsRequest, type UpdatePetStatusRequest } from '@adopt-dont-shop/proto';
+import {
+  PetsV1,
+  type GetPetFacetsRequest,
+  type ListPetsRequest,
+  type UpdatePetStatusRequest,
+} from '@adopt-dont-shop/proto';
 
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
@@ -239,6 +244,81 @@ export const registerPetsRoutes = async (
       try {
         const res = await client.getStats({ rescueIdFilter: query.rescueId }, buildMetadata(req));
         return reply.send({ success: true, data: res });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // /facets must register BEFORE the dynamic /:id route so the literal
+  // segment wins Fastify's first-registered-wins matcher. Facet counts
+  // (per type / size / status) for the current filter set — standard
+  // faceted-search narrowing, each dimension excludes its own filter.
+  app.get(
+    '/api/v1/pets/facets',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.list },
+      schema: {
+        tags: ['pets'],
+        summary: 'Get pet facet counts (type/size/status) for the current filter set',
+        querystring: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            type: { type: 'string' },
+            size: { type: 'string' },
+            rescueId: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  facets: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        values: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              value: { type: 'string' },
+                              count: { type: 'number' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const grpcReq: GetPetFacetsRequest = {
+        statusFilter: parseStatus(query.status),
+        typeFilter: parseType(query.type),
+        sizeFilter: parseSize(query.size),
+        rescueIdFilter: query.rescueId,
+      };
+      try {
+        const res = await client.getPetFacets(grpcReq, buildMetadata(req));
+        return reply.send({ success: true, data: { facets: res.facets } });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

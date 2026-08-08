@@ -555,7 +555,7 @@ describe('@adopt-dont-shop/proto', () => {
     });
 
     it('round-trips a SendMessageRequest through the binary wire format', () => {
-      const original: SendMessageRequest = { chatId: 'c-1', body: 'hello' };
+      const original: SendMessageRequest = { chatId: 'c-1', body: 'hello', attachments: [] };
       const buf = ChatV1.SendMessageRequest.encode(original).finish();
       const decoded = ChatV1.SendMessageRequest.decode(buf);
       expect(decoded).toEqual(original);

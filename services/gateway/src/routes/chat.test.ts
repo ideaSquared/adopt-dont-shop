@@ -274,6 +274,26 @@ describe('POST /api/v1/chats/:chatId/messages — send', () => {
     const [req] = client.sendMessageMock.mock.calls[0] as [SendMessageRequest, Metadata];
     expect(req.body).toBe('Hello');
   });
+
+  it('normalises attachments (incl. snake_case) and drops url-less entries', async () => {
+    client.sendMessageMock.mockResolvedValueOnce({ message: MESSAGE_FIXTURE });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/chats/chat-1/messages',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      payload: {
+        body: '',
+        attachments: [
+          { url: 'https://cdn/a.png', content_type: 'image/png', name: 'a.png', size: 12 },
+          { fileName: 'no-url.png' },
+        ],
+      },
+    });
+    const [req] = client.sendMessageMock.mock.calls[0] as [SendMessageRequest, Metadata];
+    expect(req.attachments).toEqual([
+      { url: 'https://cdn/a.png', contentType: 'image/png', fileName: 'a.png', sizeBytes: 12 },
+    ]);
+  });
 });
 
 // --- GET /api/v1/chats/:id/messages ---------------------------------

@@ -47,6 +47,13 @@ function makeClient(): {
     'getApplicationDraft',
     'saveApplicationDraft',
     'deleteApplicationDraft',
+    'listHomeVisits',
+    'updateHomeVisit',
+    'getApplicationPreferences',
+    'updateApplicationPreferences',
+    'updateReferenceCheck',
+    'addTimelineNote',
+    'listTimelineNotes',
   ]) {
     mocks[m] = vi.fn();
   }
@@ -762,6 +769,335 @@ describe('applications routes', () => {
       });
       const body = res.json() as { data: { failures: Array<{ error: string }> } };
       expect(body.data.failures[0].error).toBe('internal_error');
+    });
+  });
+
+  describe('home visits (ADS-1152)', () => {
+    const VISIT = {
+      visitId: 'visit-1',
+      applicationId: 'app-1',
+      scheduledDate: '2026-06-10',
+      scheduledTime: '14:00:00',
+      status: 'scheduled',
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    };
+
+    it('GET /:id/home-visits wraps the visit list in { success, visits }', async () => {
+      mocks.listHomeVisits.mockResolvedValue({ visits: [VISIT] });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications/app-1/home-visits',
+        headers: STAFF,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; visits: Array<{ id: string }> };
+      expect(body.success).toBe(true);
+      expect(body.visits[0].id).toBe('visit-1');
+    });
+
+    it('PUT /:id/home-visits/:visitId translates snake_case body → the gRPC request', async () => {
+      mocks.updateHomeVisit.mockResolvedValue({ visit: { ...VISIT, status: 'in_progress' } });
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/applications/app-1/home-visits/visit-1',
+        headers: STAFF,
+        payload: { status: 'in_progress', started_at: '2026-06-10T14:00:00.000Z' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(mocks.updateHomeVisit.mock.calls[0][0]).toMatchObject({
+        applicationId: 'app-1',
+        visitId: 'visit-1',
+        status: 'in_progress',
+      });
+      const body = res.json() as { success: boolean; visit: { status: string } };
+      expect(body.success).toBe(true);
+      expect(body.visit.status).toBe('in_progress');
+    });
+
+    it('PUT folds `conditions` into outcome_notes for a conditional completion', async () => {
+      mocks.updateHomeVisit.mockResolvedValue({ visit: { ...VISIT, status: 'completed' } });
+      await app.inject({
+        method: 'PUT',
+        url: '/api/v1/applications/app-1/home-visits/visit-1',
+        headers: STAFF,
+        payload: { status: 'completed', outcome: 'conditional', conditions: 'needs a fence' },
+      });
+      expect(mocks.updateHomeVisit.mock.calls[0][0]).toMatchObject({
+        outcome: 'conditional',
+        outcomeNotes: 'needs a fence',
+      });
+    });
+
+    it('PUT 500s with a clean message when the service returns no visit', async () => {
+      mocks.updateHomeVisit.mockResolvedValue({});
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/applications/app-1/home-visits/visit-1',
+        headers: STAFF,
+        payload: { status: 'in_progress' },
+      });
+      expect(res.statusCode).toBe(500);
+    });
+  });
+
+  describe('reference checks (ADS-1140)', () => {
+    it('PATCH /:id/references requires a referenceId', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/app-1/references',
+        headers: STAFF,
+        payload: { status: 'contacted' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(mocks.updateReferenceCheck).not.toHaveBeenCalled();
+    });
+
+    it('PATCH /:id/references forwards referenceId/status/notes/contacted_at', async () => {
+      mocks.updateReferenceCheck.mockResolvedValue({
+        reference: {
+          referenceId: 'ref-0',
+          applicationId: 'app-1',
+          name: 'Ada',
+          email: 'ada@example.com',
+          relationship: 'friend',
+          status: 'contacted',
+        },
+      });
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/app-1/references',
+        headers: STAFF,
+        payload: {
+          referenceId: 'ref-0',
+          status: 'contacted',
+          notes: 'left a voicemail',
+          contacted_at: '2026-06-05T10:00:00.000Z',
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(mocks.updateReferenceCheck.mock.calls[0][0]).toEqual({
+        applicationId: 'app-1',
+        referenceId: 'ref-0',
+        status: 'contacted',
+        notes: 'left a voicemail',
+        contactedAt: '2026-06-05T10:00:00.000Z',
+      });
+    });
+  });
+
+  describe('timeline (ADS-1139)', () => {
+    const ENTRY = {
+      entryId: 'evt-1',
+      applicationId: 'app-1',
+      fromStatus: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED,
+      toStatus: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNDER_REVIEW,
+      actorUserId: 'staff-1',
+      occurredAt: '2026-06-01T10:00:00.000Z',
+    };
+    const NOTE = {
+      noteId: 'note-1',
+      applicationId: 'app-1',
+      title: 'Called applicant',
+      description: 'Left a voicemail',
+      noteType: 'general',
+      metadataJson: '{}',
+      createdBy: 'staff-1',
+      createdAt: '2026-06-02T10:00:00.000Z',
+    };
+
+    it('GET /:id/timeline merges status transitions and notes chronologically', async () => {
+      mocks.get.mockResolvedValue({ application: APP, timeline: [ENTRY] });
+      mocks.listTimelineNotes.mockResolvedValue({ notes: [NOTE] });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications/app-1/timeline',
+        headers: STAFF,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(mocks.get.mock.calls[0][0]).toMatchObject({
+        applicationId: 'app-1',
+        includeTimeline: true,
+      });
+      const body = res.json() as { data: Array<{ id: string }> };
+      expect(body.data.map(i => i.id)).toEqual(['evt-1', 'note-1']);
+    });
+
+    it('GET /:id/timeline/stats counts events by type', async () => {
+      mocks.get.mockResolvedValue({ application: APP, timeline: [ENTRY] });
+      mocks.listTimelineNotes.mockResolvedValue({ notes: [NOTE] });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications/app-1/timeline/stats',
+        headers: STAFF,
+      });
+      const body = res.json() as { totalEvents: number; eventTypeCounts: Record<string, number> };
+      expect(body.totalEvents).toBe(2);
+      expect(body.eventTypeCounts).toEqual({ status_change: 1, general: 1 });
+    });
+
+    it('POST /:id/timeline/notes stores a free-text note', async () => {
+      mocks.addTimelineNote.mockResolvedValue({ note: NOTE });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/applications/app-1/timeline/notes',
+        headers: STAFF,
+        payload: { title: 'Called applicant', description: 'Left a voicemail' },
+      });
+      expect(res.statusCode).toBe(201);
+      expect(mocks.addTimelineNote.mock.calls[0][0]).toMatchObject({
+        applicationId: 'app-1',
+        title: 'Called applicant',
+        description: 'Left a voicemail',
+      });
+    });
+
+    it('POST /:id/timeline/events carries event_type through as note_type', async () => {
+      mocks.addTimelineNote.mockResolvedValue({
+        note: { ...NOTE, noteType: 'home_visit_scheduled' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/applications/app-1/timeline/events',
+        headers: STAFF,
+        payload: {
+          event_type: 'home_visit_scheduled',
+          title: 'Visit scheduled',
+          description: 'Scheduled for Friday',
+        },
+      });
+      expect(mocks.addTimelineNote.mock.calls[0][0]).toMatchObject({
+        noteType: 'home_visit_scheduled',
+      });
+    });
+  });
+
+  describe('applicant profile (ADS-1140)', () => {
+    it('GET /profile/application-preferences fills in defaults for unset keys', async () => {
+      mocks.getApplicationPreferences.mockResolvedValue({
+        preferencesJson: JSON.stringify({ quick_apply_enabled: true }),
+      });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/profile/application-preferences',
+        headers: ADOPTER,
+      });
+      expect(res.json()).toEqual({
+        auto_populate: true,
+        quick_apply_enabled: true,
+        completion_reminders: true,
+      });
+    });
+
+    it('PUT /profile/application-preferences merges the patch and returns the full shape', async () => {
+      mocks.updateApplicationPreferences.mockResolvedValue({
+        preferencesJson: JSON.stringify({ auto_populate: false }),
+      });
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/profile/application-preferences',
+        headers: ADOPTER,
+        payload: { applicationPreferences: { auto_populate: false } },
+      });
+      expect(mocks.updateApplicationPreferences.mock.calls[0][0]).toEqual({
+        preferencesPatchJson: JSON.stringify({ auto_populate: false }),
+      });
+      expect((res.json() as { auto_populate: boolean }).auto_populate).toBe(false);
+    });
+
+    it('GET /profile/completion composes completion status from the stored defaults', async () => {
+      mocks.getApplicationDefaults.mockResolvedValue({
+        defaultsJson: JSON.stringify({ personalInfo: { firstName: 'Ada' } }),
+      });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/profile/completion',
+        headers: ADOPTER,
+      });
+      const body = res.json() as {
+        completionStatus: { basic_info: boolean; overall_percentage: number };
+        canQuickApply: boolean;
+      };
+      expect(body.completionStatus.basic_info).toBe(true);
+      expect(body.completionStatus.overall_percentage).toBe(25);
+      expect(body.canQuickApply).toBe(false);
+    });
+
+    it('GET /profile/pre-population returns the stored defaults flat (no envelope)', async () => {
+      mocks.getApplicationDefaults.mockResolvedValue({
+        defaultsJson: JSON.stringify({ personalInfo: { firstName: 'Ada' } }),
+      });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/profile/pre-population?petId=pet-1',
+        headers: ADOPTER,
+      });
+      expect(res.json()).toEqual({ personalInfo: { firstName: 'Ada' } });
+    });
+
+    const FULL_DEFAULTS = {
+      personalInfo: { firstName: 'Ada' },
+      livingSituation: { housingType: 'house' },
+      petExperience: { experienceLevel: 'some' },
+      references: { personal: [{ name: 'Grace' }] },
+    };
+
+    it('POST /profile/quick-application 400s with missingFields when the profile is incomplete', async () => {
+      mocks.getApplicationDefaults.mockResolvedValue({
+        defaultsJson: JSON.stringify({ personalInfo: { firstName: 'Ada' } }),
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/profile/quick-application',
+        headers: ADOPTER,
+        payload: { petId: 'pet-1' },
+      });
+      expect(res.statusCode).toBe(400);
+      const body = res.json() as { data: { missingFields: string[] } };
+      expect(body.data.missingFields).toEqual(['livingSituation', 'petExperience', 'references']);
+      expect(mocks.startDraft).not.toHaveBeenCalled();
+    });
+
+    it('POST /profile/quick-application orchestrates the draft→answers→submit create path', async () => {
+      mocks.getApplicationDefaults.mockResolvedValue({
+        defaultsJson: JSON.stringify(FULL_DEFAULTS),
+      });
+      mocks.startDraft.mockResolvedValue({ application: { ...APP, version: 0 } });
+      mocks.saveDraftAnswers.mockResolvedValue({ application: { ...APP, version: 1 } });
+      mocks.submitDraft.mockResolvedValue({ application: { ...APP, version: 2 } });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/profile/quick-application',
+        headers: ADOPTER,
+        payload: { petId: 'pet-1' },
+      });
+
+      expect(res.statusCode).toBe(201);
+      expect(mocks.startDraft.mock.calls[0][0]).toMatchObject({
+        adopterId: 'usr-1',
+        petId: 'pet-1',
+      });
+      expect(mocks.saveDraftAnswers.mock.calls[0][0]).toMatchObject({
+        answersPatchJson: JSON.stringify(FULL_DEFAULTS),
+      });
+      const body = res.json() as {
+        applicationId: string;
+        prePopulationData: { defaults: unknown };
+      };
+      expect(body.applicationId).toBe('app-1');
+      expect(body.prePopulationData.defaults).toEqual(FULL_DEFAULTS);
+    });
+
+    it('POST /profile/quick-application requires a petId', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/profile/quick-application',
+        headers: ADOPTER,
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+      expect(mocks.getApplicationDefaults).not.toHaveBeenCalled();
     });
   });
 });

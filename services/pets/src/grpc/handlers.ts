@@ -34,10 +34,14 @@ import {
   type GetAdoptionsByTypeResponse,
   type GetAdoptionTrendRequest,
   type GetAdoptionTrendResponse,
+  type GetPetFacetsRequest,
+  type GetPetFacetsResponse,
   type GetPetRequest,
   type GetPetResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
+  type GetSearchSuggestionsRequest,
+  type GetSearchSuggestionsResponse,
   type GetSimilarPetsRequest,
   type GetSimilarPetsResponse,
   type ListBreedsRequest,
@@ -1272,4 +1276,168 @@ export async function listFavoriters(
     [req.petId]
   );
   return { userIds: result.rows.map(row => row.user_id) };
+}
+
+// --- GetSearchSuggestions ---------------------------------------------
+
+const DEFAULT_SUGGESTIONS_LIMIT = 8;
+const MAX_SUGGESTIONS_LIMIT = 20;
+
+function clampSuggestionsLimit(requested: number): number {
+  if (requested <= 0) {
+    return DEFAULT_SUGGESTIONS_LIMIT;
+  }
+  if (requested > MAX_SUGGESTIONS_LIMIT) {
+    throw new HandlerError('INVALID_ARGUMENT', `limit must be <= ${MAX_SUGGESTIONS_LIMIT}`);
+  }
+  return requested;
+}
+
+export async function getSearchSuggestions(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetSearchSuggestionsRequest
+): Promise<GetSearchSuggestionsResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  const query = req.query?.trim();
+  if (!query) {
+    return { suggestions: [] };
+  }
+  const limit = clampSuggestionsLimit(req.limit);
+  const prefix = `${query}%`;
+
+  // Prefix-match against pet names and breed names, ranked by how many
+  // currently-listed (non-archived, non-deleted) pets each suggestion
+  // resolves to. The outer SELECT + ORDER BY sits outside the UNION ALL
+  // so `count` sorts numerically rather than lexicographically.
+  const result = await deps.pool.query<{ text: string; category: string; count: string }>(
+    `
+    SELECT text, category, count FROM (
+      (SELECT name AS text, 'pet_name' AS category, COUNT(*) AS count
+       FROM pets.pets
+       WHERE deleted_at IS NULL AND archived = false AND name ILIKE $1
+       GROUP BY name)
+      UNION ALL
+      (SELECT b.name AS text, 'breed' AS category, COUNT(DISTINCT p.pet_id) AS count
+       FROM pets.breeds b
+       JOIN pets.pets p ON (p.breed_id = b.breed_id OR p.secondary_breed_id = b.breed_id)
+         AND p.deleted_at IS NULL AND p.archived = false
+       WHERE b.name ILIKE $1
+       GROUP BY b.name)
+    ) suggestions
+    ORDER BY count DESC, text ASC
+    LIMIT $2
+    `,
+    [prefix, limit]
+  );
+
+  return {
+    suggestions: result.rows.map(row => ({
+      text: row.text,
+      category: row.category,
+      count: Number.parseInt(row.count, 10),
+    })),
+  };
+}
+
+// --- GetPetFacets --------------------------------------------------------
+
+type PetFacetDimension = 'status' | 'type' | 'size';
+type FacetCountRow = { value: string; count: number };
+
+export async function getPetFacets(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetPetFacetsRequest
+): Promise<GetPetFacetsResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  // Same scope resolution as List: rescue staff pinned to their own
+  // rescue; pets.read:any may target any rescue (or the whole platform);
+  // public / adopter callers may optionally narrow to one rescue.
+  let rescueScope: string | undefined;
+  if (!hasPermission(principal, PETS_READ_ANY) && principal.rescueId) {
+    rescueScope = principal.rescueId;
+  } else {
+    rescueScope = req.rescueIdFilter ? req.rescueIdFilter : undefined;
+  }
+  const privileged = hasPermission(principal, PETS_READ_ANY) || principal.rescueId !== undefined;
+
+  // Standard faceted-search narrowing: each dimension's count applies
+  // every OTHER active filter but excludes that dimension's own, so the
+  // UI can show how many results each option would additionally narrow
+  // to. The visibility rule (hidden statuses + archived for public
+  // readers) always applies, regardless of dimension.
+  const buildWhere = (excludeDim: PetFacetDimension): { clause: string; params: unknown[] } => {
+    const where: string[] = ['deleted_at IS NULL'];
+    const params: unknown[] = [];
+    let n = 1;
+    if (
+      excludeDim !== 'status' &&
+      req.statusFilter !== undefined &&
+      req.statusFilter !== PetsV1.PetStatus.PET_STATUS_UNSPECIFIED
+    ) {
+      where.push(`status = $${n}`);
+      params.push(statusToDb(req.statusFilter));
+      n++;
+    }
+    if (
+      excludeDim !== 'type' &&
+      req.typeFilter !== undefined &&
+      req.typeFilter !== PetsV1.PetType.PET_TYPE_UNSPECIFIED
+    ) {
+      where.push(`type = $${n}`);
+      params.push(typeToDb(req.typeFilter));
+      n++;
+    }
+    if (
+      excludeDim !== 'size' &&
+      req.sizeFilter !== undefined &&
+      req.sizeFilter !== PetsV1.PetSize.PET_SIZE_UNSPECIFIED
+    ) {
+      where.push(`size = $${n}`);
+      params.push(sizeToDb(req.sizeFilter));
+      n++;
+    }
+    if (rescueScope) {
+      where.push(`rescue_id = $${n}`);
+      params.push(rescueScope);
+      n++;
+    }
+    if (!privileged) {
+      const placeholders = PUBLIC_HIDDEN_STATUSES.map(() => `$${n++}`).join(', ');
+      where.push(`status NOT IN (${placeholders})`);
+      params.push(...PUBLIC_HIDDEN_STATUSES);
+      where.push('archived = false');
+    }
+    return { clause: where.join(' AND '), params };
+  };
+
+  const runFacet = async (dim: PetFacetDimension): Promise<FacetCountRow[]> => {
+    const { clause, params } = buildWhere(dim);
+    const { rows } = await deps.pool.query<{ value: string; count: string }>(
+      `SELECT ${dim} AS value, COUNT(*)::text AS count FROM pets.pets WHERE ${clause} GROUP BY ${dim}`,
+      params
+    );
+    return rows.map(row => ({ value: row.value, count: Number.parseInt(row.count, 10) }));
+  };
+
+  const [statusValues, typeValues, sizeValues] = await Promise.all([
+    runFacet('status'),
+    runFacet('type'),
+    runFacet('size'),
+  ]);
+
+  return {
+    facets: [
+      { name: 'status', values: statusValues },
+      { name: 'type', values: typeValues },
+      { name: 'size', values: sizeValues },
+    ],
+  };
 }

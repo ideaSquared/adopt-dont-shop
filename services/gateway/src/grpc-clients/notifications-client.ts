@@ -14,6 +14,8 @@ import { credentials, Metadata, type CallOptions } from '@grpc/grpc-js';
 
 import {
   NotificationsV1,
+  type BulkCreateNotificationsRequest,
+  type BulkCreateNotificationsResponse,
   type CreateNotificationRequest,
   type CreateNotificationResponse,
   type DeleteNotificationRequest,
@@ -95,6 +97,10 @@ export type NotificationsClient = {
     req: DeleteNotificationRequest,
     metadata: Metadata
   ): Promise<DeleteNotificationResponse>;
+  bulkCreateNotifications(
+    req: BulkCreateNotificationsRequest,
+    metadata: Metadata
+  ): Promise<BulkCreateNotificationsResponse>;
   getNotificationPreferences(
     req: GetNotificationPreferencesRequest,
     metadata: Metadata
@@ -220,6 +226,8 @@ export const createNotificationsClient = (
     markAllRead: (req, metadata) => callUnary(stub.markAllRead, req, metadata, false),
     markRead: (req, metadata) => callUnary(stub.markRead, req, metadata, false),
     deleteNotification: (req, metadata) => callUnary(stub.deleteNotification, req, metadata, false),
+    bulkCreateNotifications: (req, metadata) =>
+      callUnary(stub.bulkCreateNotifications, req, metadata, false),
     updateNotificationPreferences: (req, metadata) =>
       callUnary(stub.updateNotificationPreferences, req, metadata, false),
     resetNotificationPreferences: (req, metadata) =>

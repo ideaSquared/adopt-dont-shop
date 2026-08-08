@@ -20,6 +20,8 @@ import {
   type ReactResponse,
   type SearchChatsRequest,
   type SearchChatsResponse,
+  type SearchMessagesRequest,
+  type SearchMessagesResponse,
   type SendMessageRequest,
   type SendMessageResponse,
   type GetChatUnreadCountRequest,
@@ -46,6 +48,7 @@ export type ChatClient = {
   markRead(req: MarkReadRequest, metadata: Metadata): Promise<MarkReadResponse>;
   react(req: ReactRequest, metadata: Metadata): Promise<ReactResponse>;
   searchChats(req: SearchChatsRequest, metadata: Metadata): Promise<SearchChatsResponse>;
+  searchMessages(req: SearchMessagesRequest, metadata: Metadata): Promise<SearchMessagesResponse>;
   getChatUnreadCount(
     req: GetChatUnreadCountRequest,
     metadata: Metadata
@@ -131,6 +134,7 @@ export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
     listMessages: (req, metadata) => callUnary(stub.listMessages, req, metadata, true),
     listChats: (req, metadata) => callUnary(stub.listChats, req, metadata, true),
     searchChats: (req, metadata) => callUnary(stub.searchChats, req, metadata, true),
+    searchMessages: (req, metadata) => callUnary(stub.searchMessages, req, metadata, true),
     getChatUnreadCount: (req, metadata) => callUnary(stub.getChatUnreadCount, req, metadata, true),
     getChat: (req, metadata) => callUnary(stub.getChat, req, metadata, true),
     close: () => stub.close(),

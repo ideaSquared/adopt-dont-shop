@@ -13,6 +13,8 @@ import {
   ApplicationsV1,
   type AddDocumentRequest,
   type AddDocumentResponse,
+  type AddTimelineNoteRequest,
+  type AddTimelineNoteResponse,
   type ApproveRequest,
   type ApproveResponse,
   type CompleteHomeVisitRequest,
@@ -23,6 +25,8 @@ import {
   type GetApplicationDefaultsResponse,
   type GetApplicationDraftRequest,
   type GetApplicationDraftResponse,
+  type GetApplicationPreferencesRequest,
+  type GetApplicationPreferencesResponse,
   type GetApplicationRequest,
   type GetApplicationResponse,
   type GetStatsRequest,
@@ -31,6 +35,10 @@ import {
   type ListApplicationsResponse,
   type ListDocumentsRequest,
   type ListDocumentsResponse,
+  type ListHomeVisitsRequest,
+  type ListHomeVisitsResponse,
+  type ListTimelineNotesRequest,
+  type ListTimelineNotesResponse,
   type MarkAdoptedRequest,
   type MarkAdoptedResponse,
   type RejectRequest,
@@ -51,6 +59,12 @@ import {
   type SubmitDraftResponse,
   type UpdateApplicationDefaultsRequest,
   type UpdateApplicationDefaultsResponse,
+  type UpdateApplicationPreferencesRequest,
+  type UpdateApplicationPreferencesResponse,
+  type UpdateHomeVisitRequest,
+  type UpdateHomeVisitResponse,
+  type UpdateReferenceCheckRequest,
+  type UpdateReferenceCheckResponse,
   type WithdrawRequest,
   type WithdrawResponse,
 } from '@adopt-dont-shop/proto';
@@ -105,6 +119,31 @@ export type ApplicationsClient = {
     req: DeleteApplicationDraftRequest,
     metadata: Metadata
   ): Promise<DeleteApplicationDraftResponse>;
+  listHomeVisits(req: ListHomeVisitsRequest, metadata: Metadata): Promise<ListHomeVisitsResponse>;
+  updateHomeVisit(
+    req: UpdateHomeVisitRequest,
+    metadata: Metadata
+  ): Promise<UpdateHomeVisitResponse>;
+  getApplicationPreferences(
+    req: GetApplicationPreferencesRequest,
+    metadata: Metadata
+  ): Promise<GetApplicationPreferencesResponse>;
+  updateApplicationPreferences(
+    req: UpdateApplicationPreferencesRequest,
+    metadata: Metadata
+  ): Promise<UpdateApplicationPreferencesResponse>;
+  updateReferenceCheck(
+    req: UpdateReferenceCheckRequest,
+    metadata: Metadata
+  ): Promise<UpdateReferenceCheckResponse>;
+  addTimelineNote(
+    req: AddTimelineNoteRequest,
+    metadata: Metadata
+  ): Promise<AddTimelineNoteResponse>;
+  listTimelineNotes(
+    req: ListTimelineNotesRequest,
+    metadata: Metadata
+  ): Promise<ListTimelineNotesResponse>;
   close(): void;
 };
 
@@ -189,6 +228,12 @@ export const createApplicationsClient = (
       callUnary(stub.updateApplicationDefaults, req, metadata, false),
     saveApplicationDraft: (req, metadata) =>
       callUnary(stub.saveApplicationDraft, req, metadata, false),
+    updateHomeVisit: (req, metadata) => callUnary(stub.updateHomeVisit, req, metadata, false),
+    updateApplicationPreferences: (req, metadata) =>
+      callUnary(stub.updateApplicationPreferences, req, metadata, false),
+    updateReferenceCheck: (req, metadata) =>
+      callUnary(stub.updateReferenceCheck, req, metadata, false),
+    addTimelineNote: (req, metadata) => callUnary(stub.addTimelineNote, req, metadata, false),
     // ── Idempotent (reads + idempotent deletes) ──────────────────────
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
@@ -202,6 +247,10 @@ export const createApplicationsClient = (
     // no-op success), so it's safe to retry.
     deleteApplicationDraft: (req, metadata) =>
       callUnary(stub.deleteApplicationDraft, req, metadata, true),
+    listHomeVisits: (req, metadata) => callUnary(stub.listHomeVisits, req, metadata, true),
+    getApplicationPreferences: (req, metadata) =>
+      callUnary(stub.getApplicationPreferences, req, metadata, true),
+    listTimelineNotes: (req, metadata) => callUnary(stub.listTimelineNotes, req, metadata, true),
     close: () => stub.close(),
   };
 };

@@ -154,6 +154,59 @@ service ApplicationService {
   // isn't there succeeds (the SPA calls this best-effort on submit).
   rpc DeleteApplicationDraft(DeleteApplicationDraftRequest)
       returns (DeleteApplicationDraftResponse);
+
+  // --- Home visit scheduling detail (ADS-1152) ------------------------
+  //
+  // The granular per-visit scheduling lifecycle (scheduled → in_progress
+  // → completed | cancelled), backed by the home_visits /
+  // home_visit_status_transitions tables — non-aggregate operational
+  // detail alongside the event-sourced Application's single-visit
+  // summary (home_visit_scheduled_at / outcome / notes above). A row is
+  // created by ScheduleHomeVisit the first time a visit is scheduled.
+
+  // List the home-visit rows for an application, newest first. Scoped
+  // like Get (adopter-owns OR rescue-staff-of-the-app's-rescue OR admin).
+  rpc ListHomeVisits(ListHomeVisitsRequest) returns (ListHomeVisitsResponse);
+
+  // Drive a home visit's granular status machine (start / reschedule /
+  // cancel / complete) plus its notes/outcome. Every status change is
+  // appended to home_visit_status_transitions; the DB trigger
+  // (migration 006) propagates it onto home_visits.status. Caller MUST
+  // hold applications.review scoped to the application's rescue.
+  rpc UpdateHomeVisit(UpdateHomeVisitRequest) returns (UpdateHomeVisitResponse);
+
+  // --- Applicant application preferences (ADS-1140) -------------------
+  //
+  // Feature-toggle preferences (auto-populate, quick-apply, reminders) —
+  // distinct from GetApplicationDefaults' saved form-answer data. Always
+  // scoped to the calling principal's own user_id.
+
+  rpc GetApplicationPreferences(GetApplicationPreferencesRequest)
+      returns (GetApplicationPreferencesResponse);
+
+  rpc UpdateApplicationPreferences(UpdateApplicationPreferencesRequest)
+      returns (UpdateApplicationPreferencesResponse);
+
+  // --- Reference checks (ADS-1140) -------------------------------------
+  //
+  // Minimal-viable reference-check workflow: rescue staff record the
+  // contact outcome for a referee named on the application. The referee
+  // list itself stays the event-sourced Application.references_json;
+  // this only tracks operational status ABOUT a referee (pending →
+  // contacted → completed | failed), so it's plain non-aggregate data.
+
+  rpc UpdateReferenceCheck(UpdateReferenceCheckRequest) returns (UpdateReferenceCheckResponse);
+
+  // --- Timeline notes (ADS-1139) ---------------------------------------
+  //
+  // Free-text notes rescue staff attach to an application's timeline —
+  // separate from the event-sourced status-transition timeline
+  // (GetApplication's include_timeline), which the gateway composes
+  // these with for the SPA's combined timeline view.
+
+  rpc AddTimelineNote(AddTimelineNoteRequest) returns (AddTimelineNoteResponse);
+
+  rpc ListTimelineNotes(ListTimelineNotesRequest) returns (ListTimelineNotesResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -544,3 +597,141 @@ message DeleteApplicationDraftRequest {
 }
 
 message DeleteApplicationDraftResponse {}
+
+// --- Home visits (ADS-1152) -------------------------------------------
+
+// HomeVisitRecord — a home_visits row. status / outcome are plain
+// strings (not enums) matching the Postgres ENUM values verbatim:
+// status ∈ {scheduled, in_progress, completed, cancelled}; outcome ∈
+// {approved, rejected, conditional}.
+message HomeVisitRecord {
+  string visit_id = 1;
+  string application_id = 2;
+  // ISO date (YYYY-MM-DD).
+  string scheduled_date = 3;
+  // ISO time (HH:MM:SS).
+  string scheduled_time = 4;
+  optional string assigned_staff = 5;
+  string status = 6;
+  optional string notes = 7;
+  optional string outcome = 8;
+  optional string outcome_notes = 9;
+  optional string reschedule_reason = 10;
+  optional string cancelled_reason = 11;
+  optional string completed_at = 12;
+  string created_at = 13;
+  string updated_at = 14;
+}
+
+message ListHomeVisitsRequest {
+  string application_id = 1;
+}
+
+message ListHomeVisitsResponse {
+  repeated HomeVisitRecord visits = 1;
+}
+
+message UpdateHomeVisitRequest {
+  string application_id = 1;
+  string visit_id = 2;
+  // Target status. Omit to update fields without transitioning status
+  // (e.g. a reschedule that stays 'scheduled').
+  optional string status = 3;
+  optional string scheduled_date = 4;
+  optional string scheduled_time = 5;
+  optional string assigned_staff = 6;
+  optional string notes = 7;
+  optional string outcome = 8;
+  optional string outcome_notes = 9;
+  optional string reschedule_reason = 10;
+  optional string cancelled_reason = 11;
+  optional string completed_at = 12;
+}
+
+message UpdateHomeVisitResponse {
+  HomeVisitRecord visit = 1;
+}
+
+// --- Application preferences (ADS-1140) --------------------------------
+
+message GetApplicationPreferencesRequest {}
+
+message GetApplicationPreferencesResponse {
+  // JSON-stringified ApplicationPreferences. Empty string when the
+  // adopter has never saved any (the gateway fills in defaults).
+  string preferences_json = 1;
+}
+
+message UpdateApplicationPreferencesRequest {
+  // JSON-stringified partial ApplicationPreferences patch, deep-merged
+  // into the stored value.
+  string preferences_patch_json = 1;
+}
+
+message UpdateApplicationPreferencesResponse {
+  string preferences_json = 1;
+}
+
+// --- Reference checks (ADS-1140) ---------------------------------------
+
+message ReferenceCheck {
+  // The referee's stable key within the application's references list
+  // (e.g. "ref-0") — matches the frontend's array-index id scheme.
+  string reference_id = 1;
+  string application_id = 2;
+  string name = 3;
+  string email = 4;
+  string relationship = 5;
+  // pending | contacted | completed | failed.
+  string status = 6;
+  optional string notes = 7;
+  optional string contacted_at = 8;
+  optional string contacted_by = 9;
+}
+
+message UpdateReferenceCheckRequest {
+  string application_id = 1;
+  string reference_id = 2;
+  optional string status = 3;
+  optional string notes = 4;
+  optional string contacted_at = 5;
+}
+
+message UpdateReferenceCheckResponse {
+  ReferenceCheck reference = 1;
+}
+
+// --- Timeline notes (ADS-1139) ------------------------------------------
+
+message TimelineNote {
+  string note_id = 1;
+  string application_id = 2;
+  string title = 3;
+  string description = 4;
+  string note_type = 5;
+  // JSON-stringified free-form metadata. Empty string == `{}`.
+  string metadata_json = 6;
+  string created_by = 7;
+  string created_at = 8;
+}
+
+message AddTimelineNoteRequest {
+  string application_id = 1;
+  string title = 2;
+  string description = 3;
+  optional string note_type = 4;
+  // JSON-stringified free-form metadata. Empty/omitted == `{}`.
+  optional string metadata_json = 5;
+}
+
+message AddTimelineNoteResponse {
+  TimelineNote note = 1;
+}
+
+message ListTimelineNotesRequest {
+  string application_id = 1;
+}
+
+message ListTimelineNotesResponse {
+  repeated TimelineNote notes = 1;
+}

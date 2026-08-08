@@ -25,7 +25,15 @@
 // documents are separate Stage B follow-ups; so is the data migration
 // that must backfill the (currently empty) event store before any flip.
 
-import { ApplicationsV1, type Application, type GetStatsResponse } from '@adopt-dont-shop/proto';
+import {
+  ApplicationsV1,
+  type Application,
+  type GetStatsResponse,
+  type HomeVisitRecord,
+  type ReferenceCheck,
+  type TimelineEntry,
+  type TimelineNote,
+} from '@adopt-dont-shop/proto';
 
 type FrontendStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
 type FrontendStage = 'pending' | 'reviewing' | 'visiting' | 'deciding' | 'resolved' | 'withdrawn';
@@ -201,4 +209,172 @@ export function documentToView(d: ProtoDocument): DocumentView {
     view.mimeType = d.mimeType;
   }
   return view;
+}
+
+// --- Home visit view (ADS-1152) -----------------------------------------
+//
+// The proto HomeVisitRecord → the rescue app's HomeVisit shape
+// (apps/rescue/src/types/applications.ts). rescheduleReason has no
+// matching HomeVisit field (the frontend never reads it back); carried
+// through as an extra property is harmless.
+
+export type HomeVisitView = {
+  id: string;
+  applicationId: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  assignedStaff: string;
+  status: string;
+  notes?: string;
+  outcome?: string;
+  outcomeNotes?: string;
+  cancelReason?: string;
+  completedAt?: string;
+};
+
+export function homeVisitToView(v: HomeVisitRecord): HomeVisitView {
+  const view: HomeVisitView = {
+    id: v.visitId,
+    applicationId: v.applicationId,
+    scheduledDate: v.scheduledDate,
+    scheduledTime: v.scheduledTime,
+    assignedStaff: v.assignedStaff ?? '',
+    status: v.status,
+  };
+  if (v.notes !== undefined) {
+    view.notes = v.notes;
+  }
+  if (v.outcome !== undefined) {
+    view.outcome = v.outcome;
+  }
+  if (v.outcomeNotes !== undefined) {
+    view.outcomeNotes = v.outcomeNotes;
+  }
+  if (v.cancelledReason !== undefined) {
+    view.cancelReason = v.cancelledReason;
+  }
+  if (v.completedAt !== undefined) {
+    view.completedAt = v.completedAt;
+  }
+  return view;
+}
+
+// --- Reference check view (ADS-1140) --------------------------------------
+
+export type ReferenceCheckView = {
+  id: string;
+  applicationId: string;
+  name: string;
+  email: string;
+  relationship: string;
+  status: string;
+  notes?: string;
+  contactedAt?: string;
+  contactedBy?: string;
+};
+
+export function referenceCheckToView(r: ReferenceCheck): ReferenceCheckView {
+  const view: ReferenceCheckView = {
+    id: r.referenceId,
+    applicationId: r.applicationId,
+    name: r.name,
+    email: r.email,
+    relationship: r.relationship,
+    status: r.status,
+  };
+  if (r.notes !== undefined) {
+    view.notes = r.notes;
+  }
+  if (r.contactedAt !== undefined) {
+    view.contactedAt = r.contactedAt;
+  }
+  if (r.contactedBy !== undefined) {
+    view.contactedBy = r.contactedBy;
+  }
+  return view;
+}
+
+// --- Timeline view (ADS-1139) ---------------------------------------------
+//
+// Composes the event-sourced status-transition timeline (GetApplication's
+// include_timeline) with the plain-table timeline notes into the shape
+// apps/rescue's getApplicationTimeline() transformer already tolerates
+// (snake_case field names — it checks both cases). Both entry kinds map
+// onto the same RawTimelineItem-ish shape so the SPA renders one merged,
+// chronological list.
+
+export type TimelineItemView = {
+  id: string;
+  application_id: string;
+  event_type: string;
+  title: string;
+  description: string;
+  created_at: string;
+  created_by: string;
+  previous_status?: string;
+  new_status?: string;
+};
+
+// The proto's SCREAMING_SNAKE JSON name (APPLICATION_STATUS_UNDER_REVIEW)
+// collapsed to the DB-style label (under_review) the frontend renders.
+function statusLabel(status: ApplicationsV1.ApplicationStatus): string {
+  return ApplicationsV1.applicationStatusToJSON(status)
+    .replace('APPLICATION_STATUS_', '')
+    .toLowerCase();
+}
+
+export function timelineEntryToView(e: TimelineEntry): TimelineItemView {
+  const newStatus = statusLabel(e.toStatus);
+  return {
+    id: e.entryId,
+    application_id: e.applicationId,
+    event_type: 'status_change',
+    title: 'Status changed',
+    description: e.note ?? `Status changed to ${newStatus}`,
+    created_at: e.occurredAt,
+    created_by: e.actorUserId,
+    previous_status: statusLabel(e.fromStatus),
+    new_status: newStatus,
+  };
+}
+
+export function timelineNoteToView(n: TimelineNote): TimelineItemView {
+  return {
+    id: n.noteId,
+    application_id: n.applicationId,
+    event_type: n.noteType,
+    title: n.title,
+    description: n.description,
+    created_at: n.createdAt,
+    created_by: n.createdBy,
+  };
+}
+
+// Merge the two timeline sources chronologically (oldest first).
+export function buildTimeline(
+  entries: ReadonlyArray<TimelineEntry>,
+  notes: ReadonlyArray<TimelineNote>
+): TimelineItemView[] {
+  return [...entries.map(timelineEntryToView), ...notes.map(timelineNoteToView)].sort((a, b) =>
+    a.created_at.localeCompare(b.created_at)
+  );
+}
+
+export type TimelineStatsView = {
+  totalEvents: number;
+  lastActivity?: string;
+  eventTypeCounts: Record<string, number>;
+};
+
+export function buildTimelineStats(items: ReadonlyArray<TimelineItemView>): TimelineStatsView {
+  const eventTypeCounts: Record<string, number> = {};
+  for (const item of items) {
+    eventTypeCounts[item.event_type] = (eventTypeCounts[item.event_type] ?? 0) + 1;
+  }
+  const stats: TimelineStatsView = { totalEvents: items.length, eventTypeCounts };
+  const last = [...items].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  if (last !== undefined) {
+    stats.lastActivity = last.created_at;
+  }
+  return stats;
 }

@@ -533,6 +533,149 @@ export interface DeleteApplicationDraftRequest {
 export interface DeleteApplicationDraftResponse {
 }
 
+/**
+ * HomeVisitRecord — a home_visits row. status / outcome are plain
+ * strings (not enums) matching the Postgres ENUM values verbatim:
+ * status ∈ {scheduled, in_progress, completed, cancelled}; outcome ∈
+ * {approved, rejected, conditional}.
+ */
+export interface HomeVisitRecord {
+  visitId: string;
+  applicationId: string;
+  /** ISO date (YYYY-MM-DD). */
+  scheduledDate: string;
+  /** ISO time (HH:MM:SS). */
+  scheduledTime: string;
+  assignedStaff?: string | undefined;
+  status: string;
+  notes?: string | undefined;
+  outcome?: string | undefined;
+  outcomeNotes?: string | undefined;
+  rescheduleReason?: string | undefined;
+  cancelledReason?: string | undefined;
+  completedAt?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListHomeVisitsRequest {
+  applicationId: string;
+}
+
+export interface ListHomeVisitsResponse {
+  visits: HomeVisitRecord[];
+}
+
+export interface UpdateHomeVisitRequest {
+  applicationId: string;
+  visitId: string;
+  /**
+   * Target status. Omit to update fields without transitioning status
+   * (e.g. a reschedule that stays 'scheduled').
+   */
+  status?: string | undefined;
+  scheduledDate?: string | undefined;
+  scheduledTime?: string | undefined;
+  assignedStaff?: string | undefined;
+  notes?: string | undefined;
+  outcome?: string | undefined;
+  outcomeNotes?: string | undefined;
+  rescheduleReason?: string | undefined;
+  cancelledReason?: string | undefined;
+  completedAt?: string | undefined;
+}
+
+export interface UpdateHomeVisitResponse {
+  visit?: HomeVisitRecord | undefined;
+}
+
+export interface GetApplicationPreferencesRequest {
+}
+
+export interface GetApplicationPreferencesResponse {
+  /**
+   * JSON-stringified ApplicationPreferences. Empty string when the
+   * adopter has never saved any (the gateway fills in defaults).
+   */
+  preferencesJson: string;
+}
+
+export interface UpdateApplicationPreferencesRequest {
+  /**
+   * JSON-stringified partial ApplicationPreferences patch, deep-merged
+   * into the stored value.
+   */
+  preferencesPatchJson: string;
+}
+
+export interface UpdateApplicationPreferencesResponse {
+  preferencesJson: string;
+}
+
+export interface ReferenceCheck {
+  /**
+   * The referee's stable key within the application's references list
+   * (e.g. "ref-0") — matches the frontend's array-index id scheme.
+   */
+  referenceId: string;
+  applicationId: string;
+  name: string;
+  email: string;
+  relationship: string;
+  /** pending | contacted | completed | failed. */
+  status: string;
+  notes?: string | undefined;
+  contactedAt?: string | undefined;
+  contactedBy?: string | undefined;
+}
+
+export interface UpdateReferenceCheckRequest {
+  applicationId: string;
+  referenceId: string;
+  status?: string | undefined;
+  notes?: string | undefined;
+  contactedAt?: string | undefined;
+}
+
+export interface UpdateReferenceCheckResponse {
+  reference?: ReferenceCheck | undefined;
+}
+
+export interface TimelineNote {
+  noteId: string;
+  applicationId: string;
+  title: string;
+  description: string;
+  noteType: string;
+  /** JSON-stringified free-form metadata. Empty string == `{}`. */
+  metadataJson: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface AddTimelineNoteRequest {
+  applicationId: string;
+  title: string;
+  description: string;
+  noteType?:
+    | string
+    | undefined;
+  /** JSON-stringified free-form metadata. Empty/omitted == `{}`. */
+  metadataJson?: string | undefined;
+}
+
+export interface AddTimelineNoteResponse {
+  note?: TimelineNote | undefined;
+}
+
+export interface ListTimelineNotesRequest {
+  applicationId: string;
+}
+
+export interface ListTimelineNotesResponse {
+  notes: TimelineNote[];
+}
+
 function createBaseApplication(): Application {
   return {
     applicationId: "",
@@ -4970,6 +5113,1990 @@ export const DeleteApplicationDraftResponse: MessageFns<DeleteApplicationDraftRe
   },
 };
 
+function createBaseHomeVisitRecord(): HomeVisitRecord {
+  return {
+    visitId: "",
+    applicationId: "",
+    scheduledDate: "",
+    scheduledTime: "",
+    assignedStaff: undefined,
+    status: "",
+    notes: undefined,
+    outcome: undefined,
+    outcomeNotes: undefined,
+    rescheduleReason: undefined,
+    cancelledReason: undefined,
+    completedAt: undefined,
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export const HomeVisitRecord: MessageFns<HomeVisitRecord> = {
+  encode(message: HomeVisitRecord, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.visitId !== "") {
+      writer.uint32(10).string(message.visitId);
+    }
+    if (message.applicationId !== "") {
+      writer.uint32(18).string(message.applicationId);
+    }
+    if (message.scheduledDate !== "") {
+      writer.uint32(26).string(message.scheduledDate);
+    }
+    if (message.scheduledTime !== "") {
+      writer.uint32(34).string(message.scheduledTime);
+    }
+    if (message.assignedStaff !== undefined) {
+      writer.uint32(42).string(message.assignedStaff);
+    }
+    if (message.status !== "") {
+      writer.uint32(50).string(message.status);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(58).string(message.notes);
+    }
+    if (message.outcome !== undefined) {
+      writer.uint32(66).string(message.outcome);
+    }
+    if (message.outcomeNotes !== undefined) {
+      writer.uint32(74).string(message.outcomeNotes);
+    }
+    if (message.rescheduleReason !== undefined) {
+      writer.uint32(82).string(message.rescheduleReason);
+    }
+    if (message.cancelledReason !== undefined) {
+      writer.uint32(90).string(message.cancelledReason);
+    }
+    if (message.completedAt !== undefined) {
+      writer.uint32(98).string(message.completedAt);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(106).string(message.createdAt);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(114).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): HomeVisitRecord {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseHomeVisitRecord();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.visitId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.scheduledDate = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.scheduledTime = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.assignedStaff = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.outcome = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.outcomeNotes = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.rescheduleReason = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.cancelledReason = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.completedAt = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): HomeVisitRecord {
+    return {
+      visitId: isSet(object.visitId)
+        ? globalThis.String(object.visitId)
+        : isSet(object.visit_id)
+        ? globalThis.String(object.visit_id)
+        : "",
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      scheduledDate: isSet(object.scheduledDate)
+        ? globalThis.String(object.scheduledDate)
+        : isSet(object.scheduled_date)
+        ? globalThis.String(object.scheduled_date)
+        : "",
+      scheduledTime: isSet(object.scheduledTime)
+        ? globalThis.String(object.scheduledTime)
+        : isSet(object.scheduled_time)
+        ? globalThis.String(object.scheduled_time)
+        : "",
+      assignedStaff: isSet(object.assignedStaff)
+        ? globalThis.String(object.assignedStaff)
+        : isSet(object.assigned_staff)
+        ? globalThis.String(object.assigned_staff)
+        : undefined,
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+      outcome: isSet(object.outcome) ? globalThis.String(object.outcome) : undefined,
+      outcomeNotes: isSet(object.outcomeNotes)
+        ? globalThis.String(object.outcomeNotes)
+        : isSet(object.outcome_notes)
+        ? globalThis.String(object.outcome_notes)
+        : undefined,
+      rescheduleReason: isSet(object.rescheduleReason)
+        ? globalThis.String(object.rescheduleReason)
+        : isSet(object.reschedule_reason)
+        ? globalThis.String(object.reschedule_reason)
+        : undefined,
+      cancelledReason: isSet(object.cancelledReason)
+        ? globalThis.String(object.cancelledReason)
+        : isSet(object.cancelled_reason)
+        ? globalThis.String(object.cancelled_reason)
+        : undefined,
+      completedAt: isSet(object.completedAt)
+        ? globalThis.String(object.completedAt)
+        : isSet(object.completed_at)
+        ? globalThis.String(object.completed_at)
+        : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+        ? globalThis.String(object.updated_at)
+        : "",
+    };
+  },
+
+  toJSON(message: HomeVisitRecord): unknown {
+    const obj: any = {};
+    if (message.visitId !== "") {
+      obj.visitId = message.visitId;
+    }
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.scheduledDate !== "") {
+      obj.scheduledDate = message.scheduledDate;
+    }
+    if (message.scheduledTime !== "") {
+      obj.scheduledTime = message.scheduledTime;
+    }
+    if (message.assignedStaff !== undefined) {
+      obj.assignedStaff = message.assignedStaff;
+    }
+    if (message.status !== "") {
+      obj.status = message.status;
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    if (message.outcome !== undefined) {
+      obj.outcome = message.outcome;
+    }
+    if (message.outcomeNotes !== undefined) {
+      obj.outcomeNotes = message.outcomeNotes;
+    }
+    if (message.rescheduleReason !== undefined) {
+      obj.rescheduleReason = message.rescheduleReason;
+    }
+    if (message.cancelledReason !== undefined) {
+      obj.cancelledReason = message.cancelledReason;
+    }
+    if (message.completedAt !== undefined) {
+      obj.completedAt = message.completedAt;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<HomeVisitRecord>, I>>(base?: I): HomeVisitRecord {
+    return HomeVisitRecord.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<HomeVisitRecord>, I>>(object: I): HomeVisitRecord {
+    const message = createBaseHomeVisitRecord();
+    message.visitId = object.visitId ?? "";
+    message.applicationId = object.applicationId ?? "";
+    message.scheduledDate = object.scheduledDate ?? "";
+    message.scheduledTime = object.scheduledTime ?? "";
+    message.assignedStaff = object.assignedStaff ?? undefined;
+    message.status = object.status ?? "";
+    message.notes = object.notes ?? undefined;
+    message.outcome = object.outcome ?? undefined;
+    message.outcomeNotes = object.outcomeNotes ?? undefined;
+    message.rescheduleReason = object.rescheduleReason ?? undefined;
+    message.cancelledReason = object.cancelledReason ?? undefined;
+    message.completedAt = object.completedAt ?? undefined;
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseListHomeVisitsRequest(): ListHomeVisitsRequest {
+  return { applicationId: "" };
+}
+
+export const ListHomeVisitsRequest: MessageFns<ListHomeVisitsRequest> = {
+  encode(message: ListHomeVisitsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListHomeVisitsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListHomeVisitsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListHomeVisitsRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+    };
+  },
+
+  toJSON(message: ListHomeVisitsRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListHomeVisitsRequest>, I>>(base?: I): ListHomeVisitsRequest {
+    return ListHomeVisitsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListHomeVisitsRequest>, I>>(object: I): ListHomeVisitsRequest {
+    const message = createBaseListHomeVisitsRequest();
+    message.applicationId = object.applicationId ?? "";
+    return message;
+  },
+};
+
+function createBaseListHomeVisitsResponse(): ListHomeVisitsResponse {
+  return { visits: [] };
+}
+
+export const ListHomeVisitsResponse: MessageFns<ListHomeVisitsResponse> = {
+  encode(message: ListHomeVisitsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.visits) {
+      HomeVisitRecord.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListHomeVisitsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListHomeVisitsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.visits.push(HomeVisitRecord.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListHomeVisitsResponse {
+    return {
+      visits: globalThis.Array.isArray(object?.visits)
+        ? object.visits.map((e: any) => HomeVisitRecord.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListHomeVisitsResponse): unknown {
+    const obj: any = {};
+    if (message.visits?.length) {
+      obj.visits = message.visits.map((e) => HomeVisitRecord.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListHomeVisitsResponse>, I>>(base?: I): ListHomeVisitsResponse {
+    return ListHomeVisitsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListHomeVisitsResponse>, I>>(object: I): ListHomeVisitsResponse {
+    const message = createBaseListHomeVisitsResponse();
+    message.visits = object.visits?.map((e) => HomeVisitRecord.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseUpdateHomeVisitRequest(): UpdateHomeVisitRequest {
+  return {
+    applicationId: "",
+    visitId: "",
+    status: undefined,
+    scheduledDate: undefined,
+    scheduledTime: undefined,
+    assignedStaff: undefined,
+    notes: undefined,
+    outcome: undefined,
+    outcomeNotes: undefined,
+    rescheduleReason: undefined,
+    cancelledReason: undefined,
+    completedAt: undefined,
+  };
+}
+
+export const UpdateHomeVisitRequest: MessageFns<UpdateHomeVisitRequest> = {
+  encode(message: UpdateHomeVisitRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.visitId !== "") {
+      writer.uint32(18).string(message.visitId);
+    }
+    if (message.status !== undefined) {
+      writer.uint32(26).string(message.status);
+    }
+    if (message.scheduledDate !== undefined) {
+      writer.uint32(34).string(message.scheduledDate);
+    }
+    if (message.scheduledTime !== undefined) {
+      writer.uint32(42).string(message.scheduledTime);
+    }
+    if (message.assignedStaff !== undefined) {
+      writer.uint32(50).string(message.assignedStaff);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(58).string(message.notes);
+    }
+    if (message.outcome !== undefined) {
+      writer.uint32(66).string(message.outcome);
+    }
+    if (message.outcomeNotes !== undefined) {
+      writer.uint32(74).string(message.outcomeNotes);
+    }
+    if (message.rescheduleReason !== undefined) {
+      writer.uint32(82).string(message.rescheduleReason);
+    }
+    if (message.cancelledReason !== undefined) {
+      writer.uint32(90).string(message.cancelledReason);
+    }
+    if (message.completedAt !== undefined) {
+      writer.uint32(98).string(message.completedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateHomeVisitRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateHomeVisitRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.visitId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.scheduledDate = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.scheduledTime = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.assignedStaff = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.outcome = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.outcomeNotes = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.rescheduleReason = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.cancelledReason = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.completedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateHomeVisitRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      visitId: isSet(object.visitId)
+        ? globalThis.String(object.visitId)
+        : isSet(object.visit_id)
+        ? globalThis.String(object.visit_id)
+        : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : undefined,
+      scheduledDate: isSet(object.scheduledDate)
+        ? globalThis.String(object.scheduledDate)
+        : isSet(object.scheduled_date)
+        ? globalThis.String(object.scheduled_date)
+        : undefined,
+      scheduledTime: isSet(object.scheduledTime)
+        ? globalThis.String(object.scheduledTime)
+        : isSet(object.scheduled_time)
+        ? globalThis.String(object.scheduled_time)
+        : undefined,
+      assignedStaff: isSet(object.assignedStaff)
+        ? globalThis.String(object.assignedStaff)
+        : isSet(object.assigned_staff)
+        ? globalThis.String(object.assigned_staff)
+        : undefined,
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+      outcome: isSet(object.outcome) ? globalThis.String(object.outcome) : undefined,
+      outcomeNotes: isSet(object.outcomeNotes)
+        ? globalThis.String(object.outcomeNotes)
+        : isSet(object.outcome_notes)
+        ? globalThis.String(object.outcome_notes)
+        : undefined,
+      rescheduleReason: isSet(object.rescheduleReason)
+        ? globalThis.String(object.rescheduleReason)
+        : isSet(object.reschedule_reason)
+        ? globalThis.String(object.reschedule_reason)
+        : undefined,
+      cancelledReason: isSet(object.cancelledReason)
+        ? globalThis.String(object.cancelledReason)
+        : isSet(object.cancelled_reason)
+        ? globalThis.String(object.cancelled_reason)
+        : undefined,
+      completedAt: isSet(object.completedAt)
+        ? globalThis.String(object.completedAt)
+        : isSet(object.completed_at)
+        ? globalThis.String(object.completed_at)
+        : undefined,
+    };
+  },
+
+  toJSON(message: UpdateHomeVisitRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.visitId !== "") {
+      obj.visitId = message.visitId;
+    }
+    if (message.status !== undefined) {
+      obj.status = message.status;
+    }
+    if (message.scheduledDate !== undefined) {
+      obj.scheduledDate = message.scheduledDate;
+    }
+    if (message.scheduledTime !== undefined) {
+      obj.scheduledTime = message.scheduledTime;
+    }
+    if (message.assignedStaff !== undefined) {
+      obj.assignedStaff = message.assignedStaff;
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    if (message.outcome !== undefined) {
+      obj.outcome = message.outcome;
+    }
+    if (message.outcomeNotes !== undefined) {
+      obj.outcomeNotes = message.outcomeNotes;
+    }
+    if (message.rescheduleReason !== undefined) {
+      obj.rescheduleReason = message.rescheduleReason;
+    }
+    if (message.cancelledReason !== undefined) {
+      obj.cancelledReason = message.cancelledReason;
+    }
+    if (message.completedAt !== undefined) {
+      obj.completedAt = message.completedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateHomeVisitRequest>, I>>(base?: I): UpdateHomeVisitRequest {
+    return UpdateHomeVisitRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateHomeVisitRequest>, I>>(object: I): UpdateHomeVisitRequest {
+    const message = createBaseUpdateHomeVisitRequest();
+    message.applicationId = object.applicationId ?? "";
+    message.visitId = object.visitId ?? "";
+    message.status = object.status ?? undefined;
+    message.scheduledDate = object.scheduledDate ?? undefined;
+    message.scheduledTime = object.scheduledTime ?? undefined;
+    message.assignedStaff = object.assignedStaff ?? undefined;
+    message.notes = object.notes ?? undefined;
+    message.outcome = object.outcome ?? undefined;
+    message.outcomeNotes = object.outcomeNotes ?? undefined;
+    message.rescheduleReason = object.rescheduleReason ?? undefined;
+    message.cancelledReason = object.cancelledReason ?? undefined;
+    message.completedAt = object.completedAt ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateHomeVisitResponse(): UpdateHomeVisitResponse {
+  return { visit: undefined };
+}
+
+export const UpdateHomeVisitResponse: MessageFns<UpdateHomeVisitResponse> = {
+  encode(message: UpdateHomeVisitResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.visit !== undefined) {
+      HomeVisitRecord.encode(message.visit, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateHomeVisitResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateHomeVisitResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.visit = HomeVisitRecord.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateHomeVisitResponse {
+    return { visit: isSet(object.visit) ? HomeVisitRecord.fromJSON(object.visit) : undefined };
+  },
+
+  toJSON(message: UpdateHomeVisitResponse): unknown {
+    const obj: any = {};
+    if (message.visit !== undefined) {
+      obj.visit = HomeVisitRecord.toJSON(message.visit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateHomeVisitResponse>, I>>(base?: I): UpdateHomeVisitResponse {
+    return UpdateHomeVisitResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateHomeVisitResponse>, I>>(object: I): UpdateHomeVisitResponse {
+    const message = createBaseUpdateHomeVisitResponse();
+    message.visit = (object.visit !== undefined && object.visit !== null)
+      ? HomeVisitRecord.fromPartial(object.visit)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseGetApplicationPreferencesRequest(): GetApplicationPreferencesRequest {
+  return {};
+}
+
+export const GetApplicationPreferencesRequest: MessageFns<GetApplicationPreferencesRequest> = {
+  encode(_: GetApplicationPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetApplicationPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetApplicationPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetApplicationPreferencesRequest {
+    return {};
+  },
+
+  toJSON(_: GetApplicationPreferencesRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetApplicationPreferencesRequest>, I>>(
+    base?: I,
+  ): GetApplicationPreferencesRequest {
+    return GetApplicationPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetApplicationPreferencesRequest>, I>>(
+    _: I,
+  ): GetApplicationPreferencesRequest {
+    const message = createBaseGetApplicationPreferencesRequest();
+    return message;
+  },
+};
+
+function createBaseGetApplicationPreferencesResponse(): GetApplicationPreferencesResponse {
+  return { preferencesJson: "" };
+}
+
+export const GetApplicationPreferencesResponse: MessageFns<GetApplicationPreferencesResponse> = {
+  encode(message: GetApplicationPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.preferencesJson !== "") {
+      writer.uint32(10).string(message.preferencesJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetApplicationPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetApplicationPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferencesJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetApplicationPreferencesResponse {
+    return {
+      preferencesJson: isSet(object.preferencesJson)
+        ? globalThis.String(object.preferencesJson)
+        : isSet(object.preferences_json)
+        ? globalThis.String(object.preferences_json)
+        : "",
+    };
+  },
+
+  toJSON(message: GetApplicationPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferencesJson !== "") {
+      obj.preferencesJson = message.preferencesJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetApplicationPreferencesResponse>, I>>(
+    base?: I,
+  ): GetApplicationPreferencesResponse {
+    return GetApplicationPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetApplicationPreferencesResponse>, I>>(
+    object: I,
+  ): GetApplicationPreferencesResponse {
+    const message = createBaseGetApplicationPreferencesResponse();
+    message.preferencesJson = object.preferencesJson ?? "";
+    return message;
+  },
+};
+
+function createBaseUpdateApplicationPreferencesRequest(): UpdateApplicationPreferencesRequest {
+  return { preferencesPatchJson: "" };
+}
+
+export const UpdateApplicationPreferencesRequest: MessageFns<UpdateApplicationPreferencesRequest> = {
+  encode(message: UpdateApplicationPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.preferencesPatchJson !== "") {
+      writer.uint32(10).string(message.preferencesPatchJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateApplicationPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateApplicationPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferencesPatchJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateApplicationPreferencesRequest {
+    return {
+      preferencesPatchJson: isSet(object.preferencesPatchJson)
+        ? globalThis.String(object.preferencesPatchJson)
+        : isSet(object.preferences_patch_json)
+        ? globalThis.String(object.preferences_patch_json)
+        : "",
+    };
+  },
+
+  toJSON(message: UpdateApplicationPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.preferencesPatchJson !== "") {
+      obj.preferencesPatchJson = message.preferencesPatchJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateApplicationPreferencesRequest>, I>>(
+    base?: I,
+  ): UpdateApplicationPreferencesRequest {
+    return UpdateApplicationPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateApplicationPreferencesRequest>, I>>(
+    object: I,
+  ): UpdateApplicationPreferencesRequest {
+    const message = createBaseUpdateApplicationPreferencesRequest();
+    message.preferencesPatchJson = object.preferencesPatchJson ?? "";
+    return message;
+  },
+};
+
+function createBaseUpdateApplicationPreferencesResponse(): UpdateApplicationPreferencesResponse {
+  return { preferencesJson: "" };
+}
+
+export const UpdateApplicationPreferencesResponse: MessageFns<UpdateApplicationPreferencesResponse> = {
+  encode(message: UpdateApplicationPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.preferencesJson !== "") {
+      writer.uint32(10).string(message.preferencesJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateApplicationPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateApplicationPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferencesJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateApplicationPreferencesResponse {
+    return {
+      preferencesJson: isSet(object.preferencesJson)
+        ? globalThis.String(object.preferencesJson)
+        : isSet(object.preferences_json)
+        ? globalThis.String(object.preferences_json)
+        : "",
+    };
+  },
+
+  toJSON(message: UpdateApplicationPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferencesJson !== "") {
+      obj.preferencesJson = message.preferencesJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateApplicationPreferencesResponse>, I>>(
+    base?: I,
+  ): UpdateApplicationPreferencesResponse {
+    return UpdateApplicationPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateApplicationPreferencesResponse>, I>>(
+    object: I,
+  ): UpdateApplicationPreferencesResponse {
+    const message = createBaseUpdateApplicationPreferencesResponse();
+    message.preferencesJson = object.preferencesJson ?? "";
+    return message;
+  },
+};
+
+function createBaseReferenceCheck(): ReferenceCheck {
+  return {
+    referenceId: "",
+    applicationId: "",
+    name: "",
+    email: "",
+    relationship: "",
+    status: "",
+    notes: undefined,
+    contactedAt: undefined,
+    contactedBy: undefined,
+  };
+}
+
+export const ReferenceCheck: MessageFns<ReferenceCheck> = {
+  encode(message: ReferenceCheck, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.referenceId !== "") {
+      writer.uint32(10).string(message.referenceId);
+    }
+    if (message.applicationId !== "") {
+      writer.uint32(18).string(message.applicationId);
+    }
+    if (message.name !== "") {
+      writer.uint32(26).string(message.name);
+    }
+    if (message.email !== "") {
+      writer.uint32(34).string(message.email);
+    }
+    if (message.relationship !== "") {
+      writer.uint32(42).string(message.relationship);
+    }
+    if (message.status !== "") {
+      writer.uint32(50).string(message.status);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(58).string(message.notes);
+    }
+    if (message.contactedAt !== undefined) {
+      writer.uint32(66).string(message.contactedAt);
+    }
+    if (message.contactedBy !== undefined) {
+      writer.uint32(74).string(message.contactedBy);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ReferenceCheck {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseReferenceCheck();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.referenceId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.relationship = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.contactedAt = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.contactedBy = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ReferenceCheck {
+    return {
+      referenceId: isSet(object.referenceId)
+        ? globalThis.String(object.referenceId)
+        : isSet(object.reference_id)
+        ? globalThis.String(object.reference_id)
+        : "",
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+      relationship: isSet(object.relationship) ? globalThis.String(object.relationship) : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+      contactedAt: isSet(object.contactedAt)
+        ? globalThis.String(object.contactedAt)
+        : isSet(object.contacted_at)
+        ? globalThis.String(object.contacted_at)
+        : undefined,
+      contactedBy: isSet(object.contactedBy)
+        ? globalThis.String(object.contactedBy)
+        : isSet(object.contacted_by)
+        ? globalThis.String(object.contacted_by)
+        : undefined,
+    };
+  },
+
+  toJSON(message: ReferenceCheck): unknown {
+    const obj: any = {};
+    if (message.referenceId !== "") {
+      obj.referenceId = message.referenceId;
+    }
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.email !== "") {
+      obj.email = message.email;
+    }
+    if (message.relationship !== "") {
+      obj.relationship = message.relationship;
+    }
+    if (message.status !== "") {
+      obj.status = message.status;
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    if (message.contactedAt !== undefined) {
+      obj.contactedAt = message.contactedAt;
+    }
+    if (message.contactedBy !== undefined) {
+      obj.contactedBy = message.contactedBy;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReferenceCheck>, I>>(base?: I): ReferenceCheck {
+    return ReferenceCheck.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReferenceCheck>, I>>(object: I): ReferenceCheck {
+    const message = createBaseReferenceCheck();
+    message.referenceId = object.referenceId ?? "";
+    message.applicationId = object.applicationId ?? "";
+    message.name = object.name ?? "";
+    message.email = object.email ?? "";
+    message.relationship = object.relationship ?? "";
+    message.status = object.status ?? "";
+    message.notes = object.notes ?? undefined;
+    message.contactedAt = object.contactedAt ?? undefined;
+    message.contactedBy = object.contactedBy ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateReferenceCheckRequest(): UpdateReferenceCheckRequest {
+  return { applicationId: "", referenceId: "", status: undefined, notes: undefined, contactedAt: undefined };
+}
+
+export const UpdateReferenceCheckRequest: MessageFns<UpdateReferenceCheckRequest> = {
+  encode(message: UpdateReferenceCheckRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.referenceId !== "") {
+      writer.uint32(18).string(message.referenceId);
+    }
+    if (message.status !== undefined) {
+      writer.uint32(26).string(message.status);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(34).string(message.notes);
+    }
+    if (message.contactedAt !== undefined) {
+      writer.uint32(42).string(message.contactedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateReferenceCheckRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateReferenceCheckRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.referenceId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.contactedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateReferenceCheckRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      referenceId: isSet(object.referenceId)
+        ? globalThis.String(object.referenceId)
+        : isSet(object.reference_id)
+        ? globalThis.String(object.reference_id)
+        : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : undefined,
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+      contactedAt: isSet(object.contactedAt)
+        ? globalThis.String(object.contactedAt)
+        : isSet(object.contacted_at)
+        ? globalThis.String(object.contacted_at)
+        : undefined,
+    };
+  },
+
+  toJSON(message: UpdateReferenceCheckRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.referenceId !== "") {
+      obj.referenceId = message.referenceId;
+    }
+    if (message.status !== undefined) {
+      obj.status = message.status;
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    if (message.contactedAt !== undefined) {
+      obj.contactedAt = message.contactedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateReferenceCheckRequest>, I>>(base?: I): UpdateReferenceCheckRequest {
+    return UpdateReferenceCheckRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateReferenceCheckRequest>, I>>(object: I): UpdateReferenceCheckRequest {
+    const message = createBaseUpdateReferenceCheckRequest();
+    message.applicationId = object.applicationId ?? "";
+    message.referenceId = object.referenceId ?? "";
+    message.status = object.status ?? undefined;
+    message.notes = object.notes ?? undefined;
+    message.contactedAt = object.contactedAt ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateReferenceCheckResponse(): UpdateReferenceCheckResponse {
+  return { reference: undefined };
+}
+
+export const UpdateReferenceCheckResponse: MessageFns<UpdateReferenceCheckResponse> = {
+  encode(message: UpdateReferenceCheckResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.reference !== undefined) {
+      ReferenceCheck.encode(message.reference, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateReferenceCheckResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateReferenceCheckResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.reference = ReferenceCheck.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateReferenceCheckResponse {
+    return { reference: isSet(object.reference) ? ReferenceCheck.fromJSON(object.reference) : undefined };
+  },
+
+  toJSON(message: UpdateReferenceCheckResponse): unknown {
+    const obj: any = {};
+    if (message.reference !== undefined) {
+      obj.reference = ReferenceCheck.toJSON(message.reference);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateReferenceCheckResponse>, I>>(base?: I): UpdateReferenceCheckResponse {
+    return UpdateReferenceCheckResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateReferenceCheckResponse>, I>>(object: I): UpdateReferenceCheckResponse {
+    const message = createBaseUpdateReferenceCheckResponse();
+    message.reference = (object.reference !== undefined && object.reference !== null)
+      ? ReferenceCheck.fromPartial(object.reference)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseTimelineNote(): TimelineNote {
+  return {
+    noteId: "",
+    applicationId: "",
+    title: "",
+    description: "",
+    noteType: "",
+    metadataJson: "",
+    createdBy: "",
+    createdAt: "",
+  };
+}
+
+export const TimelineNote: MessageFns<TimelineNote> = {
+  encode(message: TimelineNote, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.noteId !== "") {
+      writer.uint32(10).string(message.noteId);
+    }
+    if (message.applicationId !== "") {
+      writer.uint32(18).string(message.applicationId);
+    }
+    if (message.title !== "") {
+      writer.uint32(26).string(message.title);
+    }
+    if (message.description !== "") {
+      writer.uint32(34).string(message.description);
+    }
+    if (message.noteType !== "") {
+      writer.uint32(42).string(message.noteType);
+    }
+    if (message.metadataJson !== "") {
+      writer.uint32(50).string(message.metadataJson);
+    }
+    if (message.createdBy !== "") {
+      writer.uint32(58).string(message.createdBy);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(66).string(message.createdAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): TimelineNote {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseTimelineNote();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.noteId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.title = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.noteType = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.metadataJson = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.createdBy = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): TimelineNote {
+    return {
+      noteId: isSet(object.noteId)
+        ? globalThis.String(object.noteId)
+        : isSet(object.note_id)
+        ? globalThis.String(object.note_id)
+        : "",
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
+      noteType: isSet(object.noteType)
+        ? globalThis.String(object.noteType)
+        : isSet(object.note_type)
+        ? globalThis.String(object.note_type)
+        : "",
+      metadataJson: isSet(object.metadataJson)
+        ? globalThis.String(object.metadataJson)
+        : isSet(object.metadata_json)
+        ? globalThis.String(object.metadata_json)
+        : "",
+      createdBy: isSet(object.createdBy)
+        ? globalThis.String(object.createdBy)
+        : isSet(object.created_by)
+        ? globalThis.String(object.created_by)
+        : "",
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+        ? globalThis.String(object.created_at)
+        : "",
+    };
+  },
+
+  toJSON(message: TimelineNote): unknown {
+    const obj: any = {};
+    if (message.noteId !== "") {
+      obj.noteId = message.noteId;
+    }
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.title !== "") {
+      obj.title = message.title;
+    }
+    if (message.description !== "") {
+      obj.description = message.description;
+    }
+    if (message.noteType !== "") {
+      obj.noteType = message.noteType;
+    }
+    if (message.metadataJson !== "") {
+      obj.metadataJson = message.metadataJson;
+    }
+    if (message.createdBy !== "") {
+      obj.createdBy = message.createdBy;
+    }
+    if (message.createdAt !== "") {
+      obj.createdAt = message.createdAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TimelineNote>, I>>(base?: I): TimelineNote {
+    return TimelineNote.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<TimelineNote>, I>>(object: I): TimelineNote {
+    const message = createBaseTimelineNote();
+    message.noteId = object.noteId ?? "";
+    message.applicationId = object.applicationId ?? "";
+    message.title = object.title ?? "";
+    message.description = object.description ?? "";
+    message.noteType = object.noteType ?? "";
+    message.metadataJson = object.metadataJson ?? "";
+    message.createdBy = object.createdBy ?? "";
+    message.createdAt = object.createdAt ?? "";
+    return message;
+  },
+};
+
+function createBaseAddTimelineNoteRequest(): AddTimelineNoteRequest {
+  return { applicationId: "", title: "", description: "", noteType: undefined, metadataJson: undefined };
+}
+
+export const AddTimelineNoteRequest: MessageFns<AddTimelineNoteRequest> = {
+  encode(message: AddTimelineNoteRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.title !== "") {
+      writer.uint32(18).string(message.title);
+    }
+    if (message.description !== "") {
+      writer.uint32(26).string(message.description);
+    }
+    if (message.noteType !== undefined) {
+      writer.uint32(34).string(message.noteType);
+    }
+    if (message.metadataJson !== undefined) {
+      writer.uint32(42).string(message.metadataJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AddTimelineNoteRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddTimelineNoteRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.title = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.noteType = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.metadataJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddTimelineNoteRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
+      noteType: isSet(object.noteType)
+        ? globalThis.String(object.noteType)
+        : isSet(object.note_type)
+        ? globalThis.String(object.note_type)
+        : undefined,
+      metadataJson: isSet(object.metadataJson)
+        ? globalThis.String(object.metadataJson)
+        : isSet(object.metadata_json)
+        ? globalThis.String(object.metadata_json)
+        : undefined,
+    };
+  },
+
+  toJSON(message: AddTimelineNoteRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.title !== "") {
+      obj.title = message.title;
+    }
+    if (message.description !== "") {
+      obj.description = message.description;
+    }
+    if (message.noteType !== undefined) {
+      obj.noteType = message.noteType;
+    }
+    if (message.metadataJson !== undefined) {
+      obj.metadataJson = message.metadataJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AddTimelineNoteRequest>, I>>(base?: I): AddTimelineNoteRequest {
+    return AddTimelineNoteRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AddTimelineNoteRequest>, I>>(object: I): AddTimelineNoteRequest {
+    const message = createBaseAddTimelineNoteRequest();
+    message.applicationId = object.applicationId ?? "";
+    message.title = object.title ?? "";
+    message.description = object.description ?? "";
+    message.noteType = object.noteType ?? undefined;
+    message.metadataJson = object.metadataJson ?? undefined;
+    return message;
+  },
+};
+
+function createBaseAddTimelineNoteResponse(): AddTimelineNoteResponse {
+  return { note: undefined };
+}
+
+export const AddTimelineNoteResponse: MessageFns<AddTimelineNoteResponse> = {
+  encode(message: AddTimelineNoteResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.note !== undefined) {
+      TimelineNote.encode(message.note, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AddTimelineNoteResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddTimelineNoteResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.note = TimelineNote.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddTimelineNoteResponse {
+    return { note: isSet(object.note) ? TimelineNote.fromJSON(object.note) : undefined };
+  },
+
+  toJSON(message: AddTimelineNoteResponse): unknown {
+    const obj: any = {};
+    if (message.note !== undefined) {
+      obj.note = TimelineNote.toJSON(message.note);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AddTimelineNoteResponse>, I>>(base?: I): AddTimelineNoteResponse {
+    return AddTimelineNoteResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AddTimelineNoteResponse>, I>>(object: I): AddTimelineNoteResponse {
+    const message = createBaseAddTimelineNoteResponse();
+    message.note = (object.note !== undefined && object.note !== null)
+      ? TimelineNote.fromPartial(object.note)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseListTimelineNotesRequest(): ListTimelineNotesRequest {
+  return { applicationId: "" };
+}
+
+export const ListTimelineNotesRequest: MessageFns<ListTimelineNotesRequest> = {
+  encode(message: ListTimelineNotesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListTimelineNotesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListTimelineNotesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListTimelineNotesRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+    };
+  },
+
+  toJSON(message: ListTimelineNotesRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListTimelineNotesRequest>, I>>(base?: I): ListTimelineNotesRequest {
+    return ListTimelineNotesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListTimelineNotesRequest>, I>>(object: I): ListTimelineNotesRequest {
+    const message = createBaseListTimelineNotesRequest();
+    message.applicationId = object.applicationId ?? "";
+    return message;
+  },
+};
+
+function createBaseListTimelineNotesResponse(): ListTimelineNotesResponse {
+  return { notes: [] };
+}
+
+export const ListTimelineNotesResponse: MessageFns<ListTimelineNotesResponse> = {
+  encode(message: ListTimelineNotesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.notes) {
+      TimelineNote.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListTimelineNotesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListTimelineNotesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.notes.push(TimelineNote.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListTimelineNotesResponse {
+    return {
+      notes: globalThis.Array.isArray(object?.notes) ? object.notes.map((e: any) => TimelineNote.fromJSON(e)) : [],
+    };
+  },
+
+  toJSON(message: ListTimelineNotesResponse): unknown {
+    const obj: any = {};
+    if (message.notes?.length) {
+      obj.notes = message.notes.map((e) => TimelineNote.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListTimelineNotesResponse>, I>>(base?: I): ListTimelineNotesResponse {
+    return ListTimelineNotesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListTimelineNotesResponse>, I>>(object: I): ListTimelineNotesResponse {
+    const message = createBaseListTimelineNotesResponse();
+    message.notes = object.notes?.map((e) => TimelineNote.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * ApplicationService is the gRPC contract for the applications
  * vertical — the EVENT-SOURCED extraction. Owns the `applications.*`
@@ -5348,6 +7475,98 @@ export const ApplicationServiceService = {
     responseDeserialize: (value: Buffer): DeleteApplicationDraftResponse =>
       DeleteApplicationDraftResponse.decode(value),
   },
+  /**
+   * List the home-visit rows for an application, newest first. Scoped
+   * like Get (adopter-owns OR rescue-staff-of-the-app's-rescue OR admin).
+   */
+  listHomeVisits: {
+    path: "/adopt_dont_shop.applications.v1.ApplicationService/ListHomeVisits" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListHomeVisitsRequest): Buffer =>
+      Buffer.from(ListHomeVisitsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListHomeVisitsRequest => ListHomeVisitsRequest.decode(value),
+    responseSerialize: (value: ListHomeVisitsResponse): Buffer =>
+      Buffer.from(ListHomeVisitsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListHomeVisitsResponse => ListHomeVisitsResponse.decode(value),
+  },
+  /**
+   * Drive a home visit's granular status machine (start / reschedule /
+   * cancel / complete) plus its notes/outcome. Every status change is
+   * appended to home_visit_status_transitions; the DB trigger
+   * (migration 006) propagates it onto home_visits.status. Caller MUST
+   * hold applications.review scoped to the application's rescue.
+   */
+  updateHomeVisit: {
+    path: "/adopt_dont_shop.applications.v1.ApplicationService/UpdateHomeVisit" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateHomeVisitRequest): Buffer =>
+      Buffer.from(UpdateHomeVisitRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateHomeVisitRequest => UpdateHomeVisitRequest.decode(value),
+    responseSerialize: (value: UpdateHomeVisitResponse): Buffer =>
+      Buffer.from(UpdateHomeVisitResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateHomeVisitResponse => UpdateHomeVisitResponse.decode(value),
+  },
+  getApplicationPreferences: {
+    path: "/adopt_dont_shop.applications.v1.ApplicationService/GetApplicationPreferences" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetApplicationPreferencesRequest): Buffer =>
+      Buffer.from(GetApplicationPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetApplicationPreferencesRequest =>
+      GetApplicationPreferencesRequest.decode(value),
+    responseSerialize: (value: GetApplicationPreferencesResponse): Buffer =>
+      Buffer.from(GetApplicationPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetApplicationPreferencesResponse =>
+      GetApplicationPreferencesResponse.decode(value),
+  },
+  updateApplicationPreferences: {
+    path: "/adopt_dont_shop.applications.v1.ApplicationService/UpdateApplicationPreferences" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateApplicationPreferencesRequest): Buffer =>
+      Buffer.from(UpdateApplicationPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateApplicationPreferencesRequest =>
+      UpdateApplicationPreferencesRequest.decode(value),
+    responseSerialize: (value: UpdateApplicationPreferencesResponse): Buffer =>
+      Buffer.from(UpdateApplicationPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateApplicationPreferencesResponse =>
+      UpdateApplicationPreferencesResponse.decode(value),
+  },
+  updateReferenceCheck: {
+    path: "/adopt_dont_shop.applications.v1.ApplicationService/UpdateReferenceCheck" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateReferenceCheckRequest): Buffer =>
+      Buffer.from(UpdateReferenceCheckRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateReferenceCheckRequest => UpdateReferenceCheckRequest.decode(value),
+    responseSerialize: (value: UpdateReferenceCheckResponse): Buffer =>
+      Buffer.from(UpdateReferenceCheckResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateReferenceCheckResponse => UpdateReferenceCheckResponse.decode(value),
+  },
+  addTimelineNote: {
+    path: "/adopt_dont_shop.applications.v1.ApplicationService/AddTimelineNote" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AddTimelineNoteRequest): Buffer =>
+      Buffer.from(AddTimelineNoteRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AddTimelineNoteRequest => AddTimelineNoteRequest.decode(value),
+    responseSerialize: (value: AddTimelineNoteResponse): Buffer =>
+      Buffer.from(AddTimelineNoteResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AddTimelineNoteResponse => AddTimelineNoteResponse.decode(value),
+  },
+  listTimelineNotes: {
+    path: "/adopt_dont_shop.applications.v1.ApplicationService/ListTimelineNotes" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListTimelineNotesRequest): Buffer =>
+      Buffer.from(ListTimelineNotesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListTimelineNotesRequest => ListTimelineNotesRequest.decode(value),
+    responseSerialize: (value: ListTimelineNotesResponse): Buffer =>
+      Buffer.from(ListTimelineNotesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListTimelineNotesResponse => ListTimelineNotesResponse.decode(value),
+  },
 } as const;
 
 export interface ApplicationServiceServer extends UntypedServiceImplementation {
@@ -5500,6 +7719,27 @@ export interface ApplicationServiceServer extends UntypedServiceImplementation {
    * isn't there succeeds (the SPA calls this best-effort on submit).
    */
   deleteApplicationDraft: handleUnaryCall<DeleteApplicationDraftRequest, DeleteApplicationDraftResponse>;
+  /**
+   * List the home-visit rows for an application, newest first. Scoped
+   * like Get (adopter-owns OR rescue-staff-of-the-app's-rescue OR admin).
+   */
+  listHomeVisits: handleUnaryCall<ListHomeVisitsRequest, ListHomeVisitsResponse>;
+  /**
+   * Drive a home visit's granular status machine (start / reschedule /
+   * cancel / complete) plus its notes/outcome. Every status change is
+   * appended to home_visit_status_transitions; the DB trigger
+   * (migration 006) propagates it onto home_visits.status. Caller MUST
+   * hold applications.review scoped to the application's rescue.
+   */
+  updateHomeVisit: handleUnaryCall<UpdateHomeVisitRequest, UpdateHomeVisitResponse>;
+  getApplicationPreferences: handleUnaryCall<GetApplicationPreferencesRequest, GetApplicationPreferencesResponse>;
+  updateApplicationPreferences: handleUnaryCall<
+    UpdateApplicationPreferencesRequest,
+    UpdateApplicationPreferencesResponse
+  >;
+  updateReferenceCheck: handleUnaryCall<UpdateReferenceCheckRequest, UpdateReferenceCheckResponse>;
+  addTimelineNote: handleUnaryCall<AddTimelineNoteRequest, AddTimelineNoteResponse>;
+  listTimelineNotes: handleUnaryCall<ListTimelineNotesRequest, ListTimelineNotesResponse>;
 }
 
 export interface ApplicationServiceClient extends Client {
@@ -5959,6 +8199,122 @@ export interface ApplicationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteApplicationDraftResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * List the home-visit rows for an application, newest first. Scoped
+   * like Get (adopter-owns OR rescue-staff-of-the-app's-rescue OR admin).
+   */
+  listHomeVisits(
+    request: ListHomeVisitsRequest,
+    callback: (error: ServiceError | null, response: ListHomeVisitsResponse) => void,
+  ): ClientUnaryCall;
+  listHomeVisits(
+    request: ListHomeVisitsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListHomeVisitsResponse) => void,
+  ): ClientUnaryCall;
+  listHomeVisits(
+    request: ListHomeVisitsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListHomeVisitsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Drive a home visit's granular status machine (start / reschedule /
+   * cancel / complete) plus its notes/outcome. Every status change is
+   * appended to home_visit_status_transitions; the DB trigger
+   * (migration 006) propagates it onto home_visits.status. Caller MUST
+   * hold applications.review scoped to the application's rescue.
+   */
+  updateHomeVisit(
+    request: UpdateHomeVisitRequest,
+    callback: (error: ServiceError | null, response: UpdateHomeVisitResponse) => void,
+  ): ClientUnaryCall;
+  updateHomeVisit(
+    request: UpdateHomeVisitRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateHomeVisitResponse) => void,
+  ): ClientUnaryCall;
+  updateHomeVisit(
+    request: UpdateHomeVisitRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateHomeVisitResponse) => void,
+  ): ClientUnaryCall;
+  getApplicationPreferences(
+    request: GetApplicationPreferencesRequest,
+    callback: (error: ServiceError | null, response: GetApplicationPreferencesResponse) => void,
+  ): ClientUnaryCall;
+  getApplicationPreferences(
+    request: GetApplicationPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetApplicationPreferencesResponse) => void,
+  ): ClientUnaryCall;
+  getApplicationPreferences(
+    request: GetApplicationPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetApplicationPreferencesResponse) => void,
+  ): ClientUnaryCall;
+  updateApplicationPreferences(
+    request: UpdateApplicationPreferencesRequest,
+    callback: (error: ServiceError | null, response: UpdateApplicationPreferencesResponse) => void,
+  ): ClientUnaryCall;
+  updateApplicationPreferences(
+    request: UpdateApplicationPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateApplicationPreferencesResponse) => void,
+  ): ClientUnaryCall;
+  updateApplicationPreferences(
+    request: UpdateApplicationPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateApplicationPreferencesResponse) => void,
+  ): ClientUnaryCall;
+  updateReferenceCheck(
+    request: UpdateReferenceCheckRequest,
+    callback: (error: ServiceError | null, response: UpdateReferenceCheckResponse) => void,
+  ): ClientUnaryCall;
+  updateReferenceCheck(
+    request: UpdateReferenceCheckRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateReferenceCheckResponse) => void,
+  ): ClientUnaryCall;
+  updateReferenceCheck(
+    request: UpdateReferenceCheckRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateReferenceCheckResponse) => void,
+  ): ClientUnaryCall;
+  addTimelineNote(
+    request: AddTimelineNoteRequest,
+    callback: (error: ServiceError | null, response: AddTimelineNoteResponse) => void,
+  ): ClientUnaryCall;
+  addTimelineNote(
+    request: AddTimelineNoteRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AddTimelineNoteResponse) => void,
+  ): ClientUnaryCall;
+  addTimelineNote(
+    request: AddTimelineNoteRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AddTimelineNoteResponse) => void,
+  ): ClientUnaryCall;
+  listTimelineNotes(
+    request: ListTimelineNotesRequest,
+    callback: (error: ServiceError | null, response: ListTimelineNotesResponse) => void,
+  ): ClientUnaryCall;
+  listTimelineNotes(
+    request: ListTimelineNotesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListTimelineNotesResponse) => void,
+  ): ClientUnaryCall;
+  listTimelineNotes(
+    request: ListTimelineNotesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListTimelineNotesResponse) => void,
   ): ClientUnaryCall;
 }
 

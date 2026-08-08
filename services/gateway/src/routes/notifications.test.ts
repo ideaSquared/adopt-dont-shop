@@ -4,9 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   NotificationsV1,
+  type BulkCreateNotificationsRequest,
   type CreateNotificationRequest,
   type DismissNotificationRequest,
   type ListNotificationsRequest,
+  type UpdateNotificationPreferencesRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
@@ -41,9 +43,11 @@ function makeClient(): NotificationsClient & {
   markAllReadMock: ReturnType<typeof vi.fn>;
   markReadMock: ReturnType<typeof vi.fn>;
   deleteNotificationMock: ReturnType<typeof vi.fn>;
+  bulkCreateNotificationsMock: ReturnType<typeof vi.fn>;
   getNotificationPreferencesMock: ReturnType<typeof vi.fn>;
   updateNotificationPreferencesMock: ReturnType<typeof vi.fn>;
   cleanupExpiredNotificationsMock: ReturnType<typeof vi.fn>;
+  previewEmailTemplateMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const listMock = vi.fn();
@@ -53,9 +57,11 @@ function makeClient(): NotificationsClient & {
   const markAllReadMock = vi.fn();
   const markReadMock = vi.fn();
   const deleteNotificationMock = vi.fn();
+  const bulkCreateNotificationsMock = vi.fn();
   const getNotificationPreferencesMock = vi.fn();
   const updateNotificationPreferencesMock = vi.fn();
   const cleanupExpiredNotificationsMock = vi.fn();
+  const previewEmailTemplateMock = vi.fn();
   return {
     create: createMock,
     list: listMock,
@@ -65,9 +71,11 @@ function makeClient(): NotificationsClient & {
     markAllRead: markAllReadMock,
     markRead: markReadMock,
     deleteNotification: deleteNotificationMock,
+    bulkCreateNotifications: bulkCreateNotificationsMock,
     getNotificationPreferences: getNotificationPreferencesMock,
     updateNotificationPreferences: updateNotificationPreferencesMock,
     cleanupExpiredNotifications: cleanupExpiredNotificationsMock,
+    previewEmailTemplate: previewEmailTemplateMock,
     close: vi.fn(),
     createMock,
     listMock,
@@ -77,9 +85,11 @@ function makeClient(): NotificationsClient & {
     markAllReadMock,
     markReadMock,
     deleteNotificationMock,
+    bulkCreateNotificationsMock,
     getNotificationPreferencesMock,
     updateNotificationPreferencesMock,
     cleanupExpiredNotificationsMock,
+    previewEmailTemplateMock,
   };
 }
 
@@ -696,5 +706,589 @@ describe('POST /api/v1/notifications/cleanup', () => {
       headers: { 'x-user-id': 'usr-1' },
     });
     expect(res.statusCode).toBe(403);
+  });
+});
+
+// --- POST /api/v1/notifications/schedule ------------------------------
+
+describe('POST /api/v1/notifications/schedule', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('rejects a body without scheduledFor', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/schedule',
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+      payload: { userId: 'usr-1', title: 't', message: 'm' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(client.createMock).not.toHaveBeenCalled();
+  });
+
+  it('forwards scheduledFor to the Create RPC and returns 201', async () => {
+    client.createMock.mockResolvedValueOnce({ notification: NOTIFICATION_FIXTURE });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/schedule',
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+      payload: {
+        userId: 'usr-1',
+        type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_REMINDER,
+        channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+        title: 'Vet visit',
+        message: 'Tomorrow at 10am',
+        scheduledFor: '2026-07-01T09:00:00Z',
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    const [grpcReq] = client.createMock.mock.calls[0] as [CreateNotificationRequest, unknown];
+    expect(grpcReq.scheduledFor).toBe('2026-07-01T09:00:00Z');
+    expect(grpcReq.userId).toBe('usr-1');
+  });
+
+  it('maps gRPC INVALID_ARGUMENT to HTTP 400', async () => {
+    client.createMock.mockRejectedValueOnce({
+      code: status.INVALID_ARGUMENT,
+      details: 'title is required',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/schedule',
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+      payload: { scheduledFor: '2026-07-01T09:00:00Z' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+// --- POST /api/v1/notifications/bulk -----------------------------------
+
+describe('POST /api/v1/notifications/bulk', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('forwards userIds + payload to BulkCreateNotifications and reshapes the response', async () => {
+    client.bulkCreateNotificationsMock.mockResolvedValueOnce({
+      totalRequested: 2,
+      successful: 1,
+      failed: 1,
+      results: [
+        { userId: 'usr-1', notificationId: 'n-1', created: true },
+        { userId: '', created: false, error: 'user_id is required' },
+      ],
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/bulk',
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+      payload: {
+        userIds: ['usr-1', ''],
+        type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT,
+        channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+        title: 'Maintenance',
+        message: 'Down at midnight',
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    const [grpcReq] = client.bulkCreateNotificationsMock.mock.calls[0] as [
+      BulkCreateNotificationsRequest,
+      unknown,
+    ];
+    expect(grpcReq.userIds).toEqual(['usr-1', '']);
+
+    const body = res.json();
+    expect(body).toMatchObject({
+      success: true,
+      data: {
+        totalRequested: 2,
+        successful: 1,
+        failed: 1,
+        notifications: [
+          { id: 'n-1', userId: 'usr-1', status: 'created' },
+          { id: '', userId: '', status: 'failed', error: 'user_id is required' },
+        ],
+      },
+    });
+  });
+
+  it('maps gRPC INVALID_ARGUMENT to HTTP 400', async () => {
+    client.bulkCreateNotificationsMock.mockRejectedValueOnce({
+      code: status.INVALID_ARGUMENT,
+      details: 'user_ids is required',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/bulk',
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+      payload: { userIds: [] },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+// --- GET /api/v1/notifications/user/:userId -----------------------------
+
+describe('GET /api/v1/notifications/user/:userId', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('defaults to page 1 / limit 20 and returns a PaginatedResponse envelope', async () => {
+    client.listMock.mockResolvedValueOnce({
+      notifications: [NOTIFICATION_FIXTURE],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/user/usr-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(1);
+    expect(body.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+    });
+
+    const [grpcReq] = client.listMock.mock.calls[0] as [ListNotificationsRequest, unknown];
+    expect(grpcReq.page).toBe(1);
+    expect(grpcReq.limit).toBe(20);
+  });
+
+  it('maps category/priority/unreadOnly query params onto the List filters', async () => {
+    client.listMock.mockResolvedValueOnce({ notifications: [], total: 0, page: 2, totalPages: 0 });
+
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/user/usr-1?page=2&category=reminder&priority=high&unreadOnly=true',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    const [grpcReq] = client.listMock.mock.calls[0] as [ListNotificationsRequest, unknown];
+    expect(grpcReq.page).toBe(2);
+    expect(grpcReq.typeFilter).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_REMINDER);
+    expect(grpcReq.priorityFilter).toBe(
+      NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH
+    );
+    expect(grpcReq.unreadOnly).toBe(true);
+  });
+
+  it('falls back to 0 for total/totalPages when the RPC omits page-mode fields', async () => {
+    client.listMock.mockResolvedValueOnce({ notifications: [] });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/user/usr-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.json().pagination).toMatchObject({ total: 0, totalPages: 0 });
+  });
+
+  it('rejects an invalid limit with 400', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/user/usr-1?limit=abc',
+      headers: { 'x-user-id': 'usr-1' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(client.listMock).not.toHaveBeenCalled();
+  });
+
+  it('maps gRPC errors via handleGrpcError', async () => {
+    client.listMock.mockRejectedValueOnce({ code: status.PERMISSION_DENIED, details: 'denied' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/user/usr-1',
+      headers: { 'x-user-id': 'usr-1' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+// --- PATCH /api/v1/notifications/preferences/:userId --------------------
+
+describe('PATCH /api/v1/notifications/preferences/:userId', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  const PREFS_FIXTURE = {
+    userId: 'usr-1',
+    emailEnabled: true,
+    pushEnabled: true,
+    smsEnabled: false,
+    digestFrequency:
+      NotificationsV1.NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_WEEKLY,
+    applicationUpdates: true,
+    petMatches: true,
+    rescueUpdates: true,
+    chatMessages: true,
+    timezone: 'UTC',
+    createdAt: '2026-06-01T00:00:00Z',
+    updatedAt: '2026-06-01T00:00:00Z',
+  };
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('targets the path :userId and honours the flat body shape', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1',
+      payload: { emailEnabled: false },
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+    });
+
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      UpdateNotificationPreferencesRequest,
+      unknown,
+    ];
+    expect(grpcReq.userId).toBe('usr-1');
+    expect(grpcReq.emailEnabled).toBe(false);
+  });
+
+  it('honours the nested { channels, doNotDisturb } body shape', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1',
+      payload: {
+        channels: { email: { enabled: false }, push: { enabled: true } },
+        doNotDisturb: { enabled: true, startTime: '22:00', endTime: '07:00' },
+      },
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      UpdateNotificationPreferencesRequest,
+      unknown,
+    ];
+    expect(grpcReq.emailEnabled).toBe(false);
+    expect(grpcReq.pushEnabled).toBe(true);
+    expect(grpcReq.smsEnabled).toBeUndefined();
+    expect(grpcReq.quietHoursStart).toBe('22:00');
+    expect(grpcReq.quietHoursEnd).toBe('07:00');
+  });
+
+  it('clears quiet hours when doNotDisturb.enabled is false in the nested shape', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1',
+      payload: { doNotDisturb: { enabled: false } },
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+    });
+
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      UpdateNotificationPreferencesRequest,
+      unknown,
+    ];
+    expect(grpcReq.quietHoursStart).toBe('');
+    expect(grpcReq.quietHoursEnd).toBe('');
+  });
+
+  it('ignores malformed channel entries (non-object, missing/non-boolean enabled)', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1',
+      payload: { channels: { email: 'not-an-object', push: { enabled: 'yes' } } },
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+    });
+
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      UpdateNotificationPreferencesRequest,
+      unknown,
+    ];
+    expect(grpcReq.emailEnabled).toBeUndefined();
+    expect(grpcReq.pushEnabled).toBeUndefined();
+  });
+
+  it('ignores a non-object channels/doNotDisturb body without error', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1',
+      payload: { channels: 'nope', doNotDisturb: 'nope' },
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      UpdateNotificationPreferencesRequest,
+      unknown,
+    ];
+    expect(grpcReq.emailEnabled).toBeUndefined();
+    expect(grpcReq.quietHoursStart).toBeUndefined();
+  });
+});
+
+// --- PATCH /api/v1/notifications/preferences/:userId/dnd ----------------
+
+describe('PATCH /api/v1/notifications/preferences/:userId/dnd', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  const PREFS_FIXTURE = {
+    userId: 'usr-1',
+    emailEnabled: true,
+    pushEnabled: true,
+    smsEnabled: false,
+    digestFrequency:
+      NotificationsV1.NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_WEEKLY,
+    applicationUpdates: true,
+    petMatches: true,
+    rescueUpdates: true,
+    chatMessages: true,
+    quietHoursStart: '22:00',
+    quietHoursEnd: '07:00',
+    timezone: 'UTC',
+    createdAt: '2026-06-01T00:00:00Z',
+    updatedAt: '2026-06-01T00:00:00Z',
+  };
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('rejects a body without doNotDisturb', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1/dnd',
+      payload: {},
+      headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(client.updateNotificationPreferencesMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects enabling DND without both startTime and endTime', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1/dnd',
+      payload: { doNotDisturb: { enabled: true, startTime: '22:00' } },
+      headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(client.updateNotificationPreferencesMock).not.toHaveBeenCalled();
+  });
+
+  it('sets the quiet-hours window from doNotDisturb.startTime/endTime', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1/dnd',
+      payload: { doNotDisturb: { enabled: true, startTime: '22:00', endTime: '07:00' } },
+      headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      UpdateNotificationPreferencesRequest,
+      unknown,
+    ];
+    expect(grpcReq.userId).toBe('usr-1');
+    expect(grpcReq.quietHoursStart).toBe('22:00');
+    expect(grpcReq.quietHoursEnd).toBe('07:00');
+  });
+
+  it('clears the quiet-hours window when enabled is false', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1/dnd',
+      payload: { doNotDisturb: { enabled: false } },
+      headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+    });
+
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      UpdateNotificationPreferencesRequest,
+      unknown,
+    ];
+    expect(grpcReq.quietHoursStart).toBe('');
+    expect(grpcReq.quietHoursEnd).toBe('');
+  });
+
+  it('maps gRPC errors via handleGrpcError', async () => {
+    client.updateNotificationPreferencesMock.mockRejectedValueOnce({
+      code: status.PERMISSION_DENIED,
+      details: 'denied',
+    });
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/preferences/usr-1/dnd',
+      payload: { doNotDisturb: { enabled: true, startTime: '22:00', endTime: '07:00' } },
+      headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+// --- POST /api/v1/notifications/templates/:templateId/process -----------
+
+describe('POST /api/v1/notifications/templates/:templateId/process', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('renders the template and reshapes the response into { title, message }', async () => {
+    client.previewEmailTemplateMock.mockResolvedValueOnce({
+      subject: 'Hi Rex',
+      htmlContent: '<p>Hi Rex</p>',
+      textContent: 'Welcome, Rex!',
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/templates/tpl-1/process',
+      payload: { variables: { name: 'Rex' } },
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: { title: 'Hi Rex', message: 'Welcome, Rex!' },
+    });
+
+    const [grpcReq] = client.previewEmailTemplateMock.mock.calls[0] as [
+      { templateId: string; variablesJson: string },
+      unknown,
+    ];
+    expect(grpcReq.templateId).toBe('tpl-1');
+    expect(grpcReq.variablesJson).toBe('{"name":"Rex"}');
+  });
+
+  it('falls back to htmlContent when the template has no textContent', async () => {
+    client.previewEmailTemplateMock.mockResolvedValueOnce({
+      subject: 'Hi Rex',
+      htmlContent: '<p>Hi Rex</p>',
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/templates/tpl-1/process',
+      payload: { variables: { name: 'Rex' } },
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+    });
+
+    expect(res.json()).toMatchObject({ data: { message: '<p>Hi Rex</p>' } });
+  });
+
+  it('defaults variablesJson to "{}" when the body omits variables', async () => {
+    client.previewEmailTemplateMock.mockResolvedValueOnce({
+      subject: 's',
+      htmlContent: 'h',
+    });
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/templates/tpl-1/process',
+      payload: {},
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+    });
+
+    const [grpcReq] = client.previewEmailTemplateMock.mock.calls[0] as [
+      { templateId: string; variablesJson: string },
+      unknown,
+    ];
+    expect(grpcReq.variablesJson).toBe('{}');
+  });
+
+  it('maps gRPC NOT_FOUND to HTTP 404', async () => {
+    client.previewEmailTemplateMock.mockRejectedValueOnce({
+      code: status.NOT_FOUND,
+      details: 'template not found',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/templates/tpl-1/process',
+      payload: { variables: {} },
+      headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
+    });
+    expect(res.statusCode).toBe(404);
   });
 });

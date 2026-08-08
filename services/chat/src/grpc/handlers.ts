@@ -48,6 +48,7 @@ import {
   type MarkReadRequest,
   type MarkReadResponse,
   type Message,
+  type MessageAttachment,
   type MessageReaction,
   type OpenChatRequest,
   type OpenChatResponse,
@@ -56,6 +57,8 @@ import {
   type SearchChatHit,
   type SearchChatsRequest,
   type SearchChatsResponse,
+  type SearchMessagesRequest,
+  type SearchMessagesResponse,
   type SendMessageRequest,
   type SendMessageResponse,
   type UpdateChatStatusRequest,
@@ -111,6 +114,9 @@ type MessageRow = {
   chat_id: string;
   sender_id: string;
   content: string;
+  // messages.attachments jsonb — the pg driver hands it back already
+  // parsed (an array of stored attachment objects).
+  attachments: unknown;
   edited_at: Date | null;
   deleted_at: Date | null;
   created_at: Date;
@@ -280,6 +286,39 @@ const loadMessageReactions = async (
   return out;
 };
 
+const asAttachmentRecord = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+// Parse one stored jsonb attachment into the proto shape, dropping any
+// entry without a usable url. Storage keys mirror the proto keys.
+const attachmentFromRow = (raw: unknown): MessageAttachment | null => {
+  const rec = asAttachmentRecord(raw);
+  const url = typeof rec.url === 'string' ? rec.url : '';
+  if (!url) {
+    return null;
+  }
+  return {
+    url,
+    contentType: typeof rec.contentType === 'string' ? rec.contentType : undefined,
+    fileName: typeof rec.fileName === 'string' ? rec.fileName : undefined,
+    sizeBytes: typeof rec.sizeBytes === 'number' ? rec.sizeBytes : undefined,
+  };
+};
+
+const attachmentsFromRow = (raw: unknown): MessageAttachment[] =>
+  (Array.isArray(raw) ? raw : [])
+    .map(attachmentFromRow)
+    .filter((a): a is MessageAttachment => a !== null);
+
+// The shape persisted in messages.attachments — mirrors the proto keys so
+// the read path round-trips without a translation table.
+const attachmentToStorage = (a: MessageAttachment) => ({
+  url: a.url,
+  contentType: a.contentType,
+  fileName: a.fileName,
+  sizeBytes: a.sizeBytes,
+});
+
 const messageRowToProto = (row: MessageRow, reactions: MessageReaction[]): Message => ({
   messageId: row.message_id,
   chatId: row.chat_id,
@@ -289,6 +328,7 @@ const messageRowToProto = (row: MessageRow, reactions: MessageReaction[]): Messa
   editedAt: row.edited_at?.toISOString(),
   deletedAt: row.deleted_at?.toISOString(),
   createdAt: row.created_at.toISOString(),
+  attachments: attachmentsFromRow(row.attachments),
 });
 
 // --- OpenChat --------------------------------------------------------
@@ -488,14 +528,21 @@ export async function sendMessage(
   if (!req.chatId) {
     throw new HandlerError('INVALID_ARGUMENT', 'chat_id is required');
   }
-  if (!req.body || req.body.trim().length === 0) {
-    throw new HandlerError('INVALID_ARGUMENT', 'body is required');
+  const body = req.body ?? '';
+  const attachments = req.attachments ?? [];
+  // A message needs either text or at least one attachment (image-only
+  // messages are allowed); every attachment must carry a url.
+  if (body.trim().length === 0 && attachments.length === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'body or attachments is required');
   }
-  if (req.body.length > MAX_MESSAGE_LENGTH) {
+  if (body.length > MAX_MESSAGE_LENGTH) {
     throw new HandlerError(
       'INVALID_ARGUMENT',
       `body exceeds ${MAX_MESSAGE_LENGTH} character limit`
     );
+  }
+  if (attachments.some(a => !a.url || a.url.trim().length === 0)) {
+    throw new HandlerError('INVALID_ARGUMENT', 'each attachment requires a url');
   }
   if (!hasPermission(principal, CHAT_SEND)) {
     throw new HandlerError('PERMISSION_DENIED', `'${CHAT_SEND}' required`);
@@ -506,18 +553,19 @@ export async function sendMessage(
   await ensureChatWritable(deps, req.chatId);
 
   const messageId = randomUUID();
+  const storedAttachments = attachments.map(attachmentToStorage);
   let inserted: MessageRow | undefined;
 
   await withTransaction(deps, async ({ client, publish }) => {
     const res = await client.query<MessageRow>(
       `
       INSERT INTO messages (
-        message_id, chat_id, sender_id, content, created_at, updated_at
+        message_id, chat_id, sender_id, content, attachments, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, now(), now())
+      VALUES ($1, $2, $3, $4, $5::jsonb, now(), now())
       RETURNING *
       `,
-      [messageId, req.chatId, principal.userId, req.body]
+      [messageId, req.chatId, principal.userId, body, JSON.stringify(storedAttachments)]
     );
     inserted = res.rows[0];
 
@@ -533,7 +581,8 @@ export async function sendMessage(
         messageId,
         chatId: req.chatId,
         senderUserId: principal.userId,
-        body: req.body,
+        body,
+        attachments: storedAttachments,
         participantUserIds,
       },
     });
@@ -944,6 +993,7 @@ export async function searchChats(
       c.created_at AS c_created_at, c.updated_at AS c_updated_at,
       m.message_id AS m_message_id, m.chat_id AS m_chat_id,
       m.sender_id AS m_sender_id, m.content AS m_content,
+      m.attachments AS m_attachments,
       m.edited_at AS m_edited_at, m.deleted_at AS m_deleted_at,
       m.created_at AS m_created_at
     FROM chats c
@@ -974,6 +1024,7 @@ export async function searchChats(
     m_chat_id: string;
     m_sender_id: string;
     m_content: string;
+    m_attachments: unknown;
     m_edited_at: Date | null;
     m_deleted_at: Date | null;
     m_created_at: Date;
@@ -999,6 +1050,7 @@ export async function searchChats(
         chat_id: row.m_chat_id,
         sender_id: row.m_sender_id,
         content: row.m_content,
+        attachments: row.m_attachments,
         edited_at: row.m_edited_at,
         deleted_at: row.m_deleted_at,
         created_at: row.m_created_at,
@@ -1008,6 +1060,86 @@ export async function searchChats(
         match: messageRowToProto(msgRow, reactionMap.get(row.m_message_id) ?? []),
       };
     })
+  );
+
+  return { hits, page, limit, total };
+}
+
+// --- SearchMessages ----------------------------------------------------
+
+// Flat counterpart to SearchChats: one row per matching message instead
+// of one row per matching chat. Shares the same tsvector match, query
+// validation, permission gate, and self-scoping (participant or
+// super_admin) — just without SearchChats' DISTINCT-ON-per-chat grouping.
+export async function searchMessages(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: SearchMessagesRequest
+): Promise<SearchMessagesResponse> {
+  if (!req.query || req.query.trim().length === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'query is required');
+  }
+  const query = req.query.trim();
+  if (query.length > MAX_QUERY_LEN) {
+    throw new HandlerError('INVALID_ARGUMENT', `query must be <= ${MAX_QUERY_LEN} chars`);
+  }
+  if (!hasPermission(principal, CHAT_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
+  }
+
+  const limit = clampLimit(req.limit, DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT);
+  const page = Math.max(req.page || 1, 1);
+  const offset = (page - 1) * limit;
+
+  const tsQuery = 'websearch_to_tsquery($1, $2)';
+
+  const baseWhere: string[] = [
+    `c.status <> 'archived'`,
+    `c.deleted_at IS NULL`,
+    `p.participant_id = $3`,
+    `p.deleted_at IS NULL`,
+    `m.deleted_at IS NULL`,
+    `m.search_vector @@ ${tsQuery}`,
+  ];
+  const params: unknown[] = ['english', query, principal.userId];
+  let nextParam = 4;
+
+  if (req.chatId) {
+    baseWhere.push(`m.chat_id = $${nextParam}`);
+    params.push(req.chatId);
+    nextParam += 1;
+  }
+
+  const countSql = `
+    SELECT COUNT(*)::text AS total
+    FROM messages m
+    JOIN chats c ON c.chat_id = m.chat_id
+    JOIN chat_participants p ON p.chat_id = m.chat_id
+    WHERE ${baseWhere.join(' AND ')}
+  `;
+  const countRes = await deps.pool.query<{ total: string }>(countSql, params);
+  const total = Number.parseInt(countRes.rows[0]?.total ?? '0', 10);
+
+  if (total === 0) {
+    return { hits: [], page, limit, total: 0 };
+  }
+
+  const hitsSql = `
+    SELECT m.*
+    FROM messages m
+    JOIN chats c ON c.chat_id = m.chat_id
+    JOIN chat_participants p ON p.chat_id = m.chat_id
+    WHERE ${baseWhere.join(' AND ')}
+    ORDER BY m.created_at DESC
+    LIMIT $${nextParam}
+    OFFSET $${nextParam + 1}
+  `;
+  const hitsRes = await deps.pool.query<MessageRow>(hitsSql, [...params, limit, offset]);
+
+  const messageIds = hitsRes.rows.map(row => row.message_id);
+  const reactionMap = await loadMessageReactions(deps, messageIds);
+  const hits = hitsRes.rows.map(row =>
+    messageRowToProto(row, reactionMap.get(row.message_id) ?? [])
   );
 
   return { hits, page, limit, total };

@@ -87,6 +87,7 @@ import { registerRescueRoutes } from './routes/rescue.js';
 import { registerInvitationAcceptRoutes } from './routes/invitation-accept.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerRescueAdminRoutes } from './routes/rescue-admin.js';
+import { registerSearchRoutes } from './routes/search.js';
 import { registerSecurityRoutes } from './routes/security.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
 import { registerEventRoutes } from './routes/events.js';
@@ -703,6 +704,15 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.chatClient) {
     await registerChatRoutes(server, { client: opts.chatClient });
+  }
+  // /api/v1/search/{messages,suggestions} — cross-service lib.search
+  // surface (ADS-1142). Needs both chat (message search) and pets
+  // (suggestions) clients wired.
+  if (opts.chatClient && opts.petsClient) {
+    await registerSearchRoutes(server, {
+      chatClient: opts.chatClient,
+      petsClient: opts.petsClient,
+    });
   }
   if (opts.cmsClient) {
     await registerCmsRoutes(server, { client: opts.cmsClient });

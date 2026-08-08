@@ -30,6 +30,7 @@ import {
   getChat,
   getChatUnreadCount,
   searchChats,
+  searchMessages,
   sendMessage,
   updateChatStatus,
 } from './handlers.js';
@@ -91,6 +92,7 @@ const messageRowFixture = (overrides: Record<string, unknown> = {}) => ({
   chat_id: 'chat-1',
   sender_id: 'usr-adopter',
   content: 'Hello world',
+  attachments: [],
   edited_at: null,
   deleted_at: null,
   created_at: new Date('2026-06-01T00:01:00Z'),
@@ -510,6 +512,74 @@ describe('sendMessage', () => {
     expect(res.message?.body).toBe('Hello world');
     expect(realClientQueries(mocks)).toEqual(['INSERT', 'UPDATE', 'SELECT']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageCreated');
+  });
+
+  it('accepts an image-only message and round-trips attachment metadata, dropping malformed entries', async () => {
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
+    // The stored row mixes a full attachment with junk the read path drops:
+    // a url-less object, a non-object, and a non-numeric size.
+    mocks.clientScript.push({
+      rows: [
+        messageRowFixture({
+          content: '',
+          attachments: [
+            {
+              url: 'https://cdn/x.png',
+              contentType: 'image/png',
+              fileName: 'x.png',
+              sizeBytes: 42,
+            },
+            // url-only: exercises the contentType/fileName/sizeBytes "absent"
+            // branches of the parser.
+            { url: 'https://cdn/y.png' },
+            { fileName: 'no-url.png' },
+            'garbage',
+          ],
+        }),
+      ],
+    });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+
+    const res = await sendMessage(mocks.deps, ADOPTER_PRINCIPAL, {
+      chatId: 'chat-1',
+      body: '',
+      attachments: [{ url: 'https://cdn/x.png', contentType: 'image/png' }],
+    });
+
+    expect(res.message?.attachments).toEqual([
+      { url: 'https://cdn/x.png', contentType: 'image/png', fileName: 'x.png', sizeBytes: 42 },
+      { url: 'https://cdn/y.png' },
+    ]);
+    // The INSERT persisted the request attachments as a JSON string (param $5).
+    const insert = mocks.clientMock.query.mock.calls.find(([q]: [string]) =>
+      String(q).includes('INSERT INTO messages')
+    ) as [string, unknown[]];
+    expect(JSON.parse(insert[1][4] as string)).toEqual([
+      { url: 'https://cdn/x.png', contentType: 'image/png' },
+    ]);
+  });
+
+  it('treats a non-array attachments column as no attachments', async () => {
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
+    mocks.clientScript.push({ rows: [messageRowFixture({ attachments: null })] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+
+    const res = await sendMessage(mocks.deps, ADOPTER_PRINCIPAL, BASE_SEND);
+    expect(res.message?.attachments).toEqual([]);
+  });
+
+  it('rejects an attachment with no url', async () => {
+    await expect(
+      sendMessage(mocks.deps, ADOPTER_PRINCIPAL, {
+        chatId: 'chat-1',
+        body: 'hi',
+        attachments: [{ url: '' }],
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });
 
@@ -945,6 +1015,137 @@ describe('searchChats', () => {
     // The hits SELECT receives limit + offset as the last two params.
     const hitsCall = mocks.poolMock.query.mock.calls.find(
       ([sql]) => typeof sql === 'string' && sql.includes('hits') && sql.includes('LIMIT')
+    );
+    expect(hitsCall).toBeDefined();
+    const params = hitsCall![1] as unknown[];
+    expect(params[params.length - 2]).toBe(10); // limit
+    expect(params[params.length - 1]).toBe(10); // offset = (page-1)*limit
+  });
+});
+
+describe('searchMessages', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects an empty query', async () => {
+    await expect(
+      searchMessages(mocks.deps, ADOPTER_PRINCIPAL, { query: '', page: 1, limit: 20 })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a query longer than 100 chars', async () => {
+    await expect(
+      searchMessages(mocks.deps, ADOPTER_PRINCIPAL, { query: 'a'.repeat(101), page: 1, limit: 20 })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an unprivileged principal', async () => {
+    await expect(
+      searchMessages(mocks.deps, UNPRIVILEGED_PRINCIPAL, { query: 'cat', page: 1, limit: 20 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns empty hits when count is 0 (no FTS match)', async () => {
+    mocks.poolScript.push({ rows: [{ total: '0' }] });
+
+    const res = await searchMessages(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'unfindable',
+      page: 1,
+      limit: 20,
+    });
+
+    expect(res).toEqual({ hits: [], page: 1, limit: 20, total: 0 });
+  });
+
+  it('treats a missing count row as 0 total', async () => {
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await searchMessages(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'unfindable',
+      page: 1,
+      limit: 20,
+    });
+
+    expect(res).toEqual({ hits: [], page: 1, limit: 20, total: 0 });
+  });
+
+  it('defaults an unset page to 1', async () => {
+    mocks.poolScript.push({ rows: [{ total: '0' }] });
+
+    const res = await searchMessages(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'cat',
+      page: 0,
+      limit: 20,
+    });
+
+    expect(res.page).toBe(1);
+  });
+
+  it('returns a flat list of matching messages', async () => {
+    // SELECT COUNT(*) — total
+    mocks.poolScript.push({ rows: [{ total: '1' }] });
+    // The hits SELECT — one matching message row
+    mocks.poolScript.push({
+      rows: [
+        messageRowFixture({
+          message_id: 'msg-9',
+          sender_id: 'usr-rescue',
+          content: 'About that adoption',
+          created_at: new Date('2026-06-01T00:30:00Z'),
+        }),
+      ],
+    });
+    // Reactions lookup for the matching message id
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await searchMessages(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'adoption',
+      page: 1,
+      limit: 20,
+    });
+
+    expect(res.total).toBe(1);
+    expect(res.hits).toHaveLength(1);
+    expect(res.hits[0].messageId).toBe('msg-9');
+    expect(res.hits[0].body).toBe('About that adoption');
+  });
+
+  it('respects an optional chat_id filter (binds it as a param)', async () => {
+    mocks.poolScript.push({ rows: [{ total: '0' }] });
+
+    await searchMessages(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'cat',
+      page: 1,
+      limit: 20,
+      chatId: 'chat-1',
+    });
+
+    const countCall = mocks.poolMock.query.mock.calls.find(
+      ([sql]) => typeof sql === 'string' && sql.includes('COUNT(*)::text AS total')
+    );
+    expect(countCall).toBeDefined();
+    const params = countCall![1] as unknown[];
+    // 'english', query, principal.userId, chatId
+    expect(params).toEqual(['english', 'cat', 'usr-adopter', 'chat-1']);
+  });
+
+  it('passes pagination params through correctly', async () => {
+    mocks.poolScript.push({ rows: [{ total: '5' }] });
+    mocks.poolScript.push({ rows: [] });
+
+    await searchMessages(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'cat',
+      page: 2,
+      limit: 10,
+    });
+
+    const hitsCall = mocks.poolMock.query.mock.calls.find(
+      ([sql]) => typeof sql === 'string' && sql.includes('SELECT m.*')
     );
     expect(hitsCall).toBeDefined();
     const params = hitsCall![1] as unknown[];

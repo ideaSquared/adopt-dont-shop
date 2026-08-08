@@ -27,6 +27,9 @@ import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/even
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import {
   NotificationsV1,
+  type BulkCreateNotificationResult,
+  type BulkCreateNotificationsRequest,
+  type BulkCreateNotificationsResponse,
   type CreateNotificationRequest,
   type CreateNotificationResponse,
   type DismissNotificationRequest,
@@ -303,6 +306,149 @@ export async function createNotification(
   return { notification: rowToProto(inserted) };
 }
 
+// --- BulkCreateNotifications -------------------------------------------
+//
+// Same title/message/template payload fanned out to a caller-supplied
+// user_ids list — one notification row per recipient. Blank or duplicate
+// ids fail individually (recorded in the per-recipient results) rather
+// than aborting the whole batch; a genuine DB error still aborts the
+// batch (the shared insert transaction rolls back), same discipline as
+// every other write in this file.
+
+const MAX_BULK_RECIPIENTS = 500;
+
+export async function bulkCreateNotifications(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: BulkCreateNotificationsRequest
+): Promise<BulkCreateNotificationsResponse> {
+  if (!hasPermission(principal, NOTIFICATIONS_CREATE)) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `'${NOTIFICATIONS_CREATE}' required to create notifications`
+    );
+  }
+  if (!req.title) {
+    throw new HandlerError('INVALID_ARGUMENT', 'title is required');
+  }
+  if (!req.message) {
+    throw new HandlerError('INVALID_ARGUMENT', 'message is required');
+  }
+  if (req.type === NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED) {
+    throw new HandlerError('INVALID_ARGUMENT', 'type is required');
+  }
+  if (req.channel === NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED) {
+    throw new HandlerError('INVALID_ARGUMENT', 'channel is required');
+  }
+
+  const requestedIds = req.userIds ?? [];
+  if (requestedIds.length === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_ids is required');
+  }
+  if (requestedIds.length > MAX_BULK_RECIPIENTS) {
+    throw new HandlerError('INVALID_ARGUMENT', `user_ids must be <= ${MAX_BULK_RECIPIENTS}`);
+  }
+
+  // Order-preserving validation pass: blank ids and repeats fail
+  // individually so the caller can see exactly which recipient was
+  // skipped and why, without losing the original request order.
+  const seen = new Set<string>();
+  const items = requestedIds.map(userId => {
+    if (!userId) {
+      return { userId: '', valid: false, reason: 'user_id is required' };
+    }
+    if (seen.has(userId)) {
+      return { userId, valid: false, reason: 'duplicate user_id' };
+    }
+    seen.add(userId);
+    return { userId, valid: true, reason: undefined as string | undefined };
+  });
+  // Generate ids up front (pure, no DB round-trip) so the insert loop and
+  // the results below share the exact same (userId, notificationId)
+  // pairing without a post-hoc lookup.
+  const toInsert = items
+    .filter(item => item.valid)
+    .map(item => ({ userId: item.userId, notificationId: randomUUID() }));
+
+  const priority =
+    req.priority === NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED
+      ? NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL
+      : req.priority;
+
+  if (toInsert.length > 0) {
+    await withTransaction(deps, async ({ client, publish }) => {
+      for (const { userId, notificationId } of toInsert) {
+        await client.query(
+          `
+          INSERT INTO notifications.notifications (
+            notification_id, user_id, type, channel, priority, status,
+            title, message, data, template_id, template_variables,
+            retry_count, max_retries, version,
+            created_at, updated_at
+          )
+          VALUES (
+            $1, $2, $3, $4, $5, 'pending',
+            $6, $7, $8::jsonb, $9, $10::jsonb,
+            0, 3, 0,
+            now(), now()
+          )
+          `,
+          [
+            notificationId,
+            userId,
+            typeToDb(req.type),
+            channelToDb(req.channel),
+            priorityToDb(priority),
+            req.title,
+            req.message,
+            req.dataJson || '{}',
+            req.templateId ?? null,
+            req.templateVariablesJson || '{}',
+          ]
+        );
+      }
+
+      publish({
+        type: 'notifications.bulkCreated',
+        id: `notifications.bulkCreated.${principal.userId}.${Date.now()}`,
+        payload: {
+          userIds: toInsert.map(item => item.userId),
+          notificationIds: toInsert.map(item => item.notificationId),
+          type: typeToDb(req.type),
+          channel: channelToDb(req.channel),
+          title: req.title,
+          message: req.message,
+        },
+      });
+    });
+  }
+
+  // toInsert only ever reaches here fully inserted — withTransaction
+  // rolls back (and rethrows) on any failure, so there is no partial
+  // state to reconcile: every entry either committed or the whole call
+  // threw before this line.
+  const insertedByUserId = new Map(toInsert.map(item => [item.userId, item.notificationId]));
+  const results: BulkCreateNotificationResult[] = items.map(item => {
+    if (!item.valid) {
+      return { userId: item.userId, created: false, error: item.reason };
+    }
+    return {
+      userId: item.userId,
+      notificationId: insertedByUserId.get(item.userId),
+      created: true,
+      error: undefined,
+    };
+  });
+
+  const successful = results.filter(result => result.created).length;
+  return {
+    totalRequested: requestedIds.length,
+    successful,
+    failed: results.length - successful,
+    results,
+  };
+}
+
 // --- List ------------------------------------------------------------
 
 type ListCursor = { createdAt: string; notificationId: string };
@@ -325,7 +471,6 @@ export async function listNotifications(
   }
 
   const limit = clampLimit(req.limit);
-  const cursor = req.cursor ? parseCursor(req.cursor) : undefined;
 
   // Build WHERE clause incrementally. user_id scope is always
   // enforced — even super_admin's List returns only its own
@@ -359,6 +504,26 @@ export async function listNotifications(
     params.push(typeToDb(req.typeFilter));
     nextParam++;
   }
+  if (
+    req.priorityFilter !== undefined &&
+    req.priorityFilter !== NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED
+  ) {
+    where.push(`priority = $${nextParam}`);
+    params.push(priorityToDb(req.priorityFilter));
+    nextParam++;
+  }
+  if (req.unreadOnly) {
+    where.push('read_at IS NULL');
+  }
+
+  // Page-based (offset) pagination — used by GET /notifications/user/:id.
+  // Mutually exclusive with the cursor-keyset mode below; page mode
+  // ignores req.cursor entirely.
+  if (req.page && req.page > 0) {
+    return listNotificationsByPage(deps, where, params, nextParam, limit, req.page);
+  }
+
+  const cursor = req.cursor ? parseCursor(req.cursor) : undefined;
   if (cursor) {
     // Keyset on (created_at DESC, notification_id DESC) — same shape
     // CAD audit query uses. Cursor is the last row of the previous
@@ -395,6 +560,44 @@ export async function listNotifications(
   return {
     notifications: page.map(rowToProto),
     nextCursor,
+  };
+}
+
+// Offset pagination branch of List — separate count query (total row
+// count for the filtered WHERE) plus a LIMIT/OFFSET page fetch. `where`/
+// `params`/`nextParam` are the shared filter state built by the caller
+// (user_id scope + status/channel/type/priority/unread_only filters);
+// this function only adds the LIMIT/OFFSET pair.
+async function listNotificationsByPage(
+  deps: HandlerDeps,
+  where: string[],
+  params: unknown[],
+  nextParam: number,
+  limit: number,
+  page: number
+): Promise<ListNotificationsResponse> {
+  const countResult = await deps.pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count FROM notifications.notifications WHERE ${where.join(' AND ')}`,
+    params
+  );
+  const total = Number.parseInt(countResult.rows[0]?.count ?? '0', 10);
+  const offset = (page - 1) * limit;
+
+  const result = await deps.pool.query<NotificationRow>(
+    `
+    SELECT * FROM notifications.notifications
+    WHERE ${where.join(' AND ')}
+    ORDER BY created_at DESC, notification_id DESC
+    LIMIT $${nextParam} OFFSET $${nextParam + 1}
+    `,
+    [...params, limit, offset]
+  );
+
+  return {
+    notifications: result.rows.map(rowToProto),
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
   };
 }
 

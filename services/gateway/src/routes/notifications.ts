@@ -20,6 +20,7 @@ import type { FastifyInstance } from 'fastify';
 
 import {
   NotificationsV1,
+  type BulkCreateNotificationsRequest,
   type CreateNotificationRequest,
   type DismissNotificationRequest,
   type ListNotificationsRequest,
@@ -133,6 +134,118 @@ export const registerNotificationsRoutes = async (
       try {
         const res = await client.create(grpcReq, metadata);
         return reply.code(201).send(NotificationsV1.CreateNotificationResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // Schedule a notification for future delivery. Same shape as Create,
+  // routed through the same RPC — the notifications table's
+  // scheduled_for column (and CreateNotificationRequest.scheduled_for)
+  // already cover "deliver later"; this route just requires it.
+  app.post(
+    '/api/v1/notifications/schedule',
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: 'Schedule a notification for future delivery',
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          201: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as Partial<CreateNotificationRequest>;
+      if (!body.scheduledFor) {
+        return reply.code(400).send({ error: 'scheduledFor is required' });
+      }
+
+      const grpcReq: CreateNotificationRequest = {
+        userId: body.userId ?? '',
+        type: body.type ?? NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED,
+        channel:
+          body.channel ?? NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED,
+        priority:
+          body.priority ?? NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED,
+        title: body.title ?? '',
+        message: body.message ?? '',
+        dataJson: body.dataJson ?? '{}',
+        templateId: body.templateId,
+        templateVariablesJson: body.templateVariablesJson ?? '{}',
+        relatedEntityType: body.relatedEntityType,
+        relatedEntityId: body.relatedEntityId,
+        scheduledFor: body.scheduledFor,
+        expiresAt: body.expiresAt,
+        externalId: body.externalId,
+      };
+
+      try {
+        const res = await client.create(grpcReq, metadata);
+        return reply.code(201).send(NotificationsV1.CreateNotificationResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // Bulk-create — fan a single title/message/template payload out to a
+  // caller-supplied list of user_ids via BulkCreateNotifications.
+  app.post(
+    '/api/v1/notifications/bulk',
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: 'Create a notification for multiple users',
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as Partial<BulkCreateNotificationsRequest>;
+      const grpcReq: BulkCreateNotificationsRequest = {
+        userIds: body.userIds ?? [],
+        type: body.type ?? NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED,
+        channel:
+          body.channel ?? NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED,
+        priority:
+          body.priority ?? NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED,
+        title: body.title ?? '',
+        message: body.message ?? '',
+        dataJson: body.dataJson ?? '{}',
+        templateId: body.templateId,
+        templateVariablesJson: body.templateVariablesJson ?? '{}',
+      };
+
+      try {
+        const res = await client.bulkCreateNotifications(grpcReq, metadata);
+        return reply.code(201).send({
+          success: true,
+          data: {
+            totalRequested: res.totalRequested,
+            successful: res.successful,
+            failed: res.failed,
+            notifications: res.results.map(r => ({
+              id: r.notificationId ?? '',
+              userId: r.userId,
+              status: r.created ? 'created' : 'failed',
+              error: r.error,
+            })),
+          },
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -346,6 +459,212 @@ export const registerNotificationsRoutes = async (
     }
   );
 
+  // PATCH /api/v1/notifications/preferences/:userId — targets a specific
+  // user (self, or another user when the caller has prefs.update:any).
+  // Accepts the same flat body as PUT /preferences AND the nested
+  // { channels, doNotDisturb } shape — buildPrefsPatch reads both.
+  app.patch<{ Params: { userId: string } }>(
+    '/api/v1/notifications/preferences/:userId',
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: "Update a specific user's notification preferences",
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: UpdateNotificationPreferencesRequest = {
+        ...buildPrefsPatch(body),
+        userId: req.params.userId,
+      };
+
+      try {
+        const res = await client.updateNotificationPreferences(grpcReq, metadata);
+        return reply.send({
+          success: true,
+          message: 'Notification preferences updated successfully',
+          data: NotificationsV1.NotificationPreferences.toJSON(res.preferences!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // PATCH /api/v1/notifications/preferences/:userId/dnd — set (or clear)
+  // the do-not-disturb window. The prefs table's quiet_hours_start/end
+  // columns ARE the DND window, so this maps straight onto them via the
+  // existing UpdateNotificationPreferences RPC — no new columns needed.
+  app.patch<{ Params: { userId: string } }>(
+    '/api/v1/notifications/preferences/:userId/dnd',
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: "Set a specific user's do-not-disturb window",
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            doNotDisturb: {
+              type: 'object',
+              properties: {
+                enabled: { type: 'boolean' },
+                startTime: { type: 'string' },
+                endTime: { type: 'string' },
+              },
+            },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as {
+        doNotDisturb?: { enabled?: boolean; startTime?: string; endTime?: string };
+      };
+      const dnd = body.doNotDisturb;
+      if (!dnd) {
+        return reply.code(400).send({ error: 'doNotDisturb is required' });
+      }
+
+      const grpcReq: UpdateNotificationPreferencesRequest = {
+        userId: req.params.userId,
+        digestFrequency:
+          NotificationsV1.NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED,
+      };
+      if (dnd.enabled === false) {
+        grpcReq.quietHoursStart = '';
+        grpcReq.quietHoursEnd = '';
+      } else {
+        if (!dnd.startTime || !dnd.endTime) {
+          return reply
+            .code(400)
+            .send({ error: 'doNotDisturb.startTime and doNotDisturb.endTime are required' });
+        }
+        grpcReq.quietHoursStart = dnd.startTime;
+        grpcReq.quietHoursEnd = dnd.endTime;
+      }
+
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.updateNotificationPreferences(grpcReq, metadata);
+        return reply.send({
+          success: true,
+          message: 'Do not disturb preferences updated successfully',
+          data: NotificationsV1.NotificationPreferences.toJSON(res.preferences!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/notifications/user/:userId — page-based list for the
+  // calling user's own notifications. The gRPC List RPC is always
+  // principal-scoped (see the List route above); the :userId path
+  // segment mirrors the frontend's REST contract but isn't forwarded to
+  // the handler — the calling principal always drives the scope.
+  app.get<{ Params: { userId: string } }>(
+    '/api/v1/notifications/user/:userId',
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: "List the calling user's notifications (page-based)",
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        querystring: {
+          type: 'object',
+          properties: {
+            page: { type: 'string' },
+            limit: { type: 'string' },
+            category: { type: 'string' },
+            priority: { type: 'string' },
+            unreadOnly: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 20 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+
+      const grpcReq: ListNotificationsRequest = {
+        limit: pagination.limit,
+        page: pagination.page,
+        statusFilter: NotificationsV1.NotificationStatus.NOTIFICATION_STATUS_UNSPECIFIED,
+        channelFilter: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED,
+        // `category` is the frontend's filter name for the notification's
+        // `type` — same underlying column, reuse parseType.
+        typeFilter: parseType(query.category),
+        priorityFilter: parsePriority(query.priority),
+        unreadOnly: query.unreadOnly === 'true',
+      };
+
+      try {
+        const res = await client.list(grpcReq, metadata);
+        const total = res.total ?? 0;
+        const page = res.page ?? pagination.page;
+        const totalPages = res.totalPages ?? 0;
+        return reply.send({
+          success: true,
+          data: res.notifications.map(n => NotificationsV1.Notification.toJSON(n)),
+          pagination: {
+            page,
+            limit: pagination.limit,
+            total,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // Single notification fetch.
   app.get<{ Params: { id: string } }>(
     '/api/v1/notifications/:id',
@@ -451,6 +770,66 @@ export const registerNotificationsRoutes = async (
       }
     }
   );
+
+  // POST /api/v1/notifications/templates/:templateId/process — render a
+  // template with caller-supplied variables. Backed by the same
+  // PreviewEmailTemplate RPC as POST /api/v1/email/templates/:id/preview
+  // (service.notifications owns the one email_templates table); this
+  // route just answers in the { title, message } shape the notifications
+  // client contract expects instead of { subject, htmlContent }.
+  app.post<{ Params: { templateId: string } }>(
+    '/api/v1/notifications/templates/:templateId/process',
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: 'Render a notification template with variables',
+        params: {
+          type: 'object',
+          properties: { templateId: { type: 'string' } },
+          required: ['templateId'],
+        },
+        body: {
+          type: 'object',
+          properties: { variables: { type: 'object', additionalProperties: true } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: { title: { type: 'string' }, message: { type: 'string' } },
+              },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as { variables?: unknown };
+      // The route schema restricts `variables` to a JSON object, so
+      // stringifying is the only case worth handling here (unlike the
+      // /api/v1/email/templates/:id/preview route's variablesJson helper,
+      // which also accepts a pre-stringified string).
+      const variablesJson = body.variables === undefined ? '{}' : JSON.stringify(body.variables);
+
+      try {
+        const res = await client.previewEmailTemplate(
+          { templateId: req.params.templateId, variablesJson },
+          metadata
+        );
+        return reply.send({
+          success: true,
+          data: { title: res.subject, message: res.textContent ?? res.htmlContent },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 };
 
 // --- Body parsing for prefs PUT --------------------------------------
@@ -523,7 +902,57 @@ function buildPrefsPatch(body: Record<string, unknown>): UpdateNotificationPrefe
       out.digestFrequency = parsed;
     }
   }
+
+  // Nested shape (lib.notifications NotificationPreferences): { channels:
+  // { email: { enabled }, push: { enabled }, sms: { enabled } },
+  // doNotDisturb: { enabled, startTime, endTime } }. Read after the flat
+  // fields above so a body carrying both prefers the nested value.
+  const channels = body.channels;
+  if (channels && typeof channels === 'object') {
+    const channelsRecord = channels as Record<string, unknown>;
+    const emailEnabled = readChannelEnabled(channelsRecord, 'email');
+    if (emailEnabled !== undefined) {
+      out.emailEnabled = emailEnabled;
+    }
+    const pushEnabled = readChannelEnabled(channelsRecord, 'push');
+    if (pushEnabled !== undefined) {
+      out.pushEnabled = pushEnabled;
+    }
+    const smsEnabled = readChannelEnabled(channelsRecord, 'sms');
+    if (smsEnabled !== undefined) {
+      out.smsEnabled = smsEnabled;
+    }
+  }
+
+  const dnd = body.doNotDisturb;
+  if (dnd && typeof dnd === 'object') {
+    const dndRecord = dnd as Record<string, unknown>;
+    if (dndRecord.enabled === false) {
+      out.quietHoursStart = '';
+      out.quietHoursEnd = '';
+    } else {
+      if (typeof dndRecord.startTime === 'string') {
+        out.quietHoursStart = dndRecord.startTime;
+      }
+      if (typeof dndRecord.endTime === 'string') {
+        out.quietHoursEnd = dndRecord.endTime;
+      }
+    }
+  }
+
   return out;
+}
+
+function readChannelEnabled(channels: Record<string, unknown>, key: string): boolean | undefined {
+  const channel = channels[key];
+  if (
+    channel &&
+    typeof channel === 'object' &&
+    typeof (channel as Record<string, unknown>).enabled === 'boolean'
+  ) {
+    return (channel as Record<string, unknown>).enabled as boolean;
+  }
+  return undefined;
 }
 
 // --- Helpers ---------------------------------------------------------
@@ -569,5 +998,18 @@ export function parseType(raw: string | undefined): NotificationsV1.Notification
   );
   return out === NotificationsV1.NotificationType.UNRECOGNIZED
     ? NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED
+    : out;
+}
+
+function parsePriority(raw: string | undefined): NotificationsV1.NotificationPriority {
+  if (!raw) {
+    return NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED;
+  }
+  const upper = `NOTIFICATION_PRIORITY_${raw.toUpperCase()}`;
+  const out = NotificationsV1.notificationPriorityFromJSON(
+    Object.values(NotificationsV1.NotificationPriority).includes(upper as never) ? upper : raw
+  );
+  return out === NotificationsV1.NotificationPriority.UNRECOGNIZED
+    ? NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED
     : out;
 }

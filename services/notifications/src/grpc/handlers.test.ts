@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import {
   NotificationsV1,
+  type BulkCreateNotificationsRequest,
   type CreateNotificationRequest,
   type DismissNotificationRequest,
   type ListNotificationsRequest,
@@ -12,6 +13,7 @@ import {
 import { makeNatsDouble, testPrincipal } from '@adopt-dont-shop/test-utils';
 
 import {
+  bulkCreateNotifications,
   createNotification,
   dismissNotification,
   HandlerError,
@@ -216,6 +218,159 @@ describe('createNotification', () => {
   });
 });
 
+// --- BulkCreateNotifications -------------------------------------------
+
+const BASE_BULK_REQ: BulkCreateNotificationsRequest = {
+  userIds: ['usr-1', 'usr-2'],
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED,
+  title: 'Maintenance window',
+  message: 'The site will be down at midnight.',
+  dataJson: '',
+  templateVariablesJson: '',
+};
+
+describe('bulkCreateNotifications', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+
+  beforeEach(() => {
+    mocks = makeMocks();
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without notifications.create — PERMISSION_DENIED', async () => {
+    await expect(
+      bulkCreateNotifications(mocks.deps, ADOPTER_PRINCIPAL, BASE_BULK_REQ)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects when title is missing — INVALID_ARGUMENT', async () => {
+    await expect(
+      bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, { ...BASE_BULK_REQ, title: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects when message is missing — INVALID_ARGUMENT', async () => {
+    await expect(
+      bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, { ...BASE_BULK_REQ, message: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects when type is UNSPECIFIED — INVALID_ARGUMENT', async () => {
+    await expect(
+      bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, {
+        ...BASE_BULK_REQ,
+        type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects when channel is UNSPECIFIED — INVALID_ARGUMENT', async () => {
+    await expect(
+      bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, {
+        ...BASE_BULK_REQ,
+        channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an empty user_ids list — INVALID_ARGUMENT', async () => {
+    await expect(
+      bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, { ...BASE_BULK_REQ, userIds: [] })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects more than 500 user_ids — INVALID_ARGUMENT', async () => {
+    const userIds = Array.from({ length: 501 }, (_, i) => `usr-${i}`);
+    await expect(
+      bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, { ...BASE_BULK_REQ, userIds })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('inserts one row per valid recipient, defaults UNSPECIFIED priority to NORMAL, and publishes once', async () => {
+    const res = await bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, BASE_BULK_REQ);
+
+    expect(res.totalRequested).toBe(2);
+    expect(res.successful).toBe(2);
+    expect(res.failed).toBe(0);
+    expect(res.results).toHaveLength(2);
+    expect(res.results[0]).toMatchObject({ userId: 'usr-1', created: true });
+    expect(res.results[0]?.notificationId).toBeDefined();
+    expect(res.results[1]).toMatchObject({ userId: 'usr-2', created: true });
+
+    const insertCalls = mocks.clientMock.query.mock.calls.filter(([sql]: [string]) =>
+      String(sql).includes('INSERT INTO notifications.notifications')
+    );
+    expect(insertCalls).toHaveLength(2);
+    // dataJson/templateVariablesJson fall back to '{}' when blank.
+    expect(insertCalls[0]?.[1]?.[7]).toBe('{}');
+    expect(insertCalls[0]?.[1]?.[9]).toBe('{}');
+    // priority defaulted from UNSPECIFIED to normal.
+    expect(insertCalls[0]?.[1]?.[4]).toBe('normal');
+
+    expect(mocks.natsMock.publishSpy).toHaveBeenCalledTimes(1);
+    const [subject] = mocks.natsMock.publishSpy.mock.calls[0] as [string];
+    expect(subject).toBe('notifications.bulkCreated');
+  });
+
+  it('honours an explicit priority, dataJson, templateId and templateVariablesJson', async () => {
+    await bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, {
+      ...BASE_BULK_REQ,
+      priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_URGENT,
+      dataJson: '{"a":1}',
+      templateId: 'tpl-1',
+      templateVariablesJson: '{"name":"Rex"}',
+    });
+
+    const insertCalls = mocks.clientMock.query.mock.calls.filter(([sql]: [string]) =>
+      String(sql).includes('INSERT INTO notifications.notifications')
+    );
+    expect(insertCalls[0]?.[1]?.[4]).toBe('urgent');
+    expect(insertCalls[0]?.[1]?.[7]).toBe('{"a":1}');
+    expect(insertCalls[0]?.[1]?.[8]).toBe('tpl-1');
+    expect(insertCalls[0]?.[1]?.[9]).toBe('{"name":"Rex"}');
+  });
+
+  it('fails blank and duplicate ids individually without aborting the batch', async () => {
+    const res = await bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, {
+      ...BASE_BULK_REQ,
+      userIds: ['usr-1', '', 'usr-1'],
+    });
+
+    expect(res.totalRequested).toBe(3);
+    expect(res.successful).toBe(1);
+    expect(res.failed).toBe(2);
+    expect(res.results[0]).toMatchObject({ userId: 'usr-1', created: true });
+    expect(res.results[1]).toMatchObject({
+      userId: '',
+      created: false,
+      error: 'user_id is required',
+    });
+    expect(res.results[2]).toMatchObject({
+      userId: 'usr-1',
+      created: false,
+      error: 'duplicate user_id',
+    });
+  });
+
+  it('skips the transaction and publish entirely when every id is invalid', async () => {
+    const res = await bulkCreateNotifications(mocks.deps, SYSTEM_PRINCIPAL, {
+      ...BASE_BULK_REQ,
+      userIds: ['', ''],
+    });
+
+    expect(res.successful).toBe(0);
+    expect(res.failed).toBe(2);
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publishSpy).not.toHaveBeenCalled();
+  });
+});
+
 // --- List ------------------------------------------------------------
 
 describe('listNotifications', () => {
@@ -326,6 +481,89 @@ describe('listNotifications', () => {
         typeFilter: 0,
       })
     ).resolves.toBeDefined();
+  });
+
+  it('includes the priority filter in the WHERE clause when supplied', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    await listNotifications(mocks.deps, ADOPTER_PRINCIPAL, {
+      cursor: undefined,
+      limit: 0,
+      statusFilter: 0,
+      channelFilter: 0,
+      typeFilter: 0,
+      priorityFilter: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_URGENT,
+    });
+
+    const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/priority = \$2/);
+    expect(params[1]).toBe('urgent');
+  });
+
+  it('adds a read_at IS NULL filter when unreadOnly is true', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    await listNotifications(mocks.deps, ADOPTER_PRINCIPAL, {
+      cursor: undefined,
+      limit: 0,
+      statusFilter: 0,
+      channelFilter: 0,
+      typeFilter: 0,
+      unreadOnly: true,
+    });
+
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('read_at IS NULL');
+  });
+
+  describe('page mode (GET /notifications/user/:id)', () => {
+    it('runs a COUNT query plus a LIMIT/OFFSET query and returns total/page/totalPages', async () => {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ count: '45' }] }); // COUNT
+      mocks.poolMock.query.mockResolvedValueOnce({
+        rows: [rowFixture(), rowFixture({ notification_id: 'n-2' })],
+      }); // page fetch
+
+      const res = await listNotifications(mocks.deps, ADOPTER_PRINCIPAL, {
+        cursor: undefined,
+        limit: 20,
+        statusFilter: 0,
+        channelFilter: 0,
+        typeFilter: 0,
+        page: 2,
+      });
+
+      expect(res.notifications).toHaveLength(2);
+      expect(res.total).toBe(45);
+      expect(res.page).toBe(2);
+      expect(res.totalPages).toBe(3);
+      expect(res.nextCursor).toBeUndefined();
+
+      const countCall = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+      expect(countCall[0]).toContain('SELECT COUNT(*)');
+
+      const pageCall = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+      expect(pageCall[0]).toContain('LIMIT');
+      expect(pageCall[0]).toContain('OFFSET');
+      // page 2 at limit 20 → offset 20.
+      expect(pageCall[1]).toEqual([ADOPTER_PRINCIPAL.userId, 20, 20]);
+    });
+
+    it('ignores a supplied cursor once page mode is selected', async () => {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ count: '0' }] });
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+      const res = await listNotifications(mocks.deps, ADOPTER_PRINCIPAL, {
+        cursor: 'not-base64-or-json',
+        limit: 0,
+        statusFilter: 0,
+        channelFilter: 0,
+        typeFilter: 0,
+        page: 1,
+      });
+
+      expect(res.total).toBe(0);
+      expect(res.totalPages).toBe(0);
+    });
   });
 });
 

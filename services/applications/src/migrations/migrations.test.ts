@@ -50,6 +50,9 @@ describe('applications migrations', () => {
     '009_create_application_defaults.ts',
     '010_backfill_application_actioned_at.ts',
     '011_create_event_outbox.ts',
+    '012_create_application_preferences.ts',
+    '013_create_application_reference_checks.ts',
+    '014_create_application_timeline_notes.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

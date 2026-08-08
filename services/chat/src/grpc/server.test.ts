@@ -42,7 +42,7 @@ const rescueClient = {
 } as unknown as Parameters<typeof createGrpcServer>[0]['rescueClient'];
 
 describe('createGrpcServer', () => {
-  it('registers all 11 ChatService methods on the grpc.Server', () => {
+  it('registers all 12 ChatService methods on the grpc.Server', () => {
     const server = createGrpcServer({
       config,
       pool,
@@ -62,6 +62,7 @@ describe('createGrpcServer', () => {
       'MarkRead',
       'React',
       'SearchChats',
+      'SearchMessages',
       'GetChatUnreadCount',
       'DeleteMessage',
       'GetChat',

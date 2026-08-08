@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApplicationsV1, type Application } from '@adopt-dont-shop/proto';
+import {
+  ApplicationsV1,
+  type Application,
+  type HomeVisitRecord,
+  type ReferenceCheck,
+  type TimelineEntry,
+  type TimelineNote,
+} from '@adopt-dont-shop/proto';
 
 import {
   applicationToView,
+  buildTimeline,
+  buildTimelineStats,
   documentToView,
+  homeVisitToView,
   isHiddenFromFrontend,
+  referenceCheckToView,
   statsToView,
+  timelineEntryToView,
+  timelineNoteToView,
 } from './applications-view.js';
 
 const S = ApplicationsV1.ApplicationStatus;
@@ -180,5 +193,187 @@ describe('documentToView', () => {
     });
     expect('size' in v).toBe(false);
     expect('mimeType' in v).toBe(false);
+  });
+});
+
+describe('homeVisitToView', () => {
+  const visit: HomeVisitRecord = {
+    visitId: 'visit-1',
+    applicationId: 'app-1',
+    scheduledDate: '2026-06-10',
+    scheduledTime: '14:00:00',
+    status: 'scheduled',
+    createdAt: '2026-06-01T00:00:00.000Z',
+    updatedAt: '2026-06-01T00:00:00.000Z',
+  };
+
+  it('renames visitId → id and defaults assignedStaff to empty string', () => {
+    expect(homeVisitToView(visit)).toEqual({
+      id: 'visit-1',
+      applicationId: 'app-1',
+      scheduledDate: '2026-06-10',
+      scheduledTime: '14:00:00',
+      assignedStaff: '',
+      status: 'scheduled',
+    });
+  });
+
+  it('renames cancelledReason → cancelReason and copies optional fields', () => {
+    const v = homeVisitToView({
+      ...visit,
+      assignedStaff: 'staff-1',
+      notes: 'bring a leash',
+      outcome: 'approved',
+      outcomeNotes: 'looked great',
+      cancelledReason: 'adopter unavailable',
+      completedAt: '2026-06-10T15:00:00.000Z',
+    });
+    expect(v).toMatchObject({
+      assignedStaff: 'staff-1',
+      notes: 'bring a leash',
+      outcome: 'approved',
+      outcomeNotes: 'looked great',
+      cancelReason: 'adopter unavailable',
+      completedAt: '2026-06-10T15:00:00.000Z',
+    });
+  });
+});
+
+describe('referenceCheckToView', () => {
+  it('renames referenceId → id and copies the rest', () => {
+    const check: ReferenceCheck = {
+      referenceId: 'ref-0',
+      applicationId: 'app-1',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      relationship: 'friend',
+      status: 'contacted',
+      notes: 'left a voicemail',
+      contactedAt: '2026-06-05T10:00:00.000Z',
+      contactedBy: 'staff-1',
+    };
+    expect(referenceCheckToView(check)).toEqual({
+      id: 'ref-0',
+      applicationId: 'app-1',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      relationship: 'friend',
+      status: 'contacted',
+      notes: 'left a voicemail',
+      contactedAt: '2026-06-05T10:00:00.000Z',
+      contactedBy: 'staff-1',
+    });
+  });
+
+  it('omits optional fields when absent', () => {
+    const v = referenceCheckToView({
+      referenceId: 'ref-0',
+      applicationId: 'app-1',
+      name: 'Ada',
+      email: 'ada@example.com',
+      relationship: 'friend',
+      status: 'pending',
+    });
+    expect('notes' in v).toBe(false);
+    expect('contactedAt' in v).toBe(false);
+    expect('contactedBy' in v).toBe(false);
+  });
+});
+
+describe('timelineEntryToView / timelineNoteToView / buildTimeline', () => {
+  const entry: TimelineEntry = {
+    entryId: 'evt-1',
+    applicationId: 'app-1',
+    fromStatus: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED,
+    toStatus: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNDER_REVIEW,
+    actorUserId: 'staff-1',
+    occurredAt: '2026-06-01T10:00:00.000Z',
+  };
+
+  const note: TimelineNote = {
+    noteId: 'note-1',
+    applicationId: 'app-1',
+    title: 'Called applicant',
+    description: 'Left a voicemail',
+    noteType: 'general',
+    metadataJson: '{}',
+    createdBy: 'staff-1',
+    createdAt: '2026-06-02T10:00:00.000Z',
+  };
+
+  it('collapses a status-transition entry to snake_case status labels', () => {
+    expect(timelineEntryToView(entry)).toEqual({
+      id: 'evt-1',
+      application_id: 'app-1',
+      event_type: 'status_change',
+      title: 'Status changed',
+      description: 'Status changed to under_review',
+      created_at: '2026-06-01T10:00:00.000Z',
+      created_by: 'staff-1',
+      previous_status: 'submitted',
+      new_status: 'under_review',
+    });
+  });
+
+  it('prefers the entry note as the description when present', () => {
+    const v = timelineEntryToView({ ...entry, note: 'opening for review' });
+    expect(v.description).toBe('opening for review');
+  });
+
+  it('maps a timeline note to the same item shape', () => {
+    expect(timelineNoteToView(note)).toEqual({
+      id: 'note-1',
+      application_id: 'app-1',
+      event_type: 'general',
+      title: 'Called applicant',
+      description: 'Left a voicemail',
+      created_at: '2026-06-02T10:00:00.000Z',
+      created_by: 'staff-1',
+    });
+  });
+
+  it('merges entries and notes chronologically', () => {
+    const items = buildTimeline([entry], [note]);
+    expect(items.map(i => i.id)).toEqual(['evt-1', 'note-1']);
+  });
+});
+
+describe('buildTimelineStats', () => {
+  it('counts events by type and reports the latest activity', () => {
+    const items = buildTimeline(
+      [
+        {
+          entryId: 'evt-1',
+          applicationId: 'app-1',
+          fromStatus: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED,
+          toStatus: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNDER_REVIEW,
+          actorUserId: 'staff-1',
+          occurredAt: '2026-06-01T10:00:00.000Z',
+        },
+      ],
+      [
+        {
+          noteId: 'note-1',
+          applicationId: 'app-1',
+          title: 't',
+          description: 'd',
+          noteType: 'general',
+          metadataJson: '{}',
+          createdBy: 'staff-1',
+          createdAt: '2026-06-02T10:00:00.000Z',
+        },
+      ]
+    );
+
+    const stats = buildTimelineStats(items);
+    expect(stats.totalEvents).toBe(2);
+    expect(stats.eventTypeCounts).toEqual({ status_change: 1, general: 1 });
+    expect(stats.lastActivity).toBe('2026-06-02T10:00:00.000Z');
+  });
+
+  it('omits lastActivity for an empty timeline', () => {
+    const stats = buildTimelineStats([]);
+    expect(stats.totalEvents).toBe(0);
+    expect('lastActivity' in stats).toBe(false);
   });
 });

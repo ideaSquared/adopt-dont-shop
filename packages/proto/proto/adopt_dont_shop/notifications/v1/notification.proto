@@ -58,6 +58,15 @@ service NotificationService {
   // the already-deleted row without error.
   rpc DeleteNotification(DeleteNotificationRequest) returns (DeleteNotificationResponse);
 
+  // Fan a single title/message/template payload out to a set of
+  // user_ids, creating one notification row per recipient. Unlike
+  // Broadcast (cohort-resolved, admin-only reach), the caller supplies
+  // the recipient list directly. Per-recipient results let the caller
+  // tell duplicate/blank ids apart from an actual insert. Requires
+  // `notifications.create` (same gate as Create).
+  rpc BulkCreateNotifications(BulkCreateNotificationsRequest)
+      returns (BulkCreateNotificationsResponse);
+
   // --- User notification preferences (in-app channel control) ---------
   // Distinct from EmailPreferences above — these are the per-user
   // master switches for the email/push/sms channels plus per-category
@@ -302,13 +311,26 @@ message ListNotificationsRequest {
   NotificationStatus status_filter = 3;
   NotificationChannel channel_filter = 4;
   NotificationType type_filter = 5;
+  // Page-based (offset) pagination — used by GET /notifications/user/:id.
+  // Absent or 0 keeps the default cursor-keyset mode above; >=1 switches
+  // the server to OFFSET pagination and populates total/page/total_pages
+  // on the response instead of next_cursor. The two modes are mutually
+  // exclusive — page mode ignores `cursor` entirely.
+  optional uint32 page = 6;
+  optional NotificationPriority priority_filter = 7;
+  // When true, only rows with read_at IS NULL are returned.
+  optional bool unread_only = 8;
 }
 
 message ListNotificationsResponse {
   repeated Notification notifications = 1;
   // Absent when the result set is exhausted. Same string a future
-  // ListNotificationsRequest.cursor would carry.
+  // ListNotificationsRequest.cursor would carry. Unset in page mode.
   optional string next_cursor = 2;
+  // Only populated when the request used page-based pagination.
+  optional uint32 total = 3;
+  optional uint32 page = 4;
+  optional uint32 total_pages = 5;
 }
 
 // --- Dismiss ----------------------------------------------------------
@@ -604,6 +626,37 @@ message DeleteNotificationRequest {
 
 message DeleteNotificationResponse {
   Notification notification = 1;
+}
+
+// --- BulkCreateNotifications -------------------------------------------
+
+message BulkCreateNotificationsRequest {
+  repeated string user_ids = 1;
+  NotificationType type = 2;
+  NotificationChannel channel = 3;
+  NotificationPriority priority = 4;
+  string title = 5;
+  string message = 6;
+  // Opaque payload, shared across every recipient's row. Empty == `{}`.
+  string data_json = 7;
+  optional string template_id = 8;
+  string template_variables_json = 9;
+}
+
+// Per-recipient outcome — lets the caller tell a blank/duplicate user_id
+// apart from a row that was actually inserted.
+message BulkCreateNotificationResult {
+  string user_id = 1;
+  optional string notification_id = 2;
+  bool created = 3;
+  optional string error = 4;
+}
+
+message BulkCreateNotificationsResponse {
+  uint32 total_requested = 1;
+  uint32 successful = 2;
+  uint32 failed = 3;
+  repeated BulkCreateNotificationResult results = 4;
 }
 
 // --- Notification preferences (in-app channel control) --------------

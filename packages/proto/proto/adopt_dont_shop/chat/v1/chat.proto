@@ -59,6 +59,14 @@ service ChatService {
   rpc GetChatUnreadCount(GetChatUnreadCountRequest)
       returns (GetChatUnreadCountResponse);
 
+  // Full-text search across the messages in chats the caller
+  // participates in, returned as a flat paginated list of Message hits
+  // (as opposed to SearchChats, which groups matches by chat and
+  // returns only the single best match per chat). Backs a dedicated
+  // "search within my messages" surface. Same tsvector match + self-
+  // scoping as SearchChats.
+  rpc SearchMessages(SearchMessagesRequest) returns (SearchMessagesResponse);
+
   // Soft-delete a message. Caller MUST be the message's sender OR
   // hold chat.message.delete:any (moderators / admins). Sets
   // deleted_at on the row; the content stays in place so the audit
@@ -120,6 +128,16 @@ message Chat {
 // Message mirrors the chat.messages row. Edited / deleted timestamps
 // are present but the writer never sends `edited` events through
 // SendMessage; edit is a separate (future) RPC.
+// A file attached to a message. The client uploads the file first (e.g.
+// via /api/v1/uploads/images) and sends the resulting URL; the chat
+// service stores the metadata verbatim in messages.attachments (jsonb).
+message MessageAttachment {
+  string url = 1;
+  optional string content_type = 2;
+  optional string file_name = 3;
+  optional uint32 size_bytes = 4;
+}
+
 message Message {
   string message_id = 1;
   string chat_id = 2;
@@ -132,6 +150,7 @@ message Message {
   optional string edited_at = 6;
   optional string deleted_at = 7;
   string created_at = 8;
+  repeated MessageAttachment attachments = 9;
 }
 
 message MessageReaction {
@@ -165,6 +184,9 @@ message OpenChatResponse {
 message SendMessageRequest {
   string chat_id = 1;
   string body = 2;
+  // Optional file attachments. A message may carry attachments with an
+  // empty body (an image-only message).
+  repeated MessageAttachment attachments = 3;
 }
 
 message SendMessageResponse {
@@ -276,6 +298,32 @@ message GetChatUnreadCountRequest {
 
 message GetChatUnreadCountResponse {
   uint32 unread_count = 1;
+}
+
+// --- SearchMessages ----------------------------------------------------
+
+message SearchMessagesRequest {
+  // Free-form search text. Server enforces 1..100 chars; longer or
+  // shorter strings return INVALID_ARGUMENT.
+  string query = 1;
+  // Optional — narrow the search to a single chat. Caller must still be
+  // a participant of that chat (same self-scoping as every other
+  // chat-scoped read).
+  optional string chat_id = 2;
+  // Offset-based pagination, same convention as SearchChats. 1-indexed.
+  uint32 page = 3;
+  // Defaults to 20, max 100.
+  uint32 limit = 4;
+}
+
+message SearchMessagesResponse {
+  // Newest-match-first, flat — one entry per matching message (not
+  // grouped by chat, unlike SearchChatsResponse.hits).
+  repeated Message hits = 1;
+  uint32 page = 2;
+  uint32 limit = 3;
+  // Total matching messages — drives pagination controls.
+  uint32 total = 4;
 }
 
 // --- DeleteMessage ---------------------------------------------------
