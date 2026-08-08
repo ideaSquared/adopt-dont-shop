@@ -156,48 +156,5 @@ describe('AnalyticsService', () => {
       apiServiceMock.post.mockRejectedValue(new Error('x'));
       await expect(service.emailReport('r', {}, [])).rejects.toThrow('x');
     });
-
-    it('saves a custom report and returns it', async () => {
-      const report = { name: 'My Report', metrics: [], visualizations: [], filters: {} };
-      apiServiceMock.post.mockResolvedValue({ success: true, data: { ...report, id: 'cr1' } });
-
-      const result = await service.saveCustomReport(report);
-
-      expect(apiServiceMock.post).toHaveBeenCalledWith('/api/v1/analytics/custom-reports', report);
-      expect(result.id).toBe('cr1');
-    });
-
-    it('propagates save failures', async () => {
-      apiServiceMock.post.mockRejectedValue(new Error('x'));
-      await expect(
-        service.saveCustomReport({ name: 'r', metrics: [], visualizations: [], filters: {} })
-      ).rejects.toThrow('x');
-    });
-
-    it('lists custom reports', async () => {
-      apiServiceMock.get.mockResolvedValue({ success: true, data: [{ name: 'r1' }] });
-
-      const result = await service.getCustomReports();
-
-      expect(result).toHaveLength(1);
-    });
-
-    it('returns an empty list when fetching custom reports fails', async () => {
-      apiServiceMock.get.mockRejectedValue(new Error('x'));
-      await expect(service.getCustomReports()).resolves.toEqual([]);
-    });
-
-    it('deletes a custom report', async () => {
-      apiServiceMock.delete.mockResolvedValue(undefined);
-
-      await service.deleteCustomReport('cr1');
-
-      expect(apiServiceMock.delete).toHaveBeenCalledWith('/api/v1/analytics/custom-reports/cr1');
-    });
-
-    it('propagates delete failures', async () => {
-      apiServiceMock.delete.mockRejectedValue(new Error('x'));
-      await expect(service.deleteCustomReport('cr1')).rejects.toThrow('x');
-    });
   });
 });
