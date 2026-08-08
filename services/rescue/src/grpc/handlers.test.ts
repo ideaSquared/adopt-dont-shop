@@ -9,6 +9,7 @@ import { RescueV1, type CreateRescueRequest } from '@adopt-dont-shop/proto';
 import {
   countRescues,
   createRescue,
+  deleteRescue,
   getRescue,
   getRescueStatistics,
   HandlerError,
@@ -577,6 +578,85 @@ describe('verifyRescue', () => {
     } as never);
 
     expect(publishedSubjects).toEqual(['rescue.rejected']);
+  });
+});
+
+// --- deleteRescue ----------------------------------------------------
+
+describe('deleteRescue', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('INVALID_ARGUMENT when rescue_id is missing', async () => {
+    await expect(deleteRescue(mocks.deps, ADMIN, { rescueId: '' } as never)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+    // The guard fires before any transaction is opened.
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('PERMISSION_DENIED for a non-admin', async () => {
+    await expect(
+      deleteRescue(mocks.deps, STAFF, { rescueId: 'rsc-1' } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('soft-deletes in a transaction and publishes rescue.deleted after commit', async () => {
+    const order: string[] = [];
+    const publishedSubjects: string[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // event_outbox INSERT/DELETE are withTransaction's outbox plumbing —
+      // not part of the handler's own query sequence, so keep them out of `order`.
+      if (!sql.includes('event_outbox')) order.push(sql.trim().split(/\s+/)[0]);
+      return { rows: [rescueRow()] };
+    });
+    mocks.natsMock.publish.mockImplementation((subject: string) => {
+      order.push('NATS_PUBLISH');
+      publishedSubjects.push(subject);
+    });
+
+    const res = await deleteRescue(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      reason: 'duplicate listing',
+    } as never);
+
+    expect(res.rescue.rescueId).toBe('rsc-1');
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    expect(publishedSubjects).toEqual(['rescue.deleted']);
+    // The UPDATE only matches a not-yet-deleted row and stamps deleted_at.
+    const sql = mocks.clientMock.query.mock.calls[1][0] as string;
+    expect(sql).toMatch(/deleted_at = now\(\)/);
+    expect(sql).toMatch(/deleted_at IS NULL/);
+  });
+
+  it('keys rescue.deleted on the rescue id (deterministic, delete-once)', async () => {
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    let msgID: string | undefined;
+    mocks.natsMock.publish.mockImplementation(
+      (_subject: string, _data: unknown, opts: { msgID?: string }) => {
+        msgID = opts.msgID;
+      }
+    );
+
+    await deleteRescue(mocks.deps, ADMIN, { rescueId: 'rsc-1' } as never);
+    expect(msgID).toBe('rescue.deleted.rsc-1');
+  });
+
+  it('NOT_FOUND when the rescue is missing or already soft-deleted (no publish)', async () => {
+    // The deleted_at IS NULL guard means an already-deleted row matches no
+    // row, so the UPDATE returns nothing and no event is published.
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await expect(
+      deleteRescue(mocks.deps, ADMIN, { rescueId: 'ghost' } as never)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 
