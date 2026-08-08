@@ -62,9 +62,14 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       watch: {
         usePolling: true,
-        interval: 100,
-        // Don't ignore library source folders - we want to watch them for changes
-        ignored: ['!**/lib.*/src/**'],
+        interval: 1000,
+        // Keep node_modules/.git out of the walk. Chokidar's `ignored` REPLACES
+        // its defaults rather than extending them, so these have to be listed
+        // explicitly — under usePolling, walking the workspace's ~50
+        // node_modules trees exhausts the container's memory (ENOMEM on
+        // scandir). The aliased lib.* sources are still watched: they're in the
+        // module graph, which is what Vite actually tracks for HMR.
+        ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**'],
       },
       hmr: {
         overlay: true,
