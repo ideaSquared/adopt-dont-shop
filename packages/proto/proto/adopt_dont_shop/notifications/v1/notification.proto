@@ -47,6 +47,12 @@ service NotificationService {
   // returns affected_count = 0.
   rpc MarkAllRead(MarkAllReadRequest) returns (MarkAllReadResponse);
 
+  // Mark a specific set of the calling principal's notifications as read.
+  // Ownership-scoped (ids belonging to another user are silently skipped)
+  // and idempotent (already-read ids contribute 0). Returns the number of
+  // rows actually flipped to read.
+  rpc MarkRead(MarkReadRequest) returns (MarkReadResponse);
+
   // Soft-delete a notification (deleted_at stamped). Ownership-scoped.
   // Idempotent: a second Delete on the same notification_id returns
   // the already-deleted row without error.
@@ -579,6 +585,14 @@ message GetUnreadCountResponse {
 message MarkAllReadRequest {}
 
 message MarkAllReadResponse {
+  uint32 affected_count = 1;
+}
+
+message MarkReadRequest {
+  repeated string notification_ids = 1;
+}
+
+message MarkReadResponse {
   uint32 affected_count = 1;
 }
 

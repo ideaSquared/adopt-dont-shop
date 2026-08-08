@@ -58,6 +58,8 @@ export type {
   GetUnreadCountResponse,
   MarkAllReadRequest,
   MarkAllReadResponse,
+  MarkReadRequest as MarkNotificationsReadRequest,
+  MarkReadResponse as MarkNotificationsReadResponse,
   DeleteNotificationRequest,
   DeleteNotificationResponse,
   NotificationPreferences,

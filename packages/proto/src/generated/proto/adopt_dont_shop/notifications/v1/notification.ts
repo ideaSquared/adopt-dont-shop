@@ -1300,6 +1300,14 @@ export interface MarkAllReadResponse {
   affectedCount: number;
 }
 
+export interface MarkReadRequest {
+  notificationIds: string[];
+}
+
+export interface MarkReadResponse {
+  affectedCount: number;
+}
+
 export interface DeleteNotificationRequest {
   notificationId: string;
 }
@@ -5345,6 +5353,134 @@ export const MarkAllReadResponse: MessageFns<MarkAllReadResponse> = {
   },
 };
 
+function createBaseMarkReadRequest(): MarkReadRequest {
+  return { notificationIds: [] };
+}
+
+export const MarkReadRequest: MessageFns<MarkReadRequest> = {
+  encode(message: MarkReadRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.notificationIds) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MarkReadRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMarkReadRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.notificationIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MarkReadRequest {
+    return {
+      notificationIds: globalThis.Array.isArray(object?.notificationIds)
+        ? object.notificationIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.notification_ids)
+        ? object.notification_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: MarkReadRequest): unknown {
+    const obj: any = {};
+    if (message.notificationIds?.length) {
+      obj.notificationIds = message.notificationIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MarkReadRequest>, I>>(base?: I): MarkReadRequest {
+    return MarkReadRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MarkReadRequest>, I>>(object: I): MarkReadRequest {
+    const message = createBaseMarkReadRequest();
+    message.notificationIds = object.notificationIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseMarkReadResponse(): MarkReadResponse {
+  return { affectedCount: 0 };
+}
+
+export const MarkReadResponse: MessageFns<MarkReadResponse> = {
+  encode(message: MarkReadResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.affectedCount !== 0) {
+      writer.uint32(8).uint32(message.affectedCount);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MarkReadResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMarkReadResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.affectedCount = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MarkReadResponse {
+    return {
+      affectedCount: isSet(object.affectedCount)
+        ? globalThis.Number(object.affectedCount)
+        : isSet(object.affected_count)
+        ? globalThis.Number(object.affected_count)
+        : 0,
+    };
+  },
+
+  toJSON(message: MarkReadResponse): unknown {
+    const obj: any = {};
+    if (message.affectedCount !== 0) {
+      obj.affectedCount = Math.round(message.affectedCount);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MarkReadResponse>, I>>(base?: I): MarkReadResponse {
+    return MarkReadResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MarkReadResponse>, I>>(object: I): MarkReadResponse {
+    const message = createBaseMarkReadResponse();
+    message.affectedCount = object.affectedCount ?? 0;
+    return message;
+  },
+};
+
 function createBaseDeleteNotificationRequest(): DeleteNotificationRequest {
   return { notificationId: "" };
 }
@@ -8697,6 +8833,21 @@ export const NotificationServiceService = {
     responseDeserialize: (value: Buffer): MarkAllReadResponse => MarkAllReadResponse.decode(value),
   },
   /**
+   * Mark a specific set of the calling principal's notifications as read.
+   * Ownership-scoped (ids belonging to another user are silently skipped)
+   * and idempotent (already-read ids contribute 0). Returns the number of
+   * rows actually flipped to read.
+   */
+  markRead: {
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/MarkRead" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: MarkReadRequest): Buffer => Buffer.from(MarkReadRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): MarkReadRequest => MarkReadRequest.decode(value),
+    responseSerialize: (value: MarkReadResponse): Buffer => Buffer.from(MarkReadResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): MarkReadResponse => MarkReadResponse.decode(value),
+  },
+  /**
    * Soft-delete a notification (deleted_at stamped). Ownership-scoped.
    * Idempotent: a second Delete on the same notification_id returns
    * the already-deleted row without error.
@@ -8998,6 +9149,13 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    */
   markAllRead: handleUnaryCall<MarkAllReadRequest, MarkAllReadResponse>;
   /**
+   * Mark a specific set of the calling principal's notifications as read.
+   * Ownership-scoped (ids belonging to another user are silently skipped)
+   * and idempotent (already-read ids contribute 0). Returns the number of
+   * rows actually flipped to read.
+   */
+  markRead: handleUnaryCall<MarkReadRequest, MarkReadResponse>;
+  /**
    * Soft-delete a notification (deleted_at stamped). Ownership-scoped.
    * Idempotent: a second Delete on the same notification_id returns
    * the already-deleted row without error.
@@ -9202,6 +9360,27 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: MarkAllReadResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Mark a specific set of the calling principal's notifications as read.
+   * Ownership-scoped (ids belonging to another user are silently skipped)
+   * and idempotent (already-read ids contribute 0). Returns the number of
+   * rows actually flipped to read.
+   */
+  markRead(
+    request: MarkReadRequest,
+    callback: (error: ServiceError | null, response: MarkReadResponse) => void,
+  ): ClientUnaryCall;
+  markRead(
+    request: MarkReadRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: MarkReadResponse) => void,
+  ): ClientUnaryCall;
+  markRead(
+    request: MarkReadRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: MarkReadResponse) => void,
   ): ClientUnaryCall;
   /**
    * Soft-delete a notification (deleted_at stamped). Ownership-scoped.

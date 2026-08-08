@@ -13,6 +13,7 @@ import {
   getNotificationPreferences,
   getUnreadCount,
   markAllRead,
+  markRead,
   resetNotificationPreferences,
   updateNotificationPreferences,
 } from './notification-prefs-handlers.js';
@@ -273,6 +274,57 @@ describe('markAllRead', () => {
   it('returns 0 and skips publish when nothing to update', async () => {
     mocks.clientScript.push({ rows: [], rowCount: 0 });
     const res = await markAllRead(mocks.deps, ADOPTER, {});
+    expect(res.affectedCount).toBe(0);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+});
+
+// --- markRead --------------------------------------------------------
+
+describe('markRead', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without notifications.update', async () => {
+    await expect(
+      markRead(mocks.deps, NO_PERMS, { notificationIds: ['n-1'] })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects an empty id list', async () => {
+    await expect(markRead(mocks.deps, ADOPTER, { notificationIds: [] })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('flips the supplied ids, scoped to the caller, and publishes once', async () => {
+    mocks.clientScript.push({
+      rows: [{ notification_id: 'n-1' }, { notification_id: 'n-2' }],
+      rowCount: 2,
+    });
+
+    const res = await markRead(mocks.deps, ADOPTER, { notificationIds: ['n-1', 'n-2', 'n-other'] });
+
+    expect(res.affectedCount).toBe(2);
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('notifications.read');
+    // The UPDATE is scoped by user_id AND the id set.
+    const updateCall = mocks.clientMock.query.mock.calls.find(([q]: [string]) =>
+      String(q).includes('UPDATE notifications.notifications')
+    ) as [string, unknown[]];
+    expect(updateCall[0]).toContain('user_id = $1');
+    expect(updateCall[1][0]).toBe('usr-adopter');
+    expect(updateCall[1][1]).toEqual(['n-1', 'n-2', 'n-other']);
+  });
+
+  it('returns 0 and skips publish when nothing matched', async () => {
+    mocks.clientScript.push({ rows: [], rowCount: 0 });
+    const res = await markRead(mocks.deps, ADOPTER, { notificationIds: ['n-x'] });
     expect(res.affectedCount).toBe(0);
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
