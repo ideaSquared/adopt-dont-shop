@@ -282,6 +282,9 @@ message ListPetsRequest {
   PetSize size_filter = 5;
   // Scope to a single rescue's pets (rescue staff dashboards).
   optional string rescue_id_filter = 6;
+  // Restrict to featured pets only (the public "featured" homepage rail).
+  // false / unset = no featured filter.
+  optional bool featured_filter = 7;
 }
 
 message ListPetsResponse {

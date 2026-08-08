@@ -158,6 +158,28 @@ describe('GET /api/v1/pets', () => {
     expect(metadata.get('x-user-id')[0]).toBe('usr-1');
   });
 
+  it('forwards featured=true as featuredFilter (the homepage featured rail)', async () => {
+    listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], nextCursor: undefined });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/pets?featured=true&limit=8',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    const [req] = listMock.mock.calls[0];
+    expect(req.featuredFilter).toBe(true);
+  });
+
+  it('leaves featuredFilter false when featured is not requested', async () => {
+    listMock.mockResolvedValueOnce({ pets: [], nextCursor: undefined });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/pets?limit=8',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    const [req] = listMock.mock.calls[0];
+    expect(req.featuredFilter).toBe(false);
+  });
+
   it('coerces an unknown status to UNSPECIFIED (service returns 400)', async () => {
     listMock.mockResolvedValueOnce({ pets: [] });
     await app.inject({ method: 'GET', url: '/api/v1/pets?status=not_a_status' });

@@ -336,6 +336,24 @@ describe('listPets', () => {
     expect(params).toContain(RESCUE_ID);
   });
 
+  it('restricts to featured pets when featuredFilter is set', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, ADOPTER, { limit: 0, featuredFilter: true } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(sql).toMatch(/featured = \$/);
+    expect(params).toContain(true);
+  });
+
+  it('does not filter on featured when featuredFilter is false/unset', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, ADOPTER, { limit: 0, featuredFilter: false } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(sql).not.toMatch(/featured = /);
+    expect(params).not.toContain(true);
+  });
+
   it('pins rescue staff to their own rescue, ignoring a foreign rescueIdFilter', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     // STAFF is scoped to rsc-1 but asks for rsc-2's pets.
