@@ -375,6 +375,35 @@ export const registerCmsRoutes = async (
     }
   );
 
+  // GET /api/v1/cms/slug?title=... — slugify a title into a unique slug
+  // for the admin authoring UI's live slug preview.
+  app.get<{ Querystring: { title?: string } }>(
+    '/api/v1/cms/slug',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Generate a unique slug from a title',
+        querystring: {
+          type: 'object',
+          properties: { title: { type: 'string' } },
+          required: ['title'],
+        },
+        response: {
+          200: { type: 'object', properties: { slug: { type: 'string' } } },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.generateSlug({ title: req.query.title ?? '' }, buildMetadata(req));
+        return reply.send({ slug: res.slug });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   app.get<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId',
     {

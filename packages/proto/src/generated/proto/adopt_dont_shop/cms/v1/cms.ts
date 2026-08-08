@@ -203,6 +203,14 @@ export interface GetContentBySlugResponse {
   content?: Content | undefined;
 }
 
+export interface GenerateSlugRequest {
+  title: string;
+}
+
+export interface GenerateSlugResponse {
+  slug: string;
+}
+
 export interface CreateContentRequest {
   title: string;
   slug: string;
@@ -1625,6 +1633,122 @@ export const GetContentBySlugResponse: MessageFns<GetContentBySlugResponse> = {
     message.content = (object.content !== undefined && object.content !== null)
       ? Content.fromPartial(object.content)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseGenerateSlugRequest(): GenerateSlugRequest {
+  return { title: "" };
+}
+
+export const GenerateSlugRequest: MessageFns<GenerateSlugRequest> = {
+  encode(message: GenerateSlugRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.title !== "") {
+      writer.uint32(10).string(message.title);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GenerateSlugRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGenerateSlugRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.title = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GenerateSlugRequest {
+    return { title: isSet(object.title) ? globalThis.String(object.title) : "" };
+  },
+
+  toJSON(message: GenerateSlugRequest): unknown {
+    const obj: any = {};
+    if (message.title !== "") {
+      obj.title = message.title;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GenerateSlugRequest>, I>>(base?: I): GenerateSlugRequest {
+    return GenerateSlugRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GenerateSlugRequest>, I>>(object: I): GenerateSlugRequest {
+    const message = createBaseGenerateSlugRequest();
+    message.title = object.title ?? "";
+    return message;
+  },
+};
+
+function createBaseGenerateSlugResponse(): GenerateSlugResponse {
+  return { slug: "" };
+}
+
+export const GenerateSlugResponse: MessageFns<GenerateSlugResponse> = {
+  encode(message: GenerateSlugResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.slug !== "") {
+      writer.uint32(10).string(message.slug);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GenerateSlugResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGenerateSlugResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.slug = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GenerateSlugResponse {
+    return { slug: isSet(object.slug) ? globalThis.String(object.slug) : "" };
+  },
+
+  toJSON(message: GenerateSlugResponse): unknown {
+    const obj: any = {};
+    if (message.slug !== "") {
+      obj.slug = message.slug;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GenerateSlugResponse>, I>>(base?: I): GenerateSlugResponse {
+    return GenerateSlugResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GenerateSlugResponse>, I>>(object: I): GenerateSlugResponse {
+    const message = createBaseGenerateSlugResponse();
+    message.slug = object.slug ?? "";
     return message;
   },
 };
@@ -4218,6 +4342,21 @@ export const CmsServiceService = {
       Buffer.from(GetContentBySlugResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetContentBySlugResponse => GetContentBySlugResponse.decode(value),
   },
+  /**
+   * Slugify a title into a URL-safe slug that's unique across existing
+   * content (appends -2, -3, ... on collision). Backs the admin authoring
+   * UI's live slug preview.
+   */
+  generateSlug: {
+    path: "/adopt_dont_shop.cms.v1.CmsService/GenerateSlug" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GenerateSlugRequest): Buffer => Buffer.from(GenerateSlugRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GenerateSlugRequest => GenerateSlugRequest.decode(value),
+    responseSerialize: (value: GenerateSlugResponse): Buffer =>
+      Buffer.from(GenerateSlugResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GenerateSlugResponse => GenerateSlugResponse.decode(value),
+  },
   createContent: {
     path: "/adopt_dont_shop.cms.v1.CmsService/CreateContent" as const,
     requestStream: false as const,
@@ -4361,6 +4500,12 @@ export interface CmsServiceServer extends UntypedServiceImplementation {
   listContent: handleUnaryCall<ListContentRequest, ListContentResponse>;
   getContent: handleUnaryCall<GetContentRequest, GetContentResponse>;
   getContentBySlug: handleUnaryCall<GetContentBySlugRequest, GetContentBySlugResponse>;
+  /**
+   * Slugify a title into a URL-safe slug that's unique across existing
+   * content (appends -2, -3, ... on collision). Backs the admin authoring
+   * UI's live slug preview.
+   */
+  generateSlug: handleUnaryCall<GenerateSlugRequest, GenerateSlugResponse>;
   createContent: handleUnaryCall<CreateContentRequest, CreateContentResponse>;
   updateContent: handleUnaryCall<UpdateContentRequest, UpdateContentResponse>;
   deleteContent: handleUnaryCall<DeleteContentRequest, DeleteContentResponse>;
@@ -4456,6 +4601,26 @@ export interface CmsServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetContentBySlugResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Slugify a title into a URL-safe slug that's unique across existing
+   * content (appends -2, -3, ... on collision). Backs the admin authoring
+   * UI's live slug preview.
+   */
+  generateSlug(
+    request: GenerateSlugRequest,
+    callback: (error: ServiceError | null, response: GenerateSlugResponse) => void,
+  ): ClientUnaryCall;
+  generateSlug(
+    request: GenerateSlugRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GenerateSlugResponse) => void,
+  ): ClientUnaryCall;
+  generateSlug(
+    request: GenerateSlugRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GenerateSlugResponse) => void,
   ): ClientUnaryCall;
   createContent(
     request: CreateContentRequest,

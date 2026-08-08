@@ -35,6 +35,8 @@ import {
   type CmsDeleteContentResponse,
   type CmsDeleteMenuRequest,
   type CmsDeleteMenuResponse,
+  type CmsGenerateSlugRequest,
+  type CmsGenerateSlugResponse,
   type CmsGetContentBySlugRequest,
   type CmsGetContentBySlugResponse,
   type CmsGetContentRequest,
@@ -260,6 +262,15 @@ function rowToMenu(row: MenuRow): CmsMenuProto {
 // by single hyphens.
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+// Lowercase, collapse every run of non-alphanumerics to a single hyphen,
+// and trim leading/trailing hyphens. The output always satisfies SLUG_RE
+// (or is '' when the title carries no alphanumerics at all).
+const slugify = (title: string): string =>
+  title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 function clampLimit(raw: number | undefined): number {
   const n = typeof raw === 'number' && raw > 0 ? raw : 20;
   return Math.min(n, 100);
@@ -434,6 +445,41 @@ export async function getContentBySlug(
     throw new HandlerError('NOT_FOUND', `content "${slug}" not found`);
   }
   return { content: rowToContent(row) };
+}
+
+export async function generateSlug(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: CmsGenerateSlugRequest
+): Promise<CmsGenerateSlugResponse> {
+  // Authoring helper — anyone who can create or update content can use it.
+  if (!hasPermission(principal, CONTENT_CREATE) && !hasPermission(principal, CONTENT_UPDATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CONTENT_CREATE}' required`);
+  }
+  const base = slugify(req.title ?? '');
+  if (base === '') {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'title must contain at least one alphanumeric character'
+    );
+  }
+
+  // Pull every existing slug that could collide with `base` or `base-<n>`
+  // in one query, then pick the first free suffix. `base` matches SLUG_RE
+  // so it carries no LIKE metacharacters.
+  const { rows } = await deps.pool.query<{ slug: string }>(
+    `SELECT slug FROM cms_content WHERE (slug = $1 OR slug LIKE $2) AND deleted_at IS NULL`,
+    [base, `${base}-%`]
+  );
+  const taken = new Set(rows.map(row => row.slug));
+  if (!taken.has(base)) {
+    return { slug: base };
+  }
+  let suffix = 2;
+  while (taken.has(`${base}-${suffix}`)) {
+    suffix++;
+  }
+  return { slug: `${base}-${suffix}` };
 }
 
 // --- Admin content writes -------------------------------------------

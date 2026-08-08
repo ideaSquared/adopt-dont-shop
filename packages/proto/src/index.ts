@@ -588,6 +588,8 @@ export type {
   GetContentResponse as CmsGetContentResponse,
   GetContentBySlugRequest as CmsGetContentBySlugRequest,
   GetContentBySlugResponse as CmsGetContentBySlugResponse,
+  GenerateSlugRequest as CmsGenerateSlugRequest,
+  GenerateSlugResponse as CmsGenerateSlugResponse,
   CreateContentRequest as CmsCreateContentRequest,
   CreateContentResponse as CmsCreateContentResponse,
   UpdateContentRequest as CmsUpdateContentRequest,
