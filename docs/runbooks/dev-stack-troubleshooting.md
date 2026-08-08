@@ -119,11 +119,15 @@ docker compose logs service-chat --tail=50   # or whichever service is looping
 ### 4. `502 Bad Gateway` from nginx at `http://localhost`
 
 **Diagnosis.** nginx (`profiles: proxy, full`) proxies to `app-client` /
-`app-admin` / `app-rescue` and, via `/api`, to `service-gateway`. Frontend
-app containers have a 40s `start_period` on their healthchecks — on a cold
-start (first `pnpm docker:dev`, or right after `docker:dev:build`), nginx
-can come up and start accepting connections before the upstream app has
-finished its first Vite build.
+`app-admin` / `app-rescue` and, via `/api`, to `service-gateway`. Note the
+default `pnpm docker:dev` (the lean `dev` profile) does **not** start nginx —
+you only hit this at `http://localhost` when you booted with `--profile full`
+(or `proxy`); the apps are always reachable directly on
+`localhost:3000`/`3001`/`3002` without it. Frontend app containers have a 40s
+`start_period` on their healthchecks — on a cold start (first
+`pnpm docker:dev --profile full`, or right after `docker:dev:build`), nginx can
+come up and start accepting connections before the upstream app has finished
+its first Vite build.
 
 ```bash
 docker compose ps app-client app-admin app-rescue service-gateway nginx

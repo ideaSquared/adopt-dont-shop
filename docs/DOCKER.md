@@ -15,7 +15,7 @@ Comprehensive guide to the Docker setup for this monorepo. Pairs with [the root 
 ## Quick Start
 
 ```bash
-pnpm docker:dev               # start full stack (foreground)
+pnpm docker:dev               # start the dev stack (foreground)
 pnpm docker:dev:detach        # start in background
 pnpm docker:dev:build         # rebuild images then start
 pnpm docker:logs              # follow logs
@@ -24,6 +24,24 @@ pnpm docker:reset             # stop AND wipe volumes (destroys DB)
 ```
 
 See [package.json](../package.json) for the full script list.
+
+### What `pnpm docker:dev` starts
+
+By default `pnpm docker:dev` boots the **`dev` profile**: all three apps, every
+microservice + the gateway, and infra (Postgres, Redis, NATS, lib-types-watcher).
+It deliberately **excludes** the observability stack (Loki, Prometheus, Grafana,
+Tempo, Alertmanager) and nginx — you don't need six extra containers to work on
+a feature, and services only ship to Loki/Tempo when `LOKI_URL` / `OTEL_*` are
+set anyway. Bring everything up with `pnpm docker:dev --profile full`; boot a
+single frontend (still with the gateway + services) with `pnpm docker:dev:client`
+/ `:admin` / `:rescue`.
+
+Cold-start note: the shared dev image bakes `node_modules`, but your source is
+bind-mounted and picked up live by the watchers (Vite HMR, `tsx watch`,
+`lib.types` `tsc --watch`). A `git pull` that changes only source needs **no
+rebuild** — `pnpm docker:dev` only rebuilds the image when `pnpm-lock.yaml` or
+`Dockerfile.dev` changed, and otherwise just reconciles the containers that
+actually differ. It prints which of the two happened on every run.
 
 ## Architecture Overview
 
