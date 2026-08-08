@@ -107,38 +107,3 @@ export interface SearchMetrics {
     slowQueries: number; // > 500ms
   };
 }
-
-export interface AdvancedSearchOptions {
-  includeTypes?: string[];
-  excludeTypes?: string[];
-  dateRange?: {
-    start: Date;
-    end: Date;
-  };
-  location?: {
-    lat: number;
-    lng: number;
-    radius: number;
-  };
-  customFilters?: Record<string, unknown>;
-  facets?: string[];
-  boost?: Record<string, number>;
-}
-
-export interface SearchFacet {
-  name: string;
-  values: {
-    value: string;
-    count: number;
-    selected?: boolean;
-  }[];
-}
-
-export interface FacetedSearchResponse {
-  results: SearchResult[];
-  facets: SearchFacet[];
-  total: number;
-  page: number;
-  totalPages: number;
-  queryTime: number;
-}

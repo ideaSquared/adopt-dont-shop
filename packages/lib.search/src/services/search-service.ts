@@ -9,8 +9,6 @@ import {
   SearchSuggestion,
   SearchCacheEntry,
   SearchMetrics,
-  AdvancedSearchOptions,
-  FacetedSearchResponse,
   PaginatedResponse,
 } from '../types';
 
@@ -18,14 +16,13 @@ import {
  * Advanced Search Service
  *
  * Provides comprehensive search functionality for pets, messages, and other content
- * with intelligent caching, faceted search, and performance analytics.
+ * with intelligent caching and performance analytics.
  *
  * Features:
  * - Pet search with advanced filters
  * - Message search with conversation context
  * - Intelligent caching with TTL and LRU eviction
  * - Search suggestions and autocomplete
- * - Faceted search with filters
  * - Search analytics and performance tracking
  * - Geographic and proximity search
  * - Real-time search suggestions
@@ -237,49 +234,6 @@ export class SearchService {
         console.warn('Failed to get search suggestions:', error);
       }
       return [];
-    }
-  }
-
-  /**
-   * Perform faceted search with advanced filtering
-   *
-   * @param query - Search query
-   * @param advancedOptions - Advanced search options
-   * @returns Promise<FacetedSearchResponse> - Faceted search results
-   */
-  async facetedSearch(
-    query: string,
-    advancedOptions: AdvancedSearchOptions = {}
-  ): Promise<FacetedSearchResponse> {
-    const startTime = Date.now();
-
-    try {
-      const requestBody = {
-        query,
-        ...advancedOptions,
-      };
-
-      const response = await this.apiService.post<FacetedSearchResponse>(
-        `${this.API_BASE_URL}/faceted`,
-        requestBody
-      );
-
-      this.updateMetrics('faceted', startTime, false);
-      return response;
-    } catch (error) {
-      this.updateMetrics('faceted', startTime, false);
-      if (this.config.debug) {
-        console.warn('Faceted search failed:', error);
-      }
-
-      return {
-        results: [],
-        facets: [],
-        total: 0,
-        page: 1,
-        totalPages: 0,
-        queryTime: Date.now() - startTime,
-      };
     }
   }
 
