@@ -180,6 +180,41 @@ describe('GET /api/v1/pets', () => {
     expect(req.featuredFilter).toBe(false);
   });
 
+  it('page mode: forwards page/search/breed/gender/ageGroup/sort and builds real meta', async () => {
+    listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], nextCursor: undefined, total: 42 });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/pets?page=3&limit=12&search=rex&breed=labr&gender=male&ageGroup=adult&sortBy=name&sortOrder=ASC',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'rescue_staff', 'x-rescue-id': 'rsc-1' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { meta: Record<string, unknown> };
+    // total 42 / limit 12 → 4 pages; page 3 has both prev and next.
+    expect(body.meta).toEqual({ page: 3, total: 42, totalPages: 4, hasNext: true, hasPrev: true });
+
+    const [gr] = listMock.mock.calls[0];
+    expect(gr.page).toBe(3);
+    expect(gr.search).toBe('rex');
+    expect(gr.breed).toBe('labr');
+    expect(gr.genderFilter).toBe(PetsV1.PetGender.PET_GENDER_MALE);
+    expect(gr.ageGroupFilter).toBe(PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT);
+    expect(gr.sortBy).toBe('name');
+    expect(gr.sortOrder).toBe('ASC');
+  });
+
+  it('stays in cursor mode (no page) when page is not requested', async () => {
+    listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], nextCursor: undefined });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/pets?limit=12',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    const [gr] = listMock.mock.calls[0];
+    expect(gr.page).toBeUndefined();
+  });
+
   it('coerces an unknown status to UNSPECIFIED (service returns 400)', async () => {
     listMock.mockResolvedValueOnce({ pets: [] });
     await app.inject({ method: 'GET', url: '/api/v1/pets?status=not_a_status' });

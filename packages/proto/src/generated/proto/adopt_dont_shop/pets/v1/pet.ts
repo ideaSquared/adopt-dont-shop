@@ -441,12 +441,53 @@ export interface ListPetsRequest {
    * Restrict to featured pets only (the public "featured" homepage rail).
    * false / unset = no featured filter.
    */
-  featuredFilter?: boolean | undefined;
+  featuredFilter?:
+    | boolean
+    | undefined;
+  /**
+   * Page-based pagination (1-based). When set (> 0), the handler switches
+   * from keyset/cursor mode to offset pagination and returns `total` — the
+   * rescue Pet Management dashboard needs jump-to-page + total counts.
+   * Unset / 0 keeps the default cursor behaviour for every other caller.
+   */
+  page?:
+    | number
+    | undefined;
+  /** Free-text search over the pets.search_vector (name / breed / description). */
+  search?:
+    | string
+    | undefined;
+  /** Breed-name filter (case-insensitive substring against the breeds catalogue). */
+  breed?:
+    | string
+    | undefined;
+  /**
+   * Enum filters. UNSPECIFIED / unset = "no filter". `optional` (explicit
+   * presence) so existing ListPetsRequest construction sites don't have to
+   * set them — every other caller stays a compile-clean no-op.
+   */
+  genderFilter?: PetGender | undefined;
+  ageGroupFilter?:
+    | PetAgeGroup
+    | undefined;
+  /**
+   * Sort column (allowlisted server-side) + direction ("ASC"/"DESC"). Only
+   * honoured in page mode; cursor mode keeps its fixed keyset order.
+   */
+  sortBy?: string | undefined;
+  sortOrder?: string | undefined;
 }
 
 export interface ListPetsResponse {
   pets: Pet[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total matching rows — populated only in page mode (offset pagination),
+   * so the dashboard can render page counts. Unset in cursor mode.
+   */
+  total?: number | undefined;
 }
 
 export interface ListBreedsRequest {
@@ -2228,6 +2269,13 @@ function createBaseListPetsRequest(): ListPetsRequest {
     sizeFilter: 0,
     rescueIdFilter: undefined,
     featuredFilter: undefined,
+    page: undefined,
+    search: undefined,
+    breed: undefined,
+    genderFilter: undefined,
+    ageGroupFilter: undefined,
+    sortBy: undefined,
+    sortOrder: undefined,
   };
 }
 
@@ -2253,6 +2301,27 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     }
     if (message.featuredFilter !== undefined) {
       writer.uint32(56).bool(message.featuredFilter);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(64).uint32(message.page);
+    }
+    if (message.search !== undefined) {
+      writer.uint32(74).string(message.search);
+    }
+    if (message.breed !== undefined) {
+      writer.uint32(82).string(message.breed);
+    }
+    if (message.genderFilter !== undefined) {
+      writer.uint32(88).int32(message.genderFilter);
+    }
+    if (message.ageGroupFilter !== undefined) {
+      writer.uint32(96).int32(message.ageGroupFilter);
+    }
+    if (message.sortBy !== undefined) {
+      writer.uint32(106).string(message.sortBy);
+    }
+    if (message.sortOrder !== undefined) {
+      writer.uint32(114).string(message.sortOrder);
     }
     return writer;
   },
@@ -2320,6 +2389,62 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
           message.featuredFilter = reader.bool();
           continue;
         }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.search = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.breed = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.genderFilter = reader.int32() as any;
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.ageGroupFilter = reader.int32() as any;
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.sortBy = reader.string();
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.sortOrder = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2358,6 +2483,29 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
         : isSet(object.featured_filter)
         ? globalThis.Boolean(object.featured_filter)
         : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      search: isSet(object.search) ? globalThis.String(object.search) : undefined,
+      breed: isSet(object.breed) ? globalThis.String(object.breed) : undefined,
+      genderFilter: isSet(object.genderFilter)
+        ? petGenderFromJSON(object.genderFilter)
+        : isSet(object.gender_filter)
+        ? petGenderFromJSON(object.gender_filter)
+        : undefined,
+      ageGroupFilter: isSet(object.ageGroupFilter)
+        ? petAgeGroupFromJSON(object.ageGroupFilter)
+        : isSet(object.age_group_filter)
+        ? petAgeGroupFromJSON(object.age_group_filter)
+        : undefined,
+      sortBy: isSet(object.sortBy)
+        ? globalThis.String(object.sortBy)
+        : isSet(object.sort_by)
+        ? globalThis.String(object.sort_by)
+        : undefined,
+      sortOrder: isSet(object.sortOrder)
+        ? globalThis.String(object.sortOrder)
+        : isSet(object.sort_order)
+        ? globalThis.String(object.sort_order)
+        : undefined,
     };
   },
 
@@ -2384,6 +2532,27 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     if (message.featuredFilter !== undefined) {
       obj.featuredFilter = message.featuredFilter;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.search !== undefined) {
+      obj.search = message.search;
+    }
+    if (message.breed !== undefined) {
+      obj.breed = message.breed;
+    }
+    if (message.genderFilter !== undefined) {
+      obj.genderFilter = petGenderToJSON(message.genderFilter);
+    }
+    if (message.ageGroupFilter !== undefined) {
+      obj.ageGroupFilter = petAgeGroupToJSON(message.ageGroupFilter);
+    }
+    if (message.sortBy !== undefined) {
+      obj.sortBy = message.sortBy;
+    }
+    if (message.sortOrder !== undefined) {
+      obj.sortOrder = message.sortOrder;
+    }
     return obj;
   },
 
@@ -2399,12 +2568,19 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     message.sizeFilter = object.sizeFilter ?? 0;
     message.rescueIdFilter = object.rescueIdFilter ?? undefined;
     message.featuredFilter = object.featuredFilter ?? undefined;
+    message.page = object.page ?? undefined;
+    message.search = object.search ?? undefined;
+    message.breed = object.breed ?? undefined;
+    message.genderFilter = object.genderFilter ?? undefined;
+    message.ageGroupFilter = object.ageGroupFilter ?? undefined;
+    message.sortBy = object.sortBy ?? undefined;
+    message.sortOrder = object.sortOrder ?? undefined;
     return message;
   },
 };
 
 function createBaseListPetsResponse(): ListPetsResponse {
-  return { pets: [], nextCursor: undefined };
+  return { pets: [], nextCursor: undefined, total: undefined };
 }
 
 export const ListPetsResponse: MessageFns<ListPetsResponse> = {
@@ -2414,6 +2590,9 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -2441,6 +2620,14 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2458,6 +2645,7 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -2469,6 +2657,9 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -2479,6 +2670,7 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
     const message = createBaseListPetsResponse();
     message.pets = object.pets?.map((e) => Pet.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };

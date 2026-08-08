@@ -224,7 +224,7 @@ describe('PetManagementService', () => {
         hasNext: true,
         hasPrev: true,
       });
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/rescue/my', {
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets', {
         limit: 10,
         status: 'available',
       });

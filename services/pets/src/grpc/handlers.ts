@@ -350,6 +350,21 @@ type ListCursor = { createdAt: string; petId: string };
 const DEFAULT_LIST_LIMIT = 20;
 const MAX_LIST_LIMIT = 100;
 
+// Allowlisted sort columns — never interpolate a caller-supplied column
+// name into SQL. Anything unknown falls back to created_at. pet_id is
+// always appended as a deterministic tie-breaker.
+const SORT_COLUMNS: Record<string, string> = {
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  name: 'name',
+};
+
+function buildOrderBy(sortBy: string | undefined, sortOrder: string | undefined): string {
+  const column = (sortBy && SORT_COLUMNS[sortBy]) ?? 'created_at';
+  const direction = sortOrder && sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  return `ORDER BY ${column} ${direction}, pet_id DESC`;
+}
+
 export async function listPets(
   deps: HandlerDeps,
   principal: Principal,
@@ -377,7 +392,11 @@ export async function listPets(
   const privileged = hasPermission(principal, PETS_READ_ANY) || principal.rescueId !== undefined;
 
   const limit = clampLimit(req.limit);
-  const cursor = req.cursor ? parseCursor(req.cursor) : undefined;
+  // Page mode (offset + total count) when the caller asks for a 1-based
+  // page; otherwise the default keyset/cursor mode. The two never mix.
+  const pageNum = req.page ?? 0;
+  const usePageMode = pageNum > 0;
+  const cursor = !usePageMode && req.cursor ? parseCursor(req.cursor) : undefined;
 
   const where: string[] = ['deleted_at IS NULL'];
   const params: unknown[] = [];
@@ -411,12 +430,68 @@ export async function listPets(
     params.push(true);
     n++;
   }
+  if (req.search) {
+    // Full-text over the trigger-maintained, GIN-indexed search_vector.
+    where.push(`search_vector @@ websearch_to_tsquery('english', $${n})`);
+    params.push(req.search);
+    n++;
+  }
+  if (req.breed) {
+    // Breed is a free-text field; match the breeds catalogue by name.
+    where.push(`breed_id IN (SELECT breed_id FROM pets.breeds WHERE name ILIKE $${n})`);
+    params.push(`%${req.breed}%`);
+    n++;
+  }
+  if (
+    req.genderFilter !== undefined &&
+    req.genderFilter !== PetsV1.PetGender.PET_GENDER_UNSPECIFIED
+  ) {
+    where.push(`gender = $${n}`);
+    params.push(genderToDb(req.genderFilter));
+    n++;
+  }
+  if (
+    req.ageGroupFilter !== undefined &&
+    req.ageGroupFilter !== PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED
+  ) {
+    where.push(`age_group = $${n}`);
+    params.push(ageGroupToDb(req.ageGroupFilter));
+    n++;
+  }
   if (!privileged) {
     const placeholders = PUBLIC_HIDDEN_STATUSES.map(() => `$${n++}`).join(', ');
     where.push(`status NOT IN (${placeholders})`);
     params.push(...PUBLIC_HIDDEN_STATUSES);
     where.push('archived = false');
   }
+  // Page mode: offset pagination + a COUNT so the dashboard can render page
+  // numbers. sortBy/sortOrder are honoured (allowlisted). The filters above
+  // are shared with cursor mode, so `where`/`params` already hold them.
+  if (usePageMode) {
+    const whereSql = where.join(' AND ');
+    const countResult = await deps.pool.query<{ count: string }>(
+      `SELECT COUNT(*) FROM pets.pets WHERE ${whereSql}`,
+      params
+    );
+    const total = Number(countResult.rows[0].count);
+    const offset = (pageNum - 1) * limit;
+    const result = await deps.pool.query<PetRow>(
+      `
+      SELECT ${PETS_SELECT} FROM pets.pets
+      WHERE ${whereSql}
+      ${buildOrderBy(req.sortBy, req.sortOrder)}
+      LIMIT $${n} OFFSET $${n + 1}
+      `,
+      [...params, limit, offset]
+    );
+    return {
+      pets: result.rows.map(row => rowToProto(row, privileged)),
+      nextCursor: undefined,
+      total,
+    };
+  }
+
+  // Cursor mode (default): keyset pagination, fixed order, no total.
   if (cursor) {
     where.push(`(created_at, pet_id) < ($${n}, $${n + 1})`);
     params.push(new Date(cursor.createdAt));
@@ -435,14 +510,14 @@ export async function listPets(
   );
 
   const hasMore = result.rows.length > limit;
-  const page = hasMore ? result.rows.slice(0, limit) : result.rows;
-  const last = page[page.length - 1];
+  const pageRows = hasMore ? result.rows.slice(0, limit) : result.rows;
+  const last = pageRows[pageRows.length - 1];
   const nextCursor =
     hasMore && last
       ? encodeCursor({ createdAt: last.created_at.toISOString(), petId: last.pet_id })
       : undefined;
 
-  return { pets: page.map(row => rowToProto(row, privileged)), nextCursor };
+  return { pets: pageRows.map(row => rowToProto(row, privileged)), nextCursor };
 }
 
 // --- ListBreeds ------------------------------------------------------

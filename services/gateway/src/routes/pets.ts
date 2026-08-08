@@ -154,6 +154,13 @@ export const registerPetsRoutes = async (
             size: { type: 'string' },
             rescueId: { type: 'string' },
             featured: { type: 'string' },
+            page: { type: 'string' },
+            search: { type: 'string' },
+            breed: { type: 'string' },
+            gender: { type: 'string' },
+            ageGroup: { type: 'string' },
+            sortBy: { type: 'string' },
+            sortOrder: { type: 'string' },
           },
         },
         response: {
@@ -190,6 +197,10 @@ export const registerPetsRoutes = async (
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
+      // parsePagination already validated + defaulted page (non-integer → 400
+      // above). Only switch the handler into page mode when the caller
+      // explicitly asked for a page; other list callers stay cursor-based.
+      const page = query.page !== undefined && query.page !== '' ? pagination.page : undefined;
       const grpcReq: ListPetsRequest = {
         cursor: query.cursor,
         limit: pagination.limit,
@@ -198,11 +209,21 @@ export const registerPetsRoutes = async (
         sizeFilter: parseSize(query.size),
         rescueIdFilter: query.rescueId,
         featuredFilter: query.featured === 'true',
+        page,
+        search: query.search,
+        breed: query.breed,
+        genderFilter: parseGender(query.gender),
+        ageGroupFilter: parseAgeGroup(query.ageGroup),
+        sortBy: query.sortBy,
+        sortOrder: query.sortOrder,
       };
       try {
         const res = await client.list(grpcReq, buildMetadata(req));
-        // Stage B: frontend lib.pets shape ({ success, data, meta }).
-        return reply.send(listToEnvelope(res));
+        // Stage B: frontend lib.pets shape ({ success, data, meta }). In page
+        // mode the handler returns a total → real page meta.
+        return reply.send(
+          listToEnvelope(res, page !== undefined ? { page, limit: pagination.limit } : undefined)
+        );
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -1242,4 +1263,26 @@ function parseSize(raw: string | undefined): PetsV1.PetSize {
   const candidate = Object.values(PetsV1.PetSize).includes(upper as never) ? upper : raw;
   const out = PetsV1.petSizeFromJSON(candidate);
   return out === PetsV1.PetSize.UNRECOGNIZED ? PetsV1.PetSize.PET_SIZE_UNSPECIFIED : out;
+}
+
+function parseGender(raw: string | undefined): PetsV1.PetGender {
+  if (!raw) {
+    return PetsV1.PetGender.PET_GENDER_UNSPECIFIED;
+  }
+  const upper = `PET_GENDER_${raw.toUpperCase()}`;
+  const candidate = Object.values(PetsV1.PetGender).includes(upper as never) ? upper : raw;
+  const out = PetsV1.petGenderFromJSON(candidate);
+  return out === PetsV1.PetGender.UNRECOGNIZED ? PetsV1.PetGender.PET_GENDER_UNSPECIFIED : out;
+}
+
+function parseAgeGroup(raw: string | undefined): PetsV1.PetAgeGroup {
+  if (!raw) {
+    return PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED;
+  }
+  const upper = `PET_AGE_GROUP_${raw.toUpperCase()}`;
+  const candidate = Object.values(PetsV1.PetAgeGroup).includes(upper as never) ? upper : raw;
+  const out = PetsV1.petAgeGroupFromJSON(candidate);
+  return out === PetsV1.PetAgeGroup.UNRECOGNIZED
+    ? PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED
+    : out;
 }
