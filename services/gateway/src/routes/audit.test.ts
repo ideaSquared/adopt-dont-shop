@@ -246,10 +246,24 @@ describe('GET /api/v1/admin/audit-logs', () => {
     const body = httpRes.json() as {
       success: boolean;
       data: Array<Record<string, unknown>>;
-      pagination: { page: number; limit: number; total: number; pages: number };
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
     };
     expect(body.success).toBe(true);
-    expect(body.pagination).toEqual({ page: 3, limit: 50, total: 137, pages: 3 });
+    expect(body.pagination).toEqual({
+      page: 3,
+      limit: 50,
+      total: 137,
+      totalPages: 3,
+      hasNext: false,
+      hasPrev: true,
+    });
     const log = body.data[0];
     expect(log.id).toBe('evt-1');
     expect(log.action).toBe('login');
@@ -295,16 +309,20 @@ describe('GET /api/v1/admin/audit-logs', () => {
     expect((body.data[1].metadata as Record<string, unknown>).details).toBeUndefined();
   });
 
-  it('defaults total/pages to 0 when the service omits total', async () => {
+  it('defaults total to 0 (and totalPages to 1) when the service omits total', async () => {
     queryMock.mockResolvedValue({ events: [] });
     const httpRes = await app.inject({
       method: 'GET',
       url: '/api/v1/admin/audit-logs',
       headers: ADMIN_HEADERS,
     });
-    const body = httpRes.json() as { pagination: { total: number; pages: number } };
+    const body = httpRes.json() as {
+      pagination: { total: number; totalPages: number; hasNext: boolean; hasPrev: boolean };
+    };
     expect(body.pagination.total).toBe(0);
-    expect(body.pagination.pages).toBe(0);
+    expect(body.pagination.totalPages).toBe(1);
+    expect(body.pagination.hasNext).toBe(false);
+    expect(body.pagination.hasPrev).toBe(false);
   });
 
   it('rejects a non-integer page with 400', async () => {

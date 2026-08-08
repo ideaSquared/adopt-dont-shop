@@ -35,7 +35,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
-import { parsePagination } from '../middleware/pagination.js';
+import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 import { userToApiJson } from './auth-user-json.js';
 
 export type UsersRoutesOptions = {
@@ -470,6 +470,8 @@ export const registerUsersRoutes = async (
                   limit: { type: 'number' },
                   total: { type: 'number' },
                   totalPages: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
                 },
               },
             },
@@ -508,12 +510,12 @@ export const registerUsersRoutes = async (
         return reply.send({
           success: true,
           data: res.users.map(u => AuthV1.User.toJSON(u)),
-          pagination: {
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
             page: res.page,
             limit: grpcReq.limit || 20,
             total: res.total,
-            totalPages: res.totalPages,
-          },
+          }),
         });
       } catch (err) {
         return handleGrpcError(err, reply);
@@ -825,6 +827,8 @@ export const registerUsersRoutes = async (
                   limit: { type: 'number' },
                   total: { type: 'number' },
                   totalPages: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
                 },
               },
             },
@@ -863,12 +867,12 @@ export const registerUsersRoutes = async (
         return reply.send({
           success: true,
           data: res.users.map(userToApiJson),
-          pagination: {
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
             page: res.page,
             limit: grpcReq.limit || 20,
             total: res.total,
-            totalPages: res.totalPages,
-          },
+          }),
         });
       } catch (err) {
         return handleGrpcError(err, reply);

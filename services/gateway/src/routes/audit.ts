@@ -39,7 +39,7 @@ import {
 import type { AuditClient } from '../grpc-clients/audit-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
-import { parsePagination } from '../middleware/pagination.js';
+import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
 export type AuditRoutesOptions = {
   client: AuditClient;
@@ -177,7 +177,24 @@ export const registerAuditRoutes = async (
           },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  limit: { type: 'number' },
+                  total: { type: 'number' },
+                  totalPages: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
+                },
+              },
+            },
+          },
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
@@ -204,12 +221,15 @@ export const registerAuditRoutes = async (
       };
       try {
         const res = await client.query(grpcReq, buildMetadata(req));
-        const total = res.total ?? 0;
-        const pages = pagination.limit > 0 ? Math.ceil(total / pagination.limit) : 0;
         return reply.send({
           success: true,
           data: res.events.map(eventToAuditLog),
-          pagination: { page: pagination.page, limit: pagination.limit, total, pages },
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: pagination.page,
+            limit: pagination.limit,
+            total: res.total ?? 0,
+          }),
         });
       } catch (err) {
         return handleGrpcError(err, reply);

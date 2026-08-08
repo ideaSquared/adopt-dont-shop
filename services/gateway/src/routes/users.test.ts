@@ -490,11 +490,26 @@ describe('GET /api/v1/users/search', () => {
     const body = res.json() as {
       success: boolean;
       data: Array<{ userId: string }>;
-      pagination: { total: number; totalPages: number };
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
     };
     expect(body.success).toBe(true);
     expect(body.data).toHaveLength(1);
-    expect(body.pagination.total).toBe(1);
+    // Canonical pagination envelope (hasNext/hasPrev derived from the count).
+    expect(body.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+    });
 
     const [grpcReq] = auth.searchUsersMock.mock.calls[0] as [SearchUsersReqShape, Metadata];
     expect(grpcReq.search).toBe('jane');
@@ -559,9 +574,28 @@ describe('/api/v1/admin/users surface', () => {
       headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
     });
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { data: Array<{ userType: string; status: string }> };
+    const body = res.json() as {
+      data: Array<{ userType: string; status: string }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    };
     expect(body.data[0].userType).toBe('adopter');
     expect(body.data[0].status).toBe('active');
+    // Canonical pagination envelope, identical in shape to every datatable.
+    expect(body.pagination).toEqual({
+      page: 1,
+      limit: 50,
+      total: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+    });
   });
 
   it('GET :userId returns the user with a canonical status string', async () => {
