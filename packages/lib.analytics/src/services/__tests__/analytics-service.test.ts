@@ -266,36 +266,6 @@ describe('AnalyticsService', () => {
   });
 
   describe('analytics queries', () => {
-    it('should get engagement metrics', async () => {
-      const mockMetrics = {
-        period: { start: new Date(), end: new Date() },
-        pageViews: 1000,
-        uniquePageViews: 750,
-        sessions: 500,
-        uniqueUsers: 400,
-        avgSessionDuration: 180,
-        bounceRate: 45.5,
-        topPages: [],
-        topEvents: [],
-        acquisitionChannels: [],
-        deviceBreakdown: [],
-      };
-
-      mockApiService.get.mockResolvedValue(mockMetrics);
-
-      const timeRange = {
-        start: new Date('2024-01-01'),
-        end: new Date('2024-01-31'),
-      };
-
-      const result = await service.getEngagementMetrics(timeRange);
-
-      expect(mockApiService.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/analytics/engagement')
-      );
-      expect(result).toEqual(mockMetrics);
-    });
-
     it('should get system performance metrics', async () => {
       const mockPerformance = {
         period: { start: new Date(), end: new Date() },
@@ -322,82 +292,6 @@ describe('AnalyticsService', () => {
         expect.stringContaining('/api/v1/analytics/performance')
       );
       expect(result).toEqual(mockPerformance);
-    });
-
-    it('should generate analytics reports', async () => {
-      const mockReport = {
-        id: 'report123',
-        type: 'engagement' as const,
-        parameters: {},
-        generatedAt: new Date(),
-        data: {},
-      };
-
-      mockApiService.post.mockResolvedValue(mockReport);
-
-      const params = {
-        timeRange: {
-          start: new Date('2024-01-01'),
-          end: new Date('2024-01-31'),
-        },
-        granularity: 'day' as const,
-        format: 'json' as const,
-      };
-
-      const result = await service.generateReport('engagement', params);
-
-      expect(mockApiService.post).toHaveBeenCalledWith(
-        '/api/v1/analytics/reports/generate',
-        expect.objectContaining({
-          type: 'engagement',
-          parameters: params,
-        })
-      );
-      expect(result).toEqual(mockReport);
-    });
-
-    it('should get conversion funnel data', async () => {
-      const mockFunnel = {
-        name: 'adoption_funnel',
-        period: { start: new Date(), end: new Date() },
-        steps: [],
-        overallConversionRate: 15.5,
-        totalUsers: 1000,
-        convertedUsers: 155,
-      };
-
-      mockApiService.get.mockResolvedValue(mockFunnel);
-
-      const timeRange = {
-        start: new Date('2024-01-01'),
-        end: new Date('2024-01-31'),
-      };
-
-      const result = await service.getConversionFunnel('adoption_funnel', timeRange);
-
-      expect(mockApiService.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/analytics/funnels')
-      );
-      expect(result).toEqual(mockFunnel);
-    });
-
-    it('should get A/B test results', async () => {
-      const mockResults = {
-        testId: 'test123',
-        name: 'Button Color Test',
-        period: { start: new Date(), end: new Date() },
-        status: 'completed' as const,
-        variants: [],
-        winner: 'variant_b',
-        confidence: 95.5,
-      };
-
-      mockApiService.get.mockResolvedValue(mockResults);
-
-      const result = await service.getABTestResults('test123');
-
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/analytics/ab-tests/test123');
-      expect(result).toEqual(mockResults);
     });
   });
 
@@ -535,32 +429,6 @@ describe('AnalyticsService', () => {
   });
 
   describe('error handling', () => {
-    it('should handle API errors gracefully in metrics queries', async () => {
-      mockApiService.get.mockRejectedValue(new Error('API Error'));
-
-      const timeRange = {
-        start: new Date('2024-01-01'),
-        end: new Date('2024-01-31'),
-      };
-
-      await expect(service.getEngagementMetrics(timeRange)).rejects.toThrow('API Error');
-    });
-
-    it('should handle API errors gracefully in report generation', async () => {
-      mockApiService.post.mockRejectedValue(new Error('Report generation failed'));
-
-      const params = {
-        timeRange: {
-          start: new Date('2024-01-01'),
-          end: new Date('2024-01-31'),
-        },
-      };
-
-      await expect(service.generateReport('engagement', params)).rejects.toThrow(
-        'Report generation failed'
-      );
-    });
-
     it('should handle page view tracking errors gracefully', async () => {
       mockApiService.post.mockRejectedValue(new Error('Page view tracking failed'));
 

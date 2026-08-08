@@ -6,14 +6,8 @@ import {
   PageViewEvent,
   UserJourney,
   TimeRange,
-  EngagementMetrics,
   SystemPerformanceMetrics,
-  ReportType,
-  ReportParams,
-  AnalyticsReport,
   AnalyticsQueryOptions,
-  ConversionFunnel,
-  ABTestResults,
 } from '../types';
 
 const MAX_QUEUE_SIZE = 1000;
@@ -322,35 +316,6 @@ export class AnalyticsService {
   }
 
   /**
-   * Get engagement metrics for a time range
-   */
-  public async getEngagementMetrics(
-    timeRange: TimeRange,
-    options: AnalyticsQueryOptions = {}
-  ): Promise<EngagementMetrics> {
-    try {
-      const params = new URLSearchParams({
-        startDate: timeRange.start.toISOString(),
-        endDate: timeRange.end.toISOString(),
-        timezone: timeRange.timezone || 'UTC',
-        useCache: String(options.useCache ?? true),
-        cacheTtl: String(options.cacheTtl ?? 300),
-      });
-
-      const response = (await this.apiService.get(
-        `/api/v1/analytics/engagement?${params}`
-      )) as EngagementMetrics;
-
-      return response;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`${AnalyticsService.name} failed to get engagement metrics:`, error);
-      }
-      throw error;
-    }
-  }
-
-  /**
    * Get system performance metrics
    */
   public async getSystemPerformance(
@@ -373,81 +338,6 @@ export class AnalyticsService {
     } catch (error) {
       if (this.config.debug) {
         console.error(`${AnalyticsService.name} failed to get performance metrics:`, error);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Generate analytics report
-   */
-  public async generateReport(
-    type: ReportType,
-    params: ReportParams,
-    options: AnalyticsQueryOptions = {}
-  ): Promise<AnalyticsReport> {
-    try {
-      const requestData = {
-        type,
-        parameters: params,
-        options,
-      };
-
-      const response = (await this.apiService.post(
-        '/api/v1/analytics/reports/generate',
-        requestData
-      )) as AnalyticsReport;
-
-      return response;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`${AnalyticsService.name} failed to generate report:`, error);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get conversion funnel analysis
-   */
-  public async getConversionFunnel(
-    funnelName: string,
-    timeRange: TimeRange
-  ): Promise<ConversionFunnel> {
-    try {
-      const params = new URLSearchParams({
-        name: funnelName,
-        startDate: timeRange.start.toISOString(),
-        endDate: timeRange.end.toISOString(),
-        timezone: timeRange.timezone || 'UTC',
-      });
-
-      const response = (await this.apiService.get(
-        `/api/v1/analytics/funnels?${params}`
-      )) as ConversionFunnel;
-
-      return response;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`${AnalyticsService.name} failed to get funnel analysis:`, error);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get A/B test results
-   */
-  public async getABTestResults(testId: string): Promise<ABTestResults> {
-    try {
-      const response = (await this.apiService.get(
-        `/api/v1/analytics/ab-tests/${testId}`
-      )) as ABTestResults;
-
-      return response;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`${AnalyticsService.name} failed to get A/B test results:`, error);
       }
       throw error;
     }
