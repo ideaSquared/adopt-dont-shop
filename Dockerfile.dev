@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.7-labs
 #
 # ONE dev image shared by every app and service in the docker-compose dev stack.
 #
@@ -53,13 +53,28 @@ ENV HUSKY=0
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 
-# Copy the whole workspace and install. At runtime the bind mount replaces this
-# baked source with the host's live source (HMR); only the baked node_modules is
-# kept (re-exposed via anon volumes in compose). A BuildKit cache mount keeps the
+# --- Dependency layer -----------------------------------------------------
+# Copy ONLY what pnpm needs to resolve the workspace graph — the root manifests
+# plus every workspace package.json (globs mirror pnpm-workspace.yaml). This is
+# the industry-standard ordering (and what Dockerfile.service already does):
+# the expensive `pnpm install` layer then keys on the lockfile + manifests
+# alone, so it's a cache HIT whenever only source changed. That reuse is what
+# lets CI's gha cache — and the GHCR image scripts/docker-dev.mjs pulls — stand
+# in for a from-scratch install. `--parents` preserves each file's directory so
+# the workspace layout is intact for install. A BuildKit cache mount keeps the
 # pnpm store warm across rebuilds so a lockfile change re-links fast.
-COPY . .
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY --parents ./apps/*/package.json ./packages/*/package.json ./services/*/package.json ./e2e/package.json ./
 RUN --mount=type=cache,id=pnpm-dev-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline --store-dir=/pnpm/store
+
+# --- Source layer ---------------------------------------------------------
+# The rest of the workspace. At runtime the `.:/app` bind mount replaces this
+# baked source with the host's live source (HMR) and anon volumes re-expose the
+# baked node_modules (see docker-compose.dev.yml), so this copy only makes the
+# image runnable standalone (e.g. CI). Crucially it no longer sits ABOVE the
+# install step, so a source-only change rebuilds just this cheap layer.
+COPY . .
 
 # dumb-init (PID 1, signal forwarding) -> our entrypoint script (still root:
 # renumbers the `node` user to the host uid/gid, chowns the anon-volume

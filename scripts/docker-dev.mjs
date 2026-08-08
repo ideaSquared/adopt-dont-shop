@@ -22,8 +22,16 @@
  * Flags:
  *   --detach / -d   Start in the background.
  *   --build         Force-rebuild the (tiny) dev image.
- *   --profile <p>   Compose profile (default: full).
+ *   --profile <p>   Compose profile (default: `dev` — all apps + all services +
+ *                   infra, but NOT the observability stack or nginx; pass
+ *                   `--profile full` to add those).
  *   --yes           Non-interactive: assume "yes" to safe prompts (NOT to DB wipe).
+ *
+ * Cold-start note: the shared dev image bakes node_modules; SOURCE is bind-
+ * mounted and picked up live by the watchers (Vite HMR / tsx watch / lib.types
+ * tsc). So a `git pull` that only changes source needs NO rebuild — this script
+ * only rebuilds the image when pnpm-lock.yaml / Dockerfile.dev changed, and then
+ * `docker compose up` recreates just the containers that actually differ.
  */
 import { execSync, spawnSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
@@ -60,7 +68,7 @@ const flagValue = name => {
 const DETACH = hasFlag('--detach', '-d');
 const BUILD = hasFlag('--build');
 const ASSUME_YES = hasFlag('--yes');
-const PROFILE = flagValue('--profile') ?? 'full';
+const PROFILE = flagValue('--profile') ?? 'dev';
 
 const COMPOSE = ['-f', 'docker-compose.yml', '-f', 'docker-compose.dev.yml'];
 const STATE_FILE = join(ROOT, '.turbo', '.docker-dev-state.json'); // gitignored .turbo
@@ -133,10 +141,15 @@ function checkEnv() {
     process.exit(1);
   }
   const contents = readFileSync(envPath, 'utf8');
-  // ADS-968: GF_SECURITY_ADMIN_PASSWORD is required because the default
-  // `full` profile starts Grafana, and docker-compose.yml refuses to
-  // interpolate it unset — check it here too for a friendlier error.
-  const required = ['POSTGRES_PASSWORD', 'REDIS_PASSWORD', 'JWT_SECRET', 'GF_SECURITY_ADMIN_PASSWORD'];
+  // GF_SECURITY_ADMIN_PASSWORD is only needed when the active profile actually
+  // starts Grafana (docker-compose.yml refuses to interpolate it unset). The
+  // default `dev` profile doesn't start it, so only demand it under full/
+  // observability — otherwise we'd force a secret for a container that never
+  // boots (ADS-968).
+  const required = ['POSTGRES_PASSWORD', 'REDIS_PASSWORD', 'JWT_SECRET'];
+  if (resolveProfiles(PROFILE).some(p => p === 'full' || p === 'observability')) {
+    required.push('GF_SECURITY_ADMIN_PASSWORD');
+  }
   const missing = required.filter(k => {
     const m = contents.match(new RegExp(`^${k}=(.*)$`, 'm'));
     return !m || m[1].trim() === '';
@@ -317,25 +330,54 @@ function buildDevImage() {
 }
 
 // --- bring the stack up ----------------------------------------------------
-// A single frontend profile (client/admin/rescue) must also enable the
-// `services` profile — otherwise the app boots without the gateway and every
-// /api call 502s through the Vite proxy. `full` already includes everything.
-function resolveProfiles(profile) {
-  return ['client', 'admin', 'rescue'].includes(profile)
-    ? [profile, 'services']
-    : [profile];
+// Maps the requested `--profile` to the real compose profiles to enable.
+//   * `dev` (the default): every app + every service + infra, but NOT the
+//     observability stack (loki/prometheus/grafana/tempo/alertmanager) or
+//     nginx — those are opt-in via `--profile full`. `dev` isn't a compose
+//     profile itself; it expands to the real ones here. Infra (database, redis,
+//     nats, lib-types-watcher) has no profile so it starts under any of these.
+//   * A single frontend profile (client/admin/rescue) must also enable the
+//     `services` profile — otherwise the app boots without the gateway and
+//     every /api call 502s through the Vite proxy.
+//   * `full` and any other profile pass straight through unchanged.
+export function resolveProfiles(profile) {
+  if (profile === 'dev') return ['client', 'admin', 'rescue', 'services'];
+  if (['client', 'admin', 'rescue'].includes(profile)) return [profile, 'services'];
+  return [profile];
 }
 
+// `up` runs with --no-build on purpose: by this point the ONE shared dev image
+// is guaranteed to exist (built or pulled above) and every app/service in the
+// dev override uses it, so nothing here should ever build. --no-build turns a
+// missing/misconfigured image into a fast, clear failure instead of a silent
+// heavy per-service Dockerfile build mid-`up` (exactly how service-cms used to
+// slip onto the slow path). It only disables BUILDING — missing infra images
+// (postgres/redis/nats/…) are still pulled automatically.
 function up() {
   const profiles = resolveProfiles(PROFILE);
   step(`Starting stack (profile: ${profiles.join(', ')}${DETACH ? ', detached' : ''})`);
   const profileArgs = profiles.flatMap(p => ['--profile', p]);
-  const parts = ['docker compose', ...COMPOSE, ...profileArgs, 'up'];
+  const parts = ['docker compose', ...COMPOSE, ...profileArgs, 'up', '--no-build'];
   if (DETACH) parts.push('-d');
   run(parts.join(' '));
 }
 
-(async () => {
+// Tell the developer what this run will actually do, so "pull from main and
+// keep working" is legible. A source-only pull leaves the image untouched:
+// `up` then recreates only the containers whose compose config changed, because
+// your code is already live under the bind mount. A dependency change rebuilds
+// the shared image, so every app/service container is recreated to pick up the
+// new node_modules.
+function reportRefreshPlan(imageChanged) {
+  if (imageChanged) {
+    warn('Dev image updated — every app/service container will be recreated to pick up the new node_modules.');
+    return;
+  }
+  ok('Dev image unchanged — your working tree is already live via the bind mount + watchers (Vite HMR / tsx watch / lib.types tsc).');
+  log('  Only containers whose compose config changed will restart; the rest keep running untouched.');
+}
+
+async function main() {
   log('');
   log(`${BOLD}Adopt Don't Shop — dev stack${RESET}`);
   log('');
@@ -347,16 +389,20 @@ function up() {
   ok('secrets/redis_password written');
   checkRedisPort();
   const rebuild = needsImageRebuild();
+  let imageChanged = false;
   if (BUILD) {
     // Explicit --build: always build locally (use this after editing
     // Dockerfile.dev or the lockfile on your branch).
     buildDevImage();
+    imageChanged = true;
   } else if (rebuild) {
     // Image missing or build inputs changed: prefer GHCR's prebuilt image,
     // fall back to a local build if the pull fails.
     if (!tryPullDevImage()) buildDevImage();
+    imageChanged = true;
   }
   await checkPostgresVolume();
+  reportRefreshPlan(imageChanged);
   up();
   if (DETACH) {
     log('');
@@ -364,7 +410,14 @@ function up() {
     log(`  Logs:  ${BOLD}pnpm docker:logs${RESET}`);
     log(`  Stop:  ${BOLD}pnpm docker:down${RESET}`);
   }
-})().catch(err => {
-  fail(err.message);
-  process.exit(1);
-});
+}
+
+// Only run when invoked directly (`node scripts/docker-dev.mjs`), not when the
+// file is imported — scripts/docker-dev.test.mjs imports it to unit-test
+// resolveProfiles without booting Docker.
+if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(err => {
+    fail(err.message);
+    process.exit(1);
+  });
+}

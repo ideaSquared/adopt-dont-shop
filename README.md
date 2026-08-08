@@ -60,7 +60,7 @@ No Vercel account (Codespaces / OSS contributors)? Skip `login`/`link` — the *
 ### Run (Docker — recommended)
 
 ```bash
-pnpm docker:dev          # start full stack in foreground
+pnpm docker:dev          # start dev stack (apps + services + infra) in foreground
 pnpm docker:dev:detach   # or in background
 pnpm docker:logs         # follow logs
 pnpm docker:down         # stop
@@ -121,7 +121,7 @@ has the full command bodies and per-package scripts too).
 
 ```bash
 # Dev (Docker)
-pnpm docker:dev               # start full stack (gateway + services + apps)
+pnpm docker:dev               # start dev stack (gateway + services + apps; add --profile full for observability + nginx)
 pnpm docker:logs              # follow logs
 pnpm docker:shell:db          # psql into database
 pnpm docker:reset             # nuke containers + volumes (DESTROYS data)

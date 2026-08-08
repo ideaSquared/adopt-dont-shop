@@ -240,3 +240,15 @@ services:
       <<: *dev-env
     volumes: *dev-volumes
     command: sh -c "pnpm --filter @adopt-dont-shop/service.chat run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.chat run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.chat run dev"
+
+  # service-cms was previously absent here, so under the default full-stack boot
+  # it fell back to the base file's heavy per-service Dockerfile.service build
+  # (turbo prune + install + build) on every cold start — the one build the
+  # shared-dev-image design exists to avoid. It has migrations but no seed, so
+  # it mirrors service-applications (migrate, then watch).
+  service-cms:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.cms run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.cms run dev"
