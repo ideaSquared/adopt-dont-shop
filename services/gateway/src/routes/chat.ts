@@ -609,7 +609,22 @@ const registerChatRoutesForPrefix = (
         },
         body: {
           type: 'object',
-          properties: { body: { type: 'string' }, content: { type: 'string' } },
+          properties: {
+            body: { type: 'string' },
+            content: { type: 'string' },
+            attachments: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  url: { type: 'string' },
+                  contentType: { type: 'string' },
+                  fileName: { type: 'string' },
+                  sizeBytes: { type: 'number' },
+                },
+              },
+            },
+          },
         },
         response: {
           201: { type: 'object', additionalProperties: true },
@@ -619,10 +634,42 @@ const registerChatRoutesForPrefix = (
     },
     async (req, reply) => {
       const metadata = buildMetadata(req);
-      const body = (req.body ?? {}) as { body?: string; content?: string };
+      const body = (req.body ?? {}) as {
+        body?: string;
+        content?: string;
+        attachments?: Array<Record<string, unknown>>;
+      };
+      const attachments = (Array.isArray(body.attachments) ? body.attachments : [])
+        .map(raw => ({
+          url: typeof raw.url === 'string' ? raw.url : '',
+          contentType:
+            typeof raw.contentType === 'string'
+              ? raw.contentType
+              : typeof raw.content_type === 'string'
+                ? raw.content_type
+                : undefined,
+          fileName:
+            typeof raw.fileName === 'string'
+              ? raw.fileName
+              : typeof raw.file_name === 'string'
+                ? raw.file_name
+                : typeof raw.name === 'string'
+                  ? raw.name
+                  : undefined,
+          sizeBytes:
+            typeof raw.sizeBytes === 'number'
+              ? raw.sizeBytes
+              : typeof raw.size_bytes === 'number'
+                ? raw.size_bytes
+                : typeof raw.size === 'number'
+                  ? raw.size
+                  : undefined,
+        }))
+        .filter(a => a.url.length > 0);
       const grpcReq: SendMessageRequest = {
         chatId: req.params.chatId,
         body: body.body ?? body.content ?? '',
+        attachments,
       };
 
       try {

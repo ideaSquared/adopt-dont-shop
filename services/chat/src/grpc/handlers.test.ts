@@ -91,6 +91,7 @@ const messageRowFixture = (overrides: Record<string, unknown> = {}) => ({
   chat_id: 'chat-1',
   sender_id: 'usr-adopter',
   content: 'Hello world',
+  attachments: [],
   edited_at: null,
   deleted_at: null,
   created_at: new Date('2026-06-01T00:01:00Z'),
@@ -510,6 +511,74 @@ describe('sendMessage', () => {
     expect(res.message?.body).toBe('Hello world');
     expect(realClientQueries(mocks)).toEqual(['INSERT', 'UPDATE', 'SELECT']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageCreated');
+  });
+
+  it('accepts an image-only message and round-trips attachment metadata, dropping malformed entries', async () => {
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
+    // The stored row mixes a full attachment with junk the read path drops:
+    // a url-less object, a non-object, and a non-numeric size.
+    mocks.clientScript.push({
+      rows: [
+        messageRowFixture({
+          content: '',
+          attachments: [
+            {
+              url: 'https://cdn/x.png',
+              contentType: 'image/png',
+              fileName: 'x.png',
+              sizeBytes: 42,
+            },
+            // url-only: exercises the contentType/fileName/sizeBytes "absent"
+            // branches of the parser.
+            { url: 'https://cdn/y.png' },
+            { fileName: 'no-url.png' },
+            'garbage',
+          ],
+        }),
+      ],
+    });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+
+    const res = await sendMessage(mocks.deps, ADOPTER_PRINCIPAL, {
+      chatId: 'chat-1',
+      body: '',
+      attachments: [{ url: 'https://cdn/x.png', contentType: 'image/png' }],
+    });
+
+    expect(res.message?.attachments).toEqual([
+      { url: 'https://cdn/x.png', contentType: 'image/png', fileName: 'x.png', sizeBytes: 42 },
+      { url: 'https://cdn/y.png' },
+    ]);
+    // The INSERT persisted the request attachments as a JSON string (param $5).
+    const insert = mocks.clientMock.query.mock.calls.find(([q]: [string]) =>
+      String(q).includes('INSERT INTO messages')
+    ) as [string, unknown[]];
+    expect(JSON.parse(insert[1][4] as string)).toEqual([
+      { url: 'https://cdn/x.png', contentType: 'image/png' },
+    ]);
+  });
+
+  it('treats a non-array attachments column as no attachments', async () => {
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
+    mocks.clientScript.push({ rows: [messageRowFixture({ attachments: null })] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+
+    const res = await sendMessage(mocks.deps, ADOPTER_PRINCIPAL, BASE_SEND);
+    expect(res.message?.attachments).toEqual([]);
+  });
+
+  it('rejects an attachment with no url', async () => {
+    await expect(
+      sendMessage(mocks.deps, ADOPTER_PRINCIPAL, {
+        chatId: 'chat-1',
+        body: 'hi',
+        attachments: [{ url: '' }],
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });
 

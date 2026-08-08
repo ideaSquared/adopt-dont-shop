@@ -416,6 +416,7 @@ export type {
   Chat,
   Message,
   MessageReaction,
+  MessageAttachment,
   OpenChatRequest,
   OpenChatResponse,
   SendMessageRequest,

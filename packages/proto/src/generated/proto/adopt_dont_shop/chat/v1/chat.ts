@@ -101,7 +101,17 @@ export interface Chat {
  * Message mirrors the chat.messages row. Edited / deleted timestamps
  * are present but the writer never sends `edited` events through
  * SendMessage; edit is a separate (future) RPC.
+ * A file attached to a message. The client uploads the file first (e.g.
+ * via /api/v1/uploads/images) and sends the resulting URL; the chat
+ * service stores the metadata verbatim in messages.attachments (jsonb).
  */
+export interface MessageAttachment {
+  url: string;
+  contentType?: string | undefined;
+  fileName?: string | undefined;
+  sizeBytes?: number | undefined;
+}
+
 export interface Message {
   messageId: string;
   chatId: string;
@@ -116,6 +126,7 @@ export interface Message {
   editedAt?: string | undefined;
   deletedAt?: string | undefined;
   createdAt: string;
+  attachments: MessageAttachment[];
 }
 
 export interface MessageReaction {
@@ -151,6 +162,11 @@ export interface OpenChatResponse {
 export interface SendMessageRequest {
   chatId: string;
   body: string;
+  /**
+   * Optional file attachments. A message may carry attachments with an
+   * empty body (an image-only message).
+   */
+  attachments: MessageAttachment[];
 }
 
 export interface SendMessageResponse {
@@ -543,6 +559,126 @@ export const Chat: MessageFns<Chat> = {
   },
 };
 
+function createBaseMessageAttachment(): MessageAttachment {
+  return { url: "", contentType: undefined, fileName: undefined, sizeBytes: undefined };
+}
+
+export const MessageAttachment: MessageFns<MessageAttachment> = {
+  encode(message: MessageAttachment, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.url !== "") {
+      writer.uint32(10).string(message.url);
+    }
+    if (message.contentType !== undefined) {
+      writer.uint32(18).string(message.contentType);
+    }
+    if (message.fileName !== undefined) {
+      writer.uint32(26).string(message.fileName);
+    }
+    if (message.sizeBytes !== undefined) {
+      writer.uint32(32).uint32(message.sizeBytes);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MessageAttachment {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMessageAttachment();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.url = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.contentType = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.fileName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.sizeBytes = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MessageAttachment {
+    return {
+      url: isSet(object.url) ? globalThis.String(object.url) : "",
+      contentType: isSet(object.contentType)
+        ? globalThis.String(object.contentType)
+        : isSet(object.content_type)
+        ? globalThis.String(object.content_type)
+        : undefined,
+      fileName: isSet(object.fileName)
+        ? globalThis.String(object.fileName)
+        : isSet(object.file_name)
+        ? globalThis.String(object.file_name)
+        : undefined,
+      sizeBytes: isSet(object.sizeBytes)
+        ? globalThis.Number(object.sizeBytes)
+        : isSet(object.size_bytes)
+        ? globalThis.Number(object.size_bytes)
+        : undefined,
+    };
+  },
+
+  toJSON(message: MessageAttachment): unknown {
+    const obj: any = {};
+    if (message.url !== "") {
+      obj.url = message.url;
+    }
+    if (message.contentType !== undefined) {
+      obj.contentType = message.contentType;
+    }
+    if (message.fileName !== undefined) {
+      obj.fileName = message.fileName;
+    }
+    if (message.sizeBytes !== undefined) {
+      obj.sizeBytes = Math.round(message.sizeBytes);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MessageAttachment>, I>>(base?: I): MessageAttachment {
+    return MessageAttachment.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MessageAttachment>, I>>(object: I): MessageAttachment {
+    const message = createBaseMessageAttachment();
+    message.url = object.url ?? "";
+    message.contentType = object.contentType ?? undefined;
+    message.fileName = object.fileName ?? undefined;
+    message.sizeBytes = object.sizeBytes ?? undefined;
+    return message;
+  },
+};
+
 function createBaseMessage(): Message {
   return {
     messageId: "",
@@ -553,6 +689,7 @@ function createBaseMessage(): Message {
     editedAt: undefined,
     deletedAt: undefined,
     createdAt: "",
+    attachments: [],
   };
 }
 
@@ -581,6 +718,9 @@ export const Message: MessageFns<Message> = {
     }
     if (message.createdAt !== "") {
       writer.uint32(66).string(message.createdAt);
+    }
+    for (const v of message.attachments) {
+      MessageAttachment.encode(v!, writer.uint32(74).fork()).join();
     }
     return writer;
   },
@@ -656,6 +796,14 @@ export const Message: MessageFns<Message> = {
           message.createdAt = reader.string();
           continue;
         }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.attachments.push(MessageAttachment.decode(reader, reader.uint32()));
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -701,6 +849,9 @@ export const Message: MessageFns<Message> = {
         : isSet(object.created_at)
         ? globalThis.String(object.created_at)
         : "",
+      attachments: globalThis.Array.isArray(object?.attachments)
+        ? object.attachments.map((e: any) => MessageAttachment.fromJSON(e))
+        : [],
     };
   },
 
@@ -730,6 +881,9 @@ export const Message: MessageFns<Message> = {
     if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
+    if (message.attachments?.length) {
+      obj.attachments = message.attachments.map((e) => MessageAttachment.toJSON(e));
+    }
     return obj;
   },
 
@@ -746,6 +900,7 @@ export const Message: MessageFns<Message> = {
     message.editedAt = object.editedAt ?? undefined;
     message.deletedAt = object.deletedAt ?? undefined;
     message.createdAt = object.createdAt ?? "";
+    message.attachments = object.attachments?.map((e) => MessageAttachment.fromPartial(e)) || [];
     return message;
   },
 };
@@ -1011,7 +1166,7 @@ export const OpenChatResponse: MessageFns<OpenChatResponse> = {
 };
 
 function createBaseSendMessageRequest(): SendMessageRequest {
-  return { chatId: "", body: "" };
+  return { chatId: "", body: "", attachments: [] };
 }
 
 export const SendMessageRequest: MessageFns<SendMessageRequest> = {
@@ -1021,6 +1176,9 @@ export const SendMessageRequest: MessageFns<SendMessageRequest> = {
     }
     if (message.body !== "") {
       writer.uint32(18).string(message.body);
+    }
+    for (const v of message.attachments) {
+      MessageAttachment.encode(v!, writer.uint32(26).fork()).join();
     }
     return writer;
   },
@@ -1048,6 +1206,14 @@ export const SendMessageRequest: MessageFns<SendMessageRequest> = {
           message.body = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.attachments.push(MessageAttachment.decode(reader, reader.uint32()));
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1065,6 +1231,9 @@ export const SendMessageRequest: MessageFns<SendMessageRequest> = {
         ? globalThis.String(object.chat_id)
         : "",
       body: isSet(object.body) ? globalThis.String(object.body) : "",
+      attachments: globalThis.Array.isArray(object?.attachments)
+        ? object.attachments.map((e: any) => MessageAttachment.fromJSON(e))
+        : [],
     };
   },
 
@@ -1076,6 +1245,9 @@ export const SendMessageRequest: MessageFns<SendMessageRequest> = {
     if (message.body !== "") {
       obj.body = message.body;
     }
+    if (message.attachments?.length) {
+      obj.attachments = message.attachments.map((e) => MessageAttachment.toJSON(e));
+    }
     return obj;
   },
 
@@ -1086,6 +1258,7 @@ export const SendMessageRequest: MessageFns<SendMessageRequest> = {
     const message = createBaseSendMessageRequest();
     message.chatId = object.chatId ?? "";
     message.body = object.body ?? "";
+    message.attachments = object.attachments?.map((e) => MessageAttachment.fromPartial(e)) || [];
     return message;
   },
 };

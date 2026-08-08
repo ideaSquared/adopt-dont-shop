@@ -120,6 +120,16 @@ message Chat {
 // Message mirrors the chat.messages row. Edited / deleted timestamps
 // are present but the writer never sends `edited` events through
 // SendMessage; edit is a separate (future) RPC.
+// A file attached to a message. The client uploads the file first (e.g.
+// via /api/v1/uploads/images) and sends the resulting URL; the chat
+// service stores the metadata verbatim in messages.attachments (jsonb).
+message MessageAttachment {
+  string url = 1;
+  optional string content_type = 2;
+  optional string file_name = 3;
+  optional uint32 size_bytes = 4;
+}
+
 message Message {
   string message_id = 1;
   string chat_id = 2;
@@ -132,6 +142,7 @@ message Message {
   optional string edited_at = 6;
   optional string deleted_at = 7;
   string created_at = 8;
+  repeated MessageAttachment attachments = 9;
 }
 
 message MessageReaction {
@@ -165,6 +176,9 @@ message OpenChatResponse {
 message SendMessageRequest {
   string chat_id = 1;
   string body = 2;
+  // Optional file attachments. A message may carry attachments with an
+  // empty body (an image-only message).
+  repeated MessageAttachment attachments = 3;
 }
 
 message SendMessageResponse {
