@@ -153,6 +153,7 @@ export const registerPetsRoutes = async (
             type: { type: 'string' },
             size: { type: 'string' },
             rescueId: { type: 'string' },
+            featured: { type: 'string' },
           },
         },
         response: {
@@ -196,6 +197,7 @@ export const registerPetsRoutes = async (
         typeFilter: parseType(query.type),
         sizeFilter: parseSize(query.size),
         rescueIdFilter: query.rescueId,
+        featuredFilter: query.featured === 'true',
       };
       try {
         const res = await client.list(grpcReq, buildMetadata(req));

@@ -213,10 +213,10 @@ export class PetsService {
    */
   async getFeaturedPets(limit: number = 12): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<unknown[]>>(
-        PETS_ENDPOINTS.FEATURED_PETS,
-        { limit }
-      );
+      const response = await this.apiService.get<ApiResponse<unknown[]>>(PETS_ENDPOINTS.PETS, {
+        limit,
+        featured: true,
+      });
       return (response.data || []).map((p) => normalisePet(p));
     } catch (error) {
       if (this.config.debug) {

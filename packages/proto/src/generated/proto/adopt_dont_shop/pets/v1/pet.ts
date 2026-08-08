@@ -434,7 +434,14 @@ export interface ListPetsRequest {
   typeFilter: PetType;
   sizeFilter: PetSize;
   /** Scope to a single rescue's pets (rescue staff dashboards). */
-  rescueIdFilter?: string | undefined;
+  rescueIdFilter?:
+    | string
+    | undefined;
+  /**
+   * Restrict to featured pets only (the public "featured" homepage rail).
+   * false / unset = no featured filter.
+   */
+  featuredFilter?: boolean | undefined;
 }
 
 export interface ListPetsResponse {
@@ -2213,7 +2220,15 @@ export const GetPetResponse: MessageFns<GetPetResponse> = {
 };
 
 function createBaseListPetsRequest(): ListPetsRequest {
-  return { cursor: undefined, limit: 0, statusFilter: 0, typeFilter: 0, sizeFilter: 0, rescueIdFilter: undefined };
+  return {
+    cursor: undefined,
+    limit: 0,
+    statusFilter: 0,
+    typeFilter: 0,
+    sizeFilter: 0,
+    rescueIdFilter: undefined,
+    featuredFilter: undefined,
+  };
 }
 
 export const ListPetsRequest: MessageFns<ListPetsRequest> = {
@@ -2235,6 +2250,9 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     }
     if (message.rescueIdFilter !== undefined) {
       writer.uint32(50).string(message.rescueIdFilter);
+    }
+    if (message.featuredFilter !== undefined) {
+      writer.uint32(56).bool(message.featuredFilter);
     }
     return writer;
   },
@@ -2294,6 +2312,14 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
           message.rescueIdFilter = reader.string();
           continue;
         }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.featuredFilter = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2327,6 +2353,11 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
         : isSet(object.rescue_id_filter)
         ? globalThis.String(object.rescue_id_filter)
         : undefined,
+      featuredFilter: isSet(object.featuredFilter)
+        ? globalThis.Boolean(object.featuredFilter)
+        : isSet(object.featured_filter)
+        ? globalThis.Boolean(object.featured_filter)
+        : undefined,
     };
   },
 
@@ -2350,6 +2381,9 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     if (message.rescueIdFilter !== undefined) {
       obj.rescueIdFilter = message.rescueIdFilter;
     }
+    if (message.featuredFilter !== undefined) {
+      obj.featuredFilter = message.featuredFilter;
+    }
     return obj;
   },
 
@@ -2364,6 +2398,7 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     message.typeFilter = object.typeFilter ?? 0;
     message.sizeFilter = object.sizeFilter ?? 0;
     message.rescueIdFilter = object.rescueIdFilter ?? undefined;
+    message.featuredFilter = object.featuredFilter ?? undefined;
     return message;
   },
 };

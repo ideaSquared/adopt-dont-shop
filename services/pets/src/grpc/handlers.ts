@@ -406,6 +406,11 @@ export async function listPets(
     params.push(rescueScope);
     n++;
   }
+  if (req.featuredFilter) {
+    where.push(`featured = $${n}`);
+    params.push(true);
+    n++;
+  }
   if (!privileged) {
     const placeholders = PUBLIC_HIDDEN_STATUSES.map(() => `$${n++}`).join(', ');
     where.push(`status NOT IN (${placeholders})`);

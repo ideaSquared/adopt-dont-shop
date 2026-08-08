@@ -437,7 +437,7 @@ export class NotificationsService {
    */
   public async healthCheck(): Promise<boolean> {
     try {
-      await this.apiService.get('/api/v1/health');
+      await this.apiService.get('/health/simple');
       return true;
     } catch (error) {
       if (this.config.debug) {

@@ -382,7 +382,7 @@ describe('NotificationsService', () => {
 
       const result = await service.healthCheck();
 
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/health');
+      expect(mockApiService.get).toHaveBeenCalledWith('/health/simple');
       expect(result).toBe(true);
     });
 
