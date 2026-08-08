@@ -55,7 +55,7 @@ describe('AdminRescueService', () => {
         dateTo: '2024-02-01',
       });
 
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/rescues', {
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/rescues', {
         page: '2',
         limit: '10',
         search: 'paws',
@@ -86,7 +86,7 @@ describe('AdminRescueService', () => {
 
       const result = await rescueService.getAll();
 
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/rescues', {});
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/rescues', {});
       expect(result.pagination.totalPages).toBe(5);
       expect(result.pagination.hasNext).toBe(true);
       expect(result.pagination.hasPrev).toBe(false);

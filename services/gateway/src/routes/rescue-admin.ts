@@ -41,6 +41,7 @@ import {
   type GetRescueStatisticsRequest,
   type InviteStaffRequest,
   type ListRescueInvitationsRequest,
+  type ListRescuesRequest,
   type ListStaffMembersRequest,
   type SendRescueEmailRequest,
   type UpdateRescuePlanRequest,
@@ -52,6 +53,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
+import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 import { rescueToView } from './rescue-view.js';
 
 export type RescueAdminRoutesOptions = {
@@ -70,6 +72,16 @@ const BULK_ACTION_STATUS: Record<string, RescueV1.RescueStatus> = {
   approve: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
   verify: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
   suspend: RescueV1.RescueStatus.RESCUE_STATUS_SUSPENDED,
+};
+
+// Admin datatable status filter → proto enum. 'all' (or unset) uses the
+// all_statuses scope instead of a concrete filter.
+const ADMIN_STATUS_FILTER: Record<string, RescueV1.RescueStatus> = {
+  pending: RescueV1.RescueStatus.RESCUE_STATUS_PENDING,
+  verified: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+  suspended: RescueV1.RescueStatus.RESCUE_STATUS_SUSPENDED,
+  inactive: RescueV1.RescueStatus.RESCUE_STATUS_INACTIVE,
+  rejected: RescueV1.RescueStatus.RESCUE_STATUS_REJECTED,
 };
 
 // proto StaffMember + (optional) auth user → the SPA's StaffMember shape.
@@ -132,6 +144,90 @@ export const registerRescueAdminRoutes = async (
   const { client, authClient } = opts;
 
   await app.register(rateLimit, { global: false });
+
+  // GET /api/v1/admin/rescues — the admin dashboard datatable. Offset
+  // paginated with a real total (so the shared DataTable renders "Page X of
+  // Y" and gates Next), and defaults to the all-statuses scope so pending /
+  // suspended rescues are visible for moderation. `status=<concrete>`
+  // narrows to a single status.
+  app.get(
+    '/api/v1/admin/rescues',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['rescues'],
+        summary: 'List rescues for the admin dashboard',
+        querystring: {
+          type: 'object',
+          properties: {
+            page: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            search: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  limit: { type: 'number' },
+                  total: { type: 'number' },
+                  totalPages: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { page: 1, limit: 20 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ success: false, error: pagination.error });
+      }
+      const status = q.status;
+      const allStatuses = status === undefined || status === '' || status === 'all';
+      const statusFilter =
+        !allStatuses && status
+          ? (ADMIN_STATUS_FILTER[status] ?? RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED)
+          : RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED;
+      const grpcReq: ListRescuesRequest = {
+        page: pagination.page,
+        limit: pagination.limit,
+        allStatuses,
+        statusFilter,
+        ...(q.search !== undefined && q.search !== '' ? { nameSearch: q.search } : {}),
+      };
+      try {
+        const res = await client.list(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          data: res.rescues.map(rescueToView),
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: pagination.page,
+            limit: pagination.limit,
+            total: res.total ?? 0,
+          }),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 
   // PATCH /api/v1/admin/rescues/:rescueId/plan
   app.patch<{

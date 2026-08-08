@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { MAX_PAGE_LIMIT, parsePagination } from './pagination.js';
+import { buildPaginationEnvelope, MAX_PAGE_LIMIT, parsePagination } from './pagination.js';
 
 describe('parsePagination', () => {
   it('returns page 1 / limit 20 when both params are missing', () => {
@@ -69,6 +69,82 @@ describe('parsePagination', () => {
       ok: true,
       page: 1,
       limit: 0,
+    });
+  });
+});
+
+describe('buildPaginationEnvelope', () => {
+  describe('offset mode (datatable surfaces with a real count)', () => {
+    it('derives totalPages and next/prev from a real backend total', () => {
+      expect(buildPaginationEnvelope({ mode: 'offset', page: 1, limit: 25, total: 100 })).toEqual({
+        page: 1,
+        limit: 25,
+        total: 100,
+        totalPages: 4,
+        hasNext: true,
+        hasPrev: false,
+      });
+    });
+
+    it('reports hasPrev and no hasNext on the last page', () => {
+      expect(buildPaginationEnvelope({ mode: 'offset', page: 4, limit: 25, total: 100 })).toEqual({
+        page: 4,
+        limit: 25,
+        total: 100,
+        totalPages: 4,
+        hasNext: false,
+        hasPrev: true,
+      });
+    });
+
+    it('rounds a partial final page up', () => {
+      const meta = buildPaginationEnvelope({ mode: 'offset', page: 1, limit: 25, total: 26 });
+      expect(meta.totalPages).toBe(2);
+      expect(meta.hasNext).toBe(true);
+    });
+
+    it('returns a single empty page for a zero total', () => {
+      expect(buildPaginationEnvelope({ mode: 'offset', page: 1, limit: 25, total: 0 })).toEqual({
+        page: 1,
+        limit: 25,
+        total: 0,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      });
+    });
+
+    it('treats a zero limit (fetch-all) as a single page', () => {
+      expect(buildPaginationEnvelope({ mode: 'offset', page: 1, limit: 0, total: 40 })).toEqual({
+        page: 1,
+        limit: 0,
+        total: 40,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      });
+    });
+  });
+
+  describe('keyset mode (feeds with no cheap count)', () => {
+    it('carries the cursor and omits the count it cannot produce', () => {
+      expect(
+        buildPaginationEnvelope({ mode: 'keyset', limit: 20, hasNext: true, nextCursor: 'c1' })
+      ).toEqual({
+        page: 1,
+        limit: 20,
+        hasNext: true,
+        hasPrev: false,
+        nextCursor: 'c1',
+      });
+    });
+
+    it('omits nextCursor and any count on the final page', () => {
+      const meta = buildPaginationEnvelope({ mode: 'keyset', limit: 20, hasNext: false });
+      expect(meta).toEqual({ page: 1, limit: 20, hasNext: false, hasPrev: false });
+      expect(meta).not.toHaveProperty('nextCursor');
+      expect(meta).not.toHaveProperty('total');
+      expect(meta).not.toHaveProperty('totalPages');
     });
   });
 });
