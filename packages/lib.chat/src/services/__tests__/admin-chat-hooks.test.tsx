@@ -97,16 +97,23 @@ describe('useAdminChatById', () => {
 });
 
 describe('useAdminChatMessages', () => {
-  it('requests messages with pagination params', async () => {
-    const response = {
-      success: true,
-      data: { messages: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } },
+  it('wraps the top-level keyset messages feed in the data envelope', async () => {
+    // The route returns messages top-level alongside the keyset pagination;
+    // the hook wraps them in { data } for its consumers.
+    const routeBody = {
+      messages: [],
+      pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false },
     };
-    get.mockResolvedValue(response);
+    get.mockResolvedValue(routeBody);
 
     const { result } = renderHook(() => useAdminChatMessages('chat-1', 2, 25));
 
-    await waitFor(() => expect(result.current.data).toEqual(response));
+    await waitFor(() =>
+      expect(result.current.data).toEqual({
+        success: true,
+        data: { messages: [], pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false } },
+      })
+    );
     expect(get).toHaveBeenCalledWith('/api/v1/chats/chat-1/messages', { page: 2, limit: 25 });
   });
 

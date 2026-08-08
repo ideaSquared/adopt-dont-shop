@@ -41,7 +41,14 @@ describe('SupportTicketService', () => {
   });
 
   describe('getTickets', () => {
-    const pagination = { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 20 };
+    const pagination = {
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+    };
 
     it('requests the tickets endpoint and parses the response into data + pagination', async () => {
       mockApi.get.mockResolvedValue({ success: true, data: [baseTicket], pagination });

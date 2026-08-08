@@ -222,7 +222,7 @@ export class PetManagementService {
       const response = await this.apiService.get<{
         success: boolean;
         data: Pet[];
-        meta: {
+        pagination: {
           page: number;
           total: number;
           totalPages: number;
@@ -231,16 +231,16 @@ export class PetManagementService {
         };
       }>(PETS_ENDPOINTS.PETS, params);
 
-      if (response.success && response.data && response.meta) {
+      if (response.success && response.data && response.pagination) {
         return {
           pets: response.data,
           pagination: {
-            page: response.meta.page || 1,
+            page: response.pagination.page || 1,
             limit: filters.limit || 12,
-            total: response.meta.total || 0,
-            totalPages: response.meta.totalPages || 1,
-            hasNext: response.meta.hasNext || false,
-            hasPrev: response.meta.hasPrev || false,
+            total: response.pagination.total || 0,
+            totalPages: response.pagination.totalPages || 1,
+            hasNext: response.pagination.hasNext || false,
+            hasPrev: response.pagination.hasPrev || false,
           },
         };
       } else {
@@ -287,7 +287,7 @@ export class PetManagementService {
       const response = await this.apiService.get<{
         success: boolean;
         data: Pet[];
-        meta: {
+        pagination: {
           page: number;
           total: number;
           totalPages: number;
@@ -296,16 +296,16 @@ export class PetManagementService {
         };
       }>(PETS_ENDPOINTS.PETS, params);
 
-      if (response.success && response.data && response.meta) {
+      if (response.success && response.data && response.pagination) {
         return {
           pets: response.data,
           pagination: {
-            page: response.meta.page || 1,
+            page: response.pagination.page || 1,
             limit: filters.limit || 12,
-            total: response.meta.total || 0,
-            totalPages: response.meta.totalPages || 1,
-            hasNext: response.meta.hasNext || false,
-            hasPrev: response.meta.hasPrev || false,
+            total: response.pagination.total || 0,
+            totalPages: response.pagination.totalPages || 1,
+            hasNext: response.pagination.hasNext || false,
+            hasPrev: response.pagination.hasPrev || false,
           },
         };
       } else {

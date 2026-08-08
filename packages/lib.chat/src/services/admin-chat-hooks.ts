@@ -39,11 +39,14 @@ interface MessagesResponse {
   success: boolean;
   data: {
     messages: Message[];
+    // Chat history is a keyset (reverse-scroll) feed, so the envelope carries
+    // hasNext + nextCursor rather than a page count.
     pagination: {
       page: number;
       limit: number;
-      total: number;
-      pages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+      nextCursor?: string;
     };
   };
 }
@@ -141,11 +144,18 @@ export const useAdminChatMessages = (
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiService.get<MessagesResponse>(`/api/v1/chats/${chatId}/messages`, {
-        page,
-        limit,
+      // The messages route is a keyset feed: `messages` (+ `nextCursor`) are
+      // top-level alongside the canonical keyset `pagination`. Wrap them in the
+      // `{ data }` shape this hook's consumers read.
+      const response = await apiService.get<{
+        messages: Message[];
+        nextCursor?: string;
+        pagination: MessagesResponse['data']['pagination'];
+      }>(`/api/v1/chats/${chatId}/messages`, { page, limit });
+      setData({
+        success: true,
+        data: { messages: response.messages, pagination: response.pagination },
       });
-      setData(response);
     } catch (err) {
       setError(err as Error);
     } finally {

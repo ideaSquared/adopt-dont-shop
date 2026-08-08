@@ -59,7 +59,7 @@ describe('PetsService', () => {
             updatedAt: '2023-01-01',
           },
         ],
-        meta: {
+        pagination: {
           page: 1,
           total: 1,
           totalPages: 1,
@@ -107,7 +107,7 @@ describe('PetsService', () => {
             updated_at: '2023-01-01',
           },
         ],
-        meta: { page: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+        pagination: { page: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
       };
 
       it('sends user coordinates to the API when latitude and longitude are provided', async () => {
@@ -282,7 +282,7 @@ describe('PetsService', () => {
     const emptyResponse = {
       success: true,
       data: [],
-      meta: { page: 1, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+      pagination: { page: 1, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
     };
 
     it('maps an age range to ageMin/ageMax and drops the age object', async () => {
@@ -410,7 +410,7 @@ describe('PetsService', () => {
       mockApiService.get.mockResolvedValueOnce({
         success: true,
         data: [{ petId: 'p1', name: 'A' }],
-        meta: { page: 3, total: 50, totalPages: 3, hasNext: false, hasPrev: true },
+        pagination: { page: 3, total: 50, totalPages: 3, hasNext: false, hasPrev: true },
       });
 
       const result = await service.getPetsByRescue('rescue-1', 3);
@@ -425,7 +425,7 @@ describe('PetsService', () => {
       });
     });
 
-    it('falls back to the requested page when meta is absent', async () => {
+    it('falls back to the requested page when pagination is absent', async () => {
       mockApiService.get.mockResolvedValueOnce({ success: true, data: [] });
 
       const result = await service.getPetsByRescue('rescue-1', 2);
@@ -668,7 +668,7 @@ describe('PetsService', () => {
             updatedAt: '2026-01-01',
           },
         ],
-        meta: { page: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+        pagination: { page: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
       });
 
       const result = await service.searchPets();
@@ -708,7 +708,7 @@ describe('PetsService', () => {
             status: 'deceased',
           },
         ],
-        meta: { page: 1, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+        pagination: { page: 1, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
       });
 
       const result = await service.searchPets();
