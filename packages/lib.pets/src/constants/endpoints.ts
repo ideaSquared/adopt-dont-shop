@@ -8,8 +8,7 @@ export const PETS_ENDPOINTS = {
   PETS: '/api/v1/pets',
   PET_BY_ID: (id: string) => `/api/v1/pets/${id}`,
 
-  // Featured and recent pets
-  FEATURED_PETS: '/api/v1/pets/featured',
+  // Recent pets (featured pets are served by PETS with a ?featured=true query)
   RECENT_PETS: '/api/v1/pets/recent',
 
   // Pets by rescue (rescue-scoped list is served by PETS with a ?rescueId=
@@ -41,7 +40,6 @@ export const PETS_ENDPOINTS = {
 export const {
   PETS,
   PET_BY_ID,
-  FEATURED_PETS,
   RECENT_PETS,
   MY_RESCUE_PETS,
   PET_BREEDS,

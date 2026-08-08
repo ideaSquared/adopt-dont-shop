@@ -241,7 +241,10 @@ describe('PetsService', () => {
       const result = await service.getFeaturedPets(12);
 
       expect(result).toEqual(mockPets);
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/featured', { limit: 12 });
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets', {
+        limit: 12,
+        featured: true,
+      });
     });
   });
 
