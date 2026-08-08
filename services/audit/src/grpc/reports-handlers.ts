@@ -29,6 +29,8 @@ import {
   type AuditDeleteReportScheduleResponse,
   type AuditDeleteSavedReportRequest,
   type AuditDeleteSavedReportResponse,
+  type AuditGetReportShareByTokenRequest,
+  type AuditGetReportShareByTokenResponse,
   type AuditGetSavedReportRequest,
   type AuditGetSavedReportResponse,
   type AuditListReportTemplatesRequest,
@@ -720,4 +722,50 @@ export async function revokeReportShare(
     [shareId]
   );
   return { revoked: (rowCount ?? 0) > 0 };
+}
+
+// --- GetReportShareByToken --------------------------------------------
+//
+// Public token-link resolution — the plaintext token IS the credential, so
+// there is NO permission check (the caller is the unauthenticated gateway
+// route; `principal` is null for anonymous viewers). The token is hashed
+// and matched against a LIVE share (unrevoked, unexpired, report not
+// deleted). Unknown / revoked / expired / deleted all resolve to the same
+// NOT_FOUND so the endpoint never reveals which — a token probe learns
+// only "no live share", never "revoked" vs "never existed".
+
+type ShareTokenRow = SavedReportRow & { permission: 'view' | 'edit' };
+
+export async function getReportShareByToken(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: AuditGetReportShareByTokenRequest
+): Promise<AuditGetReportShareByTokenResponse> {
+  const token = req.token?.trim() ?? '';
+  if (token === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'token is required');
+  }
+  // Hash with the same algorithm createReportShare uses to persist token_hash.
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+
+  const result = await deps.pool.query<ShareTokenRow>(
+    `SELECT sr.saved_report_id, sr.user_id, sr.rescue_id, sr.template_id, sr.name,
+            sr.description, sr.config, sr.is_archived, sr.created_at, sr.updated_at,
+            s.permission
+       FROM saved_report_shares s
+       JOIN saved_reports sr ON sr.saved_report_id = s.saved_report_id
+      WHERE s.token_hash = $1
+        AND s.revoked_at IS NULL
+        AND (s.expires_at IS NULL OR s.expires_at > now())
+        AND sr.deleted_at IS NULL`,
+    [tokenHash]
+  );
+  const row = result.rows[0];
+  if (!row) {
+    throw new HandlerError('NOT_FOUND', 'share not found');
+  }
+  return {
+    report: rowToSavedReport(row),
+    permission: sharePermissionToProto(row.permission),
+  };
 }

@@ -60,6 +60,16 @@ service AuditQueryService {
   // reports.update[:any].
   rpc RevokeReportShare(RevokeReportShareRequest) returns (RevokeReportShareResponse);
 
+  // Resolve a token-link share to its saved report. UNAUTHENTICATED at the
+  // RPC layer — the plaintext token IS the credential, so the public
+  // gateway route in front carries no principal. The service hashes the
+  // token, matches it against saved_report_shares.token_hash, and requires
+  // the share be unrevoked and unexpired (and its report not deleted).
+  // Unknown / revoked / expired all collapse to NOT_FOUND so the endpoint
+  // never reveals which. No permission check — the token is the authority.
+  rpc GetReportShareByToken(GetReportShareByTokenRequest)
+      returns (GetReportShareByTokenResponse);
+
   // GDPR saga status. Returns a single row from
   // audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
   // the saga hasn't been requested. Gated on admin.gdpr.read OR
@@ -380,4 +390,17 @@ message RevokeReportShareRequest {
 }
 message RevokeReportShareResponse {
   bool revoked = 1;
+}
+
+message GetReportShareByTokenRequest {
+  // Plaintext token from the share link. The service hashes it before
+  // lookup — the plaintext is never stored.
+  string token = 1;
+}
+message GetReportShareByTokenResponse {
+  // The saved report the live share points at (config_json carried through
+  // for the gateway to execute).
+  SavedReport report = 1;
+  // The share's granted permission (view / edit).
+  ReportSharePermission permission = 2;
 }
