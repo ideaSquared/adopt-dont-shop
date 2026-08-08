@@ -104,9 +104,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
     );
   }
 
-  const hasMorePages =
-    messagesData?.data?.pagination &&
-    messagesData.data.pagination.page < messagesData.data.pagination.pages;
+  const hasMorePages = messagesData?.data?.pagination?.hasNext ?? false;
 
   return (
     <>

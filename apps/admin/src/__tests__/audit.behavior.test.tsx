@@ -48,7 +48,7 @@ const makeLog = (overrides: Partial<AuditLog> = {}): AuditLog => ({
 const paginated = (logs: AuditLog[]) => ({
   success: true,
   data: logs,
-  pagination: { page: 1, limit: 50, total: logs.length, pages: 1 },
+  pagination: { page: 1, limit: 50, total: logs.length, totalPages: 1 },
 });
 
 beforeEach(() => {
