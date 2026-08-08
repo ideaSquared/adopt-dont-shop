@@ -209,6 +209,39 @@ describe('listModeratorActions', () => {
     const sql = query.mock.calls[0][0] as string;
     expect(sql).not.toContain('is_active = true');
   });
+
+  it('offset mode (page set) returns an OFFSET page + real total via COUNT(*)', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [actionRow()] }, // page query
+      { rows: [{ total: '7' }] }, // count query
+    ]);
+    const res = await listModeratorActions(deps, makePrincipal(), {
+      page: 2,
+      limit: 10,
+    } as ListModeratorActionsRequest);
+    const pageSql = query.mock.calls[0][0] as string;
+    expect(pageSql).toContain('LIMIT $1 OFFSET $2');
+    expect(query.mock.calls[0][1]).toEqual([10, 10]);
+    expect(query.mock.calls[1][0] as string).toContain('COUNT(*)');
+    expect((res as { total?: number }).total).toBe(7);
+    expect(res.nextCursor).toBeUndefined();
+    expect(res.actions).toHaveLength(1);
+  });
+
+  it('offset mode applies filters to BOTH the page and count queries', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [] }, // page query
+      { rows: [{ total: '0' }] }, // count query
+    ]);
+    await listModeratorActions(deps, makePrincipal(), {
+      targetUserId: 'usr-2',
+      page: 1,
+      limit: 10,
+    } as ListModeratorActionsRequest);
+    expect(query.mock.calls[0][0] as string).toContain('target_user_id = $1');
+    expect(query.mock.calls[1][0] as string).toContain('target_user_id = $1');
+    expect((query.mock.calls[1][1] as unknown[])[0]).toBe('usr-2');
+  });
 });
 
 describe('addEvidence', () => {

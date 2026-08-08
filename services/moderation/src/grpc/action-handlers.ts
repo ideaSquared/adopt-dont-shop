@@ -196,7 +196,14 @@ export async function listModeratorActions(
     where.push(`is_active = true AND (expires_at IS NULL OR expires_at > now())`);
   }
 
-  if (req.cursor !== undefined && req.cursor !== '') {
+  // Offset mode: admin datatables pass `page` and need a real total so the
+  // shared DataTable can render "Page X of Y" and gate Next. Keyset cursors
+  // can't cheaply produce a count, so this path issues a COUNT(*) over the
+  // same filter. Offset callers never send a cursor, so the cursor predicate
+  // is skipped.
+  const offsetMode = req.page !== undefined && req.page > 0;
+
+  if (!offsetMode && req.cursor !== undefined && req.cursor !== '') {
     let cursor;
     try {
       cursor = decodeCursor(req.cursor);
@@ -212,6 +219,32 @@ export async function listModeratorActions(
   }
 
   const whereSql = where.length === 0 ? '' : `WHERE ${where.join(' AND ')}`;
+
+  if (offsetMode) {
+    const offset = ((req.page ?? 1) - 1) * limit;
+    const pageResult = await deps.pool.query<ModeratorActionRow>(
+      `
+      SELECT action_id, moderator_id, report_id, target_entity_type,
+             target_entity_id, target_user_id, action_type, severity, reason,
+             description, metadata, duration, expires_at, is_active,
+             acknowledged_at, created_at, updated_at
+      FROM moderator_actions
+      ${whereSql}
+      ORDER BY created_at DESC, action_id DESC
+      LIMIT $${p} OFFSET $${p + 1}
+      `,
+      [...params, limit, offset]
+    );
+    const countResult = await deps.pool.query<{ total: string }>(
+      `SELECT COUNT(*)::text AS total FROM moderator_actions ${whereSql}`,
+      params
+    );
+    return {
+      actions: pageResult.rows.map(actionRowToProto),
+      total: Number(countResult.rows[0]?.total ?? 0),
+    };
+  }
+
   params.push(limit + 1);
   const sql = `
     SELECT action_id, moderator_id, report_id, target_entity_type,

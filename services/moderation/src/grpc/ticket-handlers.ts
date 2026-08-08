@@ -318,7 +318,15 @@ export async function listSupportTickets(
     params.push(req.userId);
   }
 
-  if (req.cursor !== undefined && req.cursor !== '') {
+  // Offset mode: admin datatables pass `page` and need a real total so the
+  // shared DataTable can render "Page X of Y" and gate Next. Keyset cursors
+  // can't cheaply produce a count, so this path issues a COUNT(*) over the
+  // same filter (the non-admin self-scope predicate included, so the total
+  // respects visibility). Offset callers never send a cursor, so the cursor
+  // predicate is skipped.
+  const offsetMode = req.page !== undefined && req.page > 0;
+
+  if (!offsetMode && req.cursor !== undefined && req.cursor !== '') {
     let cursor;
     try {
       cursor = decodeCursor(req.cursor);
@@ -334,6 +342,29 @@ export async function listSupportTickets(
   }
 
   const whereSql = where.length === 0 ? '' : `WHERE ${where.join(' AND ')}`;
+
+  if (offsetMode) {
+    const offset = ((req.page ?? 1) - 1) * limit;
+    const pageResult = await deps.pool.query<SupportTicketRow>(
+      `
+      SELECT ${TICKET_SELECT}
+      FROM support_tickets
+      ${whereSql}
+      ORDER BY created_at DESC, ticket_id DESC
+      LIMIT $${p} OFFSET $${p + 1}
+      `,
+      [...params, limit, offset]
+    );
+    const countResult = await deps.pool.query<{ total: string }>(
+      `SELECT COUNT(*)::text AS total FROM support_tickets ${whereSql}`,
+      params
+    );
+    return {
+      tickets: pageResult.rows.map(ticketRowToProto),
+      total: Number(countResult.rows[0]?.total ?? 0),
+    };
+  }
+
   params.push(limit + 1);
   const sql = `
     SELECT ${TICKET_SELECT}

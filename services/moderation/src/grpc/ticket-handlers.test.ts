@@ -370,6 +370,39 @@ describe('listSupportTickets', () => {
     expect(res.tickets).toHaveLength(10);
     expect(res.nextCursor).toBeDefined();
   });
+
+  it('offset mode (page set) returns an OFFSET page + real total via COUNT(*)', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [ticketRow()] }, // page query
+      { rows: [{ total: '20' }] }, // count query
+    ]);
+    const res = await listSupportTickets(deps, makePrincipal(), {
+      page: 2,
+      limit: 10,
+    } as ListSupportTicketsRequest);
+    const pageSql = query.mock.calls[0][0] as string;
+    expect(pageSql).toContain('LIMIT $1 OFFSET $2');
+    expect(query.mock.calls[0][1]).toEqual([10, 10]);
+    expect(query.mock.calls[1][0] as string).toContain('COUNT(*)');
+    expect((res as { total?: number }).total).toBe(20);
+    expect(res.nextCursor).toBeUndefined();
+    expect(res.tickets).toHaveLength(1);
+  });
+
+  it('offset mode keeps the non-admin self-scope in BOTH the page and count queries', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [] }, // page query
+      { rows: [{ total: '0' }] }, // count query
+    ]);
+    await listSupportTickets(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      page: 1,
+      limit: 10,
+    } as ListSupportTicketsRequest);
+    expect(query.mock.calls[0][0] as string).toContain('user_id = $1');
+    expect(query.mock.calls[1][0] as string).toContain('user_id = $1');
+    expect((query.mock.calls[0][1] as unknown[])[0]).toBe('usr-1');
+    expect((query.mock.calls[1][1] as unknown[])[0]).toBe('usr-1');
+  });
 });
 
 describe('respondToTicket', () => {
