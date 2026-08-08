@@ -15,6 +15,7 @@ type Mocks = {
   getStats: ReturnType<typeof vi.fn>;
   sendEmail: ReturnType<typeof vi.fn>;
   verify: ReturnType<typeof vi.fn>;
+  deleteRescue: ReturnType<typeof vi.fn>;
   listStaffMembers: ReturnType<typeof vi.fn>;
   createStaffMember: ReturnType<typeof vi.fn>;
   updateStaffMember: ReturnType<typeof vi.fn>;
@@ -29,6 +30,7 @@ function makeClient(): Mocks {
   const getStats = vi.fn();
   const sendEmail = vi.fn();
   const verify = vi.fn();
+  const deleteRescue = vi.fn();
   const listStaffMembers = vi.fn();
   const createStaffMember = vi.fn();
   const updateStaffMember = vi.fn();
@@ -47,6 +49,7 @@ function makeClient(): Mocks {
     getRescueStatistics: getStats,
     sendRescueEmail: sendEmail,
     verify,
+    delete: deleteRescue,
     inviteStaff,
     getMyStaffMembership: vi.fn(),
     listStaffMembers,
@@ -72,6 +75,7 @@ function makeClient(): Mocks {
     getStats,
     sendEmail,
     verify,
+    deleteRescue,
     listStaffMembers,
     createStaffMember,
     updateStaffMember,
@@ -423,6 +427,74 @@ describe('POST /api/v1/rescues/:rescueId/{verify,reject}', () => {
 
     expect(res.statusCode).toBe(400);
     expect(m.verify).not.toHaveBeenCalled();
+  });
+});
+
+describe('DELETE /api/v1/rescues/:rescueId', () => {
+  let app: FastifyInstance;
+  let m: Mocks;
+
+  beforeEach(async () => {
+    m = makeClient();
+    app = await makeApp(m.client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('soft-deletes the rescue and returns a success envelope', async () => {
+    m.deleteRescue.mockResolvedValue({ rescue: makeRescue() });
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/rescues/rsc-1',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(m.deleteRescue.mock.calls[0][0]).toMatchObject({ rescueId: 'rsc-1' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, message: 'Rescue deleted' });
+  });
+
+  it('forwards an optional reason from the body', async () => {
+    m.deleteRescue.mockResolvedValue({ rescue: makeRescue() });
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/rescues/rsc-1',
+      headers: ADMIN_HEADERS,
+      payload: { reason: 'duplicate' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(m.deleteRescue.mock.calls[0][0]).toMatchObject({
+      rescueId: 'rsc-1',
+      reason: 'duplicate',
+    });
+  });
+
+  it('maps a gRPC NOT_FOUND to 404', async () => {
+    m.deleteRescue.mockRejectedValue({ code: grpcStatus.NOT_FOUND });
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/rescues/rsc-1',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('maps a gRPC PERMISSION_DENIED to 403', async () => {
+    m.deleteRescue.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED });
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/rescues/rsc-1',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(res.statusCode).toBe(403);
   });
 });
 

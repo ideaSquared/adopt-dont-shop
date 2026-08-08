@@ -3,19 +3,23 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ModerationV1,
   type AssignSupportTicketRequest,
+  type EscalateSupportTicketRequest,
   type GetSupportTicketRequest,
   type ListSupportTicketsRequest,
   type OpenSupportTicketRequest,
   type RespondToTicketRequest,
+  type UpdateSupportTicketRequest,
 } from '@adopt-dont-shop/proto';
 
 import { type HandlerDeps } from './adapter.js';
 import {
   assignSupportTicket,
+  escalateSupportTicket,
   getSupportTicket,
   listSupportTickets,
   openSupportTicket,
   respondToTicket,
+  updateSupportTicket,
 } from './ticket-handlers.js';
 
 function makePrincipal(
@@ -489,5 +493,157 @@ describe('assignSupportTicket', () => {
     expect(res.ticket?.assignedTo).toBe('staff-2');
     // UPDATE call carries the new assignee + ticket id.
     expect(query.mock.calls[1][1]).toEqual(['staff-2', 'tkt-1']);
+  });
+});
+
+describe('updateSupportTicket', () => {
+  it('requires moderation.tickets.manage', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      updateSupportTicket(deps, makePrincipal({ permissions: [] }), {
+        ticketId: 'tkt-1',
+        status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+      } as UpdateSupportTicketRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('throws INVALID_ARGUMENT when ticketId is missing', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      updateSupportTicket(deps, makePrincipal(), {
+        ticketId: '',
+        status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+      } as UpdateSupportTicketRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws INVALID_ARGUMENT when no updatable fields are provided', async () => {
+    const { deps, query } = makeDeps([]);
+    await expect(
+      updateSupportTicket(deps, makePrincipal(), {
+        ticketId: 'tkt-1',
+        tags: [],
+      } as UpdateSupportTicketRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('throws NOT_FOUND on a missing ticket', async () => {
+    const { deps } = makeDeps([{ rows: [] }]);
+    await expect(
+      updateSupportTicket(deps, makePrincipal(), {
+        ticketId: 'gone',
+        status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+      } as UpdateSupportTicketRequest)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('COALESCE-updates only the provided fields and leaves absent ones NULL', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] }, // SELECT FOR UPDATE
+      { rows: [ticketRow({ status: 'in_progress', priority: 'high' })] }, // UPDATE
+    ]);
+    const res = await updateSupportTicket(deps, makePrincipal(), {
+      ticketId: 'tkt-1',
+      status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_IN_PROGRESS,
+      priority: ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_HIGH,
+      tags: [],
+    } as UpdateSupportTicketRequest);
+    expect(res.ticket?.status).toBe(
+      ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_IN_PROGRESS
+    );
+    const sql = query.mock.calls[1][0] as string;
+    expect(sql).toContain('COALESCE($1::support_ticket_status, status)');
+    // UPDATE params: [status, priority, category, tags, ticketId].
+    // category + tags were absent → passed as NULL (COALESCE keeps current).
+    expect(query.mock.calls[1][1]).toEqual(['in_progress', 'high', null, null, 'tkt-1']);
+  });
+
+  it('publishes moderation.ticketUpdated', async () => {
+    const { deps } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] },
+      { rows: [ticketRow({ status: 'resolved' })] },
+    ]);
+    await updateSupportTicket(deps, makePrincipal(), {
+      ticketId: 'tkt-1',
+      status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+    } as UpdateSupportTicketRequest);
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.ticketUpdated' });
+  });
+
+  it('replaces the tag set when a non-empty list is provided', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] },
+      { rows: [ticketRow({ tags: ['vip', 'billing'] })] },
+    ]);
+    await updateSupportTicket(deps, makePrincipal(), {
+      ticketId: 'tkt-1',
+      tags: ['vip', 'billing'],
+    } as UpdateSupportTicketRequest);
+    // tags param at index 3.
+    expect(query.mock.calls[1][1][3]).toEqual(['vip', 'billing']);
+  });
+});
+
+describe('escalateSupportTicket', () => {
+  it('requires moderation.tickets.manage', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      escalateSupportTicket(deps, makePrincipal({ permissions: [] }), {
+        ticketId: 'tkt-1',
+      } as EscalateSupportTicketRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('throws INVALID_ARGUMENT when ticketId is missing', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      escalateSupportTicket(deps, makePrincipal(), {
+        ticketId: '',
+      } as EscalateSupportTicketRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws NOT_FOUND on a missing ticket', async () => {
+    const { deps } = makeDeps([{ rows: [] }]);
+    await expect(
+      escalateSupportTicket(deps, makePrincipal(), {
+        ticketId: 'gone',
+      } as EscalateSupportTicketRequest)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('sets status=escalated, reassigns, records the reason, and publishes', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] }, // SELECT FOR UPDATE
+      { rows: [ticketRow({ status: 'escalated', assigned_to: 'senior-1' })] }, // UPDATE
+    ]);
+    const res = await escalateSupportTicket(deps, makePrincipal(), {
+      ticketId: 'tkt-1',
+      assignedTo: 'senior-1',
+      reason: 'Needs a senior agent',
+    } as EscalateSupportTicketRequest);
+    expect(res.ticket?.status).toBe(
+      ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_ESCALATED
+    );
+    const sql = query.mock.calls[1][0] as string;
+    expect(sql).toContain("status = 'escalated'");
+    // UPDATE params: [assignedTo, reason, ticketId].
+    expect(query.mock.calls[1][1]).toEqual(['senior-1', 'Needs a senior agent', 'tkt-1']);
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.ticketEscalated' });
+  });
+
+  it('keeps the current assignee when assignedTo is absent (COALESCE)', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] },
+      { rows: [ticketRow({ status: 'escalated' })] },
+    ]);
+    await escalateSupportTicket(deps, makePrincipal(), {
+      ticketId: 'tkt-1',
+    } as EscalateSupportTicketRequest);
+    // assignedTo + reason both absent → NULL params (COALESCE keeps assignee).
+    expect(query.mock.calls[1][1]).toEqual([null, null, 'tkt-1']);
   });
 });

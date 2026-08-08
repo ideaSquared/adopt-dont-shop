@@ -32,6 +32,9 @@ function makeClient(): {
     'listSupportTickets',
     'respondToTicket',
     'assignSupportTicket',
+    'updateSupportTicket',
+    'escalateSupportTicket',
+    'getSupportTicketStats',
   ]) {
     mocks[m] = vi.fn();
   }
@@ -435,6 +438,225 @@ describe('moderation admin actions + tickets', () => {
     expect(mocks.assignSupportTicket.mock.calls[0][0]).toMatchObject({
       ticketId: 'tkt-1',
       assignedTo: 'mod-2',
+    });
+  });
+
+  it('GET /admin/moderation/actions/active → { data } and sets active_only', async () => {
+    mocks.listModeratorActions.mockResolvedValueOnce({
+      actions: [
+        {
+          actionId: 'act-1',
+          moderatorId: 'mod-1',
+          actionType: ModerationV1.ModeratorActionType.MODERATOR_ACTION_TYPE_USER_BANNED,
+          severity: ModerationV1.Severity.SEVERITY_HIGH,
+          reason: 'ban',
+          targetEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_USER,
+          targetEntityId: 'usr-9',
+          createdAt: '2026-06-01T00:00:00.000Z',
+        },
+      ],
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/moderation/actions/active?userId=usr-9',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: Array<{ actionType: string }> };
+    expect(body.data[0].actionType).toBe('user_banned');
+    expect(mocks.listModeratorActions.mock.calls[0][0]).toMatchObject({
+      activeOnly: true,
+      targetUserId: 'usr-9',
+    });
+  });
+
+  it('GET /admin/support/stats → { success, data } shaped for TicketStatsSchema', async () => {
+    mocks.getSupportTicketStats.mockResolvedValueOnce({
+      total: 20,
+      open: 4,
+      inProgress: 3,
+      waitingForUser: 2,
+      resolved: 6,
+      closed: 4,
+      escalated: 1,
+      overdue: 2,
+      unassigned: 5,
+      averageResponseTime: 3.26,
+      averageResolutionTime: 28.5,
+      // satisfactionAverage intentionally omitted → surfaced as null.
+      ticketsToday: 1,
+      ticketsThisWeek: 7,
+      ticketsThisMonth: 15,
+      byPriority: { low: 2, normal: 10, high: 5, urgent: 2, critical: 1 },
+      byCategory: [
+        {
+          category: ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE,
+          count: 6,
+        },
+      ],
+      staffActivity: [{ staffId: 'mod-1', assignedCount: 8, resolvedCount: 5 }],
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/support/stats',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      success: boolean;
+      data: {
+        total: number;
+        satisfactionAverage: number | null;
+        byPriority: { critical: number };
+        byCategory: Array<{ category: string; count: number }>;
+        staffActivity: Array<{ staffId: string }>;
+      };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.total).toBe(20);
+    expect(body.data.satisfactionAverage).toBeNull();
+    expect(body.data.byPriority.critical).toBe(1);
+    expect(body.data.byCategory[0].category).toBe('technical_issue');
+    expect(body.data.staffActivity[0].staffId).toBe('mod-1');
+  });
+
+  it('GET /admin/support/stats → 403 when the service denies', async () => {
+    mocks.getSupportTicketStats.mockRejectedValueOnce({ code: grpcStatus.PERMISSION_DENIED });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/support/stats',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('GET /admin/support/my-tickets → { data } scoped to the caller (assignedTo)', async () => {
+    mocks.listSupportTickets.mockResolvedValueOnce({ tickets: [TICKET] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/support/my-tickets?status=open',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: Array<{ ticketId: string }> };
+    expect(body.data[0].ticketId).toBe('tkt-1');
+    expect(mocks.listSupportTickets.mock.calls[0][0]).toMatchObject({
+      assignedTo: 'mod-1',
+      status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_OPEN,
+    });
+  });
+
+  it('GET /admin/support/tickets/:id/messages → { data } with nested responses', async () => {
+    mocks.getSupportTicket.mockResolvedValueOnce({
+      ticket: TICKET,
+      responses: [
+        {
+          responseId: 'res-1',
+          ticketId: 'tkt-1',
+          responderId: 'mod-1',
+          responderType:
+            ModerationV1.SupportTicketResponderType.SUPPORT_TICKET_RESPONDER_TYPE_STAFF,
+          content: 'ack',
+          isInternal: false,
+          createdAt: '2026-06-01T00:00:00.000Z',
+        },
+      ],
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/support/tickets/tkt-1/messages',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      data: { ticketId: string; responses: Array<{ responseId: string; responderType: string }> };
+    };
+    expect(body.data.ticketId).toBe('tkt-1');
+    expect(body.data.responses[0].responseId).toBe('res-1');
+    expect(body.data.responses[0].responderType).toBe('staff');
+    expect(mocks.getSupportTicket.mock.calls[0][0]).toMatchObject({
+      ticketId: 'tkt-1',
+      includeResponses: true,
+    });
+  });
+
+  it('PATCH /admin/support/tickets/:id → threads status/priority/tags to UpdateSupportTicket', async () => {
+    mocks.updateSupportTicket.mockResolvedValueOnce({
+      ticket: {
+        ...TICKET,
+        status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+      },
+    });
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/admin/support/tickets/tkt-1',
+      headers: ADMIN,
+      payload: { status: 'resolved', priority: 'high', tags: ['vip'] },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.updateSupportTicket.mock.calls[0][0]).toMatchObject({
+      ticketId: 'tkt-1',
+      status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+      priority: ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_HIGH,
+      tags: ['vip'],
+    });
+    expect((res.json() as { data: { status: string } }).data.status).toBe('resolved');
+  });
+
+  it('POST /admin/support/tickets/:id/escalate → maps escalatedTo → assignedTo', async () => {
+    mocks.escalateSupportTicket.mockResolvedValueOnce({
+      ticket: {
+        ...TICKET,
+        status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_ESCALATED,
+        assignedTo: 'senior-1',
+      },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/support/tickets/tkt-1/escalate',
+      headers: ADMIN,
+      payload: { escalatedTo: 'senior-1', reason: 'needs senior help' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.escalateSupportTicket.mock.calls[0][0]).toMatchObject({
+      ticketId: 'tkt-1',
+      assignedTo: 'senior-1',
+      reason: 'needs senior help',
+    });
+    expect((res.json() as { data: { status: string } }).data.status).toBe('escalated');
+  });
+
+  it('POST /api/v1/pets/:id/report → FileReport(pet) and { data: { reportId, message } }', async () => {
+    mocks.fileReport.mockResolvedValueOnce({ report: REPORT });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/pets/pet-42/report',
+      headers: ADMIN,
+      payload: { reason: 'animal_welfare', description: 'Pet looks neglected in the photos' },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json() as { data: { reportId: string; message: string } };
+    expect(body.data.reportId).toBe('rpt-1');
+    expect(body.data.message).toContain('submitted');
+    expect(mocks.fileReport.mock.calls[0][0]).toMatchObject({
+      reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_PET,
+      reportedEntityId: 'pet-42',
+      category: ModerationV1.ReportCategory.REPORT_CATEGORY_ANIMAL_WELFARE,
+    });
+  });
+
+  it('POST /api/v1/pets/:id/report → falls back to OTHER + MEDIUM for a free-text reason', async () => {
+    mocks.fileReport.mockResolvedValueOnce({ report: REPORT });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/pets/pet-42/report',
+      headers: ADMIN,
+      payload: { reason: 'something is off' },
+    });
+    expect(mocks.fileReport.mock.calls[0][0]).toMatchObject({
+      category: ModerationV1.ReportCategory.REPORT_CATEGORY_OTHER,
+      severity: ModerationV1.Severity.SEVERITY_MEDIUM,
+      description: 'something is off',
     });
   });
 });

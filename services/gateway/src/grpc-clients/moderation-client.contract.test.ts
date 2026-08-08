@@ -20,10 +20,16 @@ import {
 
 import {
   ModerationV1,
+  type EscalateSupportTicketRequest,
+  type EscalateSupportTicketResponse,
   type FileReportRequest,
   type FileReportResponse,
   type GetReportRequest,
   type GetReportResponse,
+  type GetSupportTicketStatsRequest,
+  type GetSupportTicketStatsResponse,
+  type UpdateSupportTicketRequest,
+  type UpdateSupportTicketResponse,
 } from '@adopt-dont-shop/proto';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -62,6 +68,10 @@ const makeHandlers = (
   getSupportTicket: unimplemented,
   listSupportTickets: unimplemented,
   respondToTicket: unimplemented,
+  assignSupportTicket: unimplemented,
+  updateSupportTicket: unimplemented,
+  escalateSupportTicket: unimplemented,
+  getSupportTicketStats: unimplemented,
   ...overrides,
 });
 
@@ -189,6 +199,142 @@ describe('moderation-client — gRPC contract', () => {
       expect(capturedTitle).toBe('Inappropriate');
       expect(capturedEntityId).toBe('pet-1');
       expect(result.report?.reportId).toBe('report-new');
+    } finally {
+      client.close();
+    }
+  });
+
+  // ── 2b. Support-ticket stats (read) ──────────────────────────────
+
+  it('getSupportTicketStats — empty request round-trips the stats response', async () => {
+    const want: GetSupportTicketStatsResponse = {
+      total: 20,
+      open: 4,
+      inProgress: 3,
+      waitingForUser: 2,
+      resolved: 6,
+      closed: 4,
+      escalated: 1,
+      overdue: 2,
+      unassigned: 5,
+      averageResponseTime: 3.26,
+      averageResolutionTime: 28.5,
+      ticketsToday: 1,
+      ticketsThisWeek: 7,
+      ticketsThisMonth: 15,
+      byPriority: { low: 2, normal: 10, high: 5, urgent: 2, critical: 1 },
+      byCategory: [],
+      staffActivity: [],
+    };
+
+    port = await startServer(
+      makeHandlers({
+        getSupportTicketStats: (
+          _call: ServerUnaryCall<GetSupportTicketStatsRequest, GetSupportTicketStatsResponse>,
+          cb: sendUnaryData<GetSupportTicketStatsResponse>
+        ) => {
+          cb(null, want);
+        },
+      })
+    );
+
+    const client = createModerationClient({ address: `127.0.0.1:${port}` });
+    try {
+      const result = await client.getSupportTicketStats({}, new Metadata());
+      expect(result.total).toBe(20);
+      expect(result.byPriority?.critical).toBe(1);
+    } finally {
+      client.close();
+    }
+  });
+
+  // ── 2c. Support-ticket writes ────────────────────────────────────
+
+  it('updateSupportTicket — request fields arrive and response round-trips', async () => {
+    const want: UpdateSupportTicketResponse = {
+      ticket: {
+        ticketId: 'tkt-1',
+        userEmail: 'a@b.c',
+        status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+        priority: ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_HIGH,
+        category: ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE,
+        subject: 'x',
+        description: 'y',
+        tags: [],
+        metadataJson: '{}',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    };
+    let capturedTicketId = '';
+    port = await startServer(
+      makeHandlers({
+        updateSupportTicket: (
+          call: ServerUnaryCall<UpdateSupportTicketRequest, UpdateSupportTicketResponse>,
+          cb: sendUnaryData<UpdateSupportTicketResponse>
+        ) => {
+          capturedTicketId = call.request.ticketId;
+          cb(null, want);
+        },
+      })
+    );
+
+    const client = createModerationClient({ address: `127.0.0.1:${port}` });
+    try {
+      const result = await client.updateSupportTicket(
+        {
+          ticketId: 'tkt-1',
+          status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED,
+          tags: [],
+        },
+        new Metadata()
+      );
+      expect(capturedTicketId).toBe('tkt-1');
+      expect(result.ticket?.ticketId).toBe('tkt-1');
+    } finally {
+      client.close();
+    }
+  });
+
+  it('escalateSupportTicket — request fields arrive and response round-trips', async () => {
+    const want: EscalateSupportTicketResponse = {
+      ticket: {
+        ticketId: 'tkt-1',
+        userEmail: 'a@b.c',
+        status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_ESCALATED,
+        priority: ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_NORMAL,
+        category: ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE,
+        subject: 'x',
+        description: 'y',
+        tags: [],
+        metadataJson: '{}',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    };
+    let capturedAssignedTo = '';
+    port = await startServer(
+      makeHandlers({
+        escalateSupportTicket: (
+          call: ServerUnaryCall<EscalateSupportTicketRequest, EscalateSupportTicketResponse>,
+          cb: sendUnaryData<EscalateSupportTicketResponse>
+        ) => {
+          capturedAssignedTo = call.request.assignedTo ?? '';
+          cb(null, want);
+        },
+      })
+    );
+
+    const client = createModerationClient({ address: `127.0.0.1:${port}` });
+    try {
+      const result = await client.escalateSupportTicket(
+        { ticketId: 'tkt-1', assignedTo: 'senior-1', reason: 'needs help' },
+        new Metadata()
+      );
+      expect(capturedAssignedTo).toBe('senior-1');
+      expect(result.ticket?.status).toBe(
+        ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_ESCALATED
+      );
     } finally {
       client.close();
     }

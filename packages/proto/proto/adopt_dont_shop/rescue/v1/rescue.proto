@@ -43,6 +43,12 @@ service RescueService {
   // after commit.
   rpc Verify(VerifyRescueRequest) returns (VerifyRescueResponse);
 
+  // Soft-delete a rescue (stamps deleted_at; the row is retained for
+  // cross-schema referential integrity and hidden from Get/List). Caller
+  // MUST have `admin.security.manage` (admin-only). Publishes
+  // `rescue.deleted` on NATS after commit.
+  rpc Delete(DeleteRescueRequest) returns (DeleteRescueResponse);
+
   // Mint a staff-invitation token + persist the row. Caller MUST have
   // `staff.create` scoped to the rescue. Publishes
   // `rescue.staffInvited` on NATS — the notifications service emails
@@ -432,6 +438,13 @@ message VerifyRescueRequest {
 }
 
 message VerifyRescueResponse {
+  Rescue rescue = 1;
+}
+message DeleteRescueRequest {
+  string rescue_id = 1;
+  optional string reason = 2;
+}
+message DeleteRescueResponse {
   Rescue rescue = 1;
 }
 

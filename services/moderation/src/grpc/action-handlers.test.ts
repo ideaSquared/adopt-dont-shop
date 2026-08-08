@@ -192,6 +192,23 @@ describe('listModeratorActions', () => {
     expect(sql).toContain('created_at <');
     expect(sql).toContain('action_id <');
   });
+
+  it('active_only narrows to in-force actions (is_active + unexpired)', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listModeratorActions(deps, makePrincipal(), {
+      activeOnly: true,
+    } as ListModeratorActionsRequest);
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).toContain('is_active = true');
+    expect(sql).toContain('expires_at IS NULL OR expires_at > now()');
+  });
+
+  it('omits the active filter when active_only is not set', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listModeratorActions(deps, makePrincipal(), {} as ListModeratorActionsRequest);
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).not.toContain('is_active = true');
+  });
 });
 
 describe('addEvidence', () => {

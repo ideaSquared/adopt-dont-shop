@@ -41,32 +41,25 @@ describe('PermissionsService', () => {
   });
 
   describe('hasPermission', () => {
-    it('should check user permission successfully', async () => {
-      const mockResponse = { hasPermission: true };
-      mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
+    it('returns true when the user has the permission (computed from their set)', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
 
       const result = await service.hasPermission('user123', 'pets.read');
 
-      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/permissions/check', {
-        userId: 'user123',
-        permission: 'pets.read',
-        resourceId: undefined,
-      });
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/users/user123/permissions');
       expect(result).toBe(true);
     });
 
-    it('should return false when permission denied', async () => {
-      const mockResponse = { hasPermission: false };
-      mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
+    it('returns false when the user lacks the permission', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
 
       const result = await service.hasPermission('user123', 'admin.dashboard');
 
       expect(result).toBe(false);
     });
 
-    it('should handle API errors by denying access', async () => {
-      const error = new Error('API Error');
-      mockApiService.post = vi.fn().mockRejectedValue(error);
+    it('denies access when the permissions fetch fails', async () => {
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('API Error'));
 
       const result = await service.hasPermission('user123', 'pets.read');
 
@@ -124,10 +117,7 @@ describe('PermissionsService', () => {
 
   describe('hasAnyPermission', () => {
     it('returns true when at least one permission is granted', async () => {
-      mockApiService.post = vi
-        .fn()
-        .mockResolvedValueOnce({ hasPermission: false })
-        .mockResolvedValueOnce({ hasPermission: true });
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.create'] });
 
       const result = await service.hasAnyPermission('user123', ['pets.read', 'pets.create']);
 
@@ -135,26 +125,26 @@ describe('PermissionsService', () => {
     });
 
     it('returns false when every permission is denied', async () => {
-      mockApiService.post = vi.fn().mockResolvedValue({ hasPermission: false });
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['rescues.read'] });
 
       const result = await service.hasAnyPermission('user123', ['pets.read', 'pets.create']);
 
       expect(result).toBe(false);
     });
 
-    it('returns false for an empty permission set', async () => {
-      mockApiService.post = vi.fn().mockResolvedValue({ hasPermission: true });
+    it('returns false for an empty permission set (no fetch)', async () => {
+      mockApiService.get = vi.fn();
 
       const result = await service.hasAnyPermission('user123', []);
 
       expect(result).toBe(false);
-      expect(mockApiService.post).not.toHaveBeenCalled();
+      expect(mockApiService.get).not.toHaveBeenCalled();
     });
   });
 
   describe('hasAllPermissions', () => {
     it('returns true only when all permissions are granted', async () => {
-      mockApiService.post = vi.fn().mockResolvedValue({ hasPermission: true });
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read', 'pets.create'] });
 
       const result = await service.hasAllPermissions('user123', ['pets.read', 'pets.create']);
 
@@ -162,23 +152,20 @@ describe('PermissionsService', () => {
     });
 
     it('returns false when any permission is denied', async () => {
-      mockApiService.post = vi
-        .fn()
-        .mockResolvedValueOnce({ hasPermission: true })
-        .mockResolvedValueOnce({ hasPermission: false });
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: ['pets.read'] });
 
       const result = await service.hasAllPermissions('user123', ['pets.read', 'pets.create']);
 
       expect(result).toBe(false);
     });
 
-    it('returns true (vacuously) for an empty permission set', async () => {
-      mockApiService.post = vi.fn();
+    it('returns true (vacuously) for an empty permission set (no fetch)', async () => {
+      mockApiService.get = vi.fn();
 
       const result = await service.hasAllPermissions('user123', []);
 
       expect(result).toBe(true);
-      expect(mockApiService.post).not.toHaveBeenCalled();
+      expect(mockApiService.get).not.toHaveBeenCalled();
     });
   });
 
@@ -289,98 +276,45 @@ describe('PermissionsService', () => {
     });
   });
 
-  describe('grantPermissions', () => {
-    it('posts the grant request', async () => {
-      mockApiService.post = vi.fn().mockResolvedValue({ success: true });
-
-      const result = await service.grantPermissions({
-        userId: 'user123',
-        permissions: ['pets.read'],
-        grantedBy: 'admin-1',
-      });
-
-      expect(result).toBe(true);
-      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/users/grant-permissions', {
-        userId: 'user123',
-        permissions: ['pets.read'],
-        grantedBy: 'admin-1',
-      });
-    });
-
-    it('re-throws when the grant fails', async () => {
-      mockApiService.post = vi.fn().mockRejectedValue(new Error('Forbidden'));
-
-      await expect(
-        service.grantPermissions({
-          userId: 'user123',
-          permissions: ['pets.read'],
-          grantedBy: 'admin-1',
-        })
-      ).rejects.toThrow('Forbidden');
-    });
-  });
-
-  describe('revokePermissions', () => {
-    it('posts the revoke request with the supplied reason', async () => {
-      mockApiService.post = vi.fn().mockResolvedValue({ success: true });
-
-      const result = await service.revokePermissions(
-        'user123',
-        ['pets.read'],
-        'admin-1',
-        'policy change'
-      );
-
-      expect(result).toBe(true);
-      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/users/revoke-permissions', {
-        userId: 'user123',
-        permissions: ['pets.read'],
-        revokedBy: 'admin-1',
-        reason: 'policy change',
-      });
-    });
-
-    it('re-throws when the revoke fails', async () => {
-      mockApiService.post = vi.fn().mockRejectedValue(new Error('Forbidden'));
-
-      await expect(service.revokePermissions('user123', ['pets.read'], 'admin-1')).rejects.toThrow(
-        'Forbidden'
-      );
-    });
-  });
-
   describe('getAuditLogs', () => {
-    it('returns logs and requests all logs when no user is given', async () => {
-      const logs: PermissionAuditLog[] = [
-        {
-          logId: 'log-1',
-          userId: 'user123',
-          action: 'granted',
-          permission: 'pets.read',
-          performedBy: 'admin-1',
-          timestamp: '2024-01-01T00:00:00Z',
-        },
-      ];
-      mockApiService.get = vi.fn().mockResolvedValue({ logs });
+    // A raw audit-service event (audit.Query response) shape.
+    const auditEvent = {
+      eventId: 'log-1',
+      aggregateId: 'user123',
+      action: 'user.granted',
+      subject: 'pets.read',
+      actorUserId: 'admin-1',
+      occurredAt: '2024-01-01T00:00:00Z',
+    };
+
+    it('queries /api/v1/audit and adapts events when no user is given', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ events: [auditEvent] });
 
       const result = await service.getAuditLogs();
 
-      expect(result).toEqual(logs);
-      const calledWith = (mockApiService.get as vi.Mock).mock.calls[0][0];
-      expect(calledWith).toContain('limit=50');
-      expect(calledWith).toContain('offset=0');
-      expect(calledWith).not.toContain('userId');
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/audit', { limit: 50 });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        logId: 'log-1',
+        userId: 'user123',
+        action: 'granted',
+        permission: 'pets.read',
+        performedBy: 'admin-1',
+        timestamp: '2024-01-01T00:00:00Z',
+        ipAddress: undefined,
+        userAgent: undefined,
+      });
     });
 
-    it('scopes the query to a user and respects limit/offset', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ logs: [] });
+    it('scopes the query to a user and respects the limit', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ events: [] });
 
-      await service.getAuditLogs('user123', 10, 20);
+      await service.getAuditLogs('user123', 10);
 
-      const calledWith = (mockApiService.get as vi.Mock).mock.calls[0][0];
-      expect(calledWith).toContain('userId=user123');
-      expect(calledWith).toContain('limit=10');
-      expect(calledWith).toContain('offset=20');
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/audit', {
+        limit: 10,
+        actor_user_id: 'user123',
+      });
     });
 
     it('returns an empty array on API error', async () => {
@@ -391,7 +325,7 @@ describe('PermissionsService', () => {
       expect(result).toEqual([]);
     });
 
-    it('returns an empty array when the API omits logs', async () => {
+    it('returns an empty array when the API omits events', async () => {
       mockApiService.get = vi.fn().mockResolvedValue({});
 
       const result = await service.getAuditLogs();
@@ -431,39 +365,11 @@ describe('PermissionsService', () => {
     });
   });
 
-  describe('getAllPermissions', () => {
-    it('returns the system permission list', async () => {
-      const permissions: Permission[] = ['pets.read', 'pets.create'];
-      mockApiService.get = vi.fn().mockResolvedValue({ permissions });
-
-      const result = await service.getAllPermissions();
-
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/permissions/list');
-      expect(result).toEqual(permissions);
-    });
-
-    it('returns an empty array on API error', async () => {
-      mockApiService.get = vi.fn().mockRejectedValue(new Error('API Error'));
-
-      const result = await service.getAllPermissions();
-
-      expect(result).toEqual([]);
-    });
-
-    it('returns an empty array when the API omits permissions', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({});
-
-      const result = await service.getAllPermissions();
-
-      expect(result).toEqual([]);
-    });
-  });
-
   describe('debug logging branches', () => {
-    it('logs to console.error on failure when debug is enabled', async () => {
+    it('logs to console.error on a read failure when debug is enabled', async () => {
       const debugService = new PermissionsService({ debug: true }, mockApiService);
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-      mockApiService.post = vi.fn().mockRejectedValue(new Error('boom'));
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('boom'));
 
       const result = await debugService.hasPermission('user123', 'pets.read');
 
@@ -472,7 +378,7 @@ describe('PermissionsService', () => {
       errorSpy.mockRestore();
     });
 
-    it('logs on read/role/list failures when debug is enabled', async () => {
+    it('logs on read/role/audit failures when debug is enabled', async () => {
       const debugService = new PermissionsService({ debug: true }, mockApiService);
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       mockApiService.get = vi.fn().mockRejectedValue(new Error('boom'));
@@ -482,14 +388,13 @@ describe('PermissionsService', () => {
       await debugService.hasRole('user123', 'admin');
       await debugService.hasAnyRole('user123', ['admin']);
       await debugService.getAuditLogs('user123');
-      await debugService.getAllPermissions();
       await debugService.healthCheck();
 
-      expect(errorSpy.mock.calls.length).toBeGreaterThanOrEqual(7);
+      expect(errorSpy.mock.calls.length).toBeGreaterThanOrEqual(5);
       errorSpy.mockRestore();
     });
 
-    it('logs on admin mutation failures when debug is enabled', async () => {
+    it('logs on a role-assignment failure when debug is enabled', async () => {
       const debugService = new PermissionsService({ debug: true }, mockApiService);
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       mockApiService.post = vi.fn().mockRejectedValue(new Error('boom'));
@@ -497,18 +402,8 @@ describe('PermissionsService', () => {
       await expect(
         debugService.assignRole({ userId: 'user123', role: 'admin', assignedBy: 'a' })
       ).rejects.toThrow('boom');
-      await expect(
-        debugService.grantPermissions({
-          userId: 'user123',
-          permissions: ['pets.read'],
-          grantedBy: 'a',
-        })
-      ).rejects.toThrow('boom');
-      await expect(debugService.revokePermissions('user123', ['pets.read'], 'a')).rejects.toThrow(
-        'boom'
-      );
 
-      expect(errorSpy.mock.calls.length).toBeGreaterThanOrEqual(3);
+      expect(errorSpy).toHaveBeenCalled();
       errorSpy.mockRestore();
     });
   });

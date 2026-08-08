@@ -37,6 +37,7 @@ import {
   type AuthV1,
   RescueV1,
   type CreateStaffMemberRequest,
+  type DeleteRescueRequest,
   type GetRescueStatisticsRequest,
   type InviteStaffRequest,
   type ListRescueInvitationsRequest,
@@ -475,6 +476,42 @@ export const registerRescueAdminRoutes = async (
           message: 'Rescue rejected',
           data: rescueToView(res.rescue),
         });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // DELETE /api/v1/rescues/:rescueId — soft-delete a rescue. An optional
+  // reason (from the request body) is threaded through to the audit trail.
+  app.delete<{ Params: { rescueId: string }; Body: { reason?: string } }>(
+    '/api/v1/rescues/:rescueId',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Soft-delete a rescue (admin)',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const grpcReq: DeleteRescueRequest = {
+        rescueId: req.params.rescueId,
+        reason: req.body?.reason,
+      };
+      try {
+        await client.delete(grpcReq, buildMetadata(req));
+        return reply.send({ success: true, message: 'Rescue deleted' });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

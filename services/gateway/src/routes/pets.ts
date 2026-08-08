@@ -76,6 +76,17 @@ const PET_VIEW_SCHEMA = {
   },
 } as const;
 
+// The image routes (ADS-1144) echo back the pet with its image_urls list.
+// A response schema drops any property it doesn't declare, and the base
+// view omits image_urls, so these routes serialise against this superset.
+const PET_VIEW_WITH_IMAGES_SCHEMA = {
+  type: 'object',
+  properties: {
+    ...PET_VIEW_SCHEMA.properties,
+    image_urls: { type: 'array', items: { type: 'string' } },
+  },
+} as const;
+
 // Per-route rate limits. Reads are chatty (SPA browse + per-pet view
 // counts); writes are far less frequent so the tighter caps apply
 // there. All keyed on req.ip via the plugin's default key generator.
@@ -86,6 +97,7 @@ const PETS_RATE_LIMITS = {
   update: { max: 30, timeWindow: '1 minute' },
   updateStatus: { max: 30, timeWindow: '1 minute' },
   delete: { max: 30, timeWindow: '1 minute' },
+  images: { max: 30, timeWindow: '1 minute' },
   bulkUpdate: { max: 10, timeWindow: '1 minute' },
 } as const;
 
@@ -564,6 +576,150 @@ export const registerPetsRoutes = async (
     }
   );
 
+  // --- Pet images: append / remove URLs on the pet (ADS-1144) ---------
+  //
+  // The pets proto carries no dedicated image field, so image URLs ride in
+  // the pet's extra_json under `image_urls`. Both routes read the current
+  // pet, merge the URL list, and forward the whole (preserved) extra_json
+  // back through PetService.Update — the GET → mutate → Update round-trip
+  // the lib.pets image manager drives. Authorisation is the pets service's
+  // rescue-scoped Update check; the gateway only translates + forwards.
+
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/pets/:id/images',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.images },
+      schema: {
+        tags: ['pets'],
+        summary: 'Append already-uploaded image URLs to a pet',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            images: { type: 'array', items: { type: 'string' } },
+            urls: { type: 'array', items: { type: 'string' } },
+            url: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: PET_VIEW_WITH_IMAGES_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const incoming = collectUrls(req.body);
+      if (incoming.length === 0) {
+        return reply
+          .code(400)
+          .send({ success: false, error: 'at least one image url is required' });
+      }
+      const metadata = buildMetadata(req);
+      try {
+        const current = await client.get({ petId: req.params.id }, metadata);
+        if (current.pet === undefined) {
+          return reply.code(404).send({ success: false, error: 'pet not found' });
+        }
+        const extra = parseExtra(current.pet.extraJson);
+        const merged = [...new Set([...readImageUrls(extra), ...incoming])];
+        const res = await client.update(
+          { petId: req.params.id, extraJson: JSON.stringify({ ...extra, image_urls: merged }) },
+          metadata
+        );
+        if (res.pet === undefined) {
+          return reply.code(404).send({ success: false, error: 'pet not found' });
+        }
+        return reply.send({ success: true, data: petToView(res.pet) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.delete<{ Params: { id: string }; Querystring: { imageUrl?: string; url?: string } }>(
+    '/api/v1/pets/:id/images',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.images },
+      schema: {
+        tags: ['pets'],
+        summary: 'Remove an image URL from a pet',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        querystring: {
+          type: 'object',
+          properties: {
+            imageUrl: { type: 'string' },
+            url: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: PET_VIEW_WITH_IMAGES_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const target = req.query.imageUrl ?? req.query.url;
+      if (target === undefined || target === '') {
+        return reply.code(400).send({ success: false, error: 'imageUrl is required' });
+      }
+      const metadata = buildMetadata(req);
+      try {
+        const current = await client.get({ petId: req.params.id }, metadata);
+        if (current.pet === undefined) {
+          return reply.code(404).send({ success: false, error: 'pet not found' });
+        }
+        const extra = parseExtra(current.pet.extraJson);
+        const remaining = readImageUrls(extra).filter(u => u !== target);
+        const res = await client.update(
+          { petId: req.params.id, extraJson: JSON.stringify({ ...extra, image_urls: remaining }) },
+          metadata
+        );
+        if (res.pet === undefined) {
+          return reply.code(404).send({ success: false, error: 'pet not found' });
+        }
+        return reply.send({ success: true, data: petToView(res.pet) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // POST /api/v1/pets/bulk-update — admin bulk actions. Fans out per pet to
   // the matching RPC; per-pet failures (auth, illegal transition, …) are
   // collected rather than failing the whole batch, mirroring the rescues
@@ -835,6 +991,38 @@ export const registerPetsRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
+
+// Pet images (ADS-1144). Image URLs live in the pet's extra_json under
+// `image_urls`; these read/merge that one key without disturbing the rest
+// of the long-tail blob the service round-trips.
+function parseExtra(json: string | undefined): Record<string, unknown> {
+  if (!json) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(json);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function readImageUrls(extra: Record<string, unknown>): string[] {
+  const raw = extra.image_urls;
+  return Array.isArray(raw) ? raw.filter((u): u is string => typeof u === 'string') : [];
+}
+
+// Gather the URL(s) the caller sent. lib.pets posts `{ images: string[] }`;
+// `{ urls }` and a single `{ url }` are accepted as documented alternates.
+function collectUrls(body: unknown): string[] {
+  const b = (body ?? {}) as { images?: unknown; urls?: unknown; url?: unknown };
+  const fromArray = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u.trim() !== '') : [];
+  const single = typeof b.url === 'string' && b.url.trim() !== '' ? [b.url] : [];
+  return [...fromArray(b.images), ...fromArray(b.urls), ...single];
+}
 
 // Enum parsers — accept the canonical DB string (`available`, `dog`,
 // `large`) AND the SCREAMING proto form (`PET_STATUS_AVAILABLE`).

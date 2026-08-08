@@ -33,6 +33,8 @@ import {
   type DeleteApplicationQuestionResponse,
   type DeleteEventRequest,
   type DeleteEventResponse,
+  type DeleteRescueRequest,
+  type DeleteRescueResponse,
   type CreateRescueRequest,
   type CreateRescueResponse,
   type EndFosterPlacementRequest,
@@ -112,6 +114,7 @@ export type RescueClient = {
     metadata: Metadata
   ): Promise<SendRescueEmailResponse>;
   verify(req: VerifyRescueRequest, metadata: Metadata): Promise<VerifyRescueResponse>;
+  delete(req: DeleteRescueRequest, metadata: Metadata): Promise<DeleteRescueResponse>;
   inviteStaff(req: InviteStaffRequest, metadata: Metadata): Promise<InviteStaffResponse>;
   getMyStaffMembership(
     req: GetMyStaffMembershipRequest,
@@ -274,6 +277,7 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     updateRescuePlan: (req, metadata) => callUnary(stub.updateRescuePlan, req, metadata, false),
     sendRescueEmail: (req, metadata) => callUnary(stub.sendRescueEmail, req, metadata, false),
     verify: (req, metadata) => callUnary(stub.verify, req, metadata, false),
+    delete: (req, metadata) => callUnary(stub.delete, req, metadata, false),
     inviteStaff: (req, metadata) => callUnary(stub.inviteStaff, req, metadata, false),
     createStaffMember: (req, metadata) => callUnary(stub.createStaffMember, req, metadata, false),
     updateStaffMember: (req, metadata) => callUnary(stub.updateStaffMember, req, metadata, false),

@@ -571,6 +571,15 @@ export interface VerifyRescueResponse {
   rescue?: Rescue | undefined;
 }
 
+export interface DeleteRescueRequest {
+  rescueId: string;
+  reason?: string | undefined;
+}
+
+export interface DeleteRescueResponse {
+  rescue?: Rescue | undefined;
+}
+
 export interface InviteStaffRequest {
   rescueId: string;
   email: string;
@@ -3312,6 +3321,146 @@ export const VerifyRescueResponse: MessageFns<VerifyRescueResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<VerifyRescueResponse>, I>>(object: I): VerifyRescueResponse {
     const message = createBaseVerifyRescueResponse();
+    message.rescue = (object.rescue !== undefined && object.rescue !== null)
+      ? Rescue.fromPartial(object.rescue)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteRescueRequest(): DeleteRescueRequest {
+  return { rescueId: "", reason: undefined };
+}
+
+export const DeleteRescueRequest: MessageFns<DeleteRescueRequest> = {
+  encode(message: DeleteRescueRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(18).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteRescueRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteRescueRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteRescueRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: DeleteRescueRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteRescueRequest>, I>>(base?: I): DeleteRescueRequest {
+    return DeleteRescueRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteRescueRequest>, I>>(object: I): DeleteRescueRequest {
+    const message = createBaseDeleteRescueRequest();
+    message.rescueId = object.rescueId ?? "";
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteRescueResponse(): DeleteRescueResponse {
+  return { rescue: undefined };
+}
+
+export const DeleteRescueResponse: MessageFns<DeleteRescueResponse> = {
+  encode(message: DeleteRescueResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescue !== undefined) {
+      Rescue.encode(message.rescue, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteRescueResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteRescueResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescue = Rescue.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteRescueResponse {
+    return { rescue: isSet(object.rescue) ? Rescue.fromJSON(object.rescue) : undefined };
+  },
+
+  toJSON(message: DeleteRescueResponse): unknown {
+    const obj: any = {};
+    if (message.rescue !== undefined) {
+      obj.rescue = Rescue.toJSON(message.rescue);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteRescueResponse>, I>>(base?: I): DeleteRescueResponse {
+    return DeleteRescueResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteRescueResponse>, I>>(object: I): DeleteRescueResponse {
+    const message = createBaseDeleteRescueResponse();
     message.rescue = (object.rescue !== undefined && object.rescue !== null)
       ? Rescue.fromPartial(object.rescue)
       : undefined;
@@ -10997,6 +11146,22 @@ export const RescueServiceService = {
     responseDeserialize: (value: Buffer): VerifyRescueResponse => VerifyRescueResponse.decode(value),
   },
   /**
+   * Soft-delete a rescue (stamps deleted_at; the row is retained for
+   * cross-schema referential integrity and hidden from Get/List). Caller
+   * MUST have `admin.security.manage` (admin-only). Publishes
+   * `rescue.deleted` on NATS after commit.
+   */
+  delete: {
+    path: "/adopt_dont_shop.rescue.v1.RescueService/Delete" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteRescueRequest): Buffer => Buffer.from(DeleteRescueRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteRescueRequest => DeleteRescueRequest.decode(value),
+    responseSerialize: (value: DeleteRescueResponse): Buffer =>
+      Buffer.from(DeleteRescueResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteRescueResponse => DeleteRescueResponse.decode(value),
+  },
+  /**
    * Mint a staff-invitation token + persist the row. Caller MUST have
    * `staff.create` scoped to the rescue. Publishes
    * `rescue.staffInvited` on NATS — the notifications service emails
@@ -11528,6 +11693,13 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    */
   verify: handleUnaryCall<VerifyRescueRequest, VerifyRescueResponse>;
   /**
+   * Soft-delete a rescue (stamps deleted_at; the row is retained for
+   * cross-schema referential integrity and hidden from Get/List). Caller
+   * MUST have `admin.security.manage` (admin-only). Publishes
+   * `rescue.deleted` on NATS after commit.
+   */
+  delete: handleUnaryCall<DeleteRescueRequest, DeleteRescueResponse>;
+  /**
    * Mint a staff-invitation token + persist the row. Caller MUST have
    * `staff.create` scoped to the rescue. Publishes
    * `rescue.staffInvited` on NATS — the notifications service emails
@@ -11809,6 +11981,27 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: VerifyRescueResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Soft-delete a rescue (stamps deleted_at; the row is retained for
+   * cross-schema referential integrity and hidden from Get/List). Caller
+   * MUST have `admin.security.manage` (admin-only). Publishes
+   * `rescue.deleted` on NATS after commit.
+   */
+  delete(
+    request: DeleteRescueRequest,
+    callback: (error: ServiceError | null, response: DeleteRescueResponse) => void,
+  ): ClientUnaryCall;
+  delete(
+    request: DeleteRescueRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteRescueResponse) => void,
+  ): ClientUnaryCall;
+  delete(
+    request: DeleteRescueRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteRescueResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mint a staff-invitation token + persist the row. Caller MUST have

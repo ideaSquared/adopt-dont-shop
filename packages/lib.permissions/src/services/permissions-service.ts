@@ -4,17 +4,65 @@ import {
   Permission,
   UserRole,
   UserWithPermissions,
-  PermissionCheckRequest,
   RoleAssignmentRequest,
-  PermissionGrantRequest,
   PermissionAuditLog,
-  PermissionCheckResponse,
-  UserPermissionsResponse,
-  AuditLogsResponse,
-  SystemPermissionsResponse,
 } from '../types';
 
 const MAX_PERMISSIONS_CACHE_SIZE = 500;
+
+// The gateway serves a user's permission list wrapped in the standard
+// `{ success, data }` envelope (GET /api/v1/users/:id/permissions →
+// `{ data: { permissions } }`). Older/simpler responses put `permissions`
+// at the top level, so we accept either shape.
+type UserPermissionsPayload = {
+  permissions?: Permission[];
+  data?: { permissions?: Permission[] };
+};
+
+// Narrow an unknown value to a plain record for safe property access —
+// mirrors the guard style used by FieldPermissionsService.
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+// Map an audit event's domain action verb onto the PermissionAuditLog
+// action union. Unknown verbs fall back to 'checked'.
+const toAuditAction = (action: string): PermissionAuditLog['action'] => {
+  const lower = action.toLowerCase();
+  if (lower.includes('revoke')) {
+    return 'revoked';
+  }
+  if (lower.includes('grant') || lower.includes('assign')) {
+    return 'granted';
+  }
+  if (lower.includes('den')) {
+    return 'denied';
+  }
+  return 'checked';
+};
+
+// Adapt one audit-service event (audit.Query response) into the
+// PermissionAuditLog shape the frontend consumes.
+const toPermissionAuditLog = (event: unknown): PermissionAuditLog => {
+  const rec = asRecord(event);
+  const ipAddress = rec['ipAddress'];
+  const userAgent = rec['userAgent'];
+  return {
+    logId: asString(rec['eventId']),
+    userId: asString(rec['aggregateId']),
+    action: toAuditAction(asString(rec['action'])),
+    // The role-based model records domain actions, not per-permission
+    // grants, so there is no literal Permission on an audit event. We
+    // surface the event's subject in the `permission` slot so the log
+    // shape stays populated for display.
+    permission: asString(rec['subject']) as Permission,
+    performedBy: asString(rec['actorUserId']),
+    timestamp: asString(rec['occurredAt']),
+    ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+    userAgent: typeof userAgent === 'string' ? userAgent : undefined,
+  };
+};
 
 /**
  * PermissionsService - Handles role-based access control and permissions
@@ -49,76 +97,38 @@ export class PermissionsService {
   }
 
   /**
-   * Check if a user has a specific permission
+   * Check if a user has a specific permission.
+   *
+   * In the role-based model permissions are derived from the user's role,
+   * so a membership test against the user's flattened permission set is
+   * authoritative — no server round-trip beyond fetching that set (which
+   * is cached).
    */
-  public async hasPermission(
-    userId: string,
-    permission: Permission,
-    resourceId?: string
-  ): Promise<boolean> {
-    try {
-      const request: PermissionCheckRequest = {
-        userId,
-        permission,
-        resourceId,
-      };
-
-      const response = (await this.apiService.post(
-        '/api/v1/permissions/check',
-        request
-      )) as PermissionCheckResponse;
-
-      return response.hasPermission;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`Permission check failed for ${userId}:`, error);
-      }
-      return false; // Deny access on error
-    }
+  public async hasPermission(userId: string, permission: Permission): Promise<boolean> {
+    const permissions = await this.getUserPermissions(userId);
+    return permissions.includes(permission);
   }
 
   /**
    * Check if a user has any of the specified permissions
    */
-  public async hasAnyPermission(
-    userId: string,
-    permissions: Permission[],
-    resourceId?: string
-  ): Promise<boolean> {
-    try {
-      const checks = await Promise.all(
-        permissions.map((permission) => this.hasPermission(userId, permission, resourceId))
-      );
-
-      return checks.some((hasPermission) => hasPermission);
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`Bulk permission check failed for ${userId}:`, error);
-      }
+  public async hasAnyPermission(userId: string, permissions: Permission[]): Promise<boolean> {
+    if (permissions.length === 0) {
       return false;
     }
+    const granted = await this.getUserPermissions(userId);
+    return permissions.some((permission) => granted.includes(permission));
   }
 
   /**
    * Check if a user has all of the specified permissions
    */
-  public async hasAllPermissions(
-    userId: string,
-    permissions: Permission[],
-    resourceId?: string
-  ): Promise<boolean> {
-    try {
-      const checks = await Promise.all(
-        permissions.map((permission) => this.hasPermission(userId, permission, resourceId))
-      );
-
-      return checks.every((hasPermission) => hasPermission);
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`Bulk permission check failed for ${userId}:`, error);
-      }
-      return false;
+  public async hasAllPermissions(userId: string, permissions: Permission[]): Promise<boolean> {
+    if (permissions.length === 0) {
+      return true;
     }
+    const granted = await this.getUserPermissions(userId);
+    return permissions.every((permission) => granted.includes(permission));
   }
 
   /**
@@ -136,8 +146,8 @@ export class PermissionsService {
     try {
       const response = (await this.apiService.get(
         `/api/v1/users/${userId}/permissions`
-      )) as UserPermissionsResponse;
-      const permissions: Permission[] = response.permissions || [];
+      )) as UserPermissionsPayload;
+      const permissions: Permission[] = response.data?.permissions ?? response.permissions ?? [];
 
       // Cache the permissions; evict oldest entry if at capacity
       if (useCache) {
@@ -234,76 +244,23 @@ export class PermissionsService {
   }
 
   /**
-   * Grant specific permissions to a user (admin only)
+   * Get permission audit logs.
+   *
+   * Backed by the audit service (GET /api/v1/audit). When a userId is
+   * supplied we scope to events that user triggered; the audit events are
+   * adapted into the PermissionAuditLog shape.
    */
-  public async grantPermissions(request: PermissionGrantRequest): Promise<boolean> {
+  public async getAuditLogs(userId?: string, limit = 50): Promise<PermissionAuditLog[]> {
     try {
-      await this.apiService.post('/api/v1/users/grant-permissions', request);
-
-      // Clear cache for the user
-      this.permissionsCache.delete(request.userId);
-
-      return true;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`Failed to grant permissions to ${request.userId}:`, error);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Revoke specific permissions from a user (admin only)
-   */
-  public async revokePermissions(
-    userId: string,
-    permissions: Permission[],
-    revokedBy: string,
-    reason?: string
-  ): Promise<boolean> {
-    try {
-      await this.apiService.post('/api/v1/users/revoke-permissions', {
-        userId,
-        permissions,
-        revokedBy,
-        reason,
-      });
-
-      // Clear cache for the user
-      this.permissionsCache.delete(userId);
-
-      return true;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`Failed to revoke permissions from ${userId}:`, error);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get permission audit logs
-   */
-  public async getAuditLogs(
-    userId?: string,
-    limit = 50,
-    offset = 0
-  ): Promise<PermissionAuditLog[]> {
-    try {
-      const params = new URLSearchParams({
-        limit: limit.toString(),
-        offset: offset.toString(),
-      });
-
+      const params: Record<string, string | number> = { limit };
       if (userId) {
-        params.append('userId', userId);
+        params.actor_user_id = userId;
       }
 
-      const response = (await this.apiService.get(
-        `/api/v1/permissions/audit-logs?${params}`
-      )) as AuditLogsResponse;
+      const response = (await this.apiService.get('/api/v1/audit', params)) as { events?: unknown };
+      const events = Array.isArray(response.events) ? response.events : [];
 
-      return response.logs || [];
+      return events.map(toPermissionAuditLog);
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to get audit logs:', error);
@@ -320,24 +277,6 @@ export class PermissionsService {
       this.permissionsCache.delete(userId);
     } else {
       this.permissionsCache.clear();
-    }
-  }
-
-  /**
-   * Get all available permissions in the system
-   */
-  public async getAllPermissions(): Promise<Permission[]> {
-    try {
-      const response = (await this.apiService.get(
-        '/api/v1/permissions/list'
-      )) as SystemPermissionsResponse;
-
-      return response.permissions || [];
-    } catch (error) {
-      if (this.config.debug) {
-        console.error('Failed to get system permissions:', error);
-      }
-      return [];
     }
   }
 

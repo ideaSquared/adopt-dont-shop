@@ -24,6 +24,8 @@ import { MODERATION_TICKETS_MANAGE } from '@adopt-dont-shop/lib.types';
 import type {
   AssignSupportTicketRequest,
   AssignSupportTicketResponse,
+  EscalateSupportTicketRequest,
+  EscalateSupportTicketResponse,
   GetSupportTicketRequest,
   GetSupportTicketResponse,
   ListSupportTicketsRequest,
@@ -32,6 +34,8 @@ import type {
   OpenSupportTicketResponse,
   RespondToTicketRequest,
   RespondToTicketResponse,
+  UpdateSupportTicketRequest,
+  UpdateSupportTicketResponse,
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
@@ -497,6 +501,142 @@ export async function assignSupportTicket(
         ticketId: req.ticketId,
         assignedTo: req.assignedTo,
         assignedBy: principal.userId,
+      },
+    });
+
+    return { ticket: ticketRowToProto(updated.rows[0]) };
+  });
+}
+
+// --- UpdateSupportTicket ---------------------------------------------
+
+export async function updateSupportTicket(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: UpdateSupportTicketRequest
+): Promise<UpdateSupportTicketResponse> {
+  if (!requirePermission(principal, MODERATION_TICKETS_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_TICKETS_MANAGE}' required`);
+  }
+
+  if (req.ticketId === undefined || req.ticketId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'ticket_id is required');
+  }
+
+  // Partial update: only the fields the caller sent are changed. Enum
+  // fields that arrive as UNSPECIFIED (0) mean "leave unchanged"; an empty
+  // tag list means "leave unchanged" too (proto convention). Each column is
+  // COALESCE'd against a NULL param so an absent field keeps its current
+  // value in a single statement.
+  const statusDb =
+    req.status !== undefined && req.status !== 0 ? ticketStatusToDb(req.status) : null;
+  const priorityDb =
+    req.priority !== undefined && req.priority !== 0 ? ticketPriorityToDb(req.priority) : null;
+  const categoryDb =
+    req.category !== undefined && req.category !== 0 ? ticketCategoryToDb(req.category) : null;
+  const tags = req.tags !== undefined && req.tags.length > 0 ? req.tags : null;
+
+  if (statusDb === null && priorityDb === null && categoryDb === null && tags === null) {
+    throw new HandlerError('INVALID_ARGUMENT', 'no updatable fields provided');
+  }
+
+  return withTransaction(deps, async ({ client, publish }) => {
+    const existing = await client.query<{ ticket_id: string }>(
+      `SELECT ticket_id FROM support_tickets WHERE ticket_id = $1 FOR UPDATE`,
+      [req.ticketId]
+    );
+
+    if (existing.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `ticket ${req.ticketId} not found`);
+    }
+
+    const updated = await client.query<SupportTicketRow>(
+      `UPDATE support_tickets
+       SET status = COALESCE($1::support_ticket_status, status),
+           priority = COALESCE($2::support_ticket_priority, priority),
+           category = COALESCE($3::support_ticket_category, category),
+           tags = COALESCE($4::text[], tags),
+           updated_at = NOW()
+       WHERE ticket_id = $5
+       RETURNING ${TICKET_SELECT}`,
+      [statusDb, priorityDb, categoryDb, tags, req.ticketId]
+    );
+
+    if (updated.rows.length !== 1) {
+      throw new HandlerError('INTERNAL', 'update returned no rows');
+    }
+
+    publish({
+      type: 'moderation.ticketUpdated',
+      id: `${req.ticketId}.${Date.now()}`,
+      payload: {
+        ticketId: req.ticketId,
+        updatedBy: principal.userId,
+        status: statusDb,
+        priority: priorityDb,
+        category: categoryDb,
+      },
+    });
+
+    return { ticket: ticketRowToProto(updated.rows[0]) };
+  });
+}
+
+// --- EscalateSupportTicket -------------------------------------------
+
+export async function escalateSupportTicket(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: EscalateSupportTicketRequest
+): Promise<EscalateSupportTicketResponse> {
+  if (!requirePermission(principal, MODERATION_TICKETS_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_TICKETS_MANAGE}' required`);
+  }
+
+  if (req.ticketId === undefined || req.ticketId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'ticket_id is required');
+  }
+
+  // assigned_to is an optional reassignment (e.g. onto a senior queue);
+  // COALESCE keeps the current assignee when it's absent. escalation_reason
+  // is likewise optional. Mirrors the report-escalate handler.
+  const assignedTo = req.assignedTo !== undefined && req.assignedTo !== '' ? req.assignedTo : null;
+  const reason = req.reason !== undefined && req.reason !== '' ? req.reason : null;
+
+  return withTransaction(deps, async ({ client, publish }) => {
+    const existing = await client.query<{ ticket_id: string }>(
+      `SELECT ticket_id FROM support_tickets WHERE ticket_id = $1 FOR UPDATE`,
+      [req.ticketId]
+    );
+
+    if (existing.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `ticket ${req.ticketId} not found`);
+    }
+
+    const updated = await client.query<SupportTicketRow>(
+      `UPDATE support_tickets
+       SET status = 'escalated',
+           assigned_to = COALESCE($1, assigned_to),
+           escalated_at = NOW(),
+           escalation_reason = $2,
+           updated_at = NOW()
+       WHERE ticket_id = $3
+       RETURNING ${TICKET_SELECT}`,
+      [assignedTo, reason, req.ticketId]
+    );
+
+    if (updated.rows.length !== 1) {
+      throw new HandlerError('INTERNAL', 'update returned no rows');
+    }
+
+    publish({
+      type: 'moderation.ticketEscalated',
+      id: req.ticketId,
+      payload: {
+        ticketId: req.ticketId,
+        escalatedBy: principal.userId,
+        assignedTo,
+        reason,
       },
     });
 

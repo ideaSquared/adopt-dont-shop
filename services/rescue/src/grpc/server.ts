@@ -20,6 +20,7 @@ import { adapt, adaptUnauth } from './adapter.js';
 import {
   countRescues,
   createRescue,
+  deleteRescue,
   getRescue,
   getRescueStatistics,
   inviteStaff,
@@ -94,6 +95,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     list: adapt(listRescues, { deps, logger }),
     update: adapt(updateRescue, { deps, logger }),
     verify: adapt(verifyRescue, { deps, logger }),
+    delete: adapt(deleteRescue, { deps, logger }),
     inviteStaff: adapt(inviteStaff, { deps, logger }),
     getMyStaffMembership: adapt(getMyStaffMembership, { deps, logger }),
     listStaffMembers: adapt(listStaffMembers, { deps, logger }),
@@ -136,6 +138,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'list',
       'update',
       'verify',
+      'delete',
       'inviteStaff',
       'getMyStaffMembership',
       'listStaffMembers',

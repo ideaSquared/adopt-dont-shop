@@ -38,6 +38,8 @@ import {
   type CountRescuesResponse,
   type CreateRescueRequest,
   type CreateRescueResponse,
+  type DeleteRescueRequest,
+  type DeleteRescueResponse,
   type GetRescueRequest,
   type GetRescueResponse,
   type GetRescueStatisticsRequest,
@@ -684,6 +686,57 @@ export async function verifyRescue(
     throw new HandlerError('INTERNAL', 'verify update returned no rows');
   }
   return { rescue: rowToProto(updated) };
+}
+
+// --- Delete (soft-delete) --------------------------------------------
+
+// Soft-delete: stamp deleted_at so the rescue drops out of Get/List (both
+// filter deleted_at IS NULL) without losing the row. Admin-only, gated on
+// admin.security.manage like Verify. The `deleted_at IS NULL` guard in the
+// WHERE clause makes this delete-once: a second delete matches no row and
+// surfaces NOT_FOUND, so the event id keyed on rescue_id alone stays
+// deterministic (replay-safe).
+export async function deleteRescue(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: DeleteRescueRequest
+): Promise<DeleteRescueResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!requirePermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+
+  let deleted: RescueRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<RescueRow>(
+      `
+      UPDATE rescue.rescues
+      SET deleted_at = now(), updated_at = now()
+      WHERE rescue_id = $1 AND deleted_at IS NULL
+      RETURNING ${RESCUES_SELECT}
+      `,
+      [req.rescueId]
+    );
+    deleted = result.rows[0];
+    if (deleted) {
+      publish({
+        type: 'rescue.deleted',
+        id: `rescue.deleted.${req.rescueId}`,
+        payload: {
+          rescueId: req.rescueId,
+          deletedBy: principal.userId,
+          reason: req.reason ?? null,
+        },
+      });
+    }
+  });
+
+  if (!deleted) {
+    throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
+  }
+  return { rescue: rowToProto(deleted) };
 }
 
 // --- InviteStaff -----------------------------------------------------
