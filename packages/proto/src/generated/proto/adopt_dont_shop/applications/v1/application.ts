@@ -334,12 +334,29 @@ export interface ListApplicationsRequest {
    * from principal.userId); admins + super_admin can pass any
    * adopter_id_filter explicitly.
    */
-  adopterIdFilter?: string | undefined;
+  adopterIdFilter?:
+    | string
+    | undefined;
+  /**
+   * Offset pagination for the staff / admin applications datatable. When
+   * set (>0) the handler returns an OFFSET page plus a real `total`
+   * (COUNT) instead of a keyset cursor, so the shared DataTable can render
+   * "Page X of Y". The principal scope (adopter-owns / rescue-staff /
+   * admin) still applies — offset mode never widens what a caller sees.
+   */
+  page?: number | undefined;
 }
 
 export interface ListApplicationsResponse {
   applications: Application[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total row count for the current filter — present only in offset mode
+   * (page set). Keyset responses omit it.
+   */
+  total?: number | undefined;
 }
 
 export interface GetStatsRequest {
@@ -2979,7 +2996,14 @@ export const GetApplicationResponse: MessageFns<GetApplicationResponse> = {
 };
 
 function createBaseListApplicationsRequest(): ListApplicationsRequest {
-  return { cursor: undefined, limit: 0, statusFilter: 0, rescueIdFilter: undefined, adopterIdFilter: undefined };
+  return {
+    cursor: undefined,
+    limit: 0,
+    statusFilter: 0,
+    rescueIdFilter: undefined,
+    adopterIdFilter: undefined,
+    page: undefined,
+  };
 }
 
 export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
@@ -2998,6 +3022,9 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     }
     if (message.adopterIdFilter !== undefined) {
       writer.uint32(42).string(message.adopterIdFilter);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(48).uint32(message.page);
     }
     return writer;
   },
@@ -3049,6 +3076,14 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
           message.adopterIdFilter = reader.string();
           continue;
         }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3077,6 +3112,7 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
         : isSet(object.adopter_id_filter)
         ? globalThis.String(object.adopter_id_filter)
         : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
     };
   },
 
@@ -3097,6 +3133,9 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     if (message.adopterIdFilter !== undefined) {
       obj.adopterIdFilter = message.adopterIdFilter;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
     return obj;
   },
 
@@ -3110,12 +3149,13 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     message.statusFilter = object.statusFilter ?? 0;
     message.rescueIdFilter = object.rescueIdFilter ?? undefined;
     message.adopterIdFilter = object.adopterIdFilter ?? undefined;
+    message.page = object.page ?? undefined;
     return message;
   },
 };
 
 function createBaseListApplicationsResponse(): ListApplicationsResponse {
-  return { applications: [], nextCursor: undefined };
+  return { applications: [], nextCursor: undefined, total: undefined };
 }
 
 export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
@@ -3125,6 +3165,9 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -3152,6 +3195,14 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3171,6 +3222,7 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -3182,6 +3234,9 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -3192,6 +3247,7 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
     const message = createBaseListApplicationsResponse();
     message.applications = object.applications?.map((e) => Application.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };

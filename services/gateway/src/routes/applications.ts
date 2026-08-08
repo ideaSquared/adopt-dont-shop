@@ -66,7 +66,7 @@ import {
 } from './profile-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { GRPC_TO_HTTP, handleGrpcError } from '../middleware/grpc-error.js';
-import { parsePagination } from '../middleware/pagination.js';
+import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
 export type ApplicationsRoutesOptions = {
   client: ApplicationsClient;
@@ -976,7 +976,7 @@ export const registerApplicationsRoutes = async (
         querystring: {
           type: 'object',
           properties: {
-            cursor: { type: 'string' },
+            page: { type: 'string' },
             limit: { type: 'string' },
             status: { type: 'string' },
             rescue: { type: 'string' },
@@ -987,9 +987,21 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
             properties: {
+              success: { type: 'boolean' },
               data: {
                 type: 'array',
                 items: APPLICATION_VIEW_SCHEMA,
+              },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  limit: { type: 'number' },
+                  total: { type: 'number' },
+                  totalPages: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
+                },
               },
             },
           },
@@ -1005,12 +1017,12 @@ export const registerApplicationsRoutes = async (
     },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
-      const pagination = parsePagination(q, { limit: 0 });
+      const pagination = parsePagination(q, { page: 1, limit: 20 });
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
       const grpcReq: ListApplicationsRequest = {
-        cursor: q.cursor,
+        page: pagination.page,
         limit: pagination.limit,
         statusFilter: parseStatus(q.status),
         rescueIdFilter: q.rescue,
@@ -1019,11 +1031,21 @@ export const registerApplicationsRoutes = async (
       try {
         const res = await client.list(grpcReq, buildMetadata(req));
         // Stage B: map to the frontend view + drop draft/unspecified rows,
-        // and wrap in the `{ data }` envelope the SPA expects.
+        // then wrap in the canonical { success, data, pagination } envelope
+        // so the shared DataTable can render "Page X of Y" and gate Next.
         const data = res.applications
           .map(applicationToView)
           .filter((v): v is ApplicationView => v !== null);
-        return reply.send({ data });
+        return reply.send({
+          success: true,
+          data,
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: pagination.page,
+            limit: pagination.limit,
+            total: res.total ?? 0,
+          }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

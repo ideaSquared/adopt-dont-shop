@@ -239,6 +239,38 @@ describe('applications routes', () => {
     });
   });
 
+  it('offset-paginates List with a real total in the canonical envelope', async () => {
+    mocks.list.mockResolvedValue({ applications: [SUBMITTED], total: 42 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications?page=2&limit=20&status=submitted',
+      headers: STAFF,
+    });
+    expect(res.statusCode).toBe(200);
+    // The route calls List in offset mode (page forwarded, no cursor).
+    expect(mocks.list.mock.calls[0][0]).toMatchObject({
+      page: 2,
+      limit: 20,
+      statusFilter: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED,
+    });
+    expect(mocks.list.mock.calls[0][0]).not.toHaveProperty('cursor');
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: [{ id: 'app-1', status: 'submitted' }],
+      pagination: { page: 2, limit: 20, total: 42, totalPages: 3, hasNext: true, hasPrev: true },
+    });
+  });
+
+  it('rejects a non-integer page with 400 (no gRPC call)', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications?page=abc',
+      headers: STAFF,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.list).not.toHaveBeenCalled();
+  });
+
   it('Get returns the frontend view in { data } for a visible application', async () => {
     mocks.get.mockResolvedValue({ application: SUBMITTED, timeline: [] });
     const res = await app.inject({

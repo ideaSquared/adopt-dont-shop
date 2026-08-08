@@ -238,4 +238,56 @@ describe('listApplications', () => {
     expect(res.applications).toHaveLength(1);
     expect(res.nextCursor).toBeDefined();
   });
+
+  it('offset mode returns a page plus a real total via COUNT(*) when page is set', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({
+        rows: [{ application_id: 'app-1', created_at: new Date('2026-06-02T12:00:00.000Z') }],
+      }) // the OFFSET page of index rows
+      .mockResolvedValueOnce({ rows: [{ total: '42' }] }) // the COUNT(*)
+      .mockResolvedValue({ rows: aggregateRows() }); // per-aggregate fold
+
+    // page not in the pre-regen ListApplicationsRequest type yet — cast as
+    // the existing tests cast the untyped shapes they build.
+    const res = await listApplications(deps, makePrincipal({ userId: 'usr-1' }), {
+      page: 2,
+      limit: 20,
+      statusFilter: S.APPLICATION_STATUS_UNSPECIFIED,
+    } as never);
+
+    expect(res.applications).toHaveLength(1);
+    expect(res.applications[0].status).toBe(S.APPLICATION_STATUS_SUBMITTED);
+    // Real total from the COUNT, and no keyset cursor in offset mode.
+    expect(res.total).toBe(42);
+    expect(res.nextCursor).toBeUndefined();
+
+    // The page query uses OFFSET; a separate COUNT(*) produces the total.
+    const pageSql = query.mock.calls[0][0] as string;
+    expect(pageSql).toContain('OFFSET');
+    expect(pageSql).not.toContain('application_id <'); // no cursor predicate
+    const countSql = query.mock.calls[1][0] as string;
+    expect(countSql).toContain('COUNT(*)');
+    // Scope ($1 = own user id), then LIMIT + OFFSET = (page-1)*limit = 20.
+    expect(query.mock.calls[0][1]).toEqual(['usr-1', 20, 20]);
+    expect(query.mock.calls[1][1]).toEqual(['usr-1']);
+  });
+
+  it('offset mode scopes the COUNT to the caller, never widening visibility', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [] }) // empty page
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] }); // COUNT(*)
+
+    const res = await listApplications(
+      deps,
+      makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-9' }),
+      { page: 1, limit: 20, statusFilter: S.APPLICATION_STATUS_UNSPECIFIED } as never
+    );
+
+    expect(res.applications).toEqual([]);
+    expect(res.total).toBe(0);
+    // The COUNT is pinned to the staff member's own rescue.
+    expect(query.mock.calls[1][1]).toContain('rsc-9');
+  });
 });
