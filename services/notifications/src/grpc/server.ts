@@ -32,7 +32,12 @@ import {
   updateEmailTemplate,
 } from './email-template-handlers.js';
 import { getEmailPreferences, sendEmail, updateEmailPreferences } from './email-handlers.js';
-import { createNotification, dismissNotification, listNotifications } from './handlers.js';
+import {
+  bulkCreateNotifications,
+  createNotification,
+  dismissNotification,
+  listNotifications,
+} from './handlers.js';
 import {
   cleanupExpiredNotifications,
   deleteNotification,
@@ -78,6 +83,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     markAllRead: adapt(markAllRead, { deps: { pool, nats }, logger }),
     markRead: adapt(markRead, { deps: { pool, nats }, logger }),
     deleteNotification: adapt(deleteNotification, { deps: { pool, nats }, logger }),
+    bulkCreateNotifications: adapt(bulkCreateNotifications, { deps: { pool, nats }, logger }),
     getNotificationPreferences: adapt(getNotificationPreferences, { deps: { pool, nats }, logger }),
     updateNotificationPreferences: adapt(updateNotificationPreferences, {
       deps: { pool, nats },
@@ -118,6 +124,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getUnreadCount',
       'markAllRead',
       'deleteNotification',
+      'bulkCreateNotifications',
       'getNotificationPreferences',
       'updateNotificationPreferences',
       'resetNotificationPreferences',

@@ -1055,15 +1055,34 @@ export interface ListNotificationsRequest {
   statusFilter: NotificationStatus;
   channelFilter: NotificationChannel;
   typeFilter: NotificationType;
+  /**
+   * Page-based (offset) pagination — used by GET /notifications/user/:id.
+   * Absent or 0 keeps the default cursor-keyset mode above; >=1 switches
+   * the server to OFFSET pagination and populates total/page/total_pages
+   * on the response instead of next_cursor. The two modes are mutually
+   * exclusive — page mode ignores `cursor` entirely.
+   */
+  page?: number | undefined;
+  priorityFilter?:
+    | NotificationPriority
+    | undefined;
+  /** When true, only rows with read_at IS NULL are returned. */
+  unreadOnly?: boolean | undefined;
 }
 
 export interface ListNotificationsResponse {
   notifications: Notification[];
   /**
    * Absent when the result set is exhausted. Same string a future
-   * ListNotificationsRequest.cursor would carry.
+   * ListNotificationsRequest.cursor would carry. Unset in page mode.
    */
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /** Only populated when the request used page-based pagination. */
+  total?: number | undefined;
+  page?: number | undefined;
+  totalPages?: number | undefined;
 }
 
 export interface DismissNotificationRequest {
@@ -1314,6 +1333,37 @@ export interface DeleteNotificationRequest {
 
 export interface DeleteNotificationResponse {
   notification?: Notification | undefined;
+}
+
+export interface BulkCreateNotificationsRequest {
+  userIds: string[];
+  type: NotificationType;
+  channel: NotificationChannel;
+  priority: NotificationPriority;
+  title: string;
+  message: string;
+  /** Opaque payload, shared across every recipient's row. Empty == `{}`. */
+  dataJson: string;
+  templateId?: string | undefined;
+  templateVariablesJson: string;
+}
+
+/**
+ * Per-recipient outcome — lets the caller tell a blank/duplicate user_id
+ * apart from a row that was actually inserted.
+ */
+export interface BulkCreateNotificationResult {
+  userId: string;
+  notificationId?: string | undefined;
+  created: boolean;
+  error?: string | undefined;
+}
+
+export interface BulkCreateNotificationsResponse {
+  totalRequested: number;
+  successful: number;
+  failed: number;
+  results: BulkCreateNotificationResult[];
 }
 
 /**
@@ -2514,7 +2564,16 @@ export const CreateNotificationResponse: MessageFns<CreateNotificationResponse> 
 };
 
 function createBaseListNotificationsRequest(): ListNotificationsRequest {
-  return { cursor: undefined, limit: 0, statusFilter: 0, channelFilter: 0, typeFilter: 0 };
+  return {
+    cursor: undefined,
+    limit: 0,
+    statusFilter: 0,
+    channelFilter: 0,
+    typeFilter: 0,
+    page: undefined,
+    priorityFilter: undefined,
+    unreadOnly: undefined,
+  };
 }
 
 export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
@@ -2533,6 +2592,15 @@ export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
     }
     if (message.typeFilter !== 0) {
       writer.uint32(40).int32(message.typeFilter);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(48).uint32(message.page);
+    }
+    if (message.priorityFilter !== undefined) {
+      writer.uint32(56).int32(message.priorityFilter);
+    }
+    if (message.unreadOnly !== undefined) {
+      writer.uint32(64).bool(message.unreadOnly);
     }
     return writer;
   },
@@ -2584,6 +2652,30 @@ export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
           message.typeFilter = reader.int32() as any;
           continue;
         }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.priorityFilter = reader.int32() as any;
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.unreadOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2612,6 +2704,17 @@ export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
         : isSet(object.type_filter)
         ? notificationTypeFromJSON(object.type_filter)
         : 0,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      priorityFilter: isSet(object.priorityFilter)
+        ? notificationPriorityFromJSON(object.priorityFilter)
+        : isSet(object.priority_filter)
+        ? notificationPriorityFromJSON(object.priority_filter)
+        : undefined,
+      unreadOnly: isSet(object.unreadOnly)
+        ? globalThis.Boolean(object.unreadOnly)
+        : isSet(object.unread_only)
+        ? globalThis.Boolean(object.unread_only)
+        : undefined,
     };
   },
 
@@ -2632,6 +2735,15 @@ export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
     if (message.typeFilter !== 0) {
       obj.typeFilter = notificationTypeToJSON(message.typeFilter);
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.priorityFilter !== undefined) {
+      obj.priorityFilter = notificationPriorityToJSON(message.priorityFilter);
+    }
+    if (message.unreadOnly !== undefined) {
+      obj.unreadOnly = message.unreadOnly;
+    }
     return obj;
   },
 
@@ -2645,12 +2757,15 @@ export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
     message.statusFilter = object.statusFilter ?? 0;
     message.channelFilter = object.channelFilter ?? 0;
     message.typeFilter = object.typeFilter ?? 0;
+    message.page = object.page ?? undefined;
+    message.priorityFilter = object.priorityFilter ?? undefined;
+    message.unreadOnly = object.unreadOnly ?? undefined;
     return message;
   },
 };
 
 function createBaseListNotificationsResponse(): ListNotificationsResponse {
-  return { notifications: [], nextCursor: undefined };
+  return { notifications: [], nextCursor: undefined, total: undefined, page: undefined, totalPages: undefined };
 }
 
 export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = {
@@ -2660,6 +2775,15 @@ export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = 
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(32).uint32(message.page);
+    }
+    if (message.totalPages !== undefined) {
+      writer.uint32(40).uint32(message.totalPages);
     }
     return writer;
   },
@@ -2687,6 +2811,30 @@ export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = 
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.totalPages = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2706,6 +2854,13 @@ export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = 
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      totalPages: isSet(object.totalPages)
+        ? globalThis.Number(object.totalPages)
+        : isSet(object.total_pages)
+        ? globalThis.Number(object.total_pages)
+        : undefined,
     };
   },
 
@@ -2717,6 +2872,15 @@ export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = 
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.totalPages !== undefined) {
+      obj.totalPages = Math.round(message.totalPages);
+    }
     return obj;
   },
 
@@ -2727,6 +2891,9 @@ export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = 
     const message = createBaseListNotificationsResponse();
     message.notifications = object.notifications?.map((e) => Notification.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
+    message.page = object.page ?? undefined;
+    message.totalPages = object.totalPages ?? undefined;
     return message;
   },
 };
@@ -5601,6 +5768,454 @@ export const DeleteNotificationResponse: MessageFns<DeleteNotificationResponse> 
     message.notification = (object.notification !== undefined && object.notification !== null)
       ? Notification.fromPartial(object.notification)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseBulkCreateNotificationsRequest(): BulkCreateNotificationsRequest {
+  return {
+    userIds: [],
+    type: 0,
+    channel: 0,
+    priority: 0,
+    title: "",
+    message: "",
+    dataJson: "",
+    templateId: undefined,
+    templateVariablesJson: "",
+  };
+}
+
+export const BulkCreateNotificationsRequest: MessageFns<BulkCreateNotificationsRequest> = {
+  encode(message: BulkCreateNotificationsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.userIds) {
+      writer.uint32(10).string(v!);
+    }
+    if (message.type !== 0) {
+      writer.uint32(16).int32(message.type);
+    }
+    if (message.channel !== 0) {
+      writer.uint32(24).int32(message.channel);
+    }
+    if (message.priority !== 0) {
+      writer.uint32(32).int32(message.priority);
+    }
+    if (message.title !== "") {
+      writer.uint32(42).string(message.title);
+    }
+    if (message.message !== "") {
+      writer.uint32(50).string(message.message);
+    }
+    if (message.dataJson !== "") {
+      writer.uint32(58).string(message.dataJson);
+    }
+    if (message.templateId !== undefined) {
+      writer.uint32(66).string(message.templateId);
+    }
+    if (message.templateVariablesJson !== "") {
+      writer.uint32(74).string(message.templateVariablesJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkCreateNotificationsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkCreateNotificationsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userIds.push(reader.string());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.channel = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.priority = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.title = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.dataJson = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.templateVariablesJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkCreateNotificationsRequest {
+    return {
+      userIds: globalThis.Array.isArray(object?.userIds)
+        ? object.userIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.user_ids)
+        ? object.user_ids.map((e: any) => globalThis.String(e))
+        : [],
+      type: isSet(object.type) ? notificationTypeFromJSON(object.type) : 0,
+      channel: isSet(object.channel) ? notificationChannelFromJSON(object.channel) : 0,
+      priority: isSet(object.priority) ? notificationPriorityFromJSON(object.priority) : 0,
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+      dataJson: isSet(object.dataJson)
+        ? globalThis.String(object.dataJson)
+        : isSet(object.data_json)
+        ? globalThis.String(object.data_json)
+        : "",
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+        ? globalThis.String(object.template_id)
+        : undefined,
+      templateVariablesJson: isSet(object.templateVariablesJson)
+        ? globalThis.String(object.templateVariablesJson)
+        : isSet(object.template_variables_json)
+        ? globalThis.String(object.template_variables_json)
+        : "",
+    };
+  },
+
+  toJSON(message: BulkCreateNotificationsRequest): unknown {
+    const obj: any = {};
+    if (message.userIds?.length) {
+      obj.userIds = message.userIds;
+    }
+    if (message.type !== 0) {
+      obj.type = notificationTypeToJSON(message.type);
+    }
+    if (message.channel !== 0) {
+      obj.channel = notificationChannelToJSON(message.channel);
+    }
+    if (message.priority !== 0) {
+      obj.priority = notificationPriorityToJSON(message.priority);
+    }
+    if (message.title !== "") {
+      obj.title = message.title;
+    }
+    if (message.message !== "") {
+      obj.message = message.message;
+    }
+    if (message.dataJson !== "") {
+      obj.dataJson = message.dataJson;
+    }
+    if (message.templateId !== undefined) {
+      obj.templateId = message.templateId;
+    }
+    if (message.templateVariablesJson !== "") {
+      obj.templateVariablesJson = message.templateVariablesJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkCreateNotificationsRequest>, I>>(base?: I): BulkCreateNotificationsRequest {
+    return BulkCreateNotificationsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkCreateNotificationsRequest>, I>>(
+    object: I,
+  ): BulkCreateNotificationsRequest {
+    const message = createBaseBulkCreateNotificationsRequest();
+    message.userIds = object.userIds?.map((e) => e) || [];
+    message.type = object.type ?? 0;
+    message.channel = object.channel ?? 0;
+    message.priority = object.priority ?? 0;
+    message.title = object.title ?? "";
+    message.message = object.message ?? "";
+    message.dataJson = object.dataJson ?? "";
+    message.templateId = object.templateId ?? undefined;
+    message.templateVariablesJson = object.templateVariablesJson ?? "";
+    return message;
+  },
+};
+
+function createBaseBulkCreateNotificationResult(): BulkCreateNotificationResult {
+  return { userId: "", notificationId: undefined, created: false, error: undefined };
+}
+
+export const BulkCreateNotificationResult: MessageFns<BulkCreateNotificationResult> = {
+  encode(message: BulkCreateNotificationResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.notificationId !== undefined) {
+      writer.uint32(18).string(message.notificationId);
+    }
+    if (message.created !== false) {
+      writer.uint32(24).bool(message.created);
+    }
+    if (message.error !== undefined) {
+      writer.uint32(34).string(message.error);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkCreateNotificationResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkCreateNotificationResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.notificationId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.created = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.error = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkCreateNotificationResult {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      notificationId: isSet(object.notificationId)
+        ? globalThis.String(object.notificationId)
+        : isSet(object.notification_id)
+        ? globalThis.String(object.notification_id)
+        : undefined,
+      created: isSet(object.created) ? globalThis.Boolean(object.created) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : undefined,
+    };
+  },
+
+  toJSON(message: BulkCreateNotificationResult): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.notificationId !== undefined) {
+      obj.notificationId = message.notificationId;
+    }
+    if (message.created !== false) {
+      obj.created = message.created;
+    }
+    if (message.error !== undefined) {
+      obj.error = message.error;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkCreateNotificationResult>, I>>(base?: I): BulkCreateNotificationResult {
+    return BulkCreateNotificationResult.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkCreateNotificationResult>, I>>(object: I): BulkCreateNotificationResult {
+    const message = createBaseBulkCreateNotificationResult();
+    message.userId = object.userId ?? "";
+    message.notificationId = object.notificationId ?? undefined;
+    message.created = object.created ?? false;
+    message.error = object.error ?? undefined;
+    return message;
+  },
+};
+
+function createBaseBulkCreateNotificationsResponse(): BulkCreateNotificationsResponse {
+  return { totalRequested: 0, successful: 0, failed: 0, results: [] };
+}
+
+export const BulkCreateNotificationsResponse: MessageFns<BulkCreateNotificationsResponse> = {
+  encode(message: BulkCreateNotificationsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.totalRequested !== 0) {
+      writer.uint32(8).uint32(message.totalRequested);
+    }
+    if (message.successful !== 0) {
+      writer.uint32(16).uint32(message.successful);
+    }
+    if (message.failed !== 0) {
+      writer.uint32(24).uint32(message.failed);
+    }
+    for (const v of message.results) {
+      BulkCreateNotificationResult.encode(v!, writer.uint32(34).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkCreateNotificationsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkCreateNotificationsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.totalRequested = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.successful = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.failed = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.results.push(BulkCreateNotificationResult.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkCreateNotificationsResponse {
+    return {
+      totalRequested: isSet(object.totalRequested)
+        ? globalThis.Number(object.totalRequested)
+        : isSet(object.total_requested)
+        ? globalThis.Number(object.total_requested)
+        : 0,
+      successful: isSet(object.successful) ? globalThis.Number(object.successful) : 0,
+      failed: isSet(object.failed) ? globalThis.Number(object.failed) : 0,
+      results: globalThis.Array.isArray(object?.results)
+        ? object.results.map((e: any) => BulkCreateNotificationResult.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: BulkCreateNotificationsResponse): unknown {
+    const obj: any = {};
+    if (message.totalRequested !== 0) {
+      obj.totalRequested = Math.round(message.totalRequested);
+    }
+    if (message.successful !== 0) {
+      obj.successful = Math.round(message.successful);
+    }
+    if (message.failed !== 0) {
+      obj.failed = Math.round(message.failed);
+    }
+    if (message.results?.length) {
+      obj.results = message.results.map((e) => BulkCreateNotificationResult.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkCreateNotificationsResponse>, I>>(base?: I): BulkCreateNotificationsResponse {
+    return BulkCreateNotificationsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkCreateNotificationsResponse>, I>>(
+    object: I,
+  ): BulkCreateNotificationsResponse {
+    const message = createBaseBulkCreateNotificationsResponse();
+    message.totalRequested = object.totalRequested ?? 0;
+    message.successful = object.successful ?? 0;
+    message.failed = object.failed ?? 0;
+    message.results = object.results?.map((e) => BulkCreateNotificationResult.fromPartial(e)) || [];
     return message;
   },
 };
@@ -8863,6 +9478,26 @@ export const NotificationServiceService = {
       Buffer.from(DeleteNotificationResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteNotificationResponse => DeleteNotificationResponse.decode(value),
   },
+  /**
+   * Fan a single title/message/template payload out to a set of
+   * user_ids, creating one notification row per recipient. Unlike
+   * Broadcast (cohort-resolved, admin-only reach), the caller supplies
+   * the recipient list directly. Per-recipient results let the caller
+   * tell duplicate/blank ids apart from an actual insert. Requires
+   * `notifications.create` (same gate as Create).
+   */
+  bulkCreateNotifications: {
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/BulkCreateNotifications" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BulkCreateNotificationsRequest): Buffer =>
+      Buffer.from(BulkCreateNotificationsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BulkCreateNotificationsRequest => BulkCreateNotificationsRequest.decode(value),
+    responseSerialize: (value: BulkCreateNotificationsResponse): Buffer =>
+      Buffer.from(BulkCreateNotificationsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BulkCreateNotificationsResponse =>
+      BulkCreateNotificationsResponse.decode(value),
+  },
   getNotificationPreferences: {
     path: "/adopt_dont_shop.notifications.v1.NotificationService/GetNotificationPreferences" as const,
     requestStream: false as const,
@@ -9161,6 +9796,15 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    * the already-deleted row without error.
    */
   deleteNotification: handleUnaryCall<DeleteNotificationRequest, DeleteNotificationResponse>;
+  /**
+   * Fan a single title/message/template payload out to a set of
+   * user_ids, creating one notification row per recipient. Unlike
+   * Broadcast (cohort-resolved, admin-only reach), the caller supplies
+   * the recipient list directly. Per-recipient results let the caller
+   * tell duplicate/blank ids apart from an actual insert. Requires
+   * `notifications.create` (same gate as Create).
+   */
+  bulkCreateNotifications: handleUnaryCall<BulkCreateNotificationsRequest, BulkCreateNotificationsResponse>;
   getNotificationPreferences: handleUnaryCall<GetNotificationPreferencesRequest, GetNotificationPreferencesResponse>;
   updateNotificationPreferences: handleUnaryCall<
     UpdateNotificationPreferencesRequest,
@@ -9401,6 +10045,29 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Fan a single title/message/template payload out to a set of
+   * user_ids, creating one notification row per recipient. Unlike
+   * Broadcast (cohort-resolved, admin-only reach), the caller supplies
+   * the recipient list directly. Per-recipient results let the caller
+   * tell duplicate/blank ids apart from an actual insert. Requires
+   * `notifications.create` (same gate as Create).
+   */
+  bulkCreateNotifications(
+    request: BulkCreateNotificationsRequest,
+    callback: (error: ServiceError | null, response: BulkCreateNotificationsResponse) => void,
+  ): ClientUnaryCall;
+  bulkCreateNotifications(
+    request: BulkCreateNotificationsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BulkCreateNotificationsResponse) => void,
+  ): ClientUnaryCall;
+  bulkCreateNotifications(
+    request: BulkCreateNotificationsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BulkCreateNotificationsResponse) => void,
   ): ClientUnaryCall;
   getNotificationPreferences(
     request: GetNotificationPreferencesRequest,
