@@ -149,6 +149,30 @@ jobs:
         run: pnpm check:renovate
 
   # ============================================================================
+  # COMMIT MESSAGE LINT — ADS-1103: CONTRIBUTING.md documented a CI commit-
+  # message check that didn't actually exist. Conventional Commits were only
+  # enforced by the local `.husky/commit-msg` hook, which `--no-verify`
+  # bypasses and which never runs for web-UI or agent commits. Lints every
+  # commit on the PR against the repo's existing commitlint.config.js
+  # (@commitlint/config-conventional). No path filter — commit messages
+  # aren't tied to which files changed — and already in ci-required's needs.
+  # ============================================================================
+  commit-lint:
+    name: Verify Commit Messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup-workspace
+
+      - name: Lint commit messages
+        run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+  # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================
   changes:
@@ -512,6 +536,7 @@ jobs:
     if: always()
     needs:
       - workspace-drift
+      - commit-lint
       - build-libs
       - test-frontend
       - test-libs
