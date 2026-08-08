@@ -30,10 +30,14 @@ import {
   type GetPetResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
+  type GetSimilarPetsRequest,
+  type GetSimilarPetsResponse,
   type GetTopBreedsByAdoptionsRequest,
   type GetTopBreedsByAdoptionsResponse,
   type GetTopRescuesByAdoptionsRequest,
   type GetTopRescuesByAdoptionsResponse,
+  type ListBreedsRequest,
+  type ListBreedsResponse,
   type ListPetsRequest,
   type ListPetsResponse,
   type ListUserFavoritesRequest,
@@ -54,6 +58,8 @@ export type PetsClient = {
   create(req: CreatePetRequest, metadata: Metadata): Promise<CreatePetResponse>;
   get(req: GetPetRequest, metadata: Metadata): Promise<GetPetResponse>;
   list(req: ListPetsRequest, metadata: Metadata): Promise<ListPetsResponse>;
+  listBreeds(req: ListBreedsRequest, metadata: Metadata): Promise<ListBreedsResponse>;
+  getSimilarPets(req: GetSimilarPetsRequest, metadata: Metadata): Promise<GetSimilarPetsResponse>;
   update(req: UpdatePetRequest, metadata: Metadata): Promise<UpdatePetResponse>;
   updateStatus(req: UpdatePetStatusRequest, metadata: Metadata): Promise<UpdatePetStatusResponse>;
   delete(req: DeletePetRequest, metadata: Metadata): Promise<DeletePetResponse>;
@@ -154,6 +160,8 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
     // ── Idempotent (reads) ───────────────────────────────────────────
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
+    listBreeds: (req, metadata) => callUnary(stub.listBreeds, req, metadata, true),
+    getSimilarPets: (req, metadata) => callUnary(stub.getSimilarPets, req, metadata, true),
     getStats: (req, metadata) => callUnary(stub.getStats, req, metadata, true),
     addFavorite: (req, metadata) => callUnary(stub.addFavorite, req, metadata, false),
     removeFavorite: (req, metadata) => callUnary(stub.removeFavorite, req, metadata, false),

@@ -38,6 +38,10 @@ import {
   type GetPetResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
+  type GetSimilarPetsRequest,
+  type GetSimilarPetsResponse,
+  type ListBreedsRequest,
+  type ListBreedsResponse,
   type GetTopBreedsByAdoptionsRequest,
   type GetTopBreedsByAdoptionsResponse,
   type GetTopRescuesByAdoptionsRequest,
@@ -55,6 +59,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import {
+  ALL_PET_TYPES,
   ageGroupFromDb,
   ageGroupToDb,
   genderFromDb,
@@ -429,6 +434,81 @@ export async function listPets(
       : undefined;
 
   return { pets: page.map(row => rowToProto(row, privileged)), nextCursor };
+}
+
+// --- ListBreeds ------------------------------------------------------
+
+export async function listBreeds(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListBreedsRequest
+): Promise<ListBreedsResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  const species = req.species?.trim();
+  if (species) {
+    if (!(ALL_PET_TYPES as readonly string[]).includes(species)) {
+      throw new HandlerError('INVALID_ARGUMENT', `unknown species '${species}'`);
+    }
+    const { rows } = await deps.pool.query<{ name: string }>(
+      `SELECT name FROM pets.breeds WHERE species = $1 ORDER BY name ASC`,
+      [species]
+    );
+    return { breeds: rows.map(row => row.name) };
+  }
+
+  const { rows } = await deps.pool.query<{ name: string }>(
+    `SELECT DISTINCT name FROM pets.breeds ORDER BY name ASC`
+  );
+  return { breeds: rows.map(row => row.name) };
+}
+
+// --- GetSimilarPets --------------------------------------------------
+
+const DEFAULT_SIMILAR_LIMIT = 6;
+const MAX_SIMILAR_LIMIT = 24;
+
+export async function getSimilarPets(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetSimilarPetsRequest
+): Promise<GetSimilarPetsResponse> {
+  if (!req.petId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+  }
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  const source = await fetchPet(deps, req.petId);
+  if (!source) {
+    throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+  }
+
+  const limit =
+    req.limit && req.limit > 0 ? Math.min(req.limit, MAX_SIMILAR_LIMIT) : DEFAULT_SIMILAR_LIMIT;
+
+  // Same type, available + visible, excluding the source pet. A shared
+  // breed ranks a candidate first; recency breaks ties. Public projection
+  // only — recommendations never surface hidden or archived listings.
+  const { rows } = await deps.pool.query<PetRow>(
+    `
+    SELECT ${PETS_SELECT} FROM pets.pets
+    WHERE deleted_at IS NULL
+      AND pet_id <> $1
+      AND type = $2
+      AND status = 'available'
+      AND archived = false
+    ORDER BY (breed_id IS NOT DISTINCT FROM $3) DESC,
+             available_since DESC NULLS LAST, created_at DESC
+    LIMIT $4
+    `,
+    [source.pet_id, source.type, source.breed_id ?? null, limit]
+  );
+
+  return { pets: rows.map(row => rowToProto(row, false)) };
 }
 
 // --- Update ----------------------------------------------------------

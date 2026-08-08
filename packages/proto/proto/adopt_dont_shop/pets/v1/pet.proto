@@ -30,6 +30,16 @@ service PetService {
   // their own rescue via the rescue_id filter.
   rpc List(ListPetsRequest) returns (ListPetsResponse);
 
+  // Distinct breed names for a species (or all species when omitted),
+  // sorted alphabetically. Backs the search-filter + create-pet breed
+  // pickers. `pets.read`.
+  rpc ListBreeds(ListBreedsRequest) returns (ListBreedsResponse);
+
+  // "You might also like" — available, non-archived pets of the same
+  // type as the given pet (same breed ranked first), excluding the pet
+  // itself. Public projection only. `pets.read`.
+  rpc GetSimilarPets(GetSimilarPetsRequest) returns (GetSimilarPetsResponse);
+
   // Update mutable listing fields (descriptions, flags, fee, …). Does
   // NOT change status — that's UpdateStatus's job. Caller MUST have
   // `pets.update` scoped to the pet's rescue. Publishes `pets.updated`.
@@ -262,6 +272,31 @@ message ListPetsRequest {
 message ListPetsResponse {
   repeated Pet pets = 1;
   optional string next_cursor = 2;
+}
+
+// --- ListBreeds -------------------------------------------------------
+
+message ListBreedsRequest {
+  // Species label ('dog', 'cat', 'rabbit', …). Omit / empty to list
+  // breeds across every species.
+  optional string species = 1;
+}
+
+message ListBreedsResponse {
+  // Distinct breed names, alphabetical.
+  repeated string breeds = 1;
+}
+
+// --- GetSimilarPets ---------------------------------------------------
+
+message GetSimilarPetsRequest {
+  string pet_id = 1;
+  // Max results (clamped server-side). 0 → default.
+  uint32 limit = 2;
+}
+
+message GetSimilarPetsResponse {
+  repeated Pet pets = 1;
 }
 
 // --- Update -----------------------------------------------------------

@@ -442,6 +442,29 @@ export interface ListPetsResponse {
   nextCursor?: string | undefined;
 }
 
+export interface ListBreedsRequest {
+  /**
+   * Species label ('dog', 'cat', 'rabbit', …). Omit / empty to list
+   * breeds across every species.
+   */
+  species?: string | undefined;
+}
+
+export interface ListBreedsResponse {
+  /** Distinct breed names, alphabetical. */
+  breeds: string[];
+}
+
+export interface GetSimilarPetsRequest {
+  petId: string;
+  /** Max results (clamped server-side). 0 → default. */
+  limit: number;
+}
+
+export interface GetSimilarPetsResponse {
+  pets: Pet[];
+}
+
 export interface UpdatePetRequest {
   petId: string;
   /**
@@ -2370,6 +2393,262 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
     const message = createBaseListPetsResponse();
     message.pets = object.pets?.map((e) => Pet.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    return message;
+  },
+};
+
+function createBaseListBreedsRequest(): ListBreedsRequest {
+  return { species: undefined };
+}
+
+export const ListBreedsRequest: MessageFns<ListBreedsRequest> = {
+  encode(message: ListBreedsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.species !== undefined) {
+      writer.uint32(10).string(message.species);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListBreedsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListBreedsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.species = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListBreedsRequest {
+    return { species: isSet(object.species) ? globalThis.String(object.species) : undefined };
+  },
+
+  toJSON(message: ListBreedsRequest): unknown {
+    const obj: any = {};
+    if (message.species !== undefined) {
+      obj.species = message.species;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListBreedsRequest>, I>>(base?: I): ListBreedsRequest {
+    return ListBreedsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListBreedsRequest>, I>>(object: I): ListBreedsRequest {
+    const message = createBaseListBreedsRequest();
+    message.species = object.species ?? undefined;
+    return message;
+  },
+};
+
+function createBaseListBreedsResponse(): ListBreedsResponse {
+  return { breeds: [] };
+}
+
+export const ListBreedsResponse: MessageFns<ListBreedsResponse> = {
+  encode(message: ListBreedsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.breeds) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListBreedsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListBreedsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.breeds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListBreedsResponse {
+    return {
+      breeds: globalThis.Array.isArray(object?.breeds) ? object.breeds.map((e: any) => globalThis.String(e)) : [],
+    };
+  },
+
+  toJSON(message: ListBreedsResponse): unknown {
+    const obj: any = {};
+    if (message.breeds?.length) {
+      obj.breeds = message.breeds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListBreedsResponse>, I>>(base?: I): ListBreedsResponse {
+    return ListBreedsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListBreedsResponse>, I>>(object: I): ListBreedsResponse {
+    const message = createBaseListBreedsResponse();
+    message.breeds = object.breeds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseGetSimilarPetsRequest(): GetSimilarPetsRequest {
+  return { petId: "", limit: 0 };
+}
+
+export const GetSimilarPetsRequest: MessageFns<GetSimilarPetsRequest> = {
+  encode(message: GetSimilarPetsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.petId !== "") {
+      writer.uint32(10).string(message.petId);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(16).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSimilarPetsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSimilarPetsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSimilarPetsRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : "",
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+    };
+  },
+
+  toJSON(message: GetSimilarPetsRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== "") {
+      obj.petId = message.petId;
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSimilarPetsRequest>, I>>(base?: I): GetSimilarPetsRequest {
+    return GetSimilarPetsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSimilarPetsRequest>, I>>(object: I): GetSimilarPetsRequest {
+    const message = createBaseGetSimilarPetsRequest();
+    message.petId = object.petId ?? "";
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetSimilarPetsResponse(): GetSimilarPetsResponse {
+  return { pets: [] };
+}
+
+export const GetSimilarPetsResponse: MessageFns<GetSimilarPetsResponse> = {
+  encode(message: GetSimilarPetsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.pets) {
+      Pet.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSimilarPetsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSimilarPetsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.pets.push(Pet.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSimilarPetsResponse {
+    return { pets: globalThis.Array.isArray(object?.pets) ? object.pets.map((e: any) => Pet.fromJSON(e)) : [] };
+  },
+
+  toJSON(message: GetSimilarPetsResponse): unknown {
+    const obj: any = {};
+    if (message.pets?.length) {
+      obj.pets = message.pets.map((e) => Pet.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSimilarPetsResponse>, I>>(base?: I): GetSimilarPetsResponse {
+    return GetSimilarPetsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSimilarPetsResponse>, I>>(object: I): GetSimilarPetsResponse {
+    const message = createBaseGetSimilarPetsResponse();
+    message.pets = object.pets?.map((e) => Pet.fromPartial(e)) || [];
     return message;
   },
 };
@@ -5164,6 +5443,36 @@ export const PetServiceService = {
     responseDeserialize: (value: Buffer): ListPetsResponse => ListPetsResponse.decode(value),
   },
   /**
+   * Distinct breed names for a species (or all species when omitted),
+   * sorted alphabetically. Backs the search-filter + create-pet breed
+   * pickers. `pets.read`.
+   */
+  listBreeds: {
+    path: "/adopt_dont_shop.pets.v1.PetService/ListBreeds" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListBreedsRequest): Buffer => Buffer.from(ListBreedsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListBreedsRequest => ListBreedsRequest.decode(value),
+    responseSerialize: (value: ListBreedsResponse): Buffer => Buffer.from(ListBreedsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListBreedsResponse => ListBreedsResponse.decode(value),
+  },
+  /**
+   * "You might also like" — available, non-archived pets of the same
+   * type as the given pet (same breed ranked first), excluding the pet
+   * itself. Public projection only. `pets.read`.
+   */
+  getSimilarPets: {
+    path: "/adopt_dont_shop.pets.v1.PetService/GetSimilarPets" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetSimilarPetsRequest): Buffer =>
+      Buffer.from(GetSimilarPetsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSimilarPetsRequest => GetSimilarPetsRequest.decode(value),
+    responseSerialize: (value: GetSimilarPetsResponse): Buffer =>
+      Buffer.from(GetSimilarPetsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSimilarPetsResponse => GetSimilarPetsResponse.decode(value),
+  },
+  /**
    * Update mutable listing fields (descriptions, flags, fee, …). Does
    * NOT change status — that's UpdateStatus's job. Caller MUST have
    * `pets.update` scoped to the pet's rescue. Publishes `pets.updated`.
@@ -5373,6 +5682,18 @@ export interface PetServiceServer extends UntypedServiceImplementation {
    */
   list: handleUnaryCall<ListPetsRequest, ListPetsResponse>;
   /**
+   * Distinct breed names for a species (or all species when omitted),
+   * sorted alphabetically. Backs the search-filter + create-pet breed
+   * pickers. `pets.read`.
+   */
+  listBreeds: handleUnaryCall<ListBreedsRequest, ListBreedsResponse>;
+  /**
+   * "You might also like" — available, non-archived pets of the same
+   * type as the given pet (same breed ranked first), excluding the pet
+   * itself. Public projection only. `pets.read`.
+   */
+  getSimilarPets: handleUnaryCall<GetSimilarPetsRequest, GetSimilarPetsResponse>;
+  /**
    * Update mutable listing fields (descriptions, flags, fee, …). Does
    * NOT change status — that's UpdateStatus's job. Caller MUST have
    * `pets.update` scoped to the pet's rescue. Publishes `pets.updated`.
@@ -5497,6 +5818,46 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListPetsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Distinct breed names for a species (or all species when omitted),
+   * sorted alphabetically. Backs the search-filter + create-pet breed
+   * pickers. `pets.read`.
+   */
+  listBreeds(
+    request: ListBreedsRequest,
+    callback: (error: ServiceError | null, response: ListBreedsResponse) => void,
+  ): ClientUnaryCall;
+  listBreeds(
+    request: ListBreedsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListBreedsResponse) => void,
+  ): ClientUnaryCall;
+  listBreeds(
+    request: ListBreedsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListBreedsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * "You might also like" — available, non-archived pets of the same
+   * type as the given pet (same breed ranked first), excluding the pet
+   * itself. Public projection only. `pets.read`.
+   */
+  getSimilarPets(
+    request: GetSimilarPetsRequest,
+    callback: (error: ServiceError | null, response: GetSimilarPetsResponse) => void,
+  ): ClientUnaryCall;
+  getSimilarPets(
+    request: GetSimilarPetsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSimilarPetsResponse) => void,
+  ): ClientUnaryCall;
+  getSimilarPets(
+    request: GetSimilarPetsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetSimilarPetsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Update mutable listing fields (descriptions, flags, fee, …). Does

@@ -13,9 +13,11 @@ import {
   getAdoptionTrend,
   getPet,
   getPetStats,
+  getSimilarPets,
   getTopBreedsByAdoptions,
   getTopRescuesByAdoptions,
   HandlerError,
+  listBreeds,
   listFavoriters,
   listPets,
   updatePet,
@@ -400,6 +402,100 @@ describe('listPets', () => {
     const extra = JSON.parse(res.pets[0].extraJson) as Record<string, unknown>;
     expect(extra.medicalNotes).toBeUndefined();
     expect(extra.behavioralNotes).toBeUndefined();
+  });
+});
+
+// --- listBreeds ------------------------------------------------------
+
+describe('listBreeds', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('rejects a caller without pets.read', async () => {
+    await expect(listBreeds(mocks.deps, SERVICE_NOTIFICATIONS, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('returns breed names filtered by species', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ name: 'Beagle' }, { name: 'Collie' }],
+    });
+    const res = await listBreeds(mocks.deps, ADOPTER, { species: 'dog' });
+    expect(res.breeds).toEqual(['Beagle', 'Collie']);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    expect(sql).toContain('WHERE species = $1');
+    expect(mocks.poolMock.query.mock.calls[0][1]).toEqual(['dog']);
+  });
+
+  it('lists across all species when none is given', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ name: 'Beagle' }] });
+    const res = await listBreeds(mocks.deps, ADOPTER, {});
+    expect(res.breeds).toEqual(['Beagle']);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    expect(sql).toContain('SELECT DISTINCT name');
+  });
+
+  it('rejects an unknown species', async () => {
+    await expect(listBreeds(mocks.deps, ADOPTER, { species: 'dragon' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+});
+
+// --- getSimilarPets --------------------------------------------------
+
+describe('getSimilarPets', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('requires a pet_id', async () => {
+    await expect(
+      getSimilarPets(mocks.deps, ADOPTER, { petId: '', limit: 0 })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a caller without pets.read', async () => {
+    await expect(
+      getSimilarPets(mocks.deps, SERVICE_NOTIFICATIONS, { petId: 'pet-1', limit: 0 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('404s when the source pet is missing', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      getSimilarPets(mocks.deps, ADOPTER, { petId: 'ghost', limit: 0 })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns same-type available pets via the public projection', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow({ pet_id: 'pet-1', type: 'dog', breed_id: 'b-1' })] })
+      .mockResolvedValueOnce({
+        rows: [
+          petRow({ pet_id: 'pet-2', medical_notes: 'sensitive', behavioral_notes: 'sensitive' }),
+        ],
+      });
+    const res = await getSimilarPets(mocks.deps, ADOPTER, { petId: 'pet-1', limit: 0 });
+    expect(res.pets).toHaveLength(1);
+    expect(res.pets[0].petId).toBe('pet-2');
+    // Public projection strips internal notes.
+    const extra = JSON.parse(res.pets[0].extraJson) as Record<string, unknown>;
+    expect(extra.medicalNotes).toBeUndefined();
+    // Similar query params: [sourceId, type, breedId, limit(default 6)].
+    expect(mocks.poolMock.query.mock.calls[1][1]).toEqual(['pet-1', 'dog', 'b-1', 6]);
+  });
+
+  it('clamps the limit to the maximum', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow()] })
+      .mockResolvedValueOnce({ rows: [] });
+    await getSimilarPets(mocks.deps, ADOPTER, { petId: 'pet-1', limit: 500 });
+    expect(mocks.poolMock.query.mock.calls[1][1]?.[3]).toBe(24);
   });
 });
 
