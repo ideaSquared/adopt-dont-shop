@@ -30,33 +30,36 @@ import type { Permission } from '@adopt-dont-shop/lib.types';
 import { principalToMetadata } from '@adopt-dont-shop/service-bootstrap';
 import type { ApplicationsClient } from './applications-client.js';
 import type { RescueClient } from './rescue-client.js';
-import type {
-  Chat,
-  DeleteChatRequest,
-  DeleteChatResponse,
-  DeleteMessageRequest,
-  DeleteMessageResponse,
-  GetChatRequest,
-  GetChatResponse,
-  GetChatUnreadCountRequest,
-  GetChatUnreadCountResponse,
-  ListChatsRequest,
-  ListChatsResponse,
-  ListMessagesRequest,
-  ListMessagesResponse,
-  MarkReadRequest,
-  MarkReadResponse,
-  Message,
-  MessageReaction,
-  OpenChatRequest,
-  OpenChatResponse,
-  ReactRequest,
-  ReactResponse,
-  SearchChatHit,
-  SearchChatsRequest,
-  SearchChatsResponse,
-  SendMessageRequest,
-  SendMessageResponse,
+import {
+  ChatV1,
+  type Chat,
+  type DeleteChatRequest,
+  type DeleteChatResponse,
+  type DeleteMessageRequest,
+  type DeleteMessageResponse,
+  type GetChatRequest,
+  type GetChatResponse,
+  type GetChatUnreadCountRequest,
+  type GetChatUnreadCountResponse,
+  type ListChatsRequest,
+  type ListChatsResponse,
+  type ListMessagesRequest,
+  type ListMessagesResponse,
+  type MarkReadRequest,
+  type MarkReadResponse,
+  type Message,
+  type MessageReaction,
+  type OpenChatRequest,
+  type OpenChatResponse,
+  type ReactRequest,
+  type ReactResponse,
+  type SearchChatHit,
+  type SearchChatsRequest,
+  type SearchChatsResponse,
+  type SendMessageRequest,
+  type SendMessageResponse,
+  type UpdateChatStatusRequest,
+  type UpdateChatStatusResponse,
 } from '@adopt-dont-shop/proto';
 
 export type HandlerDeps = WithTransactionDeps;
@@ -213,6 +216,18 @@ const loadLastMessagePreview = async (
   return { preview, at: row.created_at, senderId: row.sender_id };
 };
 
+const CHAT_STATUS_TO_PROTO: Record<ChatRow['status'], ChatV1.ChatStatus> = {
+  active: ChatV1.ChatStatus.CHAT_STATUS_ACTIVE,
+  locked: ChatV1.ChatStatus.CHAT_STATUS_LOCKED,
+  archived: ChatV1.ChatStatus.CHAT_STATUS_ARCHIVED,
+};
+
+const CHAT_STATUS_FROM_PROTO: Partial<Record<ChatV1.ChatStatus, ChatRow['status']>> = {
+  [ChatV1.ChatStatus.CHAT_STATUS_ACTIVE]: 'active',
+  [ChatV1.ChatStatus.CHAT_STATUS_LOCKED]: 'locked',
+  [ChatV1.ChatStatus.CHAT_STATUS_ARCHIVED]: 'archived',
+};
+
 const chatRowToProto = async (deps: HandlerDeps, row: ChatRow): Promise<Chat> => {
   const participants = await loadChatParticipants(deps, row.chat_id);
   const last = await loadLastMessagePreview(deps, row.chat_id);
@@ -225,6 +240,7 @@ const chatRowToProto = async (deps: HandlerDeps, row: ChatRow): Promise<Chat> =>
     lastMessageSenderId: last.senderId ?? undefined,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
+    status: CHAT_STATUS_TO_PROTO[row.status],
   };
 };
 
@@ -1242,6 +1258,88 @@ export async function deleteChat(
 
   if (!updated) {
     throw new HandlerError('INTERNAL', 'delete returned no rows');
+  }
+  return { chat: await chatRowToProto(deps, updated) };
+}
+
+// --- UpdateChatStatus ------------------------------------------------
+//
+// Lifecycle status change (active / locked / archived). Same authz as
+// DeleteChat: a staff/safety primitive, never a plain participant — a
+// locked or archived thread stops accepting new messages, so an adopter
+// must not be able to silence a rescue's evidence trail.
+
+export async function updateChatStatus(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: UpdateChatStatusRequest
+): Promise<UpdateChatStatusResponse> {
+  if (!req.chatId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'chat_id is required');
+  }
+  const nextStatus = CHAT_STATUS_FROM_PROTO[req.status];
+  if (!nextStatus) {
+    throw new HandlerError('INVALID_ARGUMENT', 'a valid status is required');
+  }
+  if (!hasPermission(principal, CHAT_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
+  }
+
+  const existing = await deps.pool.query<ChatRow & { deleted_at: Date | null }>(
+    `SELECT * FROM chats WHERE chat_id = $1 LIMIT 1`,
+    [req.chatId]
+  );
+  if (existing.rows.length === 0 || existing.rows[0].deleted_at) {
+    throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+  }
+  const row = existing.rows[0];
+
+  const isPrivileged =
+    principal.roles.includes('super_admin') ||
+    principal.roles.includes('moderator') ||
+    principal.roles.includes('admin') ||
+    (principal.roles.includes('rescue_staff') &&
+      principal.rescueId !== undefined &&
+      principal.rescueId === row.rescue_id);
+  if (!isPrivileged) {
+    if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
+      throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+    }
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      'only rescue staff of this chat, or a moderator/admin, may change a chat status'
+    );
+  }
+
+  // Idempotent — already in the requested status.
+  if (row.status === nextStatus) {
+    return { chat: await chatRowToProto(deps, row) };
+  }
+
+  let updated: ChatRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<ChatRow>(
+      `UPDATE chats SET status = $2, updated_at = now() WHERE chat_id = $1 RETURNING *`,
+      [req.chatId, nextStatus]
+    );
+    updated = result.rows[0];
+
+    const participantUserIds = await loadChatParticipantsTx(client, req.chatId);
+
+    publish({
+      type: 'chat.statusChanged',
+      id: `chat.statusChanged.${req.chatId}.${nextStatus}`,
+      payload: {
+        chatId: req.chatId,
+        status: nextStatus,
+        changedBy: principal.userId,
+        participantUserIds,
+      },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'status update returned no rows');
   }
   return { chat: await chatRowToProto(deps, updated) };
 }

@@ -437,6 +437,8 @@ export type {
   GetChatResponse,
   DeleteChatRequest,
   DeleteChatResponse,
+  UpdateChatStatusRequest,
+  UpdateChatStatusResponse,
   ChatServiceServer,
   ChatServiceClient,
 } from './generated/proto/adopt_dont_shop/chat/v1/chat.js';

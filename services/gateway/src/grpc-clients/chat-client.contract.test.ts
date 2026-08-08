@@ -91,6 +91,7 @@ describe('chat-client — gRPC contract', () => {
           participantUserIds: ['user-a', 'user-b'],
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
+          status: ChatV1.ChatStatus.CHAT_STATUS_ACTIVE,
         },
       ],
       nextCursor: '',
@@ -131,6 +132,7 @@ describe('chat-client — gRPC contract', () => {
         participantUserIds: ['user-a', 'user-b'],
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
+        status: ChatV1.ChatStatus.CHAT_STATUS_ACTIVE,
       },
       created: true,
     };

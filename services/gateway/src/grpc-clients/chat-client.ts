@@ -30,6 +30,8 @@ import {
   type GetChatResponse,
   type DeleteChatRequest,
   type DeleteChatResponse,
+  type UpdateChatStatusRequest,
+  type UpdateChatStatusResponse,
 } from '@adopt-dont-shop/proto';
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
@@ -51,6 +53,10 @@ export type ChatClient = {
   deleteMessage(req: DeleteMessageRequest, metadata: Metadata): Promise<DeleteMessageResponse>;
   getChat(req: GetChatRequest, metadata: Metadata): Promise<GetChatResponse>;
   deleteChat(req: DeleteChatRequest, metadata: Metadata): Promise<DeleteChatResponse>;
+  updateChatStatus(
+    req: UpdateChatStatusRequest,
+    metadata: Metadata
+  ): Promise<UpdateChatStatusResponse>;
   close(): void;
 };
 
@@ -120,6 +126,7 @@ export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
     react: (req, metadata) => callUnary(stub.react, req, metadata, false),
     deleteMessage: (req, metadata) => callUnary(stub.deleteMessage, req, metadata, false),
     deleteChat: (req, metadata) => callUnary(stub.deleteChat, req, metadata, false),
+    updateChatStatus: (req, metadata) => callUnary(stub.updateChatStatus, req, metadata, false),
     // ── Idempotent (reads) ───────────────────────────────────────────
     listMessages: (req, metadata) => callUnary(stub.listMessages, req, metadata, true),
     listChats: (req, metadata) => callUnary(stub.listChats, req, metadata, true),

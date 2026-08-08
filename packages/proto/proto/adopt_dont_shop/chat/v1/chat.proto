@@ -77,9 +77,24 @@ service ChatService {
   // returns the same row without re-publishing. Publishes chat.deleted
   // with the participant list for WS fan-out.
   rpc DeleteChat(DeleteChatRequest) returns (DeleteChatResponse);
+
+  // Change a chat's lifecycle status (active / locked / archived). A
+  // staff/safety primitive — same authz as DeleteChat (moderator, admin,
+  // super_admin, or rescue-staff of this chat); a plain participant is
+  // denied. Publishes chat.statusChanged for WS fan-out.
+  rpc UpdateChatStatus(UpdateChatStatusRequest) returns (UpdateChatStatusResponse);
 }
 
 // --- Messages --------------------------------------------------------
+
+// ChatStatus mirrors the chat.chat_status Postgres enum. LOCKED and
+// ARCHIVED both stop new messages (ensureChatWritable gates on 'active').
+enum ChatStatus {
+  CHAT_STATUS_UNSPECIFIED = 0;
+  CHAT_STATUS_ACTIVE = 1;
+  CHAT_STATUS_LOCKED = 2;
+  CHAT_STATUS_ARCHIVED = 3;
+}
 
 // Chat mirrors the chat.chats row plus the participant ids. Last
 // message preview + unread count are denormalised columns the
@@ -99,6 +114,7 @@ message Chat {
   optional string last_message_sender_id = 6;
   string created_at = 7;
   string updated_at = 8;
+  ChatStatus status = 9;
 }
 
 // Message mirrors the chat.messages row. Edited / deleted timestamps
@@ -293,5 +309,14 @@ message DeleteChatRequest {
 }
 
 message DeleteChatResponse {
+  Chat chat = 1;
+}
+
+message UpdateChatStatusRequest {
+  string chat_id = 1;
+  ChatStatus status = 2;
+}
+
+message UpdateChatStatusResponse {
   Chat chat = 1;
 }
