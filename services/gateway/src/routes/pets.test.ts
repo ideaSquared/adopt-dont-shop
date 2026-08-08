@@ -567,6 +567,236 @@ describe('favourite routes', () => {
   });
 });
 
+describe('POST /api/v1/pets/:id/images', () => {
+  const petWithExtra = (extra: Record<string, unknown>): Pet => ({
+    ...PET_FIXTURE,
+    extraJson: JSON.stringify(extra),
+  });
+
+  it('appends uploaded urls to image_urls, preserves other extra fields, returns the view', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({
+        pet: petWithExtra({ image_urls: ['a.jpg'], color: 'brown' }),
+      });
+      m.updateMock.mockResolvedValueOnce({
+        pet: petWithExtra({ image_urls: ['a.jpg', 'b.jpg'], color: 'brown' }),
+      });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/images',
+        headers: { 'x-user-id': 'usr-staff', 'x-user-roles': 'rescue_staff' },
+        payload: { images: ['b.jpg'] },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; data: { image_urls: string[] } };
+      expect(body.success).toBe(true);
+      expect(body.data.image_urls).toEqual(['a.jpg', 'b.jpg']);
+
+      const [getReq, metadata] = m.getMock.mock.calls[0];
+      expect(getReq.petId).toBe('pet-1');
+      expect(metadata.get('x-user-id')[0]).toBe('usr-staff');
+
+      const [updateReq] = m.updateMock.mock.calls[0];
+      expect(updateReq.petId).toBe('pet-1');
+      const sentExtra = JSON.parse(updateReq.extraJson) as Record<string, unknown>;
+      expect(sentExtra.image_urls).toEqual(['a.jpg', 'b.jpg']);
+      // Untouched long-tail extra fields survive the merge.
+      expect(sentExtra.color).toBe('brown');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('dedupes urls already present on the pet', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({ pet: petWithExtra({ image_urls: ['a.jpg'] }) });
+      m.updateMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/images',
+        payload: { images: ['a.jpg', 'c.jpg'] },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const [updateReq] = m.updateMock.mock.calls[0];
+      expect(JSON.parse(updateReq.extraJson).image_urls).toEqual(['a.jpg', 'c.jpg']);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('accepts { url } and { urls } as alternates and starts from an empty list', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({ pet: petWithExtra({}) });
+      m.updateMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/images',
+        payload: { urls: ['q.jpg'], url: 'z.jpg' },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const [updateReq] = m.updateMock.mock.calls[0];
+      expect(JSON.parse(updateReq.extraJson).image_urls).toEqual(['q.jpg', 'z.jpg']);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('400s when no urls are supplied and never calls the service', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/images',
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.getMock).not.toHaveBeenCalled();
+      expect(m.updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('404s when the pet does not exist and does not attempt an update', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({ pet: undefined });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/ghost/images',
+        payload: { images: ['a.jpg'] },
+      });
+      expect(res.statusCode).toBe(404);
+      expect(m.updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps a PERMISSION_DENIED from Update → 403', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({ pet: petWithExtra({}) });
+      m.updateMock.mockRejectedValueOnce(
+        Object.assign(new Error('nope'), {
+          code: grpcStatus.PERMISSION_DENIED,
+          details: 'not your rescue',
+        })
+      );
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/images',
+        payload: { images: ['a.jpg'] },
+      });
+      expect(res.statusCode).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('DELETE /api/v1/pets/:id/images', () => {
+  const petWithExtra = (extra: Record<string, unknown>): Pet => ({
+    ...PET_FIXTURE,
+    extraJson: JSON.stringify(extra),
+  });
+
+  it('removes the given imageUrl, preserves other extra fields, returns the view', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({
+        pet: petWithExtra({ image_urls: ['a.jpg', 'b.jpg'], color: 'brown' }),
+      });
+      m.updateMock.mockResolvedValueOnce({
+        pet: petWithExtra({ image_urls: ['a.jpg'], color: 'brown' }),
+      });
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/pets/pet-1/images?imageUrl=b.jpg',
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; data: { image_urls: string[] } };
+      expect(body.data.image_urls).toEqual(['a.jpg']);
+
+      const [updateReq] = m.updateMock.mock.calls[0];
+      const sentExtra = JSON.parse(updateReq.extraJson) as Record<string, unknown>;
+      expect(sentExtra.image_urls).toEqual(['a.jpg']);
+      expect(sentExtra.color).toBe('brown');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('url-decodes the imageUrl query param before matching', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({
+        pet: petWithExtra({ image_urls: ['https://cdn/img a.jpg', 'keep.jpg'] }),
+      });
+      m.updateMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/pets/pet-1/images?imageUrl=https%3A%2F%2Fcdn%2Fimg%20a.jpg',
+      });
+
+      expect(res.statusCode).toBe(200);
+      const [updateReq] = m.updateMock.mock.calls[0];
+      expect(JSON.parse(updateReq.extraJson).image_urls).toEqual(['keep.jpg']);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('400s when imageUrl is missing and never calls the service', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({ method: 'DELETE', url: '/api/v1/pets/pet-1/images' });
+      expect(res.statusCode).toBe(400);
+      expect(m.getMock).not.toHaveBeenCalled();
+      expect(m.updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('404s when the pet does not exist', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({ pet: undefined });
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/pets/ghost/images?imageUrl=a.jpg',
+      });
+      expect(res.statusCode).toBe(404);
+      expect(m.updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 describe('POST /api/v1/pets/bulk-update', () => {
   const ADMIN_HEADERS = {
     'x-user-id': 'admin-1',
