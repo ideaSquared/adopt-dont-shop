@@ -159,6 +159,19 @@ service AuthService {
   rpc ResetPrivacyPreferences(ResetPrivacyPreferencesRequest)
       returns (ResetPrivacyPreferencesResponse);
 
+  // --- Legal consent (ADS-1137) --------------------------------------
+  // Append-only consent store backing the re-acceptance modal + cookie
+  // banner. RecordConsent writes one row per accepted document (terms /
+  // privacy / cookies); GetConsentStatus returns the latest accepted
+  // version per document so the gateway can compute pending re-acceptance
+  // against its currently-published versions. Both are self-scoped — a
+  // principal only ever reads/writes its own consent (identity comes from
+  // the x-user-* metadata, never the request body).
+
+  rpc RecordConsent(RecordConsentRequest) returns (RecordConsentResponse);
+
+  rpc GetConsentStatus(GetConsentStatusRequest) returns (GetConsentStatusResponse);
+
   // --- Admin user management -----------------------------------------
   // Admin-facing surface the monolith served at /api/v1/users/* (search,
   // statistics, get/update by id, deactivate/reactivate). Each RPC gates
@@ -772,6 +785,47 @@ message ResetPrivacyPreferencesRequest {
 
 message ResetPrivacyPreferencesResponse {
   PrivacyPreferences preferences = 1;
+}
+
+// --- Legal consent (ADS-1137) ----------------------------------------
+
+// One accepted legal document in a RecordConsent batch. document_type is
+// a free-text string ('terms' | 'privacy' | 'cookies') validated by the
+// handler; version is the document version the user accepted.
+message ConsentDecision {
+  string document_type = 1;
+  string version = 2;
+  // Only meaningful for the cookies document — the analytics opt-in the
+  // cookie banner captures alongside the policy version.
+  optional bool analytics_consent = 3;
+}
+
+message RecordConsentRequest {
+  repeated ConsentDecision decisions = 1;
+  // Request provenance, threaded from the gateway for the audit trail.
+  optional string ip_address = 2;
+  optional string user_agent = 3;
+}
+
+message RecordConsentResponse {
+  // Number of consent rows written.
+  uint32 recorded = 1;
+}
+
+// The latest accepted consent for one document type.
+message ConsentRecord {
+  string document_type = 1;
+  string version = 2;
+  // RFC 3339 timestamp the version was accepted.
+  string accepted_at = 3;
+  optional bool analytics_consent = 4;
+}
+
+message GetConsentStatusRequest {}
+
+message GetConsentStatusResponse {
+  // At most one record per document type — the most recent acceptance.
+  repeated ConsentRecord records = 1;
 }
 
 // --- Admin user management -------------------------------------------

@@ -22,6 +22,55 @@ import {
 export const protobufPackage = "adopt_dont_shop.chat.v1";
 
 /**
+ * ChatStatus mirrors the chat.chat_status Postgres enum. LOCKED and
+ * ARCHIVED both stop new messages (ensureChatWritable gates on 'active').
+ */
+export enum ChatStatus {
+  CHAT_STATUS_UNSPECIFIED = 0,
+  CHAT_STATUS_ACTIVE = 1,
+  CHAT_STATUS_LOCKED = 2,
+  CHAT_STATUS_ARCHIVED = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function chatStatusFromJSON(object: any): ChatStatus {
+  switch (object) {
+    case 0:
+    case "CHAT_STATUS_UNSPECIFIED":
+      return ChatStatus.CHAT_STATUS_UNSPECIFIED;
+    case 1:
+    case "CHAT_STATUS_ACTIVE":
+      return ChatStatus.CHAT_STATUS_ACTIVE;
+    case 2:
+    case "CHAT_STATUS_LOCKED":
+      return ChatStatus.CHAT_STATUS_LOCKED;
+    case 3:
+    case "CHAT_STATUS_ARCHIVED":
+      return ChatStatus.CHAT_STATUS_ARCHIVED;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return ChatStatus.UNRECOGNIZED;
+  }
+}
+
+export function chatStatusToJSON(object: ChatStatus): string {
+  switch (object) {
+    case ChatStatus.CHAT_STATUS_UNSPECIFIED:
+      return "CHAT_STATUS_UNSPECIFIED";
+    case ChatStatus.CHAT_STATUS_ACTIVE:
+      return "CHAT_STATUS_ACTIVE";
+    case ChatStatus.CHAT_STATUS_LOCKED:
+      return "CHAT_STATUS_LOCKED";
+    case ChatStatus.CHAT_STATUS_ARCHIVED:
+      return "CHAT_STATUS_ARCHIVED";
+    case ChatStatus.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
+/**
  * Chat mirrors the chat.chats row plus the participant ids. Last
  * message preview + unread count are denormalised columns the
  * SendMessage / MarkRead handlers maintain.
@@ -45,6 +94,7 @@ export interface Chat {
   lastMessageSenderId?: string | undefined;
   createdAt: string;
   updatedAt: string;
+  status: ChatStatus;
 }
 
 /**
@@ -254,6 +304,15 @@ export interface DeleteChatResponse {
   chat?: Chat | undefined;
 }
 
+export interface UpdateChatStatusRequest {
+  chatId: string;
+  status: ChatStatus;
+}
+
+export interface UpdateChatStatusResponse {
+  chat?: Chat | undefined;
+}
+
 function createBaseChat(): Chat {
   return {
     chatId: "",
@@ -264,6 +323,7 @@ function createBaseChat(): Chat {
     lastMessageSenderId: undefined,
     createdAt: "",
     updatedAt: "",
+    status: 0,
   };
 }
 
@@ -292,6 +352,9 @@ export const Chat: MessageFns<Chat> = {
     }
     if (message.updatedAt !== "") {
       writer.uint32(66).string(message.updatedAt);
+    }
+    if (message.status !== 0) {
+      writer.uint32(72).int32(message.status);
     }
     return writer;
   },
@@ -367,6 +430,14 @@ export const Chat: MessageFns<Chat> = {
           message.updatedAt = reader.string();
           continue;
         }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -418,6 +489,7 @@ export const Chat: MessageFns<Chat> = {
         : isSet(object.updated_at)
         ? globalThis.String(object.updated_at)
         : "",
+      status: isSet(object.status) ? chatStatusFromJSON(object.status) : 0,
     };
   },
 
@@ -447,6 +519,9 @@ export const Chat: MessageFns<Chat> = {
     if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
+    if (message.status !== 0) {
+      obj.status = chatStatusToJSON(message.status);
+    }
     return obj;
   },
 
@@ -463,6 +538,7 @@ export const Chat: MessageFns<Chat> = {
     message.lastMessageSenderId = object.lastMessageSenderId ?? undefined;
     message.createdAt = object.createdAt ?? "";
     message.updatedAt = object.updatedAt ?? "";
+    message.status = object.status ?? 0;
     return message;
   },
 };
@@ -2556,6 +2632,144 @@ export const DeleteChatResponse: MessageFns<DeleteChatResponse> = {
   },
 };
 
+function createBaseUpdateChatStatusRequest(): UpdateChatStatusRequest {
+  return { chatId: "", status: 0 };
+}
+
+export const UpdateChatStatusRequest: MessageFns<UpdateChatStatusRequest> = {
+  encode(message: UpdateChatStatusRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chatId !== "") {
+      writer.uint32(10).string(message.chatId);
+    }
+    if (message.status !== 0) {
+      writer.uint32(16).int32(message.status);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateChatStatusRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateChatStatusRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chatId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateChatStatusRequest {
+    return {
+      chatId: isSet(object.chatId)
+        ? globalThis.String(object.chatId)
+        : isSet(object.chat_id)
+        ? globalThis.String(object.chat_id)
+        : "",
+      status: isSet(object.status) ? chatStatusFromJSON(object.status) : 0,
+    };
+  },
+
+  toJSON(message: UpdateChatStatusRequest): unknown {
+    const obj: any = {};
+    if (message.chatId !== "") {
+      obj.chatId = message.chatId;
+    }
+    if (message.status !== 0) {
+      obj.status = chatStatusToJSON(message.status);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateChatStatusRequest>, I>>(base?: I): UpdateChatStatusRequest {
+    return UpdateChatStatusRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateChatStatusRequest>, I>>(object: I): UpdateChatStatusRequest {
+    const message = createBaseUpdateChatStatusRequest();
+    message.chatId = object.chatId ?? "";
+    message.status = object.status ?? 0;
+    return message;
+  },
+};
+
+function createBaseUpdateChatStatusResponse(): UpdateChatStatusResponse {
+  return { chat: undefined };
+}
+
+export const UpdateChatStatusResponse: MessageFns<UpdateChatStatusResponse> = {
+  encode(message: UpdateChatStatusResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chat !== undefined) {
+      Chat.encode(message.chat, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateChatStatusResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateChatStatusResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chat = Chat.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateChatStatusResponse {
+    return { chat: isSet(object.chat) ? Chat.fromJSON(object.chat) : undefined };
+  },
+
+  toJSON(message: UpdateChatStatusResponse): unknown {
+    const obj: any = {};
+    if (message.chat !== undefined) {
+      obj.chat = Chat.toJSON(message.chat);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateChatStatusResponse>, I>>(base?: I): UpdateChatStatusResponse {
+    return UpdateChatStatusResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateChatStatusResponse>, I>>(object: I): UpdateChatStatusResponse {
+    const message = createBaseUpdateChatStatusResponse();
+    message.chat = (object.chat !== undefined && object.chat !== null) ? Chat.fromPartial(object.chat) : undefined;
+    return message;
+  },
+};
+
 /**
  * ChatService is the gRPC contract for the chat vertical. It owns
  * the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
@@ -2737,6 +2951,23 @@ export const ChatServiceService = {
     responseSerialize: (value: DeleteChatResponse): Buffer => Buffer.from(DeleteChatResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteChatResponse => DeleteChatResponse.decode(value),
   },
+  /**
+   * Change a chat's lifecycle status (active / locked / archived). A
+   * staff/safety primitive — same authz as DeleteChat (moderator, admin,
+   * super_admin, or rescue-staff of this chat); a plain participant is
+   * denied. Publishes chat.statusChanged for WS fan-out.
+   */
+  updateChatStatus: {
+    path: "/adopt_dont_shop.chat.v1.ChatService/UpdateChatStatus" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateChatStatusRequest): Buffer =>
+      Buffer.from(UpdateChatStatusRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateChatStatusRequest => UpdateChatStatusRequest.decode(value),
+    responseSerialize: (value: UpdateChatStatusResponse): Buffer =>
+      Buffer.from(UpdateChatStatusResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateChatStatusResponse => UpdateChatStatusResponse.decode(value),
+  },
 } as const;
 
 export interface ChatServiceServer extends UntypedServiceImplementation {
@@ -2812,6 +3043,13 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    * with the participant list for WS fan-out.
    */
   deleteChat: handleUnaryCall<DeleteChatRequest, DeleteChatResponse>;
+  /**
+   * Change a chat's lifecycle status (active / locked / archived). A
+   * staff/safety primitive — same authz as DeleteChat (moderator, admin,
+   * super_admin, or rescue-staff of this chat); a plain participant is
+   * denied. Publishes chat.statusChanged for WS fan-out.
+   */
+  updateChatStatus: handleUnaryCall<UpdateChatStatusRequest, UpdateChatStatusResponse>;
 }
 
 export interface ChatServiceClient extends Client {
@@ -3040,6 +3278,27 @@ export interface ChatServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteChatResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Change a chat's lifecycle status (active / locked / archived). A
+   * staff/safety primitive — same authz as DeleteChat (moderator, admin,
+   * super_admin, or rescue-staff of this chat); a plain participant is
+   * denied. Publishes chat.statusChanged for WS fan-out.
+   */
+  updateChatStatus(
+    request: UpdateChatStatusRequest,
+    callback: (error: ServiceError | null, response: UpdateChatStatusResponse) => void,
+  ): ClientUnaryCall;
+  updateChatStatus(
+    request: UpdateChatStatusRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateChatStatusResponse) => void,
+  ): ClientUnaryCall;
+  updateChatStatus(
+    request: UpdateChatStatusRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateChatStatusResponse) => void,
   ): ClientUnaryCall;
 }
 

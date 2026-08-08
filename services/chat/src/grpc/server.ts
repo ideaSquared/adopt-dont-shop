@@ -32,6 +32,7 @@ import {
   react,
   searchChats,
   sendMessage,
+  updateChatStatus,
 } from './handlers.js';
 
 export type CreateGrpcServerOptions = {
@@ -69,6 +70,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     deleteMessage: adapt(deleteMessage, { deps, logger }),
     getChat: adapt(getChat, { deps, logger }),
     deleteChat: adapt(deleteChat, { deps, logger }),
+    updateChatStatus: adapt(updateChatStatus, { deps, logger }),
   });
 
   logger.info('gRPC ChatService registered', {
@@ -84,6 +86,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'deleteMessage',
       'getChat',
       'deleteChat',
+      'updateChatStatus',
     ],
     grpcPort: config.grpcPort,
   });

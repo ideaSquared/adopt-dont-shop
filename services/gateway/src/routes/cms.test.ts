@@ -18,6 +18,7 @@ function makeClient(): {
     listContent: vi.fn(),
     getContent: vi.fn(),
     getContentBySlug: vi.fn(),
+    generateSlug: vi.fn(),
     createContent: vi.fn(),
     updateContent: vi.fn(),
     deleteContent: vi.fn(),
@@ -147,6 +148,28 @@ describe('cms gateway routes', () => {
     expect(res.statusCode).toBe(200);
     expect(mocks.getContentBySlug).toHaveBeenCalled();
     expect(mocks.getContent).not.toHaveBeenCalled();
+  });
+
+  it('GET /slug?title=... returns the generated slug', async () => {
+    mocks.generateSlug.mockResolvedValue({ slug: 'hello-world-2' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/cms/slug?title=Hello%20World',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ slug: 'hello-world-2' });
+    expect(mocks.generateSlug.mock.calls[0][0]).toEqual({ title: 'Hello World' });
+  });
+
+  it('GET /slug without a title is a 400', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/cms/slug',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.generateSlug).not.toHaveBeenCalled();
   });
 
   it('POST /content returns 201 + decoded versions array', async () => {

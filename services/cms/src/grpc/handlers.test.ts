@@ -13,6 +13,7 @@ import {
   createMenu,
   deleteContent,
   deleteMenu,
+  generateSlug,
   getContent,
   getContentBySlug,
   getMenu,
@@ -282,6 +283,56 @@ describe('admin reads', () => {
     mocks.poolScript.push({ rows: [contentRow()] });
     const res = await getContentBySlug(mocks.deps, ADMIN, { slug: 'hello' });
     expect(res.content?.title).toBe('Hello');
+  });
+});
+
+describe('generateSlug', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('slugifies a title and returns it when no collision exists', async () => {
+    mocks.poolScript.push({ rows: [] });
+    const res = await generateSlug(mocks.deps, ADMIN, { title: 'Hello, World!' });
+    expect(res.slug).toBe('hello-world');
+  });
+
+  it('appends -2 when the base slug is already taken', async () => {
+    mocks.poolScript.push({ rows: [{ slug: 'hello-world' }] });
+    const res = await generateSlug(mocks.deps, ADMIN, { title: 'Hello World' });
+    expect(res.slug).toBe('hello-world-2');
+  });
+
+  it('skips to the next free numeric suffix', async () => {
+    mocks.poolScript.push({
+      rows: [{ slug: 'hello-world' }, { slug: 'hello-world-2' }, { slug: 'hello-world-3' }],
+    });
+    const res = await generateSlug(mocks.deps, ADMIN, { title: 'Hello World' });
+    expect(res.slug).toBe('hello-world-4');
+  });
+
+  it('rejects a title with no alphanumeric characters', async () => {
+    await expect(generateSlug(mocks.deps, ADMIN, { title: '—!!—' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('allows an update-only editor', async () => {
+    const editor: Principal = {
+      userId: 'usr-editor' as UserId,
+      roles: ['moderator'],
+      permissions: ['cms.content.update' as Permission],
+    };
+    mocks.poolScript.push({ rows: [] });
+    const res = await generateSlug(mocks.deps, editor, { title: 'Draft Page' });
+    expect(res.slug).toBe('draft-page');
+  });
+
+  it('rejects a principal without create or update permission', async () => {
+    await expect(generateSlug(mocks.deps, NO_PERMS, { title: 'X' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
   });
 });
 

@@ -845,6 +845,50 @@ export interface ResetPrivacyPreferencesResponse {
   preferences?: PrivacyPreferences | undefined;
 }
 
+/**
+ * One accepted legal document in a RecordConsent batch. document_type is
+ * a free-text string ('terms' | 'privacy' | 'cookies') validated by the
+ * handler; version is the document version the user accepted.
+ */
+export interface ConsentDecision {
+  documentType: string;
+  version: string;
+  /**
+   * Only meaningful for the cookies document — the analytics opt-in the
+   * cookie banner captures alongside the policy version.
+   */
+  analyticsConsent?: boolean | undefined;
+}
+
+export interface RecordConsentRequest {
+  decisions: ConsentDecision[];
+  /** Request provenance, threaded from the gateway for the audit trail. */
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+}
+
+export interface RecordConsentResponse {
+  /** Number of consent rows written. */
+  recorded: number;
+}
+
+/** The latest accepted consent for one document type. */
+export interface ConsentRecord {
+  documentType: string;
+  version: string;
+  /** RFC 3339 timestamp the version was accepted. */
+  acceptedAt: string;
+  analyticsConsent?: boolean | undefined;
+}
+
+export interface GetConsentStatusRequest {
+}
+
+export interface GetConsentStatusResponse {
+  /** At most one record per document type — the most recent acceptance. */
+  records: ConsentRecord[];
+}
+
 export interface SearchUsersRequest {
   /** Free-text search across first_name / last_name / email (ILIKE). */
   search?:
@@ -6167,6 +6211,491 @@ export const ResetPrivacyPreferencesResponse: MessageFns<ResetPrivacyPreferences
     message.preferences = (object.preferences !== undefined && object.preferences !== null)
       ? PrivacyPreferences.fromPartial(object.preferences)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseConsentDecision(): ConsentDecision {
+  return { documentType: "", version: "", analyticsConsent: undefined };
+}
+
+export const ConsentDecision: MessageFns<ConsentDecision> = {
+  encode(message: ConsentDecision, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.documentType !== "") {
+      writer.uint32(10).string(message.documentType);
+    }
+    if (message.version !== "") {
+      writer.uint32(18).string(message.version);
+    }
+    if (message.analyticsConsent !== undefined) {
+      writer.uint32(24).bool(message.analyticsConsent);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ConsentDecision {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConsentDecision();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.documentType = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.version = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.analyticsConsent = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ConsentDecision {
+    return {
+      documentType: isSet(object.documentType)
+        ? globalThis.String(object.documentType)
+        : isSet(object.document_type)
+        ? globalThis.String(object.document_type)
+        : "",
+      version: isSet(object.version) ? globalThis.String(object.version) : "",
+      analyticsConsent: isSet(object.analyticsConsent)
+        ? globalThis.Boolean(object.analyticsConsent)
+        : isSet(object.analytics_consent)
+        ? globalThis.Boolean(object.analytics_consent)
+        : undefined,
+    };
+  },
+
+  toJSON(message: ConsentDecision): unknown {
+    const obj: any = {};
+    if (message.documentType !== "") {
+      obj.documentType = message.documentType;
+    }
+    if (message.version !== "") {
+      obj.version = message.version;
+    }
+    if (message.analyticsConsent !== undefined) {
+      obj.analyticsConsent = message.analyticsConsent;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ConsentDecision>, I>>(base?: I): ConsentDecision {
+    return ConsentDecision.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ConsentDecision>, I>>(object: I): ConsentDecision {
+    const message = createBaseConsentDecision();
+    message.documentType = object.documentType ?? "";
+    message.version = object.version ?? "";
+    message.analyticsConsent = object.analyticsConsent ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRecordConsentRequest(): RecordConsentRequest {
+  return { decisions: [], ipAddress: undefined, userAgent: undefined };
+}
+
+export const RecordConsentRequest: MessageFns<RecordConsentRequest> = {
+  encode(message: RecordConsentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.decisions) {
+      ConsentDecision.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.ipAddress !== undefined) {
+      writer.uint32(18).string(message.ipAddress);
+    }
+    if (message.userAgent !== undefined) {
+      writer.uint32(26).string(message.userAgent);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RecordConsentRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRecordConsentRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.decisions.push(ConsentDecision.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.ipAddress = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.userAgent = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RecordConsentRequest {
+    return {
+      decisions: globalThis.Array.isArray(object?.decisions)
+        ? object.decisions.map((e: any) => ConsentDecision.fromJSON(e))
+        : [],
+      ipAddress: isSet(object.ipAddress)
+        ? globalThis.String(object.ipAddress)
+        : isSet(object.ip_address)
+        ? globalThis.String(object.ip_address)
+        : undefined,
+      userAgent: isSet(object.userAgent)
+        ? globalThis.String(object.userAgent)
+        : isSet(object.user_agent)
+        ? globalThis.String(object.user_agent)
+        : undefined,
+    };
+  },
+
+  toJSON(message: RecordConsentRequest): unknown {
+    const obj: any = {};
+    if (message.decisions?.length) {
+      obj.decisions = message.decisions.map((e) => ConsentDecision.toJSON(e));
+    }
+    if (message.ipAddress !== undefined) {
+      obj.ipAddress = message.ipAddress;
+    }
+    if (message.userAgent !== undefined) {
+      obj.userAgent = message.userAgent;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RecordConsentRequest>, I>>(base?: I): RecordConsentRequest {
+    return RecordConsentRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RecordConsentRequest>, I>>(object: I): RecordConsentRequest {
+    const message = createBaseRecordConsentRequest();
+    message.decisions = object.decisions?.map((e) => ConsentDecision.fromPartial(e)) || [];
+    message.ipAddress = object.ipAddress ?? undefined;
+    message.userAgent = object.userAgent ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRecordConsentResponse(): RecordConsentResponse {
+  return { recorded: 0 };
+}
+
+export const RecordConsentResponse: MessageFns<RecordConsentResponse> = {
+  encode(message: RecordConsentResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.recorded !== 0) {
+      writer.uint32(8).uint32(message.recorded);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RecordConsentResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRecordConsentResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.recorded = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RecordConsentResponse {
+    return { recorded: isSet(object.recorded) ? globalThis.Number(object.recorded) : 0 };
+  },
+
+  toJSON(message: RecordConsentResponse): unknown {
+    const obj: any = {};
+    if (message.recorded !== 0) {
+      obj.recorded = Math.round(message.recorded);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RecordConsentResponse>, I>>(base?: I): RecordConsentResponse {
+    return RecordConsentResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RecordConsentResponse>, I>>(object: I): RecordConsentResponse {
+    const message = createBaseRecordConsentResponse();
+    message.recorded = object.recorded ?? 0;
+    return message;
+  },
+};
+
+function createBaseConsentRecord(): ConsentRecord {
+  return { documentType: "", version: "", acceptedAt: "", analyticsConsent: undefined };
+}
+
+export const ConsentRecord: MessageFns<ConsentRecord> = {
+  encode(message: ConsentRecord, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.documentType !== "") {
+      writer.uint32(10).string(message.documentType);
+    }
+    if (message.version !== "") {
+      writer.uint32(18).string(message.version);
+    }
+    if (message.acceptedAt !== "") {
+      writer.uint32(26).string(message.acceptedAt);
+    }
+    if (message.analyticsConsent !== undefined) {
+      writer.uint32(32).bool(message.analyticsConsent);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ConsentRecord {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseConsentRecord();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.documentType = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.version = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.acceptedAt = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.analyticsConsent = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ConsentRecord {
+    return {
+      documentType: isSet(object.documentType)
+        ? globalThis.String(object.documentType)
+        : isSet(object.document_type)
+        ? globalThis.String(object.document_type)
+        : "",
+      version: isSet(object.version) ? globalThis.String(object.version) : "",
+      acceptedAt: isSet(object.acceptedAt)
+        ? globalThis.String(object.acceptedAt)
+        : isSet(object.accepted_at)
+        ? globalThis.String(object.accepted_at)
+        : "",
+      analyticsConsent: isSet(object.analyticsConsent)
+        ? globalThis.Boolean(object.analyticsConsent)
+        : isSet(object.analytics_consent)
+        ? globalThis.Boolean(object.analytics_consent)
+        : undefined,
+    };
+  },
+
+  toJSON(message: ConsentRecord): unknown {
+    const obj: any = {};
+    if (message.documentType !== "") {
+      obj.documentType = message.documentType;
+    }
+    if (message.version !== "") {
+      obj.version = message.version;
+    }
+    if (message.acceptedAt !== "") {
+      obj.acceptedAt = message.acceptedAt;
+    }
+    if (message.analyticsConsent !== undefined) {
+      obj.analyticsConsent = message.analyticsConsent;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ConsentRecord>, I>>(base?: I): ConsentRecord {
+    return ConsentRecord.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ConsentRecord>, I>>(object: I): ConsentRecord {
+    const message = createBaseConsentRecord();
+    message.documentType = object.documentType ?? "";
+    message.version = object.version ?? "";
+    message.acceptedAt = object.acceptedAt ?? "";
+    message.analyticsConsent = object.analyticsConsent ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetConsentStatusRequest(): GetConsentStatusRequest {
+  return {};
+}
+
+export const GetConsentStatusRequest: MessageFns<GetConsentStatusRequest> = {
+  encode(_: GetConsentStatusRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetConsentStatusRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetConsentStatusRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetConsentStatusRequest {
+    return {};
+  },
+
+  toJSON(_: GetConsentStatusRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetConsentStatusRequest>, I>>(base?: I): GetConsentStatusRequest {
+    return GetConsentStatusRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetConsentStatusRequest>, I>>(_: I): GetConsentStatusRequest {
+    const message = createBaseGetConsentStatusRequest();
+    return message;
+  },
+};
+
+function createBaseGetConsentStatusResponse(): GetConsentStatusResponse {
+  return { records: [] };
+}
+
+export const GetConsentStatusResponse: MessageFns<GetConsentStatusResponse> = {
+  encode(message: GetConsentStatusResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.records) {
+      ConsentRecord.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetConsentStatusResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetConsentStatusResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.records.push(ConsentRecord.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetConsentStatusResponse {
+    return {
+      records: globalThis.Array.isArray(object?.records)
+        ? object.records.map((e: any) => ConsentRecord.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetConsentStatusResponse): unknown {
+    const obj: any = {};
+    if (message.records?.length) {
+      obj.records = message.records.map((e) => ConsentRecord.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetConsentStatusResponse>, I>>(base?: I): GetConsentStatusResponse {
+    return GetConsentStatusResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetConsentStatusResponse>, I>>(object: I): GetConsentStatusResponse {
+    const message = createBaseGetConsentStatusResponse();
+    message.records = object.records?.map((e) => ConsentRecord.fromPartial(e)) || [];
     return message;
   },
 };
@@ -12031,6 +12560,27 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): ResetPrivacyPreferencesResponse =>
       ResetPrivacyPreferencesResponse.decode(value),
   },
+  recordConsent: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/RecordConsent" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RecordConsentRequest): Buffer => Buffer.from(RecordConsentRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RecordConsentRequest => RecordConsentRequest.decode(value),
+    responseSerialize: (value: RecordConsentResponse): Buffer =>
+      Buffer.from(RecordConsentResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RecordConsentResponse => RecordConsentResponse.decode(value),
+  },
+  getConsentStatus: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetConsentStatus" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetConsentStatusRequest): Buffer =>
+      Buffer.from(GetConsentStatusRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetConsentStatusRequest => GetConsentStatusRequest.decode(value),
+    responseSerialize: (value: GetConsentStatusResponse): Buffer =>
+      Buffer.from(GetConsentStatusResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetConsentStatusResponse => GetConsentStatusResponse.decode(value),
+  },
   /** Paginated, filtered user search. Caller MUST have admin.users.search. */
   searchUsers: {
     path: "/adopt_dont_shop.auth.v1.AuthService/SearchUsers" as const,
@@ -12585,6 +13135,8 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * created defaults row.
    */
   resetPrivacyPreferences: handleUnaryCall<ResetPrivacyPreferencesRequest, ResetPrivacyPreferencesResponse>;
+  recordConsent: handleUnaryCall<RecordConsentRequest, RecordConsentResponse>;
+  getConsentStatus: handleUnaryCall<GetConsentStatusRequest, GetConsentStatusResponse>;
   /** Paginated, filtered user search. Caller MUST have admin.users.search. */
   searchUsers: handleUnaryCall<SearchUsersRequest, SearchUsersResponse>;
   /** Fetch a single user by id (admin view — full row). admin.users.read. */
@@ -13197,6 +13749,36 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void,
+  ): ClientUnaryCall;
+  recordConsent(
+    request: RecordConsentRequest,
+    callback: (error: ServiceError | null, response: RecordConsentResponse) => void,
+  ): ClientUnaryCall;
+  recordConsent(
+    request: RecordConsentRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RecordConsentResponse) => void,
+  ): ClientUnaryCall;
+  recordConsent(
+    request: RecordConsentRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RecordConsentResponse) => void,
+  ): ClientUnaryCall;
+  getConsentStatus(
+    request: GetConsentStatusRequest,
+    callback: (error: ServiceError | null, response: GetConsentStatusResponse) => void,
+  ): ClientUnaryCall;
+  getConsentStatus(
+    request: GetConsentStatusRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetConsentStatusResponse) => void,
+  ): ClientUnaryCall;
+  getConsentStatus(
+    request: GetConsentStatusRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetConsentStatusResponse) => void,
   ): ClientUnaryCall;
   /** Paginated, filtered user search. Caller MUST have admin.users.search. */
   searchUsers(

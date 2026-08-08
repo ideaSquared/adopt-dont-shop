@@ -20,6 +20,10 @@ service CmsService {
   rpc ListContent(ListContentRequest) returns (ListContentResponse);
   rpc GetContent(GetContentRequest) returns (GetContentResponse);
   rpc GetContentBySlug(GetContentBySlugRequest) returns (GetContentBySlugResponse);
+  // Slugify a title into a URL-safe slug that's unique across existing
+  // content (appends -2, -3, ... on collision). Backs the admin authoring
+  // UI's live slug preview.
+  rpc GenerateSlug(GenerateSlugRequest) returns (GenerateSlugResponse);
   rpc CreateContent(CreateContentRequest) returns (CreateContentResponse);
   rpc UpdateContent(UpdateContentRequest) returns (UpdateContentResponse);
   rpc DeleteContent(DeleteContentRequest) returns (DeleteContentResponse);
@@ -129,6 +133,13 @@ message GetContentBySlugRequest {
 }
 message GetContentBySlugResponse {
   Content content = 1;
+}
+
+message GenerateSlugRequest {
+  string title = 1;
+}
+message GenerateSlugResponse {
+  string slug = 1;
 }
 
 message CreateContentRequest {

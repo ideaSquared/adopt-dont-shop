@@ -40,6 +40,14 @@ export type ChatRoutesOptions = {
 // prefixes via this list.
 const CHAT_PREFIXES = ['/api/v1/chats', '/api/v1/conversations'] as const;
 
+// Accepted PATCH-status strings → ChatStatus enum. An unknown string
+// resolves to undefined and the route answers 400.
+const CHAT_STATUS_FROM_STRING: Record<string, ChatV1.ChatStatus | undefined> = {
+  active: ChatV1.ChatStatus.CHAT_STATUS_ACTIVE,
+  locked: ChatV1.ChatStatus.CHAT_STATUS_LOCKED,
+  archived: ChatV1.ChatStatus.CHAT_STATUS_ARCHIVED,
+};
+
 // Per-route rate limits (ADS-996). Before this the only cap on the chat
 // surface was the gateway-wide 100 req/min/IP limit — per-IP, so a rotating
 // proxy bypassed it, and far too loose for POST message flooding. Reads sit
@@ -432,6 +440,59 @@ const registerChatRoutesForPrefix = (
         return reply.send({
           success: true,
           message: 'Chat deleted',
+          data: res.chat ? ChatV1.Chat.toJSON(res.chat) : null,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // ---- PATCH <prefix>/:chatId --------------------------------------
+  // Change a chat's lifecycle status (active / locked / archived).
+  // Staff/admin only (enforced in the handler).
+  app.patch<{ Params: { chatId: string }; Body?: { status?: string } }>(
+    `${prefix}/:chatId`,
+    {
+      config: { rateLimit: CHAT_RATE_LIMITS.delete },
+      schema: {
+        tags: ['chat'],
+        summary: 'Update a chat status',
+        params: {
+          type: 'object',
+          properties: { chatId: { type: 'string' } },
+          required: ['chatId'],
+        },
+        body: {
+          type: 'object',
+          properties: { status: { type: 'string', enum: ['active', 'locked', 'archived'] } },
+          required: ['status'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const status = CHAT_STATUS_FROM_STRING[(req.body ?? {}).status ?? ''];
+      if (status === undefined) {
+        return reply.code(400).send({ success: false, error: 'invalid status' });
+      }
+      try {
+        const res = await client.updateChatStatus({ chatId: req.params.chatId, status }, metadata);
+        return reply.send({
+          success: true,
           data: res.chat ? ChatV1.Chat.toJSON(res.chat) : null,
         });
       } catch (err) {

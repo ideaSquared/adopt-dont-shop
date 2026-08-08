@@ -6,6 +6,7 @@ import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
 import {
   ApplicationsV1,
+  ChatV1,
   RescueV1,
   type ListChatsRequest,
   type ListMessagesRequest,
@@ -30,6 +31,7 @@ import {
   getChatUnreadCount,
   searchChats,
   sendMessage,
+  updateChatStatus,
 } from './handlers.js';
 
 // --- Principal fixtures ---------------------------------------------
@@ -1303,5 +1305,86 @@ describe('deleteChat', () => {
     const res = await deleteChat(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1' });
     expect(res.chat?.chatId).toBe('chat-1');
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('updateChatStatus', () => {
+  const LOCKED = ChatV1.ChatStatus.CHAT_STATUS_LOCKED;
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects missing chat_id', async () => {
+    await expect(
+      updateChatStatus(mocks.deps, MODERATOR_PRINCIPAL, { chatId: '', status: LOCKED })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an unspecified status', async () => {
+    await expect(
+      updateChatStatus(mocks.deps, MODERATOR_PRINCIPAL, {
+        chatId: 'chat-1',
+        status: ChatV1.ChatStatus.CHAT_STATUS_UNSPECIFIED,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects principals without chats.read', async () => {
+    await expect(
+      updateChatStatus(mocks.deps, UNPRIVILEGED_PRINCIPAL, { chatId: 'chat-1', status: LOCKED })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns NOT_FOUND when the chat row is gone', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      updateChatStatus(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1', status: LOCKED })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('rejects an adopter participant (cannot lock a shared thread)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] }); // chat exists
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] }); // participant
+    await expect(
+      updateChatStatus(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1', status: LOCKED })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('is idempotent when already in the requested status (no write, no publish)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture({ status: 'locked' })] });
+    // chatRowToProto helpers
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await updateChatStatus(mocks.deps, MODERATOR_PRINCIPAL, {
+      chatId: 'chat-1',
+      status: LOCKED,
+    });
+    expect(res.chat?.status).toBe(LOCKED);
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('a moderator locks the chat and publishes chat.statusChanged', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture({ status: 'active' })] });
+    // withTransaction: UPDATE returning + participants
+    mocks.clientScript.push({ rows: [chatRowFixture({ status: 'locked' })] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+    // After commit, chatRowToProto helpers
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await updateChatStatus(mocks.deps, MODERATOR_PRINCIPAL, {
+      chatId: 'chat-1',
+      status: LOCKED,
+    });
+    expect(res.chat?.status).toBe(LOCKED);
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.statusChanged');
   });
 });

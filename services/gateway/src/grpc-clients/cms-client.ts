@@ -16,6 +16,8 @@ import {
   type CmsDeleteMenuResponse,
   type CmsGetContentBySlugRequest,
   type CmsGetContentBySlugResponse,
+  type CmsGenerateSlugRequest,
+  type CmsGenerateSlugResponse,
   type CmsGetContentRequest,
   type CmsGetContentResponse,
   type CmsGetMenuRequest,
@@ -61,6 +63,7 @@ export type CmsClient = {
     req: CmsGetContentBySlugRequest,
     metadata: Metadata
   ): Promise<CmsGetContentBySlugResponse>;
+  generateSlug(req: CmsGenerateSlugRequest, metadata: Metadata): Promise<CmsGenerateSlugResponse>;
   createContent(
     req: CmsCreateContentRequest,
     metadata: Metadata
@@ -178,6 +181,7 @@ export const createCmsClient = (opts: CreateCmsClientOptions): CmsClient => {
     listContent: (req, metadata) => callUnary(stub.listContent, req, metadata, true),
     getContent: (req, metadata) => callUnary(stub.getContent, req, metadata, true),
     getContentBySlug: (req, metadata) => callUnary(stub.getContentBySlug, req, metadata, true),
+    generateSlug: (req, metadata) => callUnary(stub.generateSlug, req, metadata, true),
     getVersionHistory: (req, metadata) => callUnary(stub.getVersionHistory, req, metadata, true),
     listMenus: (req, metadata) => callUnary(stub.listMenus, req, metadata, true),
     getMenu: (req, metadata) => callUnary(stub.getMenu, req, metadata, true),

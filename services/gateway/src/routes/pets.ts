@@ -294,6 +294,97 @@ export const registerPetsRoutes = async (
     }
   );
 
+  // Breed catalogue — static-prefixed so it wins over /:id in the router.
+  // `GET /api/v1/pets/breeds` (all species) and `/api/v1/pets/breeds/:type`.
+  const BREEDS_RESPONSE = {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        data: { type: 'array', items: { type: 'string' } },
+      },
+    },
+    400: { type: 'object', properties: { error: { type: 'string' } } },
+  } as const;
+
+  app.get(
+    '/api/v1/pets/breeds',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.get },
+      schema: {
+        tags: ['pets'],
+        summary: 'List all breed names across every species',
+        response: BREEDS_RESPONSE,
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.listBreeds({}, buildMetadata(req));
+        return reply.send({ success: true, data: res.breeds });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.get<{ Params: { type: string } }>(
+    '/api/v1/pets/breeds/:type',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.get },
+      schema: {
+        tags: ['pets'],
+        summary: 'List breed names for a species',
+        params: { type: 'object', properties: { type: { type: 'string' } }, required: ['type'] },
+        response: BREEDS_RESPONSE,
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.listBreeds({ species: req.params.type }, buildMetadata(req));
+        return reply.send({ success: true, data: res.breeds });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/pets/:id/similar — "you might also like" recommendations.
+  app.get<{ Params: { id: string }; Querystring: { limit?: string } }>(
+    '/api/v1/pets/:id/similar',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.get },
+      schema: {
+        tags: ['pets'],
+        summary: 'List pets similar to the given pet',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        querystring: { type: 'object', properties: { limit: { type: 'string' } } },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: PET_VIEW_SCHEMA },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const rawLimit = Number(req.query.limit);
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : 0;
+      try {
+        const res = await client.getSimilarPets(
+          { petId: req.params.id, limit },
+          buildMetadata(req)
+        );
+        return reply.send({ success: true, data: res.pets.map(petToView) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   app.get<{ Params: { id: string } }>(
     '/api/v1/pets/:id',
     {

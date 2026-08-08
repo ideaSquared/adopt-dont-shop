@@ -81,6 +81,10 @@ import {
   type UpdatePrivacyPreferencesResponse,
   type ResetPrivacyPreferencesRequest,
   type ResetPrivacyPreferencesResponse,
+  type RecordConsentRequest,
+  type RecordConsentResponse,
+  type GetConsentStatusRequest,
+  type GetConsentStatusResponse,
   type SearchUsersRequest,
   type SearchUsersResponse,
   type AdminCreateUserRequest,
@@ -196,6 +200,11 @@ export type AuthClient = {
     req: ResetPrivacyPreferencesRequest,
     metadata: Metadata
   ): Promise<ResetPrivacyPreferencesResponse>;
+  recordConsent(req: RecordConsentRequest, metadata: Metadata): Promise<RecordConsentResponse>;
+  getConsentStatus(
+    req: GetConsentStatusRequest,
+    metadata: Metadata
+  ): Promise<GetConsentStatusResponse>;
   searchUsers(req: SearchUsersRequest, metadata: Metadata): Promise<SearchUsersResponse>;
   adminGetUser(req: AdminGetUserRequest, metadata: Metadata): Promise<AdminGetUserResponse>;
   adminCreateUser(
@@ -350,6 +359,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
       callUnary(stub.updatePrivacyPreferences, req, metadata, false),
     resetPrivacyPreferences: (req, metadata) =>
       callUnary(stub.resetPrivacyPreferences, req, metadata, false),
+    recordConsent: (req, metadata) => callUnary(stub.recordConsent, req, metadata, false),
     assignRole: (req, metadata) => callUnary(stub.assignRole, req, metadata, false),
     adminUpdateUser: (req, metadata) => callUnary(stub.adminUpdateUser, req, metadata, false),
     adminCreateUser: (req, metadata) => callUnary(stub.adminCreateUser, req, metadata, false),
@@ -373,6 +383,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     listIpRules: (req, metadata) => callUnary(stub.listIpRules, req, metadata, true),
     getPrivacyPreferences: (req, metadata) =>
       callUnary(stub.getPrivacyPreferences, req, metadata, true),
+    getConsentStatus: (req, metadata) => callUnary(stub.getConsentStatus, req, metadata, true),
     searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata, true),
     adminGetUser: (req, metadata) => callUnary(stub.adminGetUser, req, metadata, true),
     exportUserData: (req, metadata) => callUnary(stub.exportUserData, req, metadata, true),

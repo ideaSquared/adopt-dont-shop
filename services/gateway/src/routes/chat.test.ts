@@ -2,14 +2,15 @@ import { Metadata, status } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type {
-  ListChatsRequest,
-  ListMessagesRequest,
-  MarkReadRequest,
-  OpenChatRequest,
-  ReactRequest,
-  SearchChatsRequest,
-  SendMessageRequest,
+import {
+  ChatV1,
+  type ListChatsRequest,
+  type ListMessagesRequest,
+  type MarkReadRequest,
+  type OpenChatRequest,
+  type ReactRequest,
+  type SearchChatsRequest,
+  type SendMessageRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { ChatClient } from '../grpc-clients/chat-client.js';
@@ -47,9 +48,11 @@ function makeClient(): ChatClient & {
   deleteMessageMock: ReturnType<typeof vi.fn>;
   getChatMock: ReturnType<typeof vi.fn>;
   deleteChatMock: ReturnType<typeof vi.fn>;
+  updateChatStatusMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
   const deleteChatMock = vi.fn();
+  const updateChatStatusMock = vi.fn();
   const sendMessageMock = vi.fn();
   const listMessagesMock = vi.fn();
   const listChatsMock = vi.fn();
@@ -71,6 +74,7 @@ function makeClient(): ChatClient & {
     deleteMessage: deleteMessageMock,
     getChat: getChatMock,
     deleteChat: deleteChatMock,
+    updateChatStatus: updateChatStatusMock,
     close: vi.fn(),
     openChatMock,
     sendMessageMock,
@@ -83,6 +87,7 @@ function makeClient(): ChatClient & {
     deleteMessageMock,
     getChatMock,
     deleteChatMock,
+    updateChatStatusMock,
   };
 }
 
@@ -808,6 +813,56 @@ describe('GET /api/v1/chats/:chatId', () => {
 });
 
 // --- DELETE /api/v1/chats/:chatId -----------------------------------
+
+describe('PATCH /api/v1/chats/:chatId — status', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('maps the status string to the enum and returns the updated chat', async () => {
+    client.updateChatStatusMock.mockResolvedValueOnce({
+      chat: { ...CHAT_FIXTURE, status: ChatV1.ChatStatus.CHAT_STATUS_LOCKED },
+    });
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/chats/chat-1',
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'moderator',
+        'content-type': 'application/json',
+      },
+      payload: { status: 'locked' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().success).toBe(true);
+    const [grpcReq] = client.updateChatStatusMock.mock.calls[0] as [
+      { chatId: string; status: number },
+      Metadata,
+    ];
+    expect(grpcReq.chatId).toBe('chat-1');
+    expect(grpcReq.status).toBe(ChatV1.ChatStatus.CHAT_STATUS_LOCKED);
+  });
+
+  it('rejects an invalid status with 400 without calling the service', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/chats/chat-1',
+      headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+      payload: { status: 'bogus' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(client.updateChatStatusMock).not.toHaveBeenCalled();
+  });
+});
 
 describe('DELETE /api/v1/chats/:chatId', () => {
   let app: FastifyInstance;

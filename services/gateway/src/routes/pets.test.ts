@@ -22,6 +22,8 @@ function makeClient(): {
   createMock: ReturnType<typeof vi.fn>;
   getMock: ReturnType<typeof vi.fn>;
   listMock: ReturnType<typeof vi.fn>;
+  listBreedsMock: ReturnType<typeof vi.fn>;
+  getSimilarPetsMock: ReturnType<typeof vi.fn>;
   updateMock: ReturnType<typeof vi.fn>;
   updateStatusMock: ReturnType<typeof vi.fn>;
   deleteMock: ReturnType<typeof vi.fn>;
@@ -34,6 +36,8 @@ function makeClient(): {
   const createMock = vi.fn();
   const getMock = vi.fn();
   const listMock = vi.fn();
+  const listBreedsMock = vi.fn();
+  const getSimilarPetsMock = vi.fn();
   const updateMock = vi.fn();
   const updateStatusMock = vi.fn();
   const deleteMock = vi.fn();
@@ -46,6 +50,8 @@ function makeClient(): {
     create: createMock,
     get: getMock,
     list: listMock,
+    listBreeds: listBreedsMock,
+    getSimilarPets: getSimilarPetsMock,
     update: updateMock,
     updateStatus: updateStatusMock,
     delete: deleteMock,
@@ -61,6 +67,8 @@ function makeClient(): {
     createMock,
     getMock,
     listMock,
+    listBreedsMock,
+    getSimilarPetsMock,
     updateMock,
     updateStatusMock,
     deleteMock,
@@ -210,6 +218,67 @@ describe('GET /api/v1/pets/:id', () => {
       );
       const res = await app.inject({ method: 'GET', url: '/api/v1/pets/ghost' });
       expect(res.statusCode).toBe(404);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('GET /api/v1/pets/breeds', () => {
+  it('lists all breeds (no species) — static path wins over /:id', async () => {
+    const { client, listBreedsMock, getMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      listBreedsMock.mockResolvedValueOnce({ breeds: ['Beagle', 'Collie'] });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/breeds' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ success: true, data: ['Beagle', 'Collie'] });
+      // "breeds" was NOT treated as a pet id.
+      expect(getMock).not.toHaveBeenCalled();
+      expect(listBreedsMock.mock.calls[0][0]).toEqual({});
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('forwards the species path param', async () => {
+    const { client, listBreedsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      listBreedsMock.mockResolvedValueOnce({ breeds: ['Beagle'] });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/breeds/dog' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().data).toEqual(['Beagle']);
+      expect(listBreedsMock.mock.calls[0][0]).toEqual({ species: 'dog' });
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('GET /api/v1/pets/:id/similar', () => {
+  it('returns similar pets and forwards a parsed limit', async () => {
+    const { client, getSimilarPetsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getSimilarPetsMock.mockResolvedValueOnce({ pets: [PET_FIXTURE] });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/pet-1/similar?limit=8' });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; data: Array<{ pet_id: string }> };
+      expect(body.data[0].pet_id).toBe('pet-1');
+      expect(getSimilarPetsMock.mock.calls[0][0]).toEqual({ petId: 'pet-1', limit: 8 });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('defaults the limit to 0 (handler picks the default) when absent', async () => {
+    const { client, getSimilarPetsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getSimilarPetsMock.mockResolvedValueOnce({ pets: [] });
+      await app.inject({ method: 'GET', url: '/api/v1/pets/pet-1/similar' });
+      expect(getSimilarPetsMock.mock.calls[0][0]).toEqual({ petId: 'pet-1', limit: 0 });
     } finally {
       await app.close();
     }
