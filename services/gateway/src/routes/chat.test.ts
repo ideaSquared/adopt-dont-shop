@@ -49,10 +49,12 @@ function makeClient(): ChatClient & {
   getChatMock: ReturnType<typeof vi.fn>;
   deleteChatMock: ReturnType<typeof vi.fn>;
   updateChatStatusMock: ReturnType<typeof vi.fn>;
+  getChatStatsMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
   const deleteChatMock = vi.fn();
   const updateChatStatusMock = vi.fn();
+  const getChatStatsMock = vi.fn();
   const sendMessageMock = vi.fn();
   const listMessagesMock = vi.fn();
   const listChatsMock = vi.fn();
@@ -75,6 +77,7 @@ function makeClient(): ChatClient & {
     getChat: getChatMock,
     deleteChat: deleteChatMock,
     updateChatStatus: updateChatStatusMock,
+    getChatStats: getChatStatsMock,
     close: vi.fn(),
     openChatMock,
     sendMessageMock,
@@ -88,6 +91,7 @@ function makeClient(): ChatClient & {
     getChatMock,
     deleteChatMock,
     updateChatStatusMock,
+    getChatStatsMock,
   };
 }
 
@@ -971,5 +975,50 @@ describe('chat rate limiting (ADS-996)', () => {
     } finally {
       await app.close();
     }
+  });
+});
+
+describe('GET /api/v1/chats/analytics — admin aggregate stats', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the aggregate stats envelope', async () => {
+    client.getChatStatsMock.mockResolvedValue({
+      totalChats: 10,
+      totalMessages: 42,
+      activeChats: 7,
+      averageMessagesPerChat: 4.2,
+    });
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/chats/analytics' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      success: true,
+      data: { totalChats: 10, totalMessages: 42, activeChats: 7, averageMessagesPerChat: 4.2 },
+    });
+  });
+
+  it('routes "analytics" to the stats handler, not GetChat (static beats /:chatId)', async () => {
+    client.getChatStatsMock.mockResolvedValue({
+      totalChats: 0,
+      totalMessages: 0,
+      activeChats: 0,
+      averageMessagesPerChat: 0,
+    });
+
+    await app.inject({ method: 'GET', url: '/api/v1/chats/analytics' });
+
+    expect(client.getChatStatsMock).toHaveBeenCalledTimes(1);
+    expect(client.getChatMock).not.toHaveBeenCalled();
   });
 });

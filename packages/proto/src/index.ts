@@ -471,6 +471,8 @@ export type {
   DeleteChatResponse,
   UpdateChatStatusRequest,
   UpdateChatStatusResponse,
+  GetChatStatsRequest,
+  GetChatStatsResponse,
   ChatServiceServer,
   ChatServiceClient,
 } from './generated/proto/adopt_dont_shop/chat/v1/chat.js';

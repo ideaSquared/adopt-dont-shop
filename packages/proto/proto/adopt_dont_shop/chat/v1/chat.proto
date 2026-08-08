@@ -91,6 +91,12 @@ service ChatService {
   // super_admin, or rescue-staff of this chat); a plain participant is
   // denied. Publishes chat.statusChanged for WS fan-out.
   rpc UpdateChatStatus(UpdateChatStatusRequest) returns (UpdateChatStatusResponse);
+
+  // Cross-chat aggregate counts for the admin Messages dashboard. A
+  // global staff/admin view (not per-chat), so it requires a privileged
+  // role (moderator / admin / super_admin); a plain participant is denied.
+  // Counts exclude soft-deleted chats and messages.
+  rpc GetChatStats(GetChatStatsRequest) returns (GetChatStatsResponse);
 }
 
 // --- Messages --------------------------------------------------------
@@ -367,4 +373,13 @@ message UpdateChatStatusRequest {
 
 message UpdateChatStatusResponse {
   Chat chat = 1;
+}
+
+message GetChatStatsRequest {}
+
+message GetChatStatsResponse {
+  int64 total_chats = 1;
+  int64 total_messages = 2;
+  int64 active_chats = 3;
+  double average_messages_per_chat = 4;
 }

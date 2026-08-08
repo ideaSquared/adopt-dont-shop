@@ -63,6 +63,8 @@ import {
   type SendMessageResponse,
   type UpdateChatStatusRequest,
   type UpdateChatStatusResponse,
+  type GetChatStatsRequest,
+  type GetChatStatsResponse,
 } from '@adopt-dont-shop/proto';
 
 export type HandlerDeps = WithTransactionDeps;
@@ -1474,4 +1476,45 @@ export async function updateChatStatus(
     throw new HandlerError('INTERNAL', 'status update returned no rows');
   }
   return { chat: await chatRowToProto(deps, updated) };
+}
+
+// --- GetChatStats ----------------------------------------------------
+//
+// Cross-chat aggregate counts for the admin Messages dashboard. A global
+// staff view, not per-chat, so it requires a privileged role
+// (moderator / admin / super_admin); a plain participant is denied.
+// Counts exclude soft-deleted chats and messages.
+
+export async function getChatStats(
+  deps: HandlerDeps,
+  principal: Principal,
+  _req: GetChatStatsRequest
+): Promise<GetChatStatsResponse> {
+  const privileged =
+    principal.roles.includes('super_admin') ||
+    principal.roles.includes('moderator') ||
+    principal.roles.includes('admin');
+  if (!hasPermission(principal, CHAT_READ) || !privileged) {
+    throw new HandlerError('PERMISSION_DENIED', 'a moderator/admin/super_admin role is required');
+  }
+
+  const { rows } = await deps.pool.query<{
+    total_chats: string;
+    active_chats: string;
+    total_messages: string;
+  }>(
+    `SELECT
+       (SELECT COUNT(*) FROM chats WHERE deleted_at IS NULL) AS total_chats,
+       (SELECT COUNT(*) FROM chats WHERE deleted_at IS NULL AND status = 'active') AS active_chats,
+       (SELECT COUNT(*) FROM messages WHERE deleted_at IS NULL) AS total_messages`
+  );
+
+  // COUNT(*) comes back as a bigint string from pg; Number() is safe here —
+  // chat/message counts won't approach 2^53.
+  const totalChats = Number(rows[0].total_chats);
+  const totalMessages = Number(rows[0].total_messages);
+  const activeChats = Number(rows[0].active_chats);
+  const averageMessagesPerChat = totalChats > 0 ? totalMessages / totalChats : 0;
+
+  return { totalChats, totalMessages, activeChats, averageMessagesPerChat };
 }

@@ -361,6 +361,16 @@ export interface UpdateChatStatusResponse {
   chat?: Chat | undefined;
 }
 
+export interface GetChatStatsRequest {
+}
+
+export interface GetChatStatsResponse {
+  totalChats: number;
+  totalMessages: number;
+  activeChats: number;
+  averageMessagesPerChat: number;
+}
+
 function createBaseChat(): Chat {
   return {
     chatId: "",
@@ -3195,6 +3205,173 @@ export const UpdateChatStatusResponse: MessageFns<UpdateChatStatusResponse> = {
   },
 };
 
+function createBaseGetChatStatsRequest(): GetChatStatsRequest {
+  return {};
+}
+
+export const GetChatStatsRequest: MessageFns<GetChatStatsRequest> = {
+  encode(_: GetChatStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetChatStatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetChatStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetChatStatsRequest {
+    return {};
+  },
+
+  toJSON(_: GetChatStatsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetChatStatsRequest>, I>>(base?: I): GetChatStatsRequest {
+    return GetChatStatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetChatStatsRequest>, I>>(_: I): GetChatStatsRequest {
+    const message = createBaseGetChatStatsRequest();
+    return message;
+  },
+};
+
+function createBaseGetChatStatsResponse(): GetChatStatsResponse {
+  return { totalChats: 0, totalMessages: 0, activeChats: 0, averageMessagesPerChat: 0 };
+}
+
+export const GetChatStatsResponse: MessageFns<GetChatStatsResponse> = {
+  encode(message: GetChatStatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.totalChats !== 0) {
+      writer.uint32(8).int64(message.totalChats);
+    }
+    if (message.totalMessages !== 0) {
+      writer.uint32(16).int64(message.totalMessages);
+    }
+    if (message.activeChats !== 0) {
+      writer.uint32(24).int64(message.activeChats);
+    }
+    if (message.averageMessagesPerChat !== 0) {
+      writer.uint32(33).double(message.averageMessagesPerChat);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetChatStatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetChatStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.totalChats = longToNumber(reader.int64());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.totalMessages = longToNumber(reader.int64());
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.activeChats = longToNumber(reader.int64());
+          continue;
+        }
+        case 4: {
+          if (tag !== 33) {
+            break;
+          }
+
+          message.averageMessagesPerChat = reader.double();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetChatStatsResponse {
+    return {
+      totalChats: isSet(object.totalChats)
+        ? globalThis.Number(object.totalChats)
+        : isSet(object.total_chats)
+        ? globalThis.Number(object.total_chats)
+        : 0,
+      totalMessages: isSet(object.totalMessages)
+        ? globalThis.Number(object.totalMessages)
+        : isSet(object.total_messages)
+        ? globalThis.Number(object.total_messages)
+        : 0,
+      activeChats: isSet(object.activeChats)
+        ? globalThis.Number(object.activeChats)
+        : isSet(object.active_chats)
+        ? globalThis.Number(object.active_chats)
+        : 0,
+      averageMessagesPerChat: isSet(object.averageMessagesPerChat)
+        ? globalThis.Number(object.averageMessagesPerChat)
+        : isSet(object.average_messages_per_chat)
+        ? globalThis.Number(object.average_messages_per_chat)
+        : 0,
+    };
+  },
+
+  toJSON(message: GetChatStatsResponse): unknown {
+    const obj: any = {};
+    if (message.totalChats !== 0) {
+      obj.totalChats = Math.round(message.totalChats);
+    }
+    if (message.totalMessages !== 0) {
+      obj.totalMessages = Math.round(message.totalMessages);
+    }
+    if (message.activeChats !== 0) {
+      obj.activeChats = Math.round(message.activeChats);
+    }
+    if (message.averageMessagesPerChat !== 0) {
+      obj.averageMessagesPerChat = message.averageMessagesPerChat;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetChatStatsResponse>, I>>(base?: I): GetChatStatsResponse {
+    return GetChatStatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetChatStatsResponse>, I>>(object: I): GetChatStatsResponse {
+    const message = createBaseGetChatStatsResponse();
+    message.totalChats = object.totalChats ?? 0;
+    message.totalMessages = object.totalMessages ?? 0;
+    message.activeChats = object.activeChats ?? 0;
+    message.averageMessagesPerChat = object.averageMessagesPerChat ?? 0;
+    return message;
+  },
+};
+
 /**
  * ChatService is the gRPC contract for the chat vertical. It owns
  * the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
@@ -3412,6 +3589,22 @@ export const ChatServiceService = {
       Buffer.from(UpdateChatStatusResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): UpdateChatStatusResponse => UpdateChatStatusResponse.decode(value),
   },
+  /**
+   * Cross-chat aggregate counts for the admin Messages dashboard. A
+   * global staff/admin view (not per-chat), so it requires a privileged
+   * role (moderator / admin / super_admin); a plain participant is denied.
+   * Counts exclude soft-deleted chats and messages.
+   */
+  getChatStats: {
+    path: "/adopt_dont_shop.chat.v1.ChatService/GetChatStats" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetChatStatsRequest): Buffer => Buffer.from(GetChatStatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetChatStatsRequest => GetChatStatsRequest.decode(value),
+    responseSerialize: (value: GetChatStatsResponse): Buffer =>
+      Buffer.from(GetChatStatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetChatStatsResponse => GetChatStatsResponse.decode(value),
+  },
 } as const;
 
 export interface ChatServiceServer extends UntypedServiceImplementation {
@@ -3503,6 +3696,13 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    * denied. Publishes chat.statusChanged for WS fan-out.
    */
   updateChatStatus: handleUnaryCall<UpdateChatStatusRequest, UpdateChatStatusResponse>;
+  /**
+   * Cross-chat aggregate counts for the admin Messages dashboard. A
+   * global staff/admin view (not per-chat), so it requires a privileged
+   * role (moderator / admin / super_admin); a plain participant is denied.
+   * Counts exclude soft-deleted chats and messages.
+   */
+  getChatStats: handleUnaryCall<GetChatStatsRequest, GetChatStatsResponse>;
 }
 
 export interface ChatServiceClient extends Client {
@@ -3776,6 +3976,27 @@ export interface ChatServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateChatStatusResponse) => void,
   ): ClientUnaryCall;
+  /**
+   * Cross-chat aggregate counts for the admin Messages dashboard. A
+   * global staff/admin view (not per-chat), so it requires a privileged
+   * role (moderator / admin / super_admin); a plain participant is denied.
+   * Counts exclude soft-deleted chats and messages.
+   */
+  getChatStats(
+    request: GetChatStatsRequest,
+    callback: (error: ServiceError | null, response: GetChatStatsResponse) => void,
+  ): ClientUnaryCall;
+  getChatStats(
+    request: GetChatStatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetChatStatsResponse) => void,
+  ): ClientUnaryCall;
+  getChatStats(
+    request: GetChatStatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetChatStatsResponse) => void,
+  ): ClientUnaryCall;
 }
 
 export const ChatServiceClient = makeGenericClientConstructor(
@@ -3798,6 +4019,17 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function longToNumber(int64: { toString(): string }): number {
+  const num = globalThis.Number(int64.toString());
+  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
+    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
+  }
+  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
+    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
+  }
+  return num;
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
