@@ -23,7 +23,9 @@ import {
   getAdoptionsByType,
   getAdoptionTrend,
   getPet,
+  getPetFacets,
   getPetStats,
+  getSearchSuggestions,
   getSimilarPets,
   getTopBreedsByAdoptions,
   getTopRescuesByAdoptions,
@@ -73,6 +75,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     removeFavorite: adapt(removeFavorite, { deps, logger }),
     getFavoriteStatus: adapt(getFavoriteStatus, { deps, logger }),
     listUserFavorites: adapt(listUserFavorites, { deps, logger }),
+    getSearchSuggestions: adapt(getSearchSuggestions, { deps, logger }),
+    getPetFacets: adapt(getPetFacets, { deps, logger }),
   });
 
   logger.info('gRPC PetService registered', {
@@ -93,6 +97,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'removeFavorite',
       'getFavoriteStatus',
       'listUserFavorites',
+      'getSearchSuggestions',
+      'getPetFacets',
     ],
     grpcPort: config.grpcPort,
   });

@@ -597,6 +597,57 @@ export interface ListUserFavoritesResponse {
   pets: Pet[];
 }
 
+export interface GetSearchSuggestionsRequest {
+  /** Partial query text. Empty / whitespace-only returns no results. */
+  query: string;
+  /** Defaults to 8, max 20. */
+  limit: number;
+}
+
+export interface SearchSuggestion {
+  /** The suggested text — a matching pet name or breed name. */
+  text: string;
+  /**
+   * 'pet_name' | 'breed' — which column matched, so the SPA can label
+   * the entry (e.g. "Breed: Labrador").
+   */
+  category: string;
+  /** Pets currently matching this suggestion (non-archived, non-deleted). */
+  count: number;
+}
+
+export interface GetSearchSuggestionsResponse {
+  suggestions: SearchSuggestion[];
+}
+
+export interface GetPetFacetsRequest {
+  /**
+   * Same optional filters as ListPetsRequest, minus cursor/limit —
+   * faceting doesn't paginate. Each dimension's own filter is excluded
+   * from that dimension's own count (see the rpc doc above).
+   */
+  statusFilter: PetStatus;
+  typeFilter: PetType;
+  sizeFilter: PetSize;
+  rescueIdFilter?: string | undefined;
+}
+
+export interface FacetCount {
+  /** The raw value for this bucket, e.g. "dog", "medium", "available". */
+  value: string;
+  count: number;
+}
+
+export interface PetFacet {
+  /** 'type' | 'size' | 'status'. */
+  name: string;
+  values: FacetCount[];
+}
+
+export interface GetPetFacetsResponse {
+  facets: PetFacet[];
+}
+
 export interface GetAdoptionTrendRequest {
   rescueIdFilter?:
     | string
@@ -4352,6 +4403,572 @@ export const ListUserFavoritesResponse: MessageFns<ListUserFavoritesResponse> = 
   },
 };
 
+function createBaseGetSearchSuggestionsRequest(): GetSearchSuggestionsRequest {
+  return { query: "", limit: 0 };
+}
+
+export const GetSearchSuggestionsRequest: MessageFns<GetSearchSuggestionsRequest> = {
+  encode(message: GetSearchSuggestionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.query !== "") {
+      writer.uint32(10).string(message.query);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(16).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSearchSuggestionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSearchSuggestionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.query = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSearchSuggestionsRequest {
+    return {
+      query: isSet(object.query) ? globalThis.String(object.query) : "",
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+    };
+  },
+
+  toJSON(message: GetSearchSuggestionsRequest): unknown {
+    const obj: any = {};
+    if (message.query !== "") {
+      obj.query = message.query;
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSearchSuggestionsRequest>, I>>(base?: I): GetSearchSuggestionsRequest {
+    return GetSearchSuggestionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSearchSuggestionsRequest>, I>>(object: I): GetSearchSuggestionsRequest {
+    const message = createBaseGetSearchSuggestionsRequest();
+    message.query = object.query ?? "";
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseSearchSuggestion(): SearchSuggestion {
+  return { text: "", category: "", count: 0 };
+}
+
+export const SearchSuggestion: MessageFns<SearchSuggestion> = {
+  encode(message: SearchSuggestion, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.text !== "") {
+      writer.uint32(10).string(message.text);
+    }
+    if (message.category !== "") {
+      writer.uint32(18).string(message.category);
+    }
+    if (message.count !== 0) {
+      writer.uint32(24).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SearchSuggestion {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSearchSuggestion();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.text = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.category = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SearchSuggestion {
+    return {
+      text: isSet(object.text) ? globalThis.String(object.text) : "",
+      category: isSet(object.category) ? globalThis.String(object.category) : "",
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+    };
+  },
+
+  toJSON(message: SearchSuggestion): unknown {
+    const obj: any = {};
+    if (message.text !== "") {
+      obj.text = message.text;
+    }
+    if (message.category !== "") {
+      obj.category = message.category;
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SearchSuggestion>, I>>(base?: I): SearchSuggestion {
+    return SearchSuggestion.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SearchSuggestion>, I>>(object: I): SearchSuggestion {
+    const message = createBaseSearchSuggestion();
+    message.text = object.text ?? "";
+    message.category = object.category ?? "";
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetSearchSuggestionsResponse(): GetSearchSuggestionsResponse {
+  return { suggestions: [] };
+}
+
+export const GetSearchSuggestionsResponse: MessageFns<GetSearchSuggestionsResponse> = {
+  encode(message: GetSearchSuggestionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.suggestions) {
+      SearchSuggestion.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSearchSuggestionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSearchSuggestionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.suggestions.push(SearchSuggestion.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSearchSuggestionsResponse {
+    return {
+      suggestions: globalThis.Array.isArray(object?.suggestions)
+        ? object.suggestions.map((e: any) => SearchSuggestion.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetSearchSuggestionsResponse): unknown {
+    const obj: any = {};
+    if (message.suggestions?.length) {
+      obj.suggestions = message.suggestions.map((e) => SearchSuggestion.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSearchSuggestionsResponse>, I>>(base?: I): GetSearchSuggestionsResponse {
+    return GetSearchSuggestionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSearchSuggestionsResponse>, I>>(object: I): GetSearchSuggestionsResponse {
+    const message = createBaseGetSearchSuggestionsResponse();
+    message.suggestions = object.suggestions?.map((e) => SearchSuggestion.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseGetPetFacetsRequest(): GetPetFacetsRequest {
+  return { statusFilter: 0, typeFilter: 0, sizeFilter: 0, rescueIdFilter: undefined };
+}
+
+export const GetPetFacetsRequest: MessageFns<GetPetFacetsRequest> = {
+  encode(message: GetPetFacetsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.statusFilter !== 0) {
+      writer.uint32(8).int32(message.statusFilter);
+    }
+    if (message.typeFilter !== 0) {
+      writer.uint32(16).int32(message.typeFilter);
+    }
+    if (message.sizeFilter !== 0) {
+      writer.uint32(24).int32(message.sizeFilter);
+    }
+    if (message.rescueIdFilter !== undefined) {
+      writer.uint32(34).string(message.rescueIdFilter);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPetFacetsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPetFacetsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.statusFilter = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.typeFilter = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.sizeFilter = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.rescueIdFilter = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPetFacetsRequest {
+    return {
+      statusFilter: isSet(object.statusFilter)
+        ? petStatusFromJSON(object.statusFilter)
+        : isSet(object.status_filter)
+        ? petStatusFromJSON(object.status_filter)
+        : 0,
+      typeFilter: isSet(object.typeFilter)
+        ? petTypeFromJSON(object.typeFilter)
+        : isSet(object.type_filter)
+        ? petTypeFromJSON(object.type_filter)
+        : 0,
+      sizeFilter: isSet(object.sizeFilter)
+        ? petSizeFromJSON(object.sizeFilter)
+        : isSet(object.size_filter)
+        ? petSizeFromJSON(object.size_filter)
+        : 0,
+      rescueIdFilter: isSet(object.rescueIdFilter)
+        ? globalThis.String(object.rescueIdFilter)
+        : isSet(object.rescue_id_filter)
+        ? globalThis.String(object.rescue_id_filter)
+        : undefined,
+    };
+  },
+
+  toJSON(message: GetPetFacetsRequest): unknown {
+    const obj: any = {};
+    if (message.statusFilter !== 0) {
+      obj.statusFilter = petStatusToJSON(message.statusFilter);
+    }
+    if (message.typeFilter !== 0) {
+      obj.typeFilter = petTypeToJSON(message.typeFilter);
+    }
+    if (message.sizeFilter !== 0) {
+      obj.sizeFilter = petSizeToJSON(message.sizeFilter);
+    }
+    if (message.rescueIdFilter !== undefined) {
+      obj.rescueIdFilter = message.rescueIdFilter;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPetFacetsRequest>, I>>(base?: I): GetPetFacetsRequest {
+    return GetPetFacetsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPetFacetsRequest>, I>>(object: I): GetPetFacetsRequest {
+    const message = createBaseGetPetFacetsRequest();
+    message.statusFilter = object.statusFilter ?? 0;
+    message.typeFilter = object.typeFilter ?? 0;
+    message.sizeFilter = object.sizeFilter ?? 0;
+    message.rescueIdFilter = object.rescueIdFilter ?? undefined;
+    return message;
+  },
+};
+
+function createBaseFacetCount(): FacetCount {
+  return { value: "", count: 0 };
+}
+
+export const FacetCount: MessageFns<FacetCount> = {
+  encode(message: FacetCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.value !== "") {
+      writer.uint32(10).string(message.value);
+    }
+    if (message.count !== 0) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): FacetCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFacetCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.value = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): FacetCount {
+    return {
+      value: isSet(object.value) ? globalThis.String(object.value) : "",
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+    };
+  },
+
+  toJSON(message: FacetCount): unknown {
+    const obj: any = {};
+    if (message.value !== "") {
+      obj.value = message.value;
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<FacetCount>, I>>(base?: I): FacetCount {
+    return FacetCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<FacetCount>, I>>(object: I): FacetCount {
+    const message = createBaseFacetCount();
+    message.value = object.value ?? "";
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBasePetFacet(): PetFacet {
+  return { name: "", values: [] };
+}
+
+export const PetFacet: MessageFns<PetFacet> = {
+  encode(message: PetFacet, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    for (const v of message.values) {
+      FacetCount.encode(v!, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PetFacet {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePetFacet();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.values.push(FacetCount.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PetFacet {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      values: globalThis.Array.isArray(object?.values) ? object.values.map((e: any) => FacetCount.fromJSON(e)) : [],
+    };
+  },
+
+  toJSON(message: PetFacet): unknown {
+    const obj: any = {};
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.values?.length) {
+      obj.values = message.values.map((e) => FacetCount.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PetFacet>, I>>(base?: I): PetFacet {
+    return PetFacet.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<PetFacet>, I>>(object: I): PetFacet {
+    const message = createBasePetFacet();
+    message.name = object.name ?? "";
+    message.values = object.values?.map((e) => FacetCount.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseGetPetFacetsResponse(): GetPetFacetsResponse {
+  return { facets: [] };
+}
+
+export const GetPetFacetsResponse: MessageFns<GetPetFacetsResponse> = {
+  encode(message: GetPetFacetsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.facets) {
+      PetFacet.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPetFacetsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPetFacetsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.facets.push(PetFacet.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPetFacetsResponse {
+    return {
+      facets: globalThis.Array.isArray(object?.facets) ? object.facets.map((e: any) => PetFacet.fromJSON(e)) : [],
+    };
+  },
+
+  toJSON(message: GetPetFacetsResponse): unknown {
+    const obj: any = {};
+    if (message.facets?.length) {
+      obj.facets = message.facets.map((e) => PetFacet.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPetFacetsResponse>, I>>(base?: I): GetPetFacetsResponse {
+    return GetPetFacetsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPetFacetsResponse>, I>>(object: I): GetPetFacetsResponse {
+    const message = createBaseGetPetFacetsResponse();
+    message.facets = object.facets?.map((e) => PetFacet.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 function createBaseGetAdoptionTrendRequest(): GetAdoptionTrendRequest {
   return { rescueIdFilter: undefined, startDate: undefined, endDate: undefined, groupBy: undefined };
 }
@@ -5665,6 +6282,41 @@ export const PetServiceService = {
       Buffer.from(ListUserFavoritesResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListUserFavoritesResponse => ListUserFavoritesResponse.decode(value),
   },
+  /**
+   * Typeahead suggestions for the pet search box — prefix matches
+   * against pet names and breed names, ranked by how many currently
+   * listed pets each suggestion resolves to. `pets.read`.
+   */
+  getSearchSuggestions: {
+    path: "/adopt_dont_shop.pets.v1.PetService/GetSearchSuggestions" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetSearchSuggestionsRequest): Buffer =>
+      Buffer.from(GetSearchSuggestionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSearchSuggestionsRequest => GetSearchSuggestionsRequest.decode(value),
+    responseSerialize: (value: GetSearchSuggestionsResponse): Buffer =>
+      Buffer.from(GetSearchSuggestionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSearchSuggestionsResponse => GetSearchSuggestionsResponse.decode(value),
+  },
+  /**
+   * Facet counts (per type / size / status) for the current filter
+   * set — standard faceted-search narrowing: each dimension's counts
+   * apply every OTHER active filter but exclude that dimension's own,
+   * so the UI can show how many results each option would additionally
+   * narrow to. Same scoping rule as List (rescue staff pinned to their
+   * own rescue; pets.read:any may target any rescue or the whole
+   * platform). `pets.read`.
+   */
+  getPetFacets: {
+    path: "/adopt_dont_shop.pets.v1.PetService/GetPetFacets" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetPetFacetsRequest): Buffer => Buffer.from(GetPetFacetsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetPetFacetsRequest => GetPetFacetsRequest.decode(value),
+    responseSerialize: (value: GetPetFacetsResponse): Buffer =>
+      Buffer.from(GetPetFacetsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetPetFacetsResponse => GetPetFacetsResponse.decode(value),
+  },
 } as const;
 
 export interface PetServiceServer extends UntypedServiceImplementation {
@@ -5761,6 +6413,22 @@ export interface PetServiceServer extends UntypedServiceImplementation {
   removeFavorite: handleUnaryCall<RemoveFavoriteRequest, RemoveFavoriteResponse>;
   getFavoriteStatus: handleUnaryCall<GetFavoriteStatusRequest, GetFavoriteStatusResponse>;
   listUserFavorites: handleUnaryCall<ListUserFavoritesRequest, ListUserFavoritesResponse>;
+  /**
+   * Typeahead suggestions for the pet search box — prefix matches
+   * against pet names and breed names, ranked by how many currently
+   * listed pets each suggestion resolves to. `pets.read`.
+   */
+  getSearchSuggestions: handleUnaryCall<GetSearchSuggestionsRequest, GetSearchSuggestionsResponse>;
+  /**
+   * Facet counts (per type / size / status) for the current filter
+   * set — standard faceted-search narrowing: each dimension's counts
+   * apply every OTHER active filter but exclude that dimension's own,
+   * so the UI can show how many results each option would additionally
+   * narrow to. Same scoping rule as List (rescue staff pinned to their
+   * own rescue; pets.read:any may target any rescue or the whole
+   * platform). `pets.read`.
+   */
+  getPetFacets: handleUnaryCall<GetPetFacetsRequest, GetPetFacetsResponse>;
 }
 
 export interface PetServiceClient extends Client {
@@ -6108,6 +6776,50 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListUserFavoritesResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Typeahead suggestions for the pet search box — prefix matches
+   * against pet names and breed names, ranked by how many currently
+   * listed pets each suggestion resolves to. `pets.read`.
+   */
+  getSearchSuggestions(
+    request: GetSearchSuggestionsRequest,
+    callback: (error: ServiceError | null, response: GetSearchSuggestionsResponse) => void,
+  ): ClientUnaryCall;
+  getSearchSuggestions(
+    request: GetSearchSuggestionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSearchSuggestionsResponse) => void,
+  ): ClientUnaryCall;
+  getSearchSuggestions(
+    request: GetSearchSuggestionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetSearchSuggestionsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Facet counts (per type / size / status) for the current filter
+   * set — standard faceted-search narrowing: each dimension's counts
+   * apply every OTHER active filter but exclude that dimension's own,
+   * so the UI can show how many results each option would additionally
+   * narrow to. Same scoping rule as List (rescue staff pinned to their
+   * own rescue; pets.read:any may target any rescue or the whole
+   * platform). `pets.read`.
+   */
+  getPetFacets(
+    request: GetPetFacetsRequest,
+    callback: (error: ServiceError | null, response: GetPetFacetsResponse) => void,
+  ): ClientUnaryCall;
+  getPetFacets(
+    request: GetPetFacetsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetPetFacetsResponse) => void,
+  ): ClientUnaryCall;
+  getPetFacets(
+    request: GetPetFacetsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetPetFacetsResponse) => void,
   ): ClientUnaryCall;
 }
 

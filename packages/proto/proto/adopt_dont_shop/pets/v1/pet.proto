@@ -106,6 +106,21 @@ service PetService {
   rpc RemoveFavorite(RemoveFavoriteRequest) returns (RemoveFavoriteResponse);
   rpc GetFavoriteStatus(GetFavoriteStatusRequest) returns (GetFavoriteStatusResponse);
   rpc ListUserFavorites(ListUserFavoritesRequest) returns (ListUserFavoritesResponse);
+
+  // Typeahead suggestions for the pet search box — prefix matches
+  // against pet names and breed names, ranked by how many currently
+  // listed pets each suggestion resolves to. `pets.read`.
+  rpc GetSearchSuggestions(GetSearchSuggestionsRequest)
+      returns (GetSearchSuggestionsResponse);
+
+  // Facet counts (per type / size / status) for the current filter
+  // set — standard faceted-search narrowing: each dimension's counts
+  // apply every OTHER active filter but exclude that dimension's own,
+  // so the UI can show how many results each option would additionally
+  // narrow to. Same scoping rule as List (rescue staff pinned to their
+  // own rescue; pets.read:any may target any rescue or the whole
+  // platform). `pets.read`.
+  rpc GetPetFacets(GetPetFacetsRequest) returns (GetPetFacetsResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -426,6 +441,57 @@ message ListUserFavoritesRequest {}
 
 message ListUserFavoritesResponse {
   repeated Pet pets = 1;
+}
+
+// --- GetSearchSuggestions ---------------------------------------------
+
+message GetSearchSuggestionsRequest {
+  // Partial query text. Empty / whitespace-only returns no results.
+  string query = 1;
+  // Defaults to 8, max 20.
+  uint32 limit = 2;
+}
+
+message SearchSuggestion {
+  // The suggested text — a matching pet name or breed name.
+  string text = 1;
+  // 'pet_name' | 'breed' — which column matched, so the SPA can label
+  // the entry (e.g. "Breed: Labrador").
+  string category = 2;
+  // Pets currently matching this suggestion (non-archived, non-deleted).
+  uint32 count = 3;
+}
+
+message GetSearchSuggestionsResponse {
+  repeated SearchSuggestion suggestions = 1;
+}
+
+// --- GetPetFacets --------------------------------------------------------
+
+message GetPetFacetsRequest {
+  // Same optional filters as ListPetsRequest, minus cursor/limit —
+  // faceting doesn't paginate. Each dimension's own filter is excluded
+  // from that dimension's own count (see the rpc doc above).
+  PetStatus status_filter = 1;
+  PetType type_filter = 2;
+  PetSize size_filter = 3;
+  optional string rescue_id_filter = 4;
+}
+
+message FacetCount {
+  // The raw value for this bucket, e.g. "dog", "medium", "available".
+  string value = 1;
+  uint32 count = 2;
+}
+
+message PetFacet {
+  // 'type' | 'size' | 'status'.
+  string name = 1;
+  repeated FacetCount values = 2;
+}
+
+message GetPetFacetsResponse {
+  repeated PetFacet facets = 1;
 }
 
 // --- GetAdoptionTrend --------------------------------------------------

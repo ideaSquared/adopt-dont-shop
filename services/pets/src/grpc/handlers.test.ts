@@ -12,7 +12,9 @@ import {
   getAdoptionsByType,
   getAdoptionTrend,
   getPet,
+  getPetFacets,
   getPetStats,
+  getSearchSuggestions,
   getSimilarPets,
   getTopBreedsByAdoptions,
   getTopRescuesByAdoptions,
@@ -1261,6 +1263,201 @@ describe('listFavoriters', () => {
       code: 'PERMISSION_DENIED',
     });
     expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+});
+
+// --- getSearchSuggestions ---------------------------------------------
+
+describe('getSearchSuggestions', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects a principal without pets.read', async () => {
+    const noPerms: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(
+      getSearchSuggestions(mocks.deps, noPerms, { query: 'bu', limit: 0 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('returns no suggestions for an empty query without hitting the DB', async () => {
+    const res = await getSearchSuggestions(mocks.deps, ADOPTER, { query: '   ', limit: 0 });
+    expect(res).toEqual({ suggestions: [] });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('maps matching pet names + breeds, ranked by count', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { text: 'Buddy', category: 'pet_name', count: '3' },
+        { text: 'Bulldog', category: 'breed', count: '1' },
+      ],
+    });
+
+    const res = await getSearchSuggestions(mocks.deps, ADOPTER, { query: 'bu', limit: 0 });
+
+    expect(res.suggestions).toEqual([
+      { text: 'Buddy', category: 'pet_name', count: 3 },
+      { text: 'Bulldog', category: 'breed', count: 1 },
+    ]);
+    const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/pets\.pets/);
+    expect(sql).toMatch(/pets\.breeds/);
+    // query is trimmed and turned into a prefix ILIKE pattern; limit
+    // defaults to 8 when the request passes 0.
+    expect(params).toEqual(['bu%', 8]);
+  });
+
+  it('rejects a limit above the max', async () => {
+    await expect(
+      getSearchSuggestions(mocks.deps, ADOPTER, { query: 'bu', limit: 21 })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('passes an explicit limit through', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getSearchSuggestions(mocks.deps, ADOPTER, { query: 'bu', limit: 5 });
+    const [, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(params).toEqual(['bu%', 5]);
+  });
+});
+
+// --- getPetFacets ------------------------------------------------------
+
+describe('getPetFacets', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const emptyFacetRows = () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // status
+      .mockResolvedValueOnce({ rows: [] }) // type
+      .mockResolvedValueOnce({ rows: [] }); // size
+  };
+
+  it('rejects a principal without pets.read', async () => {
+    const noPerms: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(getPetFacets(mocks.deps, noPerms, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  // Unlike getPetStats, an unscoped adopter is allowed — facets power the
+  // public browse/filter UI, not an admin dashboard, so it mirrors
+  // listPets' scoping (no rescue-scope requirement) rather than
+  // getPetStats' stricter rule.
+  it('allows an adopter with no rescue scope (mirrors listPets, not getPetStats)', async () => {
+    emptyFacetRows();
+    await expect(getPetFacets(mocks.deps, ADOPTER, {})).resolves.toEqual({
+      facets: [
+        { name: 'status', values: [] },
+        { name: 'type', values: [] },
+        { name: 'size', values: [] },
+      ],
+    });
+  });
+
+  it('scopes a public/adopter caller to visible statuses + non-archived pets', async () => {
+    emptyFacetRows();
+    await getPetFacets(mocks.deps, ADOPTER, {});
+
+    const [statusSql, statusParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(statusSql).toMatch(/status NOT IN/);
+    expect(statusSql).toMatch(/archived = false/);
+    expect(statusParams).toEqual(['adopted', 'deceased', 'not_available']);
+  });
+
+  it('pins rescue staff to their own rescue, ignoring rescue_id_filter', async () => {
+    emptyFacetRows();
+    await getPetFacets(mocks.deps, STAFF, { rescueIdFilter: 'rsc-other' });
+
+    for (const call of mocks.poolMock.query.mock.calls) {
+      const [, params] = call as [string, unknown[]];
+      expect(params).toEqual([RESCUE_ID]); // not 'rsc-other'
+    }
+  });
+
+  it('lets pets.read:any admin pass a rescue_id_filter', async () => {
+    const adminAny: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+    };
+    emptyFacetRows();
+    await getPetFacets(mocks.deps, adminAny, { rescueIdFilter: 'rsc-target' });
+
+    for (const call of mocks.poolMock.query.mock.calls) {
+      const [, params] = call as [string, unknown[]];
+      expect(params).toEqual(['rsc-target']);
+    }
+  });
+
+  it("excludes each dimension's own filter but keeps the others", async () => {
+    emptyFacetRows();
+    await getPetFacets(mocks.deps, STAFF, {
+      statusFilter: PetsV1.PetStatus.PET_STATUS_AVAILABLE,
+      typeFilter: PetsV1.PetType.PET_TYPE_DOG,
+      sizeFilter: PetsV1.PetSize.PET_SIZE_MEDIUM,
+    });
+
+    const [statusSql, statusParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    const [typeSql, typeParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    const [sizeSql, sizeParams] = mocks.poolMock.query.mock.calls[2] as [string, unknown[]];
+
+    // status facet's own query excludes the status filter, but keeps type/size.
+    expect(statusSql).toMatch(/GROUP BY status/);
+    expect(statusParams).toEqual(['dog', 'medium', RESCUE_ID]);
+    // type facet's own query excludes the type filter, but keeps status/size.
+    expect(typeSql).toMatch(/GROUP BY type/);
+    expect(typeParams).toEqual(['available', 'medium', RESCUE_ID]);
+    // size facet's own query excludes the size filter, but keeps status/type.
+    expect(sizeSql).toMatch(/GROUP BY size/);
+    expect(sizeParams).toEqual(['available', 'dog', RESCUE_ID]);
+  });
+
+  it('aggregates GROUP BY rows into FacetCount entries', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({
+        rows: [
+          { value: 'available', count: '10' },
+          { value: 'pending', count: '3' },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ value: 'dog', count: '8' }] })
+      .mockResolvedValueOnce({ rows: [{ value: 'medium', count: '5' }] });
+
+    const res = await getPetFacets(mocks.deps, STAFF, {});
+
+    expect(res.facets).toEqual([
+      {
+        name: 'status',
+        values: [
+          { value: 'available', count: 10 },
+          { value: 'pending', count: 3 },
+        ],
+      },
+      { name: 'type', values: [{ value: 'dog', count: 8 }] },
+      { name: 'size', values: [{ value: 'medium', count: 5 }] },
+    ]);
   });
 });
 

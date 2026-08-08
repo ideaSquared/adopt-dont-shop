@@ -31,6 +31,7 @@ import {
   markRead,
   react,
   searchChats,
+  searchMessages,
   sendMessage,
   updateChatStatus,
 } from './handlers.js';
@@ -66,6 +67,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     markRead: adapt(markRead, { deps, logger }),
     react: adapt(react, { deps, logger }),
     searchChats: adapt(searchChats, { deps, logger }),
+    searchMessages: adapt(searchMessages, { deps, logger }),
     getChatUnreadCount: adapt(getChatUnreadCount, { deps, logger }),
     deleteMessage: adapt(deleteMessage, { deps, logger }),
     getChat: adapt(getChat, { deps, logger }),
@@ -82,6 +84,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'markRead',
       'react',
       'searchChats',
+      'searchMessages',
       'getChatUnreadCount',
       'deleteMessage',
       'getChat',

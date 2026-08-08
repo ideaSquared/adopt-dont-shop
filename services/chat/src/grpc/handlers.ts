@@ -57,6 +57,8 @@ import {
   type SearchChatHit,
   type SearchChatsRequest,
   type SearchChatsResponse,
+  type SearchMessagesRequest,
+  type SearchMessagesResponse,
   type SendMessageRequest,
   type SendMessageResponse,
   type UpdateChatStatusRequest,
@@ -1058,6 +1060,86 @@ export async function searchChats(
         match: messageRowToProto(msgRow, reactionMap.get(row.m_message_id) ?? []),
       };
     })
+  );
+
+  return { hits, page, limit, total };
+}
+
+// --- SearchMessages ----------------------------------------------------
+
+// Flat counterpart to SearchChats: one row per matching message instead
+// of one row per matching chat. Shares the same tsvector match, query
+// validation, permission gate, and self-scoping (participant or
+// super_admin) — just without SearchChats' DISTINCT-ON-per-chat grouping.
+export async function searchMessages(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: SearchMessagesRequest
+): Promise<SearchMessagesResponse> {
+  if (!req.query || req.query.trim().length === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'query is required');
+  }
+  const query = req.query.trim();
+  if (query.length > MAX_QUERY_LEN) {
+    throw new HandlerError('INVALID_ARGUMENT', `query must be <= ${MAX_QUERY_LEN} chars`);
+  }
+  if (!hasPermission(principal, CHAT_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
+  }
+
+  const limit = clampLimit(req.limit, DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT);
+  const page = Math.max(req.page || 1, 1);
+  const offset = (page - 1) * limit;
+
+  const tsQuery = 'websearch_to_tsquery($1, $2)';
+
+  const baseWhere: string[] = [
+    `c.status <> 'archived'`,
+    `c.deleted_at IS NULL`,
+    `p.participant_id = $3`,
+    `p.deleted_at IS NULL`,
+    `m.deleted_at IS NULL`,
+    `m.search_vector @@ ${tsQuery}`,
+  ];
+  const params: unknown[] = ['english', query, principal.userId];
+  let nextParam = 4;
+
+  if (req.chatId) {
+    baseWhere.push(`m.chat_id = $${nextParam}`);
+    params.push(req.chatId);
+    nextParam += 1;
+  }
+
+  const countSql = `
+    SELECT COUNT(*)::text AS total
+    FROM messages m
+    JOIN chats c ON c.chat_id = m.chat_id
+    JOIN chat_participants p ON p.chat_id = m.chat_id
+    WHERE ${baseWhere.join(' AND ')}
+  `;
+  const countRes = await deps.pool.query<{ total: string }>(countSql, params);
+  const total = Number.parseInt(countRes.rows[0]?.total ?? '0', 10);
+
+  if (total === 0) {
+    return { hits: [], page, limit, total: 0 };
+  }
+
+  const hitsSql = `
+    SELECT m.*
+    FROM messages m
+    JOIN chats c ON c.chat_id = m.chat_id
+    JOIN chat_participants p ON p.chat_id = m.chat_id
+    WHERE ${baseWhere.join(' AND ')}
+    ORDER BY m.created_at DESC
+    LIMIT $${nextParam}
+    OFFSET $${nextParam + 1}
+  `;
+  const hitsRes = await deps.pool.query<MessageRow>(hitsSql, [...params, limit, offset]);
+
+  const messageIds = hitsRes.rows.map(row => row.message_id);
+  const reactionMap = await loadMessageReactions(deps, messageIds);
+  const hits = hitsRes.rows.map(row =>
+    messageRowToProto(row, reactionMap.get(row.message_id) ?? [])
   );
 
   return { hits, page, limit, total };

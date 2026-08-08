@@ -32,6 +32,8 @@ function makeClient(): {
   removeFavoriteMock: ReturnType<typeof vi.fn>;
   getFavoriteStatusMock: ReturnType<typeof vi.fn>;
   listUserFavoritesMock: ReturnType<typeof vi.fn>;
+  getSearchSuggestionsMock: ReturnType<typeof vi.fn>;
+  getPetFacetsMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const getMock = vi.fn();
@@ -46,6 +48,8 @@ function makeClient(): {
   const removeFavoriteMock = vi.fn();
   const getFavoriteStatusMock = vi.fn();
   const listUserFavoritesMock = vi.fn();
+  const getSearchSuggestionsMock = vi.fn();
+  const getPetFacetsMock = vi.fn();
   const client: PetsClient = {
     create: createMock,
     get: getMock,
@@ -60,6 +64,8 @@ function makeClient(): {
     removeFavorite: removeFavoriteMock,
     getFavoriteStatus: getFavoriteStatusMock,
     listUserFavorites: listUserFavoritesMock,
+    getSearchSuggestions: getSearchSuggestionsMock,
+    getPetFacets: getPetFacetsMock,
     close: vi.fn(),
   };
   return {
@@ -77,6 +83,8 @@ function makeClient(): {
     removeFavoriteMock,
     getFavoriteStatusMock,
     listUserFavoritesMock,
+    getSearchSuggestionsMock,
+    getPetFacetsMock,
   };
 }
 
@@ -541,6 +549,78 @@ describe('GET /api/v1/pets/stats', () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/pets/stats',
+        headers: { 'x-user-id': 'usr-noperms', 'x-user-roles': 'adopter' },
+      });
+      expect(res.statusCode).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('GET /api/v1/pets/facets', () => {
+  const FACETS_FIXTURE = {
+    facets: [
+      { name: 'status', values: [{ value: 'available', count: 10 }] },
+      { name: 'type', values: [{ value: 'dog', count: 8 }] },
+      { name: 'size', values: [{ value: 'medium', count: 5 }] },
+    ],
+  };
+
+  it('routes /facets to client.getPetFacets (not /:id getter)', async () => {
+    const { client, getPetFacetsMock, getMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getPetFacetsMock.mockResolvedValueOnce(FACETS_FIXTURE);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/facets',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'rescue_staff', 'x-rescue-id': 'rsc-1' },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ success: true, data: FACETS_FIXTURE });
+      expect(getMock).not.toHaveBeenCalled();
+      expect(getPetFacetsMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('parses status/type/size/rescueId query params into the gRPC request', async () => {
+    const { client, getPetFacetsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getPetFacetsMock.mockResolvedValueOnce({ facets: [] });
+      await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/facets?status=available&type=dog&size=medium&rescueId=rsc-target',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'admin' },
+      });
+      const [grpcReq] = getPetFacetsMock.mock.calls[0];
+      expect(grpcReq).toEqual({
+        statusFilter: PetsV1.PetStatus.PET_STATUS_AVAILABLE,
+        typeFilter: PetsV1.PetType.PET_TYPE_DOG,
+        sizeFilter: PetsV1.PetSize.PET_SIZE_MEDIUM,
+        rescueIdFilter: 'rsc-target',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps PERMISSION_DENIED → 403', async () => {
+    const { client, getPetFacetsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getPetFacetsMock.mockRejectedValueOnce({
+        code: grpcStatus.PERMISSION_DENIED,
+        details: 'no perms',
+      });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/facets',
         headers: { 'x-user-id': 'usr-noperms', 'x-user-roles': 'adopter' },
       });
       expect(res.statusCode).toBe(403);
