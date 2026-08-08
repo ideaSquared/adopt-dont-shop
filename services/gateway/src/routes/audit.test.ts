@@ -206,3 +206,114 @@ describe('GET /api/v1/audit/targets/:type/:id', () => {
     });
   });
 });
+
+describe('GET /api/v1/admin/audit-logs', () => {
+  let app: FastifyInstance;
+  let queryMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    const m = makeClient();
+    queryMock = m.queryMock;
+    app = await makeApp(m.client);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('maps SPA filters to a page-mode Query and returns the paginated AuditLog envelope', async () => {
+    queryMock.mockResolvedValue({ events: [EVENT_FIXTURE], total: 137 });
+
+    const httpRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/audit-logs?startDate=2026-06-01&endDate=2026-06-08&action=login&userId=usr-1&entity=user&status=success&page=3&limit=50',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(httpRes.statusCode).toBe(200);
+    // SPA filter names map onto the page-mode Query request.
+    expect(queryMock.mock.calls[0][0]).toMatchObject({
+      page: 3,
+      limit: 50,
+      action: 'login',
+      actorUserId: 'usr-1',
+      aggregateType: 'user',
+      outcome: AuditV1.AuditOutcome.AUDIT_OUTCOME_SUCCESS,
+      occurredAtFrom: '2026-06-01',
+      occurredAtTo: '2026-06-08',
+    });
+
+    const body = httpRes.json() as {
+      success: boolean;
+      data: Array<Record<string, unknown>>;
+      pagination: { page: number; limit: number; total: number; pages: number };
+    };
+    expect(body.success).toBe(true);
+    expect(body.pagination).toEqual({ page: 3, limit: 50, total: 137, pages: 3 });
+    const log = body.data[0];
+    expect(log.id).toBe('evt-1');
+    expect(log.action).toBe('login');
+    expect(log.level).toBe('INFO');
+    expect(log.status).toBe('success');
+    expect(log.category).toBe('user');
+    expect(log.userEmail).toBe(null); // event carries no actor_email_snapshot
+    expect(log.metadata).toMatchObject({
+      entity: 'user',
+      entityId: 'usr-1',
+      details: { source: 'web' },
+    });
+  });
+
+  it('projects outcome onto level/status (denied → WARNING/failure, failure → ERROR/failure)', async () => {
+    queryMock.mockResolvedValue({
+      events: [
+        {
+          ...EVENT_FIXTURE,
+          eventId: 'e-denied',
+          outcome: AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED,
+        },
+        {
+          ...EVENT_FIXTURE,
+          eventId: 'e-failure',
+          outcome: AuditV1.AuditOutcome.AUDIT_OUTCOME_FAILURE,
+          payloadJson: 'not-json',
+        },
+      ],
+      total: 2,
+    });
+
+    const httpRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/audit-logs',
+      headers: ADMIN_HEADERS,
+    });
+
+    const body = httpRes.json() as { data: Array<Record<string, unknown>> };
+    expect(body.data[0]).toMatchObject({ level: 'WARNING', status: 'failure' });
+    expect(body.data[1]).toMatchObject({ level: 'ERROR', status: 'failure' });
+    // Malformed payload JSON → details omitted rather than throwing.
+    expect((body.data[1].metadata as Record<string, unknown>).details).toBeUndefined();
+  });
+
+  it('defaults total/pages to 0 when the service omits total', async () => {
+    queryMock.mockResolvedValue({ events: [] });
+    const httpRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/audit-logs',
+      headers: ADMIN_HEADERS,
+    });
+    const body = httpRes.json() as { pagination: { total: number; pages: number } };
+    expect(body.pagination.total).toBe(0);
+    expect(body.pagination.pages).toBe(0);
+  });
+
+  it('rejects a non-integer page with 400', async () => {
+    const httpRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/audit-logs?page=abc',
+      headers: ADMIN_HEADERS,
+    });
+    expect(httpRes.statusCode).toBe(400);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+});

@@ -16,13 +16,14 @@ import { AuditV1 } from '@adopt-dont-shop/proto';
 
 import type { AuditConfig } from '../config.js';
 
-import { adapt } from './adapter.js';
+import { adapt, adaptUnauth } from './adapter.js';
 import { getByTarget, getGdprErasureRequest, query } from './handlers.js';
 import {
   createReportShare,
   createSavedReport,
   deleteReportSchedule,
   deleteSavedReport,
+  getReportShareByToken,
   getSavedReport,
   listReportTemplates,
   listSavedReports,
@@ -58,6 +59,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     createReportShare: adapt(createReportShare, { deps, logger }),
     deleteReportSchedule: adapt(deleteReportSchedule, { deps, logger }),
     revokeReportShare: adapt(revokeReportShare, { deps, logger }),
+    // Token-link resolution is public (the token is the credential), so it
+    // binds through adaptUnauth — no principal required.
+    getReportShareByToken: adaptUnauth(getReportShareByToken, { deps, logger }),
     getGdprErasureRequest: adapt(getGdprErasureRequest, { deps, logger }),
   });
 
@@ -75,6 +79,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'createReportShare',
       'deleteReportSchedule',
       'revokeReportShare',
+      'getReportShareByToken',
       'getGdprErasureRequest',
     ],
     grpcPort: config.grpcPort,

@@ -60,6 +60,16 @@ service AuditQueryService {
   // reports.update[:any].
   rpc RevokeReportShare(RevokeReportShareRequest) returns (RevokeReportShareResponse);
 
+  // Resolve a token-link share to its saved report. UNAUTHENTICATED at the
+  // RPC layer — the plaintext token IS the credential, so the public
+  // gateway route in front carries no principal. The service hashes the
+  // token, matches it against saved_report_shares.token_hash, and requires
+  // the share be unrevoked and unexpired (and its report not deleted).
+  // Unknown / revoked / expired all collapse to NOT_FOUND so the endpoint
+  // never reveals which. No permission check — the token is the authority.
+  rpc GetReportShareByToken(GetReportShareByTokenRequest)
+      returns (GetReportShareByTokenResponse);
+
   // GDPR saga status. Returns a single row from
   // audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
   // the saga hasn't been requested. Gated on admin.gdpr.read OR
@@ -174,12 +184,25 @@ message QueryRequest {
   optional string occurred_at_from = 7;
   // Exclusive upper bound on occurred_at.
   optional string occurred_at_to = 8;
+
+  // Page-based (offset) pagination for the admin audit-logs surface,
+  // which needs a total count + jump-to-page. When set (>0), the handler
+  // switches from keyset (cursor) mode to OFFSET (page-1)*limit plus a
+  // COUNT(*) over the same filters, and `cursor` is ignored. 1-based.
+  optional uint32 page = 9;
+  // Filter by action name within the aggregate's domain.
+  optional string action = 10;
+  // Filter by aggregate type (the "entity" the action targeted).
+  optional string aggregate_type = 11;
 }
 
 message QueryResponse {
   // Descending on occurred_at (newest first).
   repeated AuditEvent events = 1;
   optional string next_cursor = 2;
+  // Total matching rows — set only in page (offset) mode; absent in
+  // keyset (cursor) mode, which streams via next_cursor instead.
+  optional uint32 total = 3;
 }
 
 // --- GetByTarget -----------------------------------------------------
@@ -380,4 +403,17 @@ message RevokeReportShareRequest {
 }
 message RevokeReportShareResponse {
   bool revoked = 1;
+}
+
+message GetReportShareByTokenRequest {
+  // Plaintext token from the share link. The service hashes it before
+  // lookup — the plaintext is never stored.
+  string token = 1;
+}
+message GetReportShareByTokenResponse {
+  // The saved report the live share points at (config_json carried through
+  // for the gateway to execute).
+  SavedReport report = 1;
+  // The share's granted permission (view / edit).
+  ReportSharePermission permission = 2;
 }

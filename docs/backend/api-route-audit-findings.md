@@ -161,6 +161,42 @@ these silently today, so nothing regresses by deferring.
 | `GET /api/v1/applications/${applicationId}/timeline/stats`   | apps/rescue/src/services/applicationService.ts                   | No timeline-stats RPC/route. Add capability or remove.                                                                                                                               |
 | `POST /api/v1/applications/${applicationId}/timeline/notes`  | apps/rescue/src/services/applicationService.ts                   | No timeline-notes RPC/route. Add capability or remove.                                                                                                                               |
 
+## 2a. Analytics platform (ADS-1138) — scoping resolution
+
+Investigated the whole `/api/v1/analytics/*` surface for the route-audit
+follow-up. Conclusion: **no honest minimal-viable endpoint to build here** —
+every unbacked call is either dead frontend code or needs a real subsystem,
+so building now would mean plumbing for code no UI renders, or fabricating
+data. The one live consumer (`apps/rescue/src/pages/Analytics.tsx`) fetches
+via `Promise.allSettled`, so an unbacked call degrades gracefully (the card
+shows 0 / empty) rather than breaking the page.
+
+**Dead frontend code — no live UI imports these (delete or leave unbacked):**
+
+- `GET|POST|DELETE /api/v1/analytics/custom-reports[/:id]`
+  (`apps/rescue` `analyticsService.{get,save,delete}CustomReport`) — no
+  component calls them. The working saved-report surface is
+  `/api/v1/reports` (audit), already consumed by
+  `lib.analytics/report-service.ts`. If the custom-report UI is revived,
+  repoint it there rather than aliasing `/analytics/custom-reports`.
+- `POST /api/v1/analytics/reports/generate`, `/journeys`,
+  `GET /api/v1/analytics/engagement`, `/performance`, `/funnels`,
+  `/ab-tests/:id` (`lib.analytics/analytics-service.ts`) — no live caller.
+  Report execution already exists at `POST /api/v1/reports/execute`.
+
+**Live but needs a real subsystem (a data model / renderer / mailer — not
+minimal-viable, not to be stubbed with fake data):**
+
+- `GET /api/v1/analytics/response-time` — per-staff first-response times +
+  SLA compliance. No response-time / staff-assignment tracking exists.
+- `POST /api/v1/analytics/export/csv`, `/export/pdf` — file renderers over
+  the composed metrics.
+- `POST /api/v1/analytics/email-report` — scheduled render + mail send.
+
+The already-backed rescue metrics (`adoption-metrics`,
+`application-analytics`, `pet-performance`, `stage-distribution`) are served
+by `routes/analytics-metrics.ts` and are unaffected.
+
 ## 3. Suspicious silent matches (mis-routing, not 404s)
 
 (NOT counted as gaps — they DO match a route pattern but almost certainly mis-route): GET /api/v1/pets/featured, /pets/recent, /pets/types, /pets/statistics, /pets/breeds all collapse onto GET /api/v1/pets/:id (literal treated as pet id); GET /api/v1/notifications/templates and /notifications/stats collapse onto GET /api/v1/notifications/:id; GET /api/v1/chats/analytics collapses onto GET /api/v1/chats/:chatId; GET /api/v1/applications/statistics collapses onto GET /api/v1/applications/:id (the real stats route is /api/v1/applications/stats). These will hit the wrong handler and typically return NOT_FOUND rather than a clean 404 — worth fixing even though they technically match.

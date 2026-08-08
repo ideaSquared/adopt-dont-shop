@@ -32,6 +32,10 @@ import { rowToProto, type AuditEventRow } from './mapper.js';
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
+const AUDIT_EVENT_COLUMNS = `event_id, service, subject, aggregate_type, aggregate_id,
+           actor_user_id, actor_email_snapshot, action, outcome,
+           occurred_at, recorded_at, payload, ip_address, user_agent`;
+
 function clampLimit(raw: number): number {
   if (!Number.isFinite(raw) || raw <= 0) {
     return DEFAULT_LIMIT;
@@ -88,6 +92,39 @@ export async function query(
     where.push(`occurred_at < $${p++}`);
     params.push(req.occurredAtTo);
   }
+  if (req.action !== undefined && req.action !== '') {
+    where.push(`action = $${p++}`);
+    params.push(req.action);
+  }
+  if (req.aggregateType !== undefined && req.aggregateType !== '') {
+    where.push(`aggregate_type = $${p++}`);
+    params.push(req.aggregateType);
+  }
+
+  // Page (offset) mode — the admin audit-logs surface needs a total count
+  // and jump-to-page, which keyset pagination can't provide. Runs a
+  // COUNT(*) over the same filters, then an OFFSET slice. `cursor` is
+  // ignored in this mode. Everything below (cursor + limit+1) is the
+  // keyset path, unchanged.
+  if (req.page !== undefined && req.page > 0) {
+    const whereSqlPage = where.length === 0 ? '' : `WHERE ${where.join(' AND ')}`;
+    const countRes = await deps.pool.query<{ total: string }>(
+      `SELECT COUNT(*)::text AS total FROM audit_events ${whereSqlPage}`,
+      params
+    );
+    const total = Number.parseInt(countRes.rows[0]?.total ?? '0', 10);
+
+    const offset = (req.page - 1) * limit;
+    const { rows: pageRows } = await deps.pool.query<AuditEventRow>(
+      `SELECT ${AUDIT_EVENT_COLUMNS}
+         FROM audit_events
+         ${whereSqlPage}
+         ORDER BY occurred_at DESC, event_id DESC
+         LIMIT $${p} OFFSET $${p + 1}`,
+      [...params, limit, offset]
+    );
+    return { events: pageRows.map(rowToProto), total };
+  }
 
   if (req.cursor !== undefined && req.cursor !== '') {
     let cursor;
@@ -111,9 +148,7 @@ export async function query(
   // separate COUNT(*) query.
   params.push(limit + 1);
   const sql = `
-    SELECT event_id, service, subject, aggregate_type, aggregate_id,
-           actor_user_id, actor_email_snapshot, action, outcome,
-           occurred_at, recorded_at, payload, ip_address, user_agent
+    SELECT ${AUDIT_EVENT_COLUMNS}
     FROM audit_events
     ${whereSql}
     ORDER BY occurred_at DESC, event_id DESC

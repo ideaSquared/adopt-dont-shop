@@ -24,6 +24,8 @@ import {
   type AuditGetByTargetResponse,
   type AuditGetGdprErasureRequestRequest,
   type AuditGetGdprErasureRequestResponse,
+  type AuditGetReportShareByTokenRequest,
+  type AuditGetReportShareByTokenResponse,
   type AuditGetSavedReportRequest,
   type AuditGetSavedReportResponse,
   type AuditListReportTemplatesRequest,
@@ -91,6 +93,10 @@ export type AuditClient = {
     req: AuditRevokeReportShareRequest,
     metadata: Metadata
   ): Promise<AuditRevokeReportShareResponse>;
+  getReportShareByToken(
+    req: AuditGetReportShareByTokenRequest,
+    metadata: Metadata
+  ): Promise<AuditGetReportShareByTokenResponse>;
   close(): void;
 };
 
@@ -172,6 +178,8 @@ export const createAuditClient = (opts: CreateAuditClientOptions): AuditClient =
       callUnary(stub.listReportTemplates, req, metadata, true),
     getGdprErasureRequest: (req, metadata) =>
       callUnary(stub.getGdprErasureRequest, req, metadata, true),
+    getReportShareByToken: (req, metadata) =>
+      callUnary(stub.getReportShareByToken, req, metadata, true),
     close: () => stub.close(),
   };
 };

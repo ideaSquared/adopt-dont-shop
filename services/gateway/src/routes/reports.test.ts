@@ -26,6 +26,7 @@ function makeClient(): {
     createReportShare: vi.fn(),
     deleteReportSchedule: vi.fn(),
     revokeReportShare: vi.fn(),
+    getReportShareByToken: vi.fn(),
   };
   return { client: mocks as unknown as AuditClient, mocks };
 }
@@ -652,5 +653,137 @@ describe('/api/v1/reports gateway routes', () => {
       headers: ADMIN_HEADERS,
     });
     expect(res.statusCode).toBe(404);
+  });
+
+  // ── shared-by-token (public) ────────────────────────────────────────
+
+  const SHARED_REPORT_FIXTURE = {
+    ...REPORT_FIXTURE,
+    savedReportId: 'rep-shared',
+    userId: 'owner-1',
+    rescueId: 'rescue-9',
+    name: 'Shared Adoption Report',
+    description: 'Weekly adoptions',
+    configJson: JSON.stringify({
+      filters: { rescueId: 'rescue-9' },
+      widgets: [{ id: 'w1', metric: 'adoption', chartType: 'line', options: {} }],
+    }),
+  };
+
+  it('GET /shared/:token resolves a live token and executes it as the report owner (no auth headers)', async () => {
+    mocks.getReportShareByToken.mockResolvedValue({
+      report: SHARED_REPORT_FIXTURE,
+      permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+    });
+    petsMocks.getAdoptionTrend.mockResolvedValue({ points: [{ date: '2026-01-01', count: 4 }] });
+
+    // NB: no auth headers — the token is the credential.
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reports/shared/tok-abc' });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      data: { report: Record<string, unknown>; data: { widgets: Array<{ data: unknown[] }> } };
+    };
+    expect(body.data.report.name).toBe('Shared Adoption Report');
+    expect(body.data.report.description).toBe('Weekly adoptions');
+    expect(body.data.data.widgets[0].data).toEqual([{ date: '2026-01-01', count: 4 }]);
+    expect(mocks.getReportShareByToken.mock.calls[0][0].token).toBe('tok-abc');
+
+    // The aggregation ran under an owner-scoped, read-only principal minted
+    // from the share — never a platform admin.
+    const execMeta = petsMocks.getAdoptionTrend.mock.calls[0][1] as {
+      get: (k: string) => unknown[];
+    };
+    expect(execMeta.get('x-user-id')).toEqual(['owner-1']);
+    expect(execMeta.get('x-rescue-id')).toEqual(['rescue-9']);
+    expect(execMeta.get('x-user-roles')).toEqual(['rescue_staff']);
+    expect(String(execMeta.get('x-user-permissions')[0])).toContain('pets.read');
+  });
+
+  it('GET /shared/:token mints an unscoped, role-less principal for a platform report (no rescue)', async () => {
+    mocks.getReportShareByToken.mockResolvedValue({
+      report: {
+        ...SHARED_REPORT_FIXTURE,
+        rescueId: undefined,
+        description: undefined,
+        configJson: JSON.stringify({
+          filters: {},
+          widgets: [{ id: 'w1', metric: 'adoption', chartType: 'line', options: {} }],
+        }),
+      },
+      permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+    });
+    petsMocks.getAdoptionTrend.mockResolvedValue({ points: [] });
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reports/shared/tok-platform' });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { report: { description: unknown } } };
+    expect(body.data.report.description).toBeNull();
+    const execMeta = petsMocks.getAdoptionTrend.mock.calls[0][1] as {
+      get: (k: string) => unknown[];
+    };
+    // No rescue scope → no x-rescue-id and empty roles (never a platform admin).
+    expect(execMeta.get('x-rescue-id')).toEqual([]);
+    expect(execMeta.get('x-user-roles')).toEqual(['']);
+  });
+
+  it('GET /shared/:token returns 404 when the token does not resolve to a live share', async () => {
+    mocks.getReportShareByToken.mockRejectedValue({
+      code: grpcStatus.NOT_FOUND,
+      message: 'share not found',
+    });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reports/shared/stale' });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('GET /shared/:token drops the platform user-statistics widget for the minted non-admin principal', async () => {
+    mocks.getReportShareByToken.mockResolvedValue({
+      report: {
+        ...SHARED_REPORT_FIXTURE,
+        configJson: JSON.stringify({
+          filters: {},
+          widgets: [{ id: 'w-user', metric: 'user', chartType: 'metric-card', options: {} }],
+        }),
+      },
+      permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+    });
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reports/shared/tok-user' });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { data: { widgets: Array<{ data: unknown[] }> } } };
+    // Widget dropped to empty — the platform-wide user count is never
+    // computed for an anonymous shared view.
+    expect(body.data.data.widgets[0].data).toEqual([]);
+    expect(authMocks.getUserStatistics).not.toHaveBeenCalled();
+  });
+
+  it('GET /shared/:token signs the minted principal when a signing key is configured', async () => {
+    const signedApp = Fastify({ logger: false });
+    const { client, mocks: sMocks } = makeClient();
+    const { petsClient, mocks: sPets } = makePetsClient();
+    const { applicationsClient } = makeApplicationsClient();
+    const { authClient } = makeAuthClient();
+    await registerReportsRoutes(signedApp, {
+      client,
+      petsClient,
+      applicationsClient,
+      authClient,
+      principalSigningKey: 'a'.repeat(32),
+    });
+    sMocks.getReportShareByToken.mockResolvedValue({
+      report: SHARED_REPORT_FIXTURE,
+      permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+    });
+    sPets.getAdoptionTrend.mockResolvedValue({ points: [] });
+
+    const res = await signedApp.inject({ method: 'GET', url: '/api/v1/reports/shared/tok-signed' });
+    expect(res.statusCode).toBe(200);
+    const execMeta = sPets.getAdoptionTrend.mock.calls[0][1] as { get: (k: string) => unknown[] };
+    const token = execMeta.get('x-principal-token');
+    expect(token).toHaveLength(1);
+    expect(String(token[0]).length).toBeGreaterThan(0);
+    await signedApp.close();
   });
 });

@@ -29,12 +29,17 @@
 //     column renders blank.
 //   - user-targeted shares (`shareType: 'user'`) — CreateReportShareRequest
 //     has no shared_with_user_id field; only token shares work.
-//   - deleteSchedule / revokeShare / viewSharedByToken — no RPC backs
-//     any of these; the frontend ReportService methods that call them
-//     will fail until that backend work lands separately.
+//
+// Public shared-report links (ADS-1147): GET /api/v1/reports/shared/:token
+// is unauthenticated — the opaque token IS the credential. It resolves via
+// audit.GetReportShareByToken (token hashed + matched against a LIVE share)
+// and then executes the report bounded to the SHARE's owner scope, never
+// the anonymous viewer's — see buildSharedExecMetadata below.
 
 import { type Metadata } from '@grpc/grpc-js';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+
+import { signPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 
 import {
   AuditV1,
@@ -66,6 +71,10 @@ export type ReportsRoutesOptions = {
   petsClient: PetsClient;
   applicationsClient: ApplicationsClient;
   authClient: AuthClient;
+  // Signs the owner-scoped principal minted for public shared-report
+  // execution (ADS-800). Present in prod; absent in dev/test, where
+  // downstream services fall back to trusting the unsigned x-user-* headers.
+  principalSigningKey?: string;
 };
 
 const CATEGORY_FROM_STRING: Record<string, AuditV1.ReportTemplateCategory> = {
@@ -433,11 +442,71 @@ function templateToView(t: AuditReportTemplate): Record<string, unknown> {
   };
 }
 
+// The two read permissions a report's widgets need. Deliberately minimal —
+// no admin/user-stats grant — so a public shared view can never compute
+// more than the rescue-scoped adoption/application aggregations.
+const SHARED_EXEC_PERMISSIONS = ['pets.read', 'applications.read'];
+
+// Metadata for executing a token-shared report. The public viewer carries
+// no principal, so we mint a narrowly-scoped, read-only principal derived
+// from the SHARE's own saved report — never from the viewer. It carries the
+// report owner's user_id + rescue scope and exactly the two read
+// permissions above, with NO admin role. Effect:
+//   - rescue-scoped aggregations run bounded to the report's own rescue,
+//   - the platform-wide user-statistics widget drops to empty (the minted
+//     principal is not a platform admin — see callerIsPlatformAdmin),
+//   - a report with no rescue scope renders empty widgets rather than
+//     leaking platform-wide data to an anonymous viewer.
+// Mirrors the authenticate middleware: sign the principal when a key is
+// configured (prod); otherwise fall back to the unsigned x-user-* headers
+// downstream services trust in dev/test.
+function buildSharedExecMetadata(
+  report: AuditSavedReport,
+  signingKey: string | undefined,
+  req: FastifyRequest
+): Metadata {
+  // Start from buildMetadata so x-request-id / x-client-ip are forwarded,
+  // then strip any principal the viewer themselves carried — the shared
+  // view is deterministic regardless of who opens the link.
+  const m = buildMetadata(req);
+  for (const h of [
+    'x-user-id',
+    'x-user-roles',
+    'x-user-permissions',
+    'x-rescue-id',
+    'x-principal-token',
+  ]) {
+    m.remove(h);
+  }
+  const roles = report.rescueId ? ['rescue_staff'] : [];
+  m.set('x-user-id', report.userId);
+  m.set('x-user-roles', roles.join(','));
+  m.set('x-user-permissions', SHARED_EXEC_PERMISSIONS.join(','));
+  if (report.rescueId) {
+    m.set('x-rescue-id', report.rescueId);
+  }
+  if (signingKey) {
+    m.set(
+      'x-principal-token',
+      signPrincipalToken(
+        {
+          userId: report.userId,
+          roles,
+          permissions: SHARED_EXEC_PERMISSIONS,
+          ...(report.rescueId ? { rescueId: report.rescueId } : {}),
+        },
+        signingKey
+      )
+    );
+  }
+  return m;
+}
+
 export const registerReportsRoutes = async (
   app: FastifyInstance,
   opts: ReportsRoutesOptions
 ): Promise<void> => {
-  const { client, petsClient, applicationsClient, authClient } = opts;
+  const { client, petsClient, applicationsClient, authClient, principalSigningKey } = opts;
   const aggregationClients: AggregationClients = { petsClient, applicationsClient, authClient };
 
   // GET /api/v1/reports — paginated list. Self-scoped at the service.
@@ -1022,6 +1091,71 @@ export const registerReportsRoutes = async (
           return reply.code(404).send({ success: false, error: 'not found' });
         }
         return reply.send({ success: true });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/reports/shared/:token — PUBLIC token-link view (ADS-1147).
+  // Unauthenticated: the opaque token IS the credential (hashed + matched
+  // against a live share server-side). Rate-limited to blunt token
+  // brute-forcing. Two path segments below /reports, so it never collides
+  // with the single-segment GET /reports/:id.
+  app.get<{ Params: { token: string } }>(
+    '/api/v1/reports/shared/:token',
+    {
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['reports'],
+        summary: 'View a report shared by public token link (unauthenticated)',
+        params: {
+          type: 'object',
+          properties: { token: { type: 'string' } },
+          required: ['token'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        // Resolve with plain metadata — the audit RPC is public (adaptUnauth)
+        // and authorises on the token itself. Unknown/revoked/expired tokens
+        // come back as NOT_FOUND → 404 via handleGrpcError.
+        const res = await client.getReportShareByToken(
+          { token: req.params.token },
+          buildMetadata(req)
+        );
+        const report = res.report;
+        if (!report) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        const config = parseConfig(report.configJson);
+        const data = await executeConfig(
+          config,
+          aggregationClients,
+          buildSharedExecMetadata(report, principalSigningKey, req),
+          req.log
+        );
+        return reply.send({
+          success: true,
+          data: {
+            report: { name: report.name, description: report.description ?? null, config },
+            data,
+          },
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

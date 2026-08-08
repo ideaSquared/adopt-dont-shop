@@ -8,6 +8,7 @@ import {
   createSavedReport,
   deleteReportSchedule,
   deleteSavedReport,
+  getReportShareByToken,
   getSavedReport,
   listReportTemplates,
   listSavedReports,
@@ -749,5 +750,47 @@ describe('revokeReportShare', () => {
       shareId: 'share-x',
     });
     expect(res.revoked).toBe(false);
+  });
+});
+
+describe('getReportShareByToken', () => {
+  it('rejects an empty token with INVALID_ARGUMENT', async () => {
+    const { deps } = makeDeps();
+    await expect(getReportShareByToken(deps, null, { token: '   ' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('resolves a live token to its saved report + share permission (no principal required)', async () => {
+    const q = vi.fn().mockResolvedValueOnce({
+      rows: [makeRow({ rescue_id: 'res-1', permission: 'edit' })],
+    });
+    const { deps } = makeDeps(q);
+    const res = await getReportShareByToken(deps, null, { token: 'plain-token' });
+    expect(res.report?.savedReportId).toBe('rep-1');
+    expect(res.report?.rescueId).toBe('res-1');
+    expect(res.permission).toBe(AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT);
+  });
+
+  it('hashes the token before lookup (plaintext is never used as the lookup key)', async () => {
+    const q = vi.fn().mockResolvedValueOnce({ rows: [makeRow()] });
+    const { deps } = makeDeps(q);
+    await getReportShareByToken(deps, null, { token: 'plain-token' });
+    const [sql, params] = q.mock.calls[0] as [string, unknown[]];
+    // Live-share predicate: unrevoked, unexpired, report not deleted.
+    expect(sql).toContain('s.revoked_at IS NULL');
+    expect(sql).toContain('s.expires_at IS NULL OR s.expires_at > now()');
+    expect(sql).toContain('sr.deleted_at IS NULL');
+    // The lookup key is the sha256 hex of the token, not the plaintext.
+    expect(params[0]).not.toBe('plain-token');
+    expect(params[0]).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it('collapses an unknown / revoked / expired token to NOT_FOUND', async () => {
+    const q = vi.fn().mockResolvedValueOnce({ rows: [] });
+    const { deps } = makeDeps(q);
+    await expect(getReportShareByToken(deps, null, { token: 'stale-token' })).rejects.toMatchObject(
+      { code: 'NOT_FOUND' }
+    );
   });
 });

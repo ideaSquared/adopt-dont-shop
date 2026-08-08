@@ -604,6 +604,8 @@ export type {
   DeleteReportScheduleResponse as AuditDeleteReportScheduleResponse,
   RevokeReportShareRequest as AuditRevokeReportShareRequest,
   RevokeReportShareResponse as AuditRevokeReportShareResponse,
+  GetReportShareByTokenRequest as AuditGetReportShareByTokenRequest,
+  GetReportShareByTokenResponse as AuditGetReportShareByTokenResponse,
   GdprErasureRequest as AuditGdprErasureRequest,
   GetGdprErasureRequestRequest as AuditGetGdprErasureRequestRequest,
   GetGdprErasureRequestResponse as AuditGetGdprErasureRequestResponse,

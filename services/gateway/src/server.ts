@@ -648,6 +648,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       petsClient: opts.petsClient,
       applicationsClient: opts.applicationsClient,
       authClient: opts.authClient,
+      principalSigningKey: config.principalSigningKey,
     });
   }
   if (opts.matchingClient) {

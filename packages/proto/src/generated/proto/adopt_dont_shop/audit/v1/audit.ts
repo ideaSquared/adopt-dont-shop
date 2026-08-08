@@ -339,13 +339,37 @@ export interface QueryRequest {
     | string
     | undefined;
   /** Exclusive upper bound on occurred_at. */
-  occurredAtTo?: string | undefined;
+  occurredAtTo?:
+    | string
+    | undefined;
+  /**
+   * Page-based (offset) pagination for the admin audit-logs surface,
+   * which needs a total count + jump-to-page. When set (>0), the handler
+   * switches from keyset (cursor) mode to OFFSET (page-1)*limit plus a
+   * COUNT(*) over the same filters, and `cursor` is ignored. 1-based.
+   */
+  page?:
+    | number
+    | undefined;
+  /** Filter by action name within the aggregate's domain. */
+  action?:
+    | string
+    | undefined;
+  /** Filter by aggregate type (the "entity" the action targeted). */
+  aggregateType?: string | undefined;
 }
 
 export interface QueryResponse {
   /** Descending on occurred_at (newest first). */
   events: AuditEvent[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total matching rows — set only in page (offset) mode; absent in
+   * keyset (cursor) mode, which streams via next_cursor instead.
+   */
+  total?: number | undefined;
 }
 
 export interface GetByTargetRequest {
@@ -540,6 +564,26 @@ export interface RevokeReportShareRequest {
 
 export interface RevokeReportShareResponse {
   revoked: boolean;
+}
+
+export interface GetReportShareByTokenRequest {
+  /**
+   * Plaintext token from the share link. The service hashes it before
+   * lookup — the plaintext is never stored.
+   */
+  token: string;
+}
+
+export interface GetReportShareByTokenResponse {
+  /**
+   * The saved report the live share points at (config_json carried through
+   * for the gateway to execute).
+   */
+  report?:
+    | SavedReport
+    | undefined;
+  /** The share's granted permission (view / edit). */
+  permission: ReportSharePermission;
 }
 
 function createBaseGdprErasureRequest(): GdprErasureRequest {
@@ -1252,6 +1296,9 @@ function createBaseQueryRequest(): QueryRequest {
     outcome: undefined,
     occurredAtFrom: undefined,
     occurredAtTo: undefined,
+    page: undefined,
+    action: undefined,
+    aggregateType: undefined,
   };
 }
 
@@ -1280,6 +1327,15 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     }
     if (message.occurredAtTo !== undefined) {
       writer.uint32(66).string(message.occurredAtTo);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(72).uint32(message.page);
+    }
+    if (message.action !== undefined) {
+      writer.uint32(82).string(message.action);
+    }
+    if (message.aggregateType !== undefined) {
+      writer.uint32(90).string(message.aggregateType);
     }
     return writer;
   },
@@ -1355,6 +1411,30 @@ export const QueryRequest: MessageFns<QueryRequest> = {
           message.occurredAtTo = reader.string();
           continue;
         }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.action = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.aggregateType = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1386,6 +1466,13 @@ export const QueryRequest: MessageFns<QueryRequest> = {
         : isSet(object.occurred_at_to)
         ? globalThis.String(object.occurred_at_to)
         : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      action: isSet(object.action) ? globalThis.String(object.action) : undefined,
+      aggregateType: isSet(object.aggregateType)
+        ? globalThis.String(object.aggregateType)
+        : isSet(object.aggregate_type)
+        ? globalThis.String(object.aggregate_type)
+        : undefined,
     };
   },
 
@@ -1415,6 +1502,15 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     if (message.occurredAtTo !== undefined) {
       obj.occurredAtTo = message.occurredAtTo;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.action !== undefined) {
+      obj.action = message.action;
+    }
+    if (message.aggregateType !== undefined) {
+      obj.aggregateType = message.aggregateType;
+    }
     return obj;
   },
 
@@ -1431,12 +1527,15 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     message.outcome = object.outcome ?? undefined;
     message.occurredAtFrom = object.occurredAtFrom ?? undefined;
     message.occurredAtTo = object.occurredAtTo ?? undefined;
+    message.page = object.page ?? undefined;
+    message.action = object.action ?? undefined;
+    message.aggregateType = object.aggregateType ?? undefined;
     return message;
   },
 };
 
 function createBaseQueryResponse(): QueryResponse {
-  return { events: [], nextCursor: undefined };
+  return { events: [], nextCursor: undefined, total: undefined };
 }
 
 export const QueryResponse: MessageFns<QueryResponse> = {
@@ -1446,6 +1545,9 @@ export const QueryResponse: MessageFns<QueryResponse> = {
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -1473,6 +1575,14 @@ export const QueryResponse: MessageFns<QueryResponse> = {
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1490,6 +1600,7 @@ export const QueryResponse: MessageFns<QueryResponse> = {
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -1501,6 +1612,9 @@ export const QueryResponse: MessageFns<QueryResponse> = {
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -1511,6 +1625,7 @@ export const QueryResponse: MessageFns<QueryResponse> = {
     const message = createBaseQueryResponse();
     message.events = object.events?.map((e) => AuditEvent.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };
@@ -4412,6 +4527,144 @@ export const RevokeReportShareResponse: MessageFns<RevokeReportShareResponse> = 
   },
 };
 
+function createBaseGetReportShareByTokenRequest(): GetReportShareByTokenRequest {
+  return { token: "" };
+}
+
+export const GetReportShareByTokenRequest: MessageFns<GetReportShareByTokenRequest> = {
+  encode(message: GetReportShareByTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.token !== "") {
+      writer.uint32(10).string(message.token);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetReportShareByTokenRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetReportShareByTokenRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetReportShareByTokenRequest {
+    return { token: isSet(object.token) ? globalThis.String(object.token) : "" };
+  },
+
+  toJSON(message: GetReportShareByTokenRequest): unknown {
+    const obj: any = {};
+    if (message.token !== "") {
+      obj.token = message.token;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetReportShareByTokenRequest>, I>>(base?: I): GetReportShareByTokenRequest {
+    return GetReportShareByTokenRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetReportShareByTokenRequest>, I>>(object: I): GetReportShareByTokenRequest {
+    const message = createBaseGetReportShareByTokenRequest();
+    message.token = object.token ?? "";
+    return message;
+  },
+};
+
+function createBaseGetReportShareByTokenResponse(): GetReportShareByTokenResponse {
+  return { report: undefined, permission: 0 };
+}
+
+export const GetReportShareByTokenResponse: MessageFns<GetReportShareByTokenResponse> = {
+  encode(message: GetReportShareByTokenResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.report !== undefined) {
+      SavedReport.encode(message.report, writer.uint32(10).fork()).join();
+    }
+    if (message.permission !== 0) {
+      writer.uint32(16).int32(message.permission);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetReportShareByTokenResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetReportShareByTokenResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.report = SavedReport.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.permission = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetReportShareByTokenResponse {
+    return {
+      report: isSet(object.report) ? SavedReport.fromJSON(object.report) : undefined,
+      permission: isSet(object.permission) ? reportSharePermissionFromJSON(object.permission) : 0,
+    };
+  },
+
+  toJSON(message: GetReportShareByTokenResponse): unknown {
+    const obj: any = {};
+    if (message.report !== undefined) {
+      obj.report = SavedReport.toJSON(message.report);
+    }
+    if (message.permission !== 0) {
+      obj.permission = reportSharePermissionToJSON(message.permission);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetReportShareByTokenResponse>, I>>(base?: I): GetReportShareByTokenResponse {
+    return GetReportShareByTokenResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetReportShareByTokenResponse>, I>>(
+    object: I,
+  ): GetReportShareByTokenResponse {
+    const message = createBaseGetReportShareByTokenResponse();
+    message.report = (object.report !== undefined && object.report !== null)
+      ? SavedReport.fromPartial(object.report)
+      : undefined;
+    message.permission = object.permission ?? 0;
+    return message;
+  },
+};
+
 /**
  * AuditQueryService is the gRPC contract for the audit vertical's
  * READ surface. The audit service is the sole producer (NATS
@@ -4596,6 +4849,26 @@ export const AuditQueryServiceService = {
     responseDeserialize: (value: Buffer): RevokeReportShareResponse => RevokeReportShareResponse.decode(value),
   },
   /**
+   * Resolve a token-link share to its saved report. UNAUTHENTICATED at the
+   * RPC layer — the plaintext token IS the credential, so the public
+   * gateway route in front carries no principal. The service hashes the
+   * token, matches it against saved_report_shares.token_hash, and requires
+   * the share be unrevoked and unexpired (and its report not deleted).
+   * Unknown / revoked / expired all collapse to NOT_FOUND so the endpoint
+   * never reveals which. No permission check — the token is the authority.
+   */
+  getReportShareByToken: {
+    path: "/adopt_dont_shop.audit.v1.AuditQueryService/GetReportShareByToken" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetReportShareByTokenRequest): Buffer =>
+      Buffer.from(GetReportShareByTokenRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetReportShareByTokenRequest => GetReportShareByTokenRequest.decode(value),
+    responseSerialize: (value: GetReportShareByTokenResponse): Buffer =>
+      Buffer.from(GetReportShareByTokenResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetReportShareByTokenResponse => GetReportShareByTokenResponse.decode(value),
+  },
+  /**
    * GDPR saga status. Returns a single row from
    * audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
    * the saga hasn't been requested. Gated on admin.gdpr.read OR
@@ -4669,6 +4942,16 @@ export interface AuditQueryServiceServer extends UntypedServiceImplementation {
    * reports.update[:any].
    */
   revokeReportShare: handleUnaryCall<RevokeReportShareRequest, RevokeReportShareResponse>;
+  /**
+   * Resolve a token-link share to its saved report. UNAUTHENTICATED at the
+   * RPC layer — the plaintext token IS the credential, so the public
+   * gateway route in front carries no principal. The service hashes the
+   * token, matches it against saved_report_shares.token_hash, and requires
+   * the share be unrevoked and unexpired (and its report not deleted).
+   * Unknown / revoked / expired all collapse to NOT_FOUND so the endpoint
+   * never reveals which. No permission check — the token is the authority.
+   */
+  getReportShareByToken: handleUnaryCall<GetReportShareByTokenRequest, GetReportShareByTokenResponse>;
   /**
    * GDPR saga status. Returns a single row from
    * audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
@@ -4900,6 +5183,30 @@ export interface AuditQueryServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: RevokeReportShareResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Resolve a token-link share to its saved report. UNAUTHENTICATED at the
+   * RPC layer — the plaintext token IS the credential, so the public
+   * gateway route in front carries no principal. The service hashes the
+   * token, matches it against saved_report_shares.token_hash, and requires
+   * the share be unrevoked and unexpired (and its report not deleted).
+   * Unknown / revoked / expired all collapse to NOT_FOUND so the endpoint
+   * never reveals which. No permission check — the token is the authority.
+   */
+  getReportShareByToken(
+    request: GetReportShareByTokenRequest,
+    callback: (error: ServiceError | null, response: GetReportShareByTokenResponse) => void,
+  ): ClientUnaryCall;
+  getReportShareByToken(
+    request: GetReportShareByTokenRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetReportShareByTokenResponse) => void,
+  ): ClientUnaryCall;
+  getReportShareByToken(
+    request: GetReportShareByTokenRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetReportShareByTokenResponse) => void,
   ): ClientUnaryCall;
   /**
    * GDPR saga status. Returns a single row from
