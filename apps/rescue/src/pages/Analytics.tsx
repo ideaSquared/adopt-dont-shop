@@ -8,21 +8,13 @@ import {
   EmptyState,
   type DateRangeValue,
 } from '@adopt-dont-shop/lib.components';
-import {
-  ChartColumnIncreasing,
-  ChartPie,
-  CircleCheck,
-  Clock,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { ChartColumnIncreasing, ChartPie, CircleCheck, TrendingUp, Users } from 'lucide-react';
 import * as styles from './Analytics.css';
 
 // Analytics Components
 import StageDistributionChart from '../components/analytics/StageDistributionChart';
 import AdoptionTrendsChart from '../components/analytics/AdoptionTrendsChart';
 import ConversionFunnelChart from '../components/analytics/ConversionFunnelChart';
-import ResponseTimeChart from '../components/analytics/ResponseTimeChart';
 import ExportButton from '../components/analytics/ExportButton';
 
 // The shared DateRangePicker works in ISO `yyyy-mm-dd` strings, while the
@@ -46,7 +38,6 @@ import {
   AdoptionMetrics,
   ApplicationAnalytics,
   PetPerformance,
-  ResponseTimeMetrics,
   StageDistribution,
 } from '../services/analyticsService';
 
@@ -61,7 +52,6 @@ const Analytics: React.FC = () => {
 
   // Filter state
   const [petTypeFilter, setPetTypeFilter] = useState<string>('all');
-  const [staffFilter, setStaffFilter] = useState<string>('all');
 
   // Data state
   const [adoptionMetrics, setAdoptionMetrics] = useState<AdoptionMetrics | null>(null);
@@ -69,7 +59,6 @@ const Analytics: React.FC = () => {
     null
   );
   const [petPerformance, setPetPerformance] = useState<PetPerformance | null>(null);
-  const [responseTimeMetrics, setResponseTimeMetrics] = useState<ResponseTimeMetrics | null>(null);
   const [stageDistribution, setStageDistribution] = useState<StageDistribution[]>([]);
 
   // Loading state
@@ -90,20 +79,19 @@ const Analytics: React.FC = () => {
   };
 
   // Fetch analytics data. Each metric is fetched and applied independently
-  // so that one failing endpoint (e.g. response-time, which has no backend
-  // yet) doesn't blank the whole dashboard — the affected section just
-  // falls through to its existing "No Data Available" empty state.
+  // so that one failing endpoint doesn't blank the whole dashboard — the
+  // affected section just falls through to its existing "No Data Available"
+  // empty state.
   useEffect(() => {
     let cancelled = false;
 
     const fetchAnalytics = async () => {
       setLoading(true);
 
-      const [adoption, application, pet, responseTime, stages] = await Promise.allSettled([
+      const [adoption, application, pet, stages] = await Promise.allSettled([
         analyticsService.getAdoptionMetrics(dateRange),
         analyticsService.getApplicationAnalytics(dateRange),
         analyticsService.getPetPerformance(dateRange),
-        analyticsService.getResponseTimeMetrics(dateRange),
         analyticsService.getStageDistribution(),
       ]);
 
@@ -129,12 +117,6 @@ const Analytics: React.FC = () => {
         console.error('Failed to fetch pet performance:', pet.reason);
       }
 
-      if (responseTime.status === 'fulfilled') {
-        setResponseTimeMetrics(responseTime.value);
-      } else {
-        console.error('Failed to fetch response time metrics:', responseTime.reason);
-      }
-
       if (stages.status === 'fulfilled') {
         setStageDistribution(stages.value);
       } else {
@@ -156,7 +138,6 @@ const Analytics: React.FC = () => {
       const blob = await analyticsService.exportToCSV('full-analytics', {
         dateRange,
         petType: petTypeFilter !== 'all' ? petTypeFilter : undefined,
-        staffMemberId: staffFilter !== 'all' ? staffFilter : undefined,
       });
 
       const url = window.URL.createObjectURL(blob);
@@ -180,7 +161,6 @@ const Analytics: React.FC = () => {
       const blob = await analyticsService.exportToPDF('full-analytics', {
         dateRange,
         petType: petTypeFilter !== 'all' ? petTypeFilter : undefined,
-        staffMemberId: staffFilter !== 'all' ? staffFilter : undefined,
       });
 
       const url = window.URL.createObjectURL(blob);
@@ -223,7 +203,6 @@ const Analytics: React.FC = () => {
         {
           dateRange,
           petType: petTypeFilter !== 'all' ? petTypeFilter : undefined,
-          staffMemberId: staffFilter !== 'all' ? staffFilter : undefined,
         },
         [trimmed]
       );
@@ -273,19 +252,6 @@ const Analytics: React.FC = () => {
             <option value="rabbit">Rabbits</option>
             <option value="other">Other</option>
           </select>
-
-          <select
-            className={styles.filterSelect}
-            value={staffFilter}
-            onChange={e => setStaffFilter(e.target.value)}
-          >
-            <option value="all">All Staff Members</option>
-            {responseTimeMetrics?.staffPerformance.map(staff => (
-              <option key={staff.staffId} value={staff.staffId}>
-                {staff.staffName}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -314,14 +280,6 @@ const Analytics: React.FC = () => {
               : undefined
           }
           helperText={adoptionMetrics?.comparisonPeriod ? 'from previous period' : undefined}
-          loading={loading}
-        />
-
-        <MetricCard
-          label="Avg. Response Time"
-          value={`${responseTimeMetrics?.averageResponseTime.toFixed(1) || 0}h`}
-          icon={<Clock size="1em" />}
-          helperText={`SLA Compliance: ${responseTimeMetrics?.slaCompliance.toFixed(1) || 0}%`}
           loading={loading}
         />
 
@@ -399,29 +357,6 @@ const Analytics: React.FC = () => {
                 title="No data available"
                 description="Stage distribution will appear here once available."
                 icon={<ChartPie size="1em" />}
-              />
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Response Time Metrics */}
-      <div className={styles.chartsGrid}>
-        <Card>
-          <div className={styles.cardHeader}>
-            <div className={styles.cardTitle}>
-              <Clock size="1em" />
-              <h3>Response Time by Stage</h3>
-            </div>
-          </div>
-          <div className={styles.cardBody}>
-            {responseTimeMetrics?.responseTimeByStage ? (
-              <ResponseTimeChart data={responseTimeMetrics.responseTimeByStage} loading={loading} />
-            ) : (
-              <EmptyState
-                title="No data available"
-                description="Response time metrics will appear here once available."
-                icon={<Clock size="1em" />}
               />
             )}
           </div>

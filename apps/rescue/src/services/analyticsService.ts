@@ -42,23 +42,6 @@ export interface PetPerformance {
   }[];
 }
 
-export interface ResponseTimeMetrics {
-  averageResponseTime: number; // in hours
-  slaCompliance: number; // percentage
-  responseTimeByStage: {
-    stage: string;
-    averageHours: number;
-    slaTarget: number;
-  }[];
-  staffPerformance: {
-    staffId: string;
-    staffName: string;
-    averageResponseTime: number;
-    applicationsHandled: number;
-    slaCompliance: number;
-  }[];
-}
-
 export interface StageDistribution {
   stage: string;
   count: number;
@@ -138,27 +121,6 @@ export class AnalyticsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch pet performance:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get response time metrics and staff performance
-   */
-  async getResponseTimeMetrics(dateRange: DateRange): Promise<ResponseTimeMetrics> {
-    try {
-      const params = new URLSearchParams({
-        startDate: dateRange.start.toISOString(),
-        endDate: dateRange.end.toISOString(),
-      });
-
-      const response = await apiService.get<{ success: boolean; data: ResponseTimeMetrics }>(
-        `/api/v1/analytics/response-time?${params.toString()}`
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch response time metrics:', error);
       throw error;
     }
   }

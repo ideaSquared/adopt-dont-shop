@@ -81,11 +81,6 @@ describe('AnalyticsService', () => {
       await expect(service.getPetPerformance(dateRange)).rejects.toThrow('x');
     });
 
-    it('getResponseTimeMetrics', async () => {
-      apiServiceMock.get.mockRejectedValue(new Error('x'));
-      await expect(service.getResponseTimeMetrics(dateRange)).rejects.toThrow('x');
-    });
-
     it('getStageDistribution', async () => {
       apiServiceMock.get.mockRejectedValue(new Error('x'));
       await expect(service.getStageDistribution()).rejects.toThrow('x');
