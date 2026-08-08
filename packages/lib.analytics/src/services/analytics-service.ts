@@ -1,14 +1,6 @@
 import { ApiService } from '@adopt-dont-shop/lib.api';
 import { stripSensitiveParams } from '../constants/sensitive-params';
-import {
-  AnalyticsServiceConfig,
-  UserEngagementEvent,
-  PageViewEvent,
-  UserJourney,
-  TimeRange,
-  SystemPerformanceMetrics,
-  AnalyticsQueryOptions,
-} from '../types';
+import { AnalyticsServiceConfig, UserEngagementEvent, PageViewEvent } from '../types';
 
 const MAX_QUEUE_SIZE = 1000;
 const MAX_RETRY_AGE_MS = 5 * 60 * 1000; // 5 minutes — drop events older than this on re-queue
@@ -298,48 +290,6 @@ export class AnalyticsService {
       if (this.config.debug) {
         console.error(`${AnalyticsService.name} failed to track page view:`, error);
       }
-    }
-  }
-
-  /**
-   * Track user journey
-   */
-  public async trackUserJourney(journey: UserJourney): Promise<void> {
-    try {
-      await this.apiService.post('/api/v1/analytics/journeys', journey);
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`${AnalyticsService.name} failed to track user journey:`, error);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get system performance metrics
-   */
-  public async getSystemPerformance(
-    timeRange: TimeRange,
-    options: AnalyticsQueryOptions = {}
-  ): Promise<SystemPerformanceMetrics> {
-    try {
-      const params = new URLSearchParams({
-        startDate: timeRange.start.toISOString(),
-        endDate: timeRange.end.toISOString(),
-        timezone: timeRange.timezone || 'UTC',
-        useCache: String(options.useCache ?? true),
-      });
-
-      const response = (await this.apiService.get(
-        `/api/v1/analytics/performance?${params}`
-      )) as SystemPerformanceMetrics;
-
-      return response;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`${AnalyticsService.name} failed to get performance metrics:`, error);
-      }
-      throw error;
     }
   }
 

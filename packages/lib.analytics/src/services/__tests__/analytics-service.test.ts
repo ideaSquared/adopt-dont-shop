@@ -196,23 +196,6 @@ describe('AnalyticsService', () => {
       autoService.destroy();
     });
 
-    it('should track user journeys', async () => {
-      mockApiService.post.mockResolvedValue({ success: true });
-
-      const journey = {
-        journeyId: 'journey123',
-        userId: 'user123',
-        sessionId: service.getSessionId(),
-        startTime: new Date(),
-        steps: [],
-        outcome: 'conversion',
-      };
-
-      await service.trackUserJourney(journey);
-
-      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/analytics/journeys', journey);
-    });
-
     it('should track conversions', async () => {
       const trackEventSpy = vi.spyOn(service, 'trackEvent');
 
@@ -262,36 +245,6 @@ describe('AnalyticsService', () => {
           timestamp: expect.any(String),
         }),
       });
-    });
-  });
-
-  describe('analytics queries', () => {
-    it('should get system performance metrics', async () => {
-      const mockPerformance = {
-        period: { start: new Date(), end: new Date() },
-        avgPageLoadTime: 2500,
-        p95PageLoadTime: 5000,
-        avgFirstContentfulPaint: 1200,
-        avgLargestContentfulPaint: 2000,
-        avgCumulativeLayoutShift: 0.1,
-        errorRate: 2.5,
-        topErrors: [],
-        apiPerformance: [],
-      };
-
-      mockApiService.get.mockResolvedValue(mockPerformance);
-
-      const timeRange = {
-        start: new Date('2024-01-01'),
-        end: new Date('2024-01-31'),
-      };
-
-      const result = await service.getSystemPerformance(timeRange);
-
-      expect(mockApiService.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/analytics/performance')
-      );
-      expect(result).toEqual(mockPerformance);
     });
   });
 
