@@ -1101,7 +1101,14 @@ export interface ListModeratorActionsRequest {
     | string
     | undefined;
   /** Filter by action type. */
-  actionType?: ModeratorActionType | undefined;
+  actionType?:
+    | ModeratorActionType
+    | undefined;
+  /**
+   * When true, return only currently-active actions (is_active AND not
+   * expired) — powers the "active sanctions/actions" view.
+   */
+  activeOnly?: boolean | undefined;
 }
 
 export interface ListModeratorActionsResponse {
@@ -1296,6 +1303,79 @@ export interface AssignSupportTicketRequest {
 
 export interface AssignSupportTicketResponse {
   ticket?: SupportTicket | undefined;
+}
+
+export interface UpdateSupportTicketRequest {
+  ticketId: string;
+  status?: SupportTicketStatus | undefined;
+  priority?: SupportTicketPriority | undefined;
+  category?:
+    | SupportTicketCategory
+    | undefined;
+  /**
+   * Replaces the tag set when provided; an empty list is treated as
+   * "unset" (tags unchanged), matching the create-path convention.
+   */
+  tags: string[];
+}
+
+export interface UpdateSupportTicketResponse {
+  ticket?: SupportTicket | undefined;
+}
+
+export interface EscalateSupportTicketRequest {
+  ticketId: string;
+  /** Optional reassignment on escalation (e.g. to a senior queue). */
+  assignedTo?: string | undefined;
+  reason?: string | undefined;
+}
+
+export interface EscalateSupportTicketResponse {
+  ticket?: SupportTicket | undefined;
+}
+
+export interface GetSupportTicketStatsRequest {
+}
+
+export interface SupportTicketPriorityBreakdown {
+  low: number;
+  normal: number;
+  high: number;
+  urgent: number;
+  critical: number;
+}
+
+export interface SupportTicketCategoryCount {
+  category: SupportTicketCategory;
+  count: number;
+}
+
+export interface SupportTicketStaffActivity {
+  staffId: string;
+  assignedCount: number;
+  resolvedCount: number;
+}
+
+export interface GetSupportTicketStatsResponse {
+  total: number;
+  open: number;
+  inProgress: number;
+  waitingForUser: number;
+  resolved: number;
+  closed: number;
+  escalated: number;
+  overdue: number;
+  unassigned: number;
+  averageResponseTime: number;
+  averageResolutionTime: number;
+  /** null when no satisfaction data exists yet. */
+  satisfactionAverage?: number | undefined;
+  ticketsToday: number;
+  ticketsThisWeek: number;
+  ticketsThisMonth: number;
+  byPriority?: SupportTicketPriorityBreakdown | undefined;
+  byCategory: SupportTicketCategoryCount[];
+  staffActivity: SupportTicketStaffActivity[];
 }
 
 function createBaseReport(): Report {
@@ -4959,7 +5039,14 @@ export const LogModeratorActionResponse: MessageFns<LogModeratorActionResponse> 
 };
 
 function createBaseListModeratorActionsRequest(): ListModeratorActionsRequest {
-  return { cursor: undefined, limit: 0, targetUserId: undefined, reportId: undefined, actionType: undefined };
+  return {
+    cursor: undefined,
+    limit: 0,
+    targetUserId: undefined,
+    reportId: undefined,
+    actionType: undefined,
+    activeOnly: undefined,
+  };
 }
 
 export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest> = {
@@ -4978,6 +5065,9 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
     }
     if (message.actionType !== undefined) {
       writer.uint32(40).int32(message.actionType);
+    }
+    if (message.activeOnly !== undefined) {
+      writer.uint32(48).bool(message.activeOnly);
     }
     return writer;
   },
@@ -5029,6 +5119,14 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
           message.actionType = reader.int32() as any;
           continue;
         }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.activeOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5057,6 +5155,11 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
         : isSet(object.action_type)
         ? moderatorActionTypeFromJSON(object.action_type)
         : undefined,
+      activeOnly: isSet(object.activeOnly)
+        ? globalThis.Boolean(object.activeOnly)
+        : isSet(object.active_only)
+        ? globalThis.Boolean(object.active_only)
+        : undefined,
     };
   },
 
@@ -5077,6 +5180,9 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
     if (message.actionType !== undefined) {
       obj.actionType = moderatorActionTypeToJSON(message.actionType);
     }
+    if (message.activeOnly !== undefined) {
+      obj.activeOnly = message.activeOnly;
+    }
     return obj;
   },
 
@@ -5090,6 +5196,7 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
     message.targetUserId = object.targetUserId ?? undefined;
     message.reportId = object.reportId ?? undefined;
     message.actionType = object.actionType ?? undefined;
+    message.activeOnly = object.activeOnly ?? undefined;
     return message;
   },
 };
@@ -7558,6 +7665,1104 @@ export const AssignSupportTicketResponse: MessageFns<AssignSupportTicketResponse
   },
 };
 
+function createBaseUpdateSupportTicketRequest(): UpdateSupportTicketRequest {
+  return { ticketId: "", status: undefined, priority: undefined, category: undefined, tags: [] };
+}
+
+export const UpdateSupportTicketRequest: MessageFns<UpdateSupportTicketRequest> = {
+  encode(message: UpdateSupportTicketRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ticketId !== "") {
+      writer.uint32(10).string(message.ticketId);
+    }
+    if (message.status !== undefined) {
+      writer.uint32(16).int32(message.status);
+    }
+    if (message.priority !== undefined) {
+      writer.uint32(24).int32(message.priority);
+    }
+    if (message.category !== undefined) {
+      writer.uint32(32).int32(message.category);
+    }
+    for (const v of message.tags) {
+      writer.uint32(42).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateSupportTicketRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateSupportTicketRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ticketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.priority = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.category = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.tags.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateSupportTicketRequest {
+    return {
+      ticketId: isSet(object.ticketId)
+        ? globalThis.String(object.ticketId)
+        : isSet(object.ticket_id)
+        ? globalThis.String(object.ticket_id)
+        : "",
+      status: isSet(object.status) ? supportTicketStatusFromJSON(object.status) : undefined,
+      priority: isSet(object.priority) ? supportTicketPriorityFromJSON(object.priority) : undefined,
+      category: isSet(object.category) ? supportTicketCategoryFromJSON(object.category) : undefined,
+      tags: globalThis.Array.isArray(object?.tags) ? object.tags.map((e: any) => globalThis.String(e)) : [],
+    };
+  },
+
+  toJSON(message: UpdateSupportTicketRequest): unknown {
+    const obj: any = {};
+    if (message.ticketId !== "") {
+      obj.ticketId = message.ticketId;
+    }
+    if (message.status !== undefined) {
+      obj.status = supportTicketStatusToJSON(message.status);
+    }
+    if (message.priority !== undefined) {
+      obj.priority = supportTicketPriorityToJSON(message.priority);
+    }
+    if (message.category !== undefined) {
+      obj.category = supportTicketCategoryToJSON(message.category);
+    }
+    if (message.tags?.length) {
+      obj.tags = message.tags;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateSupportTicketRequest>, I>>(base?: I): UpdateSupportTicketRequest {
+    return UpdateSupportTicketRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateSupportTicketRequest>, I>>(object: I): UpdateSupportTicketRequest {
+    const message = createBaseUpdateSupportTicketRequest();
+    message.ticketId = object.ticketId ?? "";
+    message.status = object.status ?? undefined;
+    message.priority = object.priority ?? undefined;
+    message.category = object.category ?? undefined;
+    message.tags = object.tags?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseUpdateSupportTicketResponse(): UpdateSupportTicketResponse {
+  return { ticket: undefined };
+}
+
+export const UpdateSupportTicketResponse: MessageFns<UpdateSupportTicketResponse> = {
+  encode(message: UpdateSupportTicketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ticket !== undefined) {
+      SupportTicket.encode(message.ticket, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateSupportTicketResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateSupportTicketResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ticket = SupportTicket.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateSupportTicketResponse {
+    return { ticket: isSet(object.ticket) ? SupportTicket.fromJSON(object.ticket) : undefined };
+  },
+
+  toJSON(message: UpdateSupportTicketResponse): unknown {
+    const obj: any = {};
+    if (message.ticket !== undefined) {
+      obj.ticket = SupportTicket.toJSON(message.ticket);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateSupportTicketResponse>, I>>(base?: I): UpdateSupportTicketResponse {
+    return UpdateSupportTicketResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateSupportTicketResponse>, I>>(object: I): UpdateSupportTicketResponse {
+    const message = createBaseUpdateSupportTicketResponse();
+    message.ticket = (object.ticket !== undefined && object.ticket !== null)
+      ? SupportTicket.fromPartial(object.ticket)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseEscalateSupportTicketRequest(): EscalateSupportTicketRequest {
+  return { ticketId: "", assignedTo: undefined, reason: undefined };
+}
+
+export const EscalateSupportTicketRequest: MessageFns<EscalateSupportTicketRequest> = {
+  encode(message: EscalateSupportTicketRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ticketId !== "") {
+      writer.uint32(10).string(message.ticketId);
+    }
+    if (message.assignedTo !== undefined) {
+      writer.uint32(18).string(message.assignedTo);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(26).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EscalateSupportTicketRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEscalateSupportTicketRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ticketId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.assignedTo = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EscalateSupportTicketRequest {
+    return {
+      ticketId: isSet(object.ticketId)
+        ? globalThis.String(object.ticketId)
+        : isSet(object.ticket_id)
+        ? globalThis.String(object.ticket_id)
+        : "",
+      assignedTo: isSet(object.assignedTo)
+        ? globalThis.String(object.assignedTo)
+        : isSet(object.assigned_to)
+        ? globalThis.String(object.assigned_to)
+        : undefined,
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: EscalateSupportTicketRequest): unknown {
+    const obj: any = {};
+    if (message.ticketId !== "") {
+      obj.ticketId = message.ticketId;
+    }
+    if (message.assignedTo !== undefined) {
+      obj.assignedTo = message.assignedTo;
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EscalateSupportTicketRequest>, I>>(base?: I): EscalateSupportTicketRequest {
+    return EscalateSupportTicketRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EscalateSupportTicketRequest>, I>>(object: I): EscalateSupportTicketRequest {
+    const message = createBaseEscalateSupportTicketRequest();
+    message.ticketId = object.ticketId ?? "";
+    message.assignedTo = object.assignedTo ?? undefined;
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseEscalateSupportTicketResponse(): EscalateSupportTicketResponse {
+  return { ticket: undefined };
+}
+
+export const EscalateSupportTicketResponse: MessageFns<EscalateSupportTicketResponse> = {
+  encode(message: EscalateSupportTicketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ticket !== undefined) {
+      SupportTicket.encode(message.ticket, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EscalateSupportTicketResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEscalateSupportTicketResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ticket = SupportTicket.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EscalateSupportTicketResponse {
+    return { ticket: isSet(object.ticket) ? SupportTicket.fromJSON(object.ticket) : undefined };
+  },
+
+  toJSON(message: EscalateSupportTicketResponse): unknown {
+    const obj: any = {};
+    if (message.ticket !== undefined) {
+      obj.ticket = SupportTicket.toJSON(message.ticket);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EscalateSupportTicketResponse>, I>>(base?: I): EscalateSupportTicketResponse {
+    return EscalateSupportTicketResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EscalateSupportTicketResponse>, I>>(
+    object: I,
+  ): EscalateSupportTicketResponse {
+    const message = createBaseEscalateSupportTicketResponse();
+    message.ticket = (object.ticket !== undefined && object.ticket !== null)
+      ? SupportTicket.fromPartial(object.ticket)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseGetSupportTicketStatsRequest(): GetSupportTicketStatsRequest {
+  return {};
+}
+
+export const GetSupportTicketStatsRequest: MessageFns<GetSupportTicketStatsRequest> = {
+  encode(_: GetSupportTicketStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSupportTicketStatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSupportTicketStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetSupportTicketStatsRequest {
+    return {};
+  },
+
+  toJSON(_: GetSupportTicketStatsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSupportTicketStatsRequest>, I>>(base?: I): GetSupportTicketStatsRequest {
+    return GetSupportTicketStatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSupportTicketStatsRequest>, I>>(_: I): GetSupportTicketStatsRequest {
+    const message = createBaseGetSupportTicketStatsRequest();
+    return message;
+  },
+};
+
+function createBaseSupportTicketPriorityBreakdown(): SupportTicketPriorityBreakdown {
+  return { low: 0, normal: 0, high: 0, urgent: 0, critical: 0 };
+}
+
+export const SupportTicketPriorityBreakdown: MessageFns<SupportTicketPriorityBreakdown> = {
+  encode(message: SupportTicketPriorityBreakdown, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.low !== 0) {
+      writer.uint32(8).uint32(message.low);
+    }
+    if (message.normal !== 0) {
+      writer.uint32(16).uint32(message.normal);
+    }
+    if (message.high !== 0) {
+      writer.uint32(24).uint32(message.high);
+    }
+    if (message.urgent !== 0) {
+      writer.uint32(32).uint32(message.urgent);
+    }
+    if (message.critical !== 0) {
+      writer.uint32(40).uint32(message.critical);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SupportTicketPriorityBreakdown {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSupportTicketPriorityBreakdown();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.low = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.normal = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.high = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.urgent = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.critical = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SupportTicketPriorityBreakdown {
+    return {
+      low: isSet(object.low) ? globalThis.Number(object.low) : 0,
+      normal: isSet(object.normal) ? globalThis.Number(object.normal) : 0,
+      high: isSet(object.high) ? globalThis.Number(object.high) : 0,
+      urgent: isSet(object.urgent) ? globalThis.Number(object.urgent) : 0,
+      critical: isSet(object.critical) ? globalThis.Number(object.critical) : 0,
+    };
+  },
+
+  toJSON(message: SupportTicketPriorityBreakdown): unknown {
+    const obj: any = {};
+    if (message.low !== 0) {
+      obj.low = Math.round(message.low);
+    }
+    if (message.normal !== 0) {
+      obj.normal = Math.round(message.normal);
+    }
+    if (message.high !== 0) {
+      obj.high = Math.round(message.high);
+    }
+    if (message.urgent !== 0) {
+      obj.urgent = Math.round(message.urgent);
+    }
+    if (message.critical !== 0) {
+      obj.critical = Math.round(message.critical);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SupportTicketPriorityBreakdown>, I>>(base?: I): SupportTicketPriorityBreakdown {
+    return SupportTicketPriorityBreakdown.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SupportTicketPriorityBreakdown>, I>>(
+    object: I,
+  ): SupportTicketPriorityBreakdown {
+    const message = createBaseSupportTicketPriorityBreakdown();
+    message.low = object.low ?? 0;
+    message.normal = object.normal ?? 0;
+    message.high = object.high ?? 0;
+    message.urgent = object.urgent ?? 0;
+    message.critical = object.critical ?? 0;
+    return message;
+  },
+};
+
+function createBaseSupportTicketCategoryCount(): SupportTicketCategoryCount {
+  return { category: 0, count: 0 };
+}
+
+export const SupportTicketCategoryCount: MessageFns<SupportTicketCategoryCount> = {
+  encode(message: SupportTicketCategoryCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.category !== 0) {
+      writer.uint32(8).int32(message.category);
+    }
+    if (message.count !== 0) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SupportTicketCategoryCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSupportTicketCategoryCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.category = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SupportTicketCategoryCount {
+    return {
+      category: isSet(object.category) ? supportTicketCategoryFromJSON(object.category) : 0,
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+    };
+  },
+
+  toJSON(message: SupportTicketCategoryCount): unknown {
+    const obj: any = {};
+    if (message.category !== 0) {
+      obj.category = supportTicketCategoryToJSON(message.category);
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SupportTicketCategoryCount>, I>>(base?: I): SupportTicketCategoryCount {
+    return SupportTicketCategoryCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SupportTicketCategoryCount>, I>>(object: I): SupportTicketCategoryCount {
+    const message = createBaseSupportTicketCategoryCount();
+    message.category = object.category ?? 0;
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBaseSupportTicketStaffActivity(): SupportTicketStaffActivity {
+  return { staffId: "", assignedCount: 0, resolvedCount: 0 };
+}
+
+export const SupportTicketStaffActivity: MessageFns<SupportTicketStaffActivity> = {
+  encode(message: SupportTicketStaffActivity, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.staffId !== "") {
+      writer.uint32(10).string(message.staffId);
+    }
+    if (message.assignedCount !== 0) {
+      writer.uint32(16).uint32(message.assignedCount);
+    }
+    if (message.resolvedCount !== 0) {
+      writer.uint32(24).uint32(message.resolvedCount);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SupportTicketStaffActivity {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSupportTicketStaffActivity();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.staffId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.assignedCount = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.resolvedCount = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SupportTicketStaffActivity {
+    return {
+      staffId: isSet(object.staffId)
+        ? globalThis.String(object.staffId)
+        : isSet(object.staff_id)
+        ? globalThis.String(object.staff_id)
+        : "",
+      assignedCount: isSet(object.assignedCount)
+        ? globalThis.Number(object.assignedCount)
+        : isSet(object.assigned_count)
+        ? globalThis.Number(object.assigned_count)
+        : 0,
+      resolvedCount: isSet(object.resolvedCount)
+        ? globalThis.Number(object.resolvedCount)
+        : isSet(object.resolved_count)
+        ? globalThis.Number(object.resolved_count)
+        : 0,
+    };
+  },
+
+  toJSON(message: SupportTicketStaffActivity): unknown {
+    const obj: any = {};
+    if (message.staffId !== "") {
+      obj.staffId = message.staffId;
+    }
+    if (message.assignedCount !== 0) {
+      obj.assignedCount = Math.round(message.assignedCount);
+    }
+    if (message.resolvedCount !== 0) {
+      obj.resolvedCount = Math.round(message.resolvedCount);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SupportTicketStaffActivity>, I>>(base?: I): SupportTicketStaffActivity {
+    return SupportTicketStaffActivity.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SupportTicketStaffActivity>, I>>(object: I): SupportTicketStaffActivity {
+    const message = createBaseSupportTicketStaffActivity();
+    message.staffId = object.staffId ?? "";
+    message.assignedCount = object.assignedCount ?? 0;
+    message.resolvedCount = object.resolvedCount ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetSupportTicketStatsResponse(): GetSupportTicketStatsResponse {
+  return {
+    total: 0,
+    open: 0,
+    inProgress: 0,
+    waitingForUser: 0,
+    resolved: 0,
+    closed: 0,
+    escalated: 0,
+    overdue: 0,
+    unassigned: 0,
+    averageResponseTime: 0,
+    averageResolutionTime: 0,
+    satisfactionAverage: undefined,
+    ticketsToday: 0,
+    ticketsThisWeek: 0,
+    ticketsThisMonth: 0,
+    byPriority: undefined,
+    byCategory: [],
+    staffActivity: [],
+  };
+}
+
+export const GetSupportTicketStatsResponse: MessageFns<GetSupportTicketStatsResponse> = {
+  encode(message: GetSupportTicketStatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.total !== 0) {
+      writer.uint32(8).uint32(message.total);
+    }
+    if (message.open !== 0) {
+      writer.uint32(16).uint32(message.open);
+    }
+    if (message.inProgress !== 0) {
+      writer.uint32(24).uint32(message.inProgress);
+    }
+    if (message.waitingForUser !== 0) {
+      writer.uint32(32).uint32(message.waitingForUser);
+    }
+    if (message.resolved !== 0) {
+      writer.uint32(40).uint32(message.resolved);
+    }
+    if (message.closed !== 0) {
+      writer.uint32(48).uint32(message.closed);
+    }
+    if (message.escalated !== 0) {
+      writer.uint32(56).uint32(message.escalated);
+    }
+    if (message.overdue !== 0) {
+      writer.uint32(64).uint32(message.overdue);
+    }
+    if (message.unassigned !== 0) {
+      writer.uint32(72).uint32(message.unassigned);
+    }
+    if (message.averageResponseTime !== 0) {
+      writer.uint32(81).double(message.averageResponseTime);
+    }
+    if (message.averageResolutionTime !== 0) {
+      writer.uint32(89).double(message.averageResolutionTime);
+    }
+    if (message.satisfactionAverage !== undefined) {
+      writer.uint32(97).double(message.satisfactionAverage);
+    }
+    if (message.ticketsToday !== 0) {
+      writer.uint32(104).uint32(message.ticketsToday);
+    }
+    if (message.ticketsThisWeek !== 0) {
+      writer.uint32(112).uint32(message.ticketsThisWeek);
+    }
+    if (message.ticketsThisMonth !== 0) {
+      writer.uint32(120).uint32(message.ticketsThisMonth);
+    }
+    if (message.byPriority !== undefined) {
+      SupportTicketPriorityBreakdown.encode(message.byPriority, writer.uint32(130).fork()).join();
+    }
+    for (const v of message.byCategory) {
+      SupportTicketCategoryCount.encode(v!, writer.uint32(138).fork()).join();
+    }
+    for (const v of message.staffActivity) {
+      SupportTicketStaffActivity.encode(v!, writer.uint32(146).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSupportTicketStatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSupportTicketStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.open = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.inProgress = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.waitingForUser = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.resolved = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.closed = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.escalated = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.overdue = reader.uint32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.unassigned = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 81) {
+            break;
+          }
+
+          message.averageResponseTime = reader.double();
+          continue;
+        }
+        case 11: {
+          if (tag !== 89) {
+            break;
+          }
+
+          message.averageResolutionTime = reader.double();
+          continue;
+        }
+        case 12: {
+          if (tag !== 97) {
+            break;
+          }
+
+          message.satisfactionAverage = reader.double();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.ticketsToday = reader.uint32();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.ticketsThisWeek = reader.uint32();
+          continue;
+        }
+        case 15: {
+          if (tag !== 120) {
+            break;
+          }
+
+          message.ticketsThisMonth = reader.uint32();
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.byPriority = SupportTicketPriorityBreakdown.decode(reader, reader.uint32());
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.byCategory.push(SupportTicketCategoryCount.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.staffActivity.push(SupportTicketStaffActivity.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSupportTicketStatsResponse {
+    return {
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      open: isSet(object.open) ? globalThis.Number(object.open) : 0,
+      inProgress: isSet(object.inProgress)
+        ? globalThis.Number(object.inProgress)
+        : isSet(object.in_progress)
+        ? globalThis.Number(object.in_progress)
+        : 0,
+      waitingForUser: isSet(object.waitingForUser)
+        ? globalThis.Number(object.waitingForUser)
+        : isSet(object.waiting_for_user)
+        ? globalThis.Number(object.waiting_for_user)
+        : 0,
+      resolved: isSet(object.resolved) ? globalThis.Number(object.resolved) : 0,
+      closed: isSet(object.closed) ? globalThis.Number(object.closed) : 0,
+      escalated: isSet(object.escalated) ? globalThis.Number(object.escalated) : 0,
+      overdue: isSet(object.overdue) ? globalThis.Number(object.overdue) : 0,
+      unassigned: isSet(object.unassigned) ? globalThis.Number(object.unassigned) : 0,
+      averageResponseTime: isSet(object.averageResponseTime)
+        ? globalThis.Number(object.averageResponseTime)
+        : isSet(object.average_response_time)
+        ? globalThis.Number(object.average_response_time)
+        : 0,
+      averageResolutionTime: isSet(object.averageResolutionTime)
+        ? globalThis.Number(object.averageResolutionTime)
+        : isSet(object.average_resolution_time)
+        ? globalThis.Number(object.average_resolution_time)
+        : 0,
+      satisfactionAverage: isSet(object.satisfactionAverage)
+        ? globalThis.Number(object.satisfactionAverage)
+        : isSet(object.satisfaction_average)
+        ? globalThis.Number(object.satisfaction_average)
+        : undefined,
+      ticketsToday: isSet(object.ticketsToday)
+        ? globalThis.Number(object.ticketsToday)
+        : isSet(object.tickets_today)
+        ? globalThis.Number(object.tickets_today)
+        : 0,
+      ticketsThisWeek: isSet(object.ticketsThisWeek)
+        ? globalThis.Number(object.ticketsThisWeek)
+        : isSet(object.tickets_this_week)
+        ? globalThis.Number(object.tickets_this_week)
+        : 0,
+      ticketsThisMonth: isSet(object.ticketsThisMonth)
+        ? globalThis.Number(object.ticketsThisMonth)
+        : isSet(object.tickets_this_month)
+        ? globalThis.Number(object.tickets_this_month)
+        : 0,
+      byPriority: isSet(object.byPriority)
+        ? SupportTicketPriorityBreakdown.fromJSON(object.byPriority)
+        : isSet(object.by_priority)
+        ? SupportTicketPriorityBreakdown.fromJSON(object.by_priority)
+        : undefined,
+      byCategory: globalThis.Array.isArray(object?.byCategory)
+        ? object.byCategory.map((e: any) => SupportTicketCategoryCount.fromJSON(e))
+        : globalThis.Array.isArray(object?.by_category)
+        ? object.by_category.map((e: any) => SupportTicketCategoryCount.fromJSON(e))
+        : [],
+      staffActivity: globalThis.Array.isArray(object?.staffActivity)
+        ? object.staffActivity.map((e: any) => SupportTicketStaffActivity.fromJSON(e))
+        : globalThis.Array.isArray(object?.staff_activity)
+        ? object.staff_activity.map((e: any) => SupportTicketStaffActivity.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetSupportTicketStatsResponse): unknown {
+    const obj: any = {};
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.open !== 0) {
+      obj.open = Math.round(message.open);
+    }
+    if (message.inProgress !== 0) {
+      obj.inProgress = Math.round(message.inProgress);
+    }
+    if (message.waitingForUser !== 0) {
+      obj.waitingForUser = Math.round(message.waitingForUser);
+    }
+    if (message.resolved !== 0) {
+      obj.resolved = Math.round(message.resolved);
+    }
+    if (message.closed !== 0) {
+      obj.closed = Math.round(message.closed);
+    }
+    if (message.escalated !== 0) {
+      obj.escalated = Math.round(message.escalated);
+    }
+    if (message.overdue !== 0) {
+      obj.overdue = Math.round(message.overdue);
+    }
+    if (message.unassigned !== 0) {
+      obj.unassigned = Math.round(message.unassigned);
+    }
+    if (message.averageResponseTime !== 0) {
+      obj.averageResponseTime = message.averageResponseTime;
+    }
+    if (message.averageResolutionTime !== 0) {
+      obj.averageResolutionTime = message.averageResolutionTime;
+    }
+    if (message.satisfactionAverage !== undefined) {
+      obj.satisfactionAverage = message.satisfactionAverage;
+    }
+    if (message.ticketsToday !== 0) {
+      obj.ticketsToday = Math.round(message.ticketsToday);
+    }
+    if (message.ticketsThisWeek !== 0) {
+      obj.ticketsThisWeek = Math.round(message.ticketsThisWeek);
+    }
+    if (message.ticketsThisMonth !== 0) {
+      obj.ticketsThisMonth = Math.round(message.ticketsThisMonth);
+    }
+    if (message.byPriority !== undefined) {
+      obj.byPriority = SupportTicketPriorityBreakdown.toJSON(message.byPriority);
+    }
+    if (message.byCategory?.length) {
+      obj.byCategory = message.byCategory.map((e) => SupportTicketCategoryCount.toJSON(e));
+    }
+    if (message.staffActivity?.length) {
+      obj.staffActivity = message.staffActivity.map((e) => SupportTicketStaffActivity.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSupportTicketStatsResponse>, I>>(base?: I): GetSupportTicketStatsResponse {
+    return GetSupportTicketStatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSupportTicketStatsResponse>, I>>(
+    object: I,
+  ): GetSupportTicketStatsResponse {
+    const message = createBaseGetSupportTicketStatsResponse();
+    message.total = object.total ?? 0;
+    message.open = object.open ?? 0;
+    message.inProgress = object.inProgress ?? 0;
+    message.waitingForUser = object.waitingForUser ?? 0;
+    message.resolved = object.resolved ?? 0;
+    message.closed = object.closed ?? 0;
+    message.escalated = object.escalated ?? 0;
+    message.overdue = object.overdue ?? 0;
+    message.unassigned = object.unassigned ?? 0;
+    message.averageResponseTime = object.averageResponseTime ?? 0;
+    message.averageResolutionTime = object.averageResolutionTime ?? 0;
+    message.satisfactionAverage = object.satisfactionAverage ?? undefined;
+    message.ticketsToday = object.ticketsToday ?? 0;
+    message.ticketsThisWeek = object.ticketsThisWeek ?? 0;
+    message.ticketsThisMonth = object.ticketsThisMonth ?? 0;
+    message.byPriority = (object.byPriority !== undefined && object.byPriority !== null)
+      ? SupportTicketPriorityBreakdown.fromPartial(object.byPriority)
+      : undefined;
+    message.byCategory = object.byCategory?.map((e) => SupportTicketCategoryCount.fromPartial(e)) || [];
+    message.staffActivity = object.staffActivity?.map((e) => SupportTicketStaffActivity.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * ModerationService is the gRPC contract for the moderation vertical.
  * It owns the `moderation.*` schema (Report, ReportStatusTransition,
@@ -7868,6 +9073,52 @@ export const ModerationServiceService = {
       Buffer.from(AssignSupportTicketResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): AssignSupportTicketResponse => AssignSupportTicketResponse.decode(value),
   },
+  /**
+   * Update a support ticket's editable fields (status / priority /
+   * category / tags). Only supplied fields are written. Publishes
+   * moderation.ticketUpdated.
+   */
+  updateSupportTicket: {
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/UpdateSupportTicket" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateSupportTicketRequest): Buffer =>
+      Buffer.from(UpdateSupportTicketRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateSupportTicketRequest => UpdateSupportTicketRequest.decode(value),
+    responseSerialize: (value: UpdateSupportTicketResponse): Buffer =>
+      Buffer.from(UpdateSupportTicketResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateSupportTicketResponse => UpdateSupportTicketResponse.decode(value),
+  },
+  /**
+   * Escalate a support ticket: status -> escalated (+ optional reassign +
+   * reason). Publishes moderation.ticketEscalated.
+   */
+  escalateSupportTicket: {
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/EscalateSupportTicket" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: EscalateSupportTicketRequest): Buffer =>
+      Buffer.from(EscalateSupportTicketRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): EscalateSupportTicketRequest => EscalateSupportTicketRequest.decode(value),
+    responseSerialize: (value: EscalateSupportTicketResponse): Buffer =>
+      Buffer.from(EscalateSupportTicketResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): EscalateSupportTicketResponse => EscalateSupportTicketResponse.decode(value),
+  },
+  /**
+   * Aggregate support-ticket metrics for the admin support dashboard's
+   * stat cards. Single snapshot computed from support_tickets in SQL.
+   */
+  getSupportTicketStats: {
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/GetSupportTicketStats" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetSupportTicketStatsRequest): Buffer =>
+      Buffer.from(GetSupportTicketStatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSupportTicketStatsRequest => GetSupportTicketStatsRequest.decode(value),
+    responseSerialize: (value: GetSupportTicketStatsResponse): Buffer =>
+      Buffer.from(GetSupportTicketStatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSupportTicketStatsResponse => GetSupportTicketStatsResponse.decode(value),
+  },
 } as const;
 
 export interface ModerationServiceServer extends UntypedServiceImplementation {
@@ -7983,6 +9234,22 @@ export interface ModerationServiceServer extends UntypedServiceImplementation {
    * moderation.ticketAssigned.
    */
   assignSupportTicket: handleUnaryCall<AssignSupportTicketRequest, AssignSupportTicketResponse>;
+  /**
+   * Update a support ticket's editable fields (status / priority /
+   * category / tags). Only supplied fields are written. Publishes
+   * moderation.ticketUpdated.
+   */
+  updateSupportTicket: handleUnaryCall<UpdateSupportTicketRequest, UpdateSupportTicketResponse>;
+  /**
+   * Escalate a support ticket: status -> escalated (+ optional reassign +
+   * reason). Publishes moderation.ticketEscalated.
+   */
+  escalateSupportTicket: handleUnaryCall<EscalateSupportTicketRequest, EscalateSupportTicketResponse>;
+  /**
+   * Aggregate support-ticket metrics for the admin support dashboard's
+   * stat cards. Single snapshot computed from support_tickets in SQL.
+   */
+  getSupportTicketStats: handleUnaryCall<GetSupportTicketStatsRequest, GetSupportTicketStatsResponse>;
 }
 
 export interface ModerationServiceClient extends Client {
@@ -8363,6 +9630,64 @@ export interface ModerationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: AssignSupportTicketResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Update a support ticket's editable fields (status / priority /
+   * category / tags). Only supplied fields are written. Publishes
+   * moderation.ticketUpdated.
+   */
+  updateSupportTicket(
+    request: UpdateSupportTicketRequest,
+    callback: (error: ServiceError | null, response: UpdateSupportTicketResponse) => void,
+  ): ClientUnaryCall;
+  updateSupportTicket(
+    request: UpdateSupportTicketRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateSupportTicketResponse) => void,
+  ): ClientUnaryCall;
+  updateSupportTicket(
+    request: UpdateSupportTicketRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateSupportTicketResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Escalate a support ticket: status -> escalated (+ optional reassign +
+   * reason). Publishes moderation.ticketEscalated.
+   */
+  escalateSupportTicket(
+    request: EscalateSupportTicketRequest,
+    callback: (error: ServiceError | null, response: EscalateSupportTicketResponse) => void,
+  ): ClientUnaryCall;
+  escalateSupportTicket(
+    request: EscalateSupportTicketRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: EscalateSupportTicketResponse) => void,
+  ): ClientUnaryCall;
+  escalateSupportTicket(
+    request: EscalateSupportTicketRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: EscalateSupportTicketResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Aggregate support-ticket metrics for the admin support dashboard's
+   * stat cards. Single snapshot computed from support_tickets in SQL.
+   */
+  getSupportTicketStats(
+    request: GetSupportTicketStatsRequest,
+    callback: (error: ServiceError | null, response: GetSupportTicketStatsResponse) => void,
+  ): ClientUnaryCall;
+  getSupportTicketStats(
+    request: GetSupportTicketStatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSupportTicketStatsResponse) => void,
+  ): ClientUnaryCall;
+  getSupportTicketStats(
+    request: GetSupportTicketStatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetSupportTicketStatsResponse) => void,
   ): ClientUnaryCall;
 }
 

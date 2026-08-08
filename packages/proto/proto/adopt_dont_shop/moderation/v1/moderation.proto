@@ -125,6 +125,19 @@ service ModerationService {
   // assigned_to and moves an open ticket to in_progress. Publishes
   // moderation.ticketAssigned.
   rpc AssignSupportTicket(AssignSupportTicketRequest) returns (AssignSupportTicketResponse);
+
+  // Update a support ticket's editable fields (status / priority /
+  // category / tags). Only supplied fields are written. Publishes
+  // moderation.ticketUpdated.
+  rpc UpdateSupportTicket(UpdateSupportTicketRequest) returns (UpdateSupportTicketResponse);
+
+  // Escalate a support ticket: status -> escalated (+ optional reassign +
+  // reason). Publishes moderation.ticketEscalated.
+  rpc EscalateSupportTicket(EscalateSupportTicketRequest) returns (EscalateSupportTicketResponse);
+
+  // Aggregate support-ticket metrics for the admin support dashboard's
+  // stat cards. Single snapshot computed from support_tickets in SQL.
+  rpc GetSupportTicketStats(GetSupportTicketStatsRequest) returns (GetSupportTicketStatsResponse);
 }
 
 // ===== Enums =========================================================
@@ -516,6 +529,9 @@ message ListModeratorActionsRequest {
   optional string report_id = 4;
   // Filter by action type.
   optional ModeratorActionType action_type = 5;
+  // When true, return only currently-active actions (is_active AND not
+  // expired) — powers the "active sanctions/actions" view.
+  optional bool active_only = 6;
 }
 
 message ListModeratorActionsResponse {
@@ -707,4 +723,70 @@ message AssignSupportTicketRequest {
 
 message AssignSupportTicketResponse {
   SupportTicket ticket = 1;
+}
+
+// --- UpdateSupportTicket / EscalateSupportTicket ---------------------
+
+message UpdateSupportTicketRequest {
+  string ticket_id = 1;
+  optional SupportTicketStatus status = 2;
+  optional SupportTicketPriority priority = 3;
+  optional SupportTicketCategory category = 4;
+  // Replaces the tag set when provided; an empty list is treated as
+  // "unset" (tags unchanged), matching the create-path convention.
+  repeated string tags = 5;
+}
+message UpdateSupportTicketResponse {
+  SupportTicket ticket = 1;
+}
+message EscalateSupportTicketRequest {
+  string ticket_id = 1;
+  // Optional reassignment on escalation (e.g. to a senior queue).
+  optional string assigned_to = 2;
+  optional string reason = 3;
+}
+message EscalateSupportTicketResponse {
+  SupportTicket ticket = 1;
+}
+
+// --- GetSupportTicketStats -------------------------------------------
+
+message GetSupportTicketStatsRequest {}
+
+message SupportTicketPriorityBreakdown {
+  uint32 low = 1;
+  uint32 normal = 2;
+  uint32 high = 3;
+  uint32 urgent = 4;
+  uint32 critical = 5;
+}
+message SupportTicketCategoryCount {
+  SupportTicketCategory category = 1;
+  uint32 count = 2;
+}
+message SupportTicketStaffActivity {
+  string staff_id = 1;
+  uint32 assigned_count = 2;
+  uint32 resolved_count = 3;
+}
+message GetSupportTicketStatsResponse {
+  uint32 total = 1;
+  uint32 open = 2;
+  uint32 in_progress = 3;
+  uint32 waiting_for_user = 4;
+  uint32 resolved = 5;
+  uint32 closed = 6;
+  uint32 escalated = 7;
+  uint32 overdue = 8;
+  uint32 unassigned = 9;
+  double average_response_time = 10;
+  double average_resolution_time = 11;
+  // null when no satisfaction data exists yet.
+  optional double satisfaction_average = 12;
+  uint32 tickets_today = 13;
+  uint32 tickets_this_week = 14;
+  uint32 tickets_this_month = 15;
+  SupportTicketPriorityBreakdown by_priority = 16;
+  repeated SupportTicketCategoryCount by_category = 17;
+  repeated SupportTicketStaffActivity staff_activity = 18;
 }
