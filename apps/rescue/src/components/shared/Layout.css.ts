@@ -1,5 +1,9 @@
 import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
+import { SIDEBAR_MOBILE_MAX_WIDTH } from '@adopt-dont-shop/lib.components';
+
+// Must match NavSidebar's drawer breakpoint — see Navigation.css.ts.
+const MOBILE = `(max-width: ${SIDEBAR_MOBILE_MAX_WIDTH})`;
 
 export const appLayout = style({
   display: 'flex',
@@ -8,7 +12,7 @@ export const appLayout = style({
   '@media': {
     // On mobile the sidebar is an off-canvas drawer, so the shell stacks
     // vertically: the mobile bar sits on top of the main column.
-    '(max-width: 768px)': {
+    [MOBILE]: {
       flexDirection: 'column',
     },
   },
@@ -26,7 +30,7 @@ export const mainContent = style({
   overflow: 'auto',
   padding: '2rem',
   '@media': {
-    '(max-width: 768px)': {
+    [MOBILE]: {
       padding: '1rem',
     },
   },

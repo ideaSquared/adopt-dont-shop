@@ -1,35 +1,32 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
+import { SIDEBAR_MOBILE_MAX_WIDTH } from '@adopt-dont-shop/lib.components';
 
-export const headerContainer = recipe({
-  base: {
-    height: '80px',
-    background: '#ffffff',
-    borderBottom: '1px solid #e5e7eb',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 2rem',
-    position: 'fixed',
-    top: 0,
-    right: 0,
-    zIndex: 90,
-    transition: 'left 0.3s ease',
-    gap: '1rem',
-    // On phones the sidebar is off-canvas, so the header spans the full
-    // width and the hamburger trigger replaces the desktop offset.
-    '@media': {
-      '(max-width: 768px)': {
-        left: 0,
-        padding: '0 1rem',
-      },
-    },
-  },
-  variants: {
-    sidebarCollapsed: {
-      true: { left: '80px', '@media': { '(max-width: 768px)': { left: 0 } } },
-      false: { left: '280px', '@media': { '(max-width: 768px)': { left: 0 } } },
+// Must match NavSidebar's drawer breakpoint. Below this the sidebar is
+// off-canvas and the hamburger trigger takes over.
+const MOBILE = `(max-width: ${SIDEBAR_MOBILE_MAX_WIDTH})`;
+
+// Sticky rather than fixed: the header is a flow child of the main column, so
+// it spans exactly the space left by the sidebar without tracking the sidebar
+// width itself. This is why there is no `left` offset and no collapsed-state
+// variant here — reintroducing either re-couples the header to the sidebar.
+export const headerContainer = style({
+  height: '80px',
+  flexShrink: 0,
+  background: '#ffffff',
+  borderBottom: '1px solid #e5e7eb',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '0 2rem',
+  position: 'sticky',
+  top: 0,
+  zIndex: 90,
+  gap: '1rem',
+  '@media': {
+    [MOBILE]: {
+      padding: '0 1rem',
     },
   },
 });
@@ -53,7 +50,7 @@ export const mobileMenuButton = style({
     color: vars.colors.primaryHover,
   },
   '@media': {
-    '(max-width: 768px)': {
+    [MOBILE]: {
       display: 'flex',
     },
   },
