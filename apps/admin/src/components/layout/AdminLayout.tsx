@@ -37,26 +37,20 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         mobileOpen={mobileOpen}
         onMobileClose={closeMobileSidebar}
       />
-      {mobileOpen && (
-        <div
-          className={styles.mobileBackdrop}
-          onClick={closeMobileSidebar}
-          aria-hidden='true'
-          data-testid='sidebar-backdrop'
-        />
-      )}
-      <main className={styles.mainContent({ sidebarCollapsed })}>
-        <AdminHeader sidebarCollapsed={sidebarCollapsed} onMobileMenuOpen={openMobileSidebar} />
+      {/* No backdrop here — NavSidebar renders its own overlay for the drawer.
+          A second one stacked on top just double-darkens the scrim. */}
+      <div className={styles.mainColumn}>
+        <AdminHeader onMobileMenuOpen={openMobileSidebar} />
         {/* ADS C4-5: dismissible sanction banner sits above the main-content
             target so the SkipLink still bypasses it to '#main-content'. */}
         <SanctionBannerHost />
-        <div id='main-content' className={styles.contentWrapper} tabIndex={-1}>
+        <main id='main-content' className={styles.contentWrapper} tabIndex={-1}>
           {children}
-        </div>
+        </main>
         <footer className={styles.layoutFooter}>
           <ManageCookiesLink />
         </footer>
-      </main>
+      </div>
     </div>
   );
 };
