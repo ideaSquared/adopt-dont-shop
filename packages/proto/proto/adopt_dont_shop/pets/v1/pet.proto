@@ -294,8 +294,11 @@ message ListPetsRequest {
   optional string search = 9;
   // Breed-name filter (case-insensitive substring against the breeds catalogue).
   optional string breed = 10;
-  PetGender gender_filter = 11;
-  PetAgeGroup age_group_filter = 12;
+  // Enum filters. UNSPECIFIED / unset = "no filter". `optional` (explicit
+  // presence) so existing ListPetsRequest construction sites don't have to
+  // set them — every other caller stays a compile-clean no-op.
+  optional PetGender gender_filter = 11;
+  optional PetAgeGroup age_group_filter = 12;
   // Sort column (allowlisted server-side) + direction ("ASC"/"DESC"). Only
   // honoured in page mode; cursor mode keeps its fixed keyset order.
   optional string sort_by = 13;

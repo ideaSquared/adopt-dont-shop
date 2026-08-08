@@ -185,8 +185,6 @@ export const registerDashboardRoutes = async (
           statusFilter: PetsV1.PetStatus.PET_STATUS_UNSPECIFIED,
           typeFilter: PetsV1.PetType.PET_TYPE_UNSPECIFIED,
           sizeFilter: PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
-          genderFilter: PetsV1.PetGender.PET_GENDER_UNSPECIFIED,
-          ageGroupFilter: PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED,
         };
         const appListReq: ListApplicationsRequest = {
           rescueIdFilter: rescueId,
@@ -275,8 +273,6 @@ export const registerDashboardRoutes = async (
           statusFilter: PetsV1.PetStatus.PET_STATUS_UNSPECIFIED,
           typeFilter: PetsV1.PetType.PET_TYPE_UNSPECIFIED,
           sizeFilter: PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
-          genderFilter: PetsV1.PetGender.PET_GENDER_UNSPECIFIED,
-          ageGroupFilter: PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED,
         };
         const appListReq: ListApplicationsRequest = {
           rescueIdFilter: rescueId,

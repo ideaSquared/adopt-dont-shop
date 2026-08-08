@@ -458,9 +458,18 @@ export interface ListPetsRequest {
     | string
     | undefined;
   /** Breed-name filter (case-insensitive substring against the breeds catalogue). */
-  breed?: string | undefined;
-  genderFilter: PetGender;
-  ageGroupFilter: PetAgeGroup;
+  breed?:
+    | string
+    | undefined;
+  /**
+   * Enum filters. UNSPECIFIED / unset = "no filter". `optional` (explicit
+   * presence) so existing ListPetsRequest construction sites don't have to
+   * set them — every other caller stays a compile-clean no-op.
+   */
+  genderFilter?: PetGender | undefined;
+  ageGroupFilter?:
+    | PetAgeGroup
+    | undefined;
   /**
    * Sort column (allowlisted server-side) + direction ("ASC"/"DESC"). Only
    * honoured in page mode; cursor mode keeps its fixed keyset order.
@@ -2263,8 +2272,8 @@ function createBaseListPetsRequest(): ListPetsRequest {
     page: undefined,
     search: undefined,
     breed: undefined,
-    genderFilter: 0,
-    ageGroupFilter: 0,
+    genderFilter: undefined,
+    ageGroupFilter: undefined,
     sortBy: undefined,
     sortOrder: undefined,
   };
@@ -2302,10 +2311,10 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     if (message.breed !== undefined) {
       writer.uint32(82).string(message.breed);
     }
-    if (message.genderFilter !== 0) {
+    if (message.genderFilter !== undefined) {
       writer.uint32(88).int32(message.genderFilter);
     }
-    if (message.ageGroupFilter !== 0) {
+    if (message.ageGroupFilter !== undefined) {
       writer.uint32(96).int32(message.ageGroupFilter);
     }
     if (message.sortBy !== undefined) {
@@ -2481,12 +2490,12 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
         ? petGenderFromJSON(object.genderFilter)
         : isSet(object.gender_filter)
         ? petGenderFromJSON(object.gender_filter)
-        : 0,
+        : undefined,
       ageGroupFilter: isSet(object.ageGroupFilter)
         ? petAgeGroupFromJSON(object.ageGroupFilter)
         : isSet(object.age_group_filter)
         ? petAgeGroupFromJSON(object.age_group_filter)
-        : 0,
+        : undefined,
       sortBy: isSet(object.sortBy)
         ? globalThis.String(object.sortBy)
         : isSet(object.sort_by)
@@ -2532,10 +2541,10 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     if (message.breed !== undefined) {
       obj.breed = message.breed;
     }
-    if (message.genderFilter !== 0) {
+    if (message.genderFilter !== undefined) {
       obj.genderFilter = petGenderToJSON(message.genderFilter);
     }
-    if (message.ageGroupFilter !== 0) {
+    if (message.ageGroupFilter !== undefined) {
       obj.ageGroupFilter = petAgeGroupToJSON(message.ageGroupFilter);
     }
     if (message.sortBy !== undefined) {
@@ -2562,8 +2571,8 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
     message.page = object.page ?? undefined;
     message.search = object.search ?? undefined;
     message.breed = object.breed ?? undefined;
-    message.genderFilter = object.genderFilter ?? 0;
-    message.ageGroupFilter = object.ageGroupFilter ?? 0;
+    message.genderFilter = object.genderFilter ?? undefined;
+    message.ageGroupFilter = object.ageGroupFilter ?? undefined;
     message.sortBy = object.sortBy ?? undefined;
     message.sortOrder = object.sortOrder ?? undefined;
     return message;
