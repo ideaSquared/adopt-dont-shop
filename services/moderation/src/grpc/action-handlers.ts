@@ -189,6 +189,13 @@ export async function listModeratorActions(
     params.push(actionTypeToDb(req.actionType));
   }
 
+  // active_only narrows to sanctions/actions still in force: flagged active
+  // AND either permanent (no expiry) or not yet expired. Powers the
+  // "active actions against this user" view (lib.moderation getActiveActions).
+  if (req.activeOnly === true) {
+    where.push(`is_active = true AND (expires_at IS NULL OR expires_at > now())`);
+  }
+
   if (req.cursor !== undefined && req.cursor !== '') {
     let cursor;
     try {

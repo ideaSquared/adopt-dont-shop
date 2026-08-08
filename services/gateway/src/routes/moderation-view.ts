@@ -10,6 +10,7 @@
 import {
   ModerationV1,
   type GetModerationMetricsResponse,
+  type GetSupportTicketStatsResponse,
   type ModeratorAction,
   type Report,
   type SupportTicket,
@@ -223,6 +224,104 @@ export function supportTicketResponseToView(r: SupportTicketResponse): SupportTi
     content: r.content,
     isInternal: r.isInternal,
     createdAt: r.createdAt,
+  };
+}
+
+// The thread view embeds the response list INSIDE the ticket, with the
+// responder_type token each response needs — this is the shape the frontend
+// SupportTicketSchema parses for the /messages endpoint (responses are a
+// nested array on the ticket, not a sibling field).
+export type SupportTicketThreadResponseView = {
+  responseId: string;
+  responderId: string;
+  responderType: string;
+  content: string;
+  isInternal: boolean;
+  createdAt: string;
+};
+
+export type SupportTicketThreadView = SupportTicketView & {
+  responses: SupportTicketThreadResponseView[];
+};
+
+export function supportTicketWithThreadToView(
+  t: SupportTicket,
+  responses: SupportTicketResponse[]
+): SupportTicketThreadView {
+  return {
+    ...supportTicketToView(t),
+    responses: responses.map(r => ({
+      responseId: r.responseId,
+      responderId: r.responderId,
+      responderType:
+        tokenFromProto(
+          ModerationV1.supportTicketResponderTypeToJSON,
+          r.responderType,
+          'SUPPORT_TICKET_RESPONDER_TYPE_'
+        ) ?? 'user',
+      content: r.content,
+      isInternal: r.isInternal,
+      createdAt: r.createdAt,
+    })),
+  };
+}
+
+export type SupportTicketStatsView = {
+  total: number;
+  open: number;
+  inProgress: number;
+  waitingForUser: number;
+  resolved: number;
+  closed: number;
+  escalated: number;
+  overdue: number;
+  unassigned: number;
+  averageResponseTime: number;
+  averageResolutionTime: number;
+  satisfactionAverage: number | null;
+  ticketsToday: number;
+  ticketsThisWeek: number;
+  ticketsThisMonth: number;
+  byPriority: { low: number; normal: number; high: number; urgent: number; critical: number };
+  byCategory: Array<{ category: string; count: number }>;
+  staffActivity: Array<{ staffId: string; assignedCount: number; resolvedCount: number }>;
+};
+
+// GetSupportTicketStats proto → the dashboard's TicketStats shape. Only the
+// category enum needs token-lowering; the counts pass through. An absent
+// satisfaction average is surfaced as null (the schema requires the key).
+export function ticketStatsToView(s: GetSupportTicketStatsResponse): SupportTicketStatsView {
+  return {
+    total: s.total,
+    open: s.open,
+    inProgress: s.inProgress,
+    waitingForUser: s.waitingForUser,
+    resolved: s.resolved,
+    closed: s.closed,
+    escalated: s.escalated,
+    overdue: s.overdue,
+    unassigned: s.unassigned,
+    averageResponseTime: s.averageResponseTime,
+    averageResolutionTime: s.averageResolutionTime,
+    satisfactionAverage: s.satisfactionAverage ?? null,
+    ticketsToday: s.ticketsToday,
+    ticketsThisWeek: s.ticketsThisWeek,
+    ticketsThisMonth: s.ticketsThisMonth,
+    byPriority: s.byPriority ?? { low: 0, normal: 0, high: 0, urgent: 0, critical: 0 },
+    byCategory: s.byCategory.map(c => ({
+      category:
+        tokenFromProto(
+          ModerationV1.supportTicketCategoryToJSON,
+          c.category,
+          'SUPPORT_TICKET_CATEGORY_'
+        ) ?? 'other',
+      count: c.count,
+    })),
+    staffActivity: s.staffActivity.map(a => ({
+      staffId: a.staffId,
+      assignedCount: a.assignedCount,
+      resolvedCount: a.resolvedCount,
+    })),
   };
 }
 

@@ -17,6 +17,7 @@ import {
   type AssignReportRequest,
   type AssignSupportTicketRequest,
   type EscalateReportRequest,
+  type EscalateSupportTicketRequest,
   type FileReportRequest,
   type ListModeratorActionsRequest,
   type ListReportsRequest,
@@ -25,6 +26,7 @@ import {
   type OpenSupportTicketRequest,
   type ResolveReportRequest,
   type RespondToTicketRequest,
+  type UpdateSupportTicketRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
@@ -37,6 +39,8 @@ import {
   reportToView,
   supportTicketResponseToView,
   supportTicketToView,
+  supportTicketWithThreadToView,
+  ticketStatsToView,
 } from './moderation-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
@@ -483,6 +487,41 @@ export const registerModerationAdminRoutes = async (
     }
   );
 
+  // GET /actions/active — in-force sanctions/actions only (lib.moderation
+  // getActiveActions). Sets active_only so the handler filters is_active +
+  // unexpired; optionally scoped to a single target user (?userId=).
+  app.get(
+    '/api/v1/admin/moderation/actions/active',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+        summary: 'List active (in-force) moderator actions (admin)',
+        querystring: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+        },
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const grpcReq: ListModeratorActionsRequest = {
+        limit: 0,
+        activeOnly: true,
+        targetUserId: q.userId,
+      } as ListModeratorActionsRequest;
+      try {
+        const res = await client.listModeratorActions(grpcReq, buildMetadata(req));
+        return reply.send({ data: res.actions.map(moderatorActionToView) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   app.post(
     '/api/v1/admin/moderation/actions',
     {
@@ -804,6 +843,294 @@ export const registerModerationAdminRoutes = async (
           return reply.code(500).send({ error: 'assignSupportTicket returned no ticket' });
         }
         return reply.send(dataEnvelope(supportTicketToView(res.ticket)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /support/stats — aggregate stat cards (lib.support-tickets
+  // useTicketStats). Envelope is { success, data } — the client parses
+  // `data` with TicketStatsSchema.
+  app.get(
+    '/api/v1/admin/support/stats',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+        summary: 'Aggregate support-ticket stats for the admin dashboard',
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          403: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getSupportTicketStats({}, buildMetadata(req));
+        return reply.send({ success: true, data: ticketStatsToView(res) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /support/my-tickets — tickets assigned to the calling staff member
+  // (lib.support-tickets getMyTickets). Scopes listSupportTickets by the
+  // principal's own user id (stamped as x-user-id by the authenticate hook).
+  app.get(
+    '/api/v1/admin/support/my-tickets',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+        summary: 'List support tickets assigned to the current staff member (admin)',
+        querystring: {
+          type: 'object',
+          properties: { status: { type: 'string' } },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+        },
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const headers = req.headers as Record<string, string | string[] | undefined>;
+      const userId = headers['x-user-id'];
+      const grpcReq: ListSupportTicketsRequest = {
+        limit: 0,
+        status: parseEnum(
+          ModerationV1.SupportTicketStatus,
+          'SUPPORT_TICKET_STATUS',
+          ModerationV1.supportTicketStatusFromJSON,
+          ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_UNSPECIFIED,
+          ModerationV1.SupportTicketStatus.UNRECOGNIZED,
+          q.status
+        ),
+        assignedTo: typeof userId === 'string' ? userId : undefined,
+      } as ListSupportTicketsRequest;
+      try {
+        const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
+        return reply.send({ data: res.tickets.map(supportTicketToView) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /support/tickets/:id/messages — the ticket plus its full response
+  // thread (lib.support-tickets getTicketMessages parses `data` as a
+  // SupportTicket with a nested responses array).
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/admin/support/tickets/:id/messages',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+        summary: 'Get a support ticket with its response thread (admin)',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getSupportTicket(
+          { ticketId: req.params.id, includeResponses: true },
+          buildMetadata(req)
+        );
+        if (res.ticket === undefined) {
+          return reply.code(404).send({ error: 'ticket not found' });
+        }
+        return reply.send(dataEnvelope(supportTicketWithThreadToView(res.ticket, res.responses)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // PATCH /support/tickets/:id — partial update of status/priority/category/
+  // tags (lib.support-tickets updateTicket).
+  app.patch<{ Params: { id: string } }>(
+    '/api/v1/admin/support/tickets/:id',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+        summary: 'Update a support ticket (admin)',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            priority: { type: 'string' },
+            category: { type: 'string' },
+            tags: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: UpdateSupportTicketRequest = {
+        ticketId: req.params.id,
+        status: parseEnum(
+          ModerationV1.SupportTicketStatus,
+          'SUPPORT_TICKET_STATUS',
+          ModerationV1.supportTicketStatusFromJSON,
+          ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_UNSPECIFIED,
+          ModerationV1.SupportTicketStatus.UNRECOGNIZED,
+          b.status as string | undefined
+        ),
+        priority: parseEnum(
+          ModerationV1.SupportTicketPriority,
+          'SUPPORT_TICKET_PRIORITY',
+          ModerationV1.supportTicketPriorityFromJSON,
+          ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_UNSPECIFIED,
+          ModerationV1.SupportTicketPriority.UNRECOGNIZED,
+          b.priority as string | undefined
+        ),
+        category: parseEnum(
+          ModerationV1.SupportTicketCategory,
+          'SUPPORT_TICKET_CATEGORY',
+          ModerationV1.supportTicketCategoryFromJSON,
+          ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_UNSPECIFIED,
+          ModerationV1.SupportTicketCategory.UNRECOGNIZED,
+          b.category as string | undefined
+        ),
+        tags: Array.isArray(b.tags) ? (b.tags as string[]) : [],
+      };
+      try {
+        const res = await client.updateSupportTicket(grpcReq, buildMetadata(req));
+        if (res.ticket === undefined) {
+          return reply.code(404).send({ error: 'ticket not found' });
+        }
+        return reply.send(dataEnvelope(supportTicketToView(res.ticket)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /support/tickets/:id/escalate — mark escalated, optionally reassign
+  // (lib.support-tickets escalateTicket). Mirrors the report-escalate route.
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/admin/support/tickets/:id/escalate',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+        summary: 'Escalate a support ticket (admin)',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          properties: {
+            escalatedTo: { type: 'string' },
+            assignedTo: { type: 'string' },
+            reason: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: EscalateSupportTicketRequest = {
+        ticketId: req.params.id,
+        // Frontend sends escalatedTo (senior queue / staff member); the proto
+        // carries it as assigned_to (an optional reassignment on escalation).
+        assignedTo: (b.assignedTo as string | undefined) ?? (b.escalatedTo as string | undefined),
+        reason: b.reason as string | undefined,
+      };
+      try {
+        const res = await client.escalateSupportTicket(grpcReq, buildMetadata(req));
+        if (res.ticket === undefined) {
+          return reply.code(404).send({ error: 'ticket not found' });
+        }
+        return reply.send(dataEnvelope(supportTicketToView(res.ticket)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /api/v1/pets/:id/report — a user reporting a pet (lib.pets
+  // reportPet). Maps to FileReport (open to any authenticated principal) with
+  // reported_entity_type = pet. The param name MUST be `id` to share the
+  // parametric node the pets routes already declared at /api/v1/pets/:id/*.
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/pets/:id/report',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+        summary: 'Report a pet',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          201: { type: 'object', additionalProperties: true },
+          500: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const reason = b.reason as string | undefined;
+      // reason is a free-text label from the client; use it as the category
+      // when it happens to name a known one, else fall back to OTHER. It is
+      // preserved verbatim as the title / metadata for the moderator.
+      let category = parseEnum(
+        ModerationV1.ReportCategory,
+        'REPORT_CATEGORY',
+        ModerationV1.reportCategoryFromJSON,
+        ModerationV1.ReportCategory.REPORT_CATEGORY_UNSPECIFIED,
+        ModerationV1.ReportCategory.UNRECOGNIZED,
+        (b.category as string | undefined) ?? reason
+      );
+      if (category === ModerationV1.ReportCategory.REPORT_CATEGORY_UNSPECIFIED) {
+        category = ModerationV1.ReportCategory.REPORT_CATEGORY_OTHER;
+      }
+      let severity = parseEnum(
+        ModerationV1.Severity,
+        'SEVERITY',
+        ModerationV1.severityFromJSON,
+        ModerationV1.Severity.SEVERITY_UNSPECIFIED,
+        ModerationV1.Severity.UNRECOGNIZED,
+        b.severity as string | undefined
+      );
+      if (severity === ModerationV1.Severity.SEVERITY_UNSPECIFIED) {
+        severity = ModerationV1.Severity.SEVERITY_MEDIUM;
+      }
+      const description =
+        (b.description as string | undefined) ?? reason ?? 'Reported via the pet report action';
+      const grpcReq: FileReportRequest = {
+        reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_PET,
+        reportedEntityId: req.params.id,
+        reportedUserId: b.reportedUserId as string | undefined,
+        category,
+        severity,
+        title: (b.title as string | undefined) ?? reason ?? 'Pet report',
+        description,
+        metadataJson: reason !== undefined ? JSON.stringify({ reason }) : undefined,
+      };
+      try {
+        const res = await client.fileReport(grpcReq, buildMetadata(req));
+        if (res.report === undefined) {
+          return reply.code(500).send({ error: 'fileReport returned no report' });
+        }
+        return reply.code(201).send({
+          data: { reportId: res.report.reportId, message: 'Report submitted successfully' },
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

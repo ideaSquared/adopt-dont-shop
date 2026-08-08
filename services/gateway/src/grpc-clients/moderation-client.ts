@@ -23,8 +23,12 @@ import {
   type AssignSupportTicketResponse,
   type EscalateReportRequest,
   type EscalateReportResponse,
+  type EscalateSupportTicketRequest,
+  type EscalateSupportTicketResponse,
   type FileReportRequest,
   type FileReportResponse,
+  type GetSupportTicketStatsRequest,
+  type GetSupportTicketStatsResponse,
   type GetModerationMetricsRequest,
   type GetModerationMetricsResponse,
   type GetReportRequest,
@@ -49,6 +53,8 @@ import {
   type ResolveReportResponse,
   type RespondToTicketRequest,
   type RespondToTicketResponse,
+  type UpdateSupportTicketRequest,
+  type UpdateSupportTicketResponse,
 } from '@adopt-dont-shop/proto';
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
@@ -105,6 +111,18 @@ export type ModerationClient = {
     req: AssignSupportTicketRequest,
     metadata: Metadata
   ): Promise<AssignSupportTicketResponse>;
+  updateSupportTicket(
+    req: UpdateSupportTicketRequest,
+    metadata: Metadata
+  ): Promise<UpdateSupportTicketResponse>;
+  escalateSupportTicket(
+    req: EscalateSupportTicketRequest,
+    metadata: Metadata
+  ): Promise<EscalateSupportTicketResponse>;
+  getSupportTicketStats(
+    req: GetSupportTicketStatsRequest,
+    metadata: Metadata
+  ): Promise<GetSupportTicketStatsResponse>;
   close(): void;
 };
 
@@ -182,6 +200,10 @@ export const createModerationClient = (opts: CreateModerationClientOptions): Mod
     respondToTicket: (req, metadata) => callUnary(stub.respondToTicket, req, metadata, false),
     assignSupportTicket: (req, metadata) =>
       callUnary(stub.assignSupportTicket, req, metadata, false),
+    updateSupportTicket: (req, metadata) =>
+      callUnary(stub.updateSupportTicket, req, metadata, false),
+    escalateSupportTicket: (req, metadata) =>
+      callUnary(stub.escalateSupportTicket, req, metadata, false),
     // ── Idempotent (reads) ───────────────────────────────────────────
     getReport: (req, metadata) => callUnary(stub.getReport, req, metadata, true),
     listReports: (req, metadata) => callUnary(stub.listReports, req, metadata, true),
@@ -192,6 +214,8 @@ export const createModerationClient = (opts: CreateModerationClientOptions): Mod
     listUserSanctions: (req, metadata) => callUnary(stub.listUserSanctions, req, metadata, true),
     getSupportTicket: (req, metadata) => callUnary(stub.getSupportTicket, req, metadata, true),
     listSupportTickets: (req, metadata) => callUnary(stub.listSupportTickets, req, metadata, true),
+    getSupportTicketStats: (req, metadata) =>
+      callUnary(stub.getSupportTicketStats, req, metadata, true),
     close: () => stub.close(),
   };
 };

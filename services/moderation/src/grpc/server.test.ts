@@ -30,7 +30,7 @@ const pool = {} as unknown as Pool;
 const nats = {} as unknown as NatsConnection;
 
 describe('createGrpcServer', () => {
-  it('registers all 16 ModerationService methods on the grpc.Server', () => {
+  it('registers the ModerationService methods on the grpc.Server', () => {
     const server = createGrpcServer({ config, pool, nats, logger: quietLogger });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
@@ -52,6 +52,9 @@ describe('createGrpcServer', () => {
       'ListSupportTickets',
       'RespondToTicket',
       'AssignSupportTicket',
+      'UpdateSupportTicket',
+      'EscalateSupportTicket',
+      'GetSupportTicketStats',
     ]) {
       expect(handlers.has(`${base}/${method}`)).toBe(true);
     }
