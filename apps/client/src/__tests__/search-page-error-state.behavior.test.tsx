@@ -78,7 +78,7 @@ const server = setupServer(
     return HttpResponse.json({
       success: true,
       data: [],
-      meta: { page: 1, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
     });
   })
 );
@@ -95,7 +95,7 @@ afterEach(() => {
       return HttpResponse.json({
         success: true,
         data: [],
-        meta: { page: 1, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
       });
     })
   );
