@@ -58,6 +58,8 @@ import {
   type DeleteEmailTemplateResponse,
   type PreviewEmailTemplateRequest,
   type PreviewEmailTemplateResponse,
+  type SendEmailRequest,
+  type SendEmailResponse,
 } from '@adopt-dont-shop/proto';
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
@@ -141,6 +143,7 @@ export type NotificationsClient = {
     req: PreviewEmailTemplateRequest,
     metadata: Metadata
   ): Promise<PreviewEmailTemplateResponse>;
+  sendEmail(req: SendEmailRequest, metadata: Metadata): Promise<SendEmailResponse>;
   broadcast(
     req: import('@adopt-dont-shop/proto').BroadcastRequest,
     metadata: Metadata
@@ -252,6 +255,7 @@ export const createNotificationsClient = (
     getEmailTemplate: (req, metadata) => callUnary(stub.getEmailTemplate, req, metadata, true),
     previewEmailTemplate: (req, metadata) =>
       callUnary(stub.previewEmailTemplate, req, metadata, true),
+    sendEmail: (req, metadata) => callUnary(stub.sendEmail, req, metadata, false),
     close: () => stub.close(),
   };
 };

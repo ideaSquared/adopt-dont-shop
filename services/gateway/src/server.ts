@@ -770,6 +770,8 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerAnalyticsMetricsRoutes(server, {
       petsClient: opts.petsClient,
       applicationsClient: opts.applicationsClient,
+      // Optional — enables POST /analytics/email-report when configured.
+      notificationsClient: opts.notificationsClient,
     });
   }
 
