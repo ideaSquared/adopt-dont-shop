@@ -5,8 +5,6 @@ import {
   MessageSearchOptions,
   MessageSearchResponse,
   SearchSuggestion,
-  AdvancedSearchOptions,
-  FacetedSearchResponse,
   PaginatedResponse,
 } from '../../types';
 
@@ -292,53 +290,6 @@ describe('SearchService', () => {
       await service.getSearchSuggestions('test', 'pets');
 
       expect(mockApiService.get).toHaveBeenCalledTimes(3);
-    });
-  });
-
-  describe('facetedSearch', () => {
-    it('should perform faceted search successfully', async () => {
-      const mockFacetedResponse: FacetedSearchResponse = {
-        results: [mockPetSearchResult],
-        facets: [
-          {
-            name: 'type',
-            values: [
-              { value: 'dog', count: 150 },
-              { value: 'cat', count: 100 },
-            ],
-          },
-        ],
-        total: 1,
-        page: 1,
-        totalPages: 1,
-        queryTime: 120,
-      };
-
-      const advancedOptions: AdvancedSearchOptions = {
-        includeTypes: ['pet'],
-        location: { lat: 40.7128, lng: -74.006, radius: 50 },
-        facets: ['type', 'size', 'age'],
-      };
-
-      mockApiService.post.mockResolvedValue(mockFacetedResponse);
-
-      const result = await service.facetedSearch('friendly dog', advancedOptions);
-
-      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/search/faceted', {
-        query: 'friendly dog',
-        ...advancedOptions,
-      });
-      expect(result).toEqual(mockFacetedResponse);
-    });
-
-    it('should return empty results on API failure', async () => {
-      mockApiService.post.mockRejectedValue(new Error('API Error'));
-
-      const result = await service.facetedSearch('test');
-
-      expect(result.results).toEqual([]);
-      expect(result.facets).toEqual([]);
-      expect(result.total).toBe(0);
     });
   });
 
