@@ -354,6 +354,73 @@ describe('listPets', () => {
     expect(params).not.toContain(true);
   });
 
+  it('page mode: runs a COUNT, offsets, honours sort, and returns the total', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ count: '42' }] }) // COUNT
+      .mockResolvedValueOnce({ rows: [] }); // page SELECT
+    const res = await listPets(mocks.deps, ADOPTER, {
+      limit: 12,
+      page: 3,
+      sortBy: 'name',
+      sortOrder: 'ASC',
+    } as never);
+
+    const countSql = mocks.poolMock.query.mock.calls[0][0] as string;
+    expect(countSql).toMatch(/SELECT COUNT\(\*\)/);
+
+    const selectSql = mocks.poolMock.query.mock.calls[1][0] as string;
+    const selectParams = mocks.poolMock.query.mock.calls[1][1] as unknown[];
+    expect(selectSql).toMatch(/ORDER BY name ASC/);
+    expect(selectSql).toMatch(/LIMIT \$\d+ OFFSET \$\d+/);
+    expect(selectParams).toContain(24); // offset = (3 - 1) * 12
+    expect(res.total).toBe(42);
+    expect(res.nextCursor).toBeUndefined();
+  });
+
+  it('page mode: applies search / breed / gender / age-group filters', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, ADOPTER, {
+      limit: 12,
+      page: 1,
+      search: 'rex',
+      breed: 'labr',
+      genderFilter: PetsV1.PetGender.PET_GENDER_MALE,
+      ageGroupFilter: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
+    } as never);
+
+    const countSql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const countParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(countSql).toMatch(/search_vector @@ websearch_to_tsquery/);
+    expect(countSql).toMatch(/breed_id IN \(SELECT breed_id FROM pets\.breeds/);
+    expect(countSql).toMatch(/gender = \$/);
+    expect(countSql).toMatch(/age_group = \$/);
+    expect(countParams).toContain('rex');
+    expect(countParams).toContain('%labr%');
+  });
+
+  it('rejects an unknown sort column (falls back to created_at, no injection)', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, ADOPTER, {
+      limit: 12,
+      page: 1,
+      sortBy: 'name; DROP TABLE pets;--',
+    } as never);
+    const selectSql = mocks.poolMock.query.mock.calls[1][0] as string;
+    expect(selectSql).toMatch(/ORDER BY created_at DESC/);
+    expect(selectSql).not.toMatch(/DROP TABLE/);
+  });
+
+  it('stays in cursor mode (single query, no total) when page is unset', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    const res = await listPets(mocks.deps, ADOPTER, { limit: 12 } as never);
+    expect(res.total).toBeUndefined();
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
   it('pins rescue staff to their own rescue, ignoring a foreign rescueIdFilter', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     // STAFF is scoped to rsc-1 but asks for rsc-2's pets.

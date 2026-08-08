@@ -285,11 +285,29 @@ message ListPetsRequest {
   // Restrict to featured pets only (the public "featured" homepage rail).
   // false / unset = no featured filter.
   optional bool featured_filter = 7;
+  // Page-based pagination (1-based). When set (> 0), the handler switches
+  // from keyset/cursor mode to offset pagination and returns `total` — the
+  // rescue Pet Management dashboard needs jump-to-page + total counts.
+  // Unset / 0 keeps the default cursor behaviour for every other caller.
+  optional uint32 page = 8;
+  // Free-text search over the pets.search_vector (name / breed / description).
+  optional string search = 9;
+  // Breed-name filter (case-insensitive substring against the breeds catalogue).
+  optional string breed = 10;
+  PetGender gender_filter = 11;
+  PetAgeGroup age_group_filter = 12;
+  // Sort column (allowlisted server-side) + direction ("ASC"/"DESC"). Only
+  // honoured in page mode; cursor mode keeps its fixed keyset order.
+  optional string sort_by = 13;
+  optional string sort_order = 14;
 }
 
 message ListPetsResponse {
   repeated Pet pets = 1;
   optional string next_cursor = 2;
+  // Total matching rows — populated only in page mode (offset pagination),
+  // so the dashboard can render page counts. Unset in cursor mode.
+  optional uint32 total = 3;
 }
 
 // --- ListBreeds -------------------------------------------------------

@@ -122,15 +122,29 @@ export type PetsListMeta = {
   hasPrev: boolean;
 };
 
-// Best-effort page meta from a keyset page. `total`/`totalPages` reflect
-// the current page only (the proto List is keyset; no global count) —
-// `hasNext` is driven by the cursor so the SPA can page forward.
-export function listToEnvelope(res: ListPetsResponse): {
+// In page mode the handler returns a global `total`, so we can build real
+// page meta (page/totalPages/hasNext/hasPrev) from the caller's page+limit.
+// In cursor mode there's no global count, so meta stays best-effort (the
+// current page only) with `hasNext` driven by the cursor.
+export function listToEnvelope(
+  res: ListPetsResponse,
+  pageContext?: { page: number; limit: number }
+): {
   success: true;
   data: Record<string, unknown>[];
   meta: PetsListMeta;
 } {
   const data = res.pets.map(petToView);
+  if (res.total !== undefined && pageContext) {
+    const { page, limit } = pageContext;
+    const total = res.total;
+    const totalPages = limit > 0 ? Math.ceil(total / limit) : 0;
+    return {
+      success: true,
+      data,
+      meta: { page, total, totalPages, hasNext: page < totalPages, hasPrev: page > 1 },
+    };
+  }
   const hasNext = res.nextCursor !== undefined && res.nextCursor !== '';
   return {
     success: true,

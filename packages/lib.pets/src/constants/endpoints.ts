@@ -11,10 +11,6 @@ export const PETS_ENDPOINTS = {
   // Recent pets (featured pets are served by PETS with a ?featured=true query)
   RECENT_PETS: '/api/v1/pets/recent',
 
-  // Pets by rescue (rescue-scoped list is served by PETS with a ?rescueId=
-  // query — see getPetsByRescue; no dedicated /pets/rescue/:id route exists)
-  MY_RESCUE_PETS: '/api/v1/pets/rescue/my',
-
   // Breed and type information
   PET_BREEDS: '/api/v1/pets/breeds',
   PET_BREEDS_BY_TYPE: (type: string) => `/api/v1/pets/breeds/${type}`,
@@ -41,7 +37,6 @@ export const {
   PETS,
   PET_BY_ID,
   RECENT_PETS,
-  MY_RESCUE_PETS,
   PET_BREEDS,
   PET_BREEDS_BY_TYPE,
   PET_TYPES,

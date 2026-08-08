@@ -212,7 +212,9 @@ export class PetManagementService {
     };
   }> {
     try {
-      // Use the new "my rescue pets" endpoint that automatically gets the user's rescue
+      // GET /api/v1/pets scopes rescue staff to their own rescue server-side
+      // from the authenticated principal (no rescueId needed). Page/search/
+      // breed/age/gender/sort filters are all honoured by the gateway.
       const params = {
         ...filters,
       };
@@ -227,7 +229,7 @@ export class PetManagementService {
           hasNext: boolean;
           hasPrev: boolean;
         };
-      }>(PETS_ENDPOINTS.MY_RESCUE_PETS, params);
+      }>(PETS_ENDPOINTS.PETS, params);
 
       if (response.success && response.data && response.meta) {
         return {
