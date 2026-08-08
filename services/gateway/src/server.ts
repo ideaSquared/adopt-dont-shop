@@ -81,6 +81,7 @@ import { registerModerationRoutes } from './routes/moderation.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
 import { registerPrivacyRoutes } from './routes/privacy.js';
+import { registerConsentRoutes } from './routes/consent.js';
 import { registerReportsRoutes } from './routes/reports.js';
 import { registerRescueRoutes } from './routes/rescue.js';
 import { registerInvitationAcceptRoutes } from './routes/invitation-accept.js';
@@ -560,6 +561,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // /api/v1/privacy/admin/users/:id/{export,delete-request} — admin
     // Privacy Tools (GDPR). Auth-owned data only; gating in the handlers.
     await registerPrivacyRoutes(server, { client: opts.authClient });
+    // /api/v1/privacy/{consent,cookies-consent} + /api/v1/legal/
+    // pending-reacceptance — self-scoped legal consent store (ADS-1137).
+    await registerConsentRoutes(server, { client: opts.authClient });
   }
   if (opts.notificationsClient) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });

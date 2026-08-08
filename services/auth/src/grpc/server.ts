@@ -75,6 +75,7 @@ import {
   resetPrivacyPreferences,
   updatePrivacyPreferences,
 } from './privacy-prefs-handlers.js';
+import { getConsentStatus, recordConsent } from './consent-handlers.js';
 import { exportUserData, requestAccountDeletion } from './privacy-handlers.js';
 import {
   adminListSessions,
@@ -140,6 +141,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getPrivacyPreferences: adapt(getPrivacyPreferences, { deps, logger }),
     updatePrivacyPreferences: adapt(updatePrivacyPreferences, { deps, logger }),
     resetPrivacyPreferences: adapt(resetPrivacyPreferences, { deps, logger }),
+    // Legal consent store — self-scoped record + status read.
+    recordConsent: adapt(recordConsent, { deps, logger }),
+    getConsentStatus: adapt(getConsentStatus, { deps, logger }),
     // Admin user management — /api/v1/users/* admin surface.
     searchUsers: adapt(searchUsers, { deps, logger }),
     adminGetUser: adapt(adminGetUser, { deps, logger }),
@@ -198,6 +202,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getPrivacyPreferences',
       'updatePrivacyPreferences',
       'resetPrivacyPreferences',
+      'recordConsent',
+      'getConsentStatus',
       'searchUsers',
       'adminGetUser',
       'adminCreateUser',
