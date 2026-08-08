@@ -119,6 +119,55 @@ describe('query', () => {
     ]);
   });
 
+  it('applies the action and aggregate_type filters', async () => {
+    const { deps, query: qmock } = makeDeps([]);
+    await query(deps, makePrincipal(), {
+      action: 'login',
+      aggregateType: 'user',
+      limit: 10,
+    } as AuditQueryRequest);
+    const sql = qmock.mock.calls[0][0] as string;
+    expect(sql).toContain('action = $1');
+    expect(sql).toContain('aggregate_type = $2');
+    expect(qmock.mock.calls[0][1]).toEqual(['login', 'user', 11]);
+  });
+
+  it('page mode: returns a total via COUNT + an OFFSET slice, no cursor', async () => {
+    const qmock = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ total: '137' }] }) // COUNT(*)
+      .mockResolvedValueOnce({ rows: [makeRow()] }); // page slice
+    const deps = { pool: { query: qmock }, nats: {} } as unknown as HandlerDeps;
+    const res = await query(deps, makePrincipal(), {
+      page: 3,
+      limit: 20,
+      service: 'service.auth',
+    } as AuditQueryRequest);
+    expect(res.total).toBe(137);
+    expect(res.events).toHaveLength(1);
+    expect(res.nextCursor).toBeUndefined();
+    expect(String(qmock.mock.calls[0][0])).toContain('COUNT(*)');
+    expect(qmock.mock.calls[0][1]).toEqual(['service.auth']);
+    // OFFSET (3-1)*20 = 40, LIMIT 20.
+    expect(qmock.mock.calls[1][1]).toEqual(['service.auth', 20, 40]);
+  });
+
+  it('page mode: ignores cursor and defaults total to 0 when COUNT returns nothing', async () => {
+    const qmock = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [] }) // COUNT(*)
+      .mockResolvedValueOnce({ rows: [] }); // page slice
+    const deps = { pool: { query: qmock }, nats: {} } as unknown as HandlerDeps;
+    const res = await query(deps, makePrincipal(), {
+      page: 1,
+      limit: 50,
+      cursor: 'ignored-in-page-mode',
+    } as AuditQueryRequest);
+    expect(res.total).toBe(0);
+    expect(res.events).toEqual([]);
+    expect(qmock.mock.calls[1][1]).toEqual([50, 0]);
+  });
+
   it('decodes and applies a cursor', async () => {
     const { deps, query: qmock } = makeDeps([]);
     const cursor = encodeCursor({

@@ -339,13 +339,37 @@ export interface QueryRequest {
     | string
     | undefined;
   /** Exclusive upper bound on occurred_at. */
-  occurredAtTo?: string | undefined;
+  occurredAtTo?:
+    | string
+    | undefined;
+  /**
+   * Page-based (offset) pagination for the admin audit-logs surface,
+   * which needs a total count + jump-to-page. When set (>0), the handler
+   * switches from keyset (cursor) mode to OFFSET (page-1)*limit plus a
+   * COUNT(*) over the same filters, and `cursor` is ignored. 1-based.
+   */
+  page?:
+    | number
+    | undefined;
+  /** Filter by action name within the aggregate's domain. */
+  action?:
+    | string
+    | undefined;
+  /** Filter by aggregate type (the "entity" the action targeted). */
+  aggregateType?: string | undefined;
 }
 
 export interface QueryResponse {
   /** Descending on occurred_at (newest first). */
   events: AuditEvent[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total matching rows — set only in page (offset) mode; absent in
+   * keyset (cursor) mode, which streams via next_cursor instead.
+   */
+  total?: number | undefined;
 }
 
 export interface GetByTargetRequest {
@@ -1272,6 +1296,9 @@ function createBaseQueryRequest(): QueryRequest {
     outcome: undefined,
     occurredAtFrom: undefined,
     occurredAtTo: undefined,
+    page: undefined,
+    action: undefined,
+    aggregateType: undefined,
   };
 }
 
@@ -1300,6 +1327,15 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     }
     if (message.occurredAtTo !== undefined) {
       writer.uint32(66).string(message.occurredAtTo);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(72).uint32(message.page);
+    }
+    if (message.action !== undefined) {
+      writer.uint32(82).string(message.action);
+    }
+    if (message.aggregateType !== undefined) {
+      writer.uint32(90).string(message.aggregateType);
     }
     return writer;
   },
@@ -1375,6 +1411,30 @@ export const QueryRequest: MessageFns<QueryRequest> = {
           message.occurredAtTo = reader.string();
           continue;
         }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.action = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.aggregateType = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1406,6 +1466,13 @@ export const QueryRequest: MessageFns<QueryRequest> = {
         : isSet(object.occurred_at_to)
         ? globalThis.String(object.occurred_at_to)
         : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      action: isSet(object.action) ? globalThis.String(object.action) : undefined,
+      aggregateType: isSet(object.aggregateType)
+        ? globalThis.String(object.aggregateType)
+        : isSet(object.aggregate_type)
+        ? globalThis.String(object.aggregate_type)
+        : undefined,
     };
   },
 
@@ -1435,6 +1502,15 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     if (message.occurredAtTo !== undefined) {
       obj.occurredAtTo = message.occurredAtTo;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.action !== undefined) {
+      obj.action = message.action;
+    }
+    if (message.aggregateType !== undefined) {
+      obj.aggregateType = message.aggregateType;
+    }
     return obj;
   },
 
@@ -1451,12 +1527,15 @@ export const QueryRequest: MessageFns<QueryRequest> = {
     message.outcome = object.outcome ?? undefined;
     message.occurredAtFrom = object.occurredAtFrom ?? undefined;
     message.occurredAtTo = object.occurredAtTo ?? undefined;
+    message.page = object.page ?? undefined;
+    message.action = object.action ?? undefined;
+    message.aggregateType = object.aggregateType ?? undefined;
     return message;
   },
 };
 
 function createBaseQueryResponse(): QueryResponse {
-  return { events: [], nextCursor: undefined };
+  return { events: [], nextCursor: undefined, total: undefined };
 }
 
 export const QueryResponse: MessageFns<QueryResponse> = {
@@ -1466,6 +1545,9 @@ export const QueryResponse: MessageFns<QueryResponse> = {
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -1493,6 +1575,14 @@ export const QueryResponse: MessageFns<QueryResponse> = {
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1510,6 +1600,7 @@ export const QueryResponse: MessageFns<QueryResponse> = {
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -1521,6 +1612,9 @@ export const QueryResponse: MessageFns<QueryResponse> = {
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -1531,6 +1625,7 @@ export const QueryResponse: MessageFns<QueryResponse> = {
     const message = createBaseQueryResponse();
     message.events = object.events?.map((e) => AuditEvent.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };

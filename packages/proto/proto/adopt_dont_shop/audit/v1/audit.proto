@@ -184,12 +184,25 @@ message QueryRequest {
   optional string occurred_at_from = 7;
   // Exclusive upper bound on occurred_at.
   optional string occurred_at_to = 8;
+
+  // Page-based (offset) pagination for the admin audit-logs surface,
+  // which needs a total count + jump-to-page. When set (>0), the handler
+  // switches from keyset (cursor) mode to OFFSET (page-1)*limit plus a
+  // COUNT(*) over the same filters, and `cursor` is ignored. 1-based.
+  optional uint32 page = 9;
+  // Filter by action name within the aggregate's domain.
+  optional string action = 10;
+  // Filter by aggregate type (the "entity" the action targeted).
+  optional string aggregate_type = 11;
 }
 
 message QueryResponse {
   // Descending on occurred_at (newest first).
   repeated AuditEvent events = 1;
   optional string next_cursor = 2;
+  // Total matching rows — set only in page (offset) mode; absent in
+  // keyset (cursor) mode, which streams via next_cursor instead.
+  optional uint32 total = 3;
 }
 
 // --- GetByTarget -----------------------------------------------------
