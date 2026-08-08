@@ -354,6 +354,56 @@ const registerChatRoutesForPrefix = (
     }
   );
 
+  // ---- GET <prefix>/analytics --------------------------------------
+  // Cross-chat aggregate stats for the admin Messages dashboard
+  // (lib.chat useAdminChatStats). A static segment registered BEFORE
+  // /:chatId so 'analytics' is never captured as a chat id. The privileged
+  // -role check lives in the chat handler. Envelope: { success, data }.
+  app.get(
+    `${prefix}/analytics`,
+    {
+      config: { rateLimit: CHAT_RATE_LIMITS.read },
+      schema: {
+        tags: ['chat'],
+        summary: 'Cross-chat aggregate stats for the admin dashboard',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  totalChats: { type: 'integer' },
+                  totalMessages: { type: 'integer' },
+                  activeChats: { type: 'integer' },
+                  averageMessagesPerChat: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.getChatStats({}, metadata);
+        return reply.send({
+          success: true,
+          data: {
+            totalChats: res.totalChats,
+            totalMessages: res.totalMessages,
+            activeChats: res.activeChats,
+            averageMessagesPerChat: res.averageMessagesPerChat,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // ---- GET <prefix>/:chatId ----------------------------------------
   // Fetch single chat details. Registered AFTER the more-specific
   // /:chatId/{unread-count,messages,read} routes above so they win

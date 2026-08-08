@@ -34,6 +34,8 @@ import {
   type DeleteChatResponse,
   type UpdateChatStatusRequest,
   type UpdateChatStatusResponse,
+  type GetChatStatsRequest,
+  type GetChatStatsResponse,
 } from '@adopt-dont-shop/proto';
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
@@ -60,6 +62,7 @@ export type ChatClient = {
     req: UpdateChatStatusRequest,
     metadata: Metadata
   ): Promise<UpdateChatStatusResponse>;
+  getChatStats(req: GetChatStatsRequest, metadata: Metadata): Promise<GetChatStatsResponse>;
   close(): void;
 };
 
@@ -137,6 +140,7 @@ export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
     searchMessages: (req, metadata) => callUnary(stub.searchMessages, req, metadata, true),
     getChatUnreadCount: (req, metadata) => callUnary(stub.getChatUnreadCount, req, metadata, true),
     getChat: (req, metadata) => callUnary(stub.getChat, req, metadata, true),
+    getChatStats: (req, metadata) => callUnary(stub.getChatStats, req, metadata, true),
     close: () => stub.close(),
   };
 };

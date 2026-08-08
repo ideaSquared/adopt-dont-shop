@@ -28,6 +28,7 @@ import {
   deleteChat,
   deleteMessage,
   getChat,
+  getChatStats,
   getChatUnreadCount,
   searchChats,
   searchMessages,
@@ -1587,5 +1588,49 @@ describe('updateChatStatus', () => {
     expect(res.chat?.status).toBe(LOCKED);
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.statusChanged');
+  });
+});
+
+describe('getChatStats', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects a principal with no chat permission', async () => {
+    await expect(getChatStats(mocks.deps, UNPRIVILEGED_PRINCIPAL, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('rejects a plain participant (chats.read but no staff/admin role)', async () => {
+    await expect(getChatStats(mocks.deps, ADOPTER_PRINCIPAL, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('returns aggregate counts and the average for a moderator', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ total_chats: '10', active_chats: '7', total_messages: '42' }],
+    });
+    const res = await getChatStats(mocks.deps, MODERATOR_PRINCIPAL, {});
+    expect(res).toEqual({
+      totalChats: 10,
+      totalMessages: 42,
+      activeChats: 7,
+      averageMessagesPerChat: 4.2,
+    });
+  });
+
+  it('reports a zero average when there are no chats', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ total_chats: '0', active_chats: '0', total_messages: '0' }],
+    });
+    const res = await getChatStats(mocks.deps, MODERATOR_PRINCIPAL, {});
+    expect(res.averageMessagesPerChat).toBe(0);
   });
 });
