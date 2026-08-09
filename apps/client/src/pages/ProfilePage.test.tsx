@@ -170,10 +170,11 @@ describe('ProfilePage settings save', () => {
   });
 });
 
-// C3: the account-deletion confirmation form now validates through a Zod schema
-// and surfaces the error inline (via the shared Input) rather than firing the
-// irreversible delete request against an empty password.
-describe('ProfilePage delete-account confirmation (C3)', () => {
+// ADS-1185: account deletion is an explicit two-step confirmation (open the
+// modal, click the danger button). It no longer collects a password, because
+// the erasure route does not re-verify credentials — collecting one implied a
+// re-auth that never happened. Real step-up auth is tracked separately.
+describe('ProfilePage delete-account confirmation', () => {
   const deleteAccountMock = vi.mocked(authService.deleteAccount);
 
   beforeEach(() => {
@@ -198,26 +199,32 @@ describe('ProfilePage delete-account confirmation (C3)', () => {
   // exact case so the two never collide.
   const getModalSubmit = () => screen.getByRole('button', { name: 'Delete account' });
 
-  it('blocks submission and shows an inline error when the password is empty', async () => {
-    const user = userEvent.setup();
+  it('does not ask for a password or two-factor code', () => {
     renderProfilePage();
 
-    await user.click(getModalSubmit());
-
-    expect(await screen.findByText(/please enter your password to confirm/i)).toBeInTheDocument();
-    expect(deleteAccountMock).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(/current password/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/two-factor code/i)).not.toBeInTheDocument();
   });
 
-  it('submits the deletion once a password is entered', async () => {
+  it('submits the erasure request on confirm without collecting credentials', async () => {
     const user = userEvent.setup();
     renderProfilePage();
 
-    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
     await user.click(getModalSubmit());
 
     await waitFor(() => {
       expect(deleteAccountMock).toHaveBeenCalledTimes(1);
     });
-    expect(deleteAccountMock).toHaveBeenCalledWith('hunter2', expect.any(Object));
+    expect(deleteAccountMock).toHaveBeenCalledWith({ reason: 'User requested account deletion' });
+  });
+
+  it('surfaces an error and does not navigate when the erasure request fails', async () => {
+    const user = userEvent.setup();
+    deleteAccountMock.mockRejectedValue(new Error('service_unavailable'));
+    renderProfilePage();
+
+    await user.click(getModalSubmit());
+
+    expect(await screen.findByText(/service_unavailable/i)).toBeInTheDocument();
   });
 });
