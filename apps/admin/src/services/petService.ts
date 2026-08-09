@@ -34,7 +34,8 @@ export type BulkPetResult = {
 };
 
 // The gateway serves the snake_case pet view (pet_id / rescue_id, lowercase
-// enum tokens); it does NOT include a rescue name. This is that wire shape.
+// enum tokens); the list route also enriches each row with rescue_name
+// (ADS-1186). This is that wire shape.
 type BackendPet = {
   pet_id: string;
   name: string;
@@ -42,7 +43,7 @@ type BackendPet = {
   breed?: string;
   status?: PetStatus;
   rescue_id?: string;
-  rescueName?: string;
+  rescue_name?: string;
   archived?: boolean;
   featured?: boolean;
   created_at: string;
@@ -56,7 +57,8 @@ type PetsPaginatedResponse = {
 };
 
 // Map the snake_case pet view onto the camelCase AdminPet the admin UI reads.
-// rescueName is left undefined — the list view does not currently provide it.
+// rescueName comes from the list route's rescue_name enrichment (ADS-1186);
+// it stays undefined when the row wasn't enriched.
 const toAdminPet = (p: BackendPet): AdminPet => ({
   petId: p.pet_id,
   name: p.name,
@@ -64,7 +66,7 @@ const toAdminPet = (p: BackendPet): AdminPet => ({
   breed: p.breed ?? '',
   status: p.status ?? 'not_available',
   rescueId: p.rescue_id ?? '',
-  rescueName: p.rescueName,
+  rescueName: p.rescue_name,
   archived: p.archived ?? false,
   featured: p.featured ?? false,
   createdAt: p.created_at,
