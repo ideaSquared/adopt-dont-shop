@@ -676,9 +676,10 @@ export async function createReportShare(
 
 // --- DeleteReportSchedule ---------------------------------------------
 //
-// Gates on reports.update like the schedule/share writes above. Mirrors
-// deleteSavedReport's response convention: a missing row is reported as
-// deleted:false rather than a NOT_FOUND error.
+// Gates on reports.update like the schedule/share writes above, and scopes
+// to the caller's own saved report unless they hold reports.update:any
+// (ADS-1161). Mirrors deleteSavedReport's response convention: a missing
+// row is reported as deleted:false rather than a NOT_FOUND error.
 
 export async function deleteReportSchedule(
   deps: HandlerDeps,
@@ -692,6 +693,17 @@ export async function deleteReportSchedule(
   if (scheduleId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'schedule_id is required');
   }
+  // Resolve the owning saved report and enforce ownership before deleting.
+  const owner = await deps.pool.query<{ saved_report_id: string }>(
+    `SELECT saved_report_id FROM saved_report_schedules WHERE schedule_id = $1`,
+    [scheduleId]
+  );
+  const savedReportId = owner.rows[0]?.saved_report_id;
+  if (savedReportId === undefined) {
+    return { deleted: false };
+  }
+  await ensureOwnedSavedReport(deps, principal, savedReportId);
+
   const { rowCount } = await deps.pool.query(
     `DELETE FROM saved_report_schedules WHERE schedule_id = $1`,
     [scheduleId]
@@ -701,8 +713,10 @@ export async function deleteReportSchedule(
 
 // --- RevokeReportShare ------------------------------------------------
 //
-// Soft-revoke: stamps revoked_at once. A share that is missing or already
-// revoked matches no row, so revoked:false is returned (idempotent).
+// Soft-revoke: stamps revoked_at once. Scopes to the caller's own saved
+// report unless they hold reports.update:any (ADS-1170). A share that is
+// missing or already revoked matches no row, so revoked:false is returned
+// (idempotent).
 
 export async function revokeReportShare(
   deps: HandlerDeps,
@@ -716,6 +730,17 @@ export async function revokeReportShare(
   if (shareId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'share_id is required');
   }
+  // Resolve the owning saved report and enforce ownership before revoking.
+  const owner = await deps.pool.query<{ saved_report_id: string }>(
+    `SELECT saved_report_id FROM saved_report_shares WHERE share_id = $1`,
+    [shareId]
+  );
+  const savedReportId = owner.rows[0]?.saved_report_id;
+  if (savedReportId === undefined) {
+    return { revoked: false };
+  }
+  await ensureOwnedSavedReport(deps, principal, savedReportId);
+
   const { rowCount } = await deps.pool.query(
     `UPDATE saved_report_shares SET revoked_at = now()
        WHERE share_id = $1 AND revoked_at IS NULL`,
