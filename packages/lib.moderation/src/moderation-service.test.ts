@@ -159,12 +159,12 @@ describe('ModerationService', () => {
 
       const result = await service.updateReportStatus('rep_1', {
         status: 'resolved',
-        notes: 'looks good',
+        resolutionNotes: 'looks good',
       });
 
       expect(mockedApi.patch).toHaveBeenCalledWith(
         '/api/v1/admin/moderation/reports/rep_1/status',
-        { status: 'resolved', notes: 'looks good' }
+        { status: 'resolved', resolutionNotes: 'looks good' }
       );
       expect(result.reportId).toBe('rep_1');
     });
@@ -297,7 +297,7 @@ describe('ModerationService', () => {
 
       expect(mockedApi.patch).toHaveBeenCalledWith(
         '/api/v1/admin/moderation/reports/rep_1/status',
-        { status: 'resolved', notes: 'all sorted' }
+        { status: 'resolved', resolutionNotes: 'all sorted' }
       );
       expect(mockedApi.post).not.toHaveBeenCalled();
       expect(result.reportId).toBe('rep_1');
@@ -330,7 +330,7 @@ describe('ModerationService', () => {
 
       expect(mockedApi.patch).toHaveBeenCalledWith(
         '/api/v1/admin/moderation/reports/rep_1/status',
-        { status: 'dismissed', notes: 'not a real issue' }
+        { status: 'dismissed', resolutionNotes: 'not a real issue' }
       );
     });
   });
@@ -357,7 +357,7 @@ describe('ModerationService', () => {
 
       expect(mockedApi.patch).toHaveBeenCalledWith(
         '/api/v1/admin/moderation/reports/rep_1/status',
-        { status: 'under_review', notes: 'gave a warning' }
+        { status: 'under_review', resolutionNotes: 'gave a warning' }
       );
       expect(result.report.status).toBe('under_review');
       expect(result.action.actionId).toBe('act_1');

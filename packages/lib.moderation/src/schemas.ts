@@ -104,10 +104,12 @@ export const CreateReportRequestSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
-// Update report status request schema
+// Update report status request schema.
+// The backend route (PATCH /api/v1/admin/moderation/reports/:id/status) reads
+// `resolutionNotes` — the field name must match the controller payload contract.
 export const UpdateReportStatusRequestSchema = z.object({
   status: ReportStatusSchema,
-  notes: z.string().optional(),
+  resolutionNotes: z.string().optional(),
 });
 
 // Assign report request schema

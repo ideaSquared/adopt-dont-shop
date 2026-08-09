@@ -152,7 +152,7 @@ export class ModerationService {
     // First update the report status
     const report = await this.updateReportStatus(reportId, {
       status: 'resolved',
-      notes,
+      resolutionNotes: notes,
     });
 
     // If action data is provided, create the moderation action
@@ -172,7 +172,7 @@ export class ModerationService {
   async dismissReport(reportId: string, notes?: string): Promise<Report> {
     return this.updateReportStatus(reportId, {
       status: 'dismissed',
-      notes,
+      resolutionNotes: notes,
     });
   }
 
@@ -197,7 +197,7 @@ export class ModerationService {
     if (currentReport.status === 'pending') {
       report = await this.updateReportStatus(reportId, {
         status: 'under_review',
-        notes: resolutionNotes,
+        resolutionNotes,
       });
     }
 

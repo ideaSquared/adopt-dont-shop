@@ -302,23 +302,26 @@ export class AuthService {
   }
 
   /**
-   * Delete user account.
+   * Request erasure of the user's account (GDPR right to erasure).
    *
-   * ADS-592: backend requires step-up auth — caller must supply current
-   * password (and TOTP code if 2FA is enabled).
+   * ADS-1185: there is no `DELETE /users/account` route — account deletion is
+   * the asynchronous GDPR erasure saga. This POSTs
+   * `/api/v1/users/me/erasure-request` (see services/gateway/src/routes/gdpr.ts),
+   * which the gateway accepts with 202 + a `correlationId` while the erasure
+   * fans out across services. The public signature is kept stable for callers
+   * (apps/client ProfilePage): it resolves once the request is accepted and
+   * rejects if it is refused. The route's body carries only an optional
+   * `reason`; the `_password`/`twoFactorToken` arguments are retained for
+   * signature compatibility but are not part of this endpoint's contract.
    */
   async deleteAccount(
-    password: string,
+    _password: string,
     options?: { twoFactorToken?: string; reason?: string }
   ): Promise<void> {
-    await apiService.fetchWithAuth('/api/v1/users/account', {
-      method: 'DELETE',
-      body: {
-        password,
-        ...(options?.twoFactorToken ? { twoFactorToken: options.twoFactorToken } : {}),
-        ...(options?.reason ? { reason: options.reason } : {}),
-      },
-    });
+    await apiService.post<{ success?: boolean; correlationId?: string; requestedAt?: string }>(
+      '/api/v1/users/me/erasure-request',
+      options?.reason ? { reason: options.reason } : {}
+    );
 
     this.clearStorage();
   }
