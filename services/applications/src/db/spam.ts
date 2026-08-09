@@ -117,41 +117,54 @@ export const spamApplications = async (deps: {
   return { applications: rows.length };
 };
 
+// Orchestration over injected seams so the cross-schema read + count logic is
+// testable without a real pool.
+export const runSpam = async (deps: {
+  query: QueryFn;
+  faker: Faker;
+  log?: (message: string, meta?: Record<string, unknown>) => void;
+}): Promise<{ applications: number }> => {
+  const adopters = (await deps.query(
+    `SELECT user_id FROM auth.users WHERE user_type = 'adopter' AND email LIKE '%@example.test'`,
+    []
+  )) as { rows: { user_id: string }[] };
+  const adopterIds = adopters.rows.map(r => r.user_id);
+  const pets = (await deps.query(
+    `SELECT p.pet_id, p.rescue_id FROM pets.pets p
+     JOIN rescue.rescues r ON r.rescue_id = p.rescue_id
+     WHERE r.email LIKE '%@example.test'`,
+    []
+  )) as { rows: Pet[] };
+
+  if (adopterIds.length === 0 || pets.rows.length === 0) {
+    throw new Error('no spam adopters/pets found — run the auth, rescue and pets spam first');
+  }
+
+  const applications = spamCount('APPLICATIONS', 400);
+  deps.log?.('spamming applications', {
+    applications,
+    adopters: adopterIds.length,
+    pets: pets.rows.length,
+  });
+  return spamApplications({
+    query: deps.query,
+    faker: deps.faker,
+    applications,
+    adopterIds,
+    pets: pets.rows,
+  });
+};
+
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.applications.spam' });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
-    const query: QueryFn = (text, values) => pool.query(text, values as unknown[]);
-    const adopters = (await query(
-      `SELECT user_id FROM auth.users WHERE user_type = 'adopter' AND email LIKE '%@example.test'`,
-      []
-    )) as { rows: { user_id: string }[] };
-    const adopterIds = adopters.rows.map(r => r.user_id);
-    const pets = (await query(
-      `SELECT p.pet_id, p.rescue_id FROM pets.pets p
-       JOIN rescue.rescues r ON r.rescue_id = p.rescue_id
-       WHERE r.email LIKE '%@example.test'`,
-      []
-    )) as { rows: Pet[] };
-
-    if (adopterIds.length === 0 || pets.rows.length === 0) {
-      throw new Error('no spam adopters/pets found — run the auth, rescue and pets spam first');
-    }
-
-    const applications = spamCount('APPLICATIONS', 400);
-    logger.info('spamming applications', {
-      applications,
-      adopters: adopterIds.length,
-      pets: pets.rows.length,
-    });
-    const result = await spamApplications({
-      query,
+    const result = await runSpam({
+      query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
-      applications,
-      adopterIds,
-      pets: pets.rows,
+      log: (message, meta) => logger.info(message, meta),
     });
     logger.info('applications spam complete', result);
   } catch (err) {

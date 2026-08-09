@@ -23,7 +23,7 @@ import {
   bulkInsert,
   createSpamFaker,
   seededUuid,
-  seedOnlyIfEmpty,
+  shouldSeed,
   spamCount,
 } from '@adopt-dont-shop/seed-faker';
 import bcrypt from 'bcryptjs';
@@ -138,29 +138,43 @@ const anchorExists = async (query: QueryFn): Promise<boolean> => {
   return res.rows.length > 0;
 };
 
+// Orchestration over injected seams (query, faker, hash) so the seed-if-empty
+// guard + count logic is testable without a real pool or a bcrypt round.
+export const runSpam = async (deps: {
+  query: QueryFn;
+  faker: Faker;
+  hash: (password: string) => Promise<string>;
+  log?: (message: string, meta?: Record<string, unknown>) => void;
+}): Promise<{ seeded: boolean; adopters: number; staff: number }> => {
+  if (!(await shouldSeed(() => anchorExists(deps.query)))) {
+    deps.log?.('auth users already populated — skipping (SEED_ONLY_IF_EMPTY)');
+    return { seeded: false, adopters: 0, staff: 0 };
+  }
+  const adopters = spamCount('ADOPTERS', 50);
+  const staff = spamCount('STAFF', 20);
+  deps.log?.('spamming auth users', { adopters, staff });
+  const passwordHash = await deps.hash(SPAM_PASSWORD);
+  const result = await spamUsers({
+    query: deps.query,
+    faker: deps.faker,
+    passwordHash,
+    adopters,
+    staff,
+  });
+  return { seeded: true, ...result };
+};
+
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.auth.spam' });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
-    const query: QueryFn = (text, values) => pool.query(text, values as unknown[]);
-
-    if (seedOnlyIfEmpty() && (await anchorExists(query))) {
-      logger.info('auth users already populated — skipping (SEED_ONLY_IF_EMPTY)');
-      return;
-    }
-
-    const adopters = spamCount('ADOPTERS', 50);
-    const staff = spamCount('STAFF', 20);
-    logger.info('spamming auth users', { adopters, staff });
-    const passwordHash = await bcrypt.hash(SPAM_PASSWORD, BCRYPT_ROUNDS);
-    const result = await spamUsers({
-      query,
+    const result = await runSpam({
+      query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
-      passwordHash,
-      adopters,
-      staff,
+      hash: password => bcrypt.hash(password, BCRYPT_ROUNDS),
+      log: (message, meta) => logger.info(message, meta),
     });
     logger.info('auth spam complete', { ...result, password: SPAM_PASSWORD });
   } catch (err) {

@@ -1,7 +1,7 @@
 import { createSpamFaker, seededUuid } from '@adopt-dont-shop/seed-faker';
 import { describe, expect, it } from 'vitest';
 
-import { spamNotifications, type QueryFn } from './spam.js';
+import { runSpam, spamNotifications, type QueryFn } from './spam.js';
 
 function recording(): { query: QueryFn; calls: Array<{ text: string; values: unknown[] }> } {
   const calls: Array<{ text: string; values: unknown[] }> = [];
@@ -29,5 +29,33 @@ describe('spamNotifications', () => {
     expect(calls[0].values[0]).toBe(seededUuid('notification-0'));
     expect(typeof calls[0].values[5]).toBe('string');
     expect((calls[0].values[5] as string).length).toBeGreaterThan(0);
+  });
+});
+
+describe('runSpam', () => {
+  it('reads the spam users and seeds notifications addressed to them', async () => {
+    const userIds = [seededUuid('adopter-0'), seededUuid('adopter-1')];
+    const inserts: string[] = [];
+    const query: QueryFn = async text => {
+      if (text.includes('SELECT user_id FROM auth.users')) {
+        return { rows: userIds.map(user_id => ({ user_id })) };
+      }
+      if (text.includes('INTO')) {
+        inserts.push(text);
+      }
+      return { rows: [] };
+    };
+
+    const result = await runSpam({ query, faker: createSpamFaker() });
+
+    expect(result.notifications).toBeGreaterThan(0);
+    expect(inserts.some(t => t.includes('INTO notifications.notifications'))).toBe(true);
+  });
+
+  it('throws when no spam users exist yet', async () => {
+    const emptyQuery: QueryFn = async () => ({ rows: [] });
+    await expect(runSpam({ query: emptyQuery, faker: createSpamFaker() })).rejects.toThrow(
+      /run the auth spam first/
+    );
   });
 });

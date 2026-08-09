@@ -21,7 +21,7 @@ import {
   bulkInsert,
   createSpamFaker,
   seededUuid,
-  seedOnlyIfEmpty,
+  shouldSeed,
   spamCount,
 } from '@adopt-dont-shop/seed-faker';
 
@@ -184,23 +184,35 @@ const anchorExists = async (query: QueryFn): Promise<boolean> => {
   return res.rows.length > 0;
 };
 
+// Orchestration over injected seams so the seed-if-empty guard + count logic is
+// testable without a real pool.
+export const runSpam = async (deps: {
+  query: QueryFn;
+  faker: Faker;
+  log?: (message: string, meta?: Record<string, unknown>) => void;
+}): Promise<{ seeded: boolean; rescues: number; staff: number }> => {
+  if (!(await shouldSeed(() => anchorExists(deps.query)))) {
+    deps.log?.('rescues already populated — skipping (SEED_ONLY_IF_EMPTY)');
+    return { seeded: false, rescues: 0, staff: 0 };
+  }
+  const rescues = spamCount('RESCUES', 8);
+  const staff = spamCount('STAFF', 20);
+  deps.log?.('spamming rescues', { rescues, staff });
+  const result = await spamRescues({ query: deps.query, faker: deps.faker, rescues, staff });
+  return { seeded: true, ...result };
+};
+
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.rescue.spam' });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
-    const query: QueryFn = (text, values) => pool.query(text, values as unknown[]);
-
-    if (seedOnlyIfEmpty() && (await anchorExists(query))) {
-      logger.info('rescues already populated — skipping (SEED_ONLY_IF_EMPTY)');
-      return;
-    }
-
-    const rescues = spamCount('RESCUES', 8);
-    const staff = spamCount('STAFF', 20);
-    logger.info('spamming rescues', { rescues, staff });
-    const result = await spamRescues({ query, faker: createSpamFaker(), rescues, staff });
+    const result = await runSpam({
+      query: (text, values) => pool.query(text, values as unknown[]),
+      faker: createSpamFaker(),
+      log: (message, meta) => logger.info(message, meta),
+    });
     logger.info('rescue spam complete', result);
   } catch (err) {
     logger.error('rescue spam failed', {

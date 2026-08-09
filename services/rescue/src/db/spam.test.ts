@@ -1,7 +1,7 @@
 import { createSpamFaker, seededUuid } from '@adopt-dont-shop/seed-faker';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { buildRescueRows, buildStaffRows, spamRescues, type QueryFn } from './spam.js';
+import { buildRescueRows, buildStaffRows, runSpam, spamRescues, type QueryFn } from './spam.js';
 
 const RESCUE = { rescue_id: 0, name: 1, email: 2 } as const;
 const STAFF = { staff_member_id: 0, rescue_id: 1, user_id: 2 } as const;
@@ -55,5 +55,44 @@ describe('spamRescues', () => {
     const staffInsert = calls.find(c => c.text.includes('INTO rescue.staff_members'));
     expect(rescueInsert?.text).toMatch(/ON CONFLICT \(rescue_id\) DO NOTHING/);
     expect(staffInsert?.text).toMatch(/ON CONFLICT \(staff_member_id\) DO NOTHING/);
+  });
+});
+
+describe('runSpam', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('seeds when the flag is unset (manual command)', async () => {
+    vi.stubEnv('SEED_ONLY_IF_EMPTY', '');
+    const inserts: string[] = [];
+    const query: QueryFn = async text => {
+      if (text.includes('INTO')) {
+        inserts.push(text);
+      }
+      return { rows: [] };
+    };
+
+    const result = await runSpam({ query, faker: createSpamFaker() });
+
+    expect(result.seeded).toBe(true);
+    expect(inserts.some(t => t.includes('INTO rescue.rescues'))).toBe(true);
+  });
+
+  it('skips on boot when the anchor rescue already exists', async () => {
+    vi.stubEnv('SEED_ONLY_IF_EMPTY', 'true');
+    const inserts: string[] = [];
+    const query: QueryFn = async text => {
+      if (text.includes('SELECT 1 FROM rescue.rescues')) {
+        return { rows: [{ '?column?': 1 }] };
+      }
+      if (text.includes('INTO')) {
+        inserts.push(text);
+      }
+      return { rows: [] };
+    };
+
+    const result = await runSpam({ query, faker: createSpamFaker() });
+
+    expect(result).toEqual({ seeded: false, rescues: 0, staff: 0 });
+    expect(inserts).toHaveLength(0);
   });
 });

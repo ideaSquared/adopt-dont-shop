@@ -108,28 +108,36 @@ export const spamNotifications = async (deps: {
   return { notifications: deps.notifications };
 };
 
+// Orchestration over injected seams so the cross-schema read + count logic is
+// testable without a real pool.
+export const runSpam = async (deps: {
+  query: QueryFn;
+  faker: Faker;
+  log?: (message: string, meta?: Record<string, unknown>) => void;
+}): Promise<{ notifications: number }> => {
+  const users = (await deps.query(
+    `SELECT user_id FROM auth.users WHERE email LIKE '%@example.test'`,
+    []
+  )) as { rows: { user_id: string }[] };
+  const userIds = users.rows.map(r => r.user_id);
+  if (userIds.length === 0) {
+    throw new Error('no spam users found — run the auth spam first');
+  }
+  const notifications = spamCount('NOTIFICATIONS', 800);
+  deps.log?.('spamming notifications', { notifications, users: userIds.length });
+  return spamNotifications({ query: deps.query, faker: deps.faker, notifications, userIds });
+};
+
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.notifications.spam' });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
-    const query: QueryFn = (text, values) => pool.query(text, values as unknown[]);
-    const users = (await query(
-      `SELECT user_id FROM auth.users WHERE email LIKE '%@example.test'`,
-      []
-    )) as { rows: { user_id: string }[] };
-    const userIds = users.rows.map(r => r.user_id);
-    if (userIds.length === 0) {
-      throw new Error('no spam users found — run the auth spam first');
-    }
-    const notifications = spamCount('NOTIFICATIONS', 800);
-    logger.info('spamming notifications', { notifications, users: userIds.length });
-    const result = await spamNotifications({
-      query,
+    const result = await runSpam({
+      query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
-      notifications,
-      userIds,
+      log: (message, meta) => logger.info(message, meta),
     });
     logger.info('notifications spam complete', result);
   } catch (err) {

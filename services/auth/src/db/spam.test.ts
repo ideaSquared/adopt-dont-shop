@@ -1,7 +1,7 @@
 import { createSpamFaker, seededUuid } from '@adopt-dont-shop/seed-faker';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { buildUserRows, spamUsers, type QueryFn } from './spam.js';
+import { buildUserRows, runSpam, spamUsers, type QueryFn } from './spam.js';
 
 const COL = { user_id: 0, email: 3, user_type: 9 } as const;
 
@@ -49,5 +49,44 @@ describe('spamUsers', () => {
     expect(result).toEqual({ adopters: 3, staff: 2 });
     expect(calls[0].text).toMatch(/INTO auth\.users/);
     expect(calls[0].text).toMatch(/ON CONFLICT \(user_id\) DO NOTHING/);
+  });
+});
+
+describe('runSpam', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  const hash = async (pw: string): Promise<string> => `hashed:${pw}`;
+
+  it('seeds without probing when SEED_ONLY_IF_EMPTY is unset (manual command)', async () => {
+    vi.stubEnv('SEED_ONLY_IF_EMPTY', '');
+    const calls: Array<{ text: string }> = [];
+    const query: QueryFn = async text => {
+      calls.push({ text });
+      return { rows: [] };
+    };
+
+    const result = await runSpam({ query, faker: createSpamFaker(), hash });
+
+    expect(result.seeded).toBe(true);
+    // No anchor probe on the manual path; only the bulk insert runs.
+    expect(calls.every(c => !c.text.includes('SELECT 1 FROM auth.users'))).toBe(true);
+    expect(calls.some(c => /INTO auth\.users/.test(c.text))).toBe(true);
+  });
+
+  it('skips on boot when the anchor user already exists', async () => {
+    vi.stubEnv('SEED_ONLY_IF_EMPTY', 'true');
+    const inserts: string[] = [];
+    const query: QueryFn = async text => {
+      if (text.includes('SELECT 1 FROM auth.users')) {
+        return { rows: [{ '?column?': 1 }] };
+      }
+      inserts.push(text);
+      return { rows: [] };
+    };
+
+    const result = await runSpam({ query, faker: createSpamFaker(), hash });
+
+    expect(result).toEqual({ seeded: false, adopters: 0, staff: 0 });
+    expect(inserts).toHaveLength(0);
   });
 });

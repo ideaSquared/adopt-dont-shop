@@ -28,7 +28,7 @@ import {
   PET_NAMES,
   photoUrl,
   seededUuid,
-  seedOnlyIfEmpty,
+  shouldSeed,
   spamCount,
   type Species,
 } from '@adopt-dont-shop/seed-faker';
@@ -238,40 +238,53 @@ const anchorExists = async (query: QueryFn): Promise<boolean> => {
   return res.rows.length > 0;
 };
 
+// Orchestration over injected seams so the seed-if-empty guard, breed
+// bootstrap and count logic are testable without a real pool.
+export const runSpam = async (deps: {
+  query: QueryFn;
+  faker: Faker;
+  log?: (message: string, meta?: Record<string, unknown>) => void;
+}): Promise<{ seeded: boolean; pets: number; ratings: number }> => {
+  if (!(await shouldSeed(() => anchorExists(deps.query)))) {
+    deps.log?.('pets catalogue already populated — skipping (SEED_ONLY_IF_EMPTY)');
+    return { seeded: false, pets: 0, ratings: 0 };
+  }
+
+  // breed_id is an FK into pets.breeds; make sure the lookup exists first so
+  // the seeder is self-contained regardless of run order.
+  await seedBreeds({ query: deps.query });
+
+  const rescueIds = idRange('rescue', spamCount('RESCUES', 8));
+  if (rescueIds.length === 0) {
+    throw new Error('SPAM_RESCUES=0 — pets need at least one rescue to attach to');
+  }
+  const staffIds = idRange('staff', spamCount('STAFF', 20));
+  const adopterIds = idRange('adopter', spamCount('ADOPTERS', 50));
+  const pets = spamCount('PETS', 200);
+  const ratings = spamCount('RATINGS', 100);
+  deps.log?.('spamming pets', { pets, ratings, rescues: rescueIds.length });
+  const result = await spamPets({
+    query: deps.query,
+    faker: deps.faker,
+    pets,
+    ratings,
+    rescueIds,
+    adopterIds,
+    staffIds,
+  });
+  return { seeded: true, ...result };
+};
+
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.pets.spam' });
   assertSpamAllowed();
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
-    const query: QueryFn = (text, values) => pool.query(text, values as unknown[]);
-
-    if (seedOnlyIfEmpty() && (await anchorExists(query))) {
-      logger.info('pets catalogue already populated — skipping (SEED_ONLY_IF_EMPTY)');
-      return;
-    }
-
-    // breed_id is an FK into pets.breeds; make sure the lookup exists first
-    // so the seeder is self-contained regardless of run order.
-    await seedBreeds({ query });
-
-    const rescueIds = idRange('rescue', spamCount('RESCUES', 8));
-    if (rescueIds.length === 0) {
-      throw new Error('SPAM_RESCUES=0 — pets need at least one rescue to attach to');
-    }
-    const staffIds = idRange('staff', spamCount('STAFF', 20));
-    const adopterIds = idRange('adopter', spamCount('ADOPTERS', 50));
-    const pets = spamCount('PETS', 200);
-    const ratings = spamCount('RATINGS', 100);
-    logger.info('spamming pets', { pets, ratings, rescues: rescueIds.length });
-    const result = await spamPets({
-      query,
+    const result = await runSpam({
+      query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
-      pets,
-      ratings,
-      rescueIds,
-      adopterIds,
-      staffIds,
+      log: (message, meta) => logger.info(message, meta),
     });
     logger.info('pets spam complete', result);
   } catch (err) {

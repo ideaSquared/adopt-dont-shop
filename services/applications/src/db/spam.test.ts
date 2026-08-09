@@ -1,7 +1,7 @@
 import { createSpamFaker, seededUuid } from '@adopt-dont-shop/seed-faker';
 import { describe, expect, it } from 'vitest';
 
-import { spamApplications, type QueryFn } from './spam.js';
+import { runSpam, spamApplications, type QueryFn } from './spam.js';
 
 function recording(): { query: QueryFn; calls: Array<{ text: string; values: unknown[] }> } {
   const calls: Array<{ text: string; values: unknown[] }> = [];
@@ -39,5 +39,30 @@ describe('spamApplications', () => {
       seededUuid(`app-${ADOPTERS[0]}-${PETS[0].pet_id}`),
       seededUuid(`app-${ADOPTERS[0]}-${PETS[1].pet_id}`),
     ]).toContain(firstId);
+  });
+});
+
+describe('runSpam', () => {
+  const stubReads = (): QueryFn => async text => {
+    if (text.includes("user_type = 'adopter'")) {
+      return { rows: ADOPTERS.map(user_id => ({ user_id })) };
+    }
+    if (text.includes('FROM pets.pets p')) {
+      return { rows: PETS };
+    }
+    return { rows: [] };
+  };
+
+  it('reads the spam adopters + pets and seeds applications for their pairs', async () => {
+    const result = await runSpam({ query: stubReads(), faker: createSpamFaker() });
+    // 1 adopter × 2 pets = 2 distinct pairs.
+    expect(result.applications).toBe(2);
+  });
+
+  it('throws when no spam adopters/pets exist yet', async () => {
+    const emptyQuery: QueryFn = async () => ({ rows: [] });
+    await expect(runSpam({ query: emptyQuery, faker: createSpamFaker() })).rejects.toThrow(
+      /run the auth, rescue and pets spam first/
+    );
   });
 });
