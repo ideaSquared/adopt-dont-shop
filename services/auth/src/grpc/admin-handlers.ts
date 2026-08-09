@@ -890,12 +890,16 @@ export async function bulkUpdateUsers(
   }
 
   // Belt-and-braces protections mirroring the monolith bulkUpdateUsers:
-  //  - cannot change your own user_type via the bulk path
+  //  - cannot target your own account via the bulk path
   //  - only super_admin can grant super_admin
+  // The self-target guard applies to ANY bulk change — status OR role.
+  // Nesting it inside `if (setType)` let a status-only update (e.g.
+  // deactivated/suspended) that included the caller's own id lock them out
+  // (ADS-1171); it now mirrors the single-user deactivateUser guard.
+  if (req.userIds.includes(principal.userId as string)) {
+    throw new HandlerError('PERMISSION_DENIED', 'cannot include your own account in a bulk update');
+  }
   if (setType) {
-    if (req.userIds.includes(principal.userId as string)) {
-      throw new HandlerError('PERMISSION_DENIED', 'cannot change your own role via bulk update');
-    }
     if (
       req.userType === AuthV1.UserRole.USER_ROLE_SUPER_ADMIN &&
       !principal.roles.includes('super_admin')

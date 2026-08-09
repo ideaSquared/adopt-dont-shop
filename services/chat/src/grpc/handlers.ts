@@ -902,7 +902,11 @@ export async function react(
       );
       publish({
         type: 'chat.reactionRemoved',
-        id: `chat.reactionRemoved.${req.messageId}.${principal.userId}.${req.emoji}`,
+        // Discriminate per action with a fresh uuid (same id scheme as
+        // sendMessage's messageId): a constant id would let JetStream's 2-min
+        // duplicate window drop the second half of an add→remove→re-add cycle,
+        // so the WS fan-out never reaches participants.
+        id: `chat.reactionRemoved.${req.messageId}.${principal.userId}.${req.emoji}.${randomUUID()}`,
         payload: {
           messageId: req.messageId,
           chatId,
@@ -922,7 +926,11 @@ export async function react(
       );
       publish({
         type: 'chat.reactionAdded',
-        id: `chat.reactionAdded.${req.messageId}.${principal.userId}.${req.emoji}`,
+        // Discriminate per action with a fresh uuid (same id scheme as
+        // sendMessage's messageId): a constant id would let JetStream's 2-min
+        // duplicate window drop the second half of an add→remove→re-add cycle,
+        // so the WS fan-out never reaches participants.
+        id: `chat.reactionAdded.${req.messageId}.${principal.userId}.${req.emoji}.${randomUUID()}`,
         payload: {
           messageId: req.messageId,
           chatId,
@@ -1028,7 +1036,7 @@ export async function searchChats(
       m.message_id AS m_message_id, m.chat_id AS m_chat_id,
       m.sender_id AS m_sender_id, m.content AS m_content,
       m.attachments AS m_attachments,
-      m.edited_at AS m_edited_at, m.deleted_at AS m_deleted_at,
+      m.deleted_at AS m_deleted_at,
       m.created_at AS m_created_at
     FROM chats c
     JOIN chat_participants p ON p.chat_id = c.chat_id
@@ -1059,7 +1067,6 @@ export async function searchChats(
     m_sender_id: string;
     m_content: string;
     m_attachments: unknown;
-    m_edited_at: Date | null;
     m_deleted_at: Date | null;
     m_created_at: Date;
   }>(orderedSql, [...params, limit, offset]);
@@ -1085,7 +1092,10 @@ export async function searchChats(
         sender_id: row.m_sender_id,
         content: row.m_content,
         attachments: row.m_attachments,
-        edited_at: row.m_edited_at,
+        // messages has no edited_at column (never migrated); searchChats must
+        // not select it or Postgres 42703's the whole query. The read side
+        // (messageRowToProto) tolerates a null here.
+        edited_at: null,
         deleted_at: row.m_deleted_at,
         created_at: row.m_created_at,
       };

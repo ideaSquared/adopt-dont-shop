@@ -183,6 +183,13 @@ describe('getUserSwipeStats', () => {
     expect(sql).toMatch(/ORDER BY pet_id,\s*timestamp DESC/);
   });
 
+  it('denies a self-read without the base pets.read permission (ADS-1181)', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      getUserSwipeStats(deps, makePrincipal({ permissions: [] }), {} as GetUserSwipeStatsRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
   it('rejects cross-user read without swipes:read:any', async () => {
     const { deps } = makeDeps([]);
     await expect(
@@ -190,11 +197,11 @@ describe('getUserSwipeStats', () => {
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
-  it('allows cross-user read with swipes:read:any', async () => {
+  it('allows cross-user read with pets.read + swipes:read:any', async () => {
     const { deps } = makeDeps([{ rows: [statsRow] }]);
     const res = await getUserSwipeStats(
       deps,
-      makePrincipal({ permissions: ['matching.swipes.read:any'] }),
+      makePrincipal({ permissions: ['pets.read', 'matching.swipes.read:any'] }),
       { userId: 'usr-other' }
     );
     expect(res.stats?.totalSwipes).toBe(10);

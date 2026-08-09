@@ -1399,6 +1399,7 @@ export const registerApplicationsRoutes = async (
             outcome: { type: 'string' },
             conditions: { type: 'string' },
             reschedule_reason: { type: 'string' },
+            cancelled_reason: { type: 'string' },
             cancelled_at: { type: 'string' },
             completed_at: { type: 'string' },
           },
@@ -1421,7 +1422,7 @@ export const registerApplicationsRoutes = async (
         // folds into outcome_notes.
         outcomeNotes: b.conditions as string | undefined,
         rescheduleReason: b.reschedule_reason as string | undefined,
-        cancelledReason: b.cancel_reason as string | undefined,
+        cancelledReason: b.cancelled_reason as string | undefined,
         completedAt: b.completed_at as string | undefined,
       };
       try {

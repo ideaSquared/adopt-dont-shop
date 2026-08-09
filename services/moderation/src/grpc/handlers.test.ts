@@ -592,7 +592,7 @@ describe('resolveReport', () => {
   });
 
   it('writes resolution + transition + publishes reportResolved', async () => {
-    const { deps } = makeDeps([
+    const { deps, query } = makeDeps([
       { rows: [{ status: 'under_review' }] }, // SELECT status FOR UPDATE
       { rows: [] }, // UPDATE
       { rows: [] }, // INSERT transition
@@ -604,8 +604,32 @@ describe('resolveReport', () => {
       resolutionNotes: 'User suspended.',
     });
     expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_RESOLVED);
+    // The transition drives reports.status via the mig-003 trigger; a
+    // non-dismiss resolution must record to_status='resolved'.
+    const transitionParams = query.mock.calls[2][1] as unknown[];
+    expect(transitionParams[3]).toBe('resolved');
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.reportResolved' });
+  });
+
+  it('records to_status=dismissed when the resolution is a dismissal (ADS-1159)', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [{ status: 'under_review' }] }, // SELECT status FOR UPDATE
+      { rows: [] }, // UPDATE
+      { rows: [] }, // INSERT transition
+      { rows: [reportRow({ status: 'dismissed', resolution: 'dismissed' })] }, // final SELECT
+    ]);
+    const res = await resolveReport(deps, makePrincipal(), {
+      reportId: 'rpt-1',
+      resolution: 'dismissed',
+    });
+    // The transition's to_status (param $4) must be 'dismissed' so the
+    // mig-003 trigger sets reports.status='dismissed', not 'resolved'.
+    const transitionSql = query.mock.calls[2][0] as string;
+    const transitionParams = query.mock.calls[2][1] as unknown[];
+    expect(transitionSql).toContain('INSERT INTO report_status_transitions');
+    expect(transitionParams[3]).toBe('dismissed');
+    expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_DISMISSED);
   });
 });
 

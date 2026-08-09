@@ -179,6 +179,29 @@ describe('makeGetTopPicks', () => {
     expect(ids).not.toContain('seen');
   });
 
+  it('paginates past the first page to surface picks beyond it (ADS-1169)', async () => {
+    // The whole first page is already swiped; the only fresh pick lives on
+    // the second page. Before the fix the handler fetched a single page.
+    const firstPage = Array.from({ length: 100 }, (_, i) =>
+      makePet({ petId: `seen-${i}`, rescueId: 'rsc-1' })
+    );
+    const listPets = vi
+      .fn()
+      .mockResolvedValueOnce({ pets: firstPage, nextCursor: 'CURSOR_1' })
+      .mockResolvedValueOnce({ pets: [makePet({ petId: 'beyond', rescueId: 'rsc-1' })] });
+    const getTopPicks = makeGetTopPicks(makePetsClient(listPets), makeRescueClient());
+
+    const res = await getTopPicks(
+      makeDeps({ swiped: firstPage.map(p => p.petId) }),
+      makePrincipal(),
+      req()
+    );
+
+    expect(res.picks.map(p => p.petId)).toContain('beyond');
+    // The second page is fetched with the first page's keyset cursor.
+    expect(listPets.mock.calls[1][0].cursor).toBe('CURSOR_1');
+  });
+
   it('caps the result at the requested limit', async () => {
     const pets = Array.from({ length: 5 }, (_, i) =>
       makePet({ petId: `p-${i}`, rescueId: 'rsc-1' })

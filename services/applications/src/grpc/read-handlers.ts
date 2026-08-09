@@ -110,7 +110,12 @@ export async function listApplications(
 
   const limit = clampLimit(req.limit);
 
-  const where: string[] = ['deleted_at IS NULL'];
+  // Drafts (and the UNSPECIFIED sentinel, which never reaches the DB enum)
+  // have no frontend representation — the gateway maps them to null and
+  // drops them from `data`. Excluding them here keeps the returned rows, the
+  // COUNT(*) total, and the keyset page consistent with what the caller sees
+  // (ADS-1165: a draft-inflated total broke totalPages / hasNext).
+  const where: string[] = ['deleted_at IS NULL', "status <> 'draft'"];
   const params: unknown[] = [];
   let p = 1;
 

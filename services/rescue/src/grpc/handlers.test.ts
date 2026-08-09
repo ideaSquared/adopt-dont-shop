@@ -54,6 +54,14 @@ const ADOPTER: Principal = {
   permissions: ['rescues.read' as Permission],
 };
 
+// A real adopter / public browser: authenticated but NOT granted
+// rescues.read (ADS-1168). Sees verified rescues only, field-masked.
+const PUBLIC_ADOPTER: Principal = {
+  userId: 'usr-public' as UserId,
+  roles: ['adopter'],
+  permissions: [],
+};
+
 const ADMIN: Principal = {
   userId: 'usr-admin' as UserId,
   roles: ['admin'],
@@ -194,6 +202,29 @@ describe('getRescue', () => {
     await expect(getRescue(mocks.deps, ADOPTER, { rescueId: 'ghost' })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+
+  // --- ADS-1168: callers without rescues.read see verified rescues only ---
+
+  it('serves a verified rescue (masked) to a caller without rescues.read', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'verified' })] });
+    const res = await getRescue(mocks.deps, PUBLIC_ADOPTER, { rescueId: 'rsc-1' });
+    expect(res.rescue.rescueId).toBe('rsc-1');
+    expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED);
+  });
+
+  it('NOT_FOUND (existence not leaked) for a non-verified rescue to a caller without rescues.read', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    await expect(
+      getRescue(mocks.deps, PUBLIC_ADOPTER, { rescueId: 'rsc-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('lets a rescues.read holder fetch a non-verified rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    const res = await getRescue(mocks.deps, STAFF, { rescueId: 'rsc-1' });
+    expect(res.rescue.rescueId).toBe('rsc-1');
+    expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
   });
 });
 
@@ -415,6 +446,108 @@ describe('listRescues', () => {
     // no verified-only default was applied
     const pageParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
     expect(pageParams).not.toContain('verified');
+  });
+});
+
+// --- listRescues authorization scheme (ADS-1157 + ADS-1168) ----------
+
+describe('listRescues authorization scheme (ADS-1157 + ADS-1168)', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  // ADS-1157 — a non-verified status filter is a platform-admin scope.
+  it('denies a concrete non-verified status filter to a rescues.read holder without admin.security.manage', async () => {
+    for (const statusFilter of [
+      RescueV1.RescueStatus.RESCUE_STATUS_PENDING,
+      RescueV1.RescueStatus.RESCUE_STATUS_SUSPENDED,
+      RescueV1.RescueStatus.RESCUE_STATUS_REJECTED,
+      RescueV1.RescueStatus.RESCUE_STATUS_INACTIVE,
+    ]) {
+      await expect(
+        listRescues(mocks.deps, STAFF, { limit: 0, statusFilter } as never)
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    }
+    // No non-verified enumeration query ever ran.
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('lets a rescues.read holder request the verified filter explicitly', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescues(mocks.deps, STAFF, {
+      limit: 0,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+    } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('verified');
+  });
+
+  it('admin.security.manage holder may enumerate a non-verified status', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescues(mocks.deps, ADMIN, {
+      limit: 0,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_SUSPENDED,
+    } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('suspended');
+  });
+
+  it('super_admin may enumerate a non-verified status', async () => {
+    const superAdmin: Principal = {
+      userId: 'usr-super' as UserId,
+      roles: ['super_admin'],
+      permissions: [],
+    };
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescues(mocks.deps, superAdmin, {
+      limit: 0,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_PENDING,
+    } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('pending');
+  });
+
+  // ADS-1168 — callers without rescues.read are served verified-only.
+  it('forces the verified filter for a caller without rescues.read even when a non-verified status is requested', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescues(mocks.deps, PUBLIC_ADOPTER, {
+      limit: 0,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_PENDING,
+    } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('verified');
+    expect(params).not.toContain('pending');
+  });
+
+  it('forces the verified filter (no 403, no unscoped read) for a caller without rescues.read requesting all_statuses', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] });
+    await listRescues(mocks.deps, PUBLIC_ADOPTER, {
+      page: 1,
+      limit: 20,
+      allStatuses: true,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+    } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('verified');
+  });
+
+  it('serves verified rescues masked to a caller without rescues.read', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [rescueRow({ status: 'verified', companies_house_number: '12345678' })],
+    });
+    const res = await listRescues(mocks.deps, PUBLIC_ADOPTER, {
+      limit: 10,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+    } as never);
+    expect(res.rescues[0]?.rescueId).toBe('rsc-1');
+    // adopter field map redacts the registration number.
+    expect(res.rescues[0]?.companiesHouseNumber).toBeUndefined();
   });
 });
 

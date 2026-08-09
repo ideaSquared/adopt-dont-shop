@@ -31,13 +31,9 @@ import {
   TYPE_TO_SPECIES,
 } from './pet-tokens.js';
 import type { PetsClient } from './pets-client.js';
-import { principalToMetadata } from './principal.js';
-import { fetchSwipedPetIds } from './recommend-handlers.js';
+import { fetchSwipedPetIds, gatherFreshCandidates } from './recommend-handlers.js';
 import type { RescueNameClient } from './rescue-client.js';
 import { scoreTopPicks, type TopPickPreferences } from './top-picks-scoring.js';
-
-// grpc-js PERMISSION_DENIED, returned by service.pets' List gate.
-const PETS_GRPC_PERMISSION_DENIED = 7;
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
@@ -61,16 +57,23 @@ export function makeGetTopPicks(
     const limit = clamp(req.limit, DEFAULT_LIMIT, MAX_LIMIT);
     const preferences = await loadPreferences(deps, principal.userId);
 
-    const listReq: ListPetsRequest = {
+    const baseReq: ListPetsRequest = {
       limit: CANDIDATE_FETCH,
       statusFilter: PetsV1.PetStatus.PET_STATUS_AVAILABLE,
       typeFilter: PetsV1.PetType.PET_TYPE_UNSPECIFIED,
       sizeFilter: PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
     };
-    const pets = await listAvailablePets(petsClient, principal, listReq);
 
+    // Paginate service.pets' keyset (dropping already-swiped pets) so picks
+    // past the first page still enter the pool (ADS-1169).
     const swiped = await fetchSwipedPetIds(deps, principal.userId);
-    const fresh = pets.filter(pet => !swiped.has(pet.petId));
+    const { fresh } = await gatherFreshCandidates(
+      petsClient,
+      principal,
+      baseReq,
+      swiped,
+      CANDIDATE_FETCH
+    );
 
     const ranked = scoreTopPicks(fresh, preferences).slice(0, limit);
 
@@ -173,23 +176,6 @@ function readOtherPetsType(
     return value;
   }
   return undefined;
-}
-
-async function listAvailablePets(
-  petsClient: PetsClient,
-  principal: Principal,
-  req: ListPetsRequest
-): Promise<ReadonlyArray<Pet>> {
-  try {
-    const res = await petsClient.listPets(req, principalToMetadata(principal));
-    return res.pets;
-  } catch (err) {
-    const code = (err as { code?: number }).code;
-    if (code === PETS_GRPC_PERMISSION_DENIED) {
-      throw new HandlerError('PERMISSION_DENIED', 'not allowed to read pets');
-    }
-    throw new HandlerError('INTERNAL', 'failed to read candidate pets');
-  }
 }
 
 // Resolve the rescue name for every distinct rescue in the pick set in

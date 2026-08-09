@@ -529,6 +529,36 @@ describe('login', () => {
     expect(envelope.payload).toMatchObject({ action: 'login', outcome: 'denied' });
   });
 
+  it('counts a failed 2FA attempt toward the account soft-lock (ADS-1172)', async () => {
+    const secret = generateSecret();
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, secret),
+        }),
+      ],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true); // password correct
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await expect(
+      login(mocks.deps, null, { ...BASE_LOGIN_REQ, twoFactorToken: '000000' })
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED', message: 'invalid two-factor code' });
+
+    // A wrong second factor now runs the SAME atomic increment + capped
+    // soft-lock UPDATE the wrong-password branch uses, so repeated failed 2FA
+    // attempts engage the account lock instead of being an unthrottled oracle.
+    const [sql, params] = mocks.clientMock.query.mock.calls.find(([s]) =>
+      /login_attempts = login_attempts \+ 1/.test(s as string)
+    ) as [string, unknown[]];
+    expect(sql).toMatch(/locked_until = CASE/s);
+    expect(sql).toMatch(/login_attempts \+ 1 >= \$2/s);
+    expect(sql).toMatch(/LEAST\(/s);
+    expect(params).toEqual(['usr-adopter', 5, 60, 900]);
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
   it('completes the login when a valid 2FA code is supplied', async () => {
     const secret = generateSecret();
     const code = generateSync({ secret });

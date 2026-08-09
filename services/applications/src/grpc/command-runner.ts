@@ -26,6 +26,18 @@ import { appendEvents, ConcurrencyError, loadAggregate, projectReadModel } from 
 
 export type PublishEnvelope = { type: string; id: string; payload: unknown };
 
+// pg's 23505 (unique_violation) raised by the applications_user_pet_unique
+// partial index (migration 002) — one open application per (user, pet).
+const PG_UNIQUE_VIOLATION = '23505';
+const OPEN_APPLICATION_CONSTRAINT = 'applications_user_pet_unique';
+
+// True when a projectReadModel INSERT tripped the "one open application per
+// (adopter, pet)" partial unique index — a duplicate, not a server error.
+function isDuplicateOpenApplication(err: unknown): boolean {
+  const e = err as { code?: string; constraint?: string };
+  return e.code === PG_UNIQUE_VIOLATION && e.constraint === OPEN_APPLICATION_CONSTRAINT;
+}
+
 // A command-authorization hook: runs against the loaded aggregate state
 // (after the empty/NOT_FOUND check) so a write can be denied based on the
 // target's owning rescue / adopter — not just the bare permission. Throws
@@ -91,8 +103,9 @@ export function requireDraftAnswersScope(
 
 // Translate the pure domain's DomainError codes into HandlerError
 // codes. ILLEGAL_TRANSITION / INVALID_INPUT → INVALID_ARGUMENT;
-// CONCURRENCY → INTERNAL with a "CONCURRENCY:" message (the gateway
-// maps that to 409 in Phase 5.3d); MISSING_AGGREGATE → NOT_FOUND.
+// CONCURRENCY → FAILED_PRECONDITION (a stale expected_version is an
+// optimistic-concurrency conflict the gateway maps to HTTP 409, not a
+// server error); MISSING_AGGREGATE → NOT_FOUND.
 export function domainErrorToHandler(err: DomainError): HandlerError {
   switch (err.code) {
     case 'ILLEGAL_TRANSITION':
@@ -101,7 +114,7 @@ export function domainErrorToHandler(err: DomainError): HandlerError {
     case 'MISSING_AGGREGATE':
       return new HandlerError('NOT_FOUND', err.message);
     case 'CONCURRENCY':
-      return new HandlerError('INTERNAL', `CONCURRENCY: ${err.message}`);
+      return new HandlerError('FAILED_PRECONDITION', err.message);
     default:
       return new HandlerError('INTERNAL', err.message);
   }
@@ -140,11 +153,21 @@ export async function runCommand(
       throw err;
     }
 
+    // Idempotent no-op (e.g. a second StartReview once already under_review):
+    // the domain emits no events, so there's nothing to append, project, or
+    // publish. Returning early avoids re-projecting the read model and firing
+    // a phantom event whose versioned id could differ from the original.
+    if (events.length === 0) {
+      return state;
+    }
+
     try {
       await appendEvents(client, aggregateId, state.version, events, actorUserId);
     } catch (err) {
       if (err instanceof ConcurrencyError) {
-        throw new HandlerError('INTERNAL', `CONCURRENCY: ${err.message}`);
+        // A concurrent writer won the race at the same version — an
+        // optimistic-concurrency conflict the gateway maps to HTTP 409.
+        throw new HandlerError('FAILED_PRECONDITION', err.message);
       }
       throw err;
     }
@@ -215,7 +238,14 @@ export async function runCreateCommand(
 
     const nextState = events.reduce<ApplicationState>((s, e) => applyEvent(s, e), INITIAL_STATE);
 
-    await projectReadModel(client, nextState);
+    try {
+      await projectReadModel(client, nextState);
+    } catch (err) {
+      if (isDuplicateOpenApplication(err)) {
+        throw new HandlerError('ALREADY_EXISTS', 'an open application already exists for this pet');
+      }
+      throw err;
+    }
 
     publishWithVersionedId(publish, publishFor, nextState);
 

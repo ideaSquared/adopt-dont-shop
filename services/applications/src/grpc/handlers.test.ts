@@ -324,6 +324,51 @@ describe('makeStartDraft', () => {
       startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
+
+  // ADS-1167 — a second open application for the same (adopter, pet) trips
+  // the applications_user_pet_unique partial index inside projectReadModel.
+  // That's a duplicate, not a server error: map it to ALREADY_EXISTS (the
+  // gateway maps that to HTTP 409).
+  it('maps a duplicate open application to ALREADY_EXISTS', async () => {
+    const getPet = vi.fn().mockResolvedValue({ pet: { petId: 'pet-1', rescueId: 'rsc-1' } });
+    // The read-model INSERT (projectReadModel) raises the partial unique
+    // violation; the event append succeeds first.
+    const query = vi.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO applications (')) {
+        return Promise.reject(
+          Object.assign(new Error('dup'), {
+            code: '23505',
+            constraint: 'applications_user_pet_unique',
+          })
+        );
+      }
+      return Promise.resolve({ rows: [] });
+    });
+    const deps = { pool: { query }, nats: {} } as unknown as HandlerDeps;
+    const startDraft = makeStartDraft(makePetsClient(getPet));
+    await expect(
+      startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' })
+    ).rejects.toMatchObject({ code: 'ALREADY_EXISTS' });
+  });
+
+  it('does not mask an unrelated unique violation as ALREADY_EXISTS', async () => {
+    const getPet = vi.fn().mockResolvedValue({ pet: { petId: 'pet-1', rescueId: 'rsc-1' } });
+    // A 23505 on a DIFFERENT constraint must not be swallowed as a duplicate
+    // open application — it propagates as INTERNAL.
+    const query = vi.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO applications (')) {
+        return Promise.reject(
+          Object.assign(new Error('dup'), { code: '23505', constraint: 'some_other_index' })
+        );
+      }
+      return Promise.resolve({ rows: [] });
+    });
+    const deps = { pool: { query }, nats: {} } as unknown as HandlerDeps;
+    const startDraft = makeStartDraft(makePetsClient(getPet));
+    await expect(
+      startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' })
+    ).rejects.not.toMatchObject({ code: 'ALREADY_EXISTS' });
+  });
 });
 
 describe('submitDraft', () => {
@@ -372,6 +417,17 @@ describe('submitDraft', () => {
         expectedVersion: 1,
       } as SubmitDraftRequest)
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  // ADS-1164 — a stale expected_version is an optimistic-concurrency
+  // conflict, not a server error: it must surface as FAILED_PRECONDITION
+  // (the gateway maps that to HTTP 409), not INTERNAL/500.
+  it('maps a stale expected_version to FAILED_PRECONDITION', async () => {
+    // Aggregate is at version 1 (draftCreated); the client expected 0.
+    const { deps } = makeDeps([draftCreatedRow('app-1')]);
+    await expect(
+      submitDraft(deps, makePrincipal(), { applicationId: 'app-1', expectedVersion: 0 })
+    ).rejects.toMatchObject({ code: 'FAILED_PRECONDITION' });
   });
 
   it('surfaces a domain ILLEGAL_TRANSITION as INVALID_ARGUMENT (double submit)', async () => {

@@ -5,6 +5,7 @@ const apiServiceMock = vi.hoisted(() => ({
   get: vi.fn<(url: string) => Promise<unknown>>(),
   post: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
   patch: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
+  put: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
 }));
 
 vi.mock('./libraryServices', () => ({
@@ -205,6 +206,38 @@ describe('RescueApplicationService.scheduleHomeVisit', () => {
       scheduledTime: '14:00',
       assignedStaff: 'Jamie',
       status: 'scheduled',
+    });
+  });
+});
+
+/**
+ * ADS-1175: cancelling a home visit collects a reason, but the service
+ * dropped it — only cancelledAt / rescheduleReason were mapped to the API
+ * body. The reason must be forwarded as `cancelled_reason` so the backend
+ * can persist it.
+ */
+describe('RescueApplicationService.updateHomeVisit cancellation reason (ADS-1175)', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiServiceMock.put.mockResolvedValue({ success: true, visit: { id: 'visit-1' } });
+  });
+
+  it('maps cancelReason to the cancelled_reason API field', async () => {
+    await service.updateHomeVisit('app-1', 'visit-1', {
+      status: 'cancelled',
+      cancelReason: 'adopter withdrew',
+      cancelledAt: '2026-06-10T10:00:00.000Z',
+    });
+
+    expect(apiServiceMock.put).toHaveBeenCalledTimes(1);
+    const [url, body] = apiServiceMock.put.mock.calls[0];
+    expect(url).toBe('/api/v1/applications/app-1/home-visits/visit-1');
+    expect(body).toMatchObject({
+      status: 'cancelled',
+      cancelled_reason: 'adopter withdrew',
+      cancelled_at: '2026-06-10T10:00:00.000Z',
     });
   });
 });

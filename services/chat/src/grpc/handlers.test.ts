@@ -810,6 +810,33 @@ const BASE_REACT: ReactRequest = {
   remove: false,
 };
 
+// Queue the pool + client rows one `react({ remove: false })` call consumes,
+// in the order the handler reads them: message lookup → participant check →
+// writable check → (tx) participants + INSERT → re-fetch → reactions.
+const scriptReactAdd = (m: ReturnType<typeof makeMocks>): void => {
+  m.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
+  m.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+  m.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
+  m.clientScript.push({
+    rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+  });
+  m.clientScript.push({ rows: [] });
+  m.poolScript.push({ rows: [messageRowFixture()] });
+  m.poolScript.push({ rows: [] });
+};
+
+// Same for `react({ remove: true })` — remove skips the writable check.
+const scriptReactRemove = (m: ReturnType<typeof makeMocks>): void => {
+  m.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
+  m.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+  m.clientScript.push({
+    rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+  });
+  m.clientScript.push({ rows: [] });
+  m.poolScript.push({ rows: [messageRowFixture()] });
+  m.poolScript.push({ rows: [] });
+};
+
 describe('react', () => {
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
@@ -932,6 +959,31 @@ describe('react', () => {
     expect(realClientQueries(mocks)).toEqual(['SELECT', 'DELETE']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.reactionRemoved');
   });
+
+  it('emits a distinct (undeduped) event id on every add/remove toggle (ADS-1177)', async () => {
+    // add → remove → re-add the SAME (message, user, emoji). A constant event
+    // id would let JetStream's duplicate window drop the re-add's publish, so
+    // participants never get the WS fan-out.
+    scriptReactAdd(mocks);
+    scriptReactRemove(mocks);
+    scriptReactAdd(mocks);
+
+    await react(mocks.deps, ADOPTER_PRINCIPAL, BASE_REACT);
+    await react(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_REACT, remove: true });
+    await react(mocks.deps, ADOPTER_PRINCIPAL, BASE_REACT);
+
+    // Each publish reaches the JetStream mock as (subject, data, { msgID }),
+    // where msgID is the domain event id used for broker-side de-dup.
+    const publishCalls = mocks.natsMock.publish.mock.calls as Array<
+      [string, Uint8Array, { msgID?: string }?]
+    >;
+    const msgIds = publishCalls.map(call => call[2]?.msgID);
+    expect(msgIds).toHaveLength(3);
+    expect(msgIds.every(id => typeof id === 'string' && id.length > 0)).toBe(true);
+    // All three ids unique — the two adds in particular must differ so the
+    // re-add is a fresh, deliverable message rather than a deduped no-op.
+    expect(new Set(msgIds).size).toBe(3);
+  });
 });
 
 // --- searchChats -----------------------------------------------------
@@ -1026,6 +1078,57 @@ describe('searchChats', () => {
     expect(res.hits[0].chat?.chatId).toBe('chat-1');
     expect(res.hits[0].match?.messageId).toBe('msg-9');
     expect(res.hits[0].match?.body).toBe('About that adoption');
+  });
+
+  it('never selects the non-existent edited_at column and maps a row without it (ADS-1158)', async () => {
+    // total > 0 so the hits query runs.
+    mocks.poolScript.push({ rows: [{ total: '1' }] });
+    // A hits row that does NOT fabricate m_edited_at — the messages table has
+    // no such column, so a correct query neither selects nor reads it.
+    mocks.poolScript.push({
+      rows: [
+        {
+          c_chat_id: 'chat-1',
+          c_application_id: 'app-1',
+          c_rescue_id: '00000000-0000-0000-0000-000000000000',
+          c_pet_id: null,
+          c_status: 'active',
+          c_created_at: new Date('2026-06-01T00:00:00Z'),
+          c_updated_at: new Date('2026-06-01T00:00:00Z'),
+          m_message_id: 'msg-9',
+          m_chat_id: 'chat-1',
+          m_sender_id: 'usr-rescue',
+          m_content: 'About that adoption',
+          m_attachments: [],
+          m_deleted_at: null,
+          m_created_at: new Date('2026-06-01T00:30:00Z'),
+        },
+      ],
+    });
+    // Reactions lookup for the matching message id.
+    mocks.poolScript.push({ rows: [] });
+    // chatRowToProto helpers — participants then last-message-preview.
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await searchChats(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'adoption',
+      page: 1,
+      limit: 20,
+    });
+
+    expect(res.hits).toHaveLength(1);
+    expect(res.hits[0].match?.messageId).toBe('msg-9');
+    expect(res.hits[0].match?.editedAt).toBeUndefined();
+
+    // Regression: no SQL the search issues may reference edited_at — selecting
+    // it against the real schema is a Postgres 42703 → 500 on any match.
+    const allSql = (mocks.poolMock.query.mock.calls as Array<[string, unknown[]?]>).map(
+      ([sql]) => sql
+    );
+    expect(allSql.some(sql => sql.includes('edited_at'))).toBe(false);
   });
 
   it('respects an optional rescue_id filter (binds it as a param)', async () => {

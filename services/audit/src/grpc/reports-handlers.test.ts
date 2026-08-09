@@ -689,7 +689,11 @@ describe('deleteReportSchedule', () => {
   });
 
   it('deletes the schedule and returns deleted=true when a row matched', async () => {
-    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 1 });
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ saved_report_id: 'rep-1' }], rowCount: 1 }) // resolve owner
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] }) // ensureOwnedSavedReport
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // DELETE
     const { deps } = makeDeps(q);
     const res = await deleteReportSchedule(
       deps,
@@ -697,7 +701,7 @@ describe('deleteReportSchedule', () => {
       { scheduleId: 'sched-1' }
     );
     expect(res.deleted).toBe(true);
-    const [sql, params] = q.mock.calls[0] as [string, unknown[]];
+    const [sql, params] = q.mock.calls[2] as [string, unknown[]];
     expect(sql).toContain('DELETE FROM saved_report_schedules');
     expect(sql).toContain('schedule_id = $1');
     expect(params[0]).toBe('sched-1');
@@ -712,6 +716,39 @@ describe('deleteReportSchedule', () => {
       { scheduleId: 'missing' }
     );
     expect(res.deleted).toBe(false);
+  });
+
+  // ADS-1161 — a reports.update holder must not delete a schedule attached to
+  // another user's saved report unless they hold reports.update:any.
+  it('hides a foreign schedule behind NOT_FOUND when caller lacks reports.update:any', async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ saved_report_id: 'rep-1' }], rowCount: 1 }) // resolve owner
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-2' }] }); // ensureOwnedSavedReport → foreign
+    const { deps } = makeDeps(q);
+    await expect(
+      deleteReportSchedule(deps, makePrincipal({ permissions: ['reports.update'] }), {
+        scheduleId: 'sched-1',
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    // The DELETE never runs for a foreign schedule.
+    const sqls = q.mock.calls.map(c => String(c[0]));
+    expect(sqls.some(s => s.includes('DELETE FROM saved_report_schedules'))).toBe(false);
+  });
+
+  it("admin with reports.update:any can delete another user's schedule", async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ saved_report_id: 'rep-1' }], rowCount: 1 }) // resolve owner
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-2' }] }) // ensureOwnedSavedReport (foreign)
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // DELETE
+    const { deps } = makeDeps(q);
+    const res = await deleteReportSchedule(
+      deps,
+      makePrincipal({ permissions: ['reports.update', 'reports.update:any'] }),
+      { scheduleId: 'sched-1' }
+    );
+    expect(res.deleted).toBe(true);
   });
 });
 
@@ -731,13 +768,17 @@ describe('revokeReportShare', () => {
   });
 
   it('revokes only unrevoked shares and returns revoked=true when a row matched', async () => {
-    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 1 });
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ saved_report_id: 'rep-1' }], rowCount: 1 }) // resolve owner
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] }) // ensureOwnedSavedReport
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // UPDATE
     const { deps } = makeDeps(q);
     const res = await revokeReportShare(deps, makePrincipal({ permissions: ['reports.update'] }), {
       shareId: 'share-1',
     });
     expect(res.revoked).toBe(true);
-    const [sql, params] = q.mock.calls[0] as [string, unknown[]];
+    const [sql, params] = q.mock.calls[2] as [string, unknown[]];
     expect(sql).toContain('UPDATE saved_report_shares SET revoked_at = now()');
     expect(sql).toContain('revoked_at IS NULL');
     expect(params[0]).toBe('share-1');
@@ -750,6 +791,39 @@ describe('revokeReportShare', () => {
       shareId: 'share-x',
     });
     expect(res.revoked).toBe(false);
+  });
+
+  // ADS-1170 — a reports.update holder must not revoke a share attached to
+  // another user's saved report unless they hold reports.update:any.
+  it('hides a foreign share behind NOT_FOUND when caller lacks reports.update:any', async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ saved_report_id: 'rep-1' }], rowCount: 1 }) // resolve owner
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-2' }] }); // ensureOwnedSavedReport → foreign
+    const { deps } = makeDeps(q);
+    await expect(
+      revokeReportShare(deps, makePrincipal({ permissions: ['reports.update'] }), {
+        shareId: 'share-1',
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    // The UPDATE never runs for a foreign share.
+    const sqls = q.mock.calls.map(c => String(c[0]));
+    expect(sqls.some(s => s.includes('UPDATE saved_report_shares'))).toBe(false);
+  });
+
+  it("admin with reports.update:any can revoke another user's share", async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ saved_report_id: 'rep-1' }], rowCount: 1 }) // resolve owner
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-2' }] }) // ensureOwnedSavedReport (foreign)
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // UPDATE
+    const { deps } = makeDeps(q);
+    const res = await revokeReportShare(
+      deps,
+      makePrincipal({ permissions: ['reports.update', 'reports.update:any'] }),
+      { shareId: 'share-1' }
+    );
+    expect(res.revoked).toBe(true);
   });
 });
 

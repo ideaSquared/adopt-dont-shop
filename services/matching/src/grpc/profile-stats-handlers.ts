@@ -270,6 +270,12 @@ export async function getUserSwipeStats(
   principal: Principal,
   req: GetUserSwipeStatsRequest
 ): Promise<GetUserSwipeStatsResponse> {
+  // Base capability gate — every sibling handler runs ensureSwipePermission;
+  // the self path here previously skipped it (ADS-1181), so a principal
+  // stripped of pets.read could still read its own swipe stats. Cross-user
+  // reads then additionally require swipes.read:any below.
+  ensureSwipePermission(principal);
+
   const target = req.userId || (principal.userId as string);
   // IDOR guard — only the owner or a holder of swipes:read:any may read
   // another user's stats (they expose preference data).

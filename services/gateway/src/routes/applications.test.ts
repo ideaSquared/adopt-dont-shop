@@ -861,6 +861,27 @@ describe('applications routes', () => {
       });
     });
 
+    // ADS-1175 — a cancellation reason must reach the service as
+    // cancelledReason (persisted to cancelled_reason + the transition row).
+    it('PUT forwards cancelled_reason as the gRPC cancelledReason', async () => {
+      mocks.updateHomeVisit.mockResolvedValue({ visit: { ...VISIT, status: 'cancelled' } });
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/applications/app-1/home-visits/visit-1',
+        headers: STAFF,
+        payload: {
+          status: 'cancelled',
+          cancelled_reason: 'adopter withdrew',
+          cancelled_at: '2026-06-10T10:00:00.000Z',
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(mocks.updateHomeVisit.mock.calls[0][0]).toMatchObject({
+        status: 'cancelled',
+        cancelledReason: 'adopter withdrew',
+      });
+    });
+
     it('PUT 500s with a clean message when the service returns no visit', async () => {
       mocks.updateHomeVisit.mockResolvedValue({});
       const res = await app.inject({

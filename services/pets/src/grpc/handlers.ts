@@ -128,10 +128,12 @@ export type PetRow = {
   house_trained: boolean;
   temperament: string[] | null;
   tags: string[] | null;
-  // extra_json is assembled from the long-tail columns the SELECT pulls
-  // back as a jsonb object via row_to_json minus the explicit columns —
-  // but to keep the query simple we just read the columns we surface and
-  // synthesise extra_json from the remaining ones we SELECT explicitly.
+  // Persisted long-tail blob (image_urls, good_with_* the SPA sent,
+  // vaccination_status, …) — the jsonb column added in migration 009.
+  // rowToProto merges it UNDER the column-derived fields below so those win
+  // on any overlap, and the gated note keys are stripped from it for
+  // non-privileged readers (ADS-1155).
+  extra_json: Record<string, unknown> | null;
   good_with_children: boolean | null;
   good_with_dogs: boolean | null;
   good_with_cats: boolean | null;
@@ -149,7 +151,7 @@ export type PetRow = {
 };
 
 export function rowToProto(row: PetRow, includeInternalNotes = true): Pet {
-  const extra = {
+  const columnExtra = {
     color: row.color,
     goodWithChildren: row.good_with_children,
     goodWithDogs: row.good_with_dogs,
@@ -161,6 +163,12 @@ export function rowToProto(row: PetRow, includeInternalNotes = true): Pet {
       ? { medicalNotes: row.medical_notes, behavioralNotes: row.behavioral_notes }
       : {}),
   };
+  // Merge the persisted long-tail blob UNDER the column-derived fields so
+  // columns win on overlap. Non-privileged readers get the gated note keys
+  // stripped from the blob so nothing can leak through the merge (ADS-1155).
+  const stored = isRecord(row.extra_json) ? row.extra_json : {};
+  const safeStored = includeInternalNotes ? stored : withoutInternalNotes(stored);
+  const extra = { ...safeStored, ...columnExtra };
   return {
     petId: row.pet_id,
     name: row.name,
@@ -202,7 +210,7 @@ export const PETS_SELECT = `
   breed_id, secondary_breed_id, short_description, long_description,
   age_years, age_months, color, archived, featured, priority_listing,
   adoption_fee_minor, adoption_fee_currency, special_needs, house_trained,
-  temperament, tags, good_with_children, good_with_dogs, good_with_cats,
+  temperament, tags, extra_json, good_with_children, good_with_dogs, good_with_cats,
   good_with_small_animals, medical_notes, behavioral_notes,
   view_count, favorite_count, application_count, available_since,
   adopted_date, created_at, updated_at, version
@@ -262,7 +270,7 @@ export async function createPet(
         pet_id, name, rescue_id, type, gender, size, age_group, status,
         breed_id, secondary_breed_id, short_description, long_description,
         age_years, age_months, adoption_fee_minor, adoption_fee_currency,
-        special_needs, house_trained, temperament, tags,
+        special_needs, house_trained, temperament, tags, extra_json,
         view_count, favorite_count, application_count, version,
         created_at, updated_at, created_by, available_since
       )
@@ -270,7 +278,7 @@ export async function createPet(
         $1, $2, $3, $4, $5, $6, $7, 'available',
         $8, $9, $10, $11,
         $12, $13, $14, $15,
-        $16, $17, $18::text[], $19::text[],
+        $16, $17, $18::text[], $19::text[], $21::jsonb,
         0, 0, 0, 0,
         now(), now(), $20, now()
       )
@@ -297,6 +305,7 @@ export async function createPet(
         parseJsonArray(req.temperamentJson),
         parseJsonArray(req.tagsJson),
         principal.userId,
+        JSON.stringify(parseExtraObject(req.extraJson)),
       ]
     );
     inserted = result.rows[0];
@@ -673,6 +682,14 @@ export async function updatePet(
   if (req.tagsJson !== undefined) {
     set('tags', parseJsonArray(req.tagsJson));
   }
+  if (req.extraJson !== undefined) {
+    // The gateway sends the whole (read-merged) blob, so replace wholesale
+    // — mirroring the proto's "JSON blobs replace wholesale when present".
+    // ::jsonb keeps the text param out of pg's array-literal path (ADS-1155).
+    sets.push(`extra_json = $${n}::jsonb`);
+    params.push(JSON.stringify(parseExtraObject(req.extraJson)));
+    n++;
+  }
 
   if (sets.length === 0) {
     // Nothing to change — return the current row without a write.
@@ -944,6 +961,35 @@ function parseJsonArray(raw: string | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Parse the proto's JSON-stringified `extra_json` blob into an object for
+// the jsonb bind param. Empty / malformed / non-object input degrades to
+// {} — the long-tail blob is best-effort, not a required field.
+function parseExtraObject(raw: string | undefined): Record<string, unknown> {
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return isRecord(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+// Gated note keys are surfaced from their own columns (privilege-checked)
+// and must never ride out via the stored blob for a non-privileged reader.
+const INTERNAL_NOTE_KEYS = ['medicalNotes', 'medical_notes', 'behavioralNotes', 'behavioral_notes'];
+
+function withoutInternalNotes(extra: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(extra).filter(([key]) => !INTERNAL_NOTE_KEYS.includes(key))
+  );
 }
 
 // --- GetStats --------------------------------------------------------

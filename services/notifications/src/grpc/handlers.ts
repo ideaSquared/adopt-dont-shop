@@ -97,6 +97,21 @@ export class HandlerError extends Error {
   }
 }
 
+// Guard caller-supplied identifiers before they reach a `WHERE
+// <uuid_col> = $1` / `= ANY($2::uuid[])` bind. Postgres rejects a
+// malformed UUID with error 22P02, which would otherwise surface as an
+// opaque INTERNAL (HTTP 500); catching it here turns a client mistake
+// into an INVALID_ARGUMENT (HTTP 400). Shared with
+// notification-prefs-handlers so every id-by-lookup handler validates
+// the same way.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function assertUuid(value: string, field: string): void {
+  if (!UUID_RE.test(value)) {
+    throw new HandlerError('INVALID_ARGUMENT', `${field} must be a valid UUID`);
+  }
+}
+
 // --- Row shape (mirrors notifications.notifications) -----------------
 
 type NotificationRow = {
@@ -638,6 +653,7 @@ export async function dismissNotification(
   if (!req.notificationId) {
     throw new HandlerError('INVALID_ARGUMENT', 'notification_id is required');
   }
+  assertUuid(req.notificationId, 'notification_id');
 
   // Fetch outside the transaction first so we can return NOT_FOUND
   // cleanly without holding a write lock. The ownership check below
@@ -658,10 +674,10 @@ export async function dismissNotification(
     userId: row.user_id as UserId,
   });
   if (!allowed) {
-    throw new HandlerError(
-      'PERMISSION_DENIED',
-      `'${NOTIFICATIONS_UPDATE}' required for this notification`
-    );
+    // Don't enumerate — a notification owned by another user is
+    // indistinguishable from one that doesn't exist. Matches the
+    // NOT_FOUND posture of getNotification / deleteNotification.
+    throw new HandlerError('NOT_FOUND', `notification ${req.notificationId} not found`);
   }
 
   // Idempotency — if it's already read, return as-is without a write

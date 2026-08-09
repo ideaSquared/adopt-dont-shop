@@ -548,11 +548,17 @@ export async function updateEvent(
       params
     );
     updated = result.rows[0];
-    publish({
-      type: 'rescue.eventUpdated',
-      id: `rescue.eventUpdated.${req.id}`,
-      payload: { eventId: req.id, updatedBy: principal.userId },
-    });
+    // Only publish when a row was actually updated. A concurrent soft-delete
+    // can make the UPDATE ... WHERE deleted_at IS NULL match zero rows; the
+    // handler then throws NOT_FOUND below, so emitting the event here would be
+    // a phantom event for a no-op (ADS-1176 — mirrors updateRescue's guard).
+    if (updated) {
+      publish({
+        type: 'rescue.eventUpdated',
+        id: `rescue.eventUpdated.${req.id}`,
+        payload: { eventId: req.id, updatedBy: principal.userId },
+      });
+    }
   });
 
   if (!updated) {

@@ -42,7 +42,13 @@ import { HandlerError, type HandlerDeps } from './adapter.js';
 import { SYSTEM_USER_ID } from '../nats/system-principal.js';
 
 import { decodeCursor, encodeCursor, InvalidCursorError } from './cursor.js';
-import { categoryToDb, entityTypeToDb, reportStatusToDb, severityToDb } from './enum-map.js';
+import {
+  categoryToDb,
+  entityTypeToDb,
+  reportStatusToDb,
+  severityToDb,
+  type ReportStatusDb,
+} from './enum-map.js';
 import {
   reportRowToProto,
   transitionRowToProto,
@@ -493,6 +499,12 @@ export async function resolveReport(
 
     const fromStatus = existing.rows[0].status;
 
+    // A "dismissed" resolution is a distinct terminal state, not a
+    // resolution (ADS-1159). Derive the transition's to_status from the
+    // resolution code so the mig-003 trigger propagates the right
+    // reports.status instead of always landing on 'resolved'.
+    const toStatus: ReportStatusDb = req.resolution === 'dismissed' ? 'dismissed' : 'resolved';
+
     await client.query(
       `UPDATE reports
        SET resolved_by = $1,
@@ -508,8 +520,15 @@ export async function resolveReport(
       `INSERT INTO report_status_transitions (
          transition_id, report_id, from_status, to_status, transitioned_by, reason
        )
-       VALUES ($1, $2, $3, 'resolved', $4, $5)`,
-      [randomUUID(), req.reportId, fromStatus, principal.userId, req.resolutionNotes ?? null]
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        randomUUID(),
+        req.reportId,
+        fromStatus,
+        toStatus,
+        principal.userId,
+        req.resolutionNotes ?? null,
+      ]
     );
 
     publish({
