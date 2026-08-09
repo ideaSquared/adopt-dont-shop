@@ -14,6 +14,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { PetsClient } from '../grpc-clients/pets-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerPetsRoutes } from './pets.js';
 
@@ -1153,6 +1154,104 @@ describe('POST /api/v1/pets/bulk-update', () => {
         failedCount: 1,
         errors: [{ petId: 'pet-2', error: 'not your rescue' }],
       });
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+// ADS-1186: the list route enriches each row with the rescue name by
+// fanning out to the rescue client. rescue_name must ALSO reach the client
+// through PET_VIEW_SCHEMA (ADS-1184), so the assertions read it off the
+// serialised JSON.
+describe('GET /api/v1/pets rescue-name enrichment (ADS-1186)', () => {
+  const READ_HEADERS = { 'x-user-id': 'usr-1', 'x-user-roles': 'admin' };
+
+  function makeRescueClient(): { rescueClient: RescueClient; rescueGet: ReturnType<typeof vi.fn> } {
+    const rescueGet = vi.fn();
+    const rescueClient = { get: rescueGet } as unknown as RescueClient;
+    return { rescueClient, rescueGet };
+  }
+
+  it('attaches + serialises rescue_name from the rescue client', async () => {
+    const m = makeClient();
+    const r = makeRescueClient();
+    m.listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], total: 1 });
+    r.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-1', name: 'Happy Paws' } });
+    const app = Fastify({ logger: false });
+    await registerPetsRoutes(app, { client: m.client, rescueClient: r.rescueClient });
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets?limit=10',
+        headers: READ_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<Record<string, unknown>> };
+      expect(body.data[0].rescue_name).toBe('Happy Paws');
+      expect(r.rescueGet).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('dedupes rescue lookups across the page', async () => {
+    const m = makeClient();
+    const r = makeRescueClient();
+    const pet2 = { ...PET_FIXTURE, petId: 'pet-2' }; // shares rescueId rsc-1
+    m.listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE, pet2], total: 2 });
+    r.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-1', name: 'Happy Paws' } });
+    const app = Fastify({ logger: false });
+    await registerPetsRoutes(app, { client: m.client, rescueClient: r.rescueClient });
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets?limit=10',
+        headers: READ_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(r.rescueGet).toHaveBeenCalledTimes(1);
+      const body = res.json() as { data: Array<Record<string, unknown>> };
+      expect(body.data.every(p => p.rescue_name === 'Happy Paws')).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('tolerates a rescue lookup failure, omitting rescue_name', async () => {
+    const m = makeClient();
+    const r = makeRescueClient();
+    m.listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], total: 1 });
+    r.rescueGet.mockRejectedValue(new Error('rescue down'));
+    const app = Fastify({ logger: false });
+    await registerPetsRoutes(app, { client: m.client, rescueClient: r.rescueClient });
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets?limit=10',
+        headers: READ_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<Record<string, unknown>> };
+      expect(body.data[0].rescue_name).toBeUndefined();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('omits rescue_name when no rescue client is wired', async () => {
+    const m = makeClient();
+    m.listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], total: 1 });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets?limit=10',
+        headers: READ_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<Record<string, unknown>> };
+      expect(body.data[0].rescue_name).toBeUndefined();
     } finally {
       await app.close();
     }
