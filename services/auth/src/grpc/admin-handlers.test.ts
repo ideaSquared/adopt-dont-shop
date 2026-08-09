@@ -859,6 +859,20 @@ describe('bulkUpdateUsers', () => {
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
+  it('refuses a STATUS-only bulk update that includes your own account (ADS-1171)', async () => {
+    // The self-target guard must also cover status-only changes — otherwise a
+    // bulk deactivate/suspend that includes the caller locks them out. No DB
+    // write should happen: the guard rejects before the per-id loop.
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: ['svc-admin', 'usr-2'],
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
   it('refuses super_admin assignment from a non-super_admin actor', async () => {
     await expect(
       bulkUpdateUsers(mocks.deps, ADMIN, {

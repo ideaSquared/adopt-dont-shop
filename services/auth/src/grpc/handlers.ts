@@ -614,15 +614,50 @@ export async function login(
     }
     const secondFactor = await verifySecondFactor(deps, user, req);
     if (!secondFactor.ok) {
-      loginCounter.inc({ outcome: 'invalid_credentials' });
-      await publishLoginActionTaken(deps, {
-        outcome: 'denied',
-        aggregateId: user.user_id,
-        actorUserId: user.user_id,
-        actorEmailSnapshot: user.email,
-        ipAddress: req.ipAddress,
-        userAgent: req.userAgent,
+      // A wrong second factor is a failed login and MUST count toward the
+      // soft-lock exactly as a wrong password does (ADS-1172) — otherwise an
+      // attacker who has the password can brute-force the 6-digit code with no
+      // throttle at all. Same atomic increment + capped lock computed from the
+      // incremented count, and the denied audit event rides along inside the
+      // transaction (publish-after-commit) instead of a separate publish.
+      await withTransaction(deps, async ({ client, publish }) => {
+        await client.query(
+          `UPDATE auth.users
+              SET login_attempts = login_attempts + 1,
+                  locked_until = CASE
+                    WHEN login_attempts + 1 >= $2
+                    THEN now() + make_interval(
+                      secs => LEAST(
+                        $3::double precision * power(2, login_attempts + 1 - $2),
+                        $4::double precision
+                      )
+                    )
+                    ELSE locked_until
+                  END,
+                  updated_at = now()
+          WHERE user_id = $1`,
+          [user.user_id, LOGIN_LOCK_THRESHOLD, LOGIN_LOCK_BASE_SECONDS, LOGIN_LOCK_MAX_SECONDS]
+        );
+        publish({
+          type: 'auth.actionTaken',
+          id: `auth.actionTaken.${randomUUID()}`,
+          payload: {
+            eventId: randomUUID(),
+            service: 'service.auth',
+            subject: 'auth.actionTaken',
+            aggregateType: 'user',
+            aggregateId: user.user_id,
+            actorUserId: user.user_id,
+            actorEmailSnapshot: user.email,
+            action: 'login',
+            outcome: 'denied',
+            occurredAt: new Date().toISOString(),
+            ipAddress: req.ipAddress,
+            userAgent: req.userAgent,
+          },
+        });
       });
+      loginCounter.inc({ outcome: 'invalid_credentials' });
       throw new HandlerError('UNAUTHENTICATED', 'invalid two-factor code');
     }
     backupCodesExhausted = secondFactor.backupCodesExhausted;

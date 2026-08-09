@@ -427,17 +427,19 @@ describe('resetPassword', () => {
     expect(revoke?.[1]).toContain('usr-1');
   });
 
-  it('clears 2FA state on reset — a password reset is a compromise-recovery flow (ADS-963)', async () => {
+  it('preserves 2FA state + backup codes on reset — an email-token reset must not disable the second factor (ADS-1163)', async () => {
     mocks.hasherMock.hash.mockResolvedValueOnce('hash');
-    mocks.clientScript([userRowFixture()]);
+    mocks.clientScript([userRowFixture({ two_factor_enabled: true })]);
     await resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: 'longenough' });
     const sql = realQueries(mocks.clientMock.query)[0][0] as string;
-    expect(sql).toContain('two_factor_secret = NULL');
-    expect(sql).toContain('two_factor_enabled = false');
-    expect(sql).toContain('two_factor_last_step = NULL');
-    expect(sql).toContain('two_factor_secret_pending = NULL');
-    expect(sql).toContain('two_factor_pending_expires_at = NULL');
-    expect(sql).toContain('backup_codes = NULL');
+    // Resetting the password from an inbox-delivered token must leave the
+    // second factor intact — otherwise inbox compromise alone bypasses 2FA.
+    expect(sql).not.toContain('two_factor_secret');
+    expect(sql).not.toContain('two_factor_enabled');
+    expect(sql).not.toContain('two_factor_last_step');
+    expect(sql).not.toContain('two_factor_secret_pending');
+    expect(sql).not.toContain('two_factor_pending_expires_at');
+    expect(sql).not.toContain('backup_codes');
   });
 });
 

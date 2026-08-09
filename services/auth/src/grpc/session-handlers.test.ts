@@ -25,15 +25,18 @@ const SECURITY_ADMIN: Principal = {
   permissions: ['admin.security.read' as Permission, 'admin.security.manage' as Permission],
 };
 
-function makeClientQuery(): { fn: ReturnType<typeof vi.fn>; script: (rows: unknown[]) => void } {
-  const script: Array<{ rows: unknown[] }> = [];
+function makeClientQuery(): {
+  fn: ReturnType<typeof vi.fn>;
+  script: (rows: unknown[], rowCount?: number) => void;
+} {
+  const queue: Array<{ rows: unknown[]; rowCount?: number }> = [];
   const fn = vi.fn().mockImplementation(async (sql: string) => {
     if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
       return { rows: [] };
     }
-    return script.shift() ?? { rows: [] };
+    return queue.shift() ?? { rows: [] };
   });
-  return { fn, script: rows => script.push({ rows }) };
+  return { fn, script: (rows, rowCount) => queue.push({ rows, rowCount }) };
 }
 
 function makeMocks() {
@@ -130,13 +133,40 @@ describe('revokeSession', () => {
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('is idempotent on already-revoked sessions — no NATS publish, returns id', async () => {
+  it('is idempotent when the family is already fully revoked — no NATS publish, returns id', async () => {
+    // Ownership check passes; the family-wide revoke UPDATE flips nothing
+    // (rowCount 0) because every row in the family was already revoked.
     mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ family_id: 'fam-1', is_revoked: true }],
+      rows: [{ family_id: 'fam-1' }],
     });
+    mocks.clientScript([], 0); // family-revoke UPDATE affects 0 rows
     const res = await revokeSession(mocks.deps, PRINCIPAL, { sessionId: 'tok-1' });
     expect(res.sessionId).toBe('tok-1');
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('revokes the whole family when the passed session id was rotation-revoked (ADS-1162)', async () => {
+    // The passed session id points at an already-revoked ROTATED link, but
+    // the family still has a live head from the rotation. The old code
+    // short-circuited on the single row's is_revoked flag and reported
+    // success while the live session survived — this proves it no longer does.
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ family_id: 'fam-1' }],
+    });
+    // Family-wide revoke flips the surviving live head → rowCount 1.
+    mocks.clientScript([], 1);
+
+    const res = await revokeSession(mocks.deps, PRINCIPAL, { sessionId: 'tok-rotated' });
+    expect(res.sessionId).toBe('tok-rotated');
+    // A live head was killed, so this is a real revoke — it publishes.
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.sessionRevoked');
+    // The revoke targeted the whole family, not just the passed (dead) row.
+    const updateCall = mocks.clientMock.query.mock.calls.find(c => {
+      const sql = String(c[0]);
+      return sql.includes('UPDATE') && sql.includes('refresh_tokens');
+    });
+    expect(updateCall?.[1]).toEqual(['fam-1']);
   });
 
   it('revokes the entire family + publishes auth.sessionRevoked after commit', async () => {
@@ -256,6 +286,29 @@ describe('adminRevokeSession', () => {
       return sql.includes('UPDATE') && sql.includes('auth.users');
     });
     expect(watermarkCall?.[1]).toEqual(['usr-2']);
+  });
+
+  it('revokes the whole family when the passed session id was rotation-revoked (ADS-1162)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
+    });
+    // Family-wide revoke flips the surviving live head → rowCount 1.
+    mocks.clientScript([], 1);
+
+    const res = await adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-rotated' });
+    expect(res.sessionId).toBe('tok-rotated');
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.sessionRevokedByAdmin');
+  });
+
+  it('is idempotent when the family is already fully revoked — no NATS publish', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ family_id: 'fam-1', user_id: 'usr-2' }],
+    });
+    mocks.clientScript([], 0); // family-revoke UPDATE affects 0 rows
+    const res = await adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' });
+    expect(res.sessionId).toBe('tok-1');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 

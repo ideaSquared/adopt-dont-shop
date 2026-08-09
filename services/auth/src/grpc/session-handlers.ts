@@ -120,9 +120,8 @@ export async function revokeSession(
   // cross-user to prevent session enumeration.
   const found = await deps.pool.query<{
     family_id: string;
-    is_revoked: boolean;
   }>(
-    `SELECT family_id, is_revoked
+    `SELECT family_id
      FROM auth.refresh_tokens
      WHERE token_id = $1 AND user_id = $2
      LIMIT 1`,
@@ -131,18 +130,17 @@ export async function revokeSession(
   if (!found.rows[0]) {
     throw new HandlerError('NOT_FOUND', `session '${req.sessionId}' not found`);
   }
-  const { family_id, is_revoked } = found.rows[0];
-
-  // Idempotency: a second Revoke on an already-revoked session returns
-  // the same id without re-publishing the NATS event.
-  if (is_revoked) {
-    return { sessionId: req.sessionId };
-  }
+  const { family_id } = found.rows[0];
 
   await withTransaction(deps, async ({ client, publish }) => {
-    // Revoke EVERY row in the family — a leaked rotated token from the
-    // middle of the chain must also stop working.
-    await client.query(
+    // Revoke EVERY still-active row in the family — a leaked rotated token
+    // from the middle of the chain must also stop working. We must NOT
+    // short-circuit on the passed row's own is_revoked flag: refresh
+    // rotation revokes the old row but leaves a new active head in the same
+    // family, so a rotation-revoked id is NOT proof the family is dead
+    // (ADS-1162). Always run this idempotent family-wide revoke and let its
+    // rowCount decide whether anything was still live.
+    const revoked = await client.query(
       `UPDATE auth.refresh_tokens
        SET is_revoked = true, revoked_at = now(), updated_at = now()
        WHERE family_id = $1 AND is_revoked = false`,
@@ -157,6 +155,12 @@ export async function revokeSession(
       `UPDATE auth.users SET tokens_valid_from = now(), updated_at = now() WHERE user_id = $1`,
       [principal.userId]
     );
+
+    // Idempotency: when the family was already fully revoked nothing flipped,
+    // so skip the NATS event — a repeat revoke must not re-publish.
+    if (revoked.rowCount === 0) {
+      return;
+    }
 
     publish({
       type: 'auth.sessionRevoked',
@@ -267,9 +271,8 @@ export async function adminRevokeSession(
   const found = await deps.pool.query<{
     family_id: string;
     user_id: string;
-    is_revoked: boolean;
   }>(
-    `SELECT family_id, user_id, is_revoked
+    `SELECT family_id, user_id
      FROM auth.refresh_tokens
      WHERE token_id = $1
      LIMIT 1`,
@@ -278,14 +281,15 @@ export async function adminRevokeSession(
   if (!found.rows[0]) {
     throw new HandlerError('NOT_FOUND', `session '${req.sessionId}' not found`);
   }
-  const { family_id, user_id, is_revoked } = found.rows[0];
-
-  if (is_revoked) {
-    return { sessionId: req.sessionId };
-  }
+  const { family_id, user_id } = found.rows[0];
 
   await withTransaction(deps, async ({ client, publish }) => {
-    await client.query(
+    // Same rotation trap as revokeSession (ADS-1162): the passed row may be
+    // a rotation-revoked link while a live head survives in the family. Never
+    // short-circuit on the single row's is_revoked flag — always run the
+    // idempotent family-wide revoke and let its rowCount decide whether
+    // anything was still live and thus whether to publish.
+    const revoked = await client.query(
       `UPDATE auth.refresh_tokens
        SET is_revoked = true, revoked_at = now(), updated_at = now()
        WHERE family_id = $1 AND is_revoked = false`,
@@ -295,6 +299,10 @@ export async function adminRevokeSession(
       `UPDATE auth.users SET tokens_valid_from = now(), updated_at = now() WHERE user_id = $1`,
       [user_id]
     );
+
+    if (revoked.rowCount === 0) {
+      return;
+    }
 
     publish({
       type: 'auth.sessionRevokedByAdmin',
