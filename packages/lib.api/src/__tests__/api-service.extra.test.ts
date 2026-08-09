@@ -1,5 +1,5 @@
 import { ApiService } from '../services/api-service';
-import { NetworkError } from '../errors';
+import { NetworkError, ValidationError } from '../errors';
 
 // Mock fetch globally (mirrors api-service.test.ts).
 const mockFetch = vi.fn();
@@ -314,6 +314,44 @@ describe('ApiService — additional behaviour', () => {
       mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
       await expect(apiService.get('/down')).rejects.toBeInstanceOf(NetworkError);
+    });
+  });
+
+  describe('error metadata surfacing', () => {
+    it('surfaces a 400 body `data.missingFields` on the thrown ValidationError', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        headers: jsonHeaders(),
+        json: () =>
+          Promise.resolve({
+            error: 'Profile incomplete',
+            data: { missingFields: ['personalInfo', 'references'] },
+          }),
+      } as Response);
+
+      await expect(apiService.get('/quick-application')).rejects.toMatchObject({
+        name: 'ValidationError',
+        message: 'Profile incomplete',
+        errors: { missingFields: ['personalInfo', 'references'] },
+      });
+    });
+
+    it('produces a ValidationError instance for a 400 with data metadata', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        headers: jsonHeaders(),
+        json: () =>
+          Promise.resolve({
+            error: 'Profile incomplete',
+            data: { missingFields: ['livingSituation'] },
+          }),
+      } as Response);
+
+      await expect(apiService.get('/quick-application')).rejects.toBeInstanceOf(ValidationError);
     });
   });
 });
