@@ -432,6 +432,44 @@ describe('application questions routes', () => {
     }
   });
 
+  it('GET preserves isEnabled/options/helpText/placeholder/scope through serialization', async () => {
+    const { client, listQuestionsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const richQuestion: RescueV1.ApplicationQuestion = {
+        ...QUESTION_FIXTURE,
+        helpText: 'Give your full legal name',
+        placeholder: 'e.g. Alex Jenkinson',
+        options: ['dog', 'cat', 'rabbit'],
+        isEnabled: true,
+      };
+      listQuestionsMock.mockResolvedValueOnce({ questions: [richQuestion] });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/rescues/rsc-1/questions',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as {
+        data: Array<{
+          isEnabled?: boolean;
+          options?: string[];
+          helpText?: string;
+          placeholder?: string;
+          scope?: string;
+        }>;
+      };
+      const q = body.data[0];
+      expect(q.isEnabled).toBe(true);
+      expect(q.options).toEqual(['dog', 'cat', 'rabbit']);
+      expect(q.helpText).toBe('Give your full legal name');
+      expect(q.placeholder).toBe('e.g. Alex Jenkinson');
+      expect(q.scope).toBe('APPLICATION_QUESTION_SCOPE_RESCUE_SPECIFIC');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('POST maps sortOrder → displayOrder and returns 201 with the question', async () => {
     const { client, createQuestionMock } = makeClient();
     const app = await makeApp(client);
