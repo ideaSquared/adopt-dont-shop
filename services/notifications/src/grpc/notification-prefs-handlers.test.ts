@@ -52,6 +52,13 @@ const NO_PERMS: Principal = {
   permissions: [],
 };
 
+// Valid-format notification ids. Handlers validate UUID shape before any
+// SQL bind, so lookups exercised here must use well-formed UUIDs.
+const N1 = '11111111-1111-1111-1111-111111111111';
+const N2 = '22222222-2222-2222-2222-222222222222';
+const OTHER = '44444444-4444-4444-4444-444444444444';
+const MISSING = '99999999-9999-9999-9999-999999999999';
+
 // --- Mock pool/client/nats -------------------------------------------
 
 function makeMocks() {
@@ -173,23 +180,30 @@ describe('getNotification', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('rejects a non-UUID notification_id before any SQL — INVALID_ARGUMENT', async () => {
+    await expect(
+      getNotification(mocks.deps, ADOPTER, { notificationId: 'not-a-uuid' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
   it('returns NOT_FOUND for non-existent notification', async () => {
     mocks.poolScript.push({ rows: [] });
     await expect(
-      getNotification(mocks.deps, ADOPTER, { notificationId: 'missing' })
+      getNotification(mocks.deps, ADOPTER, { notificationId: MISSING })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it("returns NOT_FOUND (no enumeration) for another user's notification", async () => {
     mocks.poolScript.push({ rows: [notifRow({ user_id: 'usr-someone-else' })] });
     await expect(
-      getNotification(mocks.deps, ADOPTER, { notificationId: 'n-1' })
+      getNotification(mocks.deps, ADOPTER, { notificationId: N1 })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('returns the row for the owner', async () => {
     mocks.poolScript.push({ rows: [notifRow()] });
-    const res = await getNotification(mocks.deps, ADOPTER, { notificationId: 'n-1' });
+    const res = await getNotification(mocks.deps, ADOPTER, { notificationId: N1 });
     expect(res.notification?.notificationId).toBe('n-1');
     expect(res.notification?.userId).toBe('usr-adopter');
   });
@@ -201,7 +215,7 @@ describe('getNotification', () => {
       permissions: [],
     };
     mocks.poolScript.push({ rows: [notifRow({ user_id: 'usr-other' })] });
-    const res = await getNotification(mocks.deps, superAdmin, { notificationId: 'n-1' });
+    const res = await getNotification(mocks.deps, superAdmin, { notificationId: N1 });
     expect(res.notification?.userId).toBe('usr-other');
   });
 });
@@ -302,13 +316,20 @@ describe('markRead', () => {
     });
   });
 
+  it('rejects a non-UUID id in the list before any SQL — INVALID_ARGUMENT', async () => {
+    await expect(
+      markRead(mocks.deps, ADOPTER, { notificationIds: [N1, 'not-a-uuid'] })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
   it('flips the supplied ids, scoped to the caller, and publishes once', async () => {
     mocks.clientScript.push({
       rows: [{ notification_id: 'n-1' }, { notification_id: 'n-2' }],
       rowCount: 2,
     });
 
-    const res = await markRead(mocks.deps, ADOPTER, { notificationIds: ['n-1', 'n-2', 'n-other'] });
+    const res = await markRead(mocks.deps, ADOPTER, { notificationIds: [N1, N2, OTHER] });
 
     expect(res.affectedCount).toBe(2);
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
@@ -319,12 +340,12 @@ describe('markRead', () => {
     ) as [string, unknown[]];
     expect(updateCall[0]).toContain('user_id = $1');
     expect(updateCall[1][0]).toBe('usr-adopter');
-    expect(updateCall[1][1]).toEqual(['n-1', 'n-2', 'n-other']);
+    expect(updateCall[1][1]).toEqual([N1, N2, OTHER]);
   });
 
   it('returns 0 and skips publish when nothing matched', async () => {
     mocks.clientScript.push({ rows: [], rowCount: 0 });
-    const res = await markRead(mocks.deps, ADOPTER, { notificationIds: ['n-x'] });
+    const res = await markRead(mocks.deps, ADOPTER, { notificationIds: [MISSING] });
     expect(res.affectedCount).toBe(0);
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
@@ -347,17 +368,24 @@ describe('deleteNotification', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('rejects a non-UUID notification_id before any SQL — INVALID_ARGUMENT', async () => {
+    await expect(
+      deleteNotification(mocks.deps, ADOPTER, { notificationId: 'not-a-uuid' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
   it('returns NOT_FOUND when row missing', async () => {
     mocks.poolScript.push({ rows: [] });
     await expect(
-      deleteNotification(mocks.deps, ADOPTER, { notificationId: 'missing' })
+      deleteNotification(mocks.deps, ADOPTER, { notificationId: MISSING })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it("returns NOT_FOUND (no enumeration) for another user's row", async () => {
     mocks.poolScript.push({ rows: [notifRow({ user_id: 'usr-other' })] });
     await expect(
-      deleteNotification(mocks.deps, ADOPTER, { notificationId: 'n-1' })
+      deleteNotification(mocks.deps, ADOPTER, { notificationId: N1 })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
@@ -365,7 +393,7 @@ describe('deleteNotification', () => {
     mocks.poolScript.push({
       rows: [notifRow({ deleted_at: new Date('2026-05-01T00:00:00Z') })],
     });
-    const res = await deleteNotification(mocks.deps, ADOPTER, { notificationId: 'n-1' });
+    const res = await deleteNotification(mocks.deps, ADOPTER, { notificationId: N1 });
     expect(res.notification?.notificationId).toBe('n-1');
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
@@ -375,7 +403,7 @@ describe('deleteNotification', () => {
     mocks.poolScript.push({ rows: [notifRow()] });
     mocks.clientScript.push({ rows: [notifRow({ deleted_at: new Date() })] });
 
-    const res = await deleteNotification(mocks.deps, ADOPTER, { notificationId: 'n-1' });
+    const res = await deleteNotification(mocks.deps, ADOPTER, { notificationId: N1 });
     expect(res.notification?.notificationId).toBe('n-1');
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     const [subject] = mocks.natsMock.publish.mock.calls[0];

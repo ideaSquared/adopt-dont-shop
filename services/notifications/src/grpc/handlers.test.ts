@@ -580,12 +580,21 @@ describe('dismissNotification', () => {
     vi.resetAllMocks();
   });
 
-  const dismissReq: DismissNotificationRequest = { notificationId: 'n-1' };
+  // Valid-format id — dismiss validates UUID shape before any SQL bind.
+  const DISMISS_ID = '11111111-1111-1111-1111-111111111111';
+  const dismissReq: DismissNotificationRequest = { notificationId: DISMISS_ID };
 
   it('rejects when notification_id is missing — INVALID_ARGUMENT', async () => {
     await expect(
       dismissNotification(mocks.deps, ADOPTER_PRINCIPAL, { notificationId: '' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a non-UUID notification_id before any SQL — INVALID_ARGUMENT', async () => {
+    await expect(
+      dismissNotification(mocks.deps, ADOPTER_PRINCIPAL, { notificationId: 'not-a-uuid' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
   });
 
   it('returns NOT_FOUND when the notification does not exist', async () => {
@@ -596,14 +605,14 @@ describe('dismissNotification', () => {
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('rejects when the principal does not own the notification — PERMISSION_DENIED', async () => {
+  it('returns NOT_FOUND (no enumeration) when the notification belongs to another user', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [rowFixture({ user_id: 'someone-else' })],
     });
 
     await expect(
       dismissNotification(mocks.deps, ADOPTER_PRINCIPAL, dismissReq)
-    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('is idempotent when the notification is already read — returns the row without writing or publishing', async () => {
@@ -659,7 +668,7 @@ describe('dismissNotification', () => {
     const envelope = JSON.parse(
       body instanceof Uint8Array ? new TextDecoder().decode(body) : (body as string)
     );
-    expect(envelope.id).toBe('notifications.dismissed.n-1');
+    expect(envelope.id).toBe(`notifications.dismissed.${DISMISS_ID}`);
     expect(envelope.payload.userId).toBe('usr-adopter');
   });
 });

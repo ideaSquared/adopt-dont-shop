@@ -47,7 +47,7 @@ import {
   type NotificationTypeDb,
   type RelatedEntityTypeDb,
 } from './enum-map.js';
-import { HandlerError } from './handlers.js';
+import { assertUuid, HandlerError } from './handlers.js';
 
 export type HandlerDeps = WithTransactionDeps;
 
@@ -131,6 +131,7 @@ export async function getNotification(
   if (!req.notificationId) {
     throw new HandlerError('INVALID_ARGUMENT', 'notification_id is required');
   }
+  assertUuid(req.notificationId, 'notification_id');
 
   const result = await deps.pool.query<NotificationRow>(
     `SELECT * FROM notifications.notifications
@@ -231,6 +232,11 @@ export async function markRead(
   if (ids.length === 0) {
     throw new HandlerError('INVALID_ARGUMENT', 'notification_ids is required');
   }
+  // Validate every id before the `= ANY($2::uuid[])` bind — a single
+  // malformed entry would otherwise fail the whole array cast with 22P02.
+  for (const id of ids) {
+    assertUuid(id, 'notification_id');
+  }
 
   let affected = 0;
   await withTransaction(deps, async ({ client, publish }) => {
@@ -270,6 +276,7 @@ export async function deleteNotification(
   if (!req.notificationId) {
     throw new HandlerError('INVALID_ARGUMENT', 'notification_id is required');
   }
+  assertUuid(req.notificationId, 'notification_id');
 
   const existing = await deps.pool.query<NotificationRow & { deleted_at: Date | null }>(
     `SELECT * FROM notifications.notifications WHERE notification_id = $1`,
