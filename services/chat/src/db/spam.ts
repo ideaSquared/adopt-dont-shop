@@ -1,18 +1,18 @@
-// Dev-only bulk-data ('spam') seeder for the chat.* schema.
+// Dev bulk-data seeder for the chat.* schema.
 //
 // Floods chat.chats (+ chat_participants + messages) built around the spam
 // applications: each chat links an adopter (the application's user) and the
-// owning rescue, then carries a faker back-and-forth of messages. MANUAL +
-// gated via assertSpamAllowed. Additive (fresh UUIDs per run).
+// owning rescue, then carries a believable back-and-forth of messages. Gated
+// via assertSpamAllowed.
 //
-// Cross-schema reads (dev-only god-access): (application_id, user_id,
-// rescue_id) from applications.applications, plus a staff user_id per rescue
-// from rescue.staff_members — both restricted to the spam population.
+// Idempotent: chat / participant / message ids are deterministic (seededUuid)
+// and every INSERT is ON CONFLICT DO NOTHING, so a re-run converges instead of
+// piling on. Reads the (now deterministic) spam applications + staff members
+// cross-schema; run after the upstream seeders via the `pnpm db:seed:dev`
+// orchestrator.
 //
 // Volume: SPAM_CHATS (default 150), SPAM_MESSAGES (default 2000). Messages are
 // spread across the chats, alternating adopter/staff senders.
-
-import { randomUUID } from 'node:crypto';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
@@ -20,6 +20,7 @@ import {
   assertSpamAllowed,
   bulkInsert,
   createSpamFaker,
+  seededUuid,
   spamCount,
 } from '@adopt-dont-shop/seed-faker';
 
@@ -27,6 +28,23 @@ import { loadConfig } from '../config.js';
 
 type Faker = ReturnType<typeof createSpamFaker>;
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
+
+// Believable adopter/rescue chatter — sampled instead of faker.lorem so the
+// message threads read like real adoption enquiries.
+const MESSAGES = [
+  'Hi! Is this pet still available for adoption?',
+  'Yes, they are! Would you like to arrange a meet?',
+  'That would be lovely — what times work for you this week?',
+  'We’re open Saturday morning if that suits?',
+  'Could you tell me a bit more about their temperament?',
+  'They’re great with children and other dogs.',
+  'Do they have any special dietary or medical needs?',
+  'Just a routine check-up due next month, nothing major.',
+  'Wonderful, we’d love to come and say hello.',
+  'Brilliant — I’ll pencil you in and send the address over.',
+  'Thank you so much for your help!',
+  'No problem at all, see you soon!',
+];
 
 const CHAT_COLUMNS = [
   'chat_id',
@@ -67,6 +85,7 @@ type ChatSeed = {
 };
 
 type BuiltChat = {
+  index: number;
   chatId: string;
   seed: ChatSeed;
 };
@@ -80,8 +99,9 @@ export const spamChats = async (deps: {
 }): Promise<{ chats: number; participants: number; messages: number }> => {
   const now = new Date();
 
-  const built: BuiltChat[] = Array.from({ length: deps.chats }, () => ({
-    chatId: randomUUID(),
+  const built: BuiltChat[] = Array.from({ length: deps.chats }, (_, i) => ({
+    index: i,
+    chatId: seededUuid(`chat-${i}`),
     seed: deps.faker.helpers.arrayElement(deps.seeds),
   }));
 
@@ -94,26 +114,68 @@ export const spamChats = async (deps: {
     now,
     now,
   ]);
-  await bulkInsert({ query: deps.query }, 'chat.chats', CHAT_COLUMNS, chatRows);
+  await bulkInsert(
+    { query: deps.query },
+    'chat.chats',
+    CHAT_COLUMNS,
+    chatRows,
+    500,
+    'ON CONFLICT (chat_id) DO NOTHING'
+  );
 
   const participantRows = built.flatMap(b => [
-    [randomUUID(), b.chatId, b.seed.adopterId, 'user', b.seed.rescueId, now, now],
-    [randomUUID(), b.chatId, b.seed.staffId, 'rescue', b.seed.rescueId, now, now],
+    [
+      seededUuid(`chatpart-${b.index}-user`),
+      b.chatId,
+      b.seed.adopterId,
+      'user',
+      b.seed.rescueId,
+      now,
+      now,
+    ],
+    [
+      seededUuid(`chatpart-${b.index}-rescue`),
+      b.chatId,
+      b.seed.staffId,
+      'rescue',
+      b.seed.rescueId,
+      now,
+      now,
+    ],
   ]);
   await bulkInsert(
     { query: deps.query },
     'chat.chat_participants',
     PARTICIPANT_COLUMNS,
-    participantRows
+    participantRows,
+    500,
+    'ON CONFLICT (chat_participant_id) DO NOTHING'
   );
 
-  // Spread the message budget across chats; alternate adopter/staff sender.
+  // Spread the message budget across chats; alternate adopter/staff sender and
+  // walk the scripted conversation so each thread reads naturally.
   const messageRows = Array.from({ length: deps.messages }, (_, i) => {
     const chat = built[i % built.length];
-    const sender = i % 2 === 0 ? chat.seed.adopterId : chat.seed.staffId;
-    return [randomUUID(), chat.chatId, sender, deps.faker.lorem.sentence(), 'plain', now, now];
+    const turn = Math.floor(i / built.length);
+    const sender = turn % 2 === 0 ? chat.seed.adopterId : chat.seed.staffId;
+    return [
+      seededUuid(`msg-${i}`),
+      chat.chatId,
+      sender,
+      MESSAGES[turn % MESSAGES.length],
+      'plain',
+      now,
+      now,
+    ];
   });
-  await bulkInsert({ query: deps.query }, 'chat.messages', MESSAGE_COLUMNS, messageRows);
+  await bulkInsert(
+    { query: deps.query },
+    'chat.messages',
+    MESSAGE_COLUMNS,
+    messageRows,
+    500,
+    'ON CONFLICT (message_id) DO NOTHING'
+  );
 
   return {
     chats: chatRows.length,
