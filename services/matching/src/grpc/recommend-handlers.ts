@@ -46,6 +46,12 @@ const MAX_RECOMMEND_LIMIT = 100;
 // service.pets caps List at 100/page; pull the max so the recommender
 // has a real candidate pool to rank rather than just one SPA page.
 const RECOMMEND_CANDIDATE_FETCH = 100;
+// Cap on keyset pages scanned per request so a caller who has swiped
+// through most of the catalogue can't fan one Recommend/TopPicks call out
+// into an unbounded run of pets.List calls. Hitting the cap without
+// draining the source leaves `sourceExhausted` false — there may be more
+// fresh pets past the scanned window.
+const MAX_CANDIDATE_PAGES = 10;
 
 const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 100;
@@ -62,22 +68,27 @@ export function makeRecommend(
     // filters_json_override takes precedence over session filters when set.
     const filters = parseFilters(req.filtersJsonOverride);
 
-    const listReq: ListPetsRequest = {
+    const baseReq: ListPetsRequest = {
       limit: RECOMMEND_CANDIDATE_FETCH,
       statusFilter: PetsV1.PetStatus.PET_STATUS_AVAILABLE,
       typeFilter: filters.type ?? PetsV1.PetType.PET_TYPE_UNSPECIFIED,
       sizeFilter: filters.size ?? PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
     };
 
-    const pets = await listPets(petsClient, principal, listReq);
-
     // Drop any pet the caller has already decided on (liked / passed /
     // super-liked). Swipes are append-only — the same pet can appear
     // across many rows — so the exclusion query DEDUPEs by pet_id and we
     // match against a Set. 'info' views are NOT a decision and don't
-    // exclude.
+    // exclude. The candidate fetch paginates service.pets' keyset so pets
+    // past the first page still become candidates (ADS-1169).
     const swiped = await fetchSwipedPetIds(deps, principal.userId);
-    const fresh = pets.filter(pet => !swiped.has(pet.petId));
+    const { fresh, sourceExhausted } = await gatherFreshCandidates(
+      petsClient,
+      principal,
+      baseReq,
+      swiped,
+      RECOMMEND_CANDIDATE_FETCH
+    );
 
     const preferences: RecommendPreferences = filters.ageGroup
       ? { ageGroup: filters.ageGroup }
@@ -88,9 +99,10 @@ export function makeRecommend(
 
     return {
       candidates,
-      // Exhausted when the post-exclusion pool didn't even fill the
-      // request — the SPA can prompt the user to widen filters.
-      exhausted: fresh.length <= limit,
+      // Exhausted only when service.pets has no further page AND the
+      // gathered pool didn't exceed the request — otherwise adoptable pets
+      // remain and the SPA must not prompt the user to widen filters.
+      exhausted: sourceExhausted && fresh.length <= limit,
     };
   };
 }
@@ -116,6 +128,13 @@ export function makeSearchPets(
       typeFilter: filters.type ?? PetsV1.PetType.PET_TYPE_UNSPECIFIED,
       sizeFilter: filters.size ?? PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
     };
+    // Forward the free-text term to service.pets' search (ADS-1160) — the
+    // pets vertical matches it against the search vector. Without this the
+    // filter still applied but the query was silently dropped, so search
+    // returned every available pet.
+    if (req.query !== undefined && req.query !== '') {
+      listReq.search = req.query;
+    }
     // The keyset cursor is service.pets' own opaque token — forward it
     // verbatim (matching adds no ranking of its own to search results).
     if (req.cursor !== undefined && req.cursor !== '') {
@@ -153,13 +172,44 @@ function clamp(raw: number, fallback: number, max: number): number {
   return Math.min(Math.trunc(raw), max);
 }
 
-async function listPets(
+// Fetch candidate pets from service.pets one keyset page at a time,
+// dropping pets the caller has already swiped, until `targetFresh` fresh
+// candidates are gathered or the source is drained. Deduping by pet_id
+// guards against a pet spanning two consecutive pages producing a
+// duplicate card. `sourceExhausted` is true only when service.pets
+// reported no further page — the caller decides `exhausted` from it.
+// Exported so GetTopPicks paginates the candidate pool identically.
+export async function gatherFreshCandidates(
   petsClient: PetsClient,
   principal: Principal,
-  req: ListPetsRequest
-): Promise<ReadonlyArray<Pet>> {
-  const res = await listPetsResponse(petsClient, principal, req);
-  return res.pets;
+  baseReq: ListPetsRequest,
+  swiped: ReadonlySet<string>,
+  targetFresh: number
+): Promise<{ fresh: ReadonlyArray<Pet>; sourceExhausted: boolean }> {
+  const fresh: Pet[] = [];
+  const seen = new Set<string>();
+  let cursor: string | undefined;
+  let sourceExhausted = false;
+  let pages = 0;
+
+  do {
+    const req: ListPetsRequest = cursor === undefined ? baseReq : { ...baseReq, cursor };
+    const res = await listPetsResponse(petsClient, principal, req);
+    for (const pet of res.pets) {
+      if (seen.has(pet.petId)) {
+        continue;
+      }
+      seen.add(pet.petId);
+      if (!swiped.has(pet.petId)) {
+        fresh.push(pet);
+      }
+    }
+    pages += 1;
+    cursor = res.nextCursor !== undefined && res.nextCursor !== '' ? res.nextCursor : undefined;
+    sourceExhausted = cursor === undefined || res.pets.length === 0;
+  } while (!sourceExhausted && fresh.length < targetFresh && pages < MAX_CANDIDATE_PAGES);
+
+  return { fresh, sourceExhausted };
 }
 
 async function listPetsResponse(

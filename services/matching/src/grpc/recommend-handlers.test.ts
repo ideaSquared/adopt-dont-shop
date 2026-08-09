@@ -197,6 +197,69 @@ describe('makeRecommend', () => {
     expect(ids).not.toContain('seen');
   });
 
+  it('paginates past the first page to surface fresh pets beyond it (ADS-1169)', async () => {
+    // The whole first page is already swiped; the only fresh pet lives on
+    // the second page. Before the fix the handler fetched a single page
+    // and never saw it.
+    const firstPage = Array.from({ length: 100 }, (_, i) =>
+      makePet({ petId: `seen-${i}`, rescueId: 'rsc-1' })
+    );
+    const listPets = vi
+      .fn()
+      .mockResolvedValueOnce(listResponse(firstPage, 'CURSOR_1'))
+      .mockResolvedValueOnce(listResponse([makePet({ petId: 'beyond', rescueId: 'rsc-1' })]));
+    const recommend = makeRecommend(makePetsClient(listPets));
+    const swipedAll = depsWithSwipes(firstPage.map(p => p.petId));
+
+    const res = await recommend(swipedAll, makePrincipal(), { sessionId: 's-1', limit: 10 });
+
+    expect(res.candidates.map(c => c.petId)).toContain('beyond');
+    // The second page is fetched with the first page's keyset cursor.
+    expect(listPets.mock.calls[1][0].cursor).toBe('CURSOR_1');
+  });
+
+  it('does not falsely report exhausted when adoptable pets remain past the first page (ADS-1169)', async () => {
+    // First page: 95 already-swiped + 5 fresh, and a next cursor. Second
+    // page: 50 more fresh pets. The old handler stopped at page one, saw
+    // only 5 fresh, and reported exhausted; the fix drains the source.
+    const firstPage = Array.from({ length: 100 }, (_, i) =>
+      makePet({ petId: i < 95 ? `seen-${i}` : `fresh-a-${i}`, rescueId: 'rsc-1' })
+    );
+    const secondPage = Array.from({ length: 50 }, (_, i) =>
+      makePet({ petId: `fresh-b-${i}`, rescueId: 'rsc-1' })
+    );
+    const listPets = vi
+      .fn()
+      .mockResolvedValueOnce(listResponse(firstPage, 'CURSOR_1'))
+      .mockResolvedValueOnce(listResponse(secondPage));
+    const recommend = makeRecommend(makePetsClient(listPets));
+    const swiped = depsWithSwipes(firstPage.slice(0, 95).map(p => p.petId));
+
+    const res = await recommend(swiped, makePrincipal(), { sessionId: 's-1', limit: 10 });
+
+    expect(res.candidates).toHaveLength(10);
+    expect(res.exhausted).toBe(false);
+  });
+
+  it('does not surface the same pet twice when it spans consecutive pages (ADS-1169)', async () => {
+    // A pet appearing on the boundary of two keyset pages must not yield
+    // a duplicate card.
+    const dup = makePet({ petId: 'dup', rescueId: 'rsc-1' });
+    const listPets = vi
+      .fn()
+      .mockResolvedValueOnce(listResponse([dup, makePet({ petId: 'a', rescueId: 'rsc-1' })], 'C1'))
+      .mockResolvedValueOnce(listResponse([dup, makePet({ petId: 'b', rescueId: 'rsc-1' })]));
+    const recommend = makeRecommend(makePetsClient(listPets));
+
+    const res = await recommend(depsWithSwipes([]), makePrincipal(), {
+      sessionId: 's-1',
+      limit: 50,
+    });
+
+    const dupCount = res.candidates.filter(c => c.petId === 'dup').length;
+    expect(dupCount).toBe(1);
+  });
+
   it('scopes the swipe-history exclusion query to the calling user', async () => {
     const listPets = vi
       .fn()
@@ -252,6 +315,24 @@ describe('makeSearchPets', () => {
       shortDescription: 'A lovely cat',
       score: 0,
     });
+  });
+
+  it('forwards the free-text query to service.pets search (ADS-1160)', async () => {
+    const listPets = vi.fn().mockResolvedValue(listResponse([]));
+    const searchPets = makeSearchPets(makePetsClient(listPets));
+
+    await searchPets(deps, makePrincipal(), { limit: 10, query: 'buddy' });
+
+    expect(listPets.mock.calls[0][0].search).toBe('buddy');
+  });
+
+  it('omits the pets search term when no query is supplied (ADS-1160)', async () => {
+    const listPets = vi.fn().mockResolvedValue(listResponse([]));
+    const searchPets = makeSearchPets(makePetsClient(listPets));
+
+    await searchPets(deps, makePrincipal(), { limit: 10 });
+
+    expect(listPets.mock.calls[0][0].search).toBeUndefined();
   });
 
   it('forwards the pets keyset cursor verbatim on both directions', async () => {
