@@ -149,10 +149,12 @@ export const TicketFiltersSchema = z.object({
 
 // Response schemas
 export const PaginationSchema = z.object({
-  currentPage: z.number().int(),
+  page: z.number().int(),
+  limit: z.number().int(),
+  total: z.number().int(),
   totalPages: z.number().int(),
-  totalItems: z.number().int(),
-  itemsPerPage: z.number().int(),
+  hasNext: z.boolean(),
+  hasPrev: z.boolean(),
 });
 
 export const TicketsResponseSchema = z.object({

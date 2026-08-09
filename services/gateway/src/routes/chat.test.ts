@@ -146,6 +146,55 @@ describe('GET /api/v1/chats — list', () => {
     const [req] = client.listChatsMock.mock.calls[0] as [ListChatsRequest, Metadata];
     expect(req.unreadOnly).toBe(true);
   });
+
+  it('replies with the canonical offset pagination envelope and forwards page', async () => {
+    client.listChatsMock.mockResolvedValueOnce({ chats: [CHAT_FIXTURE], total: 42 });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats?page=2&limit=20',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const json = res.json() as {
+      success: boolean;
+      data: unknown[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    };
+    expect(json.success).toBe(true);
+    expect(json.data).toHaveLength(1);
+    expect(json.pagination).toEqual({
+      page: 2,
+      limit: 20,
+      total: 42,
+      totalPages: 3,
+      hasNext: true,
+      hasPrev: true,
+    });
+    // page is forwarded so the handler takes its offset + COUNT branch.
+    const [req] = client.listChatsMock.mock.calls[0] as [ListChatsRequest, Metadata];
+    expect((req as { page?: number }).page).toBe(2);
+  });
+
+  it('defaults total to 0 when the handler omits it', async () => {
+    client.listChatsMock.mockResolvedValueOnce({ chats: [] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    const json = res.json() as { pagination: { total: number; totalPages: number } };
+    expect(json.pagination.total).toBe(0);
+    expect(json.pagination.totalPages).toBe(1);
+  });
 });
 
 // --- POST /api/v1/chats ---------------------------------------------
@@ -339,6 +388,50 @@ describe('GET /api/v1/chats/:chatId/messages — listMessages', () => {
     // Both surfaced: `body` for back-compat, `content` for the SPA / e2e.
     expect(json.messages[0].body).toBe('Hello');
     expect(json.messages[0].content).toBe('Hello');
+  });
+
+  it('emits a keyset pagination envelope carrying the next cursor', async () => {
+    client.listMessagesMock.mockResolvedValueOnce({
+      messages: [MESSAGE_FIXTURE],
+      nextCursor: 'next-abc',
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/messages?limit=25',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    const json = res.json() as {
+      messages: unknown[];
+      pagination: {
+        page: number;
+        limit: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+        nextCursor?: string;
+      };
+    };
+    // messages stay top-level (the SPA chat window + e2e read them there).
+    expect(json.messages).toHaveLength(1);
+    expect(json.pagination).toEqual({
+      page: 1,
+      limit: 25,
+      hasNext: true,
+      hasPrev: false,
+      nextCursor: 'next-abc',
+    });
+  });
+
+  it('keyset envelope reports hasNext false + omits the cursor on the last page', async () => {
+    client.listMessagesMock.mockResolvedValueOnce({ messages: [MESSAGE_FIXTURE] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/messages?limit=25',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    const json = res.json() as { pagination: { hasNext: boolean; nextCursor?: string } };
+    expect(json.pagination.hasNext).toBe(false);
+    expect(json.pagination.nextCursor).toBeUndefined();
   });
 });
 

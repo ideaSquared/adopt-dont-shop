@@ -507,12 +507,35 @@ export interface ListRescuesRequest {
    */
   latitude?: number | undefined;
   longitude?: number | undefined;
-  radiusKm?: number | undefined;
+  radiusKm?:
+    | number
+    | undefined;
+  /**
+   * Offset pagination for admin datatables. When set (>0) the handler
+   * returns an OFFSET page plus a real `total` (COUNT) instead of a keyset
+   * cursor, so the shared DataTable can render "Page X of Y".
+   */
+  page?:
+    | number
+    | undefined;
+  /**
+   * Admin "show every lifecycle status" scope for the rescues datatable.
+   * Drops the status predicate entirely; gated on the platform-admin
+   * permission in the handler.
+   */
+  allStatuses?: boolean | undefined;
 }
 
 export interface ListRescuesResponse {
   rescues: Rescue[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total row count for the current filter — present only in offset mode
+   * (page set). Keyset responses omit it.
+   */
+  total?: number | undefined;
 }
 
 export interface UpdateRescueRequest {
@@ -2459,6 +2482,8 @@ function createBaseListRescuesRequest(): ListRescuesRequest {
     latitude: undefined,
     longitude: undefined,
     radiusKm: undefined,
+    page: undefined,
+    allStatuses: undefined,
   };
 }
 
@@ -2487,6 +2512,12 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
     }
     if (message.radiusKm !== undefined) {
       writer.uint32(65).double(message.radiusKm);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(72).uint32(message.page);
+    }
+    if (message.allStatuses !== undefined) {
+      writer.uint32(80).bool(message.allStatuses);
     }
     return writer;
   },
@@ -2562,6 +2593,22 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
           message.radiusKm = reader.double();
           continue;
         }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.allStatuses = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2593,6 +2640,12 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
         : isSet(object.radius_km)
         ? globalThis.Number(object.radius_km)
         : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
+      allStatuses: isSet(object.allStatuses)
+        ? globalThis.Boolean(object.allStatuses)
+        : isSet(object.all_statuses)
+        ? globalThis.Boolean(object.all_statuses)
+        : undefined,
     };
   },
 
@@ -2622,6 +2675,12 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
     if (message.radiusKm !== undefined) {
       obj.radiusKm = message.radiusKm;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.allStatuses !== undefined) {
+      obj.allStatuses = message.allStatuses;
+    }
     return obj;
   },
 
@@ -2638,12 +2697,14 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
     message.latitude = object.latitude ?? undefined;
     message.longitude = object.longitude ?? undefined;
     message.radiusKm = object.radiusKm ?? undefined;
+    message.page = object.page ?? undefined;
+    message.allStatuses = object.allStatuses ?? undefined;
     return message;
   },
 };
 
 function createBaseListRescuesResponse(): ListRescuesResponse {
-  return { rescues: [], nextCursor: undefined };
+  return { rescues: [], nextCursor: undefined, total: undefined };
 }
 
 export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
@@ -2653,6 +2714,9 @@ export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -2680,6 +2744,14 @@ export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2697,6 +2769,7 @@ export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -2708,6 +2781,9 @@ export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -2718,6 +2794,7 @@ export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
     const message = createBaseListRescuesResponse();
     message.rescues = object.rescues?.map((e) => Rescue.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };

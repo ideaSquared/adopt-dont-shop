@@ -51,6 +51,8 @@ describe('LegalReacceptanceModal [ADS-497 slice 2]', () => {
     authState.isAuthenticated = false;
     fetchPendingMock.mockReset();
     recordReacceptanceMock.mockReset();
+    // Default to a non-automated browser; the automation test opts in.
+    Object.defineProperty(window.navigator, 'webdriver', { configurable: true, value: false });
   });
 
   it('does not render for unauthenticated users and never calls the API', async () => {
@@ -73,6 +75,30 @@ describe('LegalReacceptanceModal [ADS-497 slice 2]', () => {
       expect(fetchPendingMock).toHaveBeenCalledTimes(1);
     });
 
+    expect(screen.queryByTestId('legal-reacceptance-modal')).not.toBeInTheDocument();
+  });
+
+  it('stays inert under automated browsers (navigator.webdriver) and never calls the API', async () => {
+    Object.defineProperty(window.navigator, 'webdriver', { configurable: true, value: true });
+    authState.user = baseUser;
+    authState.isAuthenticated = true;
+    fetchPendingMock.mockResolvedValue({
+      pending: [
+        {
+          documentType: 'terms',
+          currentVersion: '2026-05-10-v1',
+          lastAcceptedVersion: '2025-09-01-v1',
+          lastAcceptedAt: '2025-09-02T00:00:00.000Z',
+        },
+      ],
+    });
+
+    render(<LegalReacceptanceModal />);
+
+    // Let any mount effect settle — under automation it must short-circuit
+    // before hitting the API, so no hard-block modal can race E2E journeys.
+    await Promise.resolve();
+    expect(fetchPendingMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId('legal-reacceptance-modal')).not.toBeInTheDocument();
   });
 

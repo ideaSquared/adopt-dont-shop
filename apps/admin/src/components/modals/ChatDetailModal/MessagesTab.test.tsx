@@ -43,7 +43,12 @@ describe('MessagesTab', () => {
 
   it('renders empty state when there are no messages', () => {
     mockUseAdminChatMessages.mockReturnValue({
-      data: { data: { messages: [], pagination: { page: 1, pages: 1, total: 0 } } },
+      data: {
+        data: {
+          messages: [],
+          pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false, nextCursor: null },
+        },
+      },
       isLoading: false,
       refetch: mockRefetch,
     } as ReturnType<typeof useAdminChatMessages>);
@@ -65,7 +70,7 @@ describe('MessagesTab', () => {
             },
             { id: 'msg-2', content: 'Hi!', senderName: 'Bob', timestamp: new Date().toISOString() },
           ],
-          pagination: { page: 1, pages: 1, total: 2 },
+          pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false, nextCursor: null },
         },
       },
       isLoading: false,
@@ -91,7 +96,7 @@ describe('MessagesTab', () => {
               timestamp: new Date().toISOString(),
             },
           ],
-          pagination: { page: 1, pages: 1, total: 1 },
+          pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false, nextCursor: null },
         },
       },
       isLoading: false,
@@ -115,7 +120,7 @@ describe('MessagesTab', () => {
               timestamp: new Date().toISOString(),
             },
           ],
-          pagination: { page: 1, pages: 1, total: 1 },
+          pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false, nextCursor: null },
         },
       },
       isLoading: false,
@@ -148,7 +153,7 @@ describe('MessagesTab', () => {
               timestamp: new Date().toISOString(),
             },
           ],
-          pagination: { page: 1, pages: 1, total: 1 },
+          pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false, nextCursor: null },
         },
       },
       isLoading: false,

@@ -678,6 +678,50 @@ describe('listChats', () => {
     expect(res.chats).toHaveLength(1);
     expect(res.chats?.[0].chatId).toBe('chat-1');
   });
+
+  it('offset mode (page set) returns a real total and a LIMIT/OFFSET page, not a cursor', async () => {
+    // page SELECT
+    mocks.poolScript.push({ rows: [chatRowFixture()] });
+    // COUNT(DISTINCT c.chat_id)
+    mocks.poolScript.push({ rows: [{ total: '7' }] });
+    // chatRowToProto → loadChatParticipants + loadLastMessagePreview
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+
+    // `page`/`total` are new proto fields; buf generate is not run here, so the
+    // request is cast (as the rescue offset tests do) and total read via a cast.
+    const res = await listChats(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE, page: 2 } as never);
+    expect(res.chats).toHaveLength(1);
+    expect((res as { total?: number }).total).toBe(7);
+    expect(res.nextCursor).toBeUndefined();
+
+    const pageSql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const pageParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(pageSql).toContain('OFFSET');
+    // limit defaults to DEFAULT_CHAT_LIMIT (20); offset = (2 - 1) * 20 = 20.
+    expect(pageParams).toEqual(expect.arrayContaining([20, 20]));
+    const countSql = mocks.poolMock.query.mock.calls[1][0] as string;
+    expect(countSql).toContain('COUNT(DISTINCT c.chat_id)');
+  });
+
+  it('offset mode stays self-scoped by participant_id (no widening)', async () => {
+    mocks.poolScript.push({ rows: [chatRowFixture()] });
+    mocks.poolScript.push({ rows: [{ total: '1' }] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+
+    await listChats(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE, page: 1 } as never);
+
+    // Both the page SELECT and the COUNT filter on the caller's participant id.
+    const pageParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    const countParams = mocks.poolMock.query.mock.calls[1][1] as unknown[];
+    expect(pageParams).toContain('usr-adopter');
+    expect(countParams).toEqual(['usr-adopter']);
+  });
 });
 
 // --- MarkRead -------------------------------------------------------

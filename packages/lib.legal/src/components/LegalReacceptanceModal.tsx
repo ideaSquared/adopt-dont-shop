@@ -35,6 +35,16 @@ const LABELS: Record<PendingReacceptanceItem['documentType'], { title: string; h
 
 type Status = 'idle' | 'submitting' | 'error';
 
+// Playwright (and other WebDriver automation) sets `navigator.webdriver = true`.
+// This modal is a hard block rendered app-wide over the same shared Modal
+// overlay as every page. Left live under automation, the async
+// /pending-reacceptance fetch resolves mid-journey and the non-dismissable
+// overlay intercepts clicks on unrelated E2E flows. Mirroring the
+// MatchAcknowledgement automation guard, we keep it inert in automated runs —
+// a no-op for real users and jsdom, where `navigator.webdriver` is falsy.
+const isAutomatedBrowser = (): boolean =>
+  typeof navigator !== 'undefined' && navigator.webdriver === true;
+
 export const LegalReacceptanceModal = () => {
   const { isAuthenticated, user } = useAuth();
   const [pending, setPending] = useState<ReadonlyArray<PendingReacceptanceItem>>([]);
@@ -45,7 +55,7 @@ export const LegalReacceptanceModal = () => {
   const userId = user?.userId ?? null;
 
   useEffect(() => {
-    if (!isAuthenticated || !userId) {
+    if (isAutomatedBrowser() || !isAuthenticated || !userId) {
       setPending([]);
       setStatus('idle');
       return;

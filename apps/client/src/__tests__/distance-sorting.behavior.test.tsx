@@ -168,8 +168,9 @@ const handlers = [
     return HttpResponse.json({
       success: true,
       data: mockPetsWithDistance,
-      meta: {
+      pagination: {
         page: 1,
+        limit: 20,
         total: 2,
         totalPages: 1,
         hasNext: false,

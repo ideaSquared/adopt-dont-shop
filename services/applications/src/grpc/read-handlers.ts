@@ -144,6 +144,37 @@ export async function listApplications(
     params.push(statusToDb(req.statusFilter));
   }
 
+  // Offset mode: staff / admin datatables pass `page` and need a real total
+  // so the shared DataTable can render "Page X of Y" and gate Next. Keyset
+  // cursors can't cheaply produce a count, so this path issues a COUNT(*)
+  // over the same principal-scoped filter. Offset callers never send a
+  // cursor, so no cursor predicate is present in `where` — the scope + status
+  // predicates above are the whole filter, and the COUNT reuses them so it
+  // can never widen what the caller sees.
+  if (req.page !== undefined && req.page > 0) {
+    const offset = (req.page - 1) * limit;
+    const pageResult = await deps.pool.query<IndexRow>(
+      `
+      SELECT application_id, created_at
+      FROM applications
+      WHERE ${where.join(' AND ')}
+      ORDER BY created_at DESC, application_id DESC
+      LIMIT $${p} OFFSET $${p + 1}
+      `,
+      [...params, limit, offset]
+    );
+    const countResult = await deps.pool.query<{ total: string }>(
+      `SELECT COUNT(*)::text AS total FROM applications WHERE ${where.join(' AND ')}`,
+      params
+    );
+    const applications = await Promise.all(
+      pageResult.rows.map(async row =>
+        stateToProto(await loadAggregate(deps.pool, row.application_id))
+      )
+    );
+    return { applications, total: Number(countResult.rows[0]?.total ?? 0) };
+  }
+
   if (req.cursor !== undefined && req.cursor !== '') {
     let cursor;
     try {

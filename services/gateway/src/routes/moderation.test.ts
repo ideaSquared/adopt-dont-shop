@@ -125,18 +125,93 @@ describe('moderation report routes', () => {
     });
   });
 
-  it('GET /api/v1/moderation/reports → ListReports with filters', async () => {
-    mocks.listReports.mockResolvedValue({ reports: [] });
-    await app.inject({
+  it('GET /api/v1/moderation/reports (keyset) → canonical envelope + filters', async () => {
+    mocks.listReports.mockResolvedValue({ reports: [{ reportId: 'rpt-1' }], nextCursor: 'cur-2' });
+    const res = await app.inject({
       method: 'GET',
       url: '/api/v1/moderation/reports?status=pending&severity=high&limit=10',
       headers: HEADERS,
     });
-    expect(mocks.listReports.mock.calls[0][0]).toMatchObject({
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      success: boolean;
+      data: Array<{ reportId: string }>;
+      pagination: {
+        page: number;
+        limit: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+        nextCursor?: string;
+      };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data[0].reportId).toBe('rpt-1');
+    expect(body.pagination).toMatchObject({
+      page: 1,
+      limit: 10,
+      hasNext: true,
+      hasPrev: false,
+      nextCursor: 'cur-2',
+    });
+    const grpcReq = mocks.listReports.mock.calls[0][0];
+    expect(grpcReq).toMatchObject({
       status: ModerationV1.ReportStatus.REPORT_STATUS_PENDING,
       severity: ModerationV1.Severity.SEVERITY_HIGH,
       limit: 10,
     });
+    // Keyset mode: no page forwarded (cursor path).
+    expect(grpcReq.page).toBeUndefined();
+  });
+
+  it('GET /api/v1/moderation/reports?page= → offset envelope with real total', async () => {
+    mocks.listReports.mockResolvedValue({ reports: [{ reportId: 'rpt-1' }], total: 42 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/moderation/reports?page=2&limit=10',
+      headers: HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      data: Array<{ reportId: string }>;
+      pagination: {
+        page: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    };
+    expect(body.data[0].reportId).toBe('rpt-1');
+    expect(body.pagination).toMatchObject({
+      page: 2,
+      total: 42,
+      totalPages: 5,
+      hasNext: true,
+      hasPrev: true,
+    });
+    // Offset mode: page forwarded, no cursor.
+    const grpcReq = mocks.listReports.mock.calls[0][0];
+    expect(grpcReq.page).toBe(2);
+    expect(grpcReq.cursor).toBeUndefined();
+  });
+
+  it('GET /api/v1/moderation/actions?page= → offset envelope with page forwarded', async () => {
+    mocks.listModeratorActions.mockResolvedValue({ actions: [{ actionId: 'act-1' }], total: 7 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/moderation/actions?page=1&limit=20',
+      headers: HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      success: boolean;
+      data: Array<{ actionId: string }>;
+      pagination: { page: number; total: number; totalPages: number };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data[0].actionId).toBe('act-1');
+    expect(body.pagination).toMatchObject({ page: 1, total: 7, totalPages: 1 });
+    expect(mocks.listModeratorActions.mock.calls[0][0].page).toBe(1);
   });
 
   it('GET /api/v1/moderation/reports/:id passes includeTransitions', async () => {
@@ -275,6 +350,33 @@ describe('moderation sanction + ticket routes', () => {
     });
     expect(res.statusCode).toBe(204);
     expect(mocks.acknowledgeSanction.mock.calls[0][0]).toEqual({ sanctionId: 'sanc-1' });
+  });
+
+  it('GET /api/v1/moderation/tickets (keyset) → canonical envelope with nextCursor', async () => {
+    mocks.listSupportTickets.mockResolvedValue({
+      tickets: [{ ticketId: 'tkt-1' }],
+      nextCursor: 'cur-9',
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/moderation/tickets?status=open&limit=5',
+      headers: HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      success: boolean;
+      data: Array<{ ticketId: string }>;
+      pagination: { page: number; limit: number; hasNext: boolean; nextCursor?: string };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data[0].ticketId).toBe('tkt-1');
+    expect(body.pagination).toMatchObject({
+      page: 1,
+      limit: 5,
+      hasNext: true,
+      nextCursor: 'cur-9',
+    });
+    expect(mocks.listSupportTickets.mock.calls[0][0].page).toBeUndefined();
   });
 
   it('POST /api/v1/moderation/tickets → OpenSupportTicket, 201', async () => {

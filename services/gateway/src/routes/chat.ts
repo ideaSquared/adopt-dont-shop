@@ -27,7 +27,7 @@ import {
 import type { ChatClient } from '../grpc-clients/chat-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
-import { parsePagination } from '../middleware/pagination.js';
+import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
 export type ChatRoutesOptions = {
   client: ChatClient;
@@ -156,12 +156,30 @@ const registerChatRoutesForPrefix = (
           type: 'object',
           properties: {
             cursor: { type: 'string' },
+            page: { type: 'string' },
             limit: { type: 'string' },
             unreadOnly: { type: 'string' },
           },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  limit: { type: 'number' },
+                  total: { type: 'number' },
+                  totalPages: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
+                },
+              },
+            },
+          },
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
@@ -173,15 +191,28 @@ const registerChatRoutesForPrefix = (
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
+      // The admin chats datatable is offset-paginated: pass `page` so the
+      // handler runs its COUNT branch and returns a real total, and reply with
+      // the canonical { success, data, pagination } envelope.
       const grpcReq: ListChatsRequest = {
         cursor: query.cursor,
+        page: pagination.page,
         limit: pagination.limit,
         unreadOnly: query.unreadOnly === 'true' || query.unread_only === 'true',
       };
 
       try {
         const res = await client.listChats(grpcReq, metadata);
-        return reply.send(ChatV1.ListChatsResponse.toJSON(res));
+        return reply.send({
+          success: true,
+          data: res.chats.map(c => ChatV1.Chat.toJSON(c)),
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: pagination.page,
+            limit: pagination.limit,
+            total: res.total ?? 0,
+          }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -569,7 +600,24 @@ const registerChatRoutesForPrefix = (
           properties: { cursor: { type: 'string' }, limit: { type: 'string' } },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          // Keyset feed: `messages` (+ `nextCursor`) stay top-level for the SPA
+          // chat window; `pagination` carries the canonical keyset envelope.
+          200: {
+            type: 'object',
+            additionalProperties: true,
+            properties: {
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  limit: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
+                  nextCursor: { type: 'string' },
+                },
+              },
+            },
+          },
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
@@ -589,7 +637,21 @@ const registerChatRoutesForPrefix = (
 
       try {
         const res = await client.listMessages(grpcReq, metadata);
-        return reply.send(normalizeMessages(ChatV1.ListMessagesResponse.toJSON(res)));
+        // Chat history is a naturally infinite-scroll (reverse-scroll) feed, so
+        // it stays keyset — emit the keyset envelope rather than a page count.
+        const body = normalizeMessages(ChatV1.ListMessagesResponse.toJSON(res)) as Record<
+          string,
+          unknown
+        >;
+        return reply.send({
+          ...body,
+          pagination: buildPaginationEnvelope({
+            mode: 'keyset',
+            limit: pagination.limit,
+            hasNext: res.nextCursor !== undefined,
+            nextCursor: res.nextCursor,
+          }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

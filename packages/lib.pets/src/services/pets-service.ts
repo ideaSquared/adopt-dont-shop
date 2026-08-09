@@ -140,7 +140,7 @@ export class PetsService {
       const response = await this.apiService.get<{
         success: boolean;
         data: unknown[];
-        meta: {
+        pagination: {
           page: number;
           total: number;
           totalPages: number;
@@ -150,16 +150,16 @@ export class PetsService {
       }>(PETS_ENDPOINTS.PETS, apiFilters);
 
       // Transform according to the actual API response structure
-      if (response.success && response.data && response.meta) {
+      if (response.success && response.data && response.pagination) {
         return {
           data: response.data.map((p) => normalisePet(p)),
           pagination: {
-            page: response.meta.page || 1,
+            page: response.pagination.page || 1,
             limit: typeof apiFilters.limit === 'number' ? apiFilters.limit : 12,
-            total: response.meta.total || 0,
-            totalPages: response.meta.totalPages || 1,
-            hasNext: response.meta.hasNext || false,
-            hasPrev: response.meta.hasPrev || false,
+            total: response.pagination.total || 0,
+            totalPages: response.pagination.totalPages || 1,
+            hasNext: response.pagination.hasNext || false,
+            hasPrev: response.pagination.hasPrev || false,
           },
         };
       } else {
@@ -252,7 +252,7 @@ export class PetsService {
       const response = await this.apiService.get<{
         success: boolean;
         data: unknown[];
-        meta: {
+        pagination: {
           page: number;
           total: number;
           totalPages: number;
@@ -268,12 +268,12 @@ export class PetsService {
       return {
         data: (response.data || []).map((p) => normalisePet(p)),
         pagination: {
-          page: response.meta?.page || page,
+          page: response.pagination?.page || page,
           limit: 20,
-          total: response.meta?.total || 0,
-          totalPages: response.meta?.totalPages || 1,
-          hasNext: response.meta?.hasNext || false,
-          hasPrev: response.meta?.hasPrev || false,
+          total: response.pagination?.total || 0,
+          totalPages: response.pagination?.totalPages || 1,
+          hasNext: response.pagination?.hasNext || false,
+          hasPrev: response.pagination?.hasPrev || false,
         },
       };
     } catch (error) {

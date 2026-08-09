@@ -33,7 +33,6 @@ import type { ModerationClient } from '../grpc-clients/moderation-client.js';
 
 import {
   dataEnvelope,
-  listEnvelope,
   metricsToView,
   moderatorActionToView,
   reportToView,
@@ -44,7 +43,7 @@ import {
 } from './moderation-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
-import { parsePagination } from '../middleware/pagination.js';
+import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
 export type ModerationAdminRoutesOptions = {
   client: ModerationClient;
@@ -52,6 +51,28 @@ export type ModerationAdminRoutesOptions = {
 
 const RL_WRITE = { max: 30, timeWindow: '1 minute' } as const;
 const RL_READ = { max: 120, timeWindow: '1 minute' } as const;
+
+// Canonical list response schema: { success, data[], pagination }. The
+// pagination block carries the offset fields (page/limit/total/totalPages)
+// plus hasNext/hasPrev so the shared DataTable can render "Page X of Y".
+const LIST_RESPONSE_200 = {
+  type: 'object',
+  properties: {
+    success: { type: 'boolean' },
+    data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    pagination: {
+      type: 'object',
+      properties: {
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        total: { type: 'number' },
+        totalPages: { type: 'number' },
+        hasNext: { type: 'boolean' },
+        hasPrev: { type: 'boolean' },
+      },
+    },
+  },
+} as const;
 
 // Upper bound on a single bulk-update batch — each id is one sequential gRPC
 // call, so the array can't be unbounded.
@@ -77,7 +98,7 @@ export const registerModerationAdminRoutes = async (
         querystring: {
           type: 'object',
           properties: {
-            cursor: { type: 'string' },
+            page: { type: 'string' },
             limit: { type: 'string' },
             status: { type: 'string' },
             severity: { type: 'string' },
@@ -86,19 +107,19 @@ export const registerModerationAdminRoutes = async (
           },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          200: LIST_RESPONSE_200,
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
-      const pagination = parsePagination(q, { limit: 0 });
+      const pagination = parsePagination(q, { page: 1, limit: 20 });
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
       const grpcReq: ListReportsRequest = {
-        cursor: q.cursor,
+        page: pagination.page,
         limit: pagination.limit,
         status: parseEnum(
           ModerationV1.ReportStatus,
@@ -128,9 +149,16 @@ export const registerModerationAdminRoutes = async (
       };
       try {
         const res = await client.listReports(grpcReq, buildMetadata(req));
-        return reply.send(
-          listEnvelope(res.reports.map(reportToView), { nextCursor: res.nextCursor })
-        );
+        return reply.send({
+          success: true,
+          data: res.reports.map(reportToView),
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: pagination.page,
+            limit: pagination.limit,
+            total: res.total ?? 0,
+          }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -443,7 +471,7 @@ export const registerModerationAdminRoutes = async (
         querystring: {
           type: 'object',
           properties: {
-            cursor: { type: 'string' },
+            page: { type: 'string' },
             limit: { type: 'string' },
             user: { type: 'string' },
             report: { type: 'string' },
@@ -451,19 +479,19 @@ export const registerModerationAdminRoutes = async (
           },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          200: LIST_RESPONSE_200,
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
-      const pagination = parsePagination(q, { limit: 0 });
+      const pagination = parsePagination(q, { page: 1, limit: 20 });
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
       const grpcReq: ListModeratorActionsRequest = {
-        cursor: q.cursor,
+        page: pagination.page,
         limit: pagination.limit,
         targetUserId: q.user,
         reportId: q.report,
@@ -478,9 +506,16 @@ export const registerModerationAdminRoutes = async (
       };
       try {
         const res = await client.listModeratorActions(grpcReq, buildMetadata(req));
-        return reply.send(
-          listEnvelope(res.actions.map(moderatorActionToView), { nextCursor: res.nextCursor })
-        );
+        return reply.send({
+          success: true,
+          data: res.actions.map(moderatorActionToView),
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: pagination.page,
+            limit: pagination.limit,
+            total: res.total ?? 0,
+          }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -626,7 +661,7 @@ export const registerModerationAdminRoutes = async (
         querystring: {
           type: 'object',
           properties: {
-            cursor: { type: 'string' },
+            page: { type: 'string' },
             limit: { type: 'string' },
             status: { type: 'string' },
             priority: { type: 'string' },
@@ -636,19 +671,19 @@ export const registerModerationAdminRoutes = async (
           },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          200: LIST_RESPONSE_200,
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
-      const pagination = parsePagination(q, { limit: 0 });
+      const pagination = parsePagination(q, { page: 1, limit: 20 });
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
       const grpcReq: ListSupportTicketsRequest = {
-        cursor: q.cursor,
+        page: pagination.page,
         limit: pagination.limit,
         status: parseEnum(
           ModerationV1.SupportTicketStatus,
@@ -679,9 +714,16 @@ export const registerModerationAdminRoutes = async (
       };
       try {
         const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
-        return reply.send(
-          listEnvelope(res.tickets.map(supportTicketToView), { nextCursor: res.nextCursor })
-        );
+        return reply.send({
+          success: true,
+          data: res.tickets.map(supportTicketToView),
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: pagination.page,
+            limit: pagination.limit,
+            total: res.total ?? 0,
+          }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

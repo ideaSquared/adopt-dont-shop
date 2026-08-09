@@ -31,15 +31,10 @@ import {
 
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
-import {
-  listToEnvelope,
-  petToView,
-  viewToCreateRequest,
-  viewToUpdateRequest,
-} from './pets-view.js';
+import { petToView, viewToCreateRequest, viewToUpdateRequest } from './pets-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
-import { parsePagination } from '../middleware/pagination.js';
+import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
 export type PetsRoutesOptions = {
   client: PetsClient;
@@ -139,7 +134,7 @@ export const registerPetsRoutes = async (
       config: { rateLimit: PETS_RATE_LIMITS.list },
       schema: {
         tags: ['pets'],
-        summary: 'List pets with cursor pagination and optional filters',
+        summary: 'List pets with pagination and optional filters',
         // Querystring is documented only — no `required`, no integer
         // coercion (the existing handler does its own parseInt). Keeps
         // OpenAPI useful for SDK generation without changing runtime
@@ -169,10 +164,11 @@ export const registerPetsRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: { type: 'array', items: PET_VIEW_SCHEMA },
-              meta: {
+              pagination: {
                 type: 'object',
                 properties: {
                   page: { type: 'number' },
+                  limit: { type: 'number' },
                   total: { type: 'number' },
                   totalPages: { type: 'number' },
                   hasNext: { type: 'boolean' },
@@ -193,14 +189,13 @@ export const registerPetsRoutes = async (
     },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
-      const pagination = parsePagination(query, { limit: 0 });
+      const pagination = parsePagination(query, { page: 1, limit: 20 });
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
-      // parsePagination already validated + defaulted page (non-integer → 400
-      // above). Only switch the handler into page mode when the caller
-      // explicitly asked for a page; other list callers stay cursor-based.
-      const page = query.page !== undefined && query.page !== '' ? pagination.page : undefined;
+      // Offset/page mode: always pass `page` so the handler runs its COUNT(*)
+      // and returns a real `total`, which drives the canonical pagination
+      // envelope every datatable reads.
       const grpcReq: ListPetsRequest = {
         cursor: query.cursor,
         limit: pagination.limit,
@@ -209,7 +204,7 @@ export const registerPetsRoutes = async (
         sizeFilter: parseSize(query.size),
         rescueIdFilter: query.rescueId,
         featuredFilter: query.featured === 'true',
-        page,
+        page: pagination.page,
         search: query.search,
         breed: query.breed,
         genderFilter: parseGender(query.gender),
@@ -219,11 +214,16 @@ export const registerPetsRoutes = async (
       };
       try {
         const res = await client.list(grpcReq, buildMetadata(req));
-        // Stage B: frontend lib.pets shape ({ success, data, meta }). In page
-        // mode the handler returns a total → real page meta.
-        return reply.send(
-          listToEnvelope(res, page !== undefined ? { page, limit: pagination.limit } : undefined)
-        );
+        return reply.send({
+          success: true,
+          data: res.pets.map(petToView),
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: pagination.page,
+            limit: pagination.limit,
+            total: res.total ?? 0,
+          }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

@@ -40,7 +40,7 @@ describe('applicationService', () => {
             updatedAt: '2024-01-02',
           },
         ],
-        pagination: { page: 2, limit: 30, total: 1, pages: 1 },
+        pagination: { page: 2, limit: 30, total: 1, totalPages: 1, hasNext: false, hasPrev: true },
       });
 
       const result = await applicationService.getAll({
@@ -75,7 +75,14 @@ describe('applicationService', () => {
           updatedAt: '2024-01-02',
         },
       ]);
-      expect(result.pagination).toEqual({ page: 2, limit: 30, total: 1, pages: 1 });
+      expect(result.pagination).toEqual({
+        page: 2,
+        limit: 30,
+        total: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: true,
+      });
     });
 
     it('defaults missing applicant/pet/rescue fields to empty strings', async () => {
@@ -91,7 +98,7 @@ describe('applicationService', () => {
             updatedAt: '2024-01-02',
           },
         ],
-        pagination: { page: 1, limit: 20, total: 1, pages: 1 },
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
       });
 
       const result = await applicationService.getAll();

@@ -55,11 +55,35 @@ import {
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
-import { parsePagination } from '../middleware/pagination.js';
+import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
 export type ModerationRoutesOptions = {
   client: ModerationClient;
 };
+
+// Canonical list response schema: { success, data[], pagination }. This raw
+// surface is dual-mode — offset (page/limit/total/totalPages) for admin
+// datatables, keyset (nextCursor) for the pre-existing cursor callers — so the
+// pagination block declares both vocabularies (unset keys are dropped).
+const LIST_RESPONSE_200 = {
+  type: 'object',
+  properties: {
+    success: { type: 'boolean' },
+    data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    pagination: {
+      type: 'object',
+      properties: {
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        total: { type: 'number' },
+        totalPages: { type: 'number' },
+        hasNext: { type: 'boolean' },
+        hasPrev: { type: 'boolean' },
+        nextCursor: { type: 'string' },
+      },
+    },
+  },
+} as const;
 
 // Writes 30/min, reads 120/min — moderation is admin-driven so these
 // are sized for human use.
@@ -133,6 +157,7 @@ export const registerModerationRoutes = async (
         querystring: {
           type: 'object',
           properties: {
+            page: { type: 'string' },
             cursor: { type: 'string' },
             limit: { type: 'string' },
             status: { type: 'string' },
@@ -142,28 +167,47 @@ export const registerModerationRoutes = async (
           },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          200: LIST_RESPONSE_200,
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
-      const pagination = parsePagination(q, { limit: 0 });
+      // Offset mode when a `page` is supplied (admin datatable); otherwise the
+      // pre-existing keyset/cursor path. Both emit the canonical envelope.
+      const offsetMode = q.page !== undefined && q.page !== '';
+      const pagination = parsePagination(q, offsetMode ? { page: 1, limit: 20 } : { limit: 0 });
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
       const grpcReq: ListReportsRequest = {
-        cursor: q.cursor,
         limit: pagination.limit,
         status: parseReportStatus(q.status),
         severity: parseSeverity(q.severity),
         category: parseCategory(q.category),
         assignedModerator: q.assigned,
+        ...(offsetMode ? { page: pagination.page } : { cursor: q.cursor }),
       };
       try {
         const res = await client.listReports(grpcReq, buildMetadata(req));
-        return reply.send(ModerationV1.ListReportsResponse.toJSON(res));
+        return reply.send({
+          success: true,
+          data: res.reports.map(r => ModerationV1.Report.toJSON(r)),
+          pagination: offsetMode
+            ? buildPaginationEnvelope({
+                mode: 'offset',
+                page: pagination.page,
+                limit: pagination.limit,
+                total: res.total ?? 0,
+              })
+            : buildPaginationEnvelope({
+                mode: 'keyset',
+                limit: pagination.limit,
+                hasNext: res.nextCursor !== undefined && res.nextCursor !== '',
+                nextCursor: res.nextCursor,
+              }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -312,6 +356,7 @@ export const registerModerationRoutes = async (
         querystring: {
           type: 'object',
           properties: {
+            page: { type: 'string' },
             cursor: { type: 'string' },
             limit: { type: 'string' },
             user: { type: 'string' },
@@ -320,27 +365,46 @@ export const registerModerationRoutes = async (
           },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          200: LIST_RESPONSE_200,
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
-      const pagination = parsePagination(q, { limit: 0 });
+      // Offset mode when a `page` is supplied (admin datatable); otherwise the
+      // pre-existing keyset/cursor path. Both emit the canonical envelope.
+      const offsetMode = q.page !== undefined && q.page !== '';
+      const pagination = parsePagination(q, offsetMode ? { page: 1, limit: 20 } : { limit: 0 });
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
       const grpcReq: ListModeratorActionsRequest = {
-        cursor: q.cursor,
         limit: pagination.limit,
         targetUserId: q.user,
         reportId: q.report,
         actionType: parseActionType(q.action),
+        ...(offsetMode ? { page: pagination.page } : { cursor: q.cursor }),
       };
       try {
         const res = await client.listModeratorActions(grpcReq, buildMetadata(req));
-        return reply.send(ModerationV1.ListModeratorActionsResponse.toJSON(res));
+        return reply.send({
+          success: true,
+          data: res.actions.map(a => ModerationV1.ModeratorAction.toJSON(a)),
+          pagination: offsetMode
+            ? buildPaginationEnvelope({
+                mode: 'offset',
+                page: pagination.page,
+                limit: pagination.limit,
+                total: res.total ?? 0,
+              })
+            : buildPaginationEnvelope({
+                mode: 'keyset',
+                limit: pagination.limit,
+                hasNext: res.nextCursor !== undefined && res.nextCursor !== '',
+                nextCursor: res.nextCursor,
+              }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -592,6 +656,7 @@ export const registerModerationRoutes = async (
         querystring: {
           type: 'object',
           properties: {
+            page: { type: 'string' },
             cursor: { type: 'string' },
             limit: { type: 'string' },
             status: { type: 'string' },
@@ -602,29 +667,48 @@ export const registerModerationRoutes = async (
           },
         },
         response: {
-          200: { type: 'object', additionalProperties: true },
+          200: LIST_RESPONSE_200,
           400: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
-      const pagination = parsePagination(q, { limit: 0 });
+      // Offset mode when a `page` is supplied (admin datatable); otherwise the
+      // pre-existing keyset/cursor path. Both emit the canonical envelope.
+      const offsetMode = q.page !== undefined && q.page !== '';
+      const pagination = parsePagination(q, offsetMode ? { page: 1, limit: 20 } : { limit: 0 });
       if (!pagination.ok) {
         return reply.code(400).send({ error: pagination.error });
       }
       const grpcReq: ListSupportTicketsRequest = {
-        cursor: q.cursor,
         limit: pagination.limit,
         status: parseTicketStatus(q.status),
         priority: parseTicketPriority(q.priority),
         category: parseTicketCategory(q.category),
         assignedTo: q.assigned,
         userId: q.user,
+        ...(offsetMode ? { page: pagination.page } : { cursor: q.cursor }),
       };
       try {
         const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
-        return reply.send(ModerationV1.ListSupportTicketsResponse.toJSON(res));
+        return reply.send({
+          success: true,
+          data: res.tickets.map(t => ModerationV1.SupportTicket.toJSON(t)),
+          pagination: offsetMode
+            ? buildPaginationEnvelope({
+                mode: 'offset',
+                page: pagination.page,
+                limit: pagination.limit,
+                total: res.total ?? 0,
+              })
+            : buildPaginationEnvelope({
+                mode: 'keyset',
+                limit: pagination.limit,
+                hasNext: res.nextCursor !== undefined && res.nextCursor !== '',
+                nextCursor: res.nextCursor,
+              }),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

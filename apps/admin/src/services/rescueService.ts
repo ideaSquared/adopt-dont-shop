@@ -74,6 +74,9 @@ const buildQueryParams = (filters: AdminRescueFilters): Record<string, string> =
  */
 class AdminRescueService {
   private baseUrl = '/api/v1/rescues';
+  // The admin dashboard list has its own offset-paginated, all-statuses
+  // endpoint (the public /api/v1/rescues is keyset + verified-only).
+  private listUrl = '/api/v1/admin/rescues';
 
   /**
    * Fetch all rescues with pagination and filtering
@@ -91,7 +94,7 @@ class AdminRescueService {
         pages?: number;
         totalPages?: number;
       };
-    }>(this.baseUrl, params);
+    }>(this.listUrl, params);
 
     if (!response.success) {
       throw new Error('Failed to fetch rescues');

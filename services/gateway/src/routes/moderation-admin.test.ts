@@ -96,26 +96,65 @@ describe('moderation admin reports', () => {
     await app.close();
   });
 
-  it('GET /admin/moderation/reports → list envelope with hasNext', async () => {
-    mocks.listReports.mockResolvedValueOnce({ reports: [REPORT], nextCursor: 'cur-2' });
+  it('GET /admin/moderation/reports → offset envelope with real total; page forwarded to gRPC', async () => {
+    mocks.listReports.mockResolvedValueOnce({ reports: [REPORT], total: 42 });
     const res = await app.inject({
       method: 'GET',
-      url: '/api/v1/admin/moderation/reports?status=pending&limit=10',
+      url: '/api/v1/admin/moderation/reports?status=pending&page=2&limit=10',
       headers: ADMIN,
     });
     expect(res.statusCode).toBe(200);
     const body = res.json() as {
+      success: boolean;
       data: Array<{ status: string }>;
-      pagination: { hasNext: boolean; nextCursor?: string };
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+        nextCursor?: string;
+      };
     };
+    expect(body.success).toBe(true);
     expect(body.data).toHaveLength(1);
     expect(body.data[0].status).toBe('pending');
-    expect(body.pagination.hasNext).toBe(true);
-    expect(body.pagination.nextCursor).toBe('cur-2');
+    expect(body.pagination).toMatchObject({
+      page: 2,
+      limit: 10,
+      total: 42,
+      totalPages: 5,
+      hasNext: true,
+      hasPrev: true,
+    });
+    // Offset mode: page forwarded to the gRPC request, no cursor.
     expect(mocks.listReports.mock.calls[0][0]).toMatchObject({
       status: ModerationV1.ReportStatus.REPORT_STATUS_PENDING,
+      page: 2,
       limit: 10,
     });
+    expect(mocks.listReports.mock.calls[0][0].cursor).toBeUndefined();
+  });
+
+  it('GET /admin/moderation/reports defaults to page 1 when no page is supplied', async () => {
+    mocks.listReports.mockResolvedValueOnce({ reports: [REPORT], total: 1 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/moderation/reports',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      pagination: { page: number; totalPages: number; hasNext: boolean; hasPrev: boolean };
+    };
+    expect(body.pagination).toMatchObject({
+      page: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+    });
+    expect(mocks.listReports.mock.calls[0][0].page).toBe(1);
   });
 
   it('GET /admin/moderation/reports/:id → { data } with lowercase enums', async () => {
@@ -294,13 +333,20 @@ describe('moderation admin actions + tickets', () => {
     });
     const res = await app.inject({
       method: 'GET',
-      url: '/api/v1/admin/moderation/actions',
+      url: '/api/v1/admin/moderation/actions?page=3&limit=5',
       headers: ADMIN,
     });
     expect(res.statusCode).toBe(200);
-    expect((res.json() as { data: Array<{ actionType: string }> }).data[0].actionType).toBe(
-      'warning_issued'
-    );
+    const body = res.json() as {
+      success: boolean;
+      data: Array<{ actionType: string }>;
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data[0].actionType).toBe('warning_issued');
+    // No total from the mock → total defaults to 0, totalPages 1.
+    expect(body.pagination).toMatchObject({ page: 3, limit: 5, total: 0, totalPages: 1 });
+    expect(mocks.listModeratorActions.mock.calls[0][0]).toMatchObject({ page: 3, limit: 5 });
   });
 
   it('GET /admin/moderation/metrics → { success, data } with lowercased category tokens', async () => {
@@ -357,22 +403,37 @@ describe('moderation admin actions + tickets', () => {
     expect(res.statusCode).toBe(403);
   });
 
-  it('GET /admin/support/tickets → list envelope', async () => {
-    mocks.listSupportTickets.mockResolvedValueOnce({ tickets: [TICKET] });
+  it('GET /admin/support/tickets → offset envelope with real total', async () => {
+    mocks.listSupportTickets.mockResolvedValueOnce({ tickets: [TICKET], total: 3 });
     const res = await app.inject({
       method: 'GET',
-      url: '/api/v1/admin/support/tickets?status=open',
+      url: '/api/v1/admin/support/tickets?status=open&page=1&limit=20',
       headers: ADMIN,
     });
     expect(res.statusCode).toBe(200);
     const body = res.json() as {
+      success: boolean;
       data: Array<{ status: string }>;
-      pagination: { hasNext: boolean };
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+      };
     };
+    expect(body.success).toBe(true);
     expect(body.data[0].status).toBe('open');
-    expect(body.pagination.hasNext).toBe(false);
+    expect(body.pagination).toMatchObject({
+      page: 1,
+      limit: 20,
+      total: 3,
+      totalPages: 1,
+      hasNext: false,
+    });
     expect(mocks.listSupportTickets.mock.calls[0][0]).toMatchObject({
       status: ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_OPEN,
+      page: 1,
     });
   });
 

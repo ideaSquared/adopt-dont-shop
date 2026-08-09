@@ -133,7 +133,7 @@ describe('GET /api/v1/pets', () => {
   });
 
   it('lists pets and forwards filters', async () => {
-    const listRes: ListPetsResponse = { pets: [PET_FIXTURE], nextCursor: 'abc' };
+    const listRes: ListPetsResponse = { pets: [PET_FIXTURE], total: 1 };
     listMock.mockResolvedValueOnce(listRes);
 
     const res = await app.inject({
@@ -143,14 +143,33 @@ describe('GET /api/v1/pets', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    // Stage B envelope: { success, data, meta }.
-    const body = res.json() as { success: boolean; data: unknown[]; meta: { hasNext: boolean } };
+    // Canonical pagination envelope: { success, data, pagination }.
+    const body = res.json() as {
+      success: boolean;
+      data: unknown[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    };
     expect(body.success).toBe(true);
     expect(body.data).toHaveLength(1);
-    expect(body.meta.hasNext).toBe(true);
+    expect(body.pagination).toEqual({
+      page: 1,
+      limit: 10,
+      total: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+    });
 
     const [req, metadata] = listMock.mock.calls[0];
     expect(req.limit).toBe(10);
+    expect(req.page).toBe(1);
     expect(req.statusFilter).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
     expect(req.typeFilter).toBe(PetsV1.PetType.PET_TYPE_DOG);
     expect(req.sizeFilter).toBe(PetsV1.PetSize.PET_SIZE_LARGE);
@@ -180,7 +199,7 @@ describe('GET /api/v1/pets', () => {
     expect(req.featuredFilter).toBe(false);
   });
 
-  it('page mode: forwards page/search/breed/gender/ageGroup/sort and builds real meta', async () => {
+  it('page mode: forwards page/search/breed/gender/ageGroup/sort and builds the canonical envelope', async () => {
     listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], nextCursor: undefined, total: 42 });
 
     const res = await app.inject({
@@ -190,9 +209,16 @@ describe('GET /api/v1/pets', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { meta: Record<string, unknown> };
+    const body = res.json() as { pagination: Record<string, unknown> };
     // total 42 / limit 12 → 4 pages; page 3 has both prev and next.
-    expect(body.meta).toEqual({ page: 3, total: 42, totalPages: 4, hasNext: true, hasPrev: true });
+    expect(body.pagination).toEqual({
+      page: 3,
+      limit: 12,
+      total: 42,
+      totalPages: 4,
+      hasNext: true,
+      hasPrev: true,
+    });
 
     const [gr] = listMock.mock.calls[0];
     expect(gr.page).toBe(3);
@@ -204,15 +230,15 @@ describe('GET /api/v1/pets', () => {
     expect(gr.sortOrder).toBe('ASC');
   });
 
-  it('stays in cursor mode (no page) when page is not requested', async () => {
-    listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], nextCursor: undefined });
+  it('defaults to page 1 when no page param is requested', async () => {
+    listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], total: 5 });
     await app.inject({
       method: 'GET',
       url: '/api/v1/pets?limit=12',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
     const [gr] = listMock.mock.calls[0];
-    expect(gr.page).toBeUndefined();
+    expect(gr.page).toBe(1);
   });
 
   it('coerces an unknown status to UNSPECIFIED (service returns 400)', async () => {

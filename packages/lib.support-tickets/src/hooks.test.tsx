@@ -30,7 +30,7 @@ const baseTicket = {
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
-const pagination = { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 20 };
+const pagination = { page: 1, limit: 20, total: 1, totalPages: 1, hasNext: false, hasPrev: false };
 
 beforeEach(() => {
   vi.clearAllMocks();

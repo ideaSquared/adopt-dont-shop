@@ -1021,12 +1021,27 @@ export interface ListReportsRequest {
    * Filter to reports assigned to a specific moderator (or
    * unassigned via the empty string).
    */
-  assignedModerator?: string | undefined;
+  assignedModerator?:
+    | string
+    | undefined;
+  /**
+   * Offset pagination for admin datatables. When set (>0) the handler
+   * returns an OFFSET page plus a real `total` (COUNT) instead of a keyset
+   * cursor, so the shared DataTable can render "Page X of Y".
+   */
+  page?: number | undefined;
 }
 
 export interface ListReportsResponse {
   reports: Report[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total row count for the current filter — present only in offset mode
+   * (page set). Keyset responses omit it.
+   */
+  total?: number | undefined;
 }
 
 export interface AssignReportRequest {
@@ -1108,12 +1123,27 @@ export interface ListModeratorActionsRequest {
    * When true, return only currently-active actions (is_active AND not
    * expired) — powers the "active sanctions/actions" view.
    */
-  activeOnly?: boolean | undefined;
+  activeOnly?:
+    | boolean
+    | undefined;
+  /**
+   * Offset pagination for admin datatables. When set (>0) the handler
+   * returns an OFFSET page plus a real `total` (COUNT) instead of a keyset
+   * cursor, so the shared DataTable can render "Page X of Y".
+   */
+  page?: number | undefined;
 }
 
 export interface ListModeratorActionsResponse {
   actions: ModeratorAction[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total row count for the current filter — present only in offset mode
+   * (page set). Keyset responses omit it.
+   */
+  total?: number | undefined;
 }
 
 export interface GetModerationMetricsRequest {
@@ -1270,12 +1300,27 @@ export interface ListSupportTicketsRequest {
     | string
     | undefined;
   /** Filter to tickets opened by a specific user. */
-  userId?: string | undefined;
+  userId?:
+    | string
+    | undefined;
+  /**
+   * Offset pagination for admin datatables. When set (>0) the handler
+   * returns an OFFSET page plus a real `total` (COUNT) instead of a keyset
+   * cursor, so the shared DataTable can render "Page X of Y".
+   */
+  page?: number | undefined;
 }
 
 export interface ListSupportTicketsResponse {
   tickets: SupportTicket[];
-  nextCursor?: string | undefined;
+  nextCursor?:
+    | string
+    | undefined;
+  /**
+   * Total row count for the current filter — present only in offset mode
+   * (page set). Keyset responses omit it.
+   */
+  total?: number | undefined;
 }
 
 export interface RespondToTicketRequest {
@@ -4036,6 +4081,7 @@ function createBaseListReportsRequest(): ListReportsRequest {
     severity: undefined,
     category: undefined,
     assignedModerator: undefined,
+    page: undefined,
   };
 }
 
@@ -4058,6 +4104,9 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
     }
     if (message.assignedModerator !== undefined) {
       writer.uint32(50).string(message.assignedModerator);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(56).uint32(message.page);
     }
     return writer;
   },
@@ -4117,6 +4166,14 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
           message.assignedModerator = reader.string();
           continue;
         }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4138,6 +4195,7 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
         : isSet(object.assigned_moderator)
         ? globalThis.String(object.assigned_moderator)
         : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
     };
   },
 
@@ -4161,6 +4219,9 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
     if (message.assignedModerator !== undefined) {
       obj.assignedModerator = message.assignedModerator;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
     return obj;
   },
 
@@ -4175,12 +4236,13 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
     message.severity = object.severity ?? undefined;
     message.category = object.category ?? undefined;
     message.assignedModerator = object.assignedModerator ?? undefined;
+    message.page = object.page ?? undefined;
     return message;
   },
 };
 
 function createBaseListReportsResponse(): ListReportsResponse {
-  return { reports: [], nextCursor: undefined };
+  return { reports: [], nextCursor: undefined, total: undefined };
 }
 
 export const ListReportsResponse: MessageFns<ListReportsResponse> = {
@@ -4190,6 +4252,9 @@ export const ListReportsResponse: MessageFns<ListReportsResponse> = {
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -4217,6 +4282,14 @@ export const ListReportsResponse: MessageFns<ListReportsResponse> = {
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4234,6 +4307,7 @@ export const ListReportsResponse: MessageFns<ListReportsResponse> = {
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -4245,6 +4319,9 @@ export const ListReportsResponse: MessageFns<ListReportsResponse> = {
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -4255,6 +4332,7 @@ export const ListReportsResponse: MessageFns<ListReportsResponse> = {
     const message = createBaseListReportsResponse();
     message.reports = object.reports?.map((e) => Report.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };
@@ -5046,6 +5124,7 @@ function createBaseListModeratorActionsRequest(): ListModeratorActionsRequest {
     reportId: undefined,
     actionType: undefined,
     activeOnly: undefined,
+    page: undefined,
   };
 }
 
@@ -5068,6 +5147,9 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
     }
     if (message.activeOnly !== undefined) {
       writer.uint32(48).bool(message.activeOnly);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(56).uint32(message.page);
     }
     return writer;
   },
@@ -5127,6 +5209,14 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
           message.activeOnly = reader.bool();
           continue;
         }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5160,6 +5250,7 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
         : isSet(object.active_only)
         ? globalThis.Boolean(object.active_only)
         : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
     };
   },
 
@@ -5183,6 +5274,9 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
     if (message.activeOnly !== undefined) {
       obj.activeOnly = message.activeOnly;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
     return obj;
   },
 
@@ -5197,12 +5291,13 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
     message.reportId = object.reportId ?? undefined;
     message.actionType = object.actionType ?? undefined;
     message.activeOnly = object.activeOnly ?? undefined;
+    message.page = object.page ?? undefined;
     return message;
   },
 };
 
 function createBaseListModeratorActionsResponse(): ListModeratorActionsResponse {
-  return { actions: [], nextCursor: undefined };
+  return { actions: [], nextCursor: undefined, total: undefined };
 }
 
 export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsResponse> = {
@@ -5212,6 +5307,9 @@ export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsRespon
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -5239,6 +5337,14 @@ export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsRespon
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5258,6 +5364,7 @@ export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsRespon
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -5269,6 +5376,9 @@ export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsRespon
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -5279,6 +5389,7 @@ export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsRespon
     const message = createBaseListModeratorActionsResponse();
     message.actions = object.actions?.map((e) => ModeratorAction.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };
@@ -7116,6 +7227,7 @@ function createBaseListSupportTicketsRequest(): ListSupportTicketsRequest {
     category: undefined,
     assignedTo: undefined,
     userId: undefined,
+    page: undefined,
   };
 }
 
@@ -7141,6 +7253,9 @@ export const ListSupportTicketsRequest: MessageFns<ListSupportTicketsRequest> = 
     }
     if (message.userId !== undefined) {
       writer.uint32(58).string(message.userId);
+    }
+    if (message.page !== undefined) {
+      writer.uint32(64).uint32(message.page);
     }
     return writer;
   },
@@ -7208,6 +7323,14 @@ export const ListSupportTicketsRequest: MessageFns<ListSupportTicketsRequest> = 
           message.userId = reader.string();
           continue;
         }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -7234,6 +7357,7 @@ export const ListSupportTicketsRequest: MessageFns<ListSupportTicketsRequest> = 
         : isSet(object.user_id)
         ? globalThis.String(object.user_id)
         : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : undefined,
     };
   },
 
@@ -7260,6 +7384,9 @@ export const ListSupportTicketsRequest: MessageFns<ListSupportTicketsRequest> = 
     if (message.userId !== undefined) {
       obj.userId = message.userId;
     }
+    if (message.page !== undefined) {
+      obj.page = Math.round(message.page);
+    }
     return obj;
   },
 
@@ -7275,12 +7402,13 @@ export const ListSupportTicketsRequest: MessageFns<ListSupportTicketsRequest> = 
     message.category = object.category ?? undefined;
     message.assignedTo = object.assignedTo ?? undefined;
     message.userId = object.userId ?? undefined;
+    message.page = object.page ?? undefined;
     return message;
   },
 };
 
 function createBaseListSupportTicketsResponse(): ListSupportTicketsResponse {
-  return { tickets: [], nextCursor: undefined };
+  return { tickets: [], nextCursor: undefined, total: undefined };
 }
 
 export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> = {
@@ -7290,6 +7418,9 @@ export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> 
     }
     if (message.nextCursor !== undefined) {
       writer.uint32(18).string(message.nextCursor);
+    }
+    if (message.total !== undefined) {
+      writer.uint32(24).uint32(message.total);
     }
     return writer;
   },
@@ -7317,6 +7448,14 @@ export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> 
           message.nextCursor = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -7336,6 +7475,7 @@ export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> 
         : isSet(object.next_cursor)
         ? globalThis.String(object.next_cursor)
         : undefined,
+      total: isSet(object.total) ? globalThis.Number(object.total) : undefined,
     };
   },
 
@@ -7347,6 +7487,9 @@ export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> 
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
     }
+    if (message.total !== undefined) {
+      obj.total = Math.round(message.total);
+    }
     return obj;
   },
 
@@ -7357,6 +7500,7 @@ export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> 
     const message = createBaseListSupportTicketsResponse();
     message.tickets = object.tickets?.map((e) => SupportTicket.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
+    message.total = object.total ?? undefined;
     return message;
   },
 };

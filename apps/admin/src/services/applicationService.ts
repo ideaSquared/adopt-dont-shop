@@ -46,7 +46,14 @@ type BackendApplication = {
 type ApplicationsPaginatedResponse = {
   success: boolean;
   data: BackendApplication[];
-  pagination: { page: number; limit: number; total: number; pages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 };
 
 const toAdminApplication = (a: BackendApplication): AdminApplication => ({
@@ -68,7 +75,14 @@ class ApplicationServiceClient {
 
   async getAll(filters: ApplicationFilters = {}): Promise<{
     data: AdminApplication[];
-    pagination: { page: number; limit: number; total: number; pages: number };
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
   }> {
     const params: Record<string, string> = {};
     if (filters.search) {

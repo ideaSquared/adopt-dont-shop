@@ -208,10 +208,10 @@ describe('PetManagementService', () => {
   });
 
   describe('getMyRescuePets', () => {
-    const meta = { page: 2, total: 30, totalPages: 3, hasNext: true, hasPrev: true };
+    const pagination = { page: 2, total: 30, totalPages: 3, hasNext: true, hasPrev: true };
 
     it('returns pets and normalised pagination from the my-rescue endpoint', async () => {
-      mockApiService.get.mockResolvedValueOnce({ success: true, data: [samplePet], meta });
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: [samplePet], pagination });
 
       const result = await service.getMyRescuePets({ limit: 10, status: 'available' as PetStatus });
 
@@ -230,11 +230,11 @@ describe('PetManagementService', () => {
       });
     });
 
-    it('falls back to default pagination values when meta fields are missing', async () => {
+    it('falls back to default pagination values when pagination fields are missing', async () => {
       mockApiService.get.mockResolvedValueOnce({
         success: true,
         data: [],
-        meta: { page: 0, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
+        pagination: { page: 0, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
       });
 
       const result = await service.getMyRescuePets();
@@ -249,7 +249,7 @@ describe('PetManagementService', () => {
       });
     });
 
-    it('throws when the response is missing meta', async () => {
+    it('throws when the response is missing pagination', async () => {
       mockApiService.get.mockResolvedValueOnce({ success: true, data: [samplePet] });
 
       await expect(service.getMyRescuePets()).rejects.toThrow('Invalid API response structure');
@@ -263,10 +263,10 @@ describe('PetManagementService', () => {
   });
 
   describe('getRescuePets', () => {
-    const meta = { page: 1, total: 5, totalPages: 1, hasNext: false, hasPrev: false };
+    const pagination = { page: 1, total: 5, totalPages: 1, hasNext: false, hasPrev: false };
 
     it('sends the rescueId alongside filters to the pets endpoint', async () => {
-      mockApiService.get.mockResolvedValueOnce({ success: true, data: [samplePet], meta });
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: [samplePet], pagination });
 
       const result = await service.getRescuePets('rescue-9', { page: 1, search: 'lab' });
 

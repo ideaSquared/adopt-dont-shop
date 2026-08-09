@@ -501,6 +501,41 @@ describe('listReports', () => {
     expect(sql).toContain('created_at <');
     expect(sql).toContain('report_id <');
   });
+
+  it('offset mode (page set) returns an OFFSET page + real total via COUNT(*)', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [reportRow()] }, // page query
+      { rows: [{ total: '42' }] }, // count query
+    ]);
+    const res = await listReports(deps, makePrincipal(), {
+      page: 2,
+      limit: 10,
+    } as ListReportsRequest);
+    const pageSql = query.mock.calls[0][0] as string;
+    expect(pageSql).toContain('LIMIT $1 OFFSET $2');
+    // params: [limit, (page - 1) * limit]
+    expect(query.mock.calls[0][1]).toEqual([10, 10]);
+    const countSql = query.mock.calls[1][0] as string;
+    expect(countSql).toContain('COUNT(*)');
+    expect((res as { total?: number }).total).toBe(42);
+    expect(res.nextCursor).toBeUndefined();
+    expect(res.reports).toHaveLength(1);
+  });
+
+  it('offset mode keeps the reporter self-scope in BOTH the page and count queries', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [] }, // page query
+      { rows: [{ total: '0' }] }, // count query
+    ]);
+    await listReports(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      page: 1,
+      limit: 10,
+    } as ListReportsRequest);
+    expect(query.mock.calls[0][0] as string).toContain('reporter_id = $1');
+    expect(query.mock.calls[1][0] as string).toContain('reporter_id = $1');
+    expect((query.mock.calls[0][1] as unknown[])[0]).toBe('usr-1');
+    expect((query.mock.calls[1][1] as unknown[])[0]).toBe('usr-1');
+  });
 });
 
 describe('assignReport', () => {

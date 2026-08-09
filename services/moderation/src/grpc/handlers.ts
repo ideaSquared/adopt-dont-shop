@@ -290,7 +290,15 @@ export async function listReports(
     }
   }
 
-  if (req.cursor !== undefined && req.cursor !== '') {
+  // Offset mode: admin datatables pass `page` and need a real total so the
+  // shared DataTable can render "Page X of Y" and gate Next. Keyset cursors
+  // can't cheaply produce a count, so this path issues a COUNT(*) over the
+  // same filter (the reporter self-scope predicate included, so the total
+  // respects visibility). Offset callers never send a cursor, so the cursor
+  // predicate is skipped.
+  const offsetMode = req.page !== undefined && req.page > 0;
+
+  if (!offsetMode && req.cursor !== undefined && req.cursor !== '') {
     let cursor;
     try {
       cursor = decodeCursor(req.cursor);
@@ -306,6 +314,33 @@ export async function listReports(
   }
 
   const whereSql = where.length === 0 ? '' : `WHERE ${where.join(' AND ')}`;
+
+  if (offsetMode) {
+    const offset = ((req.page ?? 1) - 1) * limit;
+    const pageResult = await deps.pool.query<ReportRow>(
+      `
+      SELECT report_id, reporter_id, reported_entity_type, reported_entity_id,
+             reported_user_id, category, severity, status, title, description,
+             metadata, assigned_moderator, assigned_at, resolved_by, resolved_at,
+             resolution, resolution_notes, escalated_to, escalated_at,
+             escalation_reason, created_at, updated_at
+      FROM reports
+      ${whereSql}
+      ORDER BY created_at DESC, report_id DESC
+      LIMIT $${p} OFFSET $${p + 1}
+      `,
+      [...params, limit, offset]
+    );
+    const countResult = await deps.pool.query<{ total: string }>(
+      `SELECT COUNT(*)::text AS total FROM reports ${whereSql}`,
+      params
+    );
+    return {
+      reports: pageResult.rows.map(row => reportRowToProto(row, !canViewInternal)),
+      total: Number(countResult.rows[0]?.total ?? 0),
+    };
+  }
+
   params.push(limit + 1);
   const sql = `
     SELECT report_id, reporter_id, reported_entity_type, reported_entity_id,

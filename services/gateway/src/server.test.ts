@@ -621,8 +621,12 @@ describe('createServer — domain route registration', () => {
     });
     const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
     // The gateway route served it — the view adapter wraps the (empty)
-    // result in the frontend's `{ data }` envelope.
-    expect(res.json()).toEqual({ data: [] });
+    // result in the canonical { success, data, pagination } envelope.
+    expect(res.json()).toEqual({
+      success: true,
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+    });
   });
 
   it('404s /api/v1/applications when no applications client is wired', async () => {

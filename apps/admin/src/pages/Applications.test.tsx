@@ -92,7 +92,14 @@ const setApplicationsResult = (
   mockUseApplications.mockReturnValue({
     data: {
       data,
-      pagination: { pages: 1, total: data.length, page: 1, limit: 20 },
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: data.length,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
     },
     isLoading: overrides.isLoading ?? false,
     error: overrides.error ?? null,
