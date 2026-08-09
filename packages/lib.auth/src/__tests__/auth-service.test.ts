@@ -529,43 +529,46 @@ describe('AuthService', () => {
   });
 
   describe('deleteAccount', () => {
-    it('should send only the password when no options are supplied and clear stored user', async () => {
-      (apiService.fetchWithAuth as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    // ADS-1185: account deletion is the GDPR erasure saga
+    // (POST /api/v1/users/me/erasure-request → 202 + correlationId), not a
+    // DELETE on a (non-existent) /users/account route.
+    it('POSTs an erasure request with an empty body when no options are supplied and clears stored user', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        correlationId: 'corr-1',
+        requestedAt: '2026-08-09T00:00:00Z',
+      });
 
       await authService.deleteAccount('myPassword');
 
-      expect(apiService.fetchWithAuth).toHaveBeenCalledWith('/api/v1/users/account', {
-        method: 'DELETE',
-        body: { password: 'myPassword' },
-      });
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {});
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
     });
 
-    it('should include the 2FA token and reason when provided', async () => {
-      (apiService.fetchWithAuth as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    it('sends the reason in the erasure request body when provided (dropping the unused 2FA token)', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        correlationId: 'corr-2',
+        requestedAt: '2026-08-09T00:00:00Z',
+      });
 
       await authService.deleteAccount('myPassword', {
         twoFactorToken: '654321',
         reason: 'No longer needed',
       });
 
-      expect(apiService.fetchWithAuth).toHaveBeenCalledWith('/api/v1/users/account', {
-        method: 'DELETE',
-        body: {
-          password: 'myPassword',
-          twoFactorToken: '654321',
-          reason: 'No longer needed',
-        },
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {
+        reason: 'No longer needed',
       });
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
     });
 
-    it('should not clear stored user when the deletion request fails', async () => {
-      (apiService.fetchWithAuth as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error('Incorrect password')
+    it('should not clear stored user when the erasure request fails', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('service_unavailable')
       );
 
-      await expect(authService.deleteAccount('wrong')).rejects.toThrow('Incorrect password');
+      await expect(authService.deleteAccount('wrong')).rejects.toThrow('service_unavailable');
       expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
     });
   });

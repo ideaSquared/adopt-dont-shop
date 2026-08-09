@@ -300,6 +300,24 @@ describe('Communication page - ADS-583 mark resolved', () => {
     expect(screen.queryByRole('button', { name: /reopen/i })).not.toBeInTheDocument();
   });
 
+  // ADS-1191: the backend's updateChatStatus gates on `chats.read` (+ rescue
+  // ownership), never `chats.update`. Gate the controls on the permission the
+  // backend actually grants so a chats.read holder can resolve/reopen.
+  it('gates the controls on chats.read and shows them to a chats.read holder', () => {
+    const active = baseConversation({ id: 'a', status: 'active' });
+    setupHooks({
+      conversations: [active],
+      activeConversation: active,
+      hasPermission: true,
+    });
+
+    renderPage();
+
+    expect(mockedUseHasPermission).toHaveBeenCalledWith('chats.read');
+    expect(mockedUseHasPermission).not.toHaveBeenCalledWith('chats.update');
+    expect(screen.getByRole('button', { name: /mark resolved/i })).toBeInTheDocument();
+  });
+
   it('switches the visible list when the user toggles the Resolved filter', () => {
     setupHooks({
       conversations: [

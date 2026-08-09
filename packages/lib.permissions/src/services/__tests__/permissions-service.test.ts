@@ -170,13 +170,22 @@ describe('PermissionsService', () => {
   });
 
   describe('getUserWithPermissions', () => {
-    it('returns the user record from the API', async () => {
+    it('unwraps the { success, data } envelope the gateway serves', async () => {
+      const user = buildUser({ userType: 'admin' });
+      mockApiService.get = vi.fn().mockResolvedValue({ success: true, data: user });
+
+      const result = await service.getUserWithPermissions('user123');
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/users/user123/with-permissions');
+      expect(result).toEqual(user);
+    });
+
+    it('still accepts a flat (un-enveloped) response', async () => {
       const user = buildUser({ userType: 'admin' });
       mockApiService.get = vi.fn().mockResolvedValue(user);
 
       const result = await service.getUserWithPermissions('user123');
 
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/users/user123/with-permissions');
       expect(result).toEqual(user);
     });
 
@@ -191,7 +200,9 @@ describe('PermissionsService', () => {
 
   describe('hasRole', () => {
     it('returns true when the user has the requested role', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue(buildUser({ userType: 'admin' }));
+      mockApiService.get = vi
+        .fn()
+        .mockResolvedValue({ success: true, data: buildUser({ userType: 'admin' }) });
 
       const result = await service.hasRole('user123', 'admin');
 
@@ -199,7 +210,9 @@ describe('PermissionsService', () => {
     });
 
     it('returns false when the user has a different role', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue(buildUser({ userType: 'adopter' }));
+      mockApiService.get = vi
+        .fn()
+        .mockResolvedValue({ success: true, data: buildUser({ userType: 'adopter' }) });
 
       const result = await service.hasRole('user123', 'admin');
 
@@ -217,7 +230,9 @@ describe('PermissionsService', () => {
 
   describe('hasAnyRole', () => {
     it('returns true when the user role is in the allowed set', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue(buildUser({ userType: 'moderator' }));
+      mockApiService.get = vi
+        .fn()
+        .mockResolvedValue({ success: true, data: buildUser({ userType: 'moderator' }) });
 
       const result = await service.hasAnyRole('user123', ['admin', 'moderator']);
 
@@ -225,7 +240,9 @@ describe('PermissionsService', () => {
     });
 
     it('returns false when the user role is not in the allowed set', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue(buildUser({ userType: 'adopter' }));
+      mockApiService.get = vi
+        .fn()
+        .mockResolvedValue({ success: true, data: buildUser({ userType: 'adopter' }) });
 
       const result = await service.hasAnyRole('user123', ['admin', 'moderator']);
 

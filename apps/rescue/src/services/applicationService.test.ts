@@ -126,10 +126,10 @@ describe('RescueApplicationService.transitionStage (ADS-642)', () => {
     expect(body.applicationIds).toEqual(['app-1']);
   });
 
-  it('writes the lowercased next stage for non-terminal transitions', async () => {
-    await service.transitionStage('app-1', 'SCHEDULE_VISIT', 'VISITING');
+  it('writes the lowercased next stage for a START_REVIEW transition', async () => {
+    await service.transitionStage('app-1', 'START_REVIEW', 'REVIEWING');
 
-    expect(getBulkRequest().body.updates).toEqual({ stage: 'visiting' });
+    expect(getBulkRequest().body.updates).toEqual({ stage: 'reviewing' });
   });
 
   it('resolves the application with rejected status when the action is REJECT', async () => {
@@ -159,6 +159,257 @@ describe('RescueApplicationService.transitionStage (ADS-642)', () => {
       /nextStage/
     );
     expect(apiServiceMock.patch).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ADS-1189: non-terminal stage moves used to send a bare `{ stage }`, which
+ * the bulk-update route rejects while still returning HTTP 200 — so the modal
+ * reported phantom success. The transition now (1) carries the fields the
+ * route needs (scheduledAt for a visit, outcome for completion, status for a
+ * decision) and (2) throws when the response reports any failed row.
+ */
+describe('RescueApplicationService.transitionStage payloads + failure surfacing (ADS-1189)', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiServiceMock.patch.mockResolvedValue({
+      data: { successCount: 1, failureCount: 0, failures: [] },
+    });
+  });
+
+  const getBulkUpdates = (): Record<string, unknown> => {
+    expect(apiServiceMock.patch).toHaveBeenCalledTimes(1);
+    const [, body] = apiServiceMock.patch.mock.calls[0];
+    return (body as { updates: Record<string, unknown> }).updates;
+  };
+
+  it('carries scheduledAt when scheduling a visit (SCHEDULE_VISIT)', async () => {
+    await service.transitionStage('app-1', 'SCHEDULE_VISIT', 'VISITING', undefined, {
+      scheduledAt: '2026-05-01T14:00:00.000Z',
+    });
+
+    expect(getBulkUpdates()).toEqual({
+      stage: 'visiting',
+      scheduledAt: '2026-05-01T14:00:00.000Z',
+    });
+  });
+
+  it('throws before any request when SCHEDULE_VISIT has no scheduledAt', async () => {
+    await expect(service.transitionStage('app-1', 'SCHEDULE_VISIT', 'VISITING')).rejects.toThrow(
+      /scheduledAt/
+    );
+    expect(apiServiceMock.patch).not.toHaveBeenCalled();
+  });
+
+  it('carries the outcome when completing a visit (COMPLETE_VISIT)', async () => {
+    await service.transitionStage('app-1', 'COMPLETE_VISIT', 'DECIDING', 'went well', {
+      outcome: 'passed',
+    });
+
+    expect(getBulkUpdates()).toEqual({
+      stage: 'deciding',
+      outcome: 'passed',
+      notes: 'went well',
+    });
+  });
+
+  it('throws before any request when COMPLETE_VISIT has no outcome', async () => {
+    await expect(service.transitionStage('app-1', 'COMPLETE_VISIT', 'DECIDING')).rejects.toThrow(
+      /outcome/
+    );
+    expect(apiServiceMock.patch).not.toHaveBeenCalled();
+  });
+
+  it('routes an approval decision through the status path (MAKE_DECISION)', async () => {
+    await service.transitionStage('app-1', 'MAKE_DECISION', 'RESOLVED', 'great home', {
+      status: 'approved',
+    });
+
+    expect(getBulkUpdates()).toEqual({
+      status: 'approved',
+      stage: 'resolved',
+      finalOutcome: 'approved',
+      notes: 'great home',
+    });
+  });
+
+  it('routes a rejection decision through the status path (MAKE_DECISION)', async () => {
+    await service.transitionStage('app-1', 'MAKE_DECISION', 'RESOLVED', 'unsuitable', {
+      status: 'rejected',
+    });
+
+    expect(getBulkUpdates()).toEqual({
+      status: 'rejected',
+      stage: 'resolved',
+      finalOutcome: 'rejected',
+      rejectionReason: 'unsuitable',
+    });
+  });
+
+  it('throws before any request when MAKE_DECISION has no decision', async () => {
+    await expect(service.transitionStage('app-1', 'MAKE_DECISION', 'RESOLVED')).rejects.toThrow(
+      /approved.*rejected|decision/
+    );
+    expect(apiServiceMock.patch).not.toHaveBeenCalled();
+  });
+
+  it('throws with the failure reason when the bulk response reports a failed row', async () => {
+    apiServiceMock.patch.mockResolvedValueOnce({
+      data: {
+        successCount: 0,
+        failureCount: 1,
+        failures: [{ applicationId: 'app-1', error: 'FAILED_PRECONDITION: not in review' }],
+      },
+    });
+
+    await expect(service.transitionStage('app-1', 'START_REVIEW', 'REVIEWING')).rejects.toThrow(
+      /FAILED_PRECONDITION/
+    );
+  });
+
+  it('resolves when the bulk response reports no failures', async () => {
+    await expect(
+      service.transitionStage('app-1', 'START_REVIEW', 'REVIEWING')
+    ).resolves.toBeDefined();
+  });
+});
+
+/**
+ * ADS-1190: the gateway nests paging metadata under `pagination`
+ * ({ success, data, pagination }). The transformer used to read page/total
+ * off the top level, leaving the list stuck on page 1.
+ */
+describe('RescueApplicationService.getApplications pagination (ADS-1190)', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('reads page/total/totalPages from the nested pagination envelope', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({
+      success: true,
+      data: [],
+      pagination: { page: 2, limit: 25, total: 60, totalPages: 3, hasNext: true, hasPrev: true },
+    });
+
+    const result = await service.getApplications(undefined, undefined, 2, 25);
+
+    expect(result.page).toBe(2);
+    expect(result.total).toBe(60);
+    expect(result.totalPages).toBe(3);
+  });
+
+  it('advances to the reported page rather than staying on page 1', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({
+      success: true,
+      data: [],
+      pagination: { page: 3, limit: 10, total: 25, totalPages: 3, hasNext: false, hasPrev: true },
+    });
+
+    const result = await service.getApplications(undefined, undefined, 3, 10);
+
+    expect(result.page).toBe(3);
+    expect(result.totalPages).toBe(3);
+  });
+});
+
+/**
+ * ADS-1199: references live inside the submitted answers blob
+ * (application.data.references), shaped { veterinarian?, personal?[] } — the
+ * applications view never returns a flat top-level `references` array, so the
+ * old `application.references` read always yielded an empty list.
+ */
+describe('RescueApplicationService.getReferenceChecks (ADS-1199)', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('reads veterinarian and personal references from application.data.references', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({
+      data: {
+        id: 'app-1',
+        data: {
+          references: {
+            veterinarian: {
+              name: 'Dr Vet',
+              clinicName: 'Paws Clinic',
+              phone: '01234',
+              status: 'pending',
+            },
+            personal: [
+              { name: 'Jane Doe', relationship: 'Friend', phone: '5678', status: 'contacted' },
+            ],
+          },
+        },
+      },
+    });
+
+    const refs = await service.getReferenceChecks('app-1');
+
+    expect(refs).toEqual([
+      {
+        id: 'ref-0',
+        applicationId: 'app-1',
+        type: 'veterinarian',
+        contactName: 'Dr Vet',
+        contactInfo: '01234 - Paws Clinic',
+        status: 'pending',
+        notes: '',
+        completedAt: undefined,
+        completedBy: undefined,
+      },
+      {
+        id: 'ref-1',
+        applicationId: 'app-1',
+        type: 'personal',
+        contactName: 'Jane Doe',
+        contactInfo: '5678 - Friend',
+        status: 'contacted',
+        notes: '',
+        completedAt: undefined,
+        completedBy: undefined,
+      },
+    ]);
+  });
+
+  it('returns an empty list when the answers blob has no references', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({ data: { id: 'app-1', data: {} } });
+
+    await expect(service.getReferenceChecks('app-1')).resolves.toEqual([]);
+  });
+});
+
+/**
+ * ADS-1204: getApplicationStats targeted /statistics (404) and returned the
+ * raw response. It now hits /stats and unwraps the `{ data }` envelope.
+ */
+describe('RescueApplicationService.getApplicationStats (ADS-1204)', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('requests /stats and returns the unwrapped data envelope', async () => {
+    const stats = {
+      total: 42,
+      byStatus: { submitted: 10, approved: 20, rejected: 12 },
+      avgProcessingTime: 3,
+      recentSubmissions: 5,
+      pendingReferences: 4,
+      scheduledVisits: 2,
+    };
+    apiServiceMock.get.mockResolvedValueOnce({ data: stats });
+
+    const result = await service.getApplicationStats();
+
+    expect(apiServiceMock.get).toHaveBeenCalledWith('/api/v1/applications/stats');
+    expect(result).toEqual(stats);
   });
 });
 

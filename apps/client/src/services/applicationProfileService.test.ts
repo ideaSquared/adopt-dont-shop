@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ValidationError } from '@adopt-dont-shop/lib.api';
 
 const apiGet = vi.fn();
 const apiPut = vi.fn();
@@ -162,15 +163,29 @@ describe('canUseQuickApplication', () => {
     expect(result.completionPercentage).toBe(90);
   });
 
-  it('surfaces the missing fields when the backend responds 400', async () => {
-    apiPost.mockRejectedValue({
-      response: { status: 400, data: { data: { missingFields: ['references'] } } },
-    });
+  it('surfaces the missing fields when the backend responds 400 (ValidationError)', async () => {
+    apiPost.mockRejectedValue(
+      new ValidationError('profile is not complete enough for a quick application', {
+        missingFields: ['references'],
+      })
+    );
 
     const result = await applicationProfileService.canUseQuickApplication('pet-1');
 
     expect(result.canProceed).toBe(false);
     expect(result.missingFields).toEqual(['references']);
+    expect(result.missingRequirements).toEqual(['references']);
+  });
+
+  it('reports empty missing fields for a 400 that carries no field details', async () => {
+    apiPost.mockRejectedValue(
+      new ValidationError('profile is not complete enough for a quick application')
+    );
+
+    const result = await applicationProfileService.canUseQuickApplication('pet-1');
+
+    expect(result.canProceed).toBe(false);
+    expect(result.missingFields).toEqual([]);
   });
 
   it('returns a generic non-proceed fallback for other errors', async () => {

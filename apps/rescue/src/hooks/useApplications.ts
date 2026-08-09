@@ -296,7 +296,8 @@ export const useApplicationDetails = (applicationId: string | null) => {
           applicationId,
           action.type,
           action.nextStage,
-          notes
+          notes,
+          action.data
         );
         await fetchApplicationDetails();
       } catch (err) {

@@ -150,6 +150,39 @@ export interface RawReference {
   contactedBy?: string;
 }
 
+/**
+ * ADS-1199: references submitted by the applicant live inside the answers
+ * blob (application.data.references), shaped as a single veterinarian plus
+ * an array of personal references — NOT a flat top-level `references` array.
+ * Mirrors lib.applications' ReferencesSchema.
+ */
+export interface RawVeterinarianReference {
+  name?: string;
+  clinicName?: string;
+  phone?: string;
+  email?: string;
+  status?: ReferenceCheck['status'];
+  notes?: string;
+  contactedAt?: string;
+  contactedBy?: string;
+}
+
+export interface RawPersonalReference {
+  name?: string;
+  relationship?: string;
+  phone?: string;
+  email?: string;
+  status?: ReferenceCheck['status'];
+  notes?: string;
+  contactedAt?: string;
+  contactedBy?: string;
+}
+
+export interface RawReferencesBlob {
+  veterinarian?: RawVeterinarianReference;
+  personal?: RawPersonalReference[];
+}
+
 export interface RawTimelineItemUser {
   firstName?: string;
   lastName?: string;
@@ -187,6 +220,7 @@ export interface RawApplicationPersonalInfo {
 
 export interface RawApplicationData {
   personalInfo?: RawApplicationPersonalInfo;
+  references?: RawReferencesBlob;
   [key: string]: unknown;
 }
 

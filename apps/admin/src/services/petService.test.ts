@@ -25,15 +25,14 @@ describe('PetService', () => {
     it('maps all provided filters into query params', async () => {
       mockGet.mockResolvedValueOnce({
         success: true,
-        data: [{ petId: 'p1' }],
-        pagination: { page: 2, limit: 50, total: 1, pages: 1 },
+        data: [],
+        pagination: { page: 2, limit: 50, total: 0, pages: 0 },
       });
 
-      const result = await petService.getAll({
+      await petService.getAll({
         search: 'rex',
         status: 'available',
         rescueId: 'r1',
-        archived: true,
         type: 'dog',
         page: 2,
         limit: 50,
@@ -43,13 +42,10 @@ describe('PetService', () => {
         search: 'rex',
         status: 'available',
         rescueId: 'r1',
-        includeArchived: 'true',
         type: 'dog',
         page: '2',
         limit: '50',
       });
-      expect(result.data).toEqual([{ petId: 'p1' }]);
-      expect(result.pagination).toEqual({ page: 2, limit: 50, total: 1, pages: 1 });
     });
 
     it('defaults the limit to 20 and omits unset filters', async () => {
@@ -64,18 +60,67 @@ describe('PetService', () => {
       expect(mockGet).toHaveBeenCalledWith('/api/v1/pets', { limit: '20' });
     });
 
-    it('serialises archived=false explicitly', async () => {
+    it('transforms the snake_case pet view into camelCase AdminPet', async () => {
       mockGet.mockResolvedValueOnce({
         success: true,
-        data: [],
-        pagination: { page: 1, limit: 20, total: 0, pages: 0 },
+        data: [
+          {
+            pet_id: 'p1',
+            name: 'Rex',
+            type: 'dog',
+            breed: 'Labrador',
+            status: 'available',
+            rescue_id: 'r1',
+            archived: false,
+            featured: true,
+            created_at: '2024-01-01',
+            updated_at: '2024-01-02',
+          },
+        ],
+        pagination: { page: 1, limit: 20, total: 1, pages: 1 },
       });
 
-      await petService.getAll({ archived: false });
+      const result = await petService.getAll();
 
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/pets', {
-        includeArchived: 'false',
-        limit: '20',
+      expect(result.data).toEqual([
+        {
+          petId: 'p1',
+          name: 'Rex',
+          type: 'dog',
+          breed: 'Labrador',
+          status: 'available',
+          rescueId: 'r1',
+          rescueName: undefined,
+          archived: false,
+          featured: true,
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-02',
+        },
+      ]);
+      expect(result.pagination).toEqual({ page: 1, limit: 20, total: 1, pages: 1 });
+    });
+
+    it('defaults fields the pet view omits', async () => {
+      mockGet.mockResolvedValueOnce({
+        success: true,
+        data: [{ pet_id: 'p2', name: 'Milo', created_at: '2024-02-01', updated_at: '2024-02-02' }],
+        pagination: { page: 1, limit: 20, total: 1, pages: 1 },
+      });
+
+      const result = await petService.getAll();
+
+      expect(result.data[0]).toEqual({
+        petId: 'p2',
+        name: 'Milo',
+        type: '',
+        breed: '',
+        status: 'not_available',
+        rescueId: '',
+        rescueName: undefined,
+        archived: false,
+        featured: false,
+        createdAt: '2024-02-01',
+        updatedAt: '2024-02-02',
       });
     });
   });

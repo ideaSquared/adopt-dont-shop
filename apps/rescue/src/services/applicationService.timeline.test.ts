@@ -28,12 +28,14 @@ describe('RescueApplicationService workflow operations', () => {
 
   describe('getApplicationStats', () => {
     it('returns the statistics payload from the server', async () => {
+      // ADS-1204: endpoint is /stats (not /statistics) and the payload is
+      // wrapped in a `{ data }` envelope.
       const stats = { total: 10, pending: 4 };
-      apiServiceMock.get.mockResolvedValue(stats);
+      apiServiceMock.get.mockResolvedValue({ data: stats });
 
       const result = await service.getApplicationStats();
 
-      expect(apiServiceMock.get).toHaveBeenCalledWith('/api/v1/applications/statistics');
+      expect(apiServiceMock.get).toHaveBeenCalledWith('/api/v1/applications/stats');
       expect(result).toBe(stats);
     });
 

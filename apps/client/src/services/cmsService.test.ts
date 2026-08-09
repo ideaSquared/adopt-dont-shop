@@ -35,11 +35,9 @@ beforeEach(() => {
 describe('listBlogPosts', () => {
   it('requests blog_post content with default pagination', async () => {
     apiGet.mockResolvedValue({
-      content: [samplePost],
-      total: 1,
-      page: 1,
-      limit: 12,
-      totalPages: 1,
+      success: true,
+      data: [samplePost],
+      pagination: { page: 1, limit: 12, total: 1, totalPages: 1 },
     });
 
     const result = await cmsPublicService.listBlogPosts();
@@ -52,8 +50,30 @@ describe('listBlogPosts', () => {
     expect(result.content).toEqual([samplePost]);
   });
 
+  it('maps the { data, pagination } envelope into a content list result', async () => {
+    apiGet.mockResolvedValue({
+      success: true,
+      data: [samplePost],
+      pagination: { page: 2, limit: 6, total: 7, totalPages: 2 },
+    });
+
+    const result = await cmsPublicService.listBlogPosts(2, 6);
+
+    expect(result).toEqual({
+      content: [samplePost],
+      total: 7,
+      page: 2,
+      limit: 6,
+      totalPages: 2,
+    });
+  });
+
   it('forwards an explicit page and limit', async () => {
-    apiGet.mockResolvedValue({ content: [], total: 0, page: 3, limit: 6, totalPages: 0 });
+    apiGet.mockResolvedValue({
+      success: true,
+      data: [],
+      pagination: { page: 3, limit: 6, total: 0, totalPages: 0 },
+    });
 
     await cmsPublicService.listBlogPosts(3, 6);
 
@@ -67,7 +87,11 @@ describe('listBlogPosts', () => {
 
 describe('listHelpArticles', () => {
   it('requests help_article content with default pagination', async () => {
-    apiGet.mockResolvedValue({ content: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+    apiGet.mockResolvedValue({
+      success: true,
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    });
 
     await cmsPublicService.listHelpArticles();
 
@@ -76,6 +100,19 @@ describe('listHelpArticles', () => {
       page: 1,
       limit: 20,
     });
+  });
+
+  it('maps the { data, pagination } envelope into a content list result', async () => {
+    apiGet.mockResolvedValue({
+      success: true,
+      data: [samplePost],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
+
+    const result = await cmsPublicService.listHelpArticles();
+
+    expect(result.content).toEqual([samplePost]);
+    expect(result.total).toBe(1);
   });
 });
 

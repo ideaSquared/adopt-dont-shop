@@ -34,12 +34,28 @@ const pagination = (overrides = {}) => ({
   ...overrides,
 });
 
+// A minimal snake_case rescue view row (the shape rescueToView emits).
+const snakeRescue = (overrides = {}) => ({
+  rescue_id: 'r1',
+  name: 'Happy Tails',
+  email: 'hi@happytails.org',
+  address: '1 High St',
+  city: 'Leeds',
+  postcode: 'LS1 1AA',
+  country: 'UK',
+  status: 'verified',
+  verified_at: '2024-03-01',
+  created_at: '2024-01-01',
+  updated_at: '2024-02-01',
+  ...overrides,
+});
+
 describe('AdminRescueService', () => {
   describe('getAll', () => {
     it('translates filters into query params and computes pagination flags', async () => {
       mockGet.mockResolvedValueOnce({
         success: true,
-        data: [{ rescueId: 'r1' }],
+        data: [snakeRescue()],
         pagination: { page: 2, limit: 10, total: 30, totalPages: 3 },
       });
 
@@ -66,7 +82,15 @@ describe('AdminRescueService', () => {
         dateFrom: '2024-01-01',
         dateTo: '2024-02-01',
       });
-      expect(result.data).toEqual([{ rescueId: 'r1' }]);
+      // The snake_case view is transformed into the camelCase AdminRescue.
+      expect(result.data[0]).toMatchObject({
+        rescueId: 'r1',
+        name: 'Happy Tails',
+        verifiedAt: '2024-03-01',
+        createdAt: '2024-01-01',
+        updatedAt: '2024-02-01',
+        verified: true,
+      });
       expect(result.pagination).toEqual({
         page: 2,
         limit: 10,
@@ -100,13 +124,18 @@ describe('AdminRescueService', () => {
   });
 
   describe('getById', () => {
-    it('requests stats when includeStats is set', async () => {
-      mockGet.mockResolvedValueOnce({ success: true, data: { rescueId: 'r1' } });
+    it('requests stats when includeStats is set and transforms the view', async () => {
+      mockGet.mockResolvedValueOnce({ success: true, data: snakeRescue({ status: 'pending' }) });
 
       const result = await rescueService.getById('r1', { includeStats: true });
 
       expect(mockGet).toHaveBeenCalledWith('/api/v1/rescues/r1', { includeStats: 'true' });
-      expect(result).toEqual({ rescueId: 'r1' });
+      expect(result).toMatchObject({
+        rescueId: 'r1',
+        name: 'Happy Tails',
+        createdAt: '2024-01-01',
+        verified: false,
+      });
     });
 
     it('throws when unsuccessful', async () => {

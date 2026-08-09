@@ -8,7 +8,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { NotFoundError } from '@adopt-dont-shop/lib.api';
 import { useApplicationDraft } from './useApplicationDraft';
 
 const apiGet = vi.fn();
@@ -26,8 +27,8 @@ vi.mock('@/services', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
-  // Default GET: 404 (no existing draft)
-  apiGet.mockRejectedValue({ status: 404 });
+  // Default GET: 404 (no existing draft) — lib.api throws NotFoundError.
+  apiGet.mockRejectedValue(new NotFoundError('draft'));
   apiPut.mockResolvedValue({ data: { updatedAt: new Date().toISOString() } });
 });
 
@@ -97,5 +98,30 @@ describe('useApplicationDraft – flush pending save on unmount', () => {
     unmount();
 
     expect(apiPut).not.toHaveBeenCalled();
+  });
+});
+
+describe('useApplicationDraft – draft GET error handling', () => {
+  it('does NOT surface an error state when no draft exists (404 NotFoundError)', async () => {
+    vi.useRealTimers();
+    apiGet.mockRejectedValue(new NotFoundError('draft'));
+
+    const { result } = renderHook(() => useApplicationDraft('pet-123'));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.saveStatus).toBe('idle');
+    expect(result.current.loadedDraft).toBeNull();
+  });
+
+  it('surfaces an error state when the draft GET fails for a non-404 reason', async () => {
+    vi.useRealTimers();
+    apiGet.mockRejectedValue(new Error('boom'));
+
+    const { result } = renderHook(() => useApplicationDraft('pet-123'));
+
+    await waitFor(() => expect(result.current.saveStatus).toBe('error'));
+
+    expect(result.current.loadedDraft).toBeNull();
   });
 });

@@ -5,6 +5,7 @@ import {
   ProfileCompletionResponse,
   QuickApplicationCapability,
 } from '../types';
+import { ValidationError } from '@adopt-dont-shop/lib.api';
 import { api } from '@/services';
 
 /**
@@ -180,16 +181,17 @@ export class ApplicationProfileService {
         prePopulationData: prePopulationData.defaults,
       };
     } catch (error: unknown) {
-      const apiError = error as {
-        response?: { status: number; data: { data?: { missingFields?: string[] } } };
-      };
-      if (apiError.response?.status === 400) {
+      // lib.api throws a typed ValidationError for a 400 (no axios-style
+      // `.response`). The gateway conveys the incomplete-profile sections via
+      // the error's field details, which lib.api surfaces on `errors`.
+      if (error instanceof ValidationError) {
+        const missingFields = error.errors?.missingFields ?? [];
         return {
           canProceed: false,
           completionPercentage: 0,
-          missingRequirements: apiError.response.data.data?.missingFields || [],
+          missingRequirements: missingFields,
           estimatedTimeMinutes: 30,
-          missingFields: apiError.response.data.data?.missingFields || [],
+          missingFields,
         };
       }
       // Return fallback for other errors

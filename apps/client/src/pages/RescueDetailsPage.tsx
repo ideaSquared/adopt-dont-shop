@@ -105,6 +105,10 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
     );
   }
 
+  // Contact fields are masked ('' / absent) for anonymous viewers, so the
+  // Contact button and Email row are only rendered when an address is present.
+  const contactEmail = rescue.contactEmail || rescue.email;
+
   return (
     <div className={styles.pageContainer}>
       <Link to='/' className={styles.backButton}>
@@ -138,11 +142,13 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           </Badge>
         </div>
         <div className='contact-info'>
-          <a href={`mailto:${rescue.contactEmail || rescue.email}`}>
-            <Button variant='primary' size='md'>
-              Contact Rescue
-            </Button>
-          </a>
+          {contactEmail && (
+            <a href={`mailto:${contactEmail}`}>
+              <Button variant='primary' size='md'>
+                Contact Rescue
+              </Button>
+            </a>
+          )}
           {rescue.website && (
             <a href={safeHref(rescue.website)} target='_blank' rel='noopener noreferrer'>
               <Button variant='outline' size='md'>
@@ -192,13 +198,15 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             </div>
           )}
 
-          <div className='contact-item'>
-            <Mail size='1em' className='icon' />
-            <div className='details'>
-              <div className='label'>Email</div>
-              <div className='value'>{rescue.email}</div>
+          {rescue.email && (
+            <div className='contact-item'>
+              <Mail size='1em' className='icon' />
+              <div className='details'>
+                <div className='label'>Email</div>
+                <div className='value'>{rescue.email}</div>
+              </div>
             </div>
-          </div>
+          )}
 
           {rescue.contactEmail && rescue.contactEmail !== rescue.email && (
             <div className='contact-item'>
@@ -330,11 +338,13 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
               {rescue.name} doesn&apos;t have any pets available for adoption at the moment. Please
               check back later or contact them directly for more information.
             </p>
-            <a href={`mailto:${rescue.contactEmail || rescue.email}`}>
-              <Button variant='primary' size='md'>
-                Contact {rescue.name}
-              </Button>
-            </a>
+            {contactEmail && (
+              <a href={`mailto:${contactEmail}`}>
+                <Button variant='primary' size='md'>
+                  Contact {rescue.name}
+                </Button>
+              </a>
+            )}
           </div>
         )}
       </div>

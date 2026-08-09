@@ -17,10 +17,8 @@ export type AdminApplication = {
 };
 
 export type ApplicationFilters = {
-  search?: string;
   status?: ApplicationStatus;
   rescueId?: string;
-  petType?: string;
   page?: number;
   limit?: number;
 };
@@ -85,17 +83,12 @@ class ApplicationServiceClient {
     };
   }> {
     const params: Record<string, string> = {};
-    if (filters.search) {
-      params.search = filters.search;
-    }
     if (filters.status) {
       params.status = filters.status;
     }
+    // The list route reads the `rescue` query param (not `rescueId`).
     if (filters.rescueId) {
-      params.rescueId = filters.rescueId;
-    }
-    if (filters.petType) {
-      params.petType = filters.petType;
+      params.rescue = filters.rescueId;
     }
     if (filters.page) {
       params.page = String(filters.page);

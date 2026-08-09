@@ -9,7 +9,7 @@ import type {
   ApplicationStats,
   BulkAction,
   RawApplication,
-  RawReference,
+  RawReferencesBlob,
   RawTimelineItem,
 } from '../types/applications';
 import type { ApplicationStage } from '../types/applicationStages';
@@ -28,6 +28,17 @@ type RawApplicationsListResponse = {
   currentPage?: number;
   totalPages?: number;
   limit?: number;
+  // ADS-1190: the gateway nests paging metadata under `pagination`
+  // ({ success, data, pagination }). Reading page/total/totalPages off the
+  // top level left the UI stuck on page 1.
+  pagination?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    totalPages?: number;
+    hasNext?: boolean;
+    hasPrev?: boolean;
+  };
 };
 
 /**
@@ -75,7 +86,8 @@ type LegacyApplicationFields = {
 const buildSingleStageTransitionUpdates = (
   stageAction: string,
   nextStage: string | undefined,
-  notes: string | undefined
+  notes: string | undefined,
+  data?: Record<string, unknown>
 ): Record<string, unknown> => {
   if (stageAction === 'REJECT') {
     return {
@@ -93,10 +105,49 @@ const buildSingleStageTransitionUpdates = (
       withdrawalReason: notes,
     };
   }
+  // ADS-1189: MAKE_DECISION resolves the application. The bulk-update route
+  // routes a terminal `status` through approve/reject, so the caller must
+  // supply the approve-vs-reject choice (data.status) — a bare stage move
+  // (e.g. `resolved`) has no matching command and the route rejects it.
+  if (stageAction === 'MAKE_DECISION') {
+    const decision = data?.status;
+    if (decision === 'approved') {
+      return { status: 'approved', stage: 'resolved', finalOutcome: 'approved', notes };
+    }
+    if (decision === 'rejected') {
+      return {
+        status: 'rejected',
+        stage: 'resolved',
+        finalOutcome: 'rejected',
+        rejectionReason: notes,
+      };
+    }
+    throw new Error('MAKE_DECISION requires a decision of "approved" or "rejected"');
+  }
   if (!nextStage) {
     throw new Error(`Stage action ${stageAction} requires a nextStage`);
   }
-  return { stage: nextStage.toLowerCase() };
+  const stage = nextStage.toLowerCase();
+  // ADS-1189: the bulk-update route dispatches stage `visiting` through
+  // ScheduleHomeVisit (needs scheduledAt) and stage `deciding` through
+  // CompleteHomeVisit (needs outcome). Sending a bare `{ stage }` made the
+  // route reject the item while still returning HTTP 200, so include the
+  // required field or fail fast before the request is sent.
+  if (stageAction === 'SCHEDULE_VISIT') {
+    const scheduledAt = data?.scheduledAt;
+    if (typeof scheduledAt !== 'string' || scheduledAt === '') {
+      throw new Error('SCHEDULE_VISIT requires a scheduledAt timestamp');
+    }
+    return notes ? { stage, scheduledAt, notes } : { stage, scheduledAt };
+  }
+  if (stageAction === 'COMPLETE_VISIT') {
+    const outcome = data?.outcome;
+    if (typeof outcome !== 'string' || outcome === '') {
+      throw new Error('COMPLETE_VISIT requires a visit outcome');
+    }
+    return notes ? { stage, outcome, notes } : { stage, outcome };
+  }
+  return { stage };
 };
 
 /**
@@ -108,6 +159,54 @@ const buildSingleStageTransitionUpdates = (
 const combineDateTime = (date: string, time: string): string => {
   const parsed = new Date(`${date}T${time || '00:00'}`);
   return Number.isNaN(parsed.getTime()) ? date : parsed.toISOString();
+};
+
+/**
+ * ADS-1199: build the rescue UI's ReferenceCheck list from the references the
+ * applicant submitted in the answers blob (application.data.references),
+ * shaped { veterinarian?, personal?[] }. The applications view never returns
+ * a flat top-level `references` array, so reading `application.references`
+ * always yielded an empty list. Mirrors components/applications/extractReferences.
+ */
+const buildReferenceChecks = (
+  applicationId: string,
+  references: RawReferencesBlob | undefined
+): ReferenceCheck[] => {
+  if (!references) {
+    return [];
+  }
+  const checks: ReferenceCheck[] = [];
+  const vet = references.veterinarian;
+  if (vet?.name && vet.name !== 'To be determined') {
+    checks.push({
+      id: `ref-${checks.length}`,
+      applicationId,
+      type: 'veterinarian',
+      contactName: vet.name,
+      contactInfo: `${vet.phone || 'No phone'} - ${vet.clinicName || 'Veterinarian'}`,
+      status: vet.status || 'pending',
+      notes: vet.notes || '',
+      completedAt: vet.contactedAt,
+      completedBy: vet.contactedBy,
+    });
+  }
+  for (const ref of references.personal ?? []) {
+    if (!ref.name) {
+      continue;
+    }
+    checks.push({
+      id: `ref-${checks.length}`,
+      applicationId,
+      type: 'personal',
+      contactName: ref.name,
+      contactInfo: `${ref.phone || 'No phone'} - ${ref.relationship || 'Personal Reference'}`,
+      status: ref.status || 'pending',
+      notes: ref.notes || '',
+      completedAt: ref.contactedAt,
+      completedBy: ref.contactedBy,
+    });
+  }
+  return checks;
 };
 
 /**
@@ -199,13 +298,16 @@ export class RescueApplicationService {
         envelope = response;
       }
 
+      // ADS-1190: prefer the nested `pagination` envelope the gateway
+      // returns; fall back to the legacy top-level fields for older shapes.
+      const paging = envelope.pagination;
+      const total = paging?.total ?? envelope.total ?? envelope.count ?? applicationsArray.length;
+      const pageSize = paging?.limit ?? envelope.limit ?? 25;
       return {
         applications: applicationsArray.map(this.transformApplicationForList) || [],
-        total: envelope.total || envelope.count || applicationsArray.length,
-        page: envelope.page || envelope.currentPage || 1,
-        totalPages:
-          envelope.totalPages ||
-          Math.ceil((envelope.total || applicationsArray.length) / (envelope.limit || 25)),
+        total,
+        page: paging?.page ?? envelope.page ?? envelope.currentPage ?? 1,
+        totalPages: paging?.totalPages ?? envelope.totalPages ?? Math.ceil(total / pageSize),
       };
     } catch (error) {
       console.error('Failed to fetch applications:', error);
@@ -364,17 +466,36 @@ export class RescueApplicationService {
    * `updates` shape `performBulkUpdates` builds, then dispatch a one-item
    * batch.
    */
-  async transitionStage(id: string, stageAction: string, nextStage?: string, notes?: string) {
-    const updates = buildSingleStageTransitionUpdates(stageAction, nextStage, notes);
+  async transitionStage(
+    id: string,
+    stageAction: string,
+    nextStage?: string,
+    notes?: string,
+    data?: Record<string, unknown>
+  ) {
+    const updates = buildSingleStageTransitionUpdates(stageAction, nextStage, notes, data);
     try {
-      const response = await this.apiService.patch<RawApplicationEnvelope>(
-        '/api/v1/applications/bulk-update',
-        {
-          applicationIds: [id],
-          updates,
-        }
-      );
-      return response.data || response; // Extract data field from API response wrapper
+      const response = await this.apiService.patch<{
+        data?: {
+          successCount?: number;
+          failureCount?: number;
+          failures?: Array<{ applicationId: string; error: string }>;
+        };
+        successCount?: number;
+        failureCount?: number;
+        failures?: Array<{ applicationId: string; error: string }>;
+      }>('/api/v1/applications/bulk-update', {
+        applicationIds: [id],
+        updates,
+      });
+      // ADS-1189: the bulk-update route returns HTTP 200 even when it rejects
+      // the item, reporting per-row outcomes in the body. Surface a failed
+      // transition instead of letting the modal report phantom success.
+      const payload = response.data ?? response;
+      if ((payload.failureCount ?? 0) > 0) {
+        throw new Error(payload.failures?.[0]?.error ?? 'Stage transition failed');
+      }
+      return payload;
     } catch (error) {
       console.error(`Failed to transition stage for application ${id}:`, error);
       throw error; // Re-throw to preserve the specific error message
@@ -386,10 +507,12 @@ export class RescueApplicationService {
    */
   async getApplicationStats(): Promise<ApplicationStats> {
     try {
-      const response = await this.apiService.get<ApplicationStats>(
-        '/api/v1/applications/statistics'
+      // ADS-1204: the endpoint is /stats (not /statistics, which 404s) and
+      // the gateway wraps the payload in a `{ data }` envelope.
+      const response = await this.apiService.get<{ data: ApplicationStats }>(
+        '/api/v1/applications/stats'
       );
-      return response;
+      return response.data;
     } catch (error) {
       console.error('Failed to fetch application stats:', error);
       throw new Error('Failed to fetch application statistics from server');
@@ -407,21 +530,9 @@ export class RescueApplicationService {
       );
       const application = response.data || response; // Extract data field from API response wrapper
 
-      // Extract references from application data and transform them
-      const references = application?.references || [];
-      return references.map(
-        (ref: RawReference, index: number): ReferenceCheck => ({
-          id: `ref-${index}`,
-          applicationId,
-          type: ref.relationship?.toLowerCase().includes('vet') ? 'veterinarian' : 'personal',
-          contactName: ref.name ?? '',
-          contactInfo: `${ref.phone} - ${ref.email}`,
-          status: ref.status || 'pending',
-          notes: ref.notes || '',
-          completedAt: ref.contactedAt,
-          completedBy: ref.contactedBy,
-        })
-      );
+      // ADS-1199: references live inside the submitted answers blob
+      // (application.data.references), not as a flat top-level array.
+      return buildReferenceChecks(applicationId, application.data?.references);
     } catch (error) {
       console.error(`Failed to fetch references for application ${applicationId}:`, error);
       throw new Error('Failed to fetch reference checks from server');

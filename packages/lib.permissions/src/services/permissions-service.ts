@@ -19,6 +19,14 @@ type UserPermissionsPayload = {
   data?: { permissions?: Permission[] };
 };
 
+// The gateway serves the user-with-permissions record wrapped in the standard
+// `{ success, data }` envelope (GET /api/v1/users/:id/with-permissions →
+// `{ data: { …user, permissions } }`). Older/simpler responses put the record
+// at the top level, so we accept either shape.
+type UserWithPermissionsPayload = UserWithPermissions & {
+  data?: UserWithPermissions;
+};
+
 // Narrow an unknown value to a plain record for safe property access —
 // mirrors the guard style used by FieldPermissionsService.
 const asRecord = (value: unknown): Record<string, unknown> =>
@@ -179,9 +187,12 @@ export class PermissionsService {
     try {
       const response = (await this.apiService.get(
         `/api/v1/users/${userId}/with-permissions`
-      )) as UserWithPermissions;
+      )) as UserWithPermissionsPayload;
 
-      return response;
+      // The gateway wraps the record in the standard `{ success, data }`
+      // envelope; older/simpler responses return it flat. Accept either
+      // (mirrors getUserPermissions).
+      return response.data ?? response;
     } catch (error) {
       if (this.config.debug) {
         console.error(`Failed to get user with permissions ${userId}:`, error);

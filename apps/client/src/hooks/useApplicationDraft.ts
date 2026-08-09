@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { NotFoundError } from '@adopt-dont-shop/lib.api';
 import { apiService } from '@/services';
 
 export type DraftSaveStatus = 'idle' | 'loading' | 'saving' | 'saved' | 'error';
@@ -79,12 +80,11 @@ export const useApplicationDraft = (petId: string | undefined): UseApplicationDr
         if (cancelled) {
           return;
         }
-        // 404 is the "no draft yet" case — silent, not an error.
-        const status =
-          err && typeof err === 'object' && 'status' in err
-            ? (err as { status: unknown }).status
-            : undefined;
-        if (status !== 404) {
+        // A 404 (lib.api throws NotFoundError) is the "no draft yet" case —
+        // silent, not an error.
+        const isNotFound =
+          err instanceof NotFoundError || (err instanceof Error && err.name === 'NotFoundError');
+        if (!isNotFound) {
           // Surface non-404 failures so the UI can render a hint; we don't
           // re-throw because losing the GET shouldn't block the form.
           setSaveStatus('error');
