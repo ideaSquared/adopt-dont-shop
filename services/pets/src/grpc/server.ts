@@ -16,7 +16,7 @@ import { PetsV1 } from '@adopt-dont-shop/proto';
 
 import type { PetsConfig } from '../config.js';
 
-import { adapt } from './adapter.js';
+import { adapt, adaptUnauth } from './adapter.js';
 import {
   createPet,
   deletePet,
@@ -58,10 +58,11 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
 
   server.addService(PetsV1.PetServiceService, {
     create: adapt(createPet, { deps, logger }),
-    get: adapt(getPet, { deps, logger }),
-    list: adapt(listPets, { deps, logger }),
-    listBreeds: adapt(listBreeds, { deps, logger }),
-    getSimilarPets: adapt(getSimilarPets, { deps, logger }),
+    // Public catalogue reads — anonymous (logged-out) visitors may browse.
+    get: adaptUnauth(getPet, { deps, logger }),
+    list: adaptUnauth(listPets, { deps, logger }),
+    listBreeds: adaptUnauth(listBreeds, { deps, logger }),
+    getSimilarPets: adaptUnauth(getSimilarPets, { deps, logger }),
     update: adapt(updatePet, { deps, logger }),
     updateStatus: adapt(updatePetStatus, { deps, logger }),
     delete: adapt(deletePet, { deps, logger }),
