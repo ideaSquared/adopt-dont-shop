@@ -1,6 +1,7 @@
+import { BREEDS_BY_SPECIES } from '@adopt-dont-shop/seed-faker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { assertNotProduction, seedFavorites, seedPets, type QueryFn } from './seed.js';
+import { assertNotProduction, seedBreeds, seedFavorites, seedPets, type QueryFn } from './seed.js';
 import { SEED_FAVORITES, SEED_PETS } from './seed-data.js';
 
 describe('production guard', () => {
@@ -80,6 +81,28 @@ describe('pets seed', () => {
     const second = recordingQuery();
     await seedPets({ query: second.query });
     expect(second.calls).toHaveLength(calls.length);
+  });
+
+  it('plants every canonical breed once, idempotently on (species, name)', async () => {
+    const total = Object.values(BREEDS_BY_SPECIES).reduce((n, b) => n + b.length, 0);
+    const { query, calls } = recordingQuery();
+
+    const seeded = await seedBreeds({ query });
+
+    expect(seeded).toBe(total);
+    expect(calls).toHaveLength(total);
+    for (const call of calls) {
+      expect(call.text).toMatch(/ON CONFLICT \(species, name\) DO NOTHING/);
+    }
+  });
+
+  it('gives breeds deterministic ids so pets reference the same id across runs', async () => {
+    const a = recordingQuery();
+    await seedBreeds({ query: a.query });
+    const b = recordingQuery();
+    await seedBreeds({ query: b.query });
+
+    expect(a.calls.map(c => c.values[0])).toEqual(b.calls.map(c => c.values[0]));
   });
 
   it('seeds John Smith two favourites with an idempotent (revive) upsert', async () => {

@@ -10,6 +10,7 @@
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
+import { BREEDS_BY_SPECIES, seededUuid, SPECIES } from '@adopt-dont-shop/seed-faker';
 
 import { loadConfig } from '../config.js';
 import {
@@ -44,6 +45,27 @@ const UPSERT_PET = `
 
 export type SeedDeps = {
   query: QueryFn;
+};
+
+// Reference data — the canonical breed list every pet's breed_id points at.
+// Deterministic breed_id (seededUuid) means the spam seeder can be sure the
+// id it references exists, and a re-run never duplicates thanks to the
+// (species, name) unique index.
+const UPSERT_BREED = `
+  INSERT INTO pets.breeds (breed_id, species, name, created_at, updated_at)
+  VALUES ($1, $2, $3, now(), now())
+  ON CONFLICT (species, name) DO NOTHING
+`;
+
+export const seedBreeds = async (deps: SeedDeps): Promise<number> => {
+  let seeded = 0;
+  for (const species of SPECIES) {
+    for (const name of BREEDS_BY_SPECIES[species]) {
+      await deps.query(UPSERT_BREED, [seededUuid(`breed-${species}-${name}`), species, name]);
+      seeded += 1;
+    }
+  }
+  return seeded;
 };
 
 export const seedPets = async (deps: SeedDeps): Promise<string[]> => {
@@ -99,9 +121,10 @@ const main = async (): Promise<void> => {
   try {
     logger.info('seeding pets', { schema: config.schema, count: SEED_PETS.length });
     const query: QueryFn = (text, values) => pool.query(text, values as unknown[]);
+    const breeds = await seedBreeds({ query });
     const seeded = await seedPets({ query });
     const favorites = await seedFavorites({ query });
-    logger.info('pets seed complete', { seeded, favorites });
+    logger.info('pets seed complete', { breeds, seeded, favorites });
   } catch (err) {
     logger.error('pets seed failed', {
       message: (err as Error)?.message,
