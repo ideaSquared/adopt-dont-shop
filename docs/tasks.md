@@ -108,7 +108,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:readmes && pnpm check:no-only && pnpm check:renovate && pnpm test:scripts` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm test:scripts` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks
@@ -136,6 +136,7 @@ the repo root with `pnpm <script>`.
 | `pnpm clean` | `turbo run clean && rimraf node_modules` |
 | `pnpm commands` | `node scripts/generate-task-index.mjs --help` |
 | `pnpm db:seed` | `node scripts/seed.mjs` |
+| `pnpm db:seed:dev` | `node scripts/seed.mjs && node scripts/spam.mjs` |
 | `pnpm db:spam` | `node scripts/spam.mjs` |
 | `pnpm ratchet:coverage` | `node scripts/ratchet-coverage.mjs` |
 | `pnpm ratchet:stories-coverage` | `node scripts/check-storybook-coverage.mjs --ratchet` |

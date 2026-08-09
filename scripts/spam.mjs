@@ -20,15 +20,19 @@
  * script is double-gated by assertSpamAllowed (NODE_ENV + ALLOW_SPAM), so we
  * pass NODE_ENV=development and ALLOW_SPAM=true into the exec environment.
  *
- * ADDITIVE: every run inserts fresh random-UUID rows. Re-running adds MORE
- * data — it does not upsert. Wipe with `pnpm docker:reset`.
+ * IDEMPOTENT: rows use deterministic ids (seededUuid) + ON CONFLICT DO
+ * NOTHING, so re-running converges to the SAME dataset instead of piling on.
+ * A fresh db is already seeded with the browsable catalogue on boot (auth +
+ * rescue + pets, guarded by SEED_ONLY_IF_EMPTY); run this to (re)populate on
+ * demand and to add the applications/chat/notifications volume too.
  *
  * Volume is overridable per entity via SPAM_* env vars, forwarded to the
- * containers (e.g. SPAM_PETS=1000 pnpm db:spam). Faker text is seeded
- * (FAKER_SEED) so generated names/descriptions are reproducible.
+ * containers (e.g. SPAM_PETS=1000 pnpm db:spam). To raise the count, bump the
+ * SPAM_* var and re-run — the extra rows are inserted, existing ones untouched.
  *
  *   pnpm docker:dev:detach   # stack must be up
- *   pnpm db:spam
+ *   pnpm db:seed:dev         # personas + synthetic (the full dev dataset)
+ *   pnpm db:spam             # just the synthetic tier
  */
 import { spawnSync } from 'node:child_process';
 
@@ -104,8 +108,10 @@ function main() {
   for (const [service, pkg, label] of SPAM_TARGETS) {
     runSpam(service, pkg, label);
   }
-  process.stdout.write('\n✓ spam complete — dev database flooded with faker volume.\n');
-  process.stdout.write('  Log in as any spam user: <name>@example.test / DevPassword123!\n');
+  process.stdout.write('\n✓ synthetic data seeded — dev database populated.\n');
+  process.stdout.write(
+    '  Log in as any synthetic user: adopter0@example.test / staff0@example.test — DevPassword123!\n'
+  );
 }
 
 main();
