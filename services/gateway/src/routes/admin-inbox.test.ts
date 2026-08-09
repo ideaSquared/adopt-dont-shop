@@ -279,6 +279,72 @@ describe('GET /api/v1/admin/inbox', () => {
     expect(body.data).toHaveLength(1);
   });
 
+  it('drains all source pages so items beyond the first 200 are reachable with a real total (ADS-1180)', async () => {
+    // 250 reports across two keyset pages. updatedAt strictly decreases with
+    // index, so the default (updatedAt desc) sort preserves index order.
+    const base = Date.parse('2026-06-01T00:00:00.000Z');
+    const make = (i: number) => ({
+      ...REPORT,
+      reportId: `rpt-${i}`,
+      updatedAt: new Date(base - i * 60000).toISOString(),
+    });
+    const page1 = Array.from({ length: 200 }, (_, i) => make(i));
+    const page2 = Array.from({ length: 50 }, (_, i) => make(200 + i));
+    mocks.listReports
+      .mockResolvedValueOnce({ reports: page1, nextCursor: 'cursor-1' })
+      .mockResolvedValueOnce({ reports: page2 });
+
+    // Page 13 of a 250-item set (limit 20) is the last page: indices 240-249,
+    // entirely inside the SECOND fetched page (unreachable under the old cap).
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/inbox?source=moderation&page=13&limit=20',
+      headers: ADMIN,
+    });
+
+    const body = res.json() as InboxBody;
+    expect(mocks.listReports).toHaveBeenCalledTimes(2);
+    expect(body.pagination).toMatchObject({ page: 13, limit: 20, total: 250, totalPages: 13 });
+    expect(body.data).toHaveLength(10);
+    expect(body.data[0].id).toBe('rpt-240');
+    expect(body.data[9].id).toBe('rpt-249');
+    // The second page is fetched by following the first page's nextCursor.
+    expect(mocks.listReports.mock.calls[1][0]).toMatchObject({ cursor: 'cursor-1' });
+  });
+
+  it('pushes the status filter into the reports RPC (ADS-1180)', async () => {
+    mocks.listReports.mockResolvedValueOnce({ reports: [REPORT] });
+
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/inbox?source=moderation&status=pending&severity=high',
+      headers: ADMIN,
+    });
+
+    expect(mocks.listReports.mock.calls[0][0]).toMatchObject({
+      status: ModerationV1.ReportStatus.REPORT_STATUS_PENDING,
+      severity: ModerationV1.Severity.SEVERITY_HIGH,
+    });
+  });
+
+  it('skips a source whose enum cannot hold the requested status (ADS-1180)', async () => {
+    // 'pending' is a report status, not a ticket status: the support source
+    // can hold no match, so it is never queried.
+    mocks.listReports.mockResolvedValueOnce({ reports: [REPORT] });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/inbox?status=pending',
+      headers: ADMIN,
+    });
+
+    const body = res.json() as InboxBody;
+    expect(mocks.listSupportTickets).not.toHaveBeenCalled();
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0].status).toBe('pending');
+    expect(body.pagination).toMatchObject({ total: 1 });
+  });
+
   it('rejects an invalid limit with 400', async () => {
     const res = await app.inject({
       method: 'GET',

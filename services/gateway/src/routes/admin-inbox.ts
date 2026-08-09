@@ -47,11 +47,36 @@ type InboxItem = {
   relatedUserEmail: string | null;
 };
 
-// Upper bound on the candidate window pulled from each source before the
-// in-memory merge. The merged list is paginated locally, so we gather a
-// bounded page from each RPC (gRPC clamps to its own MAX_LIMIT) rather
-// than streaming every row.
-const CANDIDATE_LIMIT = 200;
+// Page size for each keyset round-trip to a source (the moderation RPCs
+// clamp to their own MAX_LIMIT of 200).
+const PAGE_SIZE = 200;
+
+// Safety bound on how many matching rows we pull from a single source
+// before merging. The two sources are merged, sorted and paginated in
+// memory, so we must gather the WHOLE filtered set — not just the first
+// page — for `total`/`totalPages` and deep pages to be correct (ADS-1180).
+// Server-side status/severity filters keep this set small in practice; the
+// cap only guards against a pathological, unfiltered queue.
+const MAX_CANDIDATES = 2000;
+
+// Drain a keyset-paginated source into a single array, following
+// nextCursor until the source is exhausted or the safety cap is hit.
+async function collectAll<T>(
+  fetchPage: (cursor: string | undefined) => Promise<{ items: T[]; nextCursor?: string }>,
+  cap: number
+): Promise<T[]> {
+  const collected: T[] = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const { items, nextCursor } = await fetchPage(cursor);
+    collected.push(...items);
+    if (nextCursor === undefined || nextCursor === '' || collected.length >= cap) {
+      break;
+    }
+    cursor = nextCursor;
+  }
+  return collected.length > cap ? collected.slice(0, cap) : collected;
+}
 
 // Strip a proto enum's SCREAMING prefix and lowercase it
 // (REPORT_STATUS_PENDING → 'pending'). Mirrors moderation-view.ts.
@@ -209,25 +234,90 @@ export const registerAdminInboxRoutes = async (
       const wantModeration = source === undefined || source === '' || source === 'moderation';
       const wantSupport = source === undefined || source === '' || source === 'support';
 
+      // Resolve the status/severity filters into each source's own enum
+      // space and push them into the RPCs, so we drain only matching rows
+      // rather than a bounded raw window (ADS-1180). A value that isn't a
+      // member of a source's enum resolves to UNSPECIFIED — that source can
+      // hold no matching row, so it is skipped entirely instead of fetched
+      // only to be filtered out in memory. Severity maps to a ticket's
+      // priority (the column the inbox renders as severity for tickets).
+      const statusProvided = q.status !== undefined && q.status !== '';
+      const severityProvided = q.severity !== undefined && q.severity !== '';
+
+      const reportStatus = parseEnum(
+        ModerationV1.ReportStatus,
+        'REPORT_STATUS',
+        ModerationV1.reportStatusFromJSON,
+        ModerationV1.ReportStatus.REPORT_STATUS_UNSPECIFIED,
+        ModerationV1.ReportStatus.UNRECOGNIZED,
+        q.status
+      );
+      const reportSeverity = parseEnum(
+        ModerationV1.Severity,
+        'SEVERITY',
+        ModerationV1.severityFromJSON,
+        ModerationV1.Severity.SEVERITY_UNSPECIFIED,
+        ModerationV1.Severity.UNRECOGNIZED,
+        q.severity
+      );
+      const ticketStatus = parseEnum(
+        ModerationV1.SupportTicketStatus,
+        'SUPPORT_TICKET_STATUS',
+        ModerationV1.supportTicketStatusFromJSON,
+        ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_UNSPECIFIED,
+        ModerationV1.SupportTicketStatus.UNRECOGNIZED,
+        q.status
+      );
+      const ticketPriority = parseEnum(
+        ModerationV1.SupportTicketPriority,
+        'SUPPORT_TICKET_PRIORITY',
+        ModerationV1.supportTicketPriorityFromJSON,
+        ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_UNSPECIFIED,
+        ModerationV1.SupportTicketPriority.UNRECOGNIZED,
+        q.severity
+      );
+
+      const reportsMatchFilters =
+        (!statusProvided || reportStatus !== ModerationV1.ReportStatus.REPORT_STATUS_UNSPECIFIED) &&
+        (!severityProvided || reportSeverity !== ModerationV1.Severity.SEVERITY_UNSPECIFIED);
+      const ticketsMatchFilters =
+        (!statusProvided ||
+          ticketStatus !== ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_UNSPECIFIED) &&
+        (!severityProvided ||
+          ticketPriority !==
+            ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_UNSPECIFIED);
+
       try {
         const items: InboxItem[] = [];
 
-        if (wantModeration) {
-          const grpcReq: ListReportsRequest = {
-            limit: CANDIDATE_LIMIT,
-            assignedModerator: q.assignedTo,
-          };
-          const res = await client.listReports(grpcReq, meta);
-          items.push(...res.reports.map(reportToInboxItem));
+        if (wantModeration && reportsMatchFilters) {
+          const reports = await collectAll<Report>(async cursor => {
+            const grpcReq: ListReportsRequest = {
+              limit: PAGE_SIZE,
+              cursor,
+              status: reportStatus,
+              severity: reportSeverity,
+              assignedModerator: q.assignedTo,
+            };
+            const res = await client.listReports(grpcReq, meta);
+            return { items: res.reports, nextCursor: res.nextCursor };
+          }, MAX_CANDIDATES);
+          items.push(...reports.map(reportToInboxItem));
         }
 
-        if (wantSupport) {
-          const grpcReq: ListSupportTicketsRequest = {
-            limit: CANDIDATE_LIMIT,
-            assignedTo: q.assignedTo,
-          };
-          const res = await client.listSupportTickets(grpcReq, meta);
-          items.push(...res.tickets.map(ticketToInboxItem));
+        if (wantSupport && ticketsMatchFilters) {
+          const tickets = await collectAll<SupportTicket>(async cursor => {
+            const grpcReq: ListSupportTicketsRequest = {
+              limit: PAGE_SIZE,
+              cursor,
+              status: ticketStatus,
+              priority: ticketPriority,
+              assignedTo: q.assignedTo,
+            };
+            const res = await client.listSupportTickets(grpcReq, meta);
+            return { items: res.tickets, nextCursor: res.nextCursor };
+          }, MAX_CANDIDATES);
+          items.push(...tickets.map(ticketToInboxItem));
         }
 
         const filtered = items.filter(item => matchesFilters(item, q));
@@ -312,3 +402,25 @@ export const registerAdminInboxRoutes = async (
     }
   );
 };
+
+// --- Helpers ---------------------------------------------------------
+
+// Same generic enum parser moderation-admin.ts uses — accepts the DB form
+// ('pending') AND the SCREAMING proto form ('REPORT_STATUS_PENDING'), and
+// returns UNSPECIFIED for an empty or foreign token.
+function parseEnum<E extends Record<string, string | number>>(
+  enumObj: E,
+  prefix: string,
+  fromJSON: (s: string) => number,
+  unspecified: number,
+  unrecognized: number,
+  raw: string | undefined
+): number {
+  if (!raw) {
+    return unspecified;
+  }
+  const upper = `${prefix}_${raw.toUpperCase()}`;
+  const candidate = Object.values(enumObj).includes(upper as never) ? upper : raw;
+  const out = fromJSON(candidate);
+  return out === unrecognized ? unspecified : out;
+}
