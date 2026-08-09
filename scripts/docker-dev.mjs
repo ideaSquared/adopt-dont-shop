@@ -36,7 +36,7 @@
 import { execSync, spawnSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { createInterface } from 'readline';
 import { platform } from 'os';
 import { createHash } from 'crypto';
@@ -415,7 +415,11 @@ async function main() {
 // Only run when invoked directly (`node scripts/docker-dev.mjs`), not when the
 // file is imported — scripts/docker-dev.test.mjs imports it to unit-test
 // resolveProfiles without booting Docker.
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+// Windows note: `file://${process.argv[1]}` does NOT equal import.meta.url on
+// win32 (backslashes + a two-slash prefix vs. file:///G:/...), so the naive
+// comparison silently skipped main() and the command exited with no output.
+// pathToFileURL normalises both sides on every platform.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(err => {
     fail(err.message);
     process.exit(1);
