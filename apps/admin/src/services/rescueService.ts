@@ -11,8 +11,11 @@
  * - Clear error handling
  */
 
-import { AdoptionPolicySchema } from '@adopt-dont-shop/lib.rescue';
-import type { Rescue, RescueAPIResponse } from '@adopt-dont-shop/lib.rescue';
+import {
+  AdoptionPolicySchema,
+  type Rescue,
+  type RescueAPIResponse,
+} from '@adopt-dont-shop/lib.rescue';
 
 import { apiService } from './libraryServices';
 import type {

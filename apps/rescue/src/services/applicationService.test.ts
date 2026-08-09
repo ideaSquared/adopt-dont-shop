@@ -197,9 +197,9 @@ describe('RescueApplicationService.transitionStage payloads + failure surfacing 
   });
 
   it('throws before any request when SCHEDULE_VISIT has no scheduledAt', async () => {
-    await expect(
-      service.transitionStage('app-1', 'SCHEDULE_VISIT', 'VISITING')
-    ).rejects.toThrow(/scheduledAt/);
+    await expect(service.transitionStage('app-1', 'SCHEDULE_VISIT', 'VISITING')).rejects.toThrow(
+      /scheduledAt/
+    );
     expect(apiServiceMock.patch).not.toHaveBeenCalled();
   });
 
@@ -216,9 +216,9 @@ describe('RescueApplicationService.transitionStage payloads + failure surfacing 
   });
 
   it('throws before any request when COMPLETE_VISIT has no outcome', async () => {
-    await expect(
-      service.transitionStage('app-1', 'COMPLETE_VISIT', 'DECIDING')
-    ).rejects.toThrow(/outcome/);
+    await expect(service.transitionStage('app-1', 'COMPLETE_VISIT', 'DECIDING')).rejects.toThrow(
+      /outcome/
+    );
     expect(apiServiceMock.patch).not.toHaveBeenCalled();
   });
 
@@ -249,9 +249,9 @@ describe('RescueApplicationService.transitionStage payloads + failure surfacing 
   });
 
   it('throws before any request when MAKE_DECISION has no decision', async () => {
-    await expect(
-      service.transitionStage('app-1', 'MAKE_DECISION', 'RESOLVED')
-    ).rejects.toThrow(/approved.*rejected|decision/);
+    await expect(service.transitionStage('app-1', 'MAKE_DECISION', 'RESOLVED')).rejects.toThrow(
+      /approved.*rejected|decision/
+    );
     expect(apiServiceMock.patch).not.toHaveBeenCalled();
   });
 
