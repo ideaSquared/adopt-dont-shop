@@ -88,6 +88,18 @@ const pickPrimaryImage = (pet: Pet | undefined): string | undefined => {
 // exact enum.
 const isAcknowledged = (status: ApplicationStatus | string): boolean => status !== 'submitted';
 
+// Playwright (and other WebDriver automation) sets `navigator.webdriver = true`.
+// The match-acknowledgement flow is deliberately inert under E2E: each run
+// starts from a fresh seed with no acknowledged transitions to celebrate, and
+// because ItsAMatchModal is a global overlay it would intercept pointer events
+// on unrelated pages the moment a *parallel* adopter spec changes an
+// application's status. ADS-633 guarded the 60s poll for this reason, but the
+// later realtime `application_status_changed` subscription (C4-5) called
+// checkForMatches with no such guard — so the modal still surfaced in E2E.
+// Guarding the single async entry point below keeps both paths dormant.
+const isAutomatedBrowser = (): boolean =>
+  typeof navigator !== 'undefined' && navigator.webdriver === true;
+
 export type MatchAcknowledgementProviderProps = {
   children: ReactNode;
 };
@@ -108,7 +120,7 @@ export const MatchAcknowledgementProvider = ({ children }: MatchAcknowledgementP
   }, []);
 
   const checkForMatches = useCallback(async () => {
-    if (!isAuthenticated || !user || inFlight.current) {
+    if (isAutomatedBrowser() || !isAuthenticated || !user || inFlight.current) {
       return;
     }
     inFlight.current = true;
@@ -154,19 +166,11 @@ export const MatchAcknowledgementProvider = ({ children }: MatchAcknowledgementP
     }
   }, [isAuthenticated, user]);
 
-  // Mount + reauth: kick off an immediate check, then poll.
-  // ADS-633: Playwright sets `navigator.webdriver = true`, so we skip
-  // the background poll in E2E. The polling spins up an
-  // applicationService call against every existing client test that
-  // logs in as an adopter — it adds no behaviour value there (each
-  // E2E run starts from a fresh seed with no acknowledged transitions
-  // to detect) but it does inject 60s timers and surprise
-  // applicationService traffic that races other tests' fixtures.
+  // Mount + reauth: kick off an immediate check, then poll. Skipped under
+  // automation (see isAutomatedBrowser) — guarding here as well as inside
+  // checkForMatches avoids arming a pointless 60s interval in E2E.
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      return;
-    }
-    if (typeof navigator !== 'undefined' && navigator.webdriver) {
+    if (!isAuthenticated || !user || isAutomatedBrowser()) {
       return;
     }
     void checkForMatches();

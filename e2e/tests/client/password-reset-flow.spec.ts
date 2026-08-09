@@ -1,5 +1,4 @@
 import { test, expect } from '../../fixtures';
-import { hardenedClick } from '../../helpers/ui';
 
 test.describe('adopter password reset', () => {
   test('requesting a reset link surfaces a confirmation message', async ({ page }) => {
@@ -7,10 +6,10 @@ test.describe('adopter password reset', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });
 
     await page.getByLabel(/email/i).first().fill('john.smith@gmail.com');
-    const requestSubmit = page
+    await page
       .getByRole('button', { name: /(send|reset|continue|submit)/i })
-      .first();
-    await hardenedClick(requestSubmit);
+      .first()
+      .click();
 
     // Look for either an explicit confirmation, or the "Check Your Email"
     // h2 the page renders on success.
@@ -33,8 +32,10 @@ test.describe('adopter password reset', () => {
       if ((await passwordFields.count()) > 1) {
         await passwordFields.nth(1).fill('AnotherPassword123!');
       }
-      const resetSubmit = page.getByRole('button', { name: /(reset|save|update|submit)/i }).first();
-      await hardenedClick(resetSubmit);
+      await page
+        .getByRole('button', { name: /(reset|save|update|submit)/i })
+        .first()
+        .click();
     }
 
     // Acceptable outcomes: a visible "invalid/expired token" message,
