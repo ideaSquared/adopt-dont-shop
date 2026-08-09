@@ -60,23 +60,48 @@ export async function addFavorite(
     return { favorited: true };
   }
   if (row && row.deleted_at) {
+    // Revive + bump the denormalised counter in one atomic statement. The
+    // `deleted_at IS NOT NULL` guard makes concurrent revives idempotent:
+    // only the transaction that actually flips the row increments the count
+    // (ADS-1174).
     await deps.pool.query(
-      `UPDATE pets.user_favorites SET deleted_at = NULL, updated_at = now() WHERE id = $1`,
+      `WITH revived AS (
+         UPDATE pets.user_favorites
+            SET deleted_at = NULL, updated_at = now()
+          WHERE id = $1 AND deleted_at IS NOT NULL
+          RETURNING pet_id
+       )
+       UPDATE pets.pets SET favorite_count = favorite_count + 1
+        WHERE pet_id IN (SELECT pet_id FROM revived)`,
       [row.id]
     );
     return { favorited: true };
   }
 
   try {
+    // Insert + bump the counter atomically. If a concurrent first-time add
+    // won the race, the unique index (unique_user_pet_favorite) fires 23505
+    // — the row is already recorded (and counted by the winner), so we treat
+    // it as an idempotent success rather than a 500 (ADS-1173).
     await deps.pool.query(
-      `INSERT INTO pets.user_favorites (id, user_id, pet_id, created_by, created_at, updated_at)
-       VALUES ($1, $2, $3, $2, now(), now())`,
+      `WITH inserted AS (
+         INSERT INTO pets.user_favorites (id, user_id, pet_id, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $2, now(), now())
+         RETURNING pet_id
+       )
+       UPDATE pets.pets SET favorite_count = favorite_count + 1
+        WHERE pet_id IN (SELECT pet_id FROM inserted)`,
       [randomUUID(), userId, req.petId]
     );
   } catch (err) {
+    const code = (err as { code?: string }).code;
     // FK violation → the pet doesn't exist.
-    if ((err as { code?: string }).code === '23503') {
+    if (code === '23503') {
       throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+    }
+    // Unique violation → concurrent duplicate add; the favourite is recorded.
+    if (code === '23505') {
+      return { favorited: true };
     }
     throw err;
   }
@@ -93,11 +118,18 @@ export async function removeFavorite(
     throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
   }
   // Idempotent: removing a non-favourite is a no-op (removed=false), not
-  // an error.
+  // an error. Soft-delete + decrement the denormalised counter in one
+  // atomic statement; the `deleted_at IS NULL` guard means only the txn
+  // that actually flips an active row decrements the count (ADS-1174).
   const res = await deps.pool.query(
-    `UPDATE pets.user_favorites
-        SET deleted_at = now(), updated_at = now()
-      WHERE user_id = $1 AND pet_id = $2 AND deleted_at IS NULL`,
+    `WITH removed AS (
+       UPDATE pets.user_favorites
+          SET deleted_at = now(), updated_at = now()
+        WHERE user_id = $1 AND pet_id = $2 AND deleted_at IS NULL
+        RETURNING pet_id
+     )
+     UPDATE pets.pets SET favorite_count = GREATEST(favorite_count - 1, 0)
+      WHERE pet_id IN (SELECT pet_id FROM removed)`,
     [userId, req.petId]
   );
   return { removed: (res.rowCount ?? 0) > 0 };

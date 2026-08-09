@@ -113,6 +113,34 @@ describe('addFavorite', () => {
     });
   });
 
+  it('treats a concurrent first-time add (unique violation 23505) as success (ADS-1173)', async () => {
+    // Two callers race to insert the first favourite; the loser hits the
+    // unique index. The row IS recorded, so this must NOT surface as a 500.
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // existing lookup → none
+      .mockRejectedValueOnce(Object.assign(new Error('dup'), { code: '23505' }));
+    const res = await addFavorite(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    expect(res.favorited).toBe(true);
+  });
+
+  it('increments favorite_count when inserting a new favourite (ADS-1174)', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    await addFavorite(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    const [sql] = mocks.poolMock.query.mock.calls[1] as [string];
+    expect(sql).toMatch(/favorite_count = favorite_count \+ 1/);
+  });
+
+  it('increments favorite_count when reviving a soft-deleted favourite (ADS-1174)', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ id: 'fav-1', deleted_at: new Date() }] })
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    await addFavorite(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    const [sql] = mocks.poolMock.query.mock.calls[1] as [string];
+    expect(sql).toMatch(/favorite_count = favorite_count \+ 1/);
+  });
+
   it('requires authentication', async () => {
     await expect(addFavorite(mocks.deps, null, { petId: 'pet-1' })).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
@@ -138,6 +166,13 @@ describe('removeFavorite', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
     const res = await removeFavorite(mocks.deps, ADOPTER, { petId: 'pet-1' });
     expect(res.removed).toBe(false);
+  });
+
+  it('decrements favorite_count when a favourite is removed (ADS-1174)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    await removeFavorite(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string];
+    expect(sql).toMatch(/favorite_count = GREATEST\(favorite_count - 1, 0\)/);
   });
 });
 

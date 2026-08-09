@@ -210,6 +210,36 @@ describe('createPet', () => {
     const res = await createPet(mocks.deps, SUPER_ADMIN, BASE_CREATE);
     expect(res.pet.petId).toBe('pet-1');
   });
+
+  it('persists the extra_json blob (image_urls + good_with_*) on insert (ADS-1155)', async () => {
+    let insertSql = '';
+    let insertParams: unknown[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[]) => {
+      // Capture the handler's own INSERT, not withTransaction's event_outbox one.
+      if (sql.includes('INSERT INTO pets.pets')) {
+        insertSql = sql;
+        insertParams = params;
+      }
+      return {
+        rows: [
+          petRow({ extra_json: { image_urls: ['https://cdn/x.jpg'], good_with_children: true } }),
+        ],
+      };
+    });
+
+    const res = await createPet(mocks.deps, STAFF, {
+      ...BASE_CREATE,
+      extraJson: JSON.stringify({ image_urls: ['https://cdn/x.jpg'], good_with_children: true }),
+    });
+
+    // The blob is written into the extra_json column, not dropped.
+    expect(insertSql).toMatch(/extra_json/);
+    expect(insertParams.some(p => typeof p === 'string' && p.includes('image_urls'))).toBe(true);
+    // …and it round-trips back through the response.
+    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(extra.image_urls).toEqual(['https://cdn/x.jpg']);
+    expect(extra.good_with_children).toBe(true);
+  });
 });
 
 // --- getPet ----------------------------------------------------------
@@ -285,6 +315,28 @@ describe('getPet', () => {
     await expect(getPet(mocks.deps, OTHER_STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+
+  it('round-trips the stored extra_json blob (image_urls + good_with_*) (ADS-1155)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        petRow({ extra_json: { image_urls: ['https://cdn/a.jpg'], good_with_children: true } }),
+      ],
+    });
+    const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(extra.image_urls).toEqual(['https://cdn/a.jpg']);
+    expect(extra.good_with_children).toBe(true);
+  });
+
+  it('never leaks internal notes stored in the blob to a non-privileged reader (ADS-1155)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [petRow({ extra_json: { medical_notes: 'secret', medicalNotes: 'secret' } })],
+    });
+    const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(extra.medical_notes).toBeUndefined();
+    expect(extra.medicalNotes).toBeUndefined();
   });
 });
 
@@ -690,6 +742,30 @@ describe('updatePet', () => {
     // The DomainEvent.id is passed via the publish options (3rd arg).
     const opts = mocks.natsMock.publish.mock.calls[0][2] as { msgID?: string } | undefined;
     expect(opts?.msgID).toBe('pets.updated.pet-1.5');
+  });
+
+  it('writes + publishes pets.updated for an extraJson-only update (image add) (ADS-1155)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] }); // fetchPet
+    const order: string[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (!sql.includes('event_outbox')) {
+        order.push(sql.trim().split(/\s+/)[0]);
+      }
+      return { rows: [petRow({ extra_json: { image_urls: ['https://cdn/a.jpg'] } })] };
+    });
+    mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
+
+    const res = await updatePet(mocks.deps, STAFF, {
+      petId: 'pet-1',
+      extraJson: JSON.stringify({ image_urls: ['https://cdn/a.jpg'] }),
+    } as never);
+
+    // An extra_json-only update is a real state change — it must write + emit.
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
+    expect(updateSql).toMatch(/extra_json = \$1::jsonb/);
+    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(extra.image_urls).toEqual(['https://cdn/a.jpg']);
   });
 });
 
