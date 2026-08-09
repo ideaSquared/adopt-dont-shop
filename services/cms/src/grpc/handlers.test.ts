@@ -455,6 +455,37 @@ describe('createContent', () => {
       })
     ).rejects.toMatchObject({ code: 'ALREADY_EXISTS' });
   });
+
+  it('recreates a slug whose only prior row was soft-deleted (ADS-1182)', async () => {
+    // create → soft-delete → recreate the same slug. After migration 005 the
+    // slug UNIQUE constraint is partial (WHERE deleted_at IS NULL), so a slug
+    // freed by soft delete is reusable and the second INSERT no longer trips
+    // 23505. NOTE: this mocked-pool harness does not enforce the DB unique
+    // index, so it documents the intended handler flow; migrations.test.ts
+    // verifies the index change that actually makes this true in production.
+    mocks.clientScript.push({ rows: [contentRow({ content_id: 'c-1', slug: 'hello' })] });
+    await createContent(mocks.deps, ADMIN, {
+      title: 'Hello',
+      slug: 'hello',
+      contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+      content: '',
+      metaKeywords: [],
+    });
+
+    mocks.clientScript.push({ rows: [{ content_id: 'c-1' }], rowCount: 1 });
+    const del = await deleteContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+    expect(del.deleted).toBe(true);
+
+    mocks.clientScript.push({ rows: [contentRow({ content_id: 'c-2', slug: 'hello' })] });
+    const recreated = await createContent(mocks.deps, ADMIN, {
+      title: 'Hello Again',
+      slug: 'hello',
+      contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+      content: '',
+      metaKeywords: [],
+    });
+    expect(recreated.content?.contentId).toBe('c-2');
+  });
 });
 
 describe('updateContent', () => {
