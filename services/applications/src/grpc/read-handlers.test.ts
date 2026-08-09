@@ -273,6 +273,32 @@ describe('listApplications', () => {
     expect(query.mock.calls[1][1]).toEqual(['usr-1']);
   });
 
+  // ADS-1165 — the gateway maps drafts to null and drops them from `data`,
+  // so a COUNT that still includes drafts yields a total larger than the
+  // rows returned, breaking totalPages / hasNext. Both the page query and
+  // the COUNT must exclude drafts so total tracks what the caller receives.
+  it('excludes drafts from the page query and the COUNT (ADS-1165)', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({
+        rows: [{ application_id: 'app-1', created_at: new Date('2026-06-02T12:00:00.000Z') }],
+      }) // OFFSET page of index rows (drafts already excluded by the query)
+      .mockResolvedValueOnce({ rows: [{ total: '1' }] }) // COUNT(*) over non-drafts
+      .mockResolvedValue({ rows: aggregateRows() });
+
+    const res = await listApplications(deps, makePrincipal({ userId: 'usr-1' }), {
+      page: 1,
+      limit: 20,
+      statusFilter: S.APPLICATION_STATUS_UNSPECIFIED,
+    } as never);
+
+    const pageSql = query.mock.calls[0][0] as string;
+    const countSql = query.mock.calls[1][0] as string;
+    expect(pageSql).toContain("status <> 'draft'");
+    expect(countSql).toContain("status <> 'draft'");
+    expect(res.total).toBe(1);
+  });
+
   it('offset mode scopes the COUNT to the caller, never widening visibility', async () => {
     const { deps, query } = makeDeps();
     query

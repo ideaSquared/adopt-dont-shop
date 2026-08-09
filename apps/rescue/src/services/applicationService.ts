@@ -619,6 +619,9 @@ export class RescueApplicationService {
       if ('cancelledAt' in updateData) {
         apiData.cancelled_at = updateData.cancelledAt;
       }
+      if ('cancelReason' in updateData) {
+        apiData.cancelled_reason = updateData.cancelReason;
+      }
       if ('conditions' in updateData) {
         apiData.conditions = updateData.conditions;
       }

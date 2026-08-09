@@ -405,6 +405,61 @@ describe('cross-rescue authorization', () => {
   });
 });
 
+// ADS-1164 — a concurrency conflict must surface as a 409, not a 500.
+// The command-runner maps both the domain CONCURRENCY code and the
+// event-store ConcurrencyError to FAILED_PRECONDITION (the gateway maps
+// FAILED_PRECONDITION to HTTP 409).
+describe('concurrency conflicts (ADS-1164)', () => {
+  it('maps an event-store version race to FAILED_PRECONDITION', async () => {
+    // loadAggregate returns a submitted stream, but the append INSERT
+    // trips the (aggregate_id, version) unique index — a concurrent writer
+    // won the race at the same version.
+    const query = vi.fn().mockImplementation((sql: string) => {
+      if (sql.includes('SELECT') && sql.includes('application_events')) {
+        return Promise.resolve({ rows: submittedStream() });
+      }
+      if (sql.includes('INSERT INTO application_events')) {
+        return Promise.reject(Object.assign(new Error('dup'), { code: '23505' }));
+      }
+      return Promise.resolve({ rows: [] });
+    });
+    const deps = { pool: { query }, nats: {} } as unknown as HandlerDeps;
+    await expect(
+      startReview(deps, makePrincipal(), { applicationId: 'app-1' })
+    ).rejects.toMatchObject({ code: 'FAILED_PRECONDITION' });
+  });
+});
+
+// ADS-1166 — an idempotent no-op command (a second StartReview once the
+// application is already under_review) must NOT re-project the read model
+// or publish a phantom event, even after an intervening version bump.
+describe('idempotent no-op does not project or publish (ADS-1166)', () => {
+  it('startReview on an already-under_review aggregate is a clean no-op', async () => {
+    // Under review at v3, then an intervening draftAnswersSaved bumps to v4
+    // (status stays under_review). A second StartReview yields no events.
+    const stream = [
+      ...underReviewStream(),
+      ev('draftAnswersSaved', 4, { answersPatch: { note: 'follow-up' }, references: null }),
+    ];
+    const { deps, query } = makeDeps(stream);
+
+    const res = await startReview(deps, makePrincipal(), { applicationId: 'app-1' });
+
+    expect(res.application.status).toBe(
+      ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNDER_REVIEW
+    );
+    // No phantom event published.
+    expect(publishOf(deps).mock.calls).toHaveLength(0);
+    // No read-model re-projection.
+    const projected = query.mock.calls.find(([sql]) =>
+      (sql as string).includes('INSERT INTO applications')
+    );
+    expect(projected).toBeUndefined();
+    // Only the loadAggregate SELECT ran — nothing was appended either.
+    expect(query.mock.calls).toHaveLength(1);
+  });
+});
+
 describe('markAdopted', () => {
   it('throws PERMISSION_DENIED without applications.approve', async () => {
     const { deps } = makeDeps([
