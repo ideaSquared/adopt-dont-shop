@@ -32,11 +32,15 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
   ApplicationsV1,
+  PetsV1,
   type Application,
   type ApproveRequest,
+  type AuthUser,
   type CompleteHomeVisitRequest,
   type ListApplicationsRequest,
+  type Pet,
   type RejectRequest,
+  type Rescue,
   type SaveDraftAnswersRequest,
   type ScheduleHomeVisitRequest,
   type StartReviewRequest,
@@ -47,6 +51,9 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
+import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import {
   applicationToView,
@@ -70,6 +77,13 @@ import { buildPaginationEnvelope, parsePagination } from '../middleware/paginati
 
 export type ApplicationsRoutesOptions = {
   client: ApplicationsClient;
+  // ADS-1192: optional enrichment clients. The list route attaches
+  // human-readable pet / applicant / rescue names when these are wired;
+  // when absent (e.g. a partial boot / test harness) it degrades to
+  // empty names rather than failing.
+  petsClient?: PetsClient;
+  rescueClient?: RescueClient;
+  authClient?: AuthClient;
 };
 
 // Shared application view schema — the shape applicationToView() returns.
@@ -95,6 +109,21 @@ const APPLICATION_VIEW_SCHEMA = {
   },
 } as const;
 
+// The list route serves the base view PLUS the enriched names (ADS-1192).
+// A response schema drops any property it doesn't declare (ADS-1184), so
+// the enrichment fields must be declared here to reach the client.
+const APPLICATION_LIST_ITEM_SCHEMA = {
+  type: 'object',
+  properties: {
+    ...APPLICATION_VIEW_SCHEMA.properties,
+    userName: { type: 'string' },
+    userEmail: { type: 'string' },
+    petName: { type: 'string' },
+    petType: { type: 'string' },
+    rescueName: { type: 'string' },
+  },
+} as const;
+
 // Writes 30/min, reads 120/min — adopter + rescue-staff human use.
 const RL_WRITE = { max: 30, timeWindow: '1 minute' } as const;
 const RL_READ = { max: 120, timeWindow: '1 minute' } as const;
@@ -106,7 +135,7 @@ export const registerApplicationsRoutes = async (
   app: FastifyInstance,
   opts: ApplicationsRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, petsClient, rescueClient, authClient } = opts;
 
   await app.register(rateLimit, { global: false });
 
@@ -990,7 +1019,7 @@ export const registerApplicationsRoutes = async (
               success: { type: 'boolean' },
               data: {
                 type: 'array',
-                items: APPLICATION_VIEW_SCHEMA,
+                items: APPLICATION_LIST_ITEM_SCHEMA,
               },
               pagination: {
                 type: 'object',
@@ -1028,14 +1057,21 @@ export const registerApplicationsRoutes = async (
         rescueIdFilter: q.rescue,
         adopterIdFilter: q.adopter,
       };
+      const meta = buildMetadata(req);
       try {
-        const res = await client.list(grpcReq, buildMetadata(req));
+        const res = await client.list(grpcReq, meta);
         // Stage B: map to the frontend view + drop draft/unspecified rows,
         // then wrap in the canonical { success, data, pagination } envelope
         // so the shared DataTable can render "Page X of Y" and gate Next.
-        const data = res.applications
+        const views = res.applications
           .map(applicationToView)
           .filter((v): v is ApplicationView => v !== null);
+        // ADS-1192: attach human-readable pet / applicant / rescue names.
+        const data = await enrichApplicationViews(
+          views,
+          { petsClient, rescueClient, authClient },
+          meta
+        );
         return reply.send({
           success: true,
           data,
@@ -1718,6 +1754,100 @@ export const registerApplicationsRoutes = async (
     }
   );
 };
+
+// --- List enrichment (ADS-1192) --------------------------------------
+//
+// The applications list carries only ids; the admin Applications table
+// needs human-readable names. Enrich each row AT THE GATEWAY from the
+// page's UNIQUE pet / applicant / rescue ids — a deduped fan-out to the
+// pets, auth and rescue clients (page sizes are ~20-25, so ≤~75 lookups
+// per page and there is no batch RPC). A per-lookup failure is tolerated
+// (that name is left empty), and a missing client (partial boot / test
+// harness) simply skips that dimension — the list never fails because a
+// name couldn't resolve.
+
+type ApplicationEnrichment = {
+  userName: string;
+  userEmail: string;
+  petName: string;
+  petType: string;
+  rescueName: string;
+};
+
+type EnrichmentClients = {
+  petsClient?: PetsClient;
+  rescueClient?: RescueClient;
+  authClient?: AuthClient;
+};
+
+// Resolve a set of ids to records, deduped, tolerating per-id failures.
+// `fetch` returns undefined when its client is absent (optional-chaining
+// short-circuit), which is treated the same as a failed lookup.
+async function lookupById<T>(
+  ids: ReadonlyArray<string>,
+  fetch: (id: string) => Promise<T | undefined> | undefined
+): Promise<Map<string, T>> {
+  const unique = [...new Set(ids.filter(id => id !== ''))];
+  const map = new Map<string, T>();
+  await Promise.all(
+    unique.map(async id => {
+      try {
+        const value = await fetch(id);
+        if (value !== undefined) {
+          map.set(id, value);
+        }
+      } catch {
+        // Tolerated: leave this id unresolved so its name renders empty.
+      }
+    })
+  );
+  return map;
+}
+
+function fullName(user: AuthUser): string {
+  return [user.firstName, user.lastName]
+    .filter((part): part is string => part !== undefined && part !== '')
+    .join(' ');
+}
+
+function petTypeToken(type: PetsV1.PetType): string {
+  return type > 0 ? PetsV1.petTypeToJSON(type).slice('PET_TYPE_'.length).toLowerCase() : '';
+}
+
+async function enrichApplicationViews(
+  views: ReadonlyArray<ApplicationView>,
+  clients: EnrichmentClients,
+  meta: Metadata
+): Promise<Array<ApplicationView & ApplicationEnrichment>> {
+  const [pets, users, rescues] = await Promise.all([
+    lookupById<Pet>(
+      views.map(v => v.petId),
+      id => clients.petsClient?.get({ petId: id }, meta).then(r => r.pet)
+    ),
+    lookupById<AuthUser>(
+      views.map(v => v.userId),
+      id => clients.authClient?.adminGetUser({ userId: id }, meta).then(r => r.user)
+    ),
+    lookupById<Rescue>(
+      views.map(v => v.rescueId),
+      id => clients.rescueClient?.get({ rescueId: id }, meta).then(r => r.rescue)
+    ),
+  ]);
+
+  return views.map(v => {
+    const pet = pets.get(v.petId);
+    const user = users.get(v.userId);
+    const rescue = rescues.get(v.rescueId);
+    return {
+      ...v,
+      userName: user ? fullName(user) : '',
+      userEmail: user?.email ?? '',
+      petName: pet?.name ?? '',
+      petType: pet ? petTypeToken(pet.type) : '',
+      rescueName: rescue?.name ?? '',
+    };
+  });
+}
 
 // --- Helpers ---------------------------------------------------------
 

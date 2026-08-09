@@ -10,7 +10,6 @@ import {
   Alert,
   Button,
   ConfirmDialog,
-  Input,
   Modal,
   toast,
   useConfirm,
@@ -20,15 +19,7 @@ import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { z } from 'zod';
 import * as styles from './ProfilePage.css';
-
-// C3: schema-first validation for the account-deletion confirmation form.
-// The password is required before we fire the (irreversible) delete request;
-// the optional two-factor code is validated server-side.
-const DeleteAccountSchema = z.object({
-  password: z.string().min(1, 'Please enter your password to confirm'),
-});
 
 // Extended interface for applications with pet info
 interface ApplicationWithPetInfo extends Application {
@@ -72,11 +63,8 @@ export const ProfilePage: React.FC = () => {
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { confirmProps } = useConfirm();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteTwoFactorToken, setDeleteTwoFactorToken] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deletePasswordError, setDeletePasswordError] = useState<string | null>(null);
 
   // Clear the success-message timer on unmount to prevent setState on an unmounted component.
   useEffect(() => {
@@ -249,10 +237,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleDeleteAccount = () => {
-    setDeletePassword('');
-    setDeleteTwoFactorToken('');
     setDeleteError(null);
-    setDeletePasswordError(null);
     setIsDeleteModalOpen(true);
   };
 
@@ -261,37 +246,17 @@ export const ProfilePage: React.FC = () => {
       return;
     }
     setIsDeleteModalOpen(false);
-    setDeletePassword('');
-    setDeleteTwoFactorToken('');
     setDeleteError(null);
-    setDeletePasswordError(null);
-  };
-
-  const handleDeletePasswordChange = (value: string) => {
-    setDeletePassword(value);
-    if (deletePasswordError) {
-      setDeletePasswordError(null);
-    }
   };
 
   const submitDeleteAccount = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const parsed = DeleteAccountSchema.safeParse({ password: deletePassword });
-    if (!parsed.success) {
-      setDeletePasswordError(parsed.error.issues[0]?.message ?? 'Please enter your password.');
-      return;
-    }
-    setDeletePasswordError(null);
-
     try {
       setIsDeleting(true);
       setDeleteError(null);
 
-      await authService.deleteAccount(deletePassword, {
-        twoFactorToken: deleteTwoFactorToken || undefined,
-        reason: 'User requested account deletion',
-      });
+      await authService.deleteAccount({ reason: 'User requested account deletion' });
 
       setIsDeleteModalOpen(false);
       navigate('/');
@@ -526,36 +491,9 @@ export const ProfilePage: React.FC = () => {
       >
         <form onSubmit={submitDeleteAccount} noValidate>
           <p>
-            This will permanently delete your profile, applications, and all associated data.
-            Re-enter your password to confirm.
+            This will permanently delete your profile, applications, and all associated data. This
+            action cannot be undone.
           </p>
-          <div className={styles.deleteModalField}>
-            <Input
-              type='password'
-              label='Current password'
-              value={deletePassword}
-              onChange={e => handleDeletePasswordChange(e.target.value)}
-              error={deletePasswordError ?? undefined}
-              autoComplete='current-password'
-              autoFocus
-              required
-              disabled={isDeleting}
-            />
-          </div>
-          {user?.twoFactorEnabled && (
-            <div className={styles.deleteModalField}>
-              <Input
-                type='text'
-                label='Two-factor code'
-                value={deleteTwoFactorToken}
-                onChange={e => setDeleteTwoFactorToken(e.target.value)}
-                autoComplete='one-time-code'
-                inputMode='numeric'
-                pattern='[0-9]*'
-                disabled={isDeleting}
-              />
-            </div>
-          )}
           {deleteError && (
             <div className={styles.deleteModalField} role='alert'>
               <Alert variant='error'>{deleteError}</Alert>

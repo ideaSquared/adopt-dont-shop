@@ -80,7 +80,11 @@ export class ApiService {
         try {
           const errorBody = await response.json();
           errorMessage = errorBody.message || errorBody.error || errorMessage;
-          errorDetails = errorBody.details || errorBody.errors;
+          // ADS-1203: some 400s convey structured error metadata under `data`
+          // (e.g. the quick-application endpoint's `{ error, data: { missingFields } }`).
+          // Surface it too so consumers can read it off ValidationError.errors
+          // (e.g. `error.errors.missingFields`).
+          errorDetails = errorBody.details || errorBody.errors || errorBody.data;
         } catch {
           // If we can't parse error as JSON, use the default message
         }

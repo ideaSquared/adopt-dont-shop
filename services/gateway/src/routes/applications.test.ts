@@ -2,9 +2,12 @@ import { status as grpcStatus } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ApplicationsV1 } from '@adopt-dont-shop/proto';
+import { ApplicationsV1, PetsV1 } from '@adopt-dont-shop/proto';
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
+import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerApplicationsRoutes } from './applications.js';
 
@@ -1152,5 +1155,191 @@ describe('applications routes', () => {
       expect(res.statusCode).toBe(400);
       expect(mocks.getApplicationDefaults).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ADS-1192: the list route enriches each row with human-readable pet /
+// applicant / rescue names by fanning out to the pets, auth and rescue
+// clients. These fields must ALSO reach the client through the response
+// schema (ADS-1184), so the assertions read them off the serialised JSON.
+describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
+  const SUBMITTED_APP = {
+    applicationId: 'app-a',
+    adopterId: 'usr-a',
+    petId: 'pet-a',
+    rescueId: 'rsc-a',
+    status: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED,
+    answersJson: '{}',
+    referencesJson: '[]',
+    version: 1,
+    createdAt: '2026-06-01T00:00:00.000Z',
+    updatedAt: '2026-06-01T00:00:00.000Z',
+  };
+
+  const HEADERS = {
+    'x-user-id': 'staff-1',
+    'x-user-roles': 'admin',
+    'x-user-permissions': 'applications.read',
+  };
+
+  function makeEnrichment(): {
+    client: ApplicationsClient;
+    listMock: ReturnType<typeof vi.fn>;
+    petsClient: PetsClient;
+    rescueClient: RescueClient;
+    authClient: AuthClient;
+    petGet: ReturnType<typeof vi.fn>;
+    rescueGet: ReturnType<typeof vi.fn>;
+    adminGetUser: ReturnType<typeof vi.fn>;
+  } {
+    const listMock = vi.fn();
+    const client = { list: listMock, close: vi.fn() } as unknown as ApplicationsClient;
+    const petGet = vi.fn();
+    const rescueGet = vi.fn();
+    const adminGetUser = vi.fn();
+    const petsClient = { get: petGet } as unknown as PetsClient;
+    const rescueClient = { get: rescueGet } as unknown as RescueClient;
+    const authClient = { adminGetUser } as unknown as AuthClient;
+    return {
+      client,
+      listMock,
+      petsClient,
+      rescueClient,
+      authClient,
+      petGet,
+      rescueGet,
+      adminGetUser,
+    };
+  }
+
+  async function makeEnrichedApp(e: ReturnType<typeof makeEnrichment>): Promise<FastifyInstance> {
+    const app = Fastify({ logger: false });
+    await registerApplicationsRoutes(app, {
+      client: e.client,
+      petsClient: e.petsClient,
+      rescueClient: e.rescueClient,
+      authClient: e.authClient,
+    });
+    return app;
+  }
+
+  it('attaches + serialises userName/userEmail/petName/petType/rescueName', async () => {
+    const e = makeEnrichment();
+    e.listMock.mockResolvedValue({ applications: [SUBMITTED_APP], total: 1 });
+    e.petGet.mockResolvedValue({
+      pet: { petId: 'pet-a', name: 'Rex', type: PetsV1.PetType.PET_TYPE_DOG },
+    });
+    e.adminGetUser.mockResolvedValue({
+      user: { userId: 'usr-a', firstName: 'Jane', lastName: 'Doe', email: 'jane@example.com' },
+    });
+    e.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-a', name: 'Happy Paws' } });
+
+    const app = await makeEnrichedApp(e);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications',
+        headers: HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<Record<string, unknown>> };
+      expect(body.data[0]).toMatchObject({
+        id: 'app-a',
+        userName: 'Jane Doe',
+        userEmail: 'jane@example.com',
+        petName: 'Rex',
+        petType: 'dog',
+        rescueName: 'Happy Paws',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('dedupes lookups by id across the page', async () => {
+    const e = makeEnrichment();
+    // Second row shares the same pet / applicant / rescue ids.
+    const second = { ...SUBMITTED_APP, applicationId: 'app-b' };
+    e.listMock.mockResolvedValue({ applications: [SUBMITTED_APP, second], total: 2 });
+    e.petGet.mockResolvedValue({
+      pet: { petId: 'pet-a', name: 'Rex', type: PetsV1.PetType.PET_TYPE_DOG },
+    });
+    e.adminGetUser.mockResolvedValue({
+      user: { userId: 'usr-a', firstName: 'Jane', email: 'jane@example.com' },
+    });
+    e.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-a', name: 'Happy Paws' } });
+
+    const app = await makeEnrichedApp(e);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications',
+        headers: HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(e.petGet).toHaveBeenCalledTimes(1);
+      expect(e.rescueGet).toHaveBeenCalledTimes(1);
+      expect(e.adminGetUser).toHaveBeenCalledTimes(1);
+      const body = res.json() as { data: Array<Record<string, unknown>> };
+      expect(body.data).toHaveLength(2);
+      expect(body.data[1]).toMatchObject({ id: 'app-b', petName: 'Rex', rescueName: 'Happy Paws' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('tolerates a per-lookup failure, leaving that name empty', async () => {
+    const e = makeEnrichment();
+    e.listMock.mockResolvedValue({ applications: [SUBMITTED_APP], total: 1 });
+    e.petGet.mockRejectedValue(new Error('pets down'));
+    e.adminGetUser.mockResolvedValue({
+      user: { userId: 'usr-a', firstName: 'Jane', lastName: 'Doe', email: 'jane@example.com' },
+    });
+    e.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-a', name: 'Happy Paws' } });
+
+    const app = await makeEnrichedApp(e);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications',
+        headers: HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<Record<string, unknown>> };
+      expect(body.data[0]).toMatchObject({
+        petName: '',
+        petType: '',
+        userName: 'Jane Doe',
+        rescueName: 'Happy Paws',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('degrades to empty names when the enrichment clients are unwired', async () => {
+    const listMock = vi.fn().mockResolvedValue({ applications: [SUBMITTED_APP], total: 1 });
+    const client = { list: listMock, close: vi.fn() } as unknown as ApplicationsClient;
+    const app = Fastify({ logger: false });
+    await registerApplicationsRoutes(app, { client });
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications',
+        headers: HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<Record<string, unknown>> };
+      expect(body.data[0]).toMatchObject({
+        id: 'app-a',
+        userName: '',
+        userEmail: '',
+        petName: '',
+        petType: '',
+        rescueName: '',
+      });
+    } finally {
+      await app.close();
+    }
   });
 });

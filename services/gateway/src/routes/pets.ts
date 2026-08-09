@@ -30,6 +30,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { PetsClient } from '../grpc-clients/pets-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { petToView, viewToCreateRequest, viewToUpdateRequest } from './pets-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -38,6 +39,10 @@ import { buildPaginationEnvelope, parsePagination } from '../middleware/paginati
 
 export type PetsRoutesOptions = {
   client: PetsClient;
+  // ADS-1186: optional rescue client for attaching rescue_name to list
+  // rows. When absent (partial boot / test harness) rescue_name is
+  // omitted rather than failing the list.
+  rescueClient?: RescueClient;
 };
 
 // Shared pet view schema — the shape petToView() returns (snake_case,
@@ -48,6 +53,9 @@ const PET_VIEW_SCHEMA = {
     pet_id: { type: 'string' },
     name: { type: 'string' },
     rescue_id: { type: 'string' },
+    // ADS-1186: rescue name enriched onto list rows. A response schema
+    // drops any undeclared property (ADS-1184), so declare it here.
+    rescue_name: { type: 'string' },
     type: { type: 'string' },
     status: { type: 'string' },
     gender: { type: 'string' },
@@ -124,7 +132,7 @@ export const registerPetsRoutes = async (
   app: FastifyInstance,
   opts: PetsRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, rescueClient } = opts;
 
   await app.register(rateLimit, { global: false });
 
@@ -212,11 +220,14 @@ export const registerPetsRoutes = async (
         sortBy: query.sortBy,
         sortOrder: query.sortOrder,
       };
+      const meta = buildMetadata(req);
       try {
-        const res = await client.list(grpcReq, buildMetadata(req));
+        const res = await client.list(grpcReq, meta);
+        // ADS-1186: attach the rescue name to each row for the admin table.
+        const data = await enrichPetsWithRescueName(res.pets.map(petToView), rescueClient, meta);
         return reply.send({
           success: true,
-          data: res.pets.map(petToView),
+          data,
           pagination: buildPaginationEnvelope({
             mode: 'offset',
             page: pagination.page,
@@ -1185,6 +1196,46 @@ export const registerPetsRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
+
+// List enrichment (ADS-1186). The pets list carries rescue_id but not the
+// rescue NAME the admin Pets table shows. Enrich each row at the gateway
+// from the page's UNIQUE rescue ids — a deduped fan-out to the rescue
+// client (page sizes are ~20-25, no batch RPC). A per-lookup failure is
+// tolerated (rescue_name is left off that row), and a missing client skips
+// enrichment entirely.
+async function enrichPetsWithRescueName(
+  views: ReadonlyArray<Record<string, unknown>>,
+  rescueClient: RescueClient | undefined,
+  meta: ReturnType<typeof buildMetadata>
+): Promise<Array<Record<string, unknown>>> {
+  if (rescueClient === undefined) {
+    return [...views];
+  }
+  const rescueIds = [
+    ...new Set(
+      views.map(v => v.rescue_id).filter((id): id is string => typeof id === 'string' && id !== '')
+    ),
+  ];
+  const names = new Map<string, string>();
+  await Promise.all(
+    rescueIds.map(async rescueId => {
+      try {
+        const res = await rescueClient.get({ rescueId }, meta);
+        const name = res.rescue?.name;
+        if (name !== undefined) {
+          names.set(rescueId, name);
+        }
+      } catch {
+        // Tolerated: leave rescue_name off this row.
+      }
+    })
+  );
+  return views.map(v => {
+    const rescueId = typeof v.rescue_id === 'string' ? v.rescue_id : '';
+    const name = names.get(rescueId);
+    return name === undefined ? v : { ...v, rescue_name: name };
+  });
+}
 
 // Pet images (ADS-1144). Image URLs live in the pet's extra_json under
 // `image_urls`; these read/merge that one key without disturbing the rest

@@ -308,16 +308,14 @@ export class AuthService {
    * the asynchronous GDPR erasure saga. This POSTs
    * `/api/v1/users/me/erasure-request` (see services/gateway/src/routes/gdpr.ts),
    * which the gateway accepts with 202 + a `correlationId` while the erasure
-   * fans out across services. The public signature is kept stable for callers
-   * (apps/client ProfilePage): it resolves once the request is accepted and
+   * fans out across services. It resolves once the request is accepted and
    * rejects if it is refused. The route's body carries only an optional
-   * `reason`; the `_password`/`twoFactorToken` arguments are retained for
-   * signature compatibility but are not part of this endpoint's contract.
+   * `reason`. Note: the erasure route does not currently re-verify credentials —
+   * step-up auth is tracked separately (ADS-1185) and will add a verification
+   * parameter here when it lands. Until then, no credential is collected, so
+   * none is passed.
    */
-  async deleteAccount(
-    _password: string,
-    options?: { twoFactorToken?: string; reason?: string }
-  ): Promise<void> {
+  async deleteAccount(options?: { reason?: string }): Promise<void> {
     await apiService.post<{ success?: boolean; correlationId?: string; requestedAt?: string }>(
       '/api/v1/users/me/erasure-request',
       options?.reason ? { reason: options.reason } : {}

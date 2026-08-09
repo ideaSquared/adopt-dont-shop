@@ -591,7 +591,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
   if (opts.petsClient) {
-    await registerPetsRoutes(server, { client: opts.petsClient });
+    // rescueClient (optional) lets the list route enrich each pet row with
+    // its rescue name (ADS-1186); absent, rescue_name is simply omitted.
+    await registerPetsRoutes(server, {
+      client: opts.petsClient,
+      rescueClient: opts.rescueClient,
+    });
   }
   if (opts.rescueClient) {
     await registerRescueRoutes(server, { client: opts.rescueClient });
@@ -693,7 +698,15 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   });
 
   if (opts.applicationsClient) {
-    await registerApplicationsRoutes(server, { client: opts.applicationsClient });
+    // pets/rescue/auth clients (all optional) let the list route enrich each
+    // application row with pet, applicant and rescue names (ADS-1192); any
+    // absent client just leaves that dimension's name empty.
+    await registerApplicationsRoutes(server, {
+      client: opts.applicationsClient,
+      petsClient: opts.petsClient,
+      rescueClient: opts.rescueClient,
+      authClient: opts.authClient,
+    });
     // Application document routes (multipart upload → storage → AddDocument).
     // signingSecret (ADS-1034): documents are private, so reads/writes mint
     // /uploads-signed URLs instead of persisting a raw storage URL.

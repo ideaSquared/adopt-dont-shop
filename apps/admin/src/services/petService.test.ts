@@ -60,7 +60,7 @@ describe('PetService', () => {
       expect(mockGet).toHaveBeenCalledWith('/api/v1/pets', { limit: '20' });
     });
 
-    it('transforms the snake_case pet view into camelCase AdminPet', async () => {
+    it('transforms the snake_case pet view into camelCase AdminPet, mapping rescue_name', async () => {
       mockGet.mockResolvedValueOnce({
         success: true,
         data: [
@@ -71,6 +71,7 @@ describe('PetService', () => {
             breed: 'Labrador',
             status: 'available',
             rescue_id: 'r1',
+            rescue_name: 'Happy Paws',
             archived: false,
             featured: true,
             created_at: '2024-01-01',
@@ -90,7 +91,7 @@ describe('PetService', () => {
           breed: 'Labrador',
           status: 'available',
           rescueId: 'r1',
-          rescueName: undefined,
+          rescueName: 'Happy Paws',
           archived: false,
           featured: true,
           createdAt: '2024-01-01',
