@@ -7,7 +7,7 @@ import {
   type ConversationStatus,
 } from '@adopt-dont-shop/lib.chat';
 import { Button, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
-import { CHAT_UPDATE } from '@adopt-dont-shop/lib.permissions';
+import { CHAT_VIEW } from '@adopt-dont-shop/lib.permissions';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -56,8 +56,11 @@ function Communication() {
     useChat();
   // ADS-757: gate on both `allowed` AND `!isLoading` so the action buttons
   // don't flash hidden during the initial permission fetch.
-  const { allowed: hasChatUpdate, isLoading: permissionsLoading } = useHasPermission(CHAT_UPDATE);
-  const canManageChat = hasChatUpdate && !permissionsLoading;
+  // ADS-1191: the backend's updateChatStatus gates on `chats.read` (+ rescue
+  // ownership), never `chats.update`, so gate the resolve/reopen controls on
+  // CHAT_VIEW (= 'chats.read') — the permission the backend actually checks.
+  const { allowed: hasChatAccess, isLoading: permissionsLoading } = useHasPermission(CHAT_VIEW);
+  const canManageChat = hasChatAccess && !permissionsLoading;
   const { confirm, confirmProps } = useConfirm();
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<'active' | 'resolved'>(loadInitialFilter);
