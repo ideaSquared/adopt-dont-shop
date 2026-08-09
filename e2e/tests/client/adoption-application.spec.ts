@@ -5,6 +5,7 @@ import {
   patchWithCsrf,
   postWithCsrf,
 } from '../../helpers/seeds';
+import { hardenedClick } from '../../helpers/ui';
 
 /**
  * Adoption golden path (ADS-420).
@@ -64,7 +65,7 @@ test.describe('adoption application submission', () => {
       );
       throw err;
     }
-    await apply.click();
+    await hardenedClick(apply);
 
     await expect(page).toHaveURL(/\/apply\//, { timeout: 15_000 });
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15_000 });

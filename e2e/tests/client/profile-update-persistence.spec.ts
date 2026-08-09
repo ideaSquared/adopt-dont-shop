@@ -1,5 +1,6 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
+import { hardenedClick } from '../../helpers/ui';
 
 /**
  * The bio field is rendered by ProfileEditForm once the user clicks
@@ -16,19 +17,17 @@ test.describe('adopter profile updates', () => {
     });
 
     // Open the edit form.
-    await page
-      .getByRole('button', { name: /edit profile/i })
-      .first()
-      .click();
+    const editProfile = page.getByRole('button', { name: /edit profile/i }).first();
+    await hardenedClick(editProfile);
 
     const bioField = page.locator('textarea#bio').first();
     await expect(bioField).toBeVisible({ timeout: 15_000 });
     await bioField.fill(newBio);
 
-    await page
+    const saveProfile = page
       .getByRole('button', { name: /(save|update) (profile|changes)/i })
-      .first()
-      .click();
+      .first();
+    await hardenedClick(saveProfile);
 
     // Wait for the save to actually land rather than a blind timeout: on
     // success the edit form closes and a confirmation appears. Navigating

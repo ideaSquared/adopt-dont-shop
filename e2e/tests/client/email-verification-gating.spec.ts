@@ -1,5 +1,6 @@
 import { test, expect } from '../../fixtures';
 import { SEEDED_PET_IDS } from '../../helpers/seeds';
+import { hardenedClick } from '../../helpers/ui';
 
 /**
  * The seeded `john.smith@gmail.com` adopter is verified, so this spec
@@ -21,7 +22,7 @@ test.describe('email verification gating', () => {
       .or(page.getByRole('button', { name: /apply (to|for) adopt/i }))
       .first();
     await expect(apply).toBeVisible({ timeout: 15_000 });
-    await apply.click();
+    await hardenedClick(apply);
 
     await expect(page).toHaveURL(/\/apply\/|\/applications\/new/, { timeout: 15_000 });
     await expect(page.getByText(/please verify (your )?email/i)).toHaveCount(0);
