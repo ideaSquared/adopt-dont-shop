@@ -226,6 +226,37 @@ describe('getRescue', () => {
     expect(res.rescue.rescueId).toBe('rsc-1');
     expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
   });
+
+  // --- ADS-1168: anonymous (logged-out) visitors ---
+
+  it('serves a verified rescue to an anonymous visitor with only basic public fields', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        rescueRow({
+          status: 'verified',
+          companies_house_number: '12345678',
+          contact_email: 'staff@p.example',
+        }),
+      ],
+    });
+    const res = await getRescue(mocks.deps, null, { rescueId: 'rsc-1' });
+    // Basic public details are visible…
+    expect(res.rescue.name).toBe('Pawsome');
+    expect(res.rescue.city).toBe('London');
+    // …but sensitive contact / registration fields are masked for anonymous.
+    expect(res.rescue.email).toBe('');
+    expect(res.rescue.contactEmail).toBeUndefined();
+    expect(res.rescue.phone).toBeUndefined();
+    expect(res.rescue.address).toBe('');
+    expect(res.rescue.companiesHouseNumber).toBeUndefined();
+  });
+
+  it('NOT_FOUND (existence not leaked) for a non-verified rescue to an anonymous visitor', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    await expect(getRescue(mocks.deps, null, { rescueId: 'rsc-1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
 });
 
 // --- field-level permission enforcement (ADS-1037) --------------------
@@ -280,6 +311,28 @@ describe('field-level permission enforcement (ADS-1037)', () => {
       statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
     } as never);
     expect(res.rescues[0]?.companiesHouseNumber).toBeUndefined();
+  });
+
+  it('listRescues forces verified-only and public masking for an anonymous visitor (ADS-1168)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        rescueRow({ status: 'verified', contact_email: 'staff@p.example', email: 'hi@p.example' }),
+      ],
+    });
+    // Even asking for pending, an anonymous caller is pinned to verified-only.
+    const res = await listRescues(mocks.deps, null, {
+      limit: 10,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_PENDING,
+    } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(sql).toMatch(/status = \$1/);
+    expect(params[0]).toBe('verified');
+    // Basic public fields shown, sensitive ones masked.
+    expect(res.rescues[0]?.name).toBe('Pawsome');
+    expect(res.rescues[0]?.city).toBe('London');
+    expect(res.rescues[0]?.email).toBe('');
+    expect(res.rescues[0]?.contactEmail).toBeUndefined();
   });
 
   it('updateRescue rejects the whole write when a field is not writable for the role', async () => {

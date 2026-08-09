@@ -2,7 +2,10 @@
 // with the service name bound. The two-argument signatures (handler, opts)
 // match what the existing tests and server.ts call-sites expect.
 
-import { adapt as adaptShared } from '@adopt-dont-shop/service-bootstrap';
+import {
+  adapt as adaptShared,
+  adaptUnauth as adaptUnauthShared,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
@@ -17,4 +20,15 @@ export function adapt<Req, Res>(
   opts: { deps: HandlerDeps; logger: Logger }
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return adaptShared<HandlerDeps, Req, Res>(SERVICE_NAME, handler, opts);
+}
+
+// Public-read variant: passes a null principal through to the handler for
+// anonymous (unauthenticated) callers, instead of rejecting with
+// UNAUTHENTICATED. Used by the public catalogue reads (get / list /
+// listBreeds / getSimilarPets) so logged-out visitors can browse.
+export function adaptUnauth<Req, Res>(
+  handler: (deps: HandlerDeps, principal: Principal | null, req: Req) => Promise<Res>,
+  opts: { deps: HandlerDeps; logger: Logger }
+): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
+  return adaptUnauthShared<HandlerDeps, Req, Res>(SERVICE_NAME, handler, opts);
 }

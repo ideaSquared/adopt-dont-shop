@@ -91,8 +91,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
 
   server.addService(RescueV1.RescueServiceService, {
     create: adapt(createRescue, { deps, logger }),
-    get: adapt(getRescue, { deps, logger }),
-    list: adapt(listRescues, { deps, logger }),
+    // Public reads — anonymous (logged-out) visitors may see verified rescues
+    // (basic, field-masked details) so they can browse before registering.
+    get: adaptUnauth(getRescue, { deps, logger }),
+    list: adaptUnauth(listRescues, { deps, logger }),
     update: adapt(updateRescue, { deps, logger }),
     verify: adapt(verifyRescue, { deps, logger }),
     delete: adapt(deleteRescue, { deps, logger }),

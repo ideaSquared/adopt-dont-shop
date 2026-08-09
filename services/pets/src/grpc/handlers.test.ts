@@ -303,6 +303,24 @@ describe('getPet', () => {
     });
   });
 
+  it('lets an anonymous visitor view an available pet with notes stripped (ADS-1168)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [petRow({ medical_notes: 'sensitive', behavioral_notes: 'sensitive' })],
+    });
+    const res = await getPet(mocks.deps, null, { petId: 'pet-1' });
+    expect(res.pet.name).toBe('Rex');
+    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(extra.medicalNotes).toBeUndefined();
+    expect(extra.behavioralNotes).toBeUndefined();
+  });
+
+  it('NOT_FOUND for an anonymous visitor on a terminal-status pet (ADS-1168)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })] });
+    await expect(getPet(mocks.deps, null, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
   it('lets rescue staff of the pet rescue view a terminal-status pet', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })] });
     const res = await getPet(mocks.deps, STAFF, { petId: 'pet-1' });
@@ -542,6 +560,22 @@ describe('listPets', () => {
     expect(extra.medicalNotes).toBeUndefined();
     expect(extra.behavioralNotes).toBeUndefined();
   });
+
+  it('lets an anonymous visitor browse — hides terminal/archived + strips notes (ADS-1168)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [petRow({ medical_notes: 'sensitive', behavioral_notes: 'sensitive' })],
+    });
+    const res = await listPets(mocks.deps, null, { limit: 2 } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    // Anonymous is a non-privileged public browse: terminal + archived hidden.
+    expect(sql).toMatch(/status NOT IN/);
+    expect(sql).toMatch(/archived = false/);
+    expect(params).toEqual(expect.arrayContaining(['adopted', 'deceased', 'not_available']));
+    const extra = JSON.parse(res.pets[0].extraJson) as Record<string, unknown>;
+    expect(extra.medicalNotes).toBeUndefined();
+    expect(extra.behavioralNotes).toBeUndefined();
+  });
 });
 
 // --- listBreeds ------------------------------------------------------
@@ -575,6 +609,12 @@ describe('listBreeds', () => {
     expect(res.breeds).toEqual(['Beagle']);
     const sql = mocks.poolMock.query.mock.calls[0][0] as string;
     expect(sql).toContain('SELECT DISTINCT name');
+  });
+
+  it('lets an anonymous visitor list breeds for the browse filter (ADS-1168)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ name: 'Beagle' }] });
+    const res = await listBreeds(mocks.deps, null, {});
+    expect(res.breeds).toEqual(['Beagle']);
   });
 
   it('rejects an unknown species', async () => {

@@ -327,13 +327,15 @@ export async function createPet(
 
 export async function getPet(
   deps: HandlerDeps,
-  principal: Principal,
+  principal: Principal | null,
   req: GetPetRequest
 ): Promise<GetPetResponse> {
   if (!req.petId) {
     throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
   }
-  if (!hasPermission(principal, PETS_READ)) {
+  // Anonymous (null principal) is allowed — logged-out visitors browse the
+  // public catalogue. An authenticated caller must still hold pets.read.
+  if (principal !== null && !hasPermission(principal, PETS_READ)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
   }
 
@@ -342,10 +344,10 @@ export async function getPet(
     throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
   }
 
-  // Non-privileged readers (public / adopter, or staff of another rescue)
+  // Non-privileged readers (anonymous / adopter, or staff of another rescue)
   // can't see a pet in a hidden status or one that's archived — treat it as
   // not found rather than leaking its existence, and strip internal notes.
-  const privileged = isPrivilegedReader(principal, row.rescue_id);
+  const privileged = principal !== null && isPrivilegedReader(principal, row.rescue_id);
   if (!privileged && (PUBLIC_HIDDEN_STATUSES.includes(row.status) || row.archived)) {
     throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
   }
@@ -376,29 +378,33 @@ function buildOrderBy(sortBy: string | undefined, sortOrder: string | undefined)
 
 export async function listPets(
   deps: HandlerDeps,
-  principal: Principal,
+  principal: Principal | null,
   req: ListPetsRequest
 ): Promise<ListPetsResponse> {
-  if (!hasPermission(principal, PETS_READ)) {
+  // Anonymous (null principal) is allowed — logged-out visitors browse the
+  // public catalogue. An authenticated caller must still hold pets.read.
+  if (principal !== null && !hasPermission(principal, PETS_READ)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
   }
 
   // Resolve rescue scope, mirroring getPetStats. Rescue-bound staff are
   // pinned to their own rescue and CANNOT read another rescue's pets by
   // passing rescueIdFilter. pets.read:any (admin) may target any rescue or
-  // all. Public / adopter callers (no rescueId, no :any) browse the
+  // all. Anonymous / adopter callers (no rescueId, no :any) browse the
   // catalogue and may optionally narrow to a single rescue.
   let rescueScope: string | undefined;
-  if (!hasPermission(principal, PETS_READ_ANY) && principal.rescueId) {
+  if (principal !== null && !hasPermission(principal, PETS_READ_ANY) && principal.rescueId) {
     rescueScope = principal.rescueId;
   } else {
     rescueScope = req.rescueIdFilter ? req.rescueIdFilter : undefined;
   }
 
   // Privileged readers (admins / rescue staff, pinned above to their own
-  // rescue) see every status; public / adopter browse hides terminal and
+  // rescue) see every status; anonymous / adopter browse hides terminal and
   // archived pets and never receives internal notes.
-  const privileged = hasPermission(principal, PETS_READ_ANY) || principal.rescueId !== undefined;
+  const privileged =
+    principal !== null &&
+    (hasPermission(principal, PETS_READ_ANY) || principal.rescueId !== undefined);
 
   const limit = clampLimit(req.limit);
   // Page mode (offset + total count) when the caller asks for a 1-based
@@ -533,10 +539,11 @@ export async function listPets(
 
 export async function listBreeds(
   deps: HandlerDeps,
-  principal: Principal,
+  principal: Principal | null,
   req: ListBreedsRequest
 ): Promise<ListBreedsResponse> {
-  if (!hasPermission(principal, PETS_READ)) {
+  // Public reference data — anonymous browse needs breed filter options.
+  if (principal !== null && !hasPermission(principal, PETS_READ)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
   }
 
@@ -565,13 +572,15 @@ const MAX_SIMILAR_LIMIT = 24;
 
 export async function getSimilarPets(
   deps: HandlerDeps,
-  principal: Principal,
+  principal: Principal | null,
   req: GetSimilarPetsRequest
 ): Promise<GetSimilarPetsResponse> {
   if (!req.petId) {
     throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
   }
-  if (!hasPermission(principal, PETS_READ)) {
+  // Public — the pet detail page shows "similar pets" to anonymous visitors.
+  // The query below is already an available + non-archived public projection.
+  if (principal !== null && !hasPermission(principal, PETS_READ)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
   }
 

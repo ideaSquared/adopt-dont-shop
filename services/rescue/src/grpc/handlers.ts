@@ -218,6 +218,33 @@ function maskRescue(rescue: Rescue, principal: Principal): Rescue {
   return maskRescueWithAccessMap(rescue, resolveFieldAccessMap('rescues', principal.roles));
 }
 
+// Field access for anonymous (logged-out) visitors (ADS-1168). No role map
+// applies without a principal, so this is an explicit READ allowlist of the
+// basic, non-sensitive fields a public browse should expose. Everything not
+// listed here is zeroed by maskRescueWithAccessMap — in particular email,
+// phone, address, postcode, contact_* and the Companies House / charity
+// registration numbers stay hidden until a visitor registers (converts).
+const PUBLIC_RESCUE_ACCESS_MAP: FieldAccessMap = {
+  rescueId: 'read',
+  name: 'read',
+  city: 'read',
+  county: 'read',
+  country: 'read',
+  website: 'read',
+  description: 'read',
+  mission: 'read',
+  status: 'read',
+  createdAt: 'read',
+};
+
+// The access map to mask a rescue with for a given caller: their role map when
+// authenticated, or the anonymous public allowlist when not.
+function rescueAccessMapFor(principal: Principal | null): FieldAccessMap {
+  return principal === null
+    ? PUBLIC_RESCUE_ACCESS_MAP
+    : resolveFieldAccessMap('rescues', principal.roles);
+}
+
 function invitationRowToProto(row: InvitationRow): Invitation {
   return {
     invitationId: row.invitation_id,
@@ -332,7 +359,7 @@ export async function createRescue(
 
 export async function getRescue(
   deps: HandlerDeps,
-  principal: Principal,
+  principal: Principal | null,
   req: GetRescueRequest
 ): Promise<GetRescueResponse> {
   if (!req.rescueId) {
@@ -341,17 +368,18 @@ export async function getRescue(
 
   // Status visibility (ADS-1168). A caller WITH rescues.read (rescue staff,
   // moderator, admin) may fetch a rescue in any status. A caller WITHOUT it
-  // (adopter / public browsing) may only see a VERIFIED rescue; a
+  // (anonymous public browsing / adopter) may only see a VERIFIED rescue; a
   // non-verified rescue reads as NOT_FOUND so its existence isn't leaked.
-  // Either way the response is field-masked by role — the adopter map
-  // already redacts the sensitive contact/registration fields.
-  const canReadAnyStatus = hasPermission(principal, RESCUES_READ);
+  // Either way the response is field-masked — anonymous gets the public
+  // allowlist, an adopter their role map, both of which redact the sensitive
+  // contact/registration fields.
+  const canReadAnyStatus = principal !== null && hasPermission(principal, RESCUES_READ);
 
   const row = await fetchRescue(deps, req.rescueId);
   if (!row || (!canReadAnyStatus && row.status !== 'verified')) {
     throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
   }
-  return { rescue: maskRescue(rowToProto(row), principal) };
+  return { rescue: maskRescueWithAccessMap(rowToProto(row), rescueAccessMapFor(principal)) };
 }
 
 // --- List ------------------------------------------------------------
@@ -363,7 +391,7 @@ const MAX_LIST_LIMIT = 100;
 
 export async function listRescues(
   deps: HandlerDeps,
-  principal: Principal,
+  principal: Principal | null,
   req: ListRescuesRequest
 ): Promise<ListRescuesResponse> {
   const limit = clampLimit(req.limit);
@@ -395,8 +423,10 @@ export async function listRescues(
   //     is a platform-admin scope too and mirrors the all_statuses gate
   //     (ADS-1157 — previously any rescues.read holder could enumerate every
   //     non-verified rescue platform-wide).
-  const canReadAnyStatus = hasPermission(principal, RESCUES_READ);
-  const canReadAllStatuses = hasPermission(principal, ADMIN_SECURITY_MANAGE);
+  // Anonymous (null principal) has no permissions → falls into the
+  // verified-only public branch below, exactly like an adopter.
+  const canReadAnyStatus = principal !== null && hasPermission(principal, RESCUES_READ);
+  const canReadAllStatuses = principal !== null && hasPermission(principal, ADMIN_SECURITY_MANAGE);
 
   if (!canReadAnyStatus) {
     pushStatus('verified');
@@ -470,7 +500,7 @@ export async function listRescues(
       `SELECT COUNT(*)::text AS total FROM rescue.rescues WHERE ${where.join(' AND ')}`,
       params
     );
-    const accessMap = resolveFieldAccessMap('rescues', principal.roles);
+    const accessMap = rescueAccessMapFor(principal);
     return {
       rescues: pageResult.rows.map(row => maskRescueWithAccessMap(rowToProto(row), accessMap)),
       total: Number(countResult.rows[0]?.total ?? 0),
@@ -496,7 +526,7 @@ export async function listRescues(
       : undefined;
 
   // Resolve the access map once for the page, not per row.
-  const accessMap = resolveFieldAccessMap('rescues', principal.roles);
+  const accessMap = rescueAccessMapFor(principal);
   return {
     rescues: page.map(row => maskRescueWithAccessMap(rowToProto(row), accessMap)),
     nextCursor,
