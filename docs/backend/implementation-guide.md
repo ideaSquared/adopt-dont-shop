@@ -211,17 +211,27 @@ Schema-owning services: `service-auth`, `service-pets`, `service-rescue`, `servi
 
 ### Seeds
 
-Only services that need dev/e2e data ship a `db:seed` script today: `service-auth`, `service-rescue`, `service-pets`, `service-applications`, `service-chat`. Seeds use `ON CONFLICT DO UPDATE` everywhere, so they're idempotent and safe to re-run.
+Seeding has two tiers:
+
+1. **Personas** (`db:seed`) — a small fixed set of accounts (john.smith, admin, rescue staff …) with stable ids the e2e suite and the dev-tools login panel depend on. `service-auth`, `service-rescue`, `service-pets`, `service-applications`, `service-chat` each ship one; they use `ON CONFLICT DO UPDATE` and run on every container boot.
+2. **Synthetic** (`db:spam`) — the realistic, populated dataset: adopters + rescues, a photo'd pet catalogue (real names, breeds, bios, species-matched photos), plus applications, chats and notifications. Rows use deterministic ids + `ON CONFLICT DO NOTHING`, so re-running converges to the same dataset instead of piling on.
 
 ```bash
-# Seed every service in dependency order (host-side orchestrator).
-pnpm db:seed
+# Populate the dev DB with the FULL realistic dataset (personas + synthetic).
+# This is the command to reach for; idempotent, safe to re-run.
+pnpm db:seed:dev
 
-# Or seed a single service.
-docker compose exec service-auth pnpm db:seed
+# …or just one tier:
+pnpm db:seed          # personas only
+pnpm db:spam          # synthetic only
+
+# Tune volume per entity — bump and re-run to add more:
+SPAM_PETS=1000 pnpm db:spam
 ```
 
-`pnpm db:seed` is a thin wrapper around `scripts/seed.mjs` that shells into each service container in order (auth → rescue → pets → applications → chat) — see the script header for the full ordering and why it must not import workspace packages from the host.
+**Fresh Docker stack:** the browsable catalogue (auth + rescue + pets synthetic) is seeded automatically on boot, but only into an EMPTY database — the boot commands pass `SEED_ONLY_IF_EMPTY=true`, so a reboot never re-seeds over data you already have. To (re)populate an existing DB, or to add the applications/chat/notification volume (not seeded at boot), run `pnpm db:seed:dev`. Wipe and start clean with `pnpm docker:reset`.
+
+`pnpm db:seed` / `db:spam` are thin host-side orchestrators (`scripts/seed.mjs` / `scripts/spam.mjs`) that shell into each service container in dependency order (auth → rescue → pets → applications → chat → notifications) — see the script headers for the ordering and why they must not import workspace packages from the host. Synthetic photos are real, species-matched LoremFlickr URLs stored on the pet; the gateway surfaces them (and the breed name) through the list/detail responses.
 
 ## Testing
 

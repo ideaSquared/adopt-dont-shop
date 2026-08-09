@@ -298,6 +298,35 @@ describe('GET /api/v1/pets/:id', () => {
     }
   });
 
+  it('surfaces images + breed (from extra_json) through the response schema', async () => {
+    const { client, getMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getMock.mockResolvedValueOnce({
+        pet: {
+          ...PET_FIXTURE,
+          extraJson:
+            '{"image_urls":["https://cdn/a.jpg","https://cdn/b.jpg"],"breed":"Border Collie"}',
+        },
+      } as GetPetResponse);
+      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/pet-1' });
+      expect(res.statusCode).toBe(200);
+      // The response schema must NOT strip images/breed — the browse/detail
+      // views render pet.images and pet.breed, so stripping means no photos
+      // and no breed label.
+      const body = res.json() as {
+        data: { images?: Array<{ url: string; is_primary: boolean }>; breed?: string };
+      };
+      expect(body.data.images).toEqual([
+        { url: 'https://cdn/a.jpg', is_primary: true, order_index: 0 },
+        { url: 'https://cdn/b.jpg', is_primary: false, order_index: 1 },
+      ]);
+      expect(body.data.breed).toBe('Border Collie');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('maps NOT_FOUND → 404', async () => {
     const { client, getMock } = makeClient();
     const app = await makeApp(client);

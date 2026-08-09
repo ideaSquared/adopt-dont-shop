@@ -183,28 +183,31 @@ services:
     environment:
       <<: *dev-env
     volumes: *dev-volumes
-    command: sh -c "pnpm --filter @adopt-dont-shop/service.auth run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.auth run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.auth run dev"
+    # db:seed plants the fixed personas; db:spam plants the realistic synthetic
+    # population but only on a FRESH db (SEED_ONLY_IF_EMPTY) so a reboot never
+    # re-seeds over an existing one. To (re)populate on demand: `pnpm db:seed:dev`.
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.auth run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.auth run --if-present db:seed && ALLOW_SPAM=true SEED_ONLY_IF_EMPTY=true pnpm --filter @adopt-dont-shop/service.auth run --if-present db:spam && pnpm --filter @adopt-dont-shop/service.auth run dev"
 
   service-pets:
     <<: *dev-build
     environment:
       <<: *dev-env
     volumes: *dev-volumes
-    command: sh -c "pnpm --filter @adopt-dont-shop/service.pets run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.pets run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.pets run dev"
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.pets run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.pets run --if-present db:seed && ALLOW_SPAM=true SEED_ONLY_IF_EMPTY=true pnpm --filter @adopt-dont-shop/service.pets run --if-present db:spam && pnpm --filter @adopt-dont-shop/service.pets run dev"
 
   service-rescue:
     <<: *dev-build
     environment:
       <<: *dev-env
     volumes: *dev-volumes
-    command: sh -c "pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.rescue run dev"
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:seed && ALLOW_SPAM=true SEED_ONLY_IF_EMPTY=true pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:spam && pnpm --filter @adopt-dont-shop/service.rescue run dev"
 
   service-applications:
     <<: *dev-build
     environment:
       <<: *dev-env
     volumes: *dev-volumes
-    command: sh -c "pnpm --filter @adopt-dont-shop/service.applications run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.applications run dev"
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.applications run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.applications run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.applications run dev"
 
   service-notifications:
     <<: *dev-build

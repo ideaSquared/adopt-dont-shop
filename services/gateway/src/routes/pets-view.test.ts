@@ -87,6 +87,34 @@ describe('petToView', () => {
     const v = petToView(makePet({ adoptionFeeMinor: 12500 }));
     expect(v.adoption_fee).toBe('125.00');
   });
+
+  it('derives images objects from extra_json.image_urls, marking the first primary', () => {
+    const v = petToView(
+      makePet({ extraJson: '{"image_urls":["https://cdn/a.jpg","https://cdn/b.jpg"]}' })
+    );
+    expect(v.images).toEqual([
+      { url: 'https://cdn/a.jpg', is_primary: true, order_index: 0 },
+      { url: 'https://cdn/b.jpg', is_primary: false, order_index: 1 },
+    ]);
+  });
+
+  it('also reads the bare `images` string[] the create body packs, deduping by url', () => {
+    const v = petToView(
+      makePet({
+        extraJson:
+          '{"image_urls":["https://cdn/a.jpg"],"images":["https://cdn/a.jpg","https://cdn/c.jpg"]}',
+      })
+    );
+    expect(v.images).toEqual([
+      { url: 'https://cdn/a.jpg', is_primary: true, order_index: 0 },
+      { url: 'https://cdn/c.jpg', is_primary: false, order_index: 1 },
+    ]);
+  });
+
+  it('omits images entirely when the pet has none', () => {
+    const v = petToView(makePet());
+    expect('images' in v).toBe(false);
+  });
 });
 
 describe('listToEnvelope', () => {

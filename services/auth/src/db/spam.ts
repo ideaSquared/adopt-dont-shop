@@ -1,18 +1,20 @@
-// Dev-only bulk-data ('spam') seeder for the auth.* schema.
+// Dev bulk-data seeder for the auth.* schema — the synthetic user population.
 //
-// Floods auth.users with faker-generated adopters + rescue staff so the rest
-// of the stack has a prod-shaped population to reference. Unlike seed.ts (a
-// small fixed persona set that runs on every boot), this is MANUAL and gated:
-// see @adopt-dont-shop/seed-faker assertSpamAllowed (NODE_ENV + ALLOW_SPAM).
+// Plants faker-generated adopters + rescue staff so the rest of the stack has
+// a prod-shaped population to reference. Unlike seed.ts (the small fixed
+// persona set), this is the volume tier, gated via assertSpamAllowed
+// (NODE_ENV + ALLOW_SPAM).
 //
-// Additive: every row gets a fresh crypto.randomUUID(), so re-running adds
-// more users rather than upserting. Every spam user shares one password
-// (SPAM_PASSWORD, default below) so you can log in as any of them.
+// Idempotent + deterministic: user_id and email are derived from a fixed key
+// (seededUuid / `adopter${i}@example.test`), and the INSERT is ON CONFLICT
+// DO NOTHING, so a re-run (or every container boot) converges to the SAME
+// users instead of piling on. The `adopter-${i}` / `staff-${i}` key scheme is
+// the contract the rescue/pets/applications seeders compute their refs from,
+// so no cross-schema read is needed to wire them up.
 //
-// Volume: SPAM_ADOPTERS (default 50) + SPAM_STAFF (default 20). Downstream
-// spam seeders read these rows back by user_type to wire FKs.
-
-import { randomUUID } from 'node:crypto';
+// On boot the compose command sets SEED_ONLY_IF_EMPTY=true, so it plants only
+// when the anchor user (index 0) is absent; the manual `pnpm db:seed:dev`
+// leaves it unset to (re)populate on demand.
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
@@ -20,6 +22,8 @@ import {
   assertSpamAllowed,
   bulkInsert,
   createSpamFaker,
+  seededUuid,
+  shouldSeed,
   spamCount,
 } from '@adopt-dont-shop/seed-faker';
 import bcrypt from 'bcryptjs';
@@ -51,23 +55,27 @@ const USER_COLUMNS = [
 type Faker = ReturnType<typeof createSpamFaker>;
 type UserType = 'adopter' | 'rescue_staff';
 
+// Each user type maps to a stable key prefix. The email is derived from the
+// same key so both the PK and the UNIQUE(email) constraint are collision-free
+// across runs, and downstream seeders can recompute the id from the index.
+const KEY_PREFIX: Record<UserType, string> = {
+  adopter: 'adopter',
+  rescue_staff: 'staff',
+};
+
 const userRow = (
   faker: Faker,
   userType: UserType,
+  index: number,
   passwordHash: string,
   now: Date
 ): readonly unknown[] => {
-  const firstName = faker.person.firstName();
-  const lastName = faker.person.lastName();
-  // Unique-by-construction email: faker emails collide across dozens of rows
-  // and auth.users.email is UNIQUE. A short random suffix sidesteps the
-  // conflict without an ON CONFLICT branch (which would defeat additivity).
-  const email = `${firstName}.${lastName}.${randomUUID().slice(0, 8)}@example.test`.toLowerCase();
+  const prefix = KEY_PREFIX[userType];
   return [
-    randomUUID(),
-    firstName,
-    lastName,
-    email,
+    seededUuid(`${prefix}-${index}`),
+    faker.person.firstName(),
+    faker.person.lastName(),
+    `${prefix}${index}@example.test`,
     passwordHash,
     faker.phone.number(),
     true,
@@ -83,6 +91,25 @@ const userRow = (
   ];
 };
 
+// Pure builder — deterministic given a seeded faker, so tests can assert the
+// generated shape without a database or a real bcrypt hash.
+export const buildUserRows = (
+  faker: Faker,
+  passwordHash: string,
+  adopters: number,
+  staff: number,
+  now = new Date()
+): (readonly unknown[])[] => {
+  const rows: (readonly unknown[])[] = [];
+  for (let i = 0; i < adopters; i++) {
+    rows.push(userRow(faker, 'adopter', i, passwordHash, now));
+  }
+  for (let i = 0; i < staff; i++) {
+    rows.push(userRow(faker, 'rescue_staff', i, passwordHash, now));
+  }
+  return rows;
+};
+
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
 
 export const spamUsers = async (deps: {
@@ -92,16 +119,49 @@ export const spamUsers = async (deps: {
   adopters: number;
   staff: number;
 }): Promise<{ adopters: number; staff: number }> => {
-  const now = new Date();
-  const rows: (readonly unknown[])[] = [];
-  for (let i = 0; i < deps.adopters; i++) {
-    rows.push(userRow(deps.faker, 'adopter', deps.passwordHash, now));
-  }
-  for (let i = 0; i < deps.staff; i++) {
-    rows.push(userRow(deps.faker, 'rescue_staff', deps.passwordHash, now));
-  }
-  await bulkInsert({ query: deps.query }, 'auth.users', USER_COLUMNS, rows);
+  const rows = buildUserRows(deps.faker, deps.passwordHash, deps.adopters, deps.staff);
+  await bulkInsert(
+    { query: deps.query },
+    'auth.users',
+    USER_COLUMNS,
+    rows,
+    500,
+    'ON CONFLICT (user_id) DO NOTHING'
+  );
   return { adopters: deps.adopters, staff: deps.staff };
+};
+
+const anchorExists = async (query: QueryFn): Promise<boolean> => {
+  const res = (await query(`SELECT 1 FROM auth.users WHERE user_id = $1 LIMIT 1`, [
+    seededUuid('adopter-0'),
+  ])) as { rows: unknown[] };
+  return res.rows.length > 0;
+};
+
+// Orchestration over injected seams (query, faker, hash) so the seed-if-empty
+// guard + count logic is testable without a real pool or a bcrypt round.
+export const runSpam = async (deps: {
+  query: QueryFn;
+  faker: Faker;
+  hash: (password: string) => Promise<string>;
+  log?: (message: string, meta?: Record<string, unknown>) => void;
+}): Promise<{ seeded: boolean; adopters: number; staff: number }> => {
+  if (!(await shouldSeed(() => anchorExists(deps.query)))) {
+    deps.log?.('auth users already populated — skipping (SEED_ONLY_IF_EMPTY)');
+    return { seeded: false, adopters: 0, staff: 0 };
+  }
+  const adopters = spamCount('ADOPTERS', 50);
+  const staff = spamCount('STAFF', 20);
+  deps.log?.('spamming auth users', { adopters, staff });
+  const passwordHash = await deps.hash(SPAM_PASSWORD);
+  const result = await spamUsers({
+    query: deps.query,
+    faker: deps.faker,
+    passwordHash,
+    adopters,
+    staff,
+  });
+  return { seeded: true, ...result };
 };
 
 const main = async (): Promise<void> => {
@@ -110,16 +170,11 @@ const main = async (): Promise<void> => {
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
-    const adopters = spamCount('ADOPTERS', 50);
-    const staff = spamCount('STAFF', 20);
-    logger.info('spamming auth users', { adopters, staff });
-    const passwordHash = await bcrypt.hash(SPAM_PASSWORD, BCRYPT_ROUNDS);
-    const result = await spamUsers({
+    const result = await runSpam({
       query: (text, values) => pool.query(text, values as unknown[]),
       faker: createSpamFaker(),
-      passwordHash,
-      adopters,
-      staff,
+      hash: password => bcrypt.hash(password, BCRYPT_ROUNDS),
+      log: (message, meta) => logger.info(message, meta),
     });
     logger.info('auth spam complete', { ...result, password: SPAM_PASSWORD });
   } catch (err) {

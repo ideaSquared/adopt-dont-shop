@@ -69,6 +69,24 @@ function prune(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
 }
 
+// Pet images ride in extra_json — as `image_urls` (the /pets/:id/images
+// append/remove routes and lib.pets' image manager write this key) or as a
+// bare `images` string[] (the create/update body packs it there via
+// pickExtra). Both are just URL lists; lib.pets renders `{ url, is_primary }`
+// objects. Normalise either source into that shape, dedupe by URL, and mark
+// the first as primary so PetCard has a cover photo.
+type ImageView = { url: string; is_primary: boolean; order_index: number };
+
+function imagesFromExtra(extra: Record<string, unknown>): ImageView[] | undefined {
+  const collect = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u !== '') : [];
+  const urls = [...new Set([...collect(extra.image_urls), ...collect(extra.images)])];
+  if (urls.length === 0) {
+    return undefined;
+  }
+  return urls.map((url, index) => ({ url, is_primary: index === 0, order_index: index }));
+}
+
 export function petToView(p: Pet): Record<string, unknown> {
   // extra_json carries the long tail (good_with_*, vaccination_status,
   // location, medical_notes, breed name if the service stored it, …).
@@ -103,6 +121,9 @@ export function petToView(p: Pet): Record<string, unknown> {
     adopted_date: p.adoptedDate,
     created_at: p.createdAt,
     updated_at: p.updatedAt,
+    // Derived from extra_json's URL list(s); spread AFTER extra so the
+    // normalised objects win over any raw `images` string[] left in extra.
+    images: imagesFromExtra(extra),
   };
 
   // adoption_fee: the proto splits it into minor units + currency; the
