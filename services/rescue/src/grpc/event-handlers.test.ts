@@ -89,7 +89,7 @@ function makeMocks() {
     pool: pool as unknown as Pool,
     nats: nats as unknown as NatsConnection,
   };
-  return { deps, poolMock: pool, clientMock: client, clientScript: c.push };
+  return { deps, poolMock: pool, clientMock: client, clientScript: c.push, natsMock: nats };
 }
 
 const eventRow = (overrides: Record<string, unknown> = {}) => ({
@@ -338,6 +338,28 @@ describe('updateEvent', () => {
     await expect(updateEvent(mocks.deps, STAFF_NO_RESCUE, { id: EVENT_ID })).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+  });
+
+  // --- ADS-1176: no phantom event on a zero-row update -----------------
+
+  it('publishes rescue.eventUpdated only when a row was actually updated', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    mocks.clientScript([eventRow({ name: 'Updated Name' })]);
+    await updateEvent(mocks.deps, STAFF, { id: EVENT_ID, name: 'Updated Name' });
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.eventUpdated');
+  });
+
+  it('does not publish rescue.eventUpdated when the UPDATE matches no rows (concurrent soft-delete race)', async () => {
+    // The scope check passes (row still visible when fetched), but by the time
+    // the UPDATE ... WHERE deleted_at IS NULL runs a concurrent delete has
+    // landed, so it matches zero rows.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    mocks.clientScript([]); // UPDATE returns no rows
+    await expect(
+      updateEvent(mocks.deps, STAFF, { id: EVENT_ID, name: 'Updated Name' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 

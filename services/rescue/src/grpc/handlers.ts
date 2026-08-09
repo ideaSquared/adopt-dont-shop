@@ -338,12 +338,17 @@ export async function getRescue(
   if (!req.rescueId) {
     throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
   }
-  if (!hasPermission(principal, RESCUES_READ)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required`);
-  }
+
+  // Status visibility (ADS-1168). A caller WITH rescues.read (rescue staff,
+  // moderator, admin) may fetch a rescue in any status. A caller WITHOUT it
+  // (adopter / public browsing) may only see a VERIFIED rescue; a
+  // non-verified rescue reads as NOT_FOUND so its existence isn't leaked.
+  // Either way the response is field-masked by role — the adopter map
+  // already redacts the sensitive contact/registration fields.
+  const canReadAnyStatus = hasPermission(principal, RESCUES_READ);
 
   const row = await fetchRescue(deps, req.rescueId);
-  if (!row) {
+  if (!row || (!canReadAnyStatus && row.status !== 'verified')) {
     throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
   }
   return { rescue: maskRescue(rowToProto(row), principal) };
@@ -361,10 +366,6 @@ export async function listRescues(
   principal: Principal,
   req: ListRescuesRequest
 ): Promise<ListRescuesResponse> {
-  if (!hasPermission(principal, RESCUES_READ)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required`);
-  }
-
   const limit = clampLimit(req.limit);
   const cursor = req.cursor ? parseCursor(req.cursor) : undefined;
 
@@ -372,23 +373,47 @@ export async function listRescues(
   const params: unknown[] = [];
   let n = 1;
 
-  // Status visibility. UNSPECIFIED in the filter slot = the public default
-  // ("verified only"). A caller can filter to a concrete status. all_statuses
-  // is the admin datatable's "show everything" scope — it drops the status
-  // predicate entirely and so is gated on the platform-admin permission
-  // (defence-in-depth; the gateway also gates the /admin route).
-  if (req.allStatuses) {
-    if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+  const pushStatus = (dbStatus: RescueStatusDb): void => {
+    where.push(`status = $${n}`);
+    params.push(dbStatus);
+    n++;
+  };
+
+  // Status visibility — one coherent scheme covering ADS-1157 + ADS-1168:
+  //   - Callers WITHOUT rescues.read (adopters / public browsing, ADS-1168)
+  //     are served VERIFIED rescues only. The requested status_filter /
+  //     all_statuses is ignored and forced to verified — a public browse
+  //     can never enumerate unverified orgs. Rows are still field-masked by
+  //     role (the adopter map redacts contact/registration fields).
+  //   - all_statuses is the admin datatable's "show everything" scope: it
+  //     drops the status predicate entirely and is gated on the platform-
+  //     admin permission (defence-in-depth; the gateway gates /admin too).
+  //   - UNSPECIFIED (the public default) and an explicit VERIFIED filter
+  //     both resolve to verified-only — any rescues.read holder may use them.
+  //   - A concrete NON-verified filter (pending/suspended/rejected/inactive)
+  //     exposes unverified orgs' unmasked registration/contact fields, so it
+  //     is a platform-admin scope too and mirrors the all_statuses gate
+  //     (ADS-1157 — previously any rescues.read holder could enumerate every
+  //     non-verified rescue platform-wide).
+  const canReadAnyStatus = hasPermission(principal, RESCUES_READ);
+  const canReadAllStatuses = hasPermission(principal, ADMIN_SECURITY_MANAGE);
+
+  if (!canReadAnyStatus) {
+    pushStatus('verified');
+  } else if (req.allStatuses) {
+    if (!canReadAllStatuses) {
       throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
     }
-  } else if (req.statusFilter === RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED) {
-    where.push(`status = $${n}`);
-    params.push('verified');
-    n++;
+  } else if (
+    req.statusFilter === RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED ||
+    req.statusFilter === RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED
+  ) {
+    pushStatus('verified');
   } else {
-    where.push(`status = $${n}`);
-    params.push(statusToDb(req.statusFilter));
-    n++;
+    if (!canReadAllStatuses) {
+      throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+    }
+    pushStatus(statusToDb(req.statusFilter));
   }
 
   // Free-text name search (case-insensitive substring).
