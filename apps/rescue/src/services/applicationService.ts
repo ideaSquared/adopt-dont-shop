@@ -210,6 +210,42 @@ const buildReferenceChecks = (
 };
 
 /**
+ * ADS-1204: shape the gateway's `/applications/stats` endpoint returns
+ * (`statsToView`). Fields are optional because the backend payload is a
+ * best-effort aggregate and older responses may omit counts.
+ */
+type RawApplicationStats = {
+  total?: number;
+  submitted?: number;
+  underReview?: number;
+  approved?: number;
+  rejected?: number;
+  pendingReferences?: number;
+};
+
+/**
+ * ADS-1204: reconcile the gateway stats shape with the rescue UI's
+ * `ApplicationStats`. `byStatus` is keyed by `ApplicationStatus`
+ * (submitted/approved/rejected/withdrawn) — the backend's `underReview`
+ * is a stage bucket with no matching status key, and `withdrawn` has no
+ * backend count, so it defaults to 0. Fields the backend never provides
+ * (`avgProcessingTime`, `recentSubmissions`, `scheduledVisits`) default to 0.
+ */
+const toApplicationStats = (raw: RawApplicationStats): ApplicationStats => ({
+  total: raw.total ?? 0,
+  byStatus: {
+    submitted: raw.submitted ?? 0,
+    approved: raw.approved ?? 0,
+    rejected: raw.rejected ?? 0,
+    withdrawn: 0,
+  },
+  avgProcessingTime: 0,
+  recentSubmissions: 0,
+  pendingReferences: raw.pendingReferences ?? 0,
+  scheduledVisits: 0,
+});
+
+/**
  * Application Service for Rescue App
  * Uses the configured API service with authentication
  */
@@ -508,11 +544,12 @@ export class RescueApplicationService {
   async getApplicationStats(): Promise<ApplicationStats> {
     try {
       // ADS-1204: the endpoint is /stats (not /statistics, which 404s) and
-      // the gateway wraps the payload in a `{ data }` envelope.
-      const response = await this.apiService.get<{ data: ApplicationStats }>(
+      // the gateway wraps its `statsToView` payload in a `{ data }` envelope.
+      // That backend shape differs from the UI's ApplicationStats, so map it.
+      const response = await this.apiService.get<{ data: RawApplicationStats }>(
         '/api/v1/applications/stats'
       );
-      return response.data;
+      return toApplicationStats(response.data);
     } catch (error) {
       console.error('Failed to fetch application stats:', error);
       throw new Error('Failed to fetch application statistics from server');

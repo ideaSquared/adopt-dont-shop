@@ -27,16 +27,32 @@ describe('RescueApplicationService workflow operations', () => {
   });
 
   describe('getApplicationStats', () => {
-    it('returns the statistics payload from the server', async () => {
-      // ADS-1204: endpoint is /stats (not /statistics) and the payload is
-      // wrapped in a `{ data }` envelope.
-      const stats = { total: 10, pending: 4 };
-      apiServiceMock.get.mockResolvedValue({ data: stats });
+    it('returns the mapped statistics payload from the server', async () => {
+      // ADS-1204: endpoint is /stats (not /statistics), the payload is wrapped
+      // in a `{ data }` envelope, and the gateway shape is mapped onto
+      // ApplicationStats.
+      apiServiceMock.get.mockResolvedValue({
+        data: {
+          total: 10,
+          submitted: 4,
+          underReview: 2,
+          approved: 3,
+          rejected: 1,
+          pendingReferences: 5,
+        },
+      });
 
       const result = await service.getApplicationStats();
 
       expect(apiServiceMock.get).toHaveBeenCalledWith('/api/v1/applications/stats');
-      expect(result).toBe(stats);
+      expect(result).toEqual({
+        total: 10,
+        byStatus: { submitted: 4, approved: 3, rejected: 1, withdrawn: 0 },
+        avgProcessingTime: 0,
+        recentSubmissions: 0,
+        pendingReferences: 5,
+        scheduledVisits: 0,
+      });
     });
 
     it('throws a friendly error when stats cannot be loaded', async () => {

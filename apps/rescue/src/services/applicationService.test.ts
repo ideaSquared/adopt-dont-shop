@@ -386,7 +386,8 @@ describe('RescueApplicationService.getReferenceChecks (ADS-1199)', () => {
 
 /**
  * ADS-1204: getApplicationStats targeted /statistics (404) and returned the
- * raw response. It now hits /stats and unwraps the `{ data }` envelope.
+ * raw response. It now hits /stats, unwraps the `{ data }` envelope, and maps
+ * the gateway's `statsToView` shape onto the UI's ApplicationStats.
  */
 describe('RescueApplicationService.getApplicationStats (ADS-1204)', () => {
   const service = new RescueApplicationService();
@@ -395,21 +396,45 @@ describe('RescueApplicationService.getApplicationStats (ADS-1204)', () => {
     vi.clearAllMocks();
   });
 
-  it('requests /stats and returns the unwrapped data envelope', async () => {
-    const stats = {
-      total: 42,
-      byStatus: { submitted: 10, approved: 20, rejected: 12 },
-      avgProcessingTime: 3,
-      recentSubmissions: 5,
-      pendingReferences: 4,
-      scheduledVisits: 2,
-    };
-    apiServiceMock.get.mockResolvedValueOnce({ data: stats });
+  it('requests /stats and maps the gateway stats shape onto ApplicationStats', async () => {
+    // Gateway `statsToView` shape.
+    apiServiceMock.get.mockResolvedValueOnce({
+      data: {
+        total: 42,
+        submitted: 10,
+        underReview: 6,
+        approved: 20,
+        rejected: 12,
+        pendingReferences: 4,
+      },
+    });
 
     const result = await service.getApplicationStats();
 
     expect(apiServiceMock.get).toHaveBeenCalledWith('/api/v1/applications/stats');
-    expect(result).toEqual(stats);
+    expect(result).toEqual({
+      total: 42,
+      byStatus: { submitted: 10, approved: 20, rejected: 12, withdrawn: 0 },
+      avgProcessingTime: 0,
+      recentSubmissions: 0,
+      pendingReferences: 4,
+      scheduledVisits: 0,
+    });
+  });
+
+  it('defaults missing backend counts to zero', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({ data: { total: 3 } });
+
+    const result = await service.getApplicationStats();
+
+    expect(result).toEqual({
+      total: 3,
+      byStatus: { submitted: 0, approved: 0, rejected: 0, withdrawn: 0 },
+      avgProcessingTime: 0,
+      recentSubmissions: 0,
+      pendingReferences: 0,
+      scheduledVisits: 0,
+    });
   });
 });
 
