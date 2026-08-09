@@ -298,6 +298,32 @@ describe('GET /api/v1/pets/:id', () => {
     }
   });
 
+  it('surfaces images (derived from extra_json) through the response schema', async () => {
+    const { client, getMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getMock.mockResolvedValueOnce({
+        pet: {
+          ...PET_FIXTURE,
+          extraJson: '{"image_urls":["https://cdn/a.jpg","https://cdn/b.jpg"]}',
+        },
+      } as GetPetResponse);
+      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/pet-1' });
+      expect(res.statusCode).toBe(200);
+      // The response schema must NOT strip images — the browse/detail views
+      // render pet.images, so a stripped array means no photos.
+      const body = res.json() as {
+        data: { images?: Array<{ url: string; is_primary: boolean }> };
+      };
+      expect(body.data.images).toEqual([
+        { url: 'https://cdn/a.jpg', is_primary: true, order_index: 0 },
+        { url: 'https://cdn/b.jpg', is_primary: false, order_index: 1 },
+      ]);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('maps NOT_FOUND → 404', async () => {
     const { client, getMock } = makeClient();
     const app = await makeApp(client);

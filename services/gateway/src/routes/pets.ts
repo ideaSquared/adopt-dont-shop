@@ -74,6 +74,20 @@ const PET_VIEW_SCHEMA = {
     adoption_fee: { type: 'string' },
     temperament: { type: 'array', items: { type: 'string' } },
     tags: { type: 'array', items: { type: 'string' } },
+    // Pet photos, derived by petToView from extra_json's URL list. Without
+    // this the response schema would strip the array and the browse/detail
+    // views would render no images (ADS: dev-seeder-strategy).
+    images: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          url: { type: 'string' },
+          is_primary: { type: 'boolean' },
+          order_index: { type: 'number' },
+        },
+      },
+    },
     view_count: { type: 'number' },
     favorite_count: { type: 'number' },
     application_count: { type: 'number' },
