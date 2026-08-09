@@ -122,7 +122,21 @@ class CmsService {
       Object.entries(filters).filter(([, v]) => v !== undefined)
     ) as Record<string, string | number>;
 
-    return apiService.get<ContentListResult>('/api/v1/cms/content', params);
+    // The gateway serves `{ success, data, pagination }` — not the flat
+    // ContentListResult shape — so read data + pagination off the envelope.
+    const response = await apiService.get<{
+      success: boolean;
+      data: Content[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>('/api/v1/cms/content', params);
+
+    return {
+      content: response.data,
+      total: response.pagination.total,
+      page: response.pagination.page,
+      limit: response.pagination.limit,
+      totalPages: response.pagination.totalPages,
+    };
   }
 
   async getContent(contentId: string): Promise<Content> {
@@ -197,8 +211,11 @@ class CmsService {
   }
 
   async listMenus(): Promise<NavigationMenu[]> {
-    const response = await apiService.get<{ menus: NavigationMenu[] }>('/api/v1/cms/menus');
-    return response.menus;
+    // The gateway serves the menu list under `{ success, data }`.
+    const response = await apiService.get<{ success: boolean; data: NavigationMenu[] }>(
+      '/api/v1/cms/menus'
+    );
+    return response.data;
   }
 
   async getMenu(menuId: string): Promise<NavigationMenu> {

@@ -163,7 +163,3 @@ export const errorMessage = style({
 export const dimDash = style({
   color: vars.text.muted,
 });
-
-export const checkboxSpacing = style({
-  marginRight: '0.375rem',
-});

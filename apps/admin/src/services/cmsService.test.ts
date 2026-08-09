@@ -26,9 +26,13 @@ beforeEach(() => {
 
 describe('CmsService', () => {
   describe('listContent', () => {
-    it('passes only defined filters to the content endpoint', async () => {
-      const result = { content: [], total: 0, page: 1, limit: 10, totalPages: 0 };
-      mockGet.mockResolvedValueOnce(result);
+    it('passes only defined filters and reads the { data, pagination } envelope', async () => {
+      const content = [{ contentId: 'c1', title: 'Cats' }];
+      mockGet.mockResolvedValueOnce({
+        success: true,
+        data: content,
+        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      });
 
       const response = await cmsService.listContent({
         contentType: 'blog_post',
@@ -40,11 +44,21 @@ describe('CmsService', () => {
         contentType: 'blog_post',
         search: 'cats',
       });
-      expect(response).toEqual(result);
+      expect(response).toEqual({
+        content,
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      });
     });
 
     it('defaults to no filters', async () => {
-      mockGet.mockResolvedValueOnce({ content: [], total: 0, page: 1, limit: 10, totalPages: 0 });
+      mockGet.mockResolvedValueOnce({
+        success: true,
+        data: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      });
 
       await cmsService.listContent();
 
@@ -182,9 +196,9 @@ describe('CmsService', () => {
   });
 
   describe('listMenus', () => {
-    it('unwraps the menus list', async () => {
+    it('reads the menus list from the { data } envelope', async () => {
       const menus = [{ menuId: 'm1', name: 'Header' }];
-      mockGet.mockResolvedValueOnce({ menus });
+      mockGet.mockResolvedValueOnce({ success: true, data: menus });
 
       const result = await cmsService.listMenus();
 

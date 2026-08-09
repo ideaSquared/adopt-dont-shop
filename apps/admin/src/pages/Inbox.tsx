@@ -108,7 +108,9 @@ const getDetailPath = (item: InboxItem): string => {
   }
 };
 
-const VALID_SOURCES: ReadonlySet<string> = new Set(['moderation', 'support', 'message']);
+// The admin inbox route only serves moderation + support; `source=message`
+// is rejected (400), so it is not offered as a filter option.
+const VALID_SOURCES: ReadonlySet<string> = new Set(['moderation', 'support']);
 
 const Inbox: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -396,7 +398,6 @@ const Inbox: React.FC = () => {
             <option value='all'>All Sources</option>
             <option value='moderation'>Moderation</option>
             <option value='support'>Support</option>
-            <option value='message'>Messages</option>
           </select>
         </div>
 

@@ -50,25 +50,6 @@ export const filterLabel = style({
   color: vars.text.secondary,
 });
 
-export const searchInputWrapper = style({
-  position: 'relative',
-  flex: 2,
-  minWidth: '300px',
-});
-
-globalStyle(`${searchInputWrapper} svg`, {
-  position: 'absolute',
-  left: '0.75rem',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  color: vars.text.muted,
-  fontSize: '1.125rem',
-});
-
-globalStyle(`${searchInputWrapper} input`, {
-  paddingLeft: '2.5rem',
-});
-
 export const select = style({
   padding: '0.625rem 0.875rem',
   border: `1px solid ${vars.border.color.muted}`,

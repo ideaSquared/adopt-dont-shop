@@ -11,6 +11,9 @@
  * - Clear error handling
  */
 
+import { AdoptionPolicySchema } from '@adopt-dont-shop/lib.rescue';
+import type { Rescue, RescueAPIResponse } from '@adopt-dont-shop/lib.rescue';
+
 import { apiService } from './libraryServices';
 import type {
   AdminRescue,
@@ -30,6 +33,93 @@ import type {
 type UpdatePlanPayload = {
   plan: RescuePlan;
   planExpiresAt?: string | null;
+};
+
+// The gateway serves the snake_case rescue view (rescueToView): rescue_id /
+// verified_at / created_at, plus the admin-only plan fields. This is that wire
+// shape — a superset of lib.rescue's RescueAPIResponse.
+type RescueApiView = RescueAPIResponse & {
+  plan?: RescuePlan;
+  plan_expires_at?: string | null;
+  planExpiresAt?: string | null;
+  active_listings?: number;
+  activeListings?: number;
+  staff_count?: number;
+  staffCount?: number;
+  statistics?: RescueStatistics;
+};
+
+// Mirrors lib.rescue's transformRescueFromAPI (snake_case → camelCase),
+// extended with the admin-only fields AdminRescue carries. lib.api is pure
+// transport (no case conversion), so the admin app must map the view itself.
+// activeListings / staffCount are not in the rescue view; they default to 0
+// (the admin UI does not read them off the list/detail responses).
+const transformRescueFromAPI = (rescue: RescueApiView): AdminRescue => {
+  const adoptionPoliciesRaw = rescue.settings?.adoptionPolicies;
+  const adoptionPoliciesParsed = AdoptionPolicySchema.safeParse(adoptionPoliciesRaw);
+  const adoptionPolicies = adoptionPoliciesParsed.success ? adoptionPoliciesParsed.data : undefined;
+
+  const base: Rescue = {
+    rescueId: rescue.rescue_id || rescue.rescueId || '',
+    name: rescue.name,
+    email: rescue.email,
+    phone: rescue.phone,
+    address: rescue.address,
+    city: rescue.city,
+    county: rescue.county,
+    postcode: rescue.postcode,
+    country: rescue.country,
+    website: rescue.website,
+    description: rescue.description,
+    mission: rescue.mission,
+    companiesHouseNumber: rescue.companies_house_number || rescue.companiesHouseNumber,
+    charityRegistrationNumber:
+      rescue.charity_registration_number || rescue.charityRegistrationNumber,
+    contactPerson: rescue.contact_person || rescue.contactPerson || rescue.name,
+    contactTitle: rescue.contact_title || rescue.contactTitle,
+    contactEmail: rescue.contact_email || rescue.contactEmail,
+    contactPhone: rescue.contact_phone || rescue.contactPhone,
+    status: rescue.status,
+    verifiedAt: rescue.verified_at || rescue.verifiedAt,
+    verifiedBy: rescue.verified_by || rescue.verifiedBy,
+    verificationSource: rescue.verification_source || rescue.verificationSource,
+    verificationFailureReason:
+      rescue.verification_failure_reason || rescue.verificationFailureReason,
+    manualVerificationRequestedAt:
+      rescue.manual_verification_requested_at || rescue.manualVerificationRequestedAt,
+    settings: rescue.settings,
+    adoptionPolicies,
+    isDeleted: rescue.is_deleted || rescue.isDeleted || false,
+    deletedAt: rescue.deleted_at || rescue.deletedAt,
+    deletedBy: rescue.deleted_by || rescue.deletedBy,
+    createdAt: rescue.created_at || rescue.createdAt || '',
+    updatedAt: rescue.updated_at || rescue.updatedAt || '',
+    verified: rescue.status === 'verified',
+    location: {
+      address: rescue.address,
+      city: rescue.city,
+      county: rescue.county,
+      postcode: rescue.postcode,
+      country: rescue.country,
+    },
+    type:
+      rescue.type ||
+      (rescue.companies_house_number ||
+      rescue.companiesHouseNumber ||
+      rescue.charity_registration_number ||
+      rescue.charityRegistrationNumber
+        ? 'organization'
+        : 'individual'),
+  };
+
+  return {
+    ...base,
+    activeListings: rescue.active_listings ?? rescue.activeListings ?? 0,
+    staffCount: rescue.staff_count ?? rescue.staffCount ?? 0,
+    plan: rescue.plan,
+    planExpiresAt: rescue.plan_expires_at ?? rescue.planExpiresAt ?? null,
+    statistics: rescue.statistics,
+  };
 };
 
 /**
@@ -86,7 +176,7 @@ class AdminRescueService {
 
     const response = await apiService.get<{
       success: boolean;
-      data: AdminRescue[];
+      data: RescueApiView[];
       pagination: {
         page: number;
         limit: number;
@@ -102,7 +192,7 @@ class AdminRescueService {
 
     const totalPages = response.pagination.totalPages ?? response.pagination.pages ?? 1;
     return {
-      data: response.data,
+      data: response.data.map(transformRescueFromAPI),
       pagination: {
         page: response.pagination.page,
         limit: response.pagination.limit,
@@ -125,14 +215,14 @@ class AdminRescueService {
 
     const response = await apiService.get<{
       success: boolean;
-      data: AdminRescue;
+      data: RescueApiView;
     }>(`${this.baseUrl}/${rescueId}`, params);
 
     if (!response.success) {
       throw new Error('Failed to fetch rescue');
     }
 
-    return response.data;
+    return transformRescueFromAPI(response.data);
   }
 
   /**

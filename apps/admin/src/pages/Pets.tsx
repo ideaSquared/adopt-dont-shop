@@ -77,7 +77,6 @@ const Pets: React.FC = () => {
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [rescueFilter, setRescueFilter] = useState<string>('all');
-  const [includeArchived, setIncludeArchived] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkPetActionType | null>(null);
@@ -85,7 +84,7 @@ const Pets: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearchQuery, statusFilter, typeFilter, rescueFilter, includeArchived]);
+  }, [debouncedSearchQuery, statusFilter, typeFilter, rescueFilter]);
 
   const { data: rescuesList } = useRescuesList();
 
@@ -94,7 +93,6 @@ const Pets: React.FC = () => {
     status: statusFilter !== 'all' ? (statusFilter as PetStatus) : undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
     rescueId: rescueFilter !== 'all' ? rescueFilter : undefined,
-    archived: includeArchived,
     page,
     limit: 20,
   });
@@ -304,19 +302,6 @@ const Pets: React.FC = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label className={styles.filterLabel} htmlFor='pets-archived-toggle'>
-                  <input
-                    id='pets-archived-toggle'
-                    type='checkbox'
-                    checked={includeArchived}
-                    onChange={e => setIncludeArchived(e.target.checked)}
-                    className={styles.checkboxSpacing}
-                  />
-                  Show archived
-                </label>
               </div>
             </div>
 

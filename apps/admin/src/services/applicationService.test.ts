@@ -44,19 +44,15 @@ describe('applicationService', () => {
       });
 
       const result = await applicationService.getAll({
-        search: 'rex',
         status: 'submitted',
         rescueId: 'r1',
-        petType: 'dog',
         page: 2,
         limit: 30,
       });
 
       expect(mockGet).toHaveBeenCalledWith('/api/v1/applications', {
-        search: 'rex',
         status: 'submitted',
-        rescueId: 'r1',
-        petType: 'dog',
+        rescue: 'r1',
         page: '2',
         limit: '30',
       });
