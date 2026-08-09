@@ -61,6 +61,11 @@ const PET_VIEW_SCHEMA = {
     gender: { type: 'string' },
     size: { type: 'string' },
     age_group: { type: 'string' },
+    // Breed NAME the client renders (SwipeCard/PetCard read pet.breed). The
+    // proto carries only breed_id; the display name rides in extra_json.breed
+    // (the create body packs it there via pickExtra), so declare it or the
+    // response schema strips it. breed_id is still surfaced for relational use.
+    breed: { type: 'string' },
     short_description: { type: 'string' },
     long_description: { type: 'string' },
     age_years: { type: 'number' },
