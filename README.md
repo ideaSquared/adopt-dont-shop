@@ -167,7 +167,7 @@ The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 ## Tech Stack
 
 **Frontend:** React 19, TypeScript, Vite, vanilla-extract, React Router, React Query, Socket.io
-**Backend:** Node.js 22, Fastify (gateway), gRPC microservices, TypeScript, Sequelize, PostgreSQL 16 + PostGIS, Redis 7, NATS JetStream, Socket.io, JWT
+**Backend:** Node.js 22, Fastify (gateway), gRPC microservices, TypeScript, pg (raw SQL), node-pg-migrate, PostgreSQL 16 + PostGIS, Redis 7, NATS JetStream, Socket.io, JWT
 **Tooling:** Turborepo, Docker (BuildKit), Nginx, GitHub Actions
 
 ## Environment Configuration

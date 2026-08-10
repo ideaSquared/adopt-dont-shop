@@ -229,7 +229,7 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 ### Swipe Actions
 
-**Purpose**: User swipe behavior tracking. See the owning service's `src/models/SwipeAction.ts` for the authoritative shape.
+**Purpose**: User swipe behavior tracking. See the owning service's migration `services/matching/src/migrations/002_create_swipe_actions.ts` for the authoritative shape.
 
 | Field           | Type      | Description                                              |
 | --------------- | --------- | -------------------------------------------------------- |
@@ -338,7 +338,7 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 - **Partitioning**: Consider for large tables (messages, notifications)
 - **Archival**: Old data moved to archive tables
 - **Caching**: Frequently accessed data cached at application layer
-- **Connection Pooling**: Managed by Sequelize
+- **Connection Pooling**: Managed by the `pg` pool via `@adopt-dont-shop/db`
 
 ## Data Integrity
 
