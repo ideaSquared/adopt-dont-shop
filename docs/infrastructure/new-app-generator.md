@@ -76,23 +76,7 @@ app.{name}/
 
 ### Backend Services
 
-```
-service.{name}/
-├── src/
-│   ├── routes/         # Express routes
-│   ├── controllers/    # Request handlers
-│   ├── services/       # Business logic
-│   ├── models/         # Database models
-│   ├── middleware/     # Custom middleware
-│   ├── utils/          # Utility functions
-│   ├── types/          # TypeScript definitions
-│   └── index.ts        # Server entry point
-├── .env.example        # Environment template
-├── Dockerfile          # Container configuration
-├── package.json        # Dependencies
-├── tsconfig.json       # TypeScript config
-└── README.md           # Service documentation
-```
+This generator does not scaffold backend services — it produces frontend `app.*` packages only. To add a backend microservice (Fastify + gRPC, `pg` + `node-pg-migrate`), follow the manual runbook in [`new-microservice.md`](./new-microservice.md).
 
 ## Configuration
 
@@ -114,25 +98,12 @@ Frontend apps include:
 }
 ```
 
-Backend services include:
-
-```json
-{
-  "name": "@adopt-dont-shop/service.{name}",
-  "dependencies": {
-    "express": "^4.x",
-    "typescript": "^5.x",
-    "sequelize": "^6.x"
-  }
-}
-```
-
 ### Generated Dockerfile
 
 Multi-stage build optimized for workspace:
 
 ```dockerfile
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 
 # Copy workspace and install

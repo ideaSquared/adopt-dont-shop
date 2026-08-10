@@ -236,6 +236,9 @@ function printNextSteps() {
   log('   pnpm docker:dev          # recommended (includes database + redis)', RESET);
   log('   pnpm dev                 # native (requires local Postgres + Redis)', RESET);
   log('', RESET);
+  log('   Native `pnpm dev` runs on your host — first set DB_HOST=localhost and', YELLOW);
+  log('   REDIS_HOST=localhost in .env (.env.example uses the Docker hostnames database/redis).', YELLOW);
+  log('', RESET);
   log('For more information, see:', BLUE);
   log('   README.md                   # Project overview', RESET);
   log('   docs/README.md              # Detailed documentation', RESET);

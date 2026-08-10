@@ -22,7 +22,7 @@ const sharedConfig = defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      // ADS-947: json-summary is read by scripts/ci/coverage-delta.mjs to post
+      // ADS-947: json-summary is read by scripts/lib/coverage-delta-core.mjs to post
       // the PR coverage-delta comment.
       reporter: ['text', 'lcov', 'html', 'json-summary'],
       reportsDirectory: 'coverage',
@@ -82,7 +82,7 @@ const sharedServiceConfig = defineConfig({
     testTimeout: 10_000,
     coverage: {
       provider: 'v8',
-      // ADS-947: json-summary is read by scripts/ci/coverage-delta.mjs to
+      // ADS-947: json-summary is read by scripts/lib/coverage-delta-core.mjs to
       // post the PR coverage-delta comment.
       reporter: ['text', 'json-summary'],
       reportsDirectory: 'coverage',
