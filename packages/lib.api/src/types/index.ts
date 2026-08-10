@@ -132,6 +132,15 @@ export interface FetchOptions {
   body?: unknown;
   timeout?: number;
   requireAuth?: boolean;
+  /**
+   * Opt this request out of the global 401 handling — both the single-flight
+   * refresh+retry and the `onUnauthorized` (session-clear / logout) side
+   * effect. Set it for self-challenging requests where a 401 is an expected
+   * application-level outcome rather than a session expiry, e.g. the step-up
+   * re-authentication on GDPR account erasure (ADS-1205), where a wrong
+   * password must surface an inline error instead of logging the user out.
+   */
+  skipAuthHandling?: boolean;
 }
 
 /**

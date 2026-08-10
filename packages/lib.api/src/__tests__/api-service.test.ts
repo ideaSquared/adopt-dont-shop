@@ -427,6 +427,52 @@ describe('ApiService', () => {
       expect(onUnauthorized).not.toHaveBeenCalled();
     });
 
+    it('does not call onUnauthorized for a 401 when skipAuthHandling is set (ADS-1205)', async () => {
+      const onUnauthorized = vi.fn();
+      apiService = new ApiService({
+        apiUrl: 'https://api.example.com',
+        onUnauthorized,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: new Headers(),
+        json: () => Promise.resolve({ error: 'credential_verification_failed' }),
+      } as Response);
+
+      await expect(
+        apiService.fetchWithAuth('/protected', { method: 'GET', skipAuthHandling: true })
+      ).rejects.toThrow('credential_verification_failed');
+      expect(onUnauthorized).not.toHaveBeenCalled();
+    });
+
+    it('skips the refresh+retry for a skipAuthHandling 401 (ADS-1205)', async () => {
+      const onUnauthorized = vi.fn();
+      const refreshHandler = vi.fn().mockResolvedValue(undefined);
+      apiService = new ApiService({
+        apiUrl: 'https://api.example.com',
+        onUnauthorized,
+      });
+      apiService.setRefreshHandler(refreshHandler);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: new Headers(),
+        json: () => Promise.resolve({ error: 'credential_verification_failed' }),
+      } as Response);
+
+      await expect(
+        apiService.fetchWithAuth('/protected', { method: 'GET', skipAuthHandling: true })
+      ).rejects.toThrow('credential_verification_failed');
+      expect(refreshHandler).not.toHaveBeenCalled();
+      expect(onUnauthorized).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('should handle timeout errors', async () => {
       // Mock AbortController
       const mockAbort = vi.fn();

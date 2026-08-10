@@ -324,7 +324,12 @@ export class AuthService {
         password: options.password,
         ...(options.reason ? { reason: options.reason } : {}),
         ...(options.twoFactorToken ? { twoFactorToken: options.twoFactorToken } : {}),
-      }
+      },
+      // Step-up re-auth: the gateway answers a wrong password/TOTP with 401.
+      // Opt out of the global 401 handling so it surfaces as an inline modal
+      // error rather than clearing the session and logging the user out
+      // (ADS-1205).
+      { skipAuthHandling: true }
     );
 
     this.clearStorage();

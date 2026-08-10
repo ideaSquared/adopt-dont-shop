@@ -543,10 +543,15 @@ describe('AuthService', () => {
 
       await authService.deleteAccount({ reason: 'No longer needed', password: 'hunter2' });
 
-      expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {
-        password: 'hunter2',
-        reason: 'No longer needed',
-      });
+      expect(apiService.post).toHaveBeenCalledWith(
+        '/api/v1/users/me/erasure-request',
+        {
+          password: 'hunter2',
+          reason: 'No longer needed',
+        },
+        // Step-up 401 must surface inline, not log the user out (ADS-1205)
+        { skipAuthHandling: true }
+      );
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
     });
 
@@ -559,9 +564,13 @@ describe('AuthService', () => {
 
       await authService.deleteAccount({ password: 'hunter2' });
 
-      expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {
-        password: 'hunter2',
-      });
+      expect(apiService.post).toHaveBeenCalledWith(
+        '/api/v1/users/me/erasure-request',
+        {
+          password: 'hunter2',
+        },
+        { skipAuthHandling: true }
+      );
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
     });
 
@@ -574,10 +583,14 @@ describe('AuthService', () => {
 
       await authService.deleteAccount({ password: 'hunter2', twoFactorToken: '123456' });
 
-      expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {
-        password: 'hunter2',
-        twoFactorToken: '123456',
-      });
+      expect(apiService.post).toHaveBeenCalledWith(
+        '/api/v1/users/me/erasure-request',
+        {
+          password: 'hunter2',
+          twoFactorToken: '123456',
+        },
+        { skipAuthHandling: true }
+      );
     });
 
     it('should not clear stored user when the erasure request fails', async () => {
