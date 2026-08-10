@@ -89,11 +89,6 @@ export class ApiService {
           // If we can't parse error as JSON, use the default message
         }
 
-        // Notify caller on 401 so auth state can be cleared without an API call
-        if (response.status === 401) {
-          this.onUnauthorized?.();
-        }
-
         // Clear CSRF token on 403 errors (invalid CSRF token)
         if (response.status === 403 && errorMessage.toLowerCase().includes('csrf')) {
           if (this.config.debug) {
@@ -314,8 +309,8 @@ export class ApiService {
   // Endpoints whose own 401 must NOT trigger a refresh+retry — otherwise
   // a failed refresh recurses, and the login flow itself would retry on
   // bad credentials.
-  private shouldAttemptRefresh(url: string, isRetry: boolean): boolean {
-    if (isRetry || !this.refreshHandler) {
+  private shouldAttemptRefresh(url: string, isRetry: boolean, skipAuthHandling?: boolean): boolean {
+    if (isRetry || skipAuthHandling || !this.refreshHandler) {
       return false;
     }
     return (
@@ -434,11 +429,23 @@ export class ApiService {
       // to the normal onUnauthorized path. The retry happens before
       // response interceptors run so they don't see (and act on) the
       // first 401's body/headers.
-      if (response.status === 401 && this.shouldAttemptRefresh(url, isRetry)) {
+      if (
+        response.status === 401 &&
+        this.shouldAttemptRefresh(url, isRetry, options.skipAuthHandling)
+      ) {
         const refreshed = await this.attemptRefresh();
         if (refreshed) {
           return this.executeFetch(url, options, true);
         }
+      }
+
+      // A 401 that survived the refresh path clears auth state (the caller's
+      // onUnauthorized handler = logout), unless this request opted out. A
+      // self-challenging request (e.g. the step-up re-auth on GDPR erasure,
+      // ADS-1205) treats a 401 as an expected inline error, not a session
+      // expiry, so it must not eject the user.
+      if (response.status === 401 && !options.skipAuthHandling) {
+        this.onUnauthorized?.();
       }
 
       // Apply response interceptors
@@ -553,10 +560,15 @@ export class ApiService {
     return response;
   }
 
-  async post<T>(url: string, data?: unknown): Promise<T> {
+  async post<T>(
+    url: string,
+    data?: unknown,
+    options?: Pick<FetchOptions, 'skipAuthHandling'>
+  ): Promise<T> {
     return this.fetchWithAuth<T>(url, {
       method: 'POST',
       body: data,
+      ...options,
     });
   }
 

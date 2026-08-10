@@ -98,6 +98,18 @@ service AuthService {
   // Authenticated change. Requires the current password.
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 
+  // Step-up re-authentication (ADS-1205). Verifies the calling principal's
+  // password (and a current TOTP code when the account has 2FA enabled) and
+  // returns pass/fail. Unlike Login it mints NO tokens and mutates no
+  // session/cookie state — it exists so a sensitive action (e.g. GDPR account
+  // erasure) can require the user to re-prove their credentials inline. The
+  // password is checked BEFORE the TOTP (mirroring Login) so a wrong password
+  // never consumes a code, and backup/recovery codes are NOT accepted here —
+  // a current TOTP is required for 2FA users. Returns two_factor_required=true
+  // (verified=false) when the password is correct but no TOTP was supplied.
+  // Requires the x-user-id metadata; a missing password is INVALID_ARGUMENT.
+  rpc VerifyCredentials(VerifyCredentialsRequest) returns (VerifyCredentialsResponse);
+
   // --- Two-factor (TOTP) enrolment -----------------------------------
   // Self-scoped. Setup mints a fresh secret (NOT yet persisted); Enable
   // verifies a TOTP code against that secret and turns 2FA on; Disable
@@ -622,6 +634,26 @@ message ChangePasswordRequest {
 
 message ChangePasswordResponse {
   bool ok = 1;
+}
+
+// --- VerifyCredentials (ADS-1205 step-up auth) -----------------------
+
+message VerifyCredentialsRequest {
+  // The account password to re-verify. The principal (x-user-id) identifies
+  // whose credentials we're checking; there is no email field.
+  string password = 1;
+  // A current TOTP code, required only when the account has 2FA enabled.
+  // Backup/recovery codes are deliberately NOT accepted here.
+  optional string two_factor_token = 2;
+}
+
+message VerifyCredentialsResponse {
+  // True only when the password (and TOTP, for 2FA accounts) checked out.
+  bool verified = 1;
+  // Set when the password was correct but the account has 2FA enabled and no
+  // two_factor_token was supplied — the caller should collect a code and
+  // re-submit. verified is false in this case.
+  bool two_factor_required = 2;
 }
 
 // --- Two-factor (TOTP) ------------------------------------------------

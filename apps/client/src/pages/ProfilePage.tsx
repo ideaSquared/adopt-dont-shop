@@ -10,6 +10,8 @@ import {
   Alert,
   Button,
   ConfirmDialog,
+  FormField,
+  Input,
   Modal,
   toast,
   useConfirm,
@@ -49,6 +51,13 @@ interface UserSettings {
   };
 }
 
+// Friendly copy for the step-up re-auth failures the gateway returns as 401s
+// (ADS-1205). The raw codes travel as the thrown Error message via apiService.
+const DELETE_ERROR_MESSAGES: Record<string, string> = {
+  credential_verification_failed: 'That password was incorrect. Please try again.',
+  two_factor_required: 'Enter the 6-digit code from your authenticator app to continue.',
+};
+
 export const ProfilePage: React.FC = () => {
   const { user, isAuthenticated, updateProfile } = useAuth();
   const navigate = useNavigate();
@@ -65,6 +74,10 @@ export const ProfilePage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // ADS-1205: erasure is gated on step-up re-auth, so the modal re-collects the
+  // password (and a TOTP for 2FA accounts).
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteTotp, setDeleteTotp] = useState('');
 
   // Clear the success-message timer on unmount to prevent setState on an unmounted component.
   useEffect(() => {
@@ -236,8 +249,14 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleDeleteAccount = () => {
+  const resetDeleteForm = () => {
     setDeleteError(null);
+    setDeletePassword('');
+    setDeleteTotp('');
+  };
+
+  const handleDeleteAccount = () => {
+    resetDeleteForm();
     setIsDeleteModalOpen(true);
   };
 
@@ -246,24 +265,37 @@ export const ProfilePage: React.FC = () => {
       return;
     }
     setIsDeleteModalOpen(false);
-    setDeleteError(null);
+    resetDeleteForm();
   };
 
   const submitDeleteAccount = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    if (!deletePassword) {
+      setDeleteError('Please enter your password to confirm deletion.');
+      return;
+    }
+    if (user?.twoFactorEnabled && !deleteTotp) {
+      setDeleteError('Please enter your two-factor authentication code.');
+      return;
+    }
+
     try {
       setIsDeleting(true);
       setDeleteError(null);
 
-      await authService.deleteAccount({ reason: 'User requested account deletion' });
+      await authService.deleteAccount({
+        reason: 'User requested account deletion',
+        password: deletePassword,
+        ...(user?.twoFactorEnabled ? { twoFactorToken: deleteTotp } : {}),
+      });
 
       setIsDeleteModalOpen(false);
       navigate('/');
     } catch (error) {
       console.error('Failed to delete account:', error);
-      const message =
-        error instanceof Error && error.message ? error.message : 'Failed to delete account.';
+      const raw = error instanceof Error && error.message ? error.message : '';
+      const message = DELETE_ERROR_MESSAGES[raw] ?? (raw || 'Failed to delete account.');
       setDeleteError(message);
     } finally {
       setIsDeleting(false);
@@ -494,6 +526,38 @@ export const ProfilePage: React.FC = () => {
             This will permanently delete your profile, applications, and all associated data. This
             action cannot be undone.
           </p>
+          <div className={styles.deleteModalField}>
+            <FormField label='Current password' htmlFor='delete-password' required>
+              <Input
+                id='delete-password'
+                type='password'
+                autoComplete='current-password'
+                value={deletePassword}
+                onChange={e => setDeletePassword(e.target.value)}
+                disabled={isDeleting}
+              />
+            </FormField>
+          </div>
+          {user?.twoFactorEnabled && (
+            <div className={styles.deleteModalField}>
+              <FormField
+                label='Two-factor code'
+                htmlFor='delete-totp'
+                required
+                description='Enter the 6-digit code from your authenticator app.'
+              >
+                <Input
+                  id='delete-totp'
+                  type='text'
+                  inputMode='numeric'
+                  autoComplete='one-time-code'
+                  value={deleteTotp}
+                  onChange={e => setDeleteTotp(e.target.value)}
+                  disabled={isDeleting}
+                />
+              </FormField>
+            </div>
+          )}
           {deleteError && (
             <div className={styles.deleteModalField} role='alert'>
               <Alert variant='error'>{deleteError}</Alert>

@@ -34,10 +34,12 @@ export type GdprRoutesOptions = {
   nats: NatsConnection;
   // Optional — when wired, the GET status endpoint is registered.
   auditClient?: AuditClient;
-  // When wired, the erasure event carries the user's email (resolved from
-  // auth) so consumers can erase email-keyed rows that have no user_id —
-  // e.g. rescue pending invitations. Best-effort: a failed lookup still
-  // publishes the userId-only event rather than blocking erasure.
+  // Required at runtime for step-up re-auth (ADS-1205): the erasure route
+  // calls VerifyCredentials on it and fails closed (500) when it is absent.
+  // Also used to resolve the user's email (best-effort) so consumers can
+  // erase email-keyed rows that have no user_id — e.g. rescue pending
+  // invitations. Typed optional only because server.ts forwards an optional
+  // client; the handler enforces its presence.
   authClient?: AuthClient;
   // When wired, used for per-user idempotency: a second POST within
   // ERASURE_IDEMPOTENCY_TTL_SECONDS returns the original correlationId.
@@ -79,7 +81,17 @@ export const registerGdprRoutes = async (
         tags: ['gdpr'],
         summary: 'Submit a GDPR erasure request for the authenticated user',
         security: [],
-        body: { type: 'object', properties: { reason: { type: 'string' } } },
+        // password is required for step-up re-auth (ADS-1205) but is NOT
+        // marked `required` here on purpose — a missing password is answered
+        // with 401 by the handler, not a 400 schema rejection.
+        body: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string' },
+            password: { type: 'string' },
+            twoFactorToken: { type: 'string' },
+          },
+        },
         response: {
           202: {
             type: 'object',
@@ -90,6 +102,10 @@ export const registerGdprRoutes = async (
             },
           },
           401: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+          500: {
             type: 'object',
             properties: { success: { type: 'boolean' }, error: { type: 'string' } },
           },
@@ -107,6 +123,37 @@ export const registerGdprRoutes = async (
       }
       const body = (req.body ?? {}) as Record<string, unknown>;
       const reason = typeof body.reason === 'string' ? body.reason : undefined;
+
+      // Step-up re-authentication (ADS-1205). Account erasure is destructive
+      // and irreversible, so the user must re-prove their credentials inline
+      // before the saga is published. Fail closed: if the auth client isn't
+      // wired the gateway refuses (500) rather than skip the check. The
+      // password + optional TOTP travel in this same POST body; nothing is
+      // published (and no idempotency key is written) unless verification
+      // passes.
+      if (!authClient) {
+        return reply.code(500).send({ success: false, error: 'verification_unavailable' });
+      }
+      const password = typeof body.password === 'string' ? body.password : undefined;
+      const twoFactorToken =
+        typeof body.twoFactorToken === 'string' ? body.twoFactorToken : undefined;
+      if (!password) {
+        return reply.code(401).send({ success: false, error: 'credential_verification_failed' });
+      }
+      try {
+        const verifyRes = await authClient.verifyCredentials(
+          { password, twoFactorToken },
+          buildMetadata(req)
+        );
+        if (verifyRes.twoFactorRequired) {
+          return reply.code(401).send({ success: false, error: 'two_factor_required' });
+        }
+        if (!verifyRes.verified) {
+          return reply.code(401).send({ success: false, error: 'credential_verification_failed' });
+        }
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
 
       // Idempotency: if an open erasure saga exists for this user, return
       // the original correlationId so the client can poll status without
@@ -130,8 +177,9 @@ export const registerGdprRoutes = async (
       // Resolve the user's email so consumers can erase email-keyed rows
       // that carry no user_id (e.g. rescue pending invitations). Best-
       // effort: a failed lookup must not block the erasure saga, so we
-      // fall through to a userId-only event.
-      const email = authClient ? await resolveEmail(authClient, req) : undefined;
+      // fall through to a userId-only event. authClient is guaranteed here
+      // by the fail-closed step-up check above.
+      const email = await resolveEmail(authClient, req);
 
       const correlationId = randomUUID();
       const requestedAt = new Date().toISOString();

@@ -127,6 +127,8 @@ export type {
   RedeemInvitationResponse,
   ChangePasswordRequest,
   ChangePasswordResponse,
+  VerifyCredentialsRequest,
+  VerifyCredentialsResponse,
   SetupTwoFactorRequest,
   SetupTwoFactorResponse,
   EnableTwoFactorRequest,

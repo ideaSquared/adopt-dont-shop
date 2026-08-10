@@ -17,6 +17,8 @@ import {
   type AssignRoleResponse,
   type ChangePasswordRequest,
   type ChangePasswordResponse,
+  type VerifyCredentialsRequest,
+  type VerifyCredentialsResponse,
   type DisableTwoFactorRequest,
   type DisableTwoFactorResponse,
   type EnableTwoFactorRequest,
@@ -149,6 +151,10 @@ export type AuthClient = {
     metadata: Metadata
   ): Promise<RedeemInvitationResponse>;
   changePassword(req: ChangePasswordRequest, metadata: Metadata): Promise<ChangePasswordResponse>;
+  verifyCredentials(
+    req: VerifyCredentialsRequest,
+    metadata: Metadata
+  ): Promise<VerifyCredentialsResponse>;
   setupTwoFactor(req: SetupTwoFactorRequest, metadata: Metadata): Promise<SetupTwoFactorResponse>;
   enableTwoFactor(
     req: EnableTwoFactorRequest,
@@ -341,6 +347,9 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     resetPassword: (req, metadata) => callUnary(stub.resetPassword, req, metadata, false),
     redeemInvitation: (req, metadata) => callUnary(stub.redeemInvitation, req, metadata, false),
     changePassword: (req, metadata) => callUnary(stub.changePassword, req, metadata, false),
+    // Step-up re-auth (ADS-1205). NON-idempotent — verifying a 2FA code
+    // consumes its replay watermark, so a resilience retry must not re-issue it.
+    verifyCredentials: (req, metadata) => callUnary(stub.verifyCredentials, req, metadata, false),
     setupTwoFactor: (req, metadata) => callUnary(stub.setupTwoFactor, req, metadata, false),
     enableTwoFactor: (req, metadata) => callUnary(stub.enableTwoFactor, req, metadata, false),
     disableTwoFactor: (req, metadata) => callUnary(stub.disableTwoFactor, req, metadata, false),
