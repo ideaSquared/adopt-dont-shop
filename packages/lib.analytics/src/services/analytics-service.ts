@@ -233,13 +233,17 @@ export class AnalyticsService {
       return;
     }
 
+    // Strip single-use credentials from both url and referrer before the event
+    // leaves the browser (ADS-1118 — the sibling gap to ADS-1012's trackPageView
+    // fix). trackEvent is a separate capture path, so a token in the current URL
+    // or the referring URL would otherwise reach the analytics datastore.
     const fullEvent: UserEngagementEvent = {
       ...event,
       sessionId: this.sessionId,
       timestamp: new Date(),
-      url: typeof window !== 'undefined' ? window.location.href : event.url,
+      url: typeof window !== 'undefined' ? stripSensitiveParams(window.location.href) : event.url,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      referrer: typeof document !== 'undefined' ? document.referrer : undefined,
+      referrer: typeof document !== 'undefined' ? stripSensitiveParams(document.referrer) : undefined,
     };
 
     // Add to queue for batch processing; enforce cap by dropping oldest events first
@@ -282,6 +286,8 @@ export class AnalyticsService {
       timestamp: new Date(),
       ...pageView,
       url: stripSensitiveParams(pageView.url),
+      // referrer can also carry a single-use token (ADS-1118) — scrub it too.
+      referrer: pageView.referrer !== undefined ? stripSensitiveParams(pageView.referrer) : undefined,
     };
 
     try {

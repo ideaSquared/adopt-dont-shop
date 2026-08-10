@@ -196,6 +196,50 @@ describe('AnalyticsService', () => {
       autoService.destroy();
     });
 
+    it('strips single-use tokens from the captured url AND referrer in trackEvent (ADS-1118)', async () => {
+      mockApiService.post.mockResolvedValue({ success: true });
+
+      // trackEvent captures window.location.href + document.referrer directly,
+      // so seed a token into BOTH to prove neither leaks to the datastore.
+      window.history.replaceState({}, '', '/verify-email?token=SECRET&page=2');
+      const prevReferrer = document.referrer;
+      document.referrer = 'https://example.com/reset-password?token=REFSECRET&ref=abc';
+
+      try {
+        await service.trackEvent({ category: 'user_interaction', action: 'click' });
+        vi.advanceTimersByTime(5000);
+
+        const [, batch] = mockApiService.post.mock.calls[0];
+        const captured = batch.events[0];
+        const capturedUrl = new URL(captured.url);
+        expect(capturedUrl.pathname).toBe('/verify-email');
+        expect(capturedUrl.searchParams.has('token')).toBe(false);
+        expect(capturedUrl.searchParams.get('page')).toBe('2');
+        expect(captured.referrer).toBe('https://example.com/reset-password?ref=abc');
+      } finally {
+        window.history.replaceState({}, '', '/test');
+        document.referrer = prevReferrer;
+      }
+    });
+
+    it('strips a single-use token from the captured page-view referrer (ADS-1118)', async () => {
+      mockApiService.post.mockResolvedValue({ success: true });
+
+      await service.trackPageView({
+        url: 'https://example.com/pets',
+        title: 'Pet Listings',
+        referrer: 'https://example.com/reset-password?token=SECRET&ref=abc',
+      });
+
+      expect(mockApiService.post).toHaveBeenCalledWith(
+        '/api/v1/analytics/pageviews',
+        expect.objectContaining({
+          url: 'https://example.com/pets',
+          referrer: 'https://example.com/reset-password?ref=abc',
+        })
+      );
+    });
+
     it('should track conversions', async () => {
       const trackEventSpy = vi.spyOn(service, 'trackEvent');
 
