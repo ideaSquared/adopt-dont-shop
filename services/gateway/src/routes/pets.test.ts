@@ -1187,6 +1187,34 @@ describe('POST /api/v1/pets/bulk-update', () => {
       await app.close();
     }
   });
+
+  it('masks an internal (5xx) upstream gRPC error as a generic message in the per-pet error list (ADS-1121)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.deleteMock.mockResolvedValueOnce({ deleted: true }).mockRejectedValueOnce({
+        code: grpcStatus.INTERNAL,
+        details: 'pq: duplicate key value violates unique constraint "pets_pkey"',
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds: ['pet-1', 'pet-2'], operation: 'delete' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.data).toMatchObject({
+        successCount: 1,
+        failedCount: 1,
+        errors: [{ petId: 'pet-2', error: 'internal_error' }],
+      });
+      // The raw driver text (constraint name) must never reach the caller.
+      expect(JSON.stringify(body)).not.toContain('pets_pkey');
+    } finally {
+      await app.close();
+    }
+  });
 });
 
 // ADS-1186: the list route enriches each row with the rescue name by
