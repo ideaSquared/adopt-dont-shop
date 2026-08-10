@@ -243,7 +243,8 @@ export class AnalyticsService {
       timestamp: new Date(),
       url: typeof window !== 'undefined' ? stripSensitiveParams(window.location.href) : event.url,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      referrer: typeof document !== 'undefined' ? stripSensitiveParams(document.referrer) : undefined,
+      referrer:
+        typeof document !== 'undefined' ? stripSensitiveParams(document.referrer) : undefined,
     };
 
     // Add to queue for batch processing; enforce cap by dropping oldest events first
@@ -287,7 +288,8 @@ export class AnalyticsService {
       ...pageView,
       url: stripSensitiveParams(pageView.url),
       // referrer can also carry a single-use token (ADS-1118) — scrub it too.
-      referrer: pageView.referrer !== undefined ? stripSensitiveParams(pageView.referrer) : undefined,
+      referrer:
+        pageView.referrer !== undefined ? stripSensitiveParams(pageView.referrer) : undefined,
     };
 
     try {
