@@ -532,32 +532,52 @@ describe('AuthService', () => {
     // ADS-1185: account deletion is the GDPR erasure saga
     // (POST /api/v1/users/me/erasure-request → 202 + correlationId), not a
     // DELETE on a (non-existent) /users/account route.
-    it('POSTs an erasure request with an empty body when no options are supplied and clears stored user', async () => {
+    // ADS-1205: the saga is now gated on step-up re-auth, so the caller's
+    // password (and a TOTP for 2FA accounts) rides along in the body.
+    it('sends the password and reason in the erasure request body and clears the stored user', async () => {
       (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({
         success: true,
         correlationId: 'corr-1',
         requestedAt: '2026-08-09T00:00:00Z',
       });
 
-      await authService.deleteAccount();
+      await authService.deleteAccount({ reason: 'No longer needed', password: 'hunter2' });
 
-      expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {});
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {
+        password: 'hunter2',
+        reason: 'No longer needed',
+      });
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
     });
 
-    it('sends the reason in the erasure request body when provided', async () => {
+    it('sends only the password when no reason or 2FA code is supplied', async () => {
       (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({
         success: true,
         correlationId: 'corr-2',
         requestedAt: '2026-08-09T00:00:00Z',
       });
 
-      await authService.deleteAccount({ reason: 'No longer needed' });
+      await authService.deleteAccount({ password: 'hunter2' });
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {
-        reason: 'No longer needed',
+        password: 'hunter2',
       });
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
+    });
+
+    it('includes the twoFactorToken when supplied', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        correlationId: 'corr-3',
+        requestedAt: '2026-08-09T00:00:00Z',
+      });
+
+      await authService.deleteAccount({ password: 'hunter2', twoFactorToken: '123456' });
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/users/me/erasure-request', {
+        password: 'hunter2',
+        twoFactorToken: '123456',
+      });
     });
 
     it('should not clear stored user when the erasure request fails', async () => {
@@ -565,7 +585,9 @@ describe('AuthService', () => {
         new Error('service_unavailable')
       );
 
-      await expect(authService.deleteAccount()).rejects.toThrow('service_unavailable');
+      await expect(authService.deleteAccount({ password: 'hunter2' })).rejects.toThrow(
+        'service_unavailable'
+      );
       expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
     });
   });

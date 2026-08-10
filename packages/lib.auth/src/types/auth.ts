@@ -269,6 +269,11 @@ export interface ResendVerificationRequest {
 
 export interface DeleteAccountRequest {
   reason?: string;
+  // ADS-1205: account erasure is gated on step-up re-authentication. The
+  // caller's current password is required; twoFactorToken is required only for
+  // accounts with 2FA enabled.
+  password: string;
+  twoFactorToken?: string;
 }
 
 // Token management types

@@ -1,6 +1,7 @@
 import { apiService } from '@adopt-dont-shop/lib.api';
 import {
   AuthResponse,
+  DeleteAccountRequest,
   LoginRequest,
   RegisterRequest,
   User,
@@ -309,16 +310,21 @@ export class AuthService {
    * `/api/v1/users/me/erasure-request` (see services/gateway/src/routes/gdpr.ts),
    * which the gateway accepts with 202 + a `correlationId` while the erasure
    * fans out across services. It resolves once the request is accepted and
-   * rejects if it is refused. The route's body carries only an optional
-   * `reason`. Note: the erasure route does not currently re-verify credentials —
-   * step-up auth is tracked separately (ADS-1185) and will add a verification
-   * parameter here when it lands. Until then, no credential is collected, so
-   * none is passed.
+   * rejects if it is refused.
+   *
+   * ADS-1205: the erasure route re-verifies credentials (step-up auth) before
+   * publishing the saga, so the caller's current `password` — and a
+   * `twoFactorToken` for 2FA accounts — travels in the body. A missing/wrong
+   * credential is refused by the gateway with 401.
    */
-  async deleteAccount(options?: { reason?: string }): Promise<void> {
+  async deleteAccount(options: DeleteAccountRequest): Promise<void> {
     await apiService.post<{ success?: boolean; correlationId?: string; requestedAt?: string }>(
       '/api/v1/users/me/erasure-request',
-      options?.reason ? { reason: options.reason } : {}
+      {
+        password: options.password,
+        ...(options.reason ? { reason: options.reason } : {}),
+        ...(options.twoFactorToken ? { twoFactorToken: options.twoFactorToken } : {}),
+      }
     );
 
     this.clearStorage();
