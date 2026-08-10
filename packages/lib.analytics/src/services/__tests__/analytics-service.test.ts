@@ -1,4 +1,5 @@
 import { AnalyticsService } from '../analytics-service';
+import { UserEngagementEvent } from '../../types';
 import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Mock lib.api
@@ -245,6 +246,60 @@ describe('AnalyticsService', () => {
           timestamp: expect.any(String),
         }),
       });
+    });
+  });
+
+  describe('sensitive-data redaction (ADS-1118)', () => {
+    const originalHref = window.location.href;
+    const originalReferrer = document.referrer;
+    // document.referrer is stubbed at module scope as a writable (but
+    // non-configurable) data property, so reassign its value directly rather
+    // than redefining the descriptor.
+    const setReferrer = (value: string): void => {
+      (document as unknown as { referrer: string }).referrer = value;
+    };
+
+    afterEach(() => {
+      // jsdom doesn't navigate on `location.href =`; drive the URL via history.
+      window.history.replaceState({}, '', originalHref);
+      setReferrer(originalReferrer);
+    });
+
+    it('strips single-use tokens from the captured event URL and referrer', async () => {
+      mockApiService.post.mockResolvedValue({ success: true });
+      // Same-origin path — cross-origin navigation is a no-op in jsdom.
+      window.history.replaceState({}, '', '/reset-password?token=SECRET&page=2');
+      setReferrer('https://example.com/verify-email?token=REFSECRET');
+
+      await service.trackEvent({ category: 'user_interaction', action: 'click' });
+      vi.advanceTimersByTime(5000);
+
+      const batch = mockApiService.post.mock.calls.find(
+        (call: unknown[]) => call[0] === '/api/v1/analytics/events/batch'
+      );
+      const event = (batch![1] as { events: UserEngagementEvent[] }).events[0];
+      // The captured location kept its safe param but dropped the token...
+      expect(event.url).toBe('http://localhost:3000/reset-password?page=2');
+      // ...and the referrer token is gone too.
+      expect(event.referrer).toBe('https://example.com/verify-email');
+    });
+
+    it('strips a single-use token from the captured page-view referrer', async () => {
+      mockApiService.post.mockResolvedValue({ success: true });
+
+      await service.trackPageView({
+        url: 'https://example.com/pets',
+        title: 'Pet Listings',
+        referrer: 'https://example.com/reset-password?token=SECRET',
+      });
+
+      expect(mockApiService.post).toHaveBeenCalledWith(
+        '/api/v1/analytics/pageviews',
+        expect.objectContaining({
+          url: 'https://example.com/pets',
+          referrer: 'https://example.com/reset-password',
+        })
+      );
     });
   });
 
