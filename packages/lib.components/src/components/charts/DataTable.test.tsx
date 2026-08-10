@@ -415,6 +415,74 @@ describe('DataTable loading state', () => {
   });
 });
 
+describe('DataTable cross-page selection with id-less rows', () => {
+  // Uncontrolled pagination + controlled selection harness: rows carry no `id`,
+  // so identity falls back to the row index. The id must be unique ACROSS pages,
+  // otherwise page-2 rows inherit page-1's selection (ADS-1123).
+  const SelectionHarness: React.FC<{ rows: Record<string, unknown>[]; pageSize: number }> = ({
+    rows: harnessRows,
+    pageSize,
+  }) => {
+    const [selected, setSelected] = React.useState<string[]>([]);
+    return (
+      <>
+        <div data-testid='selection'>{selected.join(',')}</div>
+        <DataTable
+          title='Pets'
+          columns={columns}
+          rows={harnessRows}
+          pageSize={pageSize}
+          selectable
+          selectedIds={selected}
+          onSelectionChange={setSelected}
+        />
+      </>
+    );
+  };
+
+  const idlessRows = [
+    { name: 'A', age: 1 },
+    { name: 'B', age: 2 },
+    { name: 'C', age: 3 },
+    { name: 'D', age: 4 },
+  ];
+
+  it('does not carry page-1 selection onto page-2 id-less rows', async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<SelectionHarness rows={idlessRows} pageSize={2} />);
+
+    // Select all on page 1 (rows A, B) → absolute ids 0, 1.
+    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
+    expect(screen.getByTestId('selection')).toHaveTextContent('0,1');
+
+    // Navigate to page 2 (rows C, D).
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(screen.getByText('C')).toBeInTheDocument();
+
+    // Page-2 rows must NOT be pre-checked — they would be if ids reset to 0, 1.
+    const rowCheckboxes = screen.getAllByRole('checkbox', { name: /select row/i });
+    expect(rowCheckboxes).toHaveLength(2);
+    rowCheckboxes.forEach(cb => expect(cb).not.toBeChecked());
+
+    // The header select-all reflects page-2 selection only (nothing selected).
+    const selectAll = screen.getByRole('checkbox', { name: /select all/i });
+    expect(selectAll).not.toBeChecked();
+    expect(selectAll).toHaveProperty('indeterminate', false);
+  });
+
+  it('accumulates non-colliding ids when selecting across pages', async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<SelectionHarness rows={idlessRows} pageSize={2} />);
+
+    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
+
+    // Four distinct absolute ids — no page-local collision.
+    expect(screen.getByTestId('selection')).toHaveTextContent('0,1,2,3');
+  });
+});
+
 describe('DataTable column width + alignment', () => {
   it('applies per-column width + alignment to the header and body cells', () => {
     renderWithTheme(

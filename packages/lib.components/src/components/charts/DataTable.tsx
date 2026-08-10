@@ -173,9 +173,15 @@ export const DataTable: React.FC<DataTableProps> = ({
     ? sortedRows
     : sortedRows.slice(currentPageIndex * pageSize, (currentPageIndex + 1) * pageSize);
 
+  // Uncontrolled pagination slices `sortedRows` per page, so the map index `i`
+  // restarts at 0 on each page. Offset it by the page start so id fallbacks and
+  // per-row callbacks receive an ABSOLUTE row index (ADS-1123). In controlled
+  // pagination the caller owns paging, so its rows/ids stay authoritative.
+  const rowIndexOffset = controlledPagination ? 0 : currentPageIndex * pageSize;
+
   const getRowIdFn = getRowId ?? defaultGetRowId;
   const selectedSet = useMemo(() => toIdSet(selectedIds), [selectedIds]);
-  const visibleIds = visibleRows.map((row, i) => getRowIdFn(row, i));
+  const visibleIds = visibleRows.map((row, i) => getRowIdFn(row, rowIndexOffset + i));
   const selectedVisibleCount = visibleIds.filter(id => selectedSet.has(id)).length;
   const allVisibleSelected = visibleRows.length > 0 && selectedVisibleCount === visibleRows.length;
   const someVisibleSelected = selectedVisibleCount > 0;
@@ -296,9 +302,10 @@ export const DataTable: React.FC<DataTableProps> = ({
                 />
               ))
             : visibleRows.map((row, i) => {
-                const rowId = getRowIdFn(row, i);
+                const absoluteIndex = rowIndexOffset + i;
+                const rowId = getRowIdFn(row, absoluteIndex);
                 const isSelected = selectable && selectedSet.has(rowId);
-                const variant = getRowVariant?.(row, i) ?? 'default';
+                const variant = getRowVariant?.(row, absoluteIndex) ?? 'default';
                 return (
                   <tr
                     key={rowId}
@@ -307,7 +314,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     className={clsx(
                       onRowClick ? styles.rowClickable : styles.rowDefault,
                       styles.rowVariant({ variant, selected: isSelected }),
-                      rowClassName?.(row, i)
+                      rowClassName?.(row, absoluteIndex)
                     )}
                   >
                     {selectable ? (
@@ -316,7 +323,9 @@ export const DataTable: React.FC<DataTableProps> = ({
                           type='checkbox'
                           className={styles.checkbox}
                           aria-label={
-                            getRowLabel ? `Select ${getRowLabel(row, i)}` : `Select row ${rowId}`
+                            getRowLabel
+                              ? `Select ${getRowLabel(row, absoluteIndex)}`
+                              : `Select row ${rowId}`
                           }
                           checked={selectedSet.has(rowId)}
                           onChange={() => toggleOne(rowId)}
