@@ -338,7 +338,7 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 - **Partitioning**: Consider for large tables (messages, notifications)
 - **Archival**: Old data moved to archive tables
 - **Caching**: Frequently accessed data cached at application layer
-- **Connection Pooling**: Managed by Sequelize
+- **Connection Pooling**: Managed by the `pg` pool in `@adopt-dont-shop/db`
 
 ## Data Integrity
 
