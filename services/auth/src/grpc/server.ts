@@ -77,6 +77,7 @@ import {
 } from './privacy-prefs-handlers.js';
 import { getConsentStatus, recordConsent } from './consent-handlers.js';
 import { exportUserData, requestAccountDeletion } from './privacy-handlers.js';
+import { verifyCredentials } from './verify-credentials.js';
 import {
   adminListSessions,
   adminRevokeAllUserSessions,
@@ -128,6 +129,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     resetPassword: adaptUnauth(resetPassword, { deps, logger }),
     redeemInvitation: adaptUnauth(redeemInvitation, { deps, logger }),
     changePassword: adapt(changePassword, { deps, logger }),
+    // Step-up re-auth (ADS-1205) — principal-required, mints no tokens.
+    verifyCredentials: adapt(verifyCredentials, { deps, logger }),
     setupTwoFactor: adapt(setupTwoFactor, { deps, logger }),
     enableTwoFactor: adapt(enableTwoFactor, { deps, logger }),
     disableTwoFactor: adapt(disableTwoFactor, { deps, logger }),
@@ -196,6 +199,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'resetPassword',
       'redeemInvitation',
       'changePassword',
+      'verifyCredentials',
       'updateAccount',
       'listSessions',
       'revokeSession',
