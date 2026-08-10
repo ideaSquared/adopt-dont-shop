@@ -34,7 +34,7 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { petToView, viewToCreateRequest, viewToUpdateRequest } from './pets-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
-import { handleGrpcError } from '../middleware/grpc-error.js';
+import { GRPC_TO_HTTP, handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
 export type PetsRoutesOptions = {
@@ -1294,13 +1294,23 @@ function collectUrls(body: unknown): string[] {
 // INVALID_ARGUMENT guard produces a clean 400.
 
 // Best-effort human message from a rejected gRPC call, for the per-pet
-// error list in the bulk-update envelope.
+// error list in the bulk-update envelope. Mirrors handleGrpcError's 4xx-vs-5xx
+// policy (and applications.ts describeGrpcError), reusing the GRPC_TO_HTTP
+// table: a server-side (5xx) gRPC error — e.g. an INTERNAL wrapping a raw pg
+// driver message — must not leak internal detail, so it returns a generic
+// message; only client-facing 4xx text is forwarded (ADS-1121).
 function grpcMessage(err: unknown): string {
-  if (err && typeof err === 'object' && 'details' in err && typeof err.details === 'string') {
-    return err.details;
-  }
-  if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
-    return err.message;
+  if (err && typeof err === 'object') {
+    const code = 'code' in err && typeof err.code === 'number' ? err.code : undefined;
+    if (code !== undefined && (GRPC_TO_HTTP[code] || 500) >= 500) {
+      return 'internal_error';
+    }
+    if ('details' in err && typeof err.details === 'string') {
+      return err.details;
+    }
+    if ('message' in err && typeof err.message === 'string') {
+      return err.message;
+    }
   }
   return 'operation failed';
 }

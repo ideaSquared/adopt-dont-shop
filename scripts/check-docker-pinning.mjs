@@ -28,7 +28,18 @@ import { fileURLToPath } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-const COMPOSE_FILES = ['docker-compose.prod.yml', 'docker-compose.staging.yml'];
+// The base prod/staging files AND the two optional overlays that deploy.yml
+// merges into the real production `docker compose up` when the host opts in via
+// OBSERVABILITY_ENABLED / GLITCHTIP_ENABLED (deploy.yml OVERLAY_ARGS). The
+// overlays ship third-party images too, so the guard must scan them or prod can
+// still pull mutable tags while this check passes green (ADS-1115). Exported so
+// the test can assert the overlays stay in scope.
+export const COMPOSE_FILES = [
+  'docker-compose.prod.yml',
+  'docker-compose.staging.yml',
+  'docker-compose.observability.yml',
+  'docker-compose.glitchtip.yml',
+];
 
 // First-party images are pinned by DEPLOY_SHA, not a digest — skip them.
 const FIRST_PARTY_PREFIX = 'ghcr.io/ideasquared/';

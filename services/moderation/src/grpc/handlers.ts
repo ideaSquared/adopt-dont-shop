@@ -216,7 +216,12 @@ export async function getReport(
   const isReporter = rows[0].reporter_id === principal.userId;
   const canViewInternal = requirePermission(principal, MODERATION_REPORTS_VIEW);
   if (!isReporter && !canViewInternal) {
-    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_REPORTS_VIEW}' required`);
+    // Return NOT_FOUND — identical to the absent-row response above — rather
+    // than PERMISSION_DENIED, so an unauthorised caller can't use the error
+    // code to distinguish "this report_id exists" from "no such report" (an
+    // existence oracle, ADS-1122). Matches getSupportTicket / getSavedReport /
+    // getNotification, which return NOT_FOUND to non-owners for the same reason.
+    throw new HandlerError('NOT_FOUND', `report ${req.reportId} not found`);
   }
   const forReporter = !canViewInternal;
 
