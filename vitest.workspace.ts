@@ -1,7 +1,8 @@
-import { existsSync, readdirSync } from 'fs';
-import { basename, dirname, join, resolve } from 'path';
+import { basename, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig, type UserProjectConfigExport } from 'vitest/config';
+
+import { discoverVitestProjectDirs } from './scripts/lib/discover-vitest-projects.mjs';
 
 // Vitest 4 removed `defineWorkspace()` / workspace-file auto-discovery (the
 // pre-Vitest-4 `defineWorkspace(['packages/lib.*/vitest.config.ts', ...])`
@@ -19,24 +20,23 @@ import { defineConfig, type UserProjectConfigExport } from 'vitest/config';
 // rather than a bare glob string.
 const repoRoot = dirname(fileURLToPath(import.meta.url));
 
+// ADS-1108: directory discovery itself lives in discoverVitestProjectDirs so
+// scripts/check-workspace-consistency.mjs can verify real project coverage
+// against the same logic used here, instead of pattern-matching this file's
+// source text.
 function discoverProjects(
   dir: string,
   namePrefix: string,
   nameFilter: (name: string) => boolean = () => true
 ): UserProjectConfigExport[] {
-  return readdirSync(resolve(repoRoot, dir), { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name)
-    .filter(nameFilter)
-    .filter(name => existsSync(resolve(repoRoot, dir, name, 'vitest.config.ts')))
-    .map(name => {
-      const root = join(dir, name);
-      return {
-        extends: join(root, 'vitest.config.ts'),
-        root,
-        test: { name: `${namePrefix}${basename(name)}` },
-      };
-    });
+  return discoverVitestProjectDirs(repoRoot, dir, nameFilter).map(name => {
+    const root = join(dir, name);
+    return {
+      extends: join(root, 'vitest.config.ts'),
+      root,
+      test: { name: `${namePrefix}${basename(name)}` },
+    };
+  });
 }
 
 export default defineConfig({

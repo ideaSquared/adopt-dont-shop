@@ -5,6 +5,7 @@ import {
   checkNoEmitTaskOutputs,
   checkTemplateDepDrift,
   checkToolVersionsDrift,
+  checkVitestWorkspace,
   checkWorkspaceDriftGuardsCoveredByCiLocal,
   computeExpectedCachePaths,
   computeExpectedDevVolumeMounts,
@@ -21,6 +22,21 @@ import {
   parseWorkspaceGlobs,
   rootAuthoritativeRange,
 } from './check-workspace-consistency.mjs';
+
+describe('checkVitestWorkspace (ADS-1108)', () => {
+  it('reports no missing entries for a real lib with a vitest.config.ts on disk', () => {
+    // Regression guard: this previously passed only because
+    // vitest.workspace.ts's source text still contained the legacy
+    // 'packages/lib.*/vitest.config.ts' glob string in a comment. It now
+    // verifies real vitest.workspace.ts project discovery instead, so this
+    // must still report lib.api as covered.
+    expect(checkVitestWorkspace(['lib.api'])).toEqual([]);
+  });
+
+  it('does not report a lib that has no vitest.config.ts on disk', () => {
+    expect(checkVitestWorkspace(['lib.does-not-exist'])).toEqual([]);
+  });
+});
 
 describe('parseDevVolumesAnchor (ADS-987)', () => {
   it('extracts every mount target listed under the x-dev-volumes anchor', () => {
