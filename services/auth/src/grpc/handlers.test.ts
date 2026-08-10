@@ -1475,6 +1475,30 @@ describe('validateToken', () => {
     expect(res.expiresAt).toBe(new Date(9_000_000_000 * 1000).toISOString());
   });
 
+  it('folds an active direct permission grant into the validated principal (ADS-1141)', async () => {
+    mocks.issuerMock.verifyAccess.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'j',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [{ status: 'active' }] }) // status guard
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }) // primary role
+      .mockResolvedValueOnce({ rows: [] }) // extra roles
+      // effective permissions = role-derived ∪ active grants, deduped by Postgres
+      .mockResolvedValueOnce({ rows: [{ name: 'notifications.read' }, { name: 'pets.delete' }] });
+
+    const res = await validateToken(mocks.deps, null, { accessToken: 'tok' });
+    // the granted permission is surfaced on the hot path alongside role perms
+    expect(res.principal.permissions).toContain('pets.delete');
+    // ...and it arrives via the grant-aware effective-permissions query
+    const permsSql = mocks.poolMock.query.mock.calls[4]?.[0] as string;
+    expect(permsSql).toContain('auth.permission_grants');
+    expect(permsSql).toContain('revoked_at IS NULL');
+  });
+
   it('UNAUTHENTICATED when the user is suspended (no stale access window)', async () => {
     mocks.issuerMock.verifyAccess.mockResolvedValueOnce({
       sub: 'usr-1',

@@ -179,6 +179,144 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Heading: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) =>
     React.createElement('h1', props, children),
   Input: (props: React.ComponentPropsWithoutRef<'input'>) => React.createElement('input', props),
+  // ADS-1136: shared SearchToolbar now backs the admin filter bars (Analytics,
+  // Audit, Messages). Mirror the real component's observable contract — a
+  // labelled search field (only when onSearchChange is given), one control per
+  // filterConfig entry driving onFilterChange(name, value), the pluralised
+  // result-count live region, and removable active-filter chips — using plain
+  // DOM so migrated pages keep their filter→query behaviour under test.
+  SearchToolbar: ({
+    searchValue,
+    onSearchChange,
+    searchPlaceholder,
+    searchLabel = 'Search',
+    filterConfig,
+    filters,
+    onFilterChange,
+    activeFilters = [],
+    onRemoveFilter,
+    resultCount,
+    resultNoun = 'result',
+    className,
+    'data-testid': testId,
+  }: {
+    searchValue?: string;
+    onSearchChange?: (value: string) => void;
+    searchPlaceholder?: string;
+    searchLabel?: string;
+    filterConfig?: Array<{
+      name: string;
+      label: string;
+      type: 'text' | 'date' | 'select' | 'checkbox';
+      options?: Array<{ value: string; label: string }>;
+    }>;
+    filters?: Record<string, string | boolean | number | undefined>;
+    onFilterChange?: (name: string, value: string | boolean) => void;
+    activeFilters?: Array<{ name: string; label: string; value: string }>;
+    onRemoveFilter?: (name: string) => void;
+    resultCount?: number;
+    resultNoun?: string;
+    className?: string;
+    'data-testid'?: string;
+  }) => {
+    const children: React.ReactNode[] = [];
+
+    if (onSearchChange) {
+      children.push(
+        React.createElement('input', {
+          key: '__search',
+          type: 'search',
+          'aria-label': searchLabel,
+          placeholder: searchPlaceholder,
+          value: searchValue ?? '',
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value),
+        })
+      );
+    }
+
+    if (resultCount !== undefined) {
+      children.push(
+        React.createElement(
+          'p',
+          { key: '__count', role: 'status', 'aria-live': 'polite' },
+          `${resultCount} ${resultCount === 1 ? resultNoun : `${resultNoun}s`}`
+        )
+      );
+    }
+
+    if (filterConfig && filters && onFilterChange) {
+      filterConfig.forEach(cfg => {
+        const value = filters[cfg.name];
+        if (cfg.type === 'select') {
+          children.push(
+            React.createElement(
+              'select',
+              {
+                key: cfg.name,
+                'aria-label': cfg.label,
+                value: typeof value === 'string' ? value : '',
+                onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
+                  onFilterChange(cfg.name, e.target.value),
+              },
+              ...(cfg.options ?? []).map(o =>
+                React.createElement('option', { key: o.value, value: o.value }, o.label)
+              )
+            )
+          );
+          return;
+        }
+        if (cfg.type === 'checkbox') {
+          children.push(
+            React.createElement('input', {
+              key: cfg.name,
+              type: 'checkbox',
+              'aria-label': cfg.label,
+              checked: !!value,
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                onFilterChange(cfg.name, e.target.checked),
+            })
+          );
+          return;
+        }
+        children.push(
+          React.createElement('input', {
+            key: cfg.name,
+            type: cfg.type,
+            'aria-label': cfg.label,
+            value: typeof value === 'string' ? value : '',
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+              onFilterChange(cfg.name, e.target.value),
+          })
+        );
+      });
+    }
+
+    activeFilters.forEach(f => {
+      children.push(
+        React.createElement('span', { key: `chip-${f.name}` }, `${f.label}: ${f.value}`)
+      );
+      if (onRemoveFilter) {
+        children.push(
+          React.createElement(
+            'button',
+            {
+              key: `remove-${f.name}`,
+              type: 'button',
+              'aria-label': `Remove filter ${f.label}: ${f.value}`,
+              onClick: () => onRemoveFilter(f.name),
+            },
+            '×'
+          )
+        );
+      }
+    });
+
+    return React.createElement(
+      'div',
+      { role: 'search', className, 'data-testid': testId },
+      ...children
+    );
+  },
   // ADS-1085: shared DataTable now backs the admin list pages. Mirror the real
   // key/label/render column contract plus row-click, per-row + header select-all
   // selection, loading and empty states so migrated pages keep their table

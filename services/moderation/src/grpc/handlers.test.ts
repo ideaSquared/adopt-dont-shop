@@ -230,13 +230,41 @@ describe('fileReport', () => {
 });
 
 describe('getReport', () => {
-  it('throws PERMISSION_DENIED without the reports-view permission for someone else’s report', async () => {
+  it('returns NOT_FOUND (not PERMISSION_DENIED) for an unauthorised caller so existence is not observable (ADS-1122)', async () => {
     const { deps } = makeDeps([{ rows: [reportRow({ reporter_id: 'someone-else' })] }]);
     await expect(
       getReport(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
         reportId: 'rpt-1',
       } as GetReportRequest)
-    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('gives an unauthorised caller an identical NOT_FOUND whether the report exists or not (ADS-1122)', async () => {
+    // Report exists, but caller is neither the reporter nor a holder of
+    // MODERATION_REPORTS_VIEW.
+    const existing = makeDeps([{ rows: [reportRow({ reporter_id: 'someone-else' })] }]);
+    const existsErr = await getReport(
+      existing.deps,
+      makePrincipal({ userId: 'usr-1', permissions: [] }),
+      { reportId: 'rpt-1' } as GetReportRequest
+    ).catch((e: unknown) => e);
+
+    // Report does not exist at all.
+    const absent = makeDeps([{ rows: [] }]);
+    const absentErr = await getReport(
+      absent.deps,
+      makePrincipal({ userId: 'usr-1', permissions: [] }),
+      { reportId: 'rpt-1' } as GetReportRequest
+    ).catch((e: unknown) => e);
+
+    // Same code AND same message — the two cases are indistinguishable.
+    expect(existsErr).toBeInstanceOf(HandlerError);
+    expect(absentErr).toBeInstanceOf(HandlerError);
+    if (existsErr instanceof HandlerError && absentErr instanceof HandlerError) {
+      expect(existsErr.code).toBe('NOT_FOUND');
+      expect(existsErr.code).toBe(absentErr.code);
+      expect(existsErr.message).toBe(absentErr.message);
+    }
   });
 
   it('allows a moderator with moderation.reports.view to read any report', async () => {

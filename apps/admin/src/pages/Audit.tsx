@@ -4,22 +4,14 @@ import {
   Heading,
   Text,
   Button,
-  Input,
   Badge,
   DataTable,
+  SearchToolbar,
   type DataTableColumn,
+  type FilterConfig,
 } from '@adopt-dont-shop/lib.components';
-import { RefreshCw, Search, Shield, SquarePen, Trash, User } from 'lucide-react';
-import {
-  PageContainer,
-  PageHeader,
-  HeaderLeft,
-  FilterBar,
-  FilterGroup,
-  FilterLabel,
-  SearchInputWrapper,
-  Select,
-} from '../components/ui';
+import { RefreshCw, Shield, SquarePen, Trash, User } from 'lucide-react';
+import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
 import { AuditLogsService, AuditLogStatus, type AuditLog } from '@adopt-dont-shop/lib.audit-logs';
 import * as styles from './Audit.css';
 
@@ -42,15 +34,17 @@ const getActionIconClass = (action: string): string => {
 
 const Audit: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [actionFilter, setActionFilter] = useState<string>('all');
-  const [resourceFilter, setResourceFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [filters, setFilters] = useState({ action: 'all', resource: 'all', status: 'all' });
   const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
+  const handleFilterChange = (name: string, value: string | boolean) => {
+    setFilters(prev => ({ ...prev, [name]: String(value) }));
+  };
+
   useEffect(() => {
     setPage(1);
-  }, [actionFilter, resourceFilter, statusFilter]);
+  }, [filters]);
 
   const sevenDaysAgo = useMemo(() => {
     const date = new Date();
@@ -61,14 +55,14 @@ const Audit: React.FC = () => {
   const now = useMemo(() => new Date().toISOString(), []);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['auditLogs', page, actionFilter, resourceFilter, statusFilter],
+    queryKey: ['auditLogs', page, filters.action, filters.resource, filters.status],
     queryFn: () =>
       AuditLogsService.getAuditLogs({
-        action: actionFilter !== 'all' ? actionFilter : undefined,
-        entity: resourceFilter !== 'all' ? resourceFilter : undefined,
+        action: filters.action !== 'all' ? filters.action : undefined,
+        entity: filters.resource !== 'all' ? filters.resource : undefined,
         status:
-          statusFilter !== 'all'
-            ? statusFilter === 'success'
+          filters.status !== 'all'
+            ? filters.status === 'success'
               ? AuditLogStatus.SUCCESS
               : AuditLogStatus.FAILURE
             : undefined,
@@ -256,6 +250,47 @@ const Audit: React.FC = () => {
     },
   ];
 
+  const filterConfig: FilterConfig[] = [
+    {
+      name: 'action',
+      label: 'Action',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Actions' },
+        { value: 'create', label: 'Create' },
+        { value: 'update', label: 'Update' },
+        { value: 'delete', label: 'Delete' },
+        { value: 'login', label: 'Login' },
+        { value: 'logout', label: 'Logout' },
+      ],
+    },
+    {
+      name: 'resource',
+      label: 'Resource',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Resources' },
+        { value: 'user', label: 'User' },
+        { value: 'rescue', label: 'Rescue' },
+        { value: 'feature_flag', label: 'Feature Flag' },
+        { value: 'system_setting', label: 'System Setting' },
+        { value: 'support_ticket', label: 'Support Ticket' },
+        { value: 'user_sanction', label: 'User Sanction' },
+        { value: 'auth', label: 'Authentication' },
+      ],
+    },
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'all', label: 'All Statuses' },
+        { value: 'success', label: 'Success' },
+        { value: 'failure', label: 'Failed' },
+      ],
+    },
+  ];
+
   return (
     <PageContainer>
       <PageHeader>
@@ -271,52 +306,14 @@ const Audit: React.FC = () => {
         </div>
       </PageHeader>
 
-      <FilterBar>
-        <SearchInputWrapper>
-          <Search size='1em' />
-          <Input
-            type='text'
-            placeholder='Search by user, action, or resource...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </SearchInputWrapper>
-
-        <FilterGroup>
-          <FilterLabel>Action</FilterLabel>
-          <Select value={actionFilter} onChange={e => setActionFilter(e.target.value)}>
-            <option value='all'>All Actions</option>
-            <option value='create'>Create</option>
-            <option value='update'>Update</option>
-            <option value='delete'>Delete</option>
-            <option value='login'>Login</option>
-            <option value='logout'>Logout</option>
-          </Select>
-        </FilterGroup>
-
-        <FilterGroup>
-          <FilterLabel>Resource</FilterLabel>
-          <Select value={resourceFilter} onChange={e => setResourceFilter(e.target.value)}>
-            <option value='all'>All Resources</option>
-            <option value='user'>User</option>
-            <option value='rescue'>Rescue</option>
-            <option value='feature_flag'>Feature Flag</option>
-            <option value='system_setting'>System Setting</option>
-            <option value='support_ticket'>Support Ticket</option>
-            <option value='user_sanction'>User Sanction</option>
-            <option value='auth'>Authentication</option>
-          </Select>
-        </FilterGroup>
-
-        <FilterGroup>
-          <FilterLabel>Status</FilterLabel>
-          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value='all'>All Statuses</option>
-            <option value='success'>Success</option>
-            <option value='failure'>Failed</option>
-          </Select>
-        </FilterGroup>
-      </FilterBar>
+      <SearchToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder='Search by user, action, or resource...'
+        filterConfig={filterConfig}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+      />
 
       {isError && (
         <div className={styles.errorBanner}>

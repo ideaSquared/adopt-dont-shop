@@ -3,11 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  collectFilterPaths,
-  isGlobPattern,
-  missingLiteralPaths,
-} from './check-workflow-paths.mjs';
+import { collectFilterPaths, isGlobPattern, missingLiteralPaths } from './check-workflow-paths.mjs';
 
 describe('isGlobPattern', () => {
   it('treats entries with glob metacharacters as globs', () => {

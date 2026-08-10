@@ -102,7 +102,7 @@ services:
   # One-shot schema migration — runs to completion before web/worker start.
   glitchtip-migrate:
     <<: *gt-hardening
-    image: glitchtip/glitchtip:v4.1
+    image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
     command: ./manage.py migrate
     environment:
       <<: *gt-env
@@ -113,7 +113,7 @@ services:
 
   glitchtip-web:
     <<: *gt-hardening
-    image: glitchtip/glitchtip:v4.1
+    image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
     environment:
       <<: *gt-env
     ports:
@@ -144,7 +144,7 @@ services:
 
   glitchtip-worker:
     <<: *gt-hardening
-    image: glitchtip/glitchtip:v4.1
+    image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
     command: ./bin/run-celery-with-beat.sh
     environment:
       <<: *gt-env

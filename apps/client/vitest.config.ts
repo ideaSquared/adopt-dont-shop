@@ -26,7 +26,7 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      // ADS-947: json-summary is read by scripts/ci/coverage-delta.mjs to
+      // ADS-947: json-summary is read by scripts/lib/coverage-delta-core.mjs to
       // post the PR coverage-delta comment.
       reporter: ['text', 'json', 'html', 'json-summary'],
       include: ['src/**/*.{ts,tsx}'],

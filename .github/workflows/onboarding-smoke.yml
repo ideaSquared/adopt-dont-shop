@@ -23,6 +23,25 @@ name: Onboarding Smoke Test
 # repo's workflows for this to hook into. The job summary below is the
 # interim signal; wire up a notify step once a webhook secret exists.
 on:
+  # ADS-1110: also run on PRs (and pushes to the main branches) that touch the
+  # onboarding-critical files, so a bootstrap.mjs / .env.example regression is
+  # caught on the introducing PR rather than only at the next 03:17 nightly run.
+  push:
+    branches: [main, develop]
+    paths:
+      - 'scripts/bootstrap.mjs'
+      - '.env.example'
+      - 'scripts/validate-env.ts'
+      - 'pnpm-workspace.yaml'
+      - 'docker-compose*.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'scripts/bootstrap.mjs'
+      - '.env.example'
+      - 'scripts/validate-env.ts'
+      - 'pnpm-workspace.yaml'
+      - 'docker-compose*.yml'
   schedule:
     # 03:17 UTC daily — an arbitrary off-peak minute, avoiding the top-of-hour
     # thundering herd other scheduled Actions jobs pile onto.

@@ -93,7 +93,9 @@ function main() {
 
   if (!existsSync(summaryPath)) {
     console.error(`No coverage summary found at ${summaryPath}.`);
-    console.error('Run "test:coverage" for this package with the vitest "json-summary" reporter first.');
+    console.error(
+      'Run "test:coverage" for this package with the vitest "json-summary" reporter first.'
+    );
     process.exit(1);
   }
 

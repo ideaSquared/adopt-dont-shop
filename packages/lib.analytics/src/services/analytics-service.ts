@@ -233,19 +233,18 @@ export class AnalyticsService {
       return;
     }
 
-    // Strip single-use credentials from the URL and referrer before the event
-    // leaves the browser (ADS-1118) — the same stripSensitiveParams choke point
-    // trackPageView uses, so a reset/verify/invite token in the query string or
-    // fragment never reaches the analytics datastore, whatever fired the event.
-    const rawUrl = typeof window !== 'undefined' ? window.location.href : event.url;
-    const rawReferrer = typeof document !== 'undefined' ? document.referrer : undefined;
+    // Strip single-use credentials from both url and referrer before the event
+    // leaves the browser (ADS-1118 — the sibling gap to ADS-1012's trackPageView
+    // fix). trackEvent is a separate capture path, so a token in the current URL
+    // or the referring URL would otherwise reach the analytics datastore.
     const fullEvent: UserEngagementEvent = {
       ...event,
       sessionId: this.sessionId,
       timestamp: new Date(),
-      url: rawUrl ? stripSensitiveParams(rawUrl) : rawUrl,
+      url: typeof window !== 'undefined' ? stripSensitiveParams(window.location.href) : event.url,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      referrer: rawReferrer ? stripSensitiveParams(rawReferrer) : rawReferrer,
+      referrer:
+        typeof document !== 'undefined' ? stripSensitiveParams(document.referrer) : undefined,
     };
 
     // Add to queue for batch processing; enforce cap by dropping oldest events first
@@ -278,18 +277,19 @@ export class AnalyticsService {
       return;
     }
 
-    // Strip single-use credentials from the URL and referrer before they leave
-    // the browser (ADS-1012 / ADS-1118). This is the single choke point every
-    // capture path funnels through — initial mount, pushState/replaceState,
-    // popstate, and any direct caller — so a reset/verify/invite token in the
-    // query string or fragment never reaches the analytics datastore, whatever
-    // route triggered the view.
+    // Strip single-use credentials from the URL before it leaves the browser
+    // (ADS-1012). This is the single choke point every capture path funnels
+    // through — initial mount, pushState/replaceState, popstate, and any direct
+    // caller — so a reset/verify/invite token in the query string never reaches
+    // the analytics datastore, regardless of which route triggered the view.
     const fullPageView: PageViewEvent = {
       sessionId: this.sessionId,
       timestamp: new Date(),
       ...pageView,
       url: stripSensitiveParams(pageView.url),
-      ...(pageView.referrer ? { referrer: stripSensitiveParams(pageView.referrer) } : {}),
+      // referrer can also carry a single-use token (ADS-1118) — scrub it too.
+      referrer:
+        pageView.referrer !== undefined ? stripSensitiveParams(pageView.referrer) : undefined,
     };
 
     try {

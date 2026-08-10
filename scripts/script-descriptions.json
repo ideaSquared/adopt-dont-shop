@@ -65,6 +65,8 @@
   "check:docs-script-refs": "Guard: fail if a doc references a `pnpm run <script>` that doesn't exist.",
   "check:proto-fresh": "Guard: fail if packages/proto committed codegen is out of sync with `buf generate` (run `pnpm generate` in packages/proto and commit).",
   "check:renovate": "Guard: fail if renovate.json has invalid keys or deprecated matchers (runs the official renovate-config-validator).",
+  "check:overrides-docs": "Guard: fail if a CVE-style pnpm.overrides entry has no matching overridesDocumentation note (ADS-1113).",
+  "check:stale-overrides": "Report (non-blocking): pnpm.overrides pins upstream has moved past, i.e. candidates for removal (ADS-1112).",
   "check:csp": "Guard: fail if any nginx config's Content-Security-Policy allows unsafe-inline/unsafe-eval, or a prod SPA vhost is missing its CSP header.",
   "check:docs-freshness": "Report (non-blocking): broken internal/external doc links and docs untouched for 12+ months.",
   "check:stories": "Report Storybook stories coverage for packages/lib.components/src/components/ui/.",

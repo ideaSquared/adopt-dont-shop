@@ -667,6 +667,30 @@ export interface ChangePasswordResponse {
   ok: boolean;
 }
 
+export interface VerifyCredentialsRequest {
+  /**
+   * The account password to re-verify. The principal (x-user-id) identifies
+   * whose credentials we're checking; there is no email field.
+   */
+  password: string;
+  /**
+   * A current TOTP code, required only when the account has 2FA enabled.
+   * Backup/recovery codes are deliberately NOT accepted here.
+   */
+  twoFactorToken?: string | undefined;
+}
+
+export interface VerifyCredentialsResponse {
+  /** True only when the password (and TOTP, for 2FA accounts) checked out. */
+  verified: boolean;
+  /**
+   * Set when the password was correct but the account has 2FA enabled and no
+   * two_factor_token was supplied — the caller should collect a code and
+   * re-submit. verified is false in this case.
+   */
+  twoFactorRequired: boolean;
+}
+
 export interface SetupTwoFactorRequest {
 }
 
@@ -4319,6 +4343,166 @@ export const ChangePasswordResponse: MessageFns<ChangePasswordResponse> = {
   fromPartial<I extends Exact<DeepPartial<ChangePasswordResponse>, I>>(object: I): ChangePasswordResponse {
     const message = createBaseChangePasswordResponse();
     message.ok = object.ok ?? false;
+    return message;
+  },
+};
+
+function createBaseVerifyCredentialsRequest(): VerifyCredentialsRequest {
+  return { password: "", twoFactorToken: undefined };
+}
+
+export const VerifyCredentialsRequest: MessageFns<VerifyCredentialsRequest> = {
+  encode(message: VerifyCredentialsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.password !== "") {
+      writer.uint32(10).string(message.password);
+    }
+    if (message.twoFactorToken !== undefined) {
+      writer.uint32(18).string(message.twoFactorToken);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): VerifyCredentialsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVerifyCredentialsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.twoFactorToken = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): VerifyCredentialsRequest {
+    return {
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
+      twoFactorToken: isSet(object.twoFactorToken)
+        ? globalThis.String(object.twoFactorToken)
+        : isSet(object.two_factor_token)
+        ? globalThis.String(object.two_factor_token)
+        : undefined,
+    };
+  },
+
+  toJSON(message: VerifyCredentialsRequest): unknown {
+    const obj: any = {};
+    if (message.password !== "") {
+      obj.password = message.password;
+    }
+    if (message.twoFactorToken !== undefined) {
+      obj.twoFactorToken = message.twoFactorToken;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<VerifyCredentialsRequest>, I>>(base?: I): VerifyCredentialsRequest {
+    return VerifyCredentialsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<VerifyCredentialsRequest>, I>>(object: I): VerifyCredentialsRequest {
+    const message = createBaseVerifyCredentialsRequest();
+    message.password = object.password ?? "";
+    message.twoFactorToken = object.twoFactorToken ?? undefined;
+    return message;
+  },
+};
+
+function createBaseVerifyCredentialsResponse(): VerifyCredentialsResponse {
+  return { verified: false, twoFactorRequired: false };
+}
+
+export const VerifyCredentialsResponse: MessageFns<VerifyCredentialsResponse> = {
+  encode(message: VerifyCredentialsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.verified !== false) {
+      writer.uint32(8).bool(message.verified);
+    }
+    if (message.twoFactorRequired !== false) {
+      writer.uint32(16).bool(message.twoFactorRequired);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): VerifyCredentialsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVerifyCredentialsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.verified = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.twoFactorRequired = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): VerifyCredentialsResponse {
+    return {
+      verified: isSet(object.verified) ? globalThis.Boolean(object.verified) : false,
+      twoFactorRequired: isSet(object.twoFactorRequired)
+        ? globalThis.Boolean(object.twoFactorRequired)
+        : isSet(object.two_factor_required)
+        ? globalThis.Boolean(object.two_factor_required)
+        : false,
+    };
+  },
+
+  toJSON(message: VerifyCredentialsResponse): unknown {
+    const obj: any = {};
+    if (message.verified !== false) {
+      obj.verified = message.verified;
+    }
+    if (message.twoFactorRequired !== false) {
+      obj.twoFactorRequired = message.twoFactorRequired;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<VerifyCredentialsResponse>, I>>(base?: I): VerifyCredentialsResponse {
+    return VerifyCredentialsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<VerifyCredentialsResponse>, I>>(object: I): VerifyCredentialsResponse {
+    const message = createBaseVerifyCredentialsResponse();
+    message.verified = object.verified ?? false;
+    message.twoFactorRequired = object.twoFactorRequired ?? false;
     return message;
   },
 };
@@ -12420,6 +12604,29 @@ export const AuthServiceService = {
       Buffer.from(ChangePasswordResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ChangePasswordResponse => ChangePasswordResponse.decode(value),
   },
+  /**
+   * Step-up re-authentication (ADS-1205). Verifies the calling principal's
+   * password (and a current TOTP code when the account has 2FA enabled) and
+   * returns pass/fail. Unlike Login it mints NO tokens and mutates no
+   * session/cookie state — it exists so a sensitive action (e.g. GDPR account
+   * erasure) can require the user to re-prove their credentials inline. The
+   * password is checked BEFORE the TOTP (mirroring Login) so a wrong password
+   * never consumes a code, and backup/recovery codes are NOT accepted here —
+   * a current TOTP is required for 2FA users. Returns two_factor_required=true
+   * (verified=false) when the password is correct but no TOTP was supplied.
+   * Requires the x-user-id metadata; a missing password is INVALID_ARGUMENT.
+   */
+  verifyCredentials: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/VerifyCredentials" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: VerifyCredentialsRequest): Buffer =>
+      Buffer.from(VerifyCredentialsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): VerifyCredentialsRequest => VerifyCredentialsRequest.decode(value),
+    responseSerialize: (value: VerifyCredentialsResponse): Buffer =>
+      Buffer.from(VerifyCredentialsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): VerifyCredentialsResponse => VerifyCredentialsResponse.decode(value),
+  },
   setupTwoFactor: {
     path: "/adopt_dont_shop.auth.v1.AuthService/SetupTwoFactor" as const,
     requestStream: false as const,
@@ -13095,6 +13302,19 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
   redeemInvitation: handleUnaryCall<RedeemInvitationRequest, RedeemInvitationResponse>;
   /** Authenticated change. Requires the current password. */
   changePassword: handleUnaryCall<ChangePasswordRequest, ChangePasswordResponse>;
+  /**
+   * Step-up re-authentication (ADS-1205). Verifies the calling principal's
+   * password (and a current TOTP code when the account has 2FA enabled) and
+   * returns pass/fail. Unlike Login it mints NO tokens and mutates no
+   * session/cookie state — it exists so a sensitive action (e.g. GDPR account
+   * erasure) can require the user to re-prove their credentials inline. The
+   * password is checked BEFORE the TOTP (mirroring Login) so a wrong password
+   * never consumes a code, and backup/recovery codes are NOT accepted here —
+   * a current TOTP is required for 2FA users. Returns two_factor_required=true
+   * (verified=false) when the password is correct but no TOTP was supplied.
+   * Requires the x-user-id metadata; a missing password is INVALID_ARGUMENT.
+   */
+  verifyCredentials: handleUnaryCall<VerifyCredentialsRequest, VerifyCredentialsResponse>;
   setupTwoFactor: handleUnaryCall<SetupTwoFactorRequest, SetupTwoFactorResponse>;
   enableTwoFactor: handleUnaryCall<EnableTwoFactorRequest, EnableTwoFactorResponse>;
   disableTwoFactor: handleUnaryCall<DisableTwoFactorRequest, DisableTwoFactorResponse>;
@@ -13569,6 +13789,33 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ChangePasswordResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Step-up re-authentication (ADS-1205). Verifies the calling principal's
+   * password (and a current TOTP code when the account has 2FA enabled) and
+   * returns pass/fail. Unlike Login it mints NO tokens and mutates no
+   * session/cookie state — it exists so a sensitive action (e.g. GDPR account
+   * erasure) can require the user to re-prove their credentials inline. The
+   * password is checked BEFORE the TOTP (mirroring Login) so a wrong password
+   * never consumes a code, and backup/recovery codes are NOT accepted here —
+   * a current TOTP is required for 2FA users. Returns two_factor_required=true
+   * (verified=false) when the password is correct but no TOTP was supplied.
+   * Requires the x-user-id metadata; a missing password is INVALID_ARGUMENT.
+   */
+  verifyCredentials(
+    request: VerifyCredentialsRequest,
+    callback: (error: ServiceError | null, response: VerifyCredentialsResponse) => void,
+  ): ClientUnaryCall;
+  verifyCredentials(
+    request: VerifyCredentialsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: VerifyCredentialsResponse) => void,
+  ): ClientUnaryCall;
+  verifyCredentials(
+    request: VerifyCredentialsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: VerifyCredentialsResponse) => void,
   ): ClientUnaryCall;
   setupTwoFactor(
     request: SetupTwoFactorRequest,

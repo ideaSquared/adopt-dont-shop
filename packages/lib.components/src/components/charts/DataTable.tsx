@@ -91,12 +91,40 @@ export type DataTableProps = Omit<ChartFrameProps, 'children' | 'isEmpty' | 'tit
   surface?: boolean;
 };
 
+// UK-formatted dates (`formatDate`/`formatDateTime` → `DD/MM/YYYY` and
+// `DD/MM/YYYY HH:mm`). Matching values are compared chronologically rather than
+// lexicographically, so a `07/08/2026` cell sorts after `15/03/2025` (ADS-1126).
+const UK_DATE_RE = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?$/;
+
+const parseUkDate = (value: unknown): number | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const match = UK_DATE_RE.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+  const [, day, month, year, hours, minutes] = match;
+  return Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hours ?? 0),
+    Number(minutes ?? 0)
+  );
+};
+
 const compareCells = (a: unknown, b: unknown): number => {
   if (a === b) {
     return 0;
   }
   if (typeof a === 'number' && typeof b === 'number') {
     return a - b;
+  }
+  const dateA = parseUkDate(a);
+  const dateB = parseUkDate(b);
+  if (dateA !== null && dateB !== null) {
+    return dateA - dateB;
   }
   return String(a ?? '').localeCompare(String(b ?? ''));
 };
@@ -173,9 +201,15 @@ export const DataTable: React.FC<DataTableProps> = ({
     ? sortedRows
     : sortedRows.slice(currentPageIndex * pageSize, (currentPageIndex + 1) * pageSize);
 
+  // Uncontrolled pagination slices `sortedRows` per page, so the map index `i`
+  // restarts at 0 on each page. Offset it by the page start so id fallbacks and
+  // per-row callbacks receive an ABSOLUTE row index (ADS-1123). In controlled
+  // pagination the caller owns paging, so its rows/ids stay authoritative.
+  const rowIndexOffset = controlledPagination ? 0 : currentPageIndex * pageSize;
+
   const getRowIdFn = getRowId ?? defaultGetRowId;
   const selectedSet = useMemo(() => toIdSet(selectedIds), [selectedIds]);
-  const visibleIds = visibleRows.map((row, i) => getRowIdFn(row, i));
+  const visibleIds = visibleRows.map((row, i) => getRowIdFn(row, rowIndexOffset + i));
   const selectedVisibleCount = visibleIds.filter(id => selectedSet.has(id)).length;
   const allVisibleSelected = visibleRows.length > 0 && selectedVisibleCount === visibleRows.length;
   const someVisibleSelected = selectedVisibleCount > 0;
@@ -296,9 +330,10 @@ export const DataTable: React.FC<DataTableProps> = ({
                 />
               ))
             : visibleRows.map((row, i) => {
-                const rowId = getRowIdFn(row, i);
+                const absoluteIndex = rowIndexOffset + i;
+                const rowId = getRowIdFn(row, absoluteIndex);
                 const isSelected = selectable && selectedSet.has(rowId);
-                const variant = getRowVariant?.(row, i) ?? 'default';
+                const variant = getRowVariant?.(row, absoluteIndex) ?? 'default';
                 return (
                   <tr
                     key={rowId}
@@ -307,7 +342,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     className={clsx(
                       onRowClick ? styles.rowClickable : styles.rowDefault,
                       styles.rowVariant({ variant, selected: isSelected }),
-                      rowClassName?.(row, i)
+                      rowClassName?.(row, absoluteIndex)
                     )}
                   >
                     {selectable ? (
@@ -316,7 +351,9 @@ export const DataTable: React.FC<DataTableProps> = ({
                           type='checkbox'
                           className={styles.checkbox}
                           aria-label={
-                            getRowLabel ? `Select ${getRowLabel(row, i)}` : `Select row ${rowId}`
+                            getRowLabel
+                              ? `Select ${getRowLabel(row, absoluteIndex)}`
+                              : `Select row ${rowId}`
                           }
                           checked={selectedSet.has(rowId)}
                           onChange={() => toggleOne(rowId)}

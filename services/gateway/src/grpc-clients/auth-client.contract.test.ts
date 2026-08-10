@@ -25,6 +25,8 @@ import {
   type LoginResponse,
   type ValidateTokenRequest,
   type ValidateTokenResponse,
+  type VerifyCredentialsRequest,
+  type VerifyCredentialsResponse,
 } from '@adopt-dont-shop/proto';
 
 import { describe, expect, it } from 'vitest';
@@ -62,6 +64,7 @@ const makeHandlers = (overrides: Partial<AuthV1.AuthServiceServer>): AuthV1.Auth
   forgotPassword: unimplemented,
   resetPassword: unimplemented,
   changePassword: unimplemented,
+  verifyCredentials: unimplemented,
   updateAccount: unimplemented,
   listSessions: unimplemented,
   revokeSession: unimplemented,
@@ -184,6 +187,43 @@ describe('auth-client — gRPC contract', () => {
       expect(capturedPassword).toBe('secret');
       expect(result.tokens?.accessToken).toBe('at');
       expect(result.user?.userId).toBe('user-456');
+    } finally {
+      client.close();
+      await stub.close();
+    }
+  });
+
+  // ── 2b. Write-path round-trip: verifyCredentials ─────────────────
+
+  it('verifyCredentials — password + TOTP arrive at the server and the verdict round-trips', async () => {
+    const want: VerifyCredentialsResponse = { verified: true, twoFactorRequired: false };
+
+    let capturedPassword = '';
+    let capturedToken: string | undefined;
+
+    const stub = await startTestServer(
+      makeHandlers({
+        verifyCredentials: (
+          call: ServerUnaryCall<VerifyCredentialsRequest, VerifyCredentialsResponse>,
+          cb: sendUnaryData<VerifyCredentialsResponse>
+        ) => {
+          capturedPassword = call.request.password;
+          capturedToken = call.request.twoFactorToken;
+          cb(null, want);
+        },
+      })
+    );
+
+    const client = createAuthClient({ address: stub.address });
+    try {
+      const result = await client.verifyCredentials(
+        { password: 'hunter2', twoFactorToken: '123456' },
+        new Metadata()
+      );
+      expect(capturedPassword).toBe('hunter2');
+      expect(capturedToken).toBe('123456');
+      expect(result.verified).toBe(true);
+      expect(result.twoFactorRequired).toBe(false);
     } finally {
       client.close();
       await stub.close();

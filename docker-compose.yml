@@ -172,7 +172,7 @@ services:
   # ============================================================================
 
   lib-types-watcher:
-    image: node:22.15.1-alpine
+    image: node:22.23.1-alpine
     working_dir: /app
     environment:
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
