@@ -3,26 +3,17 @@ import { useSearchParams } from 'react-router';
 import {
   Heading,
   Text,
-  Input,
   useConfirm,
   ConfirmDialog,
   toast,
   MetricCard,
   Badge,
   DataTable,
+  SearchToolbar,
   type DataTableColumn,
 } from '@adopt-dont-shop/lib.components';
-import { CircleAlert, CircleCheck, Eye, Flag, MessageSquare, Search, Trash } from 'lucide-react';
-import {
-  PageContainer,
-  PageHeader,
-  HeaderLeft,
-  FilterBar,
-  FilterGroup,
-  FilterLabel,
-  SearchInputWrapper,
-  Select,
-} from '../components/ui';
+import { CircleAlert, CircleCheck, Eye, Flag, MessageSquare, Trash } from 'lucide-react';
+import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
 import {
   useAdminChats,
   useAdminChatStats,
@@ -70,7 +61,7 @@ const Messages: React.FC = () => {
     }
   };
 
-  const filters = useMemo(() => {
+  const chatFilters = useMemo(() => {
     const apiFilters: {
       status?: string;
       search?: string;
@@ -88,7 +79,7 @@ const Messages: React.FC = () => {
     return apiFilters;
   }, [statusFilter, searchQuery]);
 
-  const { data: chatsData, isLoading, error: chatsError, refetch } = useAdminChats(filters);
+  const { data: chatsData, isLoading, error: chatsError, refetch } = useAdminChats(chatFilters);
   const { data: statsData } = useAdminChatStats();
   const { deleteChat, updateChatStatus } = useAdminChatMutations();
 
@@ -378,28 +369,27 @@ const Messages: React.FC = () => {
         />
       </div>
 
-      <FilterBar>
-        <SearchInputWrapper>
-          <Search size='1em' />
-          <Input
-            type='text'
-            placeholder='Search conversations, participants, or messages...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </SearchInputWrapper>
-
-        <FilterGroup>
-          <FilterLabel>Status</FilterLabel>
-          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value='all'>All Statuses</option>
-            <option value='active'>Active</option>
-            <option value='archived'>Archived</option>
-            <option value='blocked'>Blocked</option>
-            <option value='closed'>Closed</option>
-          </Select>
-        </FilterGroup>
-      </FilterBar>
+      <SearchToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder='Search conversations, participants, or messages...'
+        filterConfig={[
+          {
+            name: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'All Statuses' },
+              { value: 'active', label: 'Active' },
+              { value: 'archived', label: 'Archived' },
+              { value: 'blocked', label: 'Blocked' },
+              { value: 'closed', label: 'Closed' },
+            ],
+          },
+        ]}
+        filters={{ status: statusFilter }}
+        onFilterChange={(_name, value) => setStatusFilter(String(value))}
+      />
 
       {chatsError && (
         <div className={styles.errorBanner}>
