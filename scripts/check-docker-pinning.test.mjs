@@ -65,9 +65,7 @@ describe('findUnpinnedFromLines (Dockerfiles)', () => {
 
     const failures = findUnpinnedFromLines('Dockerfile.service', root);
 
-    expect(failures).toEqual([
-      { file: 'Dockerfile.service', line: 1, ref: 'node:22.15.1-alpine' },
-    ]);
+    expect(failures).toEqual([{ file: 'Dockerfile.service', line: 1, ref: 'node:22.15.1-alpine' }]);
   });
 
   it('accepts a third-party FROM pinned by digest', () => {
@@ -133,6 +131,10 @@ describe('findDockerfiles', () => {
     writeFileSync(join(root, 'Dockerfile.dev'), '');
     writeFileSync(join(root, 'not-a-dockerfile.txt'), '');
 
-    expect(findDockerfiles(root)).toEqual(['Dockerfile.app', 'Dockerfile.dev', 'Dockerfile.service']);
+    expect(findDockerfiles(root)).toEqual([
+      'Dockerfile.app',
+      'Dockerfile.dev',
+      'Dockerfile.service',
+    ]);
   });
 });

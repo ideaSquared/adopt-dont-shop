@@ -261,9 +261,14 @@ async function checkPostgresVolume() {
   }
   // Probe: start the DB alone (if not up) and try to auth with the current .env
   // password. Mismatch => the volume was initialised with an older password.
-  const pw = (readFileSync(join(ROOT, '.env'), 'utf8').match(/^POSTGRES_PASSWORD=(.*)$/m) || [])[1]?.trim();
-  const user = (readFileSync(join(ROOT, '.env'), 'utf8').match(/^POSTGRES_USER=(.*)$/m) || [])[1]?.trim() || 'adopt_user';
-  const db = (readFileSync(join(ROOT, '.env'), 'utf8').match(/^POSTGRES_DB=(.*)$/m) || [])[1]?.trim() || 'adopt_dont_shop_dev';
+  const pw = (readFileSync(join(ROOT, '.env'), 'utf8').match(/^POSTGRES_PASSWORD=(.*)$/m) ||
+    [])[1]?.trim();
+  const user =
+    (readFileSync(join(ROOT, '.env'), 'utf8').match(/^POSTGRES_USER=(.*)$/m) || [])[1]?.trim() ||
+    'adopt_user';
+  const db =
+    (readFileSync(join(ROOT, '.env'), 'utf8').match(/^POSTGRES_DB=(.*)$/m) || [])[1]?.trim() ||
+    'adopt_dont_shop_dev';
 
   run(`docker compose ${COMPOSE.join(' ')} up -d database`, { stdio: 'ignore' });
   // Give it a moment to accept connections, then probe via pg_isready + a real auth.
@@ -271,11 +276,28 @@ async function checkPostgresVolume() {
   for (let i = 0; i < 15; i++) {
     const probe = spawnSync(
       'docker',
-      ['compose', ...COMPOSE, 'exec', '-e', `PGPASSWORD=${pw}`, '-T', 'database',
-        'psql', '-U', user, '-d', db, '-c', 'select 1'],
+      [
+        'compose',
+        ...COMPOSE,
+        'exec',
+        '-e',
+        `PGPASSWORD=${pw}`,
+        '-T',
+        'database',
+        'psql',
+        '-U',
+        user,
+        '-d',
+        db,
+        '-c',
+        'select 1',
+      ],
       { cwd: ROOT, stdio: 'ignore' }
     );
-    if (probe.status === 0) { authed = true; break; }
+    if (probe.status === 0) {
+      authed = true;
+      break;
+    }
     sleepSync(1000); // portable blocking sleep
   }
   if (authed) {
@@ -291,7 +313,9 @@ async function checkPostgresVolume() {
     false
   );
   if (!wipe) {
-    fail('Cannot start with a mismatched DB volume. Re-run when ready to wipe, or fix POSTGRES_PASSWORD to match the volume.');
+    fail(
+      'Cannot start with a mismatched DB volume. Re-run when ready to wipe, or fix POSTGRES_PASSWORD to match the volume.'
+    );
     process.exit(1);
   }
   run(`docker compose ${COMPOSE.join(' ')} down -v`);
@@ -370,11 +394,17 @@ function up() {
 // new node_modules.
 function reportRefreshPlan(imageChanged) {
   if (imageChanged) {
-    warn('Dev image updated — every app/service container will be recreated to pick up the new node_modules.');
+    warn(
+      'Dev image updated — every app/service container will be recreated to pick up the new node_modules.'
+    );
     return;
   }
-  ok('Dev image unchanged — your working tree is already live via the bind mount + watchers (Vite HMR / tsx watch / lib.types tsc).');
-  log('  Only containers whose compose config changed will restart; the rest keep running untouched.');
+  ok(
+    'Dev image unchanged — your working tree is already live via the bind mount + watchers (Vite HMR / tsx watch / lib.types tsc).'
+  );
+  log(
+    '  Only containers whose compose config changed will restart; the rest keep running untouched.'
+  );
 }
 
 async function main() {

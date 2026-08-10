@@ -52,7 +52,7 @@
     },
     "lint": {
       "outputs": [],
-      "inputs": ["src/**", "*.config.{js,ts,mjs}", "$TURBO_ROOT$/eslint.config.js"]
+      "inputs": ["src/**", "*.config.{js,ts,mjs}"]
     },
     "format": {
       "outputs": [],

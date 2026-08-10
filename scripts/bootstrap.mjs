@@ -196,7 +196,9 @@ async function waitForHealth(url, timeoutMs = 60000) {
 async function startStack() {
   logStep('9', 'Starting docker dev stack (docker compose up -d)...');
   if (!dockerAvailable()) {
-    logError('Docker is not running — skipping stack start. Run `pnpm docker:dev` once Docker is up.');
+    logError(
+      'Docker is not running — skipping stack start. Run `pnpm docker:dev` once Docker is up.'
+    );
     return false;
   }
   try {
@@ -209,7 +211,9 @@ async function startStack() {
   logInfo('Waiting for nginx edge /health (up to 60s)...');
   const ok = await waitForHealth('http://localhost/health', 60000);
   if (!ok) {
-    logError('Nginx edge did not become healthy within 60s. Run `pnpm docker:logs` to investigate.');
+    logError(
+      'Nginx edge did not become healthy within 60s. Run `pnpm docker:logs` to investigate.'
+    );
     return false;
   }
   logSuccess('Nginx edge is healthy.');
@@ -219,7 +223,10 @@ async function startStack() {
   log('   http://localhost:3001   # app.admin', RESET);
   log('   http://localhost:3002   # app.rescue', RESET);
   log('   http://localhost          # nginx edge (apps + /api proxy)', RESET);
-  log('   http://localhost:4000   # service.gateway (REST/WS API — requires `--profile services`)', RESET);
+  log(
+    '   http://localhost:4000   # service.gateway (REST/WS API — requires `--profile services`)',
+    RESET
+  );
   log('', RESET);
   return true;
 }
@@ -229,7 +236,10 @@ function printNextSteps() {
   log('Next steps:', `${BOLD}${GREEN}`);
   log('', RESET);
   log('1. Review your .env file:', BLUE);
-  log('   - Secrets (including POSTGRES_PASSWORD / REDIS_PASSWORD) have been generated for you.', RESET);
+  log(
+    '   - Secrets (including POSTGRES_PASSWORD / REDIS_PASSWORD) have been generated for you.',
+    RESET
+  );
   log('   - Set any third-party API keys you need.', RESET);
   log('', RESET);
   log('2. Start the development stack:', BLUE);
@@ -269,7 +279,9 @@ async function setup() {
 
     const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0], 10);
     if (majorVersion < 22) {
-      logError(`Node.js v${majorVersion} detected, but v22+ is required (see package.json engines)`);
+      logError(
+        `Node.js v${majorVersion} detected, but v22+ is required (see package.json engines)`
+      );
       log(`Current version: ${nodeVersion}`, YELLOW);
       log('Please upgrade Node.js from https://nodejs.org/', YELLOW);
       process.exit(1);
@@ -291,7 +303,7 @@ async function setup() {
       logError('Could not enable Corepack automatically (likely a permissions issue)');
       log('Run this manually, then re-run `pnpm bootstrap`:', YELLOW);
       log('  corepack enable && corepack prepare --activate', YELLOW);
-      log('  (macOS/Linux: prefix with `sudo` if npm\'s global path needs it)', YELLOW);
+      log("  (macOS/Linux: prefix with `sudo` if npm's global path needs it)", YELLOW);
       process.exit(1);
     }
     log('', RESET);
@@ -340,7 +352,7 @@ async function setup() {
             'CHOKIDAR_AWAITWRITEFINISH=2000',
             'WATCHPACK_POLLING=true',
             '',
-          ].join('\n'),
+          ].join('\n')
         );
         logSuccess(`Appended CHOKIDAR polling vars to .env for ${host} host`);
       } else {
@@ -370,7 +382,9 @@ async function setup() {
       runCommand('pnpm validate:env');
       logSuccess('Environment configuration valid');
     } catch (err) {
-      logError('Environment validation reported issues — review the output above before starting the stack.');
+      logError(
+        'Environment validation reported issues — review the output above before starting the stack.'
+      );
       // Non-fatal: the user may still need to fill in optional values (e.g. third-party API keys).
     }
     log('', RESET);

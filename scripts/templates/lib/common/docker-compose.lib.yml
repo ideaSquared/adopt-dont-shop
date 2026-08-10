@@ -15,7 +15,7 @@ services:
 
   # Test service for the library
   lib-{{LIB_NAME}}-test:
-    image: node:20-alpine
+    image: node:22.23.1-alpine
     working_dir: /app
     volumes:
       - ./lib.{{LIB_NAME}}:/app

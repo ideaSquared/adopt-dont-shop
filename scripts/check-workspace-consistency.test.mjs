@@ -83,7 +83,10 @@ describe('rootAuthoritativeRange (ADS-980)', () => {
   });
 
   it('falls back to dependencies, then devDependencies, when there is no override', () => {
-    const rootPkg = { dependencies: { react: '^19.2.7' }, devDependencies: { typescript: '^6.0.3' } };
+    const rootPkg = {
+      dependencies: { react: '^19.2.7' },
+      devDependencies: { typescript: '^6.0.3' },
+    };
     expect(rootAuthoritativeRange(rootPkg, 'react')).toBe('^19.2.7');
     expect(rootAuthoritativeRange(rootPkg, 'typescript')).toBe('^6.0.3');
   });
@@ -101,26 +104,42 @@ describe('checkTemplateDepDrift (ADS-980)', () => {
 
   it('reports no drift when a template dependency range overlaps the root', () => {
     const templatePkg = { devDependencies: { typescript: '^6.0.3' } };
-    expect(checkTemplateDepDrift('scripts/templates/lib/service/package.json', templatePkg, rootPkg)).toEqual([]);
+    expect(
+      checkTemplateDepDrift('scripts/templates/lib/service/package.json', templatePkg, rootPkg)
+    ).toEqual([]);
   });
 
   it('flags a template dependency whose range cannot resolve to the root pin', () => {
     const templatePkg = { devDependencies: { typescript: '^5.0.2' } };
-    const failures = checkTemplateDepDrift('scripts/templates/app/standard/package.json', templatePkg, rootPkg);
+    const failures = checkTemplateDepDrift(
+      'scripts/templates/app/standard/package.json',
+      templatePkg,
+      rootPkg
+    );
     expect(failures).toHaveLength(1);
-    expect(failures[0]).toContain("'typescript': '^5.0.2' does not overlap the workspace root's '^6.0.3'");
+    expect(failures[0]).toContain(
+      "'typescript': '^5.0.2' does not overlap the workspace root's '^6.0.3'"
+    );
   });
 
   it('checks a dependency declared under an override, not just dependencies/devDependencies', () => {
     const templatePkg = { dependencies: { react: '^18.3.1' } };
-    const failures = checkTemplateDepDrift('scripts/templates/app/minimal/package.json', templatePkg, rootPkg);
+    const failures = checkTemplateDepDrift(
+      'scripts/templates/app/minimal/package.json',
+      templatePkg,
+      rootPkg
+    );
     expect(failures).toHaveLength(1);
-    expect(failures[0]).toContain("'react': '^18.3.1' does not overlap the workspace root's '19.2.7'");
+    expect(failures[0]).toContain(
+      "'react': '^18.3.1' does not overlap the workspace root's '19.2.7'"
+    );
   });
 
   it('ignores dependencies the root does not track at all', () => {
     const templatePkg = { dependencies: { 'left-pad': '^1.0.0' } };
-    expect(checkTemplateDepDrift('scripts/templates/lib/utility/package.json', templatePkg, rootPkg)).toEqual([]);
+    expect(
+      checkTemplateDepDrift('scripts/templates/lib/utility/package.json', templatePkg, rootPkg)
+    ).toEqual([]);
   });
 });
 
@@ -157,18 +176,30 @@ describe('checkNoEmitTaskOutputs (ADS-1000)', () => {
 
 describe('checkToolVersionsDrift (ADS-943)', () => {
   it('passes when nodejs major and pnpm version match .nvmrc / packageManager', () => {
-    const failures = checkToolVersionsDrift('22.15.1\n', 'pnpm@10.34.3', 'nodejs 22.15.1\npnpm 10.34.3\n');
+    const failures = checkToolVersionsDrift(
+      '22.15.1\n',
+      'pnpm@10.34.3',
+      'nodejs 22.15.1\npnpm 10.34.3\n'
+    );
     expect(failures).toEqual([]);
   });
 
   it('flags a nodejs major mismatch against .nvmrc', () => {
-    const failures = checkToolVersionsDrift('22.15.1\n', 'pnpm@10.34.3', 'nodejs 20.11.0\npnpm 10.34.3\n');
+    const failures = checkToolVersionsDrift(
+      '22.15.1\n',
+      'pnpm@10.34.3',
+      'nodejs 20.11.0\npnpm 10.34.3\n'
+    );
     expect(failures).toHaveLength(1);
     expect(failures[0]).toContain('nodejs');
   });
 
   it('flags a pnpm version mismatch against package.json packageManager', () => {
-    const failures = checkToolVersionsDrift('22.15.1\n', 'pnpm@10.34.3', 'nodejs 22.15.1\npnpm 9.0.0\n');
+    const failures = checkToolVersionsDrift(
+      '22.15.1\n',
+      'pnpm@10.34.3',
+      'nodejs 22.15.1\npnpm 9.0.0\n'
+    );
     expect(failures).toHaveLength(1);
     expect(failures[0]).toContain('pnpm');
   });
@@ -272,19 +303,40 @@ describe('CI test-filter reachability (ADS-1029)', () => {
 
   describe('filterMatches', () => {
     it('matches a name glob against the package name', () => {
-      expect(filterMatches('@adopt-dont-shop/lib.*', { name: '@adopt-dont-shop/lib.api', dir: 'packages/lib.api' })).toBe(true);
-      expect(filterMatches('@adopt-dont-shop/lib.*', { name: '@adopt-dont-shop/authz', dir: 'packages/authz' })).toBe(false);
+      expect(
+        filterMatches('@adopt-dont-shop/lib.*', {
+          name: '@adopt-dont-shop/lib.api',
+          dir: 'packages/lib.api',
+        })
+      ).toBe(true);
+      expect(
+        filterMatches('@adopt-dont-shop/lib.*', {
+          name: '@adopt-dont-shop/authz',
+          dir: 'packages/authz',
+        })
+      ).toBe(false);
     });
 
     it('matches a brace-list against the package name', () => {
       const f = '@adopt-dont-shop/app.{client,admin,rescue}';
-      expect(filterMatches(f, { name: '@adopt-dont-shop/app.admin', dir: 'apps/admin' })).toBe(true);
-      expect(filterMatches(f, { name: '@adopt-dont-shop/app.marketing', dir: 'apps/marketing' })).toBe(false);
+      expect(filterMatches(f, { name: '@adopt-dont-shop/app.admin', dir: 'apps/admin' })).toBe(
+        true
+      );
+      expect(
+        filterMatches(f, { name: '@adopt-dont-shop/app.marketing', dir: 'apps/marketing' })
+      ).toBe(false);
     });
 
     it('matches a path selector against the package directory', () => {
-      expect(filterMatches('./packages/*', { name: '@adopt-dont-shop/authz', dir: 'packages/authz' })).toBe(true);
-      expect(filterMatches('./packages/*', { name: '@adopt-dont-shop/service.auth', dir: 'services/auth' })).toBe(false);
+      expect(
+        filterMatches('./packages/*', { name: '@adopt-dont-shop/authz', dir: 'packages/authz' })
+      ).toBe(true);
+      expect(
+        filterMatches('./packages/*', {
+          name: '@adopt-dont-shop/service.auth',
+          dir: 'services/auth',
+        })
+      ).toBe(false);
     });
   });
 
@@ -292,10 +344,17 @@ describe('CI test-filter reachability (ADS-1029)', () => {
     it('groups each job filter and expands the frontend matrix', () => {
       const groups = extractCiFilterGroups(ci);
       expect(groups).toContainEqual({
-        includes: ['@adopt-dont-shop/app.client', '@adopt-dont-shop/app.admin', '@adopt-dont-shop/app.rescue'],
+        includes: [
+          '@adopt-dont-shop/app.client',
+          '@adopt-dont-shop/app.admin',
+          '@adopt-dont-shop/app.rescue',
+        ],
         excludes: [],
       });
-      expect(groups).toContainEqual({ includes: ['./packages/*'], excludes: ['@adopt-dont-shop/lib.*'] });
+      expect(groups).toContainEqual({
+        includes: ['./packages/*'],
+        excludes: ['@adopt-dont-shop/lib.*'],
+      });
     });
   });
 
@@ -316,7 +375,12 @@ describe('CI test-filter reachability (ADS-1029)', () => {
       // lib.api is covered by the lib.* group, but must NOT be covered by the
       // packages group (whose exclude removes it) — verified by the group shape.
       const packagesGroup = groups.find(g => g.includes.includes('./packages/*'));
-      expect(findUncoveredPackages([{ name: '@adopt-dont-shop/lib.api', dir: 'packages/lib.api' }], [packagesGroup])).toHaveLength(1);
+      expect(
+        findUncoveredPackages(
+          [{ name: '@adopt-dont-shop/lib.api', dir: 'packages/lib.api' }],
+          [packagesGroup]
+        )
+      ).toHaveLength(1);
     });
 
     it('flags a package that escapes every filter', () => {
@@ -360,13 +424,15 @@ describe('workspace-drift guard / ci:local parity (ADS-1002)', () => {
     };
 
     it('finds guard files invoked directly with node', () => {
-      expect(findGuardScriptFiles('run: node scripts/check-workspace-consistency.mjs', rootScripts)).toEqual([
-        'check-workspace-consistency.mjs',
-      ]);
+      expect(
+        findGuardScriptFiles('run: node scripts/check-workspace-consistency.mjs', rootScripts)
+      ).toEqual(['check-workspace-consistency.mjs']);
     });
 
     it('resolves guard files invoked indirectly via a wrapping pnpm script', () => {
-      expect(findGuardScriptFiles('run: pnpm check:csp', rootScripts)).toEqual(['check-csp-headers.mjs']);
+      expect(findGuardScriptFiles('run: pnpm check:csp', rootScripts)).toEqual([
+        'check-csp-headers.mjs',
+      ]);
     });
 
     it('ignores a pnpm script reference with no matching root script', () => {
@@ -387,7 +453,9 @@ describe('workspace-drift guard / ci:local parity (ADS-1002)', () => {
 
   describe('isRunByCiLocal', () => {
     it('is true when ci:local invokes the script by name', () => {
-      expect(isRunByCiLocal('check:csp', 'pnpm format:check && pnpm check:csp && pnpm test:scripts')).toBe(true);
+      expect(
+        isRunByCiLocal('check:csp', 'pnpm format:check && pnpm check:csp && pnpm test:scripts')
+      ).toBe(true);
     });
 
     it('is false when ci:local does not invoke the script', () => {
@@ -408,9 +476,12 @@ describe('workspace-drift guard / ci:local parity (ADS-1002)', () => {
     });
 
     it('fails when a guard script has no wrapping root package.json script', () => {
-      const yaml = ['jobs:', '  workspace-drift:', '    steps:', '      - run: node scripts/check-new-guard.mjs'].join(
-        '\n'
-      );
+      const yaml = [
+        'jobs:',
+        '  workspace-drift:',
+        '    steps:',
+        '      - run: node scripts/check-new-guard.mjs',
+      ].join('\n');
       const rootPkg = { scripts: { 'ci:local': 'pnpm format:check' } };
       const failures = checkWorkspaceDriftGuardsCoveredByCiLocal(yaml, rootPkg);
       expect(failures).toHaveLength(1);
@@ -419,7 +490,12 @@ describe('workspace-drift guard / ci:local parity (ADS-1002)', () => {
     });
 
     it('fails when the wrapping root script exists but ci:local does not run it', () => {
-      const yaml = ['jobs:', '  workspace-drift:', '    steps:', '      - run: pnpm check:new-guard'].join('\n');
+      const yaml = [
+        'jobs:',
+        '  workspace-drift:',
+        '    steps:',
+        '      - run: pnpm check:new-guard',
+      ].join('\n');
       const rootPkg = {
         scripts: {
           'check:new-guard': 'node scripts/check-new-guard.mjs',
@@ -432,9 +508,12 @@ describe('workspace-drift guard / ci:local parity (ADS-1002)', () => {
     });
 
     it('fails with a clear message when the workspace-drift job cannot be found', () => {
-      const failures = checkWorkspaceDriftGuardsCoveredByCiLocal('jobs:\n  changes:\n    steps: []', {
-        scripts: {},
-      });
+      const failures = checkWorkspaceDriftGuardsCoveredByCiLocal(
+        'jobs:\n  changes:\n    steps: []',
+        {
+          scripts: {},
+        }
+      );
       expect(failures).toEqual([
         "[ci.yml] could not find the 'workspace-drift' job — expected a top-level '  workspace-drift:' key (ADS-1002).",
       ]);
@@ -444,7 +523,11 @@ describe('workspace-drift guard / ci:local parity (ADS-1002)', () => {
 
 describe('checkLintFormatScripts (ADS-1003)', () => {
   it('reports no drift when lint, format and format:check are all present', () => {
-    const scripts = { lint: 'eslint .', format: 'prettier --write .', 'format:check': 'prettier --check .' };
+    const scripts = {
+      lint: 'eslint .',
+      format: 'prettier --write .',
+      'format:check': 'prettier --check .',
+    };
     expect(checkLintFormatScripts('e2e', scripts)).toEqual([]);
   });
 
