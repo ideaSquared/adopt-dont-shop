@@ -74,10 +74,10 @@ function main() {
     linkedDocsRelative.add(stripped);
   }
 
-  const allDocs = listMarkdownFiles(DOCS_DIR).map((p) => relative(DOCS_DIR, p));
+  const allDocs = listMarkdownFiles(DOCS_DIR).map(p => relative(DOCS_DIR, p));
   const missing = allDocs
-    .filter((p) => !isAllowlisted(p))
-    .filter((p) => !linkedDocsRelative.has(p))
+    .filter(p => !isAllowlisted(p))
+    .filter(p => !linkedDocsRelative.has(p))
     .sort();
 
   if (missing.length === 0) {

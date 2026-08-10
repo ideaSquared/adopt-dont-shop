@@ -40,8 +40,16 @@ const SEED_TARGETS = [
   ['service-auth', '@adopt-dont-shop/service.auth', 'auth users (personas)'],
   ['service-rescue', '@adopt-dont-shop/service.rescue', 'rescues + staff'],
   ['service-pets', '@adopt-dont-shop/service.pets', 'pet catalogue'],
-  ['service-applications', '@adopt-dont-shop/service.applications', 'application read-model (references user/pet/rescue ids)'],
-  ['service-chat', '@adopt-dont-shop/service.chat', 'adopter↔rescue chat + participants (references user/rescue ids)'],
+  [
+    'service-applications',
+    '@adopt-dont-shop/service.applications',
+    'application read-model (references user/pet/rescue ids)',
+  ],
+  [
+    'service-chat',
+    '@adopt-dont-shop/service.chat',
+    'adopter↔rescue chat + participants (references user/rescue ids)',
+  ],
 ];
 
 function runSeed(service, pkg, label) {

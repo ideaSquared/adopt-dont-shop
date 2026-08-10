@@ -505,7 +505,9 @@ function checkDevVolumesDrift(apps, packages, services) {
     );
   }
 
-  const stale = [...actualSet].filter(mount => mount !== '/app/node_modules' && !expectedSet.has(mount)).sort();
+  const stale = [...actualSet]
+    .filter(mount => mount !== '/app/node_modules' && !expectedSet.has(mount))
+    .sort();
   if (stale.length > 0) {
     failures.push(
       `[docker-compose.dev.yml] 'x-dev-volumes' anchor mounts node_modules for workspace(s) that no longer exist: ` +
@@ -926,7 +928,9 @@ export function findGuardScriptFiles(jobYaml, rootScripts) {
 // The root package.json script name (if any) whose command body runs the
 // given guard script file directly.
 export function findRootScriptForGuardFile(file, rootScripts) {
-  const hit = Object.entries(rootScripts).find(([, body]) => (body || '').includes(`scripts/${file}`));
+  const hit = Object.entries(rootScripts).find(([, body]) =>
+    (body || '').includes(`scripts/${file}`)
+  );
   return hit ? hit[0] : null;
 }
 
