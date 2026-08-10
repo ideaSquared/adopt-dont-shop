@@ -19,5 +19,5 @@ export default {
     // quotes were unnecessary as well as broken.
     'pnpm exec turbo run lint --filter=...[HEAD] --continue',
   ],
-  '**/*.{js,jsx,json,md,css}': ['prettier --write'],
+  '**/*.{js,mjs,jsx,json,md,css}': ['prettier --write'],
 };
