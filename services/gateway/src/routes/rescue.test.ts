@@ -281,6 +281,38 @@ describe('PATCH /api/v1/rescue/:id', () => {
       await app.close();
     }
   });
+
+  it('forwards only documented fields, dropping undeclared body props (ADS-1206)', async () => {
+    const { client, updateMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      updateMock.mockResolvedValueOnce({ rescue: RESCUE_FIXTURE } as UpdateRescueResponse);
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/rescue/rsc-1',
+        payload: {
+          name: 'Pawsome 2',
+          contactEmail: 'new@example.com',
+          // Undeclared on the PATCH route schema — must not reach the service:
+          settingsJson: '{"evil":true}',
+          expectedVersion: 99,
+          somethingArbitrary: 'nope',
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      const [req] = updateMock.mock.calls[0];
+      // Documented fields are forwarded…
+      expect(req.rescueId).toBe('rsc-1');
+      expect(req.name).toBe('Pawsome 2');
+      expect(req.contactEmail).toBe('new@example.com');
+      // …undeclared ones are dropped, not spread through to the gRPC request.
+      expect(req.settingsJson).toBeUndefined();
+      expect(req.expectedVersion).toBeUndefined();
+      expect(req.somethingArbitrary).toBeUndefined();
+    } finally {
+      await app.close();
+    }
+  });
 });
 
 describe('POST /api/v1/rescue/:id/verify', () => {

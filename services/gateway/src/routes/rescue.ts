@@ -371,7 +371,28 @@ export const registerRescueRoutes = async (
     },
     async (req, reply) => {
       const body = (req.body ?? {}) as UpdateRescueBody;
-      const grpcReq: UpdateRescueRequest = { rescueId: req.params.id, ...body };
+      // Map only the documented editable fields (mirrors the create route
+      // above). Never spread the raw body: a bare `...body` forwards
+      // undeclared UpdateRescueRequest fields the route schema doesn't list
+      // (e.g. settingsJson, expectedVersion) straight to the service — an
+      // implicit, undocumented write surface (ADS-1206).
+      const grpcReq: UpdateRescueRequest = {
+        rescueId: req.params.id,
+        name: body.name,
+        phone: body.phone,
+        address: body.address,
+        city: body.city,
+        county: body.county,
+        postcode: body.postcode,
+        country: body.country,
+        website: body.website,
+        description: body.description,
+        mission: body.mission,
+        contactPerson: body.contactPerson,
+        contactTitle: body.contactTitle,
+        contactEmail: body.contactEmail,
+        contactPhone: body.contactPhone,
+      };
       try {
         const res = await client.update(grpcReq, buildMetadata(req));
         return reply.send(RescueV1.UpdateRescueResponse.toJSON(res));
