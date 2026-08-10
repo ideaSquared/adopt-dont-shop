@@ -29,6 +29,11 @@
  *     hand-enumerated list in sync with the filesystem — a new package added
  *     without a matching mount line gets silently shadowed by the host bind
  *     mount's (container-invalid) node_modules symlink farm.
+ *  9b. .github/actions/setup-workspace/action.yml's node_modules cache `path:`
+ *     list mirrors the same "one entry per top-level workspace glob" invariant
+ *     as #9, for the CI cache instead of the dev-compose mounts (ADS-1135). On a
+ *     cache hit the install step is skipped, so a workspace glob in
+ *     pnpm-workspace.yaml missing from the list gets no node_modules at all.
  *  10. scripts/templates/**\/package.json (the pnpm new-app / new-lib
  *     scaffolds) must not declare a version of a tracked cross-cutting
  *     dependency (react, typescript, eslint, vitest, ...) that doesn't
@@ -510,6 +515,98 @@ function checkDevVolumesDrift(apps, packages, services) {
     failures.push(
       `[docker-compose.dev.yml] 'x-dev-volumes' anchor mounts node_modules for workspace(s) that no longer exist: ` +
         `${stale.join(', ')}. Remove these stale lines (ADS-987).`
+    );
+  }
+
+  return failures;
+}
+
+// ADS-1135: the setup-workspace composite caches node_modules with an explicit
+// per-workspace-glob `path:` list (node_modules, apps/*/node_modules, …). On a
+// cache HIT the install step is skipped entirely, so a top-level workspace glob
+// missing from that list gets no node_modules at all — the same silent-failure
+// class the x-dev-volumes guard above protects against (ADS-983 / ADS-987). The
+// helpers below assert the cache list covers every workspace glob in
+// pnpm-workspace.yaml.
+
+// The top-level workspace globs declared in pnpm-workspace.yaml's `packages:`
+// list (e.g. 'apps/*', 'packages/*', 'services/*', 'e2e'). Hand-rolled parser
+// in the same spirit as parseDevVolumesAnchor — no YAML dependency.
+export function parseWorkspaceGlobs(workspaceYaml) {
+  const lines = workspaceYaml.split('\n');
+  const startIdx = lines.findIndex(l => l.trim() === 'packages:');
+  if (startIdx === -1) return [];
+
+  const globs = [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() && /^\S/.test(line)) break; // dedent = next top-level key
+    const match = line.match(/^\s+-\s+['"]?(.+?)['"]?\s*$/);
+    if (match) globs.push(match[1]);
+  }
+  return globs;
+}
+
+// The node_modules cache `path:` entries the cache needs: the repo root plus one
+// `<glob>/node_modules` per top-level workspace glob. Mirrors the list authored
+// by hand in .github/actions/setup-workspace/action.yml.
+export function computeExpectedCachePaths(workspaceGlobs) {
+  return ['node_modules', ...workspaceGlobs.map(glob => `${glob}/node_modules`)];
+}
+
+// Parse the `path:` block of the setup-workspace node_modules cache step
+// (id: node-modules-cache) — the bare indented entries between its `path: |`
+// line and the next dedented key. Returns null if the step isn't found.
+export function parseSetupWorkspaceCachePaths(actionYaml) {
+  const lines = actionYaml.split('\n');
+  const anchorIdx = lines.findIndex(l => l.includes('id: node-modules-cache'));
+  if (anchorIdx === -1) return null;
+
+  const pathIdx = lines.findIndex((l, i) => i > anchorIdx && /^\s+path:\s*\|\s*$/.test(l));
+  if (pathIdx === -1) return null;
+
+  const pathIndent = lines[pathIdx].length - lines[pathIdx].trimStart().length;
+  const paths = [];
+  for (let i = pathIdx + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+    const indent = line.length - line.trimStart().length;
+    if (indent <= pathIndent) break; // dedent (e.g. `key:`) ends the path list
+    paths.push(line.trim());
+  }
+  return paths;
+}
+
+function checkCiCachePathsDrift(workspaceGlobs) {
+  const actionPath = join(ROOT, '.github', 'actions', 'setup-workspace', 'action.yml');
+  const actualPaths = parseSetupWorkspaceCachePaths(readFileSync(actionPath, 'utf8'));
+  if (actualPaths === null) {
+    return [
+      "[.github/actions/setup-workspace/action.yml] could not find the 'node-modules-cache' step's `path:` list (ADS-1135).",
+    ];
+  }
+
+  const actualSet = new Set(actualPaths);
+  const expected = computeExpectedCachePaths(workspaceGlobs);
+  const expectedSet = new Set(expected);
+  const failures = [];
+
+  const missing = expected.filter(path => !actualSet.has(path));
+  if (missing.length > 0) {
+    failures.push(
+      `[.github/actions/setup-workspace/action.yml] node_modules cache 'path:' list is missing entr(ies) for: ${missing.join(', ')}. ` +
+        `Add these under the 'Cache workspace node_modules' step — on a cache hit the install step is skipped, so a workspace ` +
+        `glob missing here gets no node_modules at all (ADS-1135, mirrors the x-dev-volumes guard / ADS-983).`
+    );
+  }
+
+  const stale = [...actualSet]
+    .filter(path => path !== 'node_modules' && !expectedSet.has(path))
+    .sort();
+  if (stale.length > 0) {
+    failures.push(
+      `[.github/actions/setup-workspace/action.yml] node_modules cache 'path:' list caches node_modules for workspace ` +
+        `glob(s) no longer in pnpm-workspace.yaml: ${stale.join(', ')}. Remove these stale lines (ADS-1135).`
     );
   }
 
@@ -1088,6 +1185,15 @@ function main() {
   // 9. docker-compose.dev.yml's x-dev-volumes anchor must mount node_modules
   //    for every current app/e2e/package/service workspace (ADS-987)
   failures.push(...checkDevVolumesDrift(apps, packages, services));
+
+  // 9b. The setup-workspace CI node_modules cache 'path:' list must cover every
+  //     top-level workspace glob in pnpm-workspace.yaml — on a cache hit the
+  //     install step is skipped, so a glob missing there gets no node_modules at
+  //     all. Same silent-failure class as #9, guarded for the CI cache (ADS-1135).
+  const workspaceGlobs = parseWorkspaceGlobs(
+    readFileSync(join(ROOT, 'pnpm-workspace.yaml'), 'utf8')
+  );
+  failures.push(...checkCiCachePathsDrift(workspaceGlobs));
 
   // 10. scripts/templates/**/package.json must not drift from the workspace
   //     root's pinned versions for cross-cutting deps (ADS-980)

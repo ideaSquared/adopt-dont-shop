@@ -30,7 +30,7 @@
     - any-glob-to-any-file: 'package.json'
     - any-glob-to-any-file: 'pnpm-lock.yaml'
     - any-glob-to-any-file: 'turbo.json'
-    - any-glob-to-any-file: 'tsconfig.json'
+    - any-glob-to-any-file: 'tsconfig*.json'
     - any-glob-to-any-file: 'vite.shared.config.ts'
     - any-glob-to-any-file: 'docker-compose*.yml'
     - any-glob-to-any-file: 'Dockerfile*'

@@ -6,6 +6,7 @@ import {
   checkTemplateDepDrift,
   checkToolVersionsDrift,
   checkWorkspaceDriftGuardsCoveredByCiLocal,
+  computeExpectedCachePaths,
   computeExpectedDevVolumeMounts,
   extractCiFilterGroups,
   extractJobBlock,
@@ -16,6 +17,8 @@ import {
   findUncoveredPackages,
   isRunByCiLocal,
   parseDevVolumesAnchor,
+  parseSetupWorkspaceCachePaths,
+  parseWorkspaceGlobs,
   rootAuthoritativeRange,
 } from './check-workspace-consistency.mjs';
 
@@ -455,5 +458,48 @@ describe('checkLintFormatScripts (ADS-1003)', () => {
     const failures = checkLintFormatScripts('services/auth', { lint: 'eslint src' });
     expect(failures).toHaveLength(1);
     expect(failures[0]).toContain('missing scripts: format, format:check');
+  });
+});
+
+describe('CI node_modules cache path guard (ADS-1135)', () => {
+  it('parses the top-level workspace globs from pnpm-workspace.yaml', () => {
+    const yaml = ['packages:', "  - 'apps/*'", "  - 'packages/*'", "  - 'services/*'", "  - 'e2e'", '', 'onlyBuiltDependencies:', '  - esbuild'].join('\n');
+    expect(parseWorkspaceGlobs(yaml)).toEqual(['apps/*', 'packages/*', 'services/*', 'e2e']);
+  });
+
+  it('returns an empty list when there is no packages: key', () => {
+    expect(parseWorkspaceGlobs('onlyBuiltDependencies:\n  - esbuild\n')).toEqual([]);
+  });
+
+  it('derives the expected cache paths (root + one node_modules per glob)', () => {
+    expect(computeExpectedCachePaths(['apps/*', 'e2e'])).toEqual([
+      'node_modules',
+      'apps/*/node_modules',
+      'e2e/node_modules',
+    ]);
+  });
+
+  it('parses the node-modules-cache step path: block', () => {
+    const action = [
+      'runs:',
+      '  steps:',
+      '    - uses: actions/cache@v6',
+      '      id: node-modules-cache',
+      '      with:',
+      '        path: |',
+      '          node_modules',
+      '          apps/*/node_modules',
+      '          packages/*/node_modules',
+      '        key: nm-${{ hashFiles("pnpm-lock.yaml") }}',
+    ].join('\n');
+    expect(parseSetupWorkspaceCachePaths(action)).toEqual([
+      'node_modules',
+      'apps/*/node_modules',
+      'packages/*/node_modules',
+    ]);
+  });
+
+  it('returns null when the node-modules-cache step is absent', () => {
+    expect(parseSetupWorkspaceCachePaths('runs:\n  steps:\n    - run: echo hi\n')).toBeNull();
   });
 });

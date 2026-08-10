@@ -347,7 +347,7 @@ SHA, not a floating tag like `@v4`. A human-readable comment with the
 release version goes next to the SHA so the line is greppable:
 
 ```yaml
-- uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+- uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 ```
 
 ### Why
