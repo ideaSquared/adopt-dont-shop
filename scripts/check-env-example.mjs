@@ -14,9 +14,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.dirname(__dirname);
 
-// Keep this list in sync with the required fields in
-// packages/lib.validation/src/schemas/env.ts (envBaseSchema) and the per-env
-// dbName checks consumed by scripts/validate-env.ts.
+// The keys a contributor must set for a working development .env: the
+// Postgres/Compose credentials the dev stack needs plus the secrets and
+// per-NODE_ENV DB names that scripts/validate-env.ts enforces. This is a
+// curated onboarding list, NOT a 1:1 mirror of envBaseSchema — that schema
+// omits the POSTGRES_* Compose vars and marks the *_DB_NAME keys optional
+// (refining them per-environment).
 const REQUIRED_KEYS = [
   'NODE_ENV',
   'POSTGRES_USER',
