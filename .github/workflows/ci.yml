@@ -33,10 +33,47 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - uses: ./.github/actions/setup-workspace
 
+      # ADS-1105: gate the code-only guards below (each marked with the same
+      # `if:`) on a source/config change, so a doc-only PR skips the code guards
+      # and the proto regeneration. The intentionally-global doc/format guards
+      # (format:check, docs-index, docs-script-refs, e2e-lint, env-example, the
+      # path-filter/lockfile/alignment checks) stay unfiltered and run on every
+      # PR. Mirrors the per-step dorny/paths-filter pattern used for the renovate
+      # step below; push / workflow_dispatch run every guard unconditionally.
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706  # v4.0.2
+        id: changed-code
+        with:
+          filters: |
+            code:
+              - 'apps/**'
+              - 'packages/**'
+              - 'services/**'
+              - 'scripts/**'
+              - 'e2e/**'
+              - 'pacts/**'
+              - 'nginx/**'
+              - 'deploy/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig*.json'
+              - 'turbo.json'
+              - 'vite.shared.config.ts'
+              - 'vitest.shared.config.ts'
+              - 'vitest.workspace.ts'
+              - 'eslint.config.js'
+              - '.prettierrc'
+              - '.nvmrc'
+              - '.tool-versions'
+              - 'docker-compose*.yml'
+              - '**/Dockerfile*'
+              - '**/*.proto'
+
       # ADS-1001: run the scripts/ guard-script test suite before the guards
       # themselves, so a broken guard is reported as a test failure rather
       # than a confusing guard failure.
       - name: Run scripts/ test suite (guards the guard-scripts)
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: pnpm test:scripts
 
       - name: Verify workspace ↔ filesystem alignment
@@ -63,6 +100,7 @@ jobs:
       # x-dev-volumes anchor mounting node_modules for every current workspace.
       # See scripts/check-workspace-consistency.mjs.
       - name: Verify workspace consistency
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: node scripts/check-workspace-consistency.mjs
 
       # ADS-767: workflow `paths:` filters must match the canonical source
@@ -75,12 +113,14 @@ jobs:
       # files must be pinned to an immutable digest (`tag@sha256:...`), not a
       # bare tag, so a deploy can't silently pull swapped bytes.
       - name: Verify prod/staging base images are digest-pinned
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: node scripts/check-docker-pinning.mjs
 
       # ADS-847/ADS-958: no CSP in the repo's nginx configs may carry
       # 'unsafe-inline'/'unsafe-eval', and every prod SPA vhost at the edge
       # must declare its own CSP.
       - name: Verify CSP headers
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: pnpm check:csp
 
       # ADS-984: these three drift guards previously only ran via `pnpm
@@ -100,6 +140,7 @@ jobs:
       # raw <input>/<select>/<textarea> or deprecated TextInput usages beyond
       # the persisted ceiling. Forms should use FormField + Input (+ Zod).
       - name: Verify apps do not add raw form controls
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: node scripts/check-form-primitives.mjs
 
       # ADS-1028: prettier formatting was enforced only by the lint-staged
@@ -124,6 +165,7 @@ jobs:
       # matches `buf generate` — otherwise any `pnpm build` silently dirties the
       # tree. The guard regenerates into a tmpdir and diffs.
       - name: Verify generated proto is in sync with .proto sources
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: pnpm check:proto-fresh
 
       # ADS-946: workspace READMEs must carry the canonical template sections
@@ -131,6 +173,7 @@ jobs:
       # not yet backfilled; a hard failure for those in the guard's
       # STRICT_PACKAGES set, so an enforced README can't regress.
       - name: Verify workspace READMEs match the template
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: pnpm check:readmes
 
       # ADS-1031: renovate.json errors (invalid keys, deprecated matchers) are

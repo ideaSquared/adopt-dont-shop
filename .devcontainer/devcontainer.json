@@ -3,6 +3,11 @@
   "name": "adopt-dont-shop",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
   "features": {
+    // ADS-1116: pin Node to the exact .nvmrc patch (the base image tag only
+    // tracks the 22 line). .nvmrc / .tool-versions remain the source of truth.
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22.23.1"
+    },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": true,
       "installDockerComposeSwitch": true
@@ -10,17 +15,17 @@
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  "forwardPorts": [80, 3000, 3001, 3002, 5000, 5432, 6379],
+  "forwardPorts": [80, 3000, 3001, 3002, 4000, 5432, 6380],
   "portsAttributes": {
     "80": { "label": "nginx (prod-like)", "onAutoForward": "ignore" },
     "3000": { "label": "app.client", "onAutoForward": "notify" },
     "3001": { "label": "app.admin", "onAutoForward": "silent" },
     "3002": { "label": "app.rescue", "onAutoForward": "silent" },
-    "5000": { "label": "gRPC services", "onAutoForward": "silent" },
+    "4000": { "label": "gateway (REST/WS)", "onAutoForward": "silent" },
     "5432": { "label": "postgres", "onAutoForward": "ignore" },
-    "6379": { "label": "redis", "onAutoForward": "ignore" }
+    "6380": { "label": "redis", "onAutoForward": "ignore" }
   },
-  "postCreateCommand": "corepack enable && pnpm bootstrap -- --skip-playwright",
+  "postCreateCommand": "corepack enable && pnpm bootstrap -- --skip-playwright --no-start --no-enable-prepush",
   "remoteUser": "node",
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096"
@@ -31,17 +36,24 @@
   ],
   "customizations": {
     "vscode": {
+      // Keep in sync with .vscode/extensions.json (ADS-1134). No vanilla-extract
+      // extension is recommended — .css.ts styling is plain TypeScript, so
+      // token/class IntelliSense comes from the TS language service.
       "extensions": [
+        "42crunch.vscode-openapi",
+        "humao.rest-client",
+        "rangav.vscode-thunder-client",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-json",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
-        "ms-vscode.vscode-typescript-next",
+        "vitest.explorer",
         "ms-azuretools.vscode-docker",
         "eamodio.gitlens",
         "streetsidesoftware.code-spell-checker",
         "christian-kohler.npm-intellisense",
-        "redhat.vscode-yaml",
-        "42crunch.vscode-openapi",
-        "humao.rest-client"
+        "pflannery.vscode-versionlens",
+        "ms-vscode.vscode-typescript-next"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",

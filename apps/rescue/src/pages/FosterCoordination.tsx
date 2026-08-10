@@ -197,6 +197,7 @@ const FosterCoordination: React.FC = () => {
       // the active applications for that pet.
       key: 'links',
       label: 'Links',
+      sortable: false,
       render: (_value, row) => (
         <>
           <Link to={`/pets?petId=${String(row.petId)}`}>View pet</Link>
@@ -208,6 +209,7 @@ const FosterCoordination: React.FC = () => {
     {
       key: 'actions',
       label: 'Actions',
+      sortable: false,
       render: (_value, row) =>
         row.status === 'active' ? (
           <button type="button" onClick={() => setEndingId(String(row.placementId))}>

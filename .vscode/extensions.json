@@ -1,4 +1,8 @@
 {
+  // Recommended editor extensions — kept identical to the devcontainer's
+  // customizations.vscode.extensions (ADS-1134). No vanilla-extract extension
+  // is recommended: .css.ts styling is plain TypeScript, so token/class
+  // IntelliSense comes from the TypeScript language service already listed.
   "recommendations": [
     "42crunch.vscode-openapi",
     "humao.rest-client",
@@ -12,6 +16,7 @@
     "eamodio.gitlens",
     "streetsidesoftware.code-spell-checker",
     "christian-kohler.npm-intellisense",
-    "pflannery.vscode-versionlens"
+    "pflannery.vscode-versionlens",
+    "ms-vscode.vscode-typescript-next"
   ]
 }

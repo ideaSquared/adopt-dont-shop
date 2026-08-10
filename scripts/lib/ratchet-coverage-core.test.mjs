@@ -227,7 +227,8 @@ describe('updateThresholdsInSource (ADS-1004)', () => {
   });
 
   it('round-trips with extractThresholdsFromSource', () => {
-    const source = '        statements: 80,\n        branches: 80,\n        functions: 80,\n        lines: 80,\n';
+    const source =
+      '        statements: 80,\n        branches: 80,\n        functions: 80,\n        lines: 80,\n';
     const next = { statements: 85, branches: 81, functions: 83, lines: 84 };
     const updated = updateThresholdsInSource(source, next);
     expect(extractThresholdsFromSource(updated)).toEqual(next);

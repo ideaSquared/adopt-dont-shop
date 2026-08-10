@@ -216,7 +216,7 @@ function main() {
       const actual = extractTriggerPaths(yaml, trigger);
       if (actual === null) {
         failures.push(
-          `[${consumer.workflow}] no \`paths:\` block under \`on.${trigger}\` — expected ${expected.length} entries.`,
+          `[${consumer.workflow}] no \`paths:\` block under \`on.${trigger}\` — expected ${expected.length} entries.`
         );
         continue;
       }
@@ -226,7 +226,7 @@ function main() {
         failures.push(
           `[${consumer.workflow}] \`on.${trigger}.paths\` drift:` +
             (missing.length ? `\n    missing: ${missing.join(', ')}` : '') +
-            (extra.length ? `\n    extra:   ${extra.join(', ')}` : ''),
+            (extra.length ? `\n    extra:   ${extra.join(', ')}` : '')
         );
       }
     }
@@ -238,14 +238,14 @@ function main() {
   for (const { workflow, path } of missingPaths) {
     failures.push(
       `[${workflow}] filter path \`${path}\` matches no file or directory — ` +
-        `it silently gates nothing. Fix the path or make it a glob.`,
+        `it silently gates nothing. Fix the path or make it a glob.`
     );
   }
 
   if (failures.length === 0) {
     console.log(
       'OK — workflow path filters match .github/workflow-source-paths.yml, ' +
-        'and every literal filter path exists.',
+        'and every literal filter path exists.'
     );
     return;
   }

@@ -42,7 +42,7 @@ const MAX_RETRIES = 3;
 //
 const EXEMPTED_GHSA_IDS = new Set([]);
 
-const ghsaIdFromUrl = (url) => {
+const ghsaIdFromUrl = url => {
   const m = String(url ?? '').match(/GHSA-[\w-]+$/i);
   return m ? m[0].toLowerCase() : null;
 };
@@ -50,7 +50,7 @@ const ghsaIdFromUrl = (url) => {
 // Extract name -> Set(versions) from the `packages:` section of the v9
 // lockfile. Keys look like `'@scope/name@1.2.3':` or `'name@1.2.3':`, with an
 // occasional `(peerdep@x)` suffix on the version that we strip.
-const parseLockfilePackages = (lockfile) => {
+const parseLockfilePackages = lockfile => {
   const byName = new Map();
   let inPackages = false;
   for (const rawLine of lockfile.split('\n')) {
@@ -94,7 +94,7 @@ const chunk = (items, size) => {
   return out;
 };
 
-const fetchAdvisories = async (payload) => {
+const fetchAdvisories = async payload => {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
       const res = await fetch(BULK_ENDPOINT, {
@@ -110,7 +110,7 @@ const fetchAdvisories = async (payload) => {
       if (attempt === MAX_RETRIES) {
         throw error;
       }
-      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+      await new Promise(resolve => setTimeout(resolve, attempt * 1000));
     }
   }
   return {};
@@ -143,7 +143,7 @@ const collectFindings = (advisoriesByName, versionsByName) => {
   return findings;
 };
 
-const writeSummary = (findings) => {
+const writeSummary = findings => {
   const lines = [];
   lines.push('## Dependency audit (npm bulk advisory endpoint)');
   if (findings.length === 0) {
@@ -160,7 +160,9 @@ const writeSummary = (findings) => {
     for (const f of sorted) {
       const ghsa = ghsaIdFromUrl(f.url);
       const exemptNote = ghsa && EXEMPTED_GHSA_IDS.has(ghsa) ? ' *(exempted)*' : '';
-      lines.push(`| ${f.severity}${exemptNote} | \`${f.name}\` | ${f.version} | [${f.title}](${f.url}) |`);
+      lines.push(
+        `| ${f.severity}${exemptNote} | \`${f.name}\` | ${f.version} | [${f.title}](${f.url}) |`
+      );
     }
   }
   const body = `${lines.join('\n')}\n`;
@@ -177,7 +179,7 @@ const main = async () => {
 
   const advisoriesByName = {};
   for (const batch of chunk(names, BATCH_SIZE)) {
-    const payload = Object.fromEntries(batch.map((name) => [name, [...versionsByName.get(name)]]));
+    const payload = Object.fromEntries(batch.map(name => [name, [...versionsByName.get(name)]]));
     const result = await fetchAdvisories(payload);
     Object.assign(advisoriesByName, result);
   }
@@ -186,10 +188,10 @@ const main = async () => {
   writeSummary(findings);
 
   const blocking = findings.filter(
-    (f) => GATE_SEVERITIES.has(f.severity) && !EXEMPTED_GHSA_IDS.has(ghsaIdFromUrl(f.url))
+    f => GATE_SEVERITIES.has(f.severity) && !EXEMPTED_GHSA_IDS.has(ghsaIdFromUrl(f.url))
   );
   if (blocking.length > 0) {
-    const unique = new Set(blocking.map((f) => `${f.name}@${f.version}`));
+    const unique = new Set(blocking.map(f => `${f.name}@${f.version}`));
     console.error(
       `\n::error::${blocking.length} high/critical advisory match(es) across ${unique.size} package version(s) — see the summary above.`
     );
@@ -197,7 +199,7 @@ const main = async () => {
   }
 };
 
-main().catch((error) => {
+main().catch(error => {
   console.error(`::error::dependency audit failed: ${error.message}`);
   process.exit(1);
 });

@@ -7,7 +7,7 @@ export default defineServiceConfig({
       all: true,
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts', 'src/**/*.d.ts', 'src/migrations/**', 'src/**/index.ts'],
-      // ADS-947: json-summary is read by scripts/ci/coverage-delta.mjs to
+      // ADS-947: json-summary is read by scripts/lib/coverage-delta-core.mjs to
       // post the PR coverage-delta comment.
       reporter: ['text', 'lcov', 'json-summary'],
       // ratcheted to measured baseline (2026-06-16): the service owns its own
