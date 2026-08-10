@@ -36,17 +36,24 @@
   ],
   "customizations": {
     "vscode": {
+      // Keep in sync with .vscode/extensions.json (ADS-1134). No vanilla-extract
+      // extension is recommended — .css.ts styling is plain TypeScript, so
+      // token/class IntelliSense comes from the TS language service.
       "extensions": [
+        "42crunch.vscode-openapi",
+        "humao.rest-client",
+        "rangav.vscode-thunder-client",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-json",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
-        "ms-vscode.vscode-typescript-next",
+        "vitest.explorer",
         "ms-azuretools.vscode-docker",
         "eamodio.gitlens",
         "streetsidesoftware.code-spell-checker",
         "christian-kohler.npm-intellisense",
-        "redhat.vscode-yaml",
-        "42crunch.vscode-openapi",
-        "humao.rest-client"
+        "pflannery.vscode-versionlens",
+        "ms-vscode.vscode-typescript-next"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",
