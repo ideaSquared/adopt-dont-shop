@@ -1,33 +1,6 @@
 import React from 'react';
 import * as styles from './SharedComponents.css';
 
-// Shared Filter Components
-export const FilterBar = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.filterBar}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const FilterGroup = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.filterGroup}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const FilterLabel = ({
-  className,
-  ...props
-}: React.LabelHTMLAttributes<HTMLLabelElement>) => (
-  <label className={`${styles.filterLabel}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const SearchInputWrapper = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.searchInputWrapper}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const Select = ({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-  <select className={`${styles.select}${className ? ` ${className}` : ''}`} {...props} />
-);
-
 // Shared Page Layout Components
 export const PageContainer = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.pageContainer}${className ? ` ${className}` : ''}`} {...props} />
