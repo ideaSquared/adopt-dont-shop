@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import clsx from 'clsx';
-import { Heading, Text, Button, MetricCard } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Button, MetricCard, SearchToolbar } from '@adopt-dont-shop/lib.components';
 import { CircleCheck, Download, Heart, MessageSquare, Users } from 'lucide-react';
 import {
   PageContainer,
@@ -10,9 +10,6 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-  FilterBar,
-  FilterGroup,
-  Select,
 } from '../components/ui';
 import { usePlatformMetrics, useDashboardAnalytics } from '../hooks';
 import * as styles from './Analytics.css';
@@ -108,16 +105,24 @@ const Analytics: React.FC = () => {
           <Text>Comprehensive analytics and data insights</Text>
         </HeaderLeft>
         <div className={styles.headerActions}>
-          <FilterBar className={styles.filterBarOverride}>
-            <FilterGroup className={styles.filterGroupOverride}>
-              <Select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
-                <option value='7days'>Last 7 Days</option>
-                <option value='30days'>Last 30 Days</option>
-                <option value='90days'>Last 90 Days</option>
-                <option value='12months'>Last 12 Months</option>
-              </Select>
-            </FilterGroup>
-          </FilterBar>
+          <SearchToolbar
+            className={styles.headerFilter}
+            filterConfig={[
+              {
+                name: 'timeRange',
+                label: 'Time range',
+                type: 'select',
+                options: [
+                  { value: '7days', label: 'Last 7 Days' },
+                  { value: '30days', label: 'Last 30 Days' },
+                  { value: '90days', label: 'Last 90 Days' },
+                  { value: '12months', label: 'Last 12 Months' },
+                ],
+              },
+            ]}
+            filters={{ timeRange }}
+            onFilterChange={(_name, value) => setTimeRange(String(value))}
+          />
           <Button variant='outline' size='md'>
             <Download size='1em' className={styles.exportIcon} />
             Export Report

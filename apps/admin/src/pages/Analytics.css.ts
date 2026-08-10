@@ -204,14 +204,12 @@ export const errorBanner = style({
   fontSize: '0.875rem',
 });
 
-export const filterBarOverride = style({
-  padding: '0.5rem 0.75rem',
-  marginBottom: 0,
-});
-
-export const filterGroupOverride = style({
-  minWidth: '140px',
-  marginBottom: 0,
+// Clamp the shared SearchToolbar to a compact width so the single time-range
+// select sits inline in the header next to the Export button rather than the
+// toolbar's default full width. maxWidth (not width) avoids any CSS
+// source-order fight with the toolbar's own `width: 100%`.
+export const headerFilter = style({
+  maxWidth: '220px',
 });
 
 export const exportIcon = style({
