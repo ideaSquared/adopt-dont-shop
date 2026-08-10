@@ -237,6 +237,14 @@ export async function loadPrincipal(
   // all of them. Resolving the primary role here (rather than relying on a
   // per-user `user_roles` row) means every user automatically carries their
   // base role's permissions — see migration 016 / ADS-863.
+  //
+  // Effective permissions ALSO include active direct grants
+  // (auth.permission_grants, ADS-1141): additive, global, no deny/override. A
+  // grant is active when it is not revoked and not expired — evaluated lazily
+  // here at request time. The second UNION branch folds them in on the same
+  // round trip; the top-level UNION dedups a grant that duplicates a
+  // role-derived permission. With the grants table empty this is byte-identical
+  // to the role-only set.
   const permsRes = await deps.pool.query<{ name: string }>(
     `
     SELECT DISTINCT p.permission_name AS name FROM auth.permissions p
@@ -248,6 +256,12 @@ export async function loadPrincipal(
       UNION
       SELECT ur.role_id FROM auth.user_roles ur WHERE ur.user_id = $1
     )
+    UNION
+    SELECT p.permission_name AS name FROM auth.permission_grants g
+    INNER JOIN auth.permissions p ON p.permission_id = g.permission_id
+    WHERE g.user_id = $1
+      AND g.revoked_at IS NULL
+      AND (g.expires_at IS NULL OR g.expires_at > now())
     `,
     [userId]
   );

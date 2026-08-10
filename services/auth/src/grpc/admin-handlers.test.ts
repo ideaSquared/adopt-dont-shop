@@ -815,6 +815,95 @@ describe('getUserPermissions', () => {
   });
 });
 
+// --- getUserPermissions: direct permission grants (ADS-1141) ---------
+//
+// loadPrincipal (handlers.ts) is the single place effective permissions are
+// computed; getUserPermissions surfaces that set, so grant behaviour is
+// asserted through its output. Phase 1 folds *active* direct grants
+// (auth.permission_grants) into the effective set, additively: effective =
+// role-derived ∪ active grants. A grant is active when it is not revoked and
+// not expired.
+//
+// The stubbed pool does not execute SQL, so exclusion of revoked/expired grants
+// is enforced by the query predicate — each scenario asserts both the surfaced
+// permission set AND the specific predicate responsible for it.
+describe('getUserPermissions — permission grants (ADS-1141)', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  // Scripts loadPrincipal's three round trips: primary user_type, extra roles,
+  // then the effective-permissions query (role-derived ∪ active grants, deduped
+  // by Postgres). `permissionRows` is what that final query returns.
+  const scriptLoadPrincipal = (permissionRows: Array<{ name: string }>) => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: permissionRows });
+  };
+
+  const permsSqlOf = (m: ReturnType<typeof makeMocks>): string => {
+    const call = m.poolMock.query.mock.calls[2];
+    if (!call) throw new Error('permissions query was not issued');
+    return call[0] as string;
+  };
+
+  it('with no active grants, returns exactly the role-derived set (zero behaviour change)', async () => {
+    scriptLoadPrincipal([{ name: 'pets.read' }, { name: 'pets.update' }]);
+    const res = await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.permissions).toEqual(['pets.read', 'pets.update']);
+  });
+
+  it('computes effective permissions in a single round trip', async () => {
+    scriptLoadPrincipal([{ name: 'pets.read' }]);
+    await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
+    // user_type, extra roles, permissions — no extra grant query.
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(3);
+    // The user id is the only bound parameter (reused across both branches).
+    expect(mocks.poolMock.query.mock.calls[2][1]).toEqual(['usr-1']);
+  });
+
+  it('surfaces a permission that comes only from an active grant', async () => {
+    // Postgres returns the role perms plus the granted one from the union.
+    scriptLoadPrincipal([{ name: 'pets.read' }, { name: 'pets.delete' }]);
+    const res = await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.permissions).toContain('pets.delete');
+    // ...via the grants table joined to the string permission registry.
+    expect(permsSqlOf(mocks)).toContain('auth.permission_grants');
+  });
+
+  it('excludes an expired grant (expires_at in the past)', async () => {
+    // The expires_at predicate drops it in SQL, so the effective query returns
+    // role perms only and the expired permission never surfaces.
+    scriptLoadPrincipal([{ name: 'pets.read' }]);
+    const res = await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.permissions).toEqual(['pets.read']);
+    const sql = permsSqlOf(mocks);
+    expect(sql).toContain('expires_at IS NULL');
+    expect(sql).toContain('now()');
+  });
+
+  it('excludes a revoked grant (revoked_at set)', async () => {
+    // The revoked_at IS NULL predicate drops it in SQL.
+    scriptLoadPrincipal([{ name: 'pets.read' }]);
+    const res = await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.permissions).toEqual(['pets.read']);
+    expect(permsSqlOf(mocks)).toContain('revoked_at IS NULL');
+  });
+
+  it('counts a grant duplicating a role permission only once', async () => {
+    // UNION dedups the role-derived and grant branches; the shared permission
+    // comes back a single time.
+    scriptLoadPrincipal([{ name: 'pets.read' }]);
+    const res = await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.permissions.filter(p => p === 'pets.read')).toHaveLength(1);
+  });
+});
+
 // --- bulkUpdateUsers -------------------------------------------------
 
 describe('bulkUpdateUsers', () => {
