@@ -4,10 +4,34 @@ import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  COMPOSE_FILES,
   findDockerfiles,
   findUnpinnedFromLines,
   findUnpinnedImages,
 } from './check-docker-pinning.mjs';
+
+describe('COMPOSE_FILES scope (ADS-1115)', () => {
+  it('scans the prod/staging base files AND the optional prod overlays deploy.yml can merge', () => {
+    // The observability + glitchtip overlays are layered into the real
+    // production deploy when the host enables them, so the pinning guard must
+    // cover them — otherwise prod can pull mutable tags while the check is green.
+    expect(COMPOSE_FILES).toEqual(
+      expect.arrayContaining([
+        'docker-compose.prod.yml',
+        'docker-compose.staging.yml',
+        'docker-compose.observability.yml',
+        'docker-compose.glitchtip.yml',
+      ])
+    );
+  });
+
+  it('finds no unpinned third-party image in any real compose file the guard covers', () => {
+    // Guards part 2 of ADS-1115: every image in the overlays (and the base
+    // files) is digest-pinned, so a future bare-tag edit fails CI here.
+    const failures = COMPOSE_FILES.flatMap(file => findUnpinnedImages(file));
+    expect(failures).toEqual([]);
+  });
+});
 
 describe('findUnpinnedImages (compose files)', () => {
   let root;
