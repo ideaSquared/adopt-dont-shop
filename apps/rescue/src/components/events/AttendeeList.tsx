@@ -17,6 +17,7 @@ const AttendeeList: React.FC<AttendeeListProps> = ({ attendees, onCheckIn }) => 
     {
       key: 'status',
       label: 'Status',
+      sortable: false,
       render: (_value, row) => (
         <span className={styles.checkInBadge({ checkedIn: Boolean(row.checkedIn) })}>
           {String(row.statusLabel)}
@@ -28,6 +29,7 @@ const AttendeeList: React.FC<AttendeeListProps> = ({ attendees, onCheckIn }) => 
           {
             key: 'action',
             label: 'Action',
+            sortable: false,
             render: (_value, row) =>
               row.checkedIn ? (
                 <span className={styles.checkedInBadge}>✓ Checked In</span>
