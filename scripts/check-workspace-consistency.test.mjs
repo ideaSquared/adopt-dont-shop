@@ -546,7 +546,16 @@ describe('checkLintFormatScripts (ADS-1003)', () => {
 
 describe('CI node_modules cache path guard (ADS-1135)', () => {
   it('parses the top-level workspace globs from pnpm-workspace.yaml', () => {
-    const yaml = ['packages:', "  - 'apps/*'", "  - 'packages/*'", "  - 'services/*'", "  - 'e2e'", '', 'onlyBuiltDependencies:', '  - esbuild'].join('\n');
+    const yaml = [
+      'packages:',
+      "  - 'apps/*'",
+      "  - 'packages/*'",
+      "  - 'services/*'",
+      "  - 'e2e'",
+      '',
+      'onlyBuiltDependencies:',
+      '  - esbuild',
+    ].join('\n');
     expect(parseWorkspaceGlobs(yaml)).toEqual(['apps/*', 'packages/*', 'services/*', 'e2e']);
   });
 

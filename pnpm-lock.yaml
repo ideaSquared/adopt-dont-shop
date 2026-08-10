@@ -780,7 +780,7 @@ importers:
         specifier: ^4.8.3
         version: 4.8.3
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -805,7 +805,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -827,7 +827,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -880,7 +880,7 @@ importers:
         specifier: 19.2.7
         version: 19.2.7
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -935,7 +935,7 @@ importers:
         specifier: ^4.8.3
         version: 4.8.3
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -1084,7 +1084,7 @@ importers:
         specifier: 19.2.7
         version: 19.2.7
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1106,7 +1106,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1122,7 +1122,7 @@ importers:
         specifier: ^3.33.1
         version: 3.33.2(react@19.2.7)
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1147,7 +1147,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1178,7 +1178,7 @@ importers:
         specifier: 19.2.7
         version: 19.2.7
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -1221,7 +1221,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.api
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1240,7 +1240,7 @@ importers:
         specifier: 19.2.7
         version: 19.2.7
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -1268,7 +1268,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1284,7 +1284,7 @@ importers:
         specifier: ^10.59.0
         version: 10.59.0(react@19.2.7)
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       web-vitals:
         specifier: ^5.3.0
@@ -1309,7 +1309,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1328,7 +1328,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -1350,7 +1350,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -1372,7 +1372,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1391,7 +1391,7 @@ importers:
         specifier: 19.2.7
         version: 19.2.7
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3
@@ -1413,7 +1413,7 @@ importers:
   packages/lib.types:
     dependencies:
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1432,7 +1432,7 @@ importers:
         specifier: ^4.3.0
         version: 4.4.0
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
     devDependencies:
       '@adopt-dont-shop/eslint-config-base':
@@ -1448,7 +1448,7 @@ importers:
         specifier: workspace:*
         version: link:../lib.types
       typescript:
-        specifier: ^6.0.0
+        specifier: ^6.0.3
         version: 6.0.3
       zod:
         specifier: ^4.4.3

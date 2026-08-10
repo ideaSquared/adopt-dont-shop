@@ -30,7 +30,7 @@
       "groupName": "vitest"
     },
     {
-      "description": "Group React types",
+      "description": "Group React types. The customManager below also updates these packages' pnpm.overrides pins (package.json), which force the resolved version — without it a React-group bump changes only the range and drifts from the override (see overridesDocumentation.react, ADS-1111).",
       "matchPackageNames": ["@types/react", "@types/react-dom", "react", "react-dom"],
       "groupName": "react"
     },
@@ -57,6 +57,18 @@
       "matchPackageNames": ["*"],
       "isVulnerabilityAlert": true,
       "prPriority": 10
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Keep the React pnpm.overrides pins (react, react-dom, @types/react, @types/react-dom) updated alongside the react group. These exact pins force the resolved version for dedup (overridesDocumentation.react/@types/react); the built-in npm manager only sees the app range bumps, so without this the override drifts silently (ADS-1111).",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": [
+        "\"(?<depName>react|react-dom|@types/react|@types/react-dom)\"\\s*:\\s*\"(?<currentValue>[\\^~]?\\d[^\"]*)\""
+      ],
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
     }
   ],
   "vulnerabilityAlerts": {
