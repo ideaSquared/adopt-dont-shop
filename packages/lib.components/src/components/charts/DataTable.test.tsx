@@ -483,6 +483,42 @@ describe('DataTable cross-page selection with id-less rows', () => {
   });
 });
 
+describe('DataTable date column sorting', () => {
+  it('sorts UK DD/MM/YYYY strings chronologically, not lexicographically', async () => {
+    const user = userEvent.setup();
+    const dateColumns: DataTableColumn[] = [{ key: 'registered', label: 'Registered' }];
+    const dateRows = [
+      { registered: '07/08/2026' },
+      { registered: '15/03/2025' },
+      { registered: '02/01/2024' },
+    ];
+    renderWithTheme(<DataTable title='Attendees' columns={dateColumns} rows={dateRows} />);
+
+    await user.click(screen.getByRole('button', { name: /registered/i }));
+
+    // Chronological ascending (2024 → 2025 → 2026). A lexicographic sort would
+    // instead yield 02/01/2024, 07/08/2026, 15/03/2025.
+    const cells = screen.getAllByRole('cell').map(cell => cell.textContent);
+    expect(cells).toEqual(['02/01/2024', '15/03/2025', '07/08/2026']);
+  });
+
+  it('sorts UK DD/MM/YYYY HH:mm date-time strings chronologically', async () => {
+    const user = userEvent.setup();
+    const dateColumns: DataTableColumn[] = [{ key: 'registered', label: 'Registered' }];
+    const dateRows = [
+      { registered: '02/01/2024 09:30' },
+      { registered: '02/01/2024 08:15' },
+      { registered: '01/01/2024 23:59' },
+    ];
+    renderWithTheme(<DataTable title='Attendees' columns={dateColumns} rows={dateRows} />);
+
+    await user.click(screen.getByRole('button', { name: /registered/i }));
+
+    const cells = screen.getAllByRole('cell').map(cell => cell.textContent);
+    expect(cells).toEqual(['01/01/2024 23:59', '02/01/2024 08:15', '02/01/2024 09:30']);
+  });
+});
+
 describe('DataTable column width + alignment', () => {
   it('applies per-column width + alignment to the header and body cells', () => {
     renderWithTheme(

@@ -91,12 +91,40 @@ export type DataTableProps = Omit<ChartFrameProps, 'children' | 'isEmpty' | 'tit
   surface?: boolean;
 };
 
+// UK-formatted dates (`formatDate`/`formatDateTime` → `DD/MM/YYYY` and
+// `DD/MM/YYYY HH:mm`). Matching values are compared chronologically rather than
+// lexicographically, so a `07/08/2026` cell sorts after `15/03/2025` (ADS-1126).
+const UK_DATE_RE = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?$/;
+
+const parseUkDate = (value: unknown): number | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const match = UK_DATE_RE.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+  const [, day, month, year, hours, minutes] = match;
+  return Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hours ?? 0),
+    Number(minutes ?? 0)
+  );
+};
+
 const compareCells = (a: unknown, b: unknown): number => {
   if (a === b) {
     return 0;
   }
   if (typeof a === 'number' && typeof b === 'number') {
     return a - b;
+  }
+  const dateA = parseUkDate(a);
+  const dateB = parseUkDate(b);
+  if (dateA !== null && dateB !== null) {
+    return dateA - dateB;
   }
   return String(a ?? '').localeCompare(String(b ?? ''));
 };
