@@ -1,12 +1,12 @@
 {
   "description": "Checkpoint for the Daily Code Review routine. Records the last commit on the default branch (main) that has been reviewed. The next run diffs main from this SHA forward. Update after each run.",
-  "lastReviewedCommit": "f700a3a3c45dba06a205deeea39403f4e6c1319f",
-  "lastReviewedDate": "2026-08-07",
+  "lastReviewedCommit": "604ff257528e06bb9186cefcc1ed8ddd2d5ed448",
+  "lastReviewedDate": "2026-08-11",
   "lastRun": {
-    "date": "2026-08-07",
-    "range": "823e28a..f700a3a",
-    "commitsReviewed": 16,
-    "ticketsFiled": ["ADS-1123", "ADS-1124", "ADS-1125", "ADS-1126", "ADS-1127"],
-    "notes": "Diff was almost entirely the tracked cross-app UX-review epics (ADS-1067..1098): shared design-system components (Stepper, DateRangePicker, NavSidebar, ErrorState, QueryBoundary, DataTable) and form/table/nav migrations across admin/client/rescue — planned work, reviewed for regressions introduced. app.admin and app.client migrations reviewed clean. Filed: ADS-1123 (DataTable page-local row-id collides across pages, breaking cross-page selection), ADS-1124 (form-primitives ratchet ceiling 269 vs actual 195 — the ADS-1075 guard is defeated), ADS-1125 (rescue /applications/:id deep-link shows nothing for invalid/deleted id), ADS-1126 (migrated DataTables sort DD/MM/YYYY date columns lexicographically; sortable-by-default systemic), ADS-1127 (weekly digest silently moved to Thu 00:00 UTC by the ADS-1066 grid-alignment fix). Noted-but-not-filed (low signal): scheduler due-anchored progression is untested — every scheduler test ticks at ts==due, so reverting scheduler.ts to ts+intervalMs stays green; worth a test but below the filing bar. ADS-1066 fix itself verified correct/complete."
+    "date": "2026-08-11",
+    "range": "f700a3a..604ff25",
+    "commitsReviewed": 49,
+    "ticketsFiled": ["ADS-1208", "ADS-1209", "ADS-1210"],
+    "notes": "Large diff (659 files) but ~95% tracked, planned work: route-audit Waves 1-5 (backing missing endpoints, ADS-1137..1152 + backend-endpoint-review ADS-1154..1182, all Done), frontend<->backend alignment repoints (ADS-1183..1204, Done), DataTable/SearchToolbar consolidation (ADS-1136), permission_grants + loadPrincipal (ADS-1141), step-up re-auth on GDPR erasure (ADS-1205), anonymous public browsing (afd842c, addresses ADS-1157/1168), react-icons->lucide migration, pagination-envelope standardization, analytics CSV/PDF/email export, dead-code removal, dep bumps, CI/DevEx fixes. Reviewed via 5 parallel area agents (auth/permissions, anonymous-browsing+gateway, analytics/exports/notifications, services list-enrichment SQL, frontend). Filed 3 NEW untracked defects: ADS-1208 (Med — analytics email-report fans out one SendEmail per body recipient, no cap/dedup/rate-limit -> mass-mail/resource-abuse), ADS-1209 (Med — admin ChatDetailModal Load More sends page to a cursor-only endpoint + replaces not appends, so it re-fetches newest 50 forever), ADS-1210 (Low — pets.getSimilarPets opened to anon in afd842c skips getPet's hidden/archived visibility gate on the source pet -> existence oracle). One agent finding DROPPED as a false positive after direct verification: 'bulk mark-read non-UUID id -> 500' is guarded by assertUuid (throws INVALID_ARGUMENT -> 400) before the ANY($2::uuid[]) bind. Noted-but-not-filed (below bar): deleteAccount sets skipAuthHandling:true which suppresses transparent token-refresh+retry and onUnauthorized logout on a session-expiry 401 during the erasure modal (deliberate step-up UX tradeoff, niche timing edge); escalateSupportTicket uses a constant NATS id like the pre-existing assignSupportTicket convention (re-escalation within dedup window drops the 2nd event). Services list-enrichment verified: enrichment is a deduped gateway fan-out (not cross-schema joins); pagination COUNT/tie-breakers, anonymous field-masking, favorite-counter CTEs, and event-id dedup fixes all correct."
   }
 }
