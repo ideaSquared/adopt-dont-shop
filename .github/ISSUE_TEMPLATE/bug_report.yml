@@ -46,7 +46,7 @@ body:
         - app.client
         - app.admin
         - app.rescue
-        - service.backend
+        - service.* (backend microservice)
         - lib (shared library)
         - Infrastructure / Docker
         - Other

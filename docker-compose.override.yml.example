@@ -29,7 +29,7 @@ services:
   # Windows (WSL2/Hyper-V) the VM does NOT propagate inotify across the shared
   # filesystem boundary, so HMR requires polling. Uncomment per service:
   #
-  # service-backend:
+  # service-gateway:
   #   environment:
   #     CHOKIDAR_USEPOLLING: 'true'
   #     CHOKIDAR_INTERVAL: '1000'
@@ -54,15 +54,15 @@ services:
   # if you prefer a single switch.
 
   # Example: Add volume for backend uploads during development
-  # service-backend:
+  # service-gateway:
   #   volumes:
   #     - ./local-uploads:/app/uploads
 
   # Example: Expose additional ports for debugging
-  # service-backend:
+  # service-gateway:
   #   ports:
   #     - "9229:9229"  # Node.js debugger
-  #   command: npm run dev:debug
+  #   command: sh -c "pnpm --filter @adopt-dont-shop/service.gateway exec tsx watch --inspect=0.0.0.0:9229 --import ./src/instrumentation.ts ./src/index.ts"
 
   # Example: Override database settings for local testing
   # database:
