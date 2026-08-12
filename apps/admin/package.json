@@ -6,6 +6,7 @@
   },
   "description": "Admin dashboard React application for platform management",
   "license": "MIT",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",

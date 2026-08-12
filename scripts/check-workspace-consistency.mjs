@@ -51,6 +51,16 @@
  *     and app.* already require these via their check #1 script lists. The
  *     non-lib shared packages (eslint-config-*, db, authz, …) are included
  *     so their source is actually linted and format-checked.
+ *  16. Every apps/* package.json declares `private: true` (ADS-1222) — apps
+ *     are deployables, never npm-publishable, so a missing `private` field
+ *     is a manifest-hygiene bug, not a style nit.
+ *  17. Every non-private packages/lib.* package.json declares a `files`
+ *     array (ADS-1222) — without one, publishing ships the whole package
+ *     directory (src/, tests, config) instead of just dist/ + README.
+ *  18. Any package.json that depends on @testing-library/react also
+ *     declares react-dom (ADS-1222) — RTL's render() needs react-dom at
+ *     runtime, and pnpm's strict node_modules won't transitively resolve it
+ *     from a sibling's dependency tree.
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -129,6 +139,48 @@ export function checkLintFormatScripts(dir, scripts) {
   return missing.length > 0 ? [`[${dir}] missing scripts: ${missing.join(', ')} (ADS-1003)`] : [];
 }
 
+// ADS-1222: every apps/* package.json must declare `private: true` — apps
+// are deployable applications, never npm-publishable, so a missing
+// `private` field is manifest drift, not a style nit. `entries` is
+// `[{ dir, pkg }]` so this stays pure/testable like checkLintFormatScripts.
+export function checkAppsArePrivate(entries) {
+  return entries
+    .filter(({ pkg }) => pkg.private !== true)
+    .map(
+      ({ dir }) =>
+        `[${dir}/package.json] missing 'private: true' — apps must not be publishable (ADS-1222).`
+    );
+}
+
+// ADS-1222: every non-private packages/lib.* package.json must declare a
+// `files` array. Without one, `npm publish`/`pnpm pack` ships the entire
+// package directory (src/, tests, config) instead of just the built dist/
+// and README.
+export function checkLibsDeclareFiles(entries) {
+  return entries
+    .filter(({ pkg }) => pkg.private !== true && !Array.isArray(pkg.files))
+    .map(
+      ({ dir }) =>
+        `[${dir}/package.json] missing a 'files' array — non-private libs must declare what gets published (ADS-1222).`
+    );
+}
+
+// ADS-1222: any package.json that depends on @testing-library/react (for
+// rendering components in tests) must also declare react-dom — RTL's
+// render() needs react-dom at runtime, and pnpm's strict node_modules
+// layout won't transitively resolve it from a sibling's dependency tree.
+export function checkTestingLibraryReactNeedsReactDom(entries) {
+  return entries
+    .filter(({ pkg }) => {
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+      return '@testing-library/react' in deps && !('react-dom' in deps);
+    })
+    .map(
+      ({ dir }) =>
+        `[${dir}/package.json] depends on '@testing-library/react' but does not declare 'react-dom' (ADS-1222).`
+    );
+}
+
 // After the Phase 0 restructure (apps/ + packages/lib.* + services/), libs
 // live under packages/ and apps live under apps/. The functions below still
 // return workspace identifiers in `lib.X` / `app.X` form (the package-name
@@ -174,6 +226,15 @@ function pkgDir(workspace) {
 
 function readPkg(workspace) {
   const path = join(ROOT, pkgDir(workspace), 'package.json');
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+// Like readPkg, but for callers that already have a repo-relative directory
+// (e.g. `packages/authz`, `services/auth`) rather than a `lib.x` / `app.x`
+// workspace identifier — used by checks that scan every packages/* and
+// services/* directory, not just the lib.*/app.* subsets pkgDir() handles.
+function readPkgAt(relDir) {
+  const path = join(ROOT, relDir, 'package.json');
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
@@ -1247,6 +1308,26 @@ function main() {
   // 'check:*' script that ci:local also runs.
   const ciYaml = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
   failures.push(...checkWorkspaceDriftGuardsCoveredByCiLocal(ciYaml, rootPkg));
+
+  // 16. ADS-1222: every apps/* package.json must declare `private: true`.
+  const appEntries = apps.map(app => ({ dir: pkgDir(app), pkg: readPkg(app) }));
+  failures.push(...checkAppsArePrivate(appEntries));
+
+  // 17. ADS-1222: every non-private packages/lib.* package.json must
+  //     declare a `files` array.
+  const libEntries = libs.map(lib => ({ dir: pkgDir(lib), pkg: readPkg(lib) }));
+  failures.push(...checkLibsDeclareFiles(libEntries));
+
+  // 18. ADS-1222: any package.json depending on @testing-library/react must
+  //     also declare react-dom. Scans every apps/*, packages/* and services/*
+  //     manifest, not just lib.*/app.* — the pattern shows up anywhere React
+  //     components get rendered in tests.
+  const allPkgEntries = [
+    ...appEntries,
+    ...packages.map(name => ({ dir: `packages/${name}`, pkg: readPkgAt(`packages/${name}`) })),
+    ...services.map(name => ({ dir: `services/${name}`, pkg: readPkgAt(`services/${name}`) })),
+  ];
+  failures.push(...checkTestingLibraryReactNeedsReactDom(allPkgEntries));
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');
