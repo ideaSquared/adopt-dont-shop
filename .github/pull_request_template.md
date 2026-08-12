@@ -19,7 +19,7 @@
 - [ ] Ran `pnpm ci:local:quick` locally (or installed the pre-push hook — see CONTRIBUTING.md)
 - [ ] Tests for new behaviour added (TDD)
 - [ ] If touching `.env` requirements, updated `.env.example`'s REQUIRED block
-- [ ] If touching a `lib.*`, considered consumer impact across `app.*` and `service.backend`
+- [ ] If touching a `lib.*`, considered consumer impact across `app.*` and the backend `service.*` packages
 
 ## Test plan
 

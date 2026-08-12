@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  checkAppsArePrivate,
+  checkLibsDeclareFiles,
   checkLintFormatScripts,
   checkNoEmitTaskOutputs,
   checkTemplateDepDrift,
+  checkTestingLibraryReactNeedsReactDom,
   checkToolVersionsDrift,
   checkVitestWorkspace,
   checkWorkspaceDriftGuardsCoveredByCiLocal,
@@ -557,6 +560,100 @@ describe('checkLintFormatScripts (ADS-1003)', () => {
     const failures = checkLintFormatScripts('services/auth', { lint: 'eslint src' });
     expect(failures).toHaveLength(1);
     expect(failures[0]).toContain('missing scripts: format, format:check');
+  });
+});
+
+describe('checkAppsArePrivate (ADS-1222)', () => {
+  it('passes when every app package.json declares private: true', () => {
+    const entries = [
+      { dir: 'apps/admin', pkg: { name: '@adopt-dont-shop/app.admin', private: true } },
+      { dir: 'apps/client', pkg: { name: '@adopt-dont-shop/app.client', private: true } },
+    ];
+    expect(checkAppsArePrivate(entries)).toEqual([]);
+  });
+
+  it('flags an app package.json missing private: true', () => {
+    const entries = [
+      { dir: 'apps/admin', pkg: { name: '@adopt-dont-shop/app.admin' } },
+      { dir: 'apps/client', pkg: { name: '@adopt-dont-shop/app.client', private: true } },
+    ];
+    const failures = checkAppsArePrivate(entries);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('[apps/admin/package.json]');
+    expect(failures[0]).toContain("missing 'private: true'");
+  });
+
+  it('flags private: false the same as a missing field', () => {
+    const entries = [{ dir: 'apps/admin', pkg: { private: false } }];
+    expect(checkAppsArePrivate(entries)).toHaveLength(1);
+  });
+});
+
+describe('checkLibsDeclareFiles (ADS-1222)', () => {
+  it('passes when every non-private lib declares a files array', () => {
+    const entries = [
+      { dir: 'packages/lib.api', pkg: { files: ['dist', 'README.md'] } },
+      { dir: 'packages/lib.audit-logs', pkg: { files: ['dist', 'README.md'] } },
+    ];
+    expect(checkLibsDeclareFiles(entries)).toEqual([]);
+  });
+
+  it('flags a non-private lib missing a files array', () => {
+    const entries = [{ dir: 'packages/lib.audit-logs', pkg: { name: 'x' } }];
+    const failures = checkLibsDeclareFiles(entries);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('[packages/lib.audit-logs/package.json]');
+    expect(failures[0]).toContain("missing a 'files' array");
+  });
+
+  it('does not flag a private lib for missing files', () => {
+    const entries = [{ dir: 'packages/lib.internal', pkg: { private: true } }];
+    expect(checkLibsDeclareFiles(entries)).toEqual([]);
+  });
+});
+
+describe('checkTestingLibraryReactNeedsReactDom (ADS-1222)', () => {
+  it('passes when a package declaring @testing-library/react also declares react-dom', () => {
+    const entries = [
+      {
+        dir: 'packages/lib.auth',
+        pkg: {
+          devDependencies: { '@testing-library/react': '^16.3.2', 'react-dom': '^19.0.0' },
+        },
+      },
+    ];
+    expect(checkTestingLibraryReactNeedsReactDom(entries)).toEqual([]);
+  });
+
+  it('flags a package that depends on @testing-library/react but not react-dom', () => {
+    const entries = [
+      {
+        dir: 'packages/lib.moderation',
+        pkg: { devDependencies: { '@testing-library/react': '^16.3.2' } },
+      },
+    ];
+    const failures = checkTestingLibraryReactNeedsReactDom(entries);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('[packages/lib.moderation/package.json]');
+    expect(failures[0]).toContain("does not declare 'react-dom'");
+  });
+
+  it('ignores packages that do not use @testing-library/react at all', () => {
+    const entries = [{ dir: 'packages/lib.types', pkg: { devDependencies: {} } }];
+    expect(checkTestingLibraryReactNeedsReactDom(entries)).toEqual([]);
+  });
+
+  it('finds react-dom declared in either dependencies or devDependencies', () => {
+    const entries = [
+      {
+        dir: 'apps/admin',
+        pkg: {
+          dependencies: { 'react-dom': '^19.0.0' },
+          devDependencies: { '@testing-library/react': '^16.3.2' },
+        },
+      },
+    ];
+    expect(checkTestingLibraryReactNeedsReactDom(entries)).toEqual([]);
   });
 });
 

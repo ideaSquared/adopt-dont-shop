@@ -19,9 +19,9 @@ import { execSync } from 'child_process';
 import { existsSync, copyFileSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { randomBytes } from 'crypto';
 import { createInterface } from 'readline';
 import { platform } from 'os';
+import { SECRET_KEYS, generateSecret } from './generate-secrets.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -70,33 +70,6 @@ function runCommand(command, options = {}) {
   } catch (error) {
     throw new Error(`Failed to run: ${command}`);
   }
-}
-
-// Keep in sync with scripts/generate-secrets.mjs (`pnpm secrets:generate`) so
-// both onboarding paths produce the same set of secrets.
-const SECRET_KEYS = [
-  'JWT_SECRET',
-  'JWT_REFRESH_SECRET',
-  'SESSION_SECRET',
-  'ENCRYPTION_KEY',
-  'UPLOAD_SIGNING_SECRET',
-  'JWT_REPORT_SHARE_SECRET',
-  'POSTGRES_PASSWORD',
-  'REDIS_PASSWORD',
-  'GF_SECURITY_ADMIN_PASSWORD',
-];
-
-function generateSecret(key) {
-  if (key === 'ENCRYPTION_KEY') {
-    // AES-256 needs exactly 32 bytes (64 hex chars).
-    return randomBytes(32).toString('hex');
-  }
-  if (key === 'POSTGRES_PASSWORD' || key === 'REDIS_PASSWORD') {
-    // These are interpolated into connection URLs (DATABASE_URL / REDIS_URL),
-    // so use hex — base64 can contain + / = which break URL parsing.
-    return randomBytes(24).toString('hex');
-  }
-  return randomBytes(32).toString('base64');
 }
 
 function isPlaceholder(value) {
@@ -208,23 +181,28 @@ async function startStack() {
     return false;
   }
   runCommand('docker compose ps');
-  logInfo('Waiting for nginx edge /health (up to 60s)...');
-  const ok = await waitForHealth('http://localhost/health', 60000);
+  // The `dev` profile starts client/admin/rescue + services (gateway), but NOT
+  // nginx — nginx is gated to `--profile proxy`/`full` in docker-compose.yml
+  // and is the only thing listening on host port 80. Check the gateway's own
+  // health endpoint instead (services/gateway/src/server.ts `/health/simple`,
+  // the same path docker-compose.yml's service-gateway healthcheck uses).
+  logInfo('Waiting for service.gateway /health/simple (up to 60s)...');
+  const ok = await waitForHealth('http://localhost:4000/health/simple', 60000);
   if (!ok) {
     logError(
-      'Nginx edge did not become healthy within 60s. Run `pnpm docker:logs` to investigate.'
+      'service.gateway did not become healthy within 60s. Run `pnpm docker:logs` to investigate.'
     );
     return false;
   }
-  logSuccess('Nginx edge is healthy.');
+  logSuccess('service.gateway is healthy.');
   log('', RESET);
   log('Access the stack at:', BLUE);
   log('   http://localhost:3000   # app.client', RESET);
   log('   http://localhost:3001   # app.admin', RESET);
   log('   http://localhost:3002   # app.rescue', RESET);
-  log('   http://localhost          # nginx edge (apps + /api proxy)', RESET);
+  log('   http://localhost:4000   # service.gateway (REST/WS API)', RESET);
   log(
-    '   http://localhost:4000   # service.gateway (REST/WS API — requires `--profile services`)',
+    '   http://localhost          # nginx edge (apps + /api proxy) — requires `--profile proxy`/`full`',
     RESET
   );
   log('', RESET);

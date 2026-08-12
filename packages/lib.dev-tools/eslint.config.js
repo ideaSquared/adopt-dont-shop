@@ -1,3 +1,3 @@
-import baseConfig from '@adopt-dont-shop/eslint-config-base';
+import reactConfig from '@adopt-dont-shop/eslint-config-react';
 
-export default baseConfig;
+export default reactConfig;

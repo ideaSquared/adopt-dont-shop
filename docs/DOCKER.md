@@ -267,7 +267,7 @@ echo "GATEWAY_AUTH_RATE_LIMIT_MAX=100000" >> .env
 
 # 2. Start database and cache first, wait for Postgres to be ready
 docker compose -f docker-compose.yml up -d database redis
-timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
+timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U adopt_user; do sleep 2; done'
 
 # 3. Build every image (bake if available, otherwise a plain compose build)
 docker buildx bake -f docker-compose.yml --load || \
@@ -337,7 +337,7 @@ If HMR misfires on **Linux**, the cause is almost certainly not polling — chec
 
 ```bash
 # Find the offender (Linux/macOS)
-lsof -i :5000
+lsof -i :4000
 # Or remap in docker-compose.override.yml
 services:
   service-gateway:

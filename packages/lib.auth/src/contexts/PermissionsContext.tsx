@@ -65,7 +65,6 @@ export const PermissionsProvider = ({ service, children }: PermissionsProviderPr
         // a retry UI rather than silently rendering with `permissions = []`.
         const err = toError(cause);
         setError(err);
-        // eslint-disable-next-line no-console
         console.error('PermissionsProvider: failed to load user permissions', err);
       })
       .finally(() => {
@@ -92,7 +91,6 @@ export const PermissionsProvider = ({ service, children }: PermissionsProviderPr
     } catch (cause) {
       const err = toError(cause);
       setError(err);
-      // eslint-disable-next-line no-console
       console.error('PermissionsProvider: refresh failed', err);
       throw err;
     } finally {

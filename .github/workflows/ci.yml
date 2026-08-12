@@ -136,6 +136,13 @@ jobs:
       - name: Verify docs reference only real pnpm scripts
         run: node scripts/check-docs-script-references.mjs
 
+      # ADS-1211: fail CI if a committed test file uses a focused test marker
+      # (.only / fdescribe / fit) — dependency-free, so it belongs alongside
+      # the other scripts/check-*.mjs guards in this job rather than gated
+      # behind a heavier test job. See scripts/check-no-test-only.mjs.
+      - name: Verify no committed focused tests (.only / fdescribe / fit)
+        run: node scripts/check-no-test-only.mjs
+
       # ADS-1075: ratchet the form-primitives debt — fail if the apps add new
       # raw <input>/<select>/<textarea> or deprecated TextInput usages beyond
       # the persisted ceiling. Forms should use FormField + Input (+ Zod).
@@ -167,6 +174,16 @@ jobs:
       - name: Verify generated proto is in sync with .proto sources
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: pnpm check:proto-fresh
+
+      # ADS-1218: docs/tasks.md is generated from package.json scripts (see
+      # scripts/generate-task-index.mjs) — regenerate and diff so a stale
+      # committed copy fails CI, mirroring the check:proto-fresh
+      # regen-then-diff pattern above.
+      - name: Verify docs/tasks.md is in sync with package.json scripts
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
+        run: |
+          node scripts/generate-task-index.mjs
+          git diff --exit-code docs/tasks.md
 
       # ADS-946: workspace READMEs must carry the canonical template sections
       # (docs/templates/README.{app,service,lib}.md). Warn-only for packages
@@ -580,6 +597,7 @@ jobs:
     needs:
       - workspace-drift
       - commit-lint
+      - changes
       - build-libs
       - test-frontend
       - test-libs

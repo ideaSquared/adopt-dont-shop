@@ -18,9 +18,8 @@ const auth: AuthContextType = {
   refreshUser: vi.fn(),
 };
 
-const wrap =
-  (permissions: Permission[]) =>
-  ({ children }: { children: ReactNode }) => {
+const wrap = (permissions: Permission[]) =>
+  function Wrapper({ children }: { children: ReactNode }) {
     const service = {
       getUserPermissions: vi.fn().mockResolvedValue(permissions),
       clearCache: vi.fn(),
@@ -32,13 +31,14 @@ const wrap =
     );
   };
 
-const wrapWithService =
-  (service: PermissionsService) =>
-  ({ children }: { children: ReactNode }) => (
-    <AuthContext.Provider value={auth}>
-      <PermissionsProvider service={service}>{children}</PermissionsProvider>
-    </AuthContext.Provider>
-  );
+const wrapWithService = (service: PermissionsService) =>
+  function WrapperWithService({ children }: { children: ReactNode }) {
+    return (
+      <AuthContext.Provider value={auth}>
+        <PermissionsProvider service={service}>{children}</PermissionsProvider>
+      </AuthContext.Provider>
+    );
+  };
 
 describe('useHasPermission', () => {
   it('returns allowed=true when the user holds the permission', async () => {

@@ -3,7 +3,7 @@
 
 - name: "area: backend"
   color: "e11d48"
-  description: "Changes to service.backend"
+  description: "Changes to services/** (backend microservices)"
 
 - name: "area: app.client"
   color: "0ea5e9"

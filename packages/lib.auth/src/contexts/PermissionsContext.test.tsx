@@ -30,13 +30,14 @@ const buildService = (
   };
 };
 
-const wrap =
-  (auth: AuthContextType, service: PermissionsService) =>
-  ({ children }: { children: ReactNode }) => (
-    <AuthContext.Provider value={auth}>
-      <PermissionsProvider service={service}>{children}</PermissionsProvider>
-    </AuthContext.Provider>
-  );
+const wrap = (auth: AuthContextType, service: PermissionsService) =>
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <AuthContext.Provider value={auth}>
+        <PermissionsProvider service={service}>{children}</PermissionsProvider>
+      </AuthContext.Provider>
+    );
+  };
 
 describe('PermissionsProvider', () => {
   it('loads the signed-in user permissions from the service', async () => {

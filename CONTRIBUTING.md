@@ -19,7 +19,7 @@ This monorepo has four workspace families. New code belongs in exactly one of th
 3. **Runtime helper shared across workspaces** (no UI) — pick by who consumes it:
    - Consumed by the **React apps** (HTTP client, hooks, formatters, domain services) → **`packages/lib.<domain>`** (e.g. `lib.api`, `lib.auth`, `lib.utils`). These are the frontend-consumable libraries.
    - Consumed only by the **services** (gRPC stubs, event schemas, DB access, infra plumbing) → **`packages/<shared>`** (e.g. `proto`, `events`, `authz`, `db`, `storage`, `observability`). These are service-only and are **not** imported by any `app.*`.
-4. **Service-specific business logic** (logic that belongs to one domain service and is not shared) → **`services/<svc>/src`** (e.g. `services/pets`, `services/applications`). Follow the Controllers → Services → Models layering in [.claude/CLAUDE.md](./.claude/CLAUDE.md).
+4. **Service-specific business logic** (logic that belongs to one domain service and is not shared) → **`services/<svc>/src`** (e.g. `services/pets`, `services/applications`). Follow the Gateway routes → gRPC handlers → DB layering in [.claude/CLAUDE.md](./.claude/CLAUDE.md).
 
 The key distinction is **`lib.*` vs `packages/<shared>`**: both live under `packages/`, but `lib.*` packages are frontend-consumable (imported by the apps) while the bare `packages/*` packages (`proto`, `events`, `authz`, `db`, `storage`, `observability`, …) are service-only. When in doubt, prefer the narrowest home — promote code to a shared package only once a second consumer actually needs it.
 
