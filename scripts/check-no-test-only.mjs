@@ -10,11 +10,11 @@
  * the suite. This guard scans every committed test file
  * (`**\/*.{test,spec}.{ts,tsx}`) and fails if it finds a focus marker.
  *
- * Dependency-free (no node_modules) so it runs in the workspace-drift job and
- * before `pnpm install`, mirroring the other scripts/check-*.mjs guards.
+ * Dependency-free (no node_modules required to run it), mirroring the other
+ * scripts/check-*.mjs guards.
  *
  * Run via `node scripts/check-no-test-only.mjs` or `pnpm check:no-only`
- * (wired into `ci:local`).
+ * (wired into `ci:local` and the workspace-drift job in ci.yml).
  */
 import { readdirSync, readFileSync } from 'fs';
 import { join, dirname, relative } from 'path';

@@ -42,6 +42,7 @@ the repo root with `pnpm <script>`.
 | --- | --- |
 | `pnpm test` | `turbo run test` |
 | `pnpm test:changed` | `turbo run test -- --changed` |
+| `pnpm test:coverage` | `turbo run test:coverage` |
 | `pnpm test:e2e` | `pnpm --filter @adopt-dont-shop/e2e test` |
 | `pnpm test:e2e:debug` | `pnpm --filter @adopt-dont-shop/e2e test:debug` |
 | `pnpm test:e2e:headed` | `pnpm --filter @adopt-dont-shop/e2e test:headed` |
@@ -51,7 +52,7 @@ the repo root with `pnpm <script>`.
 | `pnpm test:e2e:smoke` | `pnpm --filter @adopt-dont-shop/e2e test:smoke` |
 | `pnpm test:e2e:ui` | `pnpm --filter @adopt-dont-shop/e2e test:ui` |
 | `pnpm test:scripts` | `vitest run --config vitest.scripts.config.ts` |
-| `pnpm test:watch` | `turbo run test:watch --parallel --concurrency=1` |
+| `pnpm test:watch` | `turbo run test:watch --parallel` |
 
 ### Quality
 
@@ -66,16 +67,18 @@ the repo root with `pnpm <script>`.
 | `pnpm check:forms` | `node scripts/check-form-primitives.mjs` |
 | `pnpm check:lib-tests` | `node scripts/check-lib-tests.mjs` |
 | `pnpm check:no-only` | `node scripts/check-no-test-only.mjs` |
+| `pnpm check:overrides-docs` | `node scripts/check-overrides-documentation.mjs` |
 | `pnpm check:proto-fresh` | `pnpm --filter @adopt-dont-shop/proto check:fresh` |
 | `pnpm check:readmes` | `node scripts/check-readmes.mjs` |
 | `pnpm check:renovate` | `npx --package renovate -- renovate-config-validator renovate.json` |
+| `pnpm check:stale-overrides` | `node scripts/check-stale-overrides.mjs` |
 | `pnpm check:stories` | `node scripts/check-storybook-coverage.mjs` |
 | `pnpm check:workflow-paths` | `node scripts/check-workflow-paths.mjs` |
 | `pnpm check:workspaces` | `node scripts/check-workspace-consistency.mjs` |
 | `pnpm format` | `turbo run format && pnpm format:root` |
 | `pnpm format:check` | `turbo run format:check && pnpm format:root:check` |
-| `pnpm format:root` | `prettier --cache --write "*.{ts,tsx,js,jsx,json,md}" "scripts/**/*.{ts,js,jsx,json,md}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
-| `pnpm format:root:check` | `prettier --cache --check "*.{ts,tsx,js,jsx,json,md}" "scripts/**/*.{ts,js,jsx,json,md}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
+| `pnpm format:root` | `prettier --cache --write "*.{ts,tsx,js,mjs,jsx,json,md}" "scripts/**/*.{ts,js,mjs,jsx,json,md}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
+| `pnpm format:root:check` | `prettier --cache --check "*.{ts,tsx,js,mjs,jsx,json,md}" "scripts/**/*.{ts,js,mjs,jsx,json,md}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
 | `pnpm graph` | `turbo run build --graph=docs/dependency-graph.html` |
 | `pnpm graph:tasks` | `turbo run build --graph` |
 | `pnpm lint` | `turbo run lint` |
@@ -108,15 +111,15 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm test:scripts` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm check:overrides-docs && pnpm test:scripts` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks
 
 | Script | Command |
 | --- | --- |
-| `pnpm hooks:disable` | `rm -f .husky/.prepush-enabled && echo 'pre-push hook disabled'` |
-| `pnpm hooks:enable` | `touch .husky/.prepush-enabled && echo 'pre-push hook enabled (runs ci:local:quick on git push)'` |
+| `pnpm hooks:disable` | `node -e "require('fs').rmSync('.husky/.prepush-enabled',{force:true})" && echo 'pre-push hook disabled'` |
+| `pnpm hooks:enable` | `node -e "const fs=require('fs');fs.closeSync(fs.openSync('.husky/.prepush-enabled','w'))" && echo 'pre-push hook enabled (runs ci:local:quick on git push)'` |
 | `pnpm hooks:status` | `node -e "console.log(require('fs').existsSync('.husky/.prepush-enabled') ? 'pre-push hook: ENABLED (runs ci:local:quick on git push)' : 'pre-push hook: disabled (enable with pnpm hooks:enable)')"` |
 
 ### Production
