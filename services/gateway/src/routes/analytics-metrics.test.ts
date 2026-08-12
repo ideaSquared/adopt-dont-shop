@@ -1,3 +1,4 @@
+import rateLimit from '@fastify/rate-limit';
 import { status as grpcStatus } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -457,6 +458,37 @@ describe('/api/v1/analytics gateway routes', () => {
       expect(firstArg.htmlContent).toContain('Labrador');
     });
 
+    it('de-duplicates recipients case-insensitively, emailing each inbox once', async () => {
+      primeReads();
+      notificationsMocks.sendEmail.mockResolvedValue({});
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/email-report',
+        payload: {
+          ...base,
+          recipients: ['a@rescue.org', 'A@rescue.org', 'a@rescue.org', 'b@rescue.org'],
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ success: true, sent: 2 });
+      expect(notificationsMocks.sendEmail).toHaveBeenCalledTimes(2);
+      const toEmails = notificationsMocks.sendEmail.mock.calls.map(call => call[0].toEmail);
+      expect(toEmails).toEqual(['a@rescue.org', 'b@rescue.org']);
+    });
+
+    it('rejects a request over the recipient cap with 400 and sends no email', async () => {
+      primeReads();
+      notificationsMocks.sendEmail.mockResolvedValue({});
+      const recipients = Array.from({ length: 21 }, (_, i) => `user${i}@rescue.org`);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/analytics/email-report',
+        payload: { ...base, recipients },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(notificationsMocks.sendEmail).not.toHaveBeenCalled();
+    });
+
     it('maps an upstream error to its HTTP status', async () => {
       petsMocks.getAdoptionTrend.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED });
       petsMocks.getStats.mockResolvedValue({ averageDaysToAdoption: 0 });
@@ -468,6 +500,61 @@ describe('/api/v1/analytics gateway routes', () => {
         payload: { ...base, recipients: ['a@rescue.org'] },
       });
       expect(res.statusCode).toBe(403);
+    });
+  });
+
+  describe('POST /api/v1/analytics/email-report — rate limiting', () => {
+    let rlApp: FastifyInstance;
+    let rlNotificationsMocks: ReturnType<typeof makeNotificationsClient>['mocks'];
+
+    beforeEach(async () => {
+      rlApp = Fastify({ logger: false });
+      // global: false → only routes carrying config.rateLimit are limited,
+      // exercising the route's own per-route override the same way the
+      // production server registers it.
+      await rlApp.register(rateLimit, { global: false, max: 1000, timeWindow: '1 minute' });
+      const { petsClient, mocks: pm } = makePetsClient();
+      const { applicationsClient, mocks: am } = makeApplicationsClient();
+      const { notificationsClient, mocks: nm } = makeNotificationsClient();
+      // Persistent resolves so every allowed call succeeds without exhausting mocks.
+      pm.getAdoptionTrend.mockResolvedValue({ points: [] });
+      pm.getStats.mockResolvedValue({ averageDaysToAdoption: 0 });
+      pm.getTopBreedsByAdoptions.mockResolvedValue({ breeds: [] });
+      am.getStats.mockResolvedValue(APP_STATS_FIXTURE);
+      nm.sendEmail.mockResolvedValue({});
+      rlNotificationsMocks = nm;
+      await registerAnalyticsMetricsRoutes(rlApp, {
+        petsClient,
+        applicationsClient,
+        notificationsClient,
+      });
+    });
+
+    afterEach(async () => {
+      await rlApp.close();
+    });
+
+    it('rejects requests beyond the per-route cap with 429', async () => {
+      const payload = {
+        reportType: 'full-analytics',
+        filters: {
+          dateRange: { start: '2026-01-08T00:00:00.000Z', end: '2026-01-15T00:00:00.000Z' },
+        },
+        recipients: ['a@rescue.org'],
+      };
+      const statuses: number[] = [];
+      for (let i = 0; i < 11; i++) {
+        const res = await rlApp.inject({
+          method: 'POST',
+          url: '/api/v1/analytics/email-report',
+          payload,
+        });
+        statuses.push(res.statusCode);
+      }
+      expect(statuses[0]).toBe(200);
+      expect(statuses.at(-1)).toBe(429);
+      // The blocked request never reaches the fan-out.
+      expect(rlNotificationsMocks.sendEmail).toHaveBeenCalledTimes(10);
     });
   });
 });
