@@ -61,6 +61,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
 
+import { discoverVitestProjectDirs } from './lib/discover-vitest-projects.mjs';
 import {
   extractThresholdsFromSource,
   missingCoverageMetrics,
@@ -213,24 +214,22 @@ function checkLibFormatBodies(lib, scripts) {
   return failures;
 }
 
-function checkVitestWorkspace(libs) {
-  const path = join(ROOT, 'vitest.workspace.ts');
-  const contents = readFileSync(path, 'utf8');
-  // A `packages/lib.*/vitest.config.ts` glob entry transparently covers every
-  // lib with a vitest config on disk, so explicit per-lib entries
-  // aren't required when the glob is present.
-  if (/['"]packages\/lib\.\*\/vitest\.config\.ts['"]/.test(contents)) {
-    return [];
-  }
-  const missing = libs.filter(lib => {
+// ADS-1108: verifies actual vitest.workspace.ts project coverage by running
+// the same discovery vitest.workspace.ts itself uses (discoverVitestProjectDirs),
+// rather than pattern-matching vitest.workspace.ts's source text — that
+// previously matched only a legacy glob string preserved in a comment, so the
+// check passed vacuously and was one comment edit away from false-failing
+// every lib.
+export function checkVitestWorkspace(libs) {
+  const discovered = new Set(discoverVitestProjectDirs(ROOT, 'packages'));
+  return libs.filter(lib => {
     try {
       statSync(join(ROOT, pkgDir(lib), 'vitest.config.ts'));
     } catch {
       return false;
     }
-    return !contents.includes(`packages/${lib}/vitest.config.ts`);
+    return !discovered.has(lib);
   });
-  return missing;
 }
 
 function checkViteAliases(libs) {
