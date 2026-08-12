@@ -238,6 +238,14 @@ function isPrivilegedReader(principal: Principal, rescueId: string | null): bool
   return rescueId !== null && principal.rescueId === rescueId;
 }
 
+// A non-privileged reader (anonymous / adopter / other-rescue staff) must not
+// be able to tell a pet in a hidden status or an archived pet apart from one
+// that never existed. getPet and getSimilarPets share this gate so their
+// source-pet visibility can't drift into an existence oracle (ADS-1210).
+function isPetHiddenFrom(row: PetRow, privileged: boolean): boolean {
+  return !privileged && (PUBLIC_HIDDEN_STATUSES.includes(row.status) || row.archived);
+}
+
 // --- Create ----------------------------------------------------------
 
 export async function createPet(
@@ -348,7 +356,7 @@ export async function getPet(
   // can't see a pet in a hidden status or one that's archived — treat it as
   // not found rather than leaking its existence, and strip internal notes.
   const privileged = principal !== null && isPrivilegedReader(principal, row.rescue_id);
-  if (!privileged && (PUBLIC_HIDDEN_STATUSES.includes(row.status) || row.archived)) {
+  if (isPetHiddenFrom(row, privileged)) {
     throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
   }
   return { pet: rowToProto(row, privileged) };
@@ -586,6 +594,14 @@ export async function getSimilarPets(
 
   const source = await fetchPet(deps, req.petId);
   if (!source) {
+    throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+  }
+
+  // Apply the same source-pet visibility gate as getPet: a non-privileged
+  // reader must not learn that a hidden/archived pet still exists via a
+  // populated similar-pets list where getPet returns NOT_FOUND (ADS-1210).
+  const privileged = principal !== null && isPrivilegedReader(principal, source.rescue_id);
+  if (isPetHiddenFrom(source, privileged)) {
     throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
   }
 
