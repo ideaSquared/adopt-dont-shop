@@ -123,51 +123,100 @@ export const useAdminChatById = (chatId: string | null): UseQueryState<Conversat
   return { data, isLoading, error, refetch: fetchChat };
 };
 
+type MessagesPagination = MessagesResponse['data']['pagination'];
+
+type UseAdminChatMessagesState = UseQueryState<MessagesResponse> & {
+  /** True while an older keyset page is being appended (not the initial load). */
+  isLoadingMore: boolean;
+  /** Whether an older page remains to be loaded. */
+  hasMore: boolean;
+  /** Fetch the next-older keyset page and append it to the current list. */
+  loadMore: () => Promise<void>;
+};
+
 /**
- * Hook to fetch messages for a specific chat
+ * Hook to fetch a chat's message history as a keyset (reverse-scroll) feed.
+ *
+ * The newest page loads on mount (limit only, no cursor). `loadMore` threads
+ * the previous response's `nextCursor` into the next request and appends the
+ * returned older page, so the visible list grows instead of re-fetching the
+ * same newest page forever (ADS-1209).
  */
 export const useAdminChatMessages = (
   chatId: string | null,
-  page = 1,
   limit = 50
-): UseQueryState<MessagesResponse> => {
-  const [data, setData] = useState<MessagesResponse | null>(null);
+): UseAdminChatMessagesState => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [pagination, setPagination] = useState<MessagesPagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchMessages = useCallback(async () => {
-    if (!chatId) {
-      setIsLoading(false);
+  // Fetch one page. Without a cursor we're (re)loading the newest page and
+  // replace the list; with a cursor we're paging older and append.
+  const fetchPage = useCallback(
+    async (cursor?: string) => {
+      if (!chatId) {
+        setIsLoading(false);
+        return;
+      }
+      const loadingOlder = cursor !== undefined;
+      try {
+        if (loadingOlder) {
+          setIsLoadingMore(true);
+        } else {
+          setIsLoading(true);
+        }
+        setError(null);
+        const query = cursor === undefined ? { limit } : { limit, cursor };
+        const response = await apiService.get<{
+          messages: Message[];
+          nextCursor?: string;
+          pagination: MessagesPagination;
+        }>(`/api/v1/chats/${chatId}/messages`, query);
+        setMessages((prev) => (loadingOlder ? [...prev, ...response.messages] : response.messages));
+        setPagination(response.pagination);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        if (loadingOlder) {
+          setIsLoadingMore(false);
+        } else {
+          setIsLoading(false);
+        }
+      }
+    },
+    [chatId, limit]
+  );
+
+  // Reset to the newest page whenever the conversation (or page size) changes.
+  useEffect(() => {
+    setMessages([]);
+    setPagination(null);
+    void fetchPage();
+  }, [fetchPage]);
+
+  const nextCursor = pagination?.nextCursor;
+  const hasMore = pagination?.hasNext ?? false;
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor) {
       return;
     }
+    await fetchPage(nextCursor);
+  }, [fetchPage, nextCursor]);
 
-    try {
-      setIsLoading(true);
-      setError(null);
-      // The messages route is a keyset feed: `messages` (+ `nextCursor`) are
-      // top-level alongside the canonical keyset `pagination`. Wrap them in the
-      // `{ data }` shape this hook's consumers read.
-      const response = await apiService.get<{
-        messages: Message[];
-        nextCursor?: string;
-        pagination: MessagesResponse['data']['pagination'];
-      }>(`/api/v1/chats/${chatId}/messages`, { page, limit });
-      setData({
-        success: true,
-        data: { messages: response.messages, pagination: response.pagination },
-      });
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [chatId, page, limit]);
+  const refetch = useCallback(async () => {
+    setMessages([]);
+    setPagination(null);
+    await fetchPage();
+  }, [fetchPage]);
 
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+  const data: MessagesResponse | null = pagination
+    ? { success: true, data: { messages, pagination } }
+    : null;
 
-  return { data, isLoading, error, refetch: fetchMessages };
+  return { data, isLoading, isLoadingMore, error, hasMore, loadMore, refetch };
 };
 
 /**

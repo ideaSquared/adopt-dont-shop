@@ -137,6 +137,60 @@ describe('MessagesTab', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows Load More when more pages exist and pages via loadMore, not a page counter', () => {
+    const mockLoadMore = vi.fn();
+    mockUseAdminChatMessages.mockReturnValue({
+      data: {
+        data: {
+          messages: [
+            {
+              id: 'msg-1',
+              content: 'Hello there',
+              senderName: 'Alice',
+              timestamp: new Date().toISOString(),
+            },
+          ],
+          pagination: { page: 1, limit: 50, hasNext: true, hasPrev: false, nextCursor: 'c1' },
+        },
+      },
+      isLoading: false,
+      isLoadingMore: false,
+      hasMore: true,
+      loadMore: mockLoadMore,
+      refetch: mockRefetch,
+    } as ReturnType<typeof useAdminChatMessages>);
+
+    render(<MessagesTab chatId='chat-1' />);
+    fireEvent.click(screen.getByRole('button', { name: 'Load More Messages' }));
+    expect(mockLoadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides Load More when no older messages remain', () => {
+    mockUseAdminChatMessages.mockReturnValue({
+      data: {
+        data: {
+          messages: [
+            {
+              id: 'msg-1',
+              content: 'Hello there',
+              senderName: 'Alice',
+              timestamp: new Date().toISOString(),
+            },
+          ],
+          pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false, nextCursor: null },
+        },
+      },
+      isLoading: false,
+      isLoadingMore: false,
+      hasMore: false,
+      loadMore: vi.fn(),
+      refetch: mockRefetch,
+    } as ReturnType<typeof useAdminChatMessages>);
+
+    render(<MessagesTab chatId='chat-1' />);
+    expect(screen.queryByRole('button', { name: 'Load More Messages' })).not.toBeInTheDocument();
+  });
+
   it('calls deleteMessage and onMessageDeleted after confirming delete', async () => {
     mockMutateAsync.mockResolvedValue(undefined);
     mockRefetch.mockResolvedValue(undefined);

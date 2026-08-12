@@ -97,24 +97,72 @@ describe('useAdminChatById', () => {
 });
 
 describe('useAdminChatMessages', () => {
-  it('wraps the top-level keyset messages feed in the data envelope', async () => {
-    // The route returns messages top-level alongside the keyset pagination;
-    // the hook wraps them in { data } for its consumers.
+  it('wraps the newest keyset page in the data envelope and sends no cursor', async () => {
+    // The route is a keyset feed: the newest page is requested with limit only
+    // (no cursor); the hook wraps messages + pagination in { data }.
     const routeBody = {
-      messages: [],
-      pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false },
+      messages: [{ id: 'm1' }],
+      nextCursor: 'cursor-1',
+      pagination: { page: 1, limit: 25, hasNext: true, hasPrev: false, nextCursor: 'cursor-1' },
     };
     get.mockResolvedValue(routeBody);
 
-    const { result } = renderHook(() => useAdminChatMessages('chat-1', 2, 25));
+    const { result } = renderHook(() => useAdminChatMessages('chat-1', 25));
 
     await waitFor(() =>
       expect(result.current.data).toEqual({
         success: true,
-        data: { messages: [], pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false } },
+        data: {
+          messages: [{ id: 'm1' }],
+          pagination: { page: 1, limit: 25, hasNext: true, hasPrev: false, nextCursor: 'cursor-1' },
+        },
       })
     );
-    expect(get).toHaveBeenCalledWith('/api/v1/chats/chat-1/messages', { page: 2, limit: 25 });
+    expect(get).toHaveBeenCalledWith('/api/v1/chats/chat-1/messages', { limit: 25 });
+    expect(result.current.hasMore).toBe(true);
+  });
+
+  it('threads nextCursor into loadMore and appends the older page (ADS-1209)', async () => {
+    get
+      .mockResolvedValueOnce({
+        messages: [{ id: 'newest' }],
+        nextCursor: 'cursor-1',
+        pagination: { page: 1, limit: 50, hasNext: true, hasPrev: false, nextCursor: 'cursor-1' },
+      })
+      .mockResolvedValueOnce({
+        messages: [{ id: 'older' }],
+        pagination: { page: 1, limit: 50, hasNext: false, hasPrev: true },
+      });
+
+    const { result } = renderHook(() => useAdminChatMessages('chat-1'));
+
+    await waitFor(() => expect(result.current.data?.data.messages).toHaveLength(1));
+
+    await result.current.loadMore();
+
+    await waitFor(() => expect(result.current.data?.data.messages).toHaveLength(2));
+    // The second fetch carries the cursor from the first response...
+    expect(get).toHaveBeenNthCalledWith(2, '/api/v1/chats/chat-1/messages', {
+      limit: 50,
+      cursor: 'cursor-1',
+    });
+    // ...and the list grows rather than resetting to the newest page.
+    expect(result.current.data?.data.messages).toEqual([{ id: 'newest' }, { id: 'older' }]);
+    expect(result.current.hasMore).toBe(false);
+  });
+
+  it('does not fetch again on loadMore once the feed is exhausted', async () => {
+    get.mockResolvedValue({
+      messages: [{ id: 'only' }],
+      pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false },
+    });
+
+    const { result } = renderHook(() => useAdminChatMessages('chat-1'));
+    await waitFor(() => expect(result.current.data?.data.messages).toHaveLength(1));
+
+    await result.current.loadMore();
+    // hasNext was false, so there is no cursor to page with — no extra request.
+    expect(get).toHaveBeenCalledTimes(1);
   });
 
   it('skips fetching when chatId is null', async () => {
