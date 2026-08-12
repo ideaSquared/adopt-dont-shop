@@ -270,7 +270,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [lib.rescue consumers](./libraries/lib.rescue-consumers.md) — 3 consumer(s)
 - [lib.search consumers](./libraries/lib.search-consumers.md) — 2 consumer(s)
 - [lib.support-tickets consumers](./libraries/lib.support-tickets-consumers.md) — 1 consumer(s)
-- [lib.types consumers](./libraries/lib.types-consumers.md) — 31 consumer(s)
+- [lib.types consumers](./libraries/lib.types-consumers.md) — 30 consumer(s)
 - [lib.utils consumers](./libraries/lib.utils-consumers.md) — 3 consumer(s)
-- [lib.validation consumers](./libraries/lib.validation-consumers.md) — 3 consumer(s)
+- [lib.validation consumers](./libraries/lib.validation-consumers.md) — 2 consumer(s)
 <!-- LIB-CONSUMER-LISTS:END -->
