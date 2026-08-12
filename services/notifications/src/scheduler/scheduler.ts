@@ -30,6 +30,13 @@ export type ScheduledJob = {
   // intervalMs first (false, the default — avoids a thundering herd
   // when the service boots).
   runOnStart?: boolean;
+  // Phase offset (ms since epoch) the interval grid is anchored to, instead
+  // of the raw epoch (0). Lets a claimed job's fire instant land on a chosen
+  // weekday/time-of-day rather than whatever the epoch happens to align to,
+  // while preserving the shared grid cross-instance claiming depends on —
+  // shifting the anchor shifts every replica's boundary identically.
+  // Default 0 (epoch-aligned, today's behaviour) (ADS-1127).
+  anchorMs?: number;
   // The async body. Errors are caught + logged; the next run schedules
   // normally (one bad week shouldn't stop the digest forever).
   run: () => Promise<void>;
@@ -62,19 +69,22 @@ export type RunningScheduler = {
 const DEFAULT_TICK_MS = 60_000;
 
 // The next interval-aligned instant at or after `ts` (inclusive — `ts`
-// itself, when already a multiple of `intervalMs`), on the grid of
-// multiples of `intervalMs` since the epoch. Two replicas booted at
-// different times but within the same interval window converge on this same
-// boundary — the shared anchor cross-instance claiming depends on.
-const nextIntervalBoundary = (ts: number, intervalMs: number): number =>
-  Math.ceil(ts / intervalMs) * intervalMs;
+// itself, when already on the grid), on the grid of instants
+// `anchorMs + k * intervalMs` (k integer). `anchorMs` defaults to 0 (the
+// epoch), which is why grid-aligned jobs land on whatever weekday/time the
+// epoch happens to be; a non-zero anchor shifts the whole grid to a chosen
+// phase. Two replicas booted at different times but within the same
+// interval window converge on this same boundary — the shared anchor
+// cross-instance claiming depends on.
+const nextIntervalBoundary = (ts: number, intervalMs: number, anchorMs = 0): number =>
+  anchorMs + Math.ceil((ts - anchorMs) / intervalMs) * intervalMs;
 
 // The interval-aligned instant `ts` currently falls within — i.e. the most
 // recent boundary at or before `ts` (floor, the mirror of the boundary
 // above). Used to seed a runOnStart job: it must fire immediately, so it
 // needs the CURRENT period's boundary, not the next one.
-const currentIntervalBoundary = (ts: number, intervalMs: number): number =>
-  Math.floor(ts / intervalMs) * intervalMs;
+const currentIntervalBoundary = (ts: number, intervalMs: number, anchorMs = 0): number =>
+  anchorMs + Math.floor((ts - anchorMs) / intervalMs) * intervalMs;
 
 export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): RunningScheduler => {
   const tickIntervalMs = opts.tickIntervalMs ?? DEFAULT_TICK_MS;
@@ -108,10 +118,10 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
   for (const job of jobs) {
     const initial = job.runOnStart
       ? opts.claimRun
-        ? currentIntervalBoundary(now(), job.intervalMs)
+        ? currentIntervalBoundary(now(), job.intervalMs, job.anchorMs)
         : now()
       : opts.claimRun
-        ? nextIntervalBoundary(now(), job.intervalMs)
+        ? nextIntervalBoundary(now(), job.intervalMs, job.anchorMs)
         : now() + job.intervalMs;
     nextRunAt.set(job.name, initial);
   }
@@ -128,8 +138,10 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
     }
     // Defensive floor — `due` is already interval-aligned by construction
     // (see nextRunAt seeding above and the due-anchored progression below),
-    // so this is normally a no-op.
-    const scheduledFor = new Date(Math.floor(due / job.intervalMs) * job.intervalMs);
+    // so this is normally a no-op. Must floor relative to the job's own
+    // anchor, not the epoch — otherwise a non-zero anchorMs would floor
+    // `due` onto the wrong grid and corrupt the claim key.
+    const scheduledFor = new Date(currentIntervalBoundary(due, job.intervalMs, job.anchorMs));
     try {
       const won = await opts.claimRun(job.name, scheduledFor);
       if (!won) {

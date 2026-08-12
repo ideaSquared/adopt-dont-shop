@@ -374,6 +374,106 @@ describe('scheduler metrics + cross-instance claim', () => {
     }
   });
 
+  it(
+    'anchors the weekly grid to a configured offset instead of the epoch (ADS-1127), ' +
+      'and still lets independently-booted replicas agree on the claim slot',
+    async () => {
+      const intervalMs = 1000;
+      // Shift the grid so boundaries fall at 300, 1300, 2300, ... instead of
+      // 0, 1000, 2000 — standing in for "anchor to the desired weekday/hour"
+      // rather than the raw epoch.
+      const anchorMs = 300;
+      const claimed = new Set<string>();
+      const sharedClaimRun = async (job: string, scheduledFor: Date): Promise<boolean> => {
+        const key = `${job}::${scheduledFor.toISOString()}`;
+        if (claimed.has(key)) {
+          return false;
+        }
+        claimed.add(key);
+        return true;
+      };
+
+      const makeReplica = (bootNow: number) => {
+        let now = bootNow;
+        const runs: number[] = [];
+        const jobs: ScheduledJob[] = [
+          {
+            name: 'weekly-digest',
+            intervalMs,
+            anchorMs,
+            run: async () => {
+              runs.push(now);
+            },
+          },
+        ];
+        const scheduler = startScheduler(jobs, {
+          logger: quietLogger(),
+          tickIntervalMs: 100,
+          now: () => now,
+          claimRun: sharedClaimRun,
+        });
+        return {
+          runs,
+          tickAt: (t: number) => {
+            now = t;
+            return scheduler.tick();
+          },
+          stop: () => scheduler.stop(),
+        };
+      };
+
+      // Boot straddling an anchored boundary (1300), not an epoch-aligned one.
+      const replicaA = makeReplica(1299);
+      const replicaB = makeReplica(1300);
+
+      try {
+        for (let period = 1; period <= 3; period++) {
+          const due = anchorMs + period * intervalMs;
+          await replicaA.tickAt(due);
+          await replicaB.tickAt(due);
+        }
+        // Fire instants land on the anchored grid (1300, 2300, 3300), never
+        // the epoch-aligned one (1000, 2000, 3000) — and exactly one replica
+        // runs each period.
+        const allRuns = [...replicaA.runs, ...replicaB.runs].sort((a, b) => a - b);
+        expect(allRuns).toEqual([1300, 2300, 3300]);
+      } finally {
+        await replicaA.stop();
+        await replicaB.stop();
+      }
+    }
+  );
+
+  it('defaults anchorMs to 0 — omitting it keeps the pre-ADS-1127 epoch-aligned grid', async () => {
+    const claimCalls: Date[] = [];
+    const claimRun = vi.fn(async (_job: string, scheduledFor: Date) => {
+      claimCalls.push(scheduledFor);
+      return true;
+    });
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'weekly',
+        intervalMs: 1000,
+        run: async () => undefined,
+      },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 100,
+      now: () => 250,
+      claimRun,
+    });
+    try {
+      const fired = await scheduler.tick();
+      expect(fired).toEqual([]);
+      // Not due yet (boundary is 1000, the epoch-aligned grid) — proves the
+      // seed wasn't shifted by an implicit anchor.
+      expect(claimCalls).toEqual([]);
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
   it('skips the job when the claim query errors — never risks a duplicate', async () => {
     const runs: string[] = [];
     const logger = quietLogger();
