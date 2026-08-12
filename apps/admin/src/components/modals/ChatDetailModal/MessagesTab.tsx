@@ -41,7 +41,6 @@ const getInitials = (name: string) =>
     .slice(0, 2);
 
 export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDeleted }) => {
-  const [page, setPage] = useState(1);
   const [deleteReason, setDeleteReason] = useState('');
   const [showDeleteReasonPrompt, setShowDeleteReasonPrompt] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
@@ -49,8 +48,10 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
   const {
     data: messagesData,
     isLoading: messagesLoading,
+    isLoadingMore,
+    loadMore,
     refetch: refetchMessages,
-  } = useAdminChatMessages(chatId, page, 50);
+  } = useAdminChatMessages(chatId, 50);
   const { deleteMessage } = useAdminChatMutations();
 
   const messages = messagesData?.data?.messages || [];
@@ -91,7 +92,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
     setDeleteReason('');
   };
 
-  if (messagesLoading && page === 1) {
+  if (messagesLoading) {
     return <div className={styles.loadingState}>Loading messages...</div>;
   }
 
@@ -146,12 +147,8 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
 
         {hasMorePages && (
           <div className={styles.loadMoreWrapper}>
-            <Button
-              variant='secondary'
-              onClick={() => setPage(p => p + 1)}
-              disabled={messagesLoading}
-            >
-              {messagesLoading ? 'Loading...' : 'Load More Messages'}
+            <Button variant='secondary' onClick={() => void loadMore()} disabled={isLoadingMore}>
+              {isLoadingMore ? 'Loading...' : 'Load More Messages'}
             </Button>
           </div>
         )}

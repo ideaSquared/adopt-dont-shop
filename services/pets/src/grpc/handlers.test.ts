@@ -676,6 +676,51 @@ describe('getSimilarPets', () => {
     await getSimilarPets(mocks.deps, ADOPTER, { petId: 'pet-1', limit: 500 });
     expect(mocks.poolMock.query.mock.calls[1][1]?.[3]).toBe(24);
   });
+
+  // ADS-1210: the source-pet visibility gate must match getPet so the
+  // endpoint can't be used as an existence oracle for hidden/archived pets.
+  it('404s for an anonymous visitor when the source pet is in a hidden status', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })] });
+    await expect(
+      getSimilarPets(mocks.deps, null, { petId: 'pet-1', limit: 0 })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    // The gate short-circuits before the similar-pets query runs.
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('404s for an anonymous visitor when the source pet is archived', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ archived: true })] });
+    await expect(
+      getSimilarPets(mocks.deps, null, { petId: 'pet-1', limit: 0 })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('404s for a non-privileged adopter when the source pet is hidden', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'not_available' })] });
+    await expect(
+      getSimilarPets(mocks.deps, ADOPTER, { petId: 'pet-1', limit: 0 })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('still serves similar pets to owning-rescue staff for a hidden source', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow({ status: 'adopted', breed_id: 'b-1' })] })
+      .mockResolvedValueOnce({ rows: [petRow({ pet_id: 'pet-2' })] });
+    const res = await getSimilarPets(mocks.deps, STAFF, { petId: 'pet-1', limit: 0 });
+    expect(res.pets).toHaveLength(1);
+    expect(res.pets[0].petId).toBe('pet-2');
+  });
+
+  it('still serves similar pets to an anonymous visitor for an available source', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow({ breed_id: 'b-1' })] })
+      .mockResolvedValueOnce({ rows: [petRow({ pet_id: 'pet-2' })] });
+    const res = await getSimilarPets(mocks.deps, null, { petId: 'pet-1', limit: 0 });
+    expect(res.pets).toHaveLength(1);
+    expect(res.pets[0].petId).toBe('pet-2');
+  });
 });
 
 // --- updatePet -------------------------------------------------------

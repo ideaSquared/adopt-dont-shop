@@ -59,6 +59,34 @@ const rate = (numerator: number, denominator: number): number =>
 const sumCounts = (points: ReadonlyArray<{ count: number }>): number =>
   points.reduce((sum, p) => sum + p.count, 0);
 
+// Upper bound on how many recipients a single email-report request may fan
+// out to. Bounds the SendEmail RPC fan-out so one authenticated call can't be
+// turned into a mass-mail / resource-exhaustion vector (ADS-1208).
+const MAX_EMAIL_REPORT_RECIPIENTS = 20;
+
+// Normalise a caller-supplied recipient list: keep non-empty strings, trim
+// surrounding whitespace, and de-duplicate case-insensitively (a@x and A@x
+// reach the same inbox) while preserving each address's first-seen form and
+// order — so the same inbox is never emailed more than once per request.
+function normaliseRecipients(raw: unknown): string[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const seen = new Set<string>();
+  return raw
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map(entry => entry.trim())
+    .filter(entry => entry.length > 0)
+    .filter(entry => {
+      const key = entry.toLowerCase();
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+}
+
 function requireDateRange(
   query: Record<string, string | undefined>
 ): { startDate: string; endDate: string } | undefined {
@@ -721,6 +749,9 @@ export const registerAnalyticsMetricsRoutes = async (
     app.post(
       '/api/v1/analytics/email-report',
       {
+        // Cap how often the (expensive, email-fanning) report can be triggered
+        // per client, mirroring the shared-report route in reports.ts (ADS-1208).
+        config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
         schema: {
           tags: ['analytics'],
           summary: 'Email the rescue Analytics report to one or more recipients',
@@ -728,7 +759,11 @@ export const registerAnalyticsMetricsRoutes = async (
             type: 'object',
             properties: {
               reportType: { type: 'string' },
-              recipients: { type: 'array', items: { type: 'string' } },
+              recipients: {
+                type: 'array',
+                items: { type: 'string' },
+                maxItems: MAX_EMAIL_REPORT_RECIPIENTS,
+              },
               filters: {
                 type: 'object',
                 properties: {
@@ -761,9 +796,7 @@ export const registerAnalyticsMetricsRoutes = async (
         };
         const start = body.filters?.dateRange?.start;
         const end = body.filters?.dateRange?.end;
-        const recipients = Array.isArray(body.recipients)
-          ? body.recipients.filter((r): r is string => typeof r === 'string' && r.length > 0)
-          : [];
+        const recipients = normaliseRecipients(body.recipients);
         if (!start || !end) {
           return reply.code(400).send({
             success: false,
@@ -774,6 +807,14 @@ export const registerAnalyticsMetricsRoutes = async (
           return reply
             .code(400)
             .send({ success: false, error: 'at least one recipient is required' });
+        }
+        // Defence-in-depth backstop to the schema's maxItems: reject an
+        // over-cap list before any report composition or email fan-out.
+        if (recipients.length > MAX_EMAIL_REPORT_RECIPIENTS) {
+          return reply.code(400).send({
+            success: false,
+            error: `a maximum of ${MAX_EMAIL_REPORT_RECIPIENTS} recipients is allowed per report`,
+          });
         }
         const metadata = buildMetadata(req);
         try {
