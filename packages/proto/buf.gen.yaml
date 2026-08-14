@@ -6,9 +6,11 @@
 version: v1
 plugins:
   - plugin: ts_proto
-    # pnpm's strict layout installs this package's own bins under its local
-    # node_modules/.bin (buf generate runs with cwd = packages/proto).
-    path: node_modules/.bin/protoc-gen-ts_proto
+    # Invoke ts-proto's plugin script via `node` directly rather than the
+    # node_modules/.bin shim — the .bin shim has no extension on Windows
+    # (only .CMD/.ps1 wrappers do), which cmd.exe can't exec. `node <path
+    # to .js>` works identically on every platform.
+    path: [node, node_modules/ts-proto/protoc-gen-ts_proto]
     out: src/generated
     opt:
       # ES module interop so consumers can `import { ... }` cleanly.
