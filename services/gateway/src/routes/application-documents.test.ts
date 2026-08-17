@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -141,6 +141,76 @@ describe('application document routes', () => {
     expect(grpcReq.url).toMatch(/^documents\/[0-9a-f-]+\.pdf$/);
     expect(grpcReq.size).toBeGreaterThan(0);
     expect(grpcReq.mimeType).toBe('application/pdf');
+  });
+
+  it('POST → generic error when the storage write fails, without leaking error detail (ADS-1226)', async () => {
+    // Point storage.local.directory at a plain FILE, not a directory, so
+    // the underlying ensureDir(category subdir) fails with an ENOTDIR error
+    // whose message embeds the absolute path — detail that must never reach
+    // the client.
+    const blocker = join(tmp, 'blocker');
+    writeFileSync(blocker, '');
+    const { client: blockedClient } = makeClient();
+    const blockedApp = Fastify({ logger: false });
+    const { default: multipart } = await import('@fastify/multipart');
+    await blockedApp.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
+    await registerApplicationDocumentsRoutes(blockedApp, {
+      client: blockedClient,
+      storage: { provider: 'local', local: { directory: blocker, publicPath: '/uploads' }, s3: {} },
+      signingSecret: SIGNING_SECRET,
+    });
+
+    const boundary = 'b-storage-fail';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('%PDF-1.4 hello'),
+      'aaa.pdf',
+      'id_verification'
+    );
+    const res = await blockedApp.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toStrictEqual({ error: 'storage_write_failed' });
+    expect(res.body).not.toMatch(/ENOTDIR|blocker|no such file|enoent/i);
+    await blockedApp.close();
+  });
+
+  it('POST → generic error when multipart parsing fails, without leaking parser detail (ADS-1226)', async () => {
+    const { client: smallLimitClient } = makeClient();
+    const smallLimitApp = Fastify({ logger: false });
+    const { default: multipart } = await import('@fastify/multipart');
+    // A fileSize limit smaller than the upload forces @fastify/multipart to
+    // reject the part mid-stream, throwing from part.toBuffer() inside the
+    // route's try/catch.
+    await smallLimitApp.register(multipart, { limits: { fileSize: 10, files: 1 } });
+    await registerApplicationDocumentsRoutes(smallLimitApp, {
+      client: smallLimitClient,
+      storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+      signingSecret: SIGNING_SECRET,
+    });
+
+    const boundary = 'b-multipart-fail';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('%PDF-1.4 much longer than ten bytes'),
+      'aaa.pdf',
+      'id_verification'
+    );
+    const res = await smallLimitApp.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toStrictEqual({ error: 'invalid multipart request' });
+    await smallLimitApp.close();
   });
 
   it('POST → 503 when no signing secret is configured (fail closed for private documents)', async () => {

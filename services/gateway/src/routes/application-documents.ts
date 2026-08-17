@@ -171,7 +171,8 @@ export const registerApplicationDocumentsRoutes = async (
           }
         }
       } catch (err) {
-        return reply.code(400).send({ error: `multipart parse failed: ${(err as Error).message}` });
+        req.log.error({ err }, 'multipart parse failed');
+        return reply.code(400).send({ error: 'invalid multipart request' });
       }
 
       if (buffer === null || filename === '') {
@@ -207,7 +208,8 @@ export const registerApplicationDocumentsRoutes = async (
       try {
         upload = await provider.uploadFile(buffer, filename, mimetype, 'documents');
       } catch (err) {
-        return reply.code(500).send({ error: `storage write failed: ${(err as Error).message}` });
+        req.log.error({ err }, 'storage write failed');
+        return reply.code(500).send({ error: 'storage_write_failed' });
       }
 
       // ADS-1034: persist the storage KEY, not `upload.url` — for `documents`
