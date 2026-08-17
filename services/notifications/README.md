@@ -52,15 +52,16 @@ admin surfaces require an explicit permission. `super_admin` bypasses.
 | `CleanupExpiredNotifications` | `notifications.cleanup` |
 | `SendEmail` | `notifications.email.send` (or service-to-service) |
 | `Get/UpdateEmailPreferences` | self; `email-prefs:*:any` for others |
-| `List/Get/PreviewEmailTemplate` | `notifications.email.templates.read` |
-| `Create/Update/DeleteEmailTemplate` | `notifications.email.templates.{create,update,delete}` |
+| `List/Get/PreviewEmailTemplate` | `email.templates.read` |
+| `Create/Update/DeleteEmailTemplate` | `email.templates.{create,update,delete}` |
 | `Register/UnregisterDeviceToken` / `ListDeviceTokens` | self-scoped (`device-tokens:list:any` for others) |
 | `Broadcast` | `admin.notifications.broadcast` |
 
 Schema (`notifications`): `notifications`, `device_tokens`,
 `user_notification_prefs`, `email_queue`, `email_templates`,
-`email_preferences`, `processed_events` (event-dedup for idempotent consumers).
-Migrations: `src/migrations/001`–`008`.
+`email_template_versions`, `email_preferences`, `scheduled_job_runs`,
+`processed_events` (event-dedup for idempotent consumers).
+Migrations: `src/migrations/001`–`011`.
 
 **NATS** — emits (publish-after-commit): `notifications.created`,
 `notifications.dismissed`, `notifications.deleted`, `notifications.allRead`,

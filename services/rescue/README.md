@@ -59,7 +59,7 @@ bypass scope.
 Schema (`rescue`): `rescues`, `rescue_settings`, `staff_members` (user↔rescue
 join, no cross-schema FK), `invitations` (one-time token), `foster_placements`,
 `application_questions`, `events`, `event_attendees`. Migrations:
-`src/migrations/001`–`010`.
+`src/migrations/001`–`011`.
 
 **NATS** — emits (publish-after-commit): `rescue.created`, `rescue.updated`,
 `rescue.verified` / `rescue.rejected`, `rescue.staffInvited`,

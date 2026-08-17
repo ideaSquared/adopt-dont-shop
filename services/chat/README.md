@@ -15,8 +15,10 @@ See [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../../docs/infrastructure
 for the shared service boundaries / ownership model. WS-heavy: the gateway
 terminates Socket.IO and this service is the source of the `chat.*` fan-out
 events. `services/moderation` consumes `chat.messageCreated` for content
-scanning. No outbound cross-service gRPC calls (it reads participants from its
-own schema). Depends on the shared backend packages `@adopt-dont-shop/{authz,
+scanning. `OpenChat` makes outbound gRPC calls to `service.applications`
+(`getApplication`) and `service.rescue` (`listStaffMembers`) to resolve chat
+participants; all other RPCs read participants from its own schema. Depends on
+the shared backend packages `@adopt-dont-shop/{authz,
 config-secrets, db, events, lib.types, observability, proto,
 service-bootstrap}`.
 
@@ -42,15 +44,15 @@ bypasses the membership check.
 
 | RPC | Permission |
 | --- | --- |
-| `OpenChat` | `chat.create` |
-| `SendMessage` / `React` | `chat.send` + participant |
-| `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat` / `DeleteChat` | `chat.read` + participant |
-| `ListChats` / `SearchChats` | `chat.read` |
+| `OpenChat` | `chats.create` |
+| `SendMessage` / `React` | `messages.create` + participant |
+| `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat` / `DeleteChat` | `chats.read` + participant |
+| `ListChats` / `SearchChats` | `chats.read` |
 | `DeleteMessage` | sender, or `chat.message.delete:any` |
 
 Schema (`chat`): `chats` (anchored to an application), `chat_participants`
 (with read watermarks), `messages` (with a full-text search vector),
-`message_reactions`, `message_reads`. Migrations: `src/migrations/001`–`006`
+`message_reactions`, `message_reads`. Migrations: `src/migrations/001`–`007`
 (004 installs the search-vector trigger, replacing the monolith's afterSync
 hook so the DB owns the invariant).
 

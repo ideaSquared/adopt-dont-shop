@@ -65,8 +65,8 @@ permission checks.
 
 Schema (`auth`): `users`, `roles` / `permissions`, `role_permissions` /
 `user_roles`, `refresh_tokens`, `revoked_tokens`, `user_privacy_prefs`,
-`field_permissions`, `ip_rules`, `user_invitations`. Migrations:
-`src/migrations/001`–`028`.
+`field_permissions`, `ip_rules`, `user_invitations`, `consent_events`,
+`permission_grants`. Migrations: `src/migrations/001`–`032`.
 
 **NATS** — emits (publish-after-commit): `auth.userLoggedIn`,
 `auth.tokenRevoked`, `auth.tokenRefreshed`, `auth.roleAssigned`,
@@ -77,9 +77,12 @@ subjects; participates in the `gdpr.erasureCompleted` saga. Consumes
 
 ## Environment variables consumed
 
-`DATABASE_URL`, `JWT_SECRET`, and `JWT_REFRESH_SECRET` are **required** — boot
-fails fast without them (a leaked access secret must not compromise refresh, so
-the two JWT secrets are distinct by design). `AUTH_PORT` (5002), `AUTH_GRPC_PORT`
+`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, and `ENCRYPTION_KEY` are
+**required** — boot fails fast without them (a leaked access secret must not
+compromise refresh, so the two JWT secrets are distinct by design; the three
+secrets must also be distinct from one another — ADS-1047). `ENCRYPTION_KEY` is
+the AES-256-GCM key (64 hex chars) that encrypts TOTP secrets at rest.
+`AUTH_PORT` (5002), `AUTH_GRPC_PORT`
 (6002), `AUTH_HOST`, `AUTH_SCHEMA` (`auth`), and `NATS_URL` have dev defaults,
 plus the standard `@adopt-dont-shop/observability` vars. See
 [`docs/env-reference.md`](../../docs/env-reference.md) for the full list.

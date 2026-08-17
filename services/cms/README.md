@@ -51,7 +51,7 @@ permission check.
 
 Schema (`cms`): `cms_content` (pages / posts / help articles with status +
 per-edit version history) and `cms_navigation_menus` (nestable menu trees).
-Migrations: `src/migrations/001`–`003`.
+Migrations: `src/migrations/001`–`005`.
 
 **NATS** — emits (publish-after-commit): `cms.contentCreated`,
 `cms.contentUpdated`, `cms.contentDeleted`, `cms.contentPublished`,
