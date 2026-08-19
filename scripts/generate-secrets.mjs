@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { randomBytes } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 const b64 = (n = 32) => randomBytes(n).toString('base64');
 // Hex is URL-safe (no + / =) — required for values interpolated into
@@ -66,5 +67,8 @@ export function generateSecretsBlock() {
   ].join('\n');
 }
 
-// Thin wrapper — prints the block when run directly via `pnpm secrets:generate`.
-console.log(generateSecretsBlock());
+// Thin wrapper — prints the block only when run directly via `pnpm secrets:generate`,
+// not when imported (e.g. by bootstrap.mjs for SECRET_KEYS/generateSecret).
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  console.log(generateSecretsBlock());
+}
