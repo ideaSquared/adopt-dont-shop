@@ -205,6 +205,64 @@ describe('POST /api/v1/uploads/images', () => {
     expect((res.json() as { error: string }).error).toMatch(/dimensions/i);
   });
 
+  it('returns a generic error when the storage write fails, without leaking error detail (ADS-1226)', async () => {
+    await app.close();
+    // Point storage.local.directory at a plain FILE, not a directory, so
+    // LocalStorageProvider's ensureDir(category subdir) fails with an
+    // ENOTDIR error whose message embeds the absolute path — exactly the
+    // kind of detail that must never reach the client.
+    const blocker = join(tmp, 'blocker');
+    writeFileSync(blocker, '');
+    app = await buildApp(blocker, SECRET);
+
+    const boundary = 'b8';
+    const body = multipartBody(boundary, await makeJpeg(), 'cat.jpg', 'image/jpeg');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toStrictEqual({ error: 'storage_write_failed' });
+    expect(res.body).not.toMatch(/ENOTDIR|blocker|no such file|enoent/i);
+  });
+
+  it('returns a generic error when multipart parsing fails, without leaking parser detail (ADS-1226)', async () => {
+    await app.close();
+    // A fileSize limit smaller than the upload forces @fastify/multipart to
+    // reject the part mid-stream, throwing from part.toBuffer() inside the
+    // route's try/catch.
+    app = Fastify({ logger: false });
+    const { default: multipart } = await import('@fastify/multipart');
+    await app.register(multipart, { limits: { fileSize: 10, files: 1 } });
+    await registerUploadsRoutes(app, {
+      storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+      signingSecret: SECRET,
+    });
+
+    const boundary = 'b9';
+    const body = multipartBody(boundary, await makeJpeg(), 'cat.jpg', 'image/jpeg');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toStrictEqual({ error: 'invalid multipart request' });
+  });
+
   it('rejects an anonymous request with 401 and writes nothing to storage (ADS-1035)', async () => {
     const boundary = 'b7';
     const body = multipartBody(boundary, await makeJpeg(), 'cat.jpg', 'image/jpeg');

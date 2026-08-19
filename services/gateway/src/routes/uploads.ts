@@ -139,7 +139,8 @@ export const registerUploadsRoutes = async (
           }
         }
       } catch (err) {
-        return reply.code(400).send({ error: `multipart parse failed: ${(err as Error).message}` });
+        req.log.error({ err }, 'multipart parse failed');
+        return reply.code(400).send({ error: 'invalid multipart request' });
       }
 
       if (buffer === null || originalName === '') {
@@ -172,7 +173,8 @@ export const registerUploadsRoutes = async (
       try {
         upload = await provider.uploadFile(buffer, originalName, mimetype, 'pets');
       } catch (err) {
-        return reply.code(500).send({ error: `storage write failed: ${(err as Error).message}` });
+        req.log.error({ err }, 'storage write failed');
+        return reply.code(500).send({ error: 'storage_write_failed' });
       }
 
       return reply.code(200).send({
