@@ -51,7 +51,7 @@ HTTP surface: `/health/simple`. Everything else is gRPC `ModerationService`
 Schema (`moderation`): `reports`, `report_status_transitions`,
 `moderator_actions`, `moderation_evidence` (polymorphic), `user_sanctions`,
 `support_tickets`, `support_ticket_responses`. Migrations:
-`src/migrations/001`–`011` (003 installs a status-propagation trigger).
+`src/migrations/001`–`013` (003 installs a status-propagation trigger).
 
 **NATS** — emits (publish-after-commit): `moderation.reportFiled`,
 `moderation.reportAssigned`, `moderation.reportResolved`,

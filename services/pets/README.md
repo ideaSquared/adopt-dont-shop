@@ -53,7 +53,7 @@ scope is the pet's `rescue_id`; admin / `super_admin` bypass the scope.
 Schema (`pets`): `breeds` (reference lookup), `pets` (main listing row, PostGIS
 `location` + full-text `search_vector`), `pet_media`, `pet_status_transitions`
 (append-only audit), `ratings`, `user_favorites`. Migrations:
-`src/migrations/001`–`007`.
+`src/migrations/001`–`010`.
 
 **NATS** — emits (publish-after-commit): `pets.created`, `pets.updated`,
 `pets.statusChanged`, `pets.deleted`; participates in the

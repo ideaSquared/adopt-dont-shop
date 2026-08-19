@@ -45,15 +45,6 @@ pnpm db:migrate   # run pending migrations (node-pg-migrate)
   pointers; recommender hot-path idx `(user_id, action)`.
 - Run via `pnpm db:migrate` (uses `@adopt-dont-shop/db`).
 
-## What's NOT here yet
-
-- **Phase 9.3** — gRPC `MatchingService` (recommend, record-swipe,
-  discover, search). Reads pets via gRPC from `service.pets`.
-- **Phase 9.4** — NATS publishers (`matching.swipeRecorded` etc.).
-- **Phase 9.5** — Gateway routes `/api/matching/*` (and the
-  legacy `/api/discovery/*`, `/api/search/*`).
-- **Phase 9.6** — Cutover.
-
 ## Environment variables consumed
 
 Full reference: [docs/env-reference.md](../../docs/env-reference.md). This
@@ -106,24 +97,25 @@ service.pets on demand (no denormalised projection). Schema: `matching`.
 | `swipe_actions` | Append-only behavioural log (swipe / like / pass / super-like). |
 | `adopter_match_profiles` | Adopter preferences (types, sizes, energy, lifestyle, allergies). |
 
-Migrations: `services/matching/src/migrations/001`–`004`.
+Migrations: `services/matching/src/migrations/001`–`005`.
 
 ### gRPC RPCs
 
-`MatchingService`. Most actions require `pets.view` (discovery reads the pets
-catalogue) plus session ownership where applicable; profile RPCs are self-
-scoped. `super_admin` bypasses.
+`MatchingService`. Most actions require `pets.read` (discovery reads the pets
+catalogue) plus session ownership where applicable; profile RPCs are self-scoped
+on top of `pets.read`. `super_admin` bypasses.
 
 | RPC | Permission |
 | --- | --- |
-| `StartSession` | `pets.view` |
-| `EndSession` | `pets.view` + session owner |
-| `RecordSwipe` | `pets.view` + session owner |
-| `ListSwipeHistory` | `pets.view` |
-| `Recommend` | `pets.view` (reads candidates via pets gRPC) |
-| `SearchPets` | `pets.view` (reads candidates via pets gRPC) |
-| `GetMatchProfile` | self-scoped (reads own profile) |
-| `UpsertMatchProfile` | self-scoped (writes own profile) |
+| `StartSession` | `pets.read` |
+| `EndSession` | `pets.read` + session owner |
+| `RecordSwipe` | `pets.read` + session owner |
+| `ListSwipeHistory` | `pets.read` |
+| `Recommend` | `pets.read` (reads candidates via pets gRPC) |
+| `GetTopPicks` | `pets.read` (reads candidates via pets gRPC) |
+| `SearchPets` | `pets.read` (reads candidates via pets gRPC) |
+| `GetMatchProfile` | `pets.read` + self-scoped (reads own profile) |
+| `UpsertMatchProfile` | `pets.read` + self-scoped (writes own profile) |
 | `GetUserSwipeStats` | self-scoped; `matching.swipes.read:any` for other users |
 | `GetSessionStats` | session owner |
 

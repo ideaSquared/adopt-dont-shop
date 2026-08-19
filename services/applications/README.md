@@ -43,17 +43,19 @@ Scope is owner (adopter) or `rescue_id`; `super_admin` bypasses.
 | --- | --- |
 | `StartDraft` | `applications.create` (resolves pet → rescue via pets gRPC) |
 | `SaveDraftAnswers` / `SubmitDraft` / `Withdraw` | `applications.update` (owner/rescue scope) |
-| `StartReview` / `ScheduleHomeVisit` / `CompleteHomeVisit` | `applications.process` (rescue scope) |
+| `StartReview` / `ScheduleHomeVisit` / `CompleteHomeVisit` | `applications.review` (rescue scope) |
 | `Approve` / `MarkAdopted` | `applications.approve` (rescue scope) |
 | `Reject` | `applications.reject` (rescue scope) |
-| `Get` / `List` / `GetStats` / `ListDocuments` | `applications.view` (scope-pinned) |
+| `Get` / `List` / `GetStats` / `ListDocuments` | `applications.read` (scope-pinned) |
 | `AddDocument` / `RemoveDocument` | `applications.update` (rescue scope) |
 
 Schema (`applications`): `application_events` (append-only event store — the
 source of truth), `applications` (read-model projection),
 `application_status_transitions`, `home_visits`,
-`home_visit_status_transitions`, `application_drafts`, `application_documents`.
-Migrations: `src/migrations/001`–`009`.
+`home_visit_status_transitions`, `application_drafts`, `application_documents`,
+`application_defaults`, `application_preferences`,
+`application_reference_checks`, `application_timeline_notes`.
+Migrations: `src/migrations/001`–`014`.
 
 **NATS** — emits (publish-after-commit): `applications.draftCreated`,
 `applications.draftUpdated`, `applications.submitted`,
