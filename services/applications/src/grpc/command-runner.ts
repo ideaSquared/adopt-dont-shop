@@ -73,21 +73,23 @@ export function requireOwnerOrRescueScope(
   }
 }
 
-// SaveDraftAnswers authorization (ADS-1007). The domain permits this command
-// from both `draft` and `under_review`, and the rescue-staff allowance exists
-// ONLY for the under_review follow-up-questions phase. Authorising it with the
-// blanket owner-OR-rescue scope let rescue staff silently rewrite an adopter's
-// answers while the application was still an unsubmitted `draft`. So the scope
+// Draft-lifecycle authorization (ADS-1007, extended by ADS-1225). While an
+// application is still a `draft`, only the owning adopter (or super_admin,
+// via requirePermission's own bypass) may act on it — the rescue-staff
+// allowance exists ONLY once the application has left `draft`. So the scope
 // is status-aware:
 //
-//   - draft         → owner only (the adopter's answers are theirs alone until
-//                     they submit; staff shouldn't even see them yet).
+//   - draft         → owner only (the adopter's answers/decision are theirs
+//                     alone until they submit; staff shouldn't even see them
+//                     yet).
 //   - under_review  → owner OR rescue scope (the intended follow-up path).
 //
-// Any other status is unreachable — the domain rejects saveDraftAnswers
-// outside draft/under_review before this could matter — but is treated as the
+// Shared by saveDraftAnswers (legal from draft/under_review) and submitDraft
+// (legal from draft only, so this always resolves to the owner-only branch
+// there — rescue staff can no longer force-transition an adopter's draft).
+// Any other status is unreachable for either command — but is treated as the
 // stricter owner-only branch for safety.
-export function requireDraftAnswersScope(
+export function requireDraftScope(
   principal: Principal,
   permission: Permission,
   state: ApplicationState

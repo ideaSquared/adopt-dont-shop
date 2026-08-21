@@ -70,7 +70,7 @@ export function handle(
       // Allowed from draft AND under_review. The rescue-staff allowance
       // applies only from under_review (the follow-up-questions phase) — while
       // still an unsubmitted draft, only the owning adopter may write. That
-      // status-dependent authorization lives in requireDraftAnswersScope
+      // status-dependent authorization lives in requireDraftScope
       // (command-runner.ts, ADS-1007); the domain rule below governs which
       // statuses the command is legal from at all. Rejected from
       // submitted / decided / withdrawn.
