@@ -18,7 +18,17 @@
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
-import type { Permission } from '@adopt-dont-shop/lib.types';
+import {
+  CMS_CONTENT_CREATE as CONTENT_CREATE,
+  CMS_CONTENT_DELETE as CONTENT_DELETE,
+  CMS_CONTENT_PUBLISH as CONTENT_PUBLISH,
+  CMS_CONTENT_READ as CONTENT_READ,
+  CMS_CONTENT_UPDATE as CONTENT_UPDATE,
+  CMS_MENU_CREATE as MENU_CREATE,
+  CMS_MENU_DELETE as MENU_DELETE,
+  CMS_MENU_READ as MENU_READ,
+  CMS_MENU_UPDATE as MENU_UPDATE,
+} from '@adopt-dont-shop/lib.types';
 
 import { isLegalTransition } from './status-machine.js';
 import {
@@ -87,18 +97,6 @@ export class HandlerError extends Error {
 }
 
 export type HandlerDeps = WithTransactionDeps;
-
-// --- Permissions -----------------------------------------------------
-
-const CONTENT_READ: Permission = 'cms.content.read' as Permission;
-const CONTENT_CREATE: Permission = 'cms.content.create' as Permission;
-const CONTENT_UPDATE: Permission = 'cms.content.update' as Permission;
-const CONTENT_DELETE: Permission = 'cms.content.delete' as Permission;
-const CONTENT_PUBLISH: Permission = 'cms.content.publish' as Permission;
-const MENU_READ: Permission = 'cms.menu.read' as Permission;
-const MENU_CREATE: Permission = 'cms.menu.create' as Permission;
-const MENU_UPDATE: Permission = 'cms.menu.update' as Permission;
-const MENU_DELETE: Permission = 'cms.menu.delete' as Permission;
 
 // --- Enum maps -------------------------------------------------------
 

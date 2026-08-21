@@ -26,7 +26,7 @@ import { randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
-import type { Permission } from '@adopt-dont-shop/lib.types';
+import { CHAT_MESSAGE_DELETE_ANY, type Permission } from '@adopt-dont-shop/lib.types';
 import { principalToMetadata } from '@adopt-dont-shop/service-bootstrap';
 import type { ApplicationsClient } from './applications-client.js';
 import type { RescueClient } from './rescue-client.js';
@@ -1229,8 +1229,6 @@ export async function getChatUnreadCount(
 }
 
 // --- DeleteMessage ---------------------------------------------------
-
-const CHAT_MESSAGE_DELETE_ANY: Permission = 'chat.message.delete:any' as Permission;
 
 export async function deleteMessage(
   deps: HandlerDeps,
