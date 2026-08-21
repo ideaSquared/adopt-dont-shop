@@ -225,6 +225,39 @@ services:
           cpus: '0.25'
           memory: 128m
 
+  # ClamAV daemon (clamd) — AV/malware scanning backend for uploads (ADS-1241
+  # / ADS-848 step 3). service-gateway streams every uploaded file's bytes to
+  # clamd over TCP (INSTREAM) via @adopt-dont-shop/lib.av-scan, in front of
+  # the storage write. First boot downloads the virus database via
+  # freshclam (can take a few minutes); clamav_data persists it across
+  # restarts/deploys so only the very first start pays that cost.
+  clamav:
+    image: clamav/clamav:1.4@sha256:c3bfbf2a2c9abc1fc179e63832a9e8bfac901ede83853e3fa10acf6f1fb5c803
+    container_name: ads_staging_clamav
+    restart: always
+    ports: []
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ['CMD', 'clamdscan', '--ping', '1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+        reservations:
+          cpus: '0.25'
+          memory: 256m
+
   # ==========================================================================
   # GATEWAY + EXTRACTED MICROSERVICES (replaces the service.backend monolith,
   # deleted in phase 11). The gateway is the REST/WS edge on :4000; every
@@ -267,6 +300,12 @@ services:
     depends_on:
       nats:
         condition: service_healthy
+      # ADS-1241: only `service_started`, not `service_healthy` — clamd's
+      # first-boot virus-DB download can take minutes, and the gateway's own
+      # failClosed config already handles "scanner not ready yet" (fails
+      # closed) without needing compose to block startup on it.
+      clamav:
+        condition: service_started
 
   service-auth:
     <<: *service-common
@@ -422,6 +461,7 @@ volumes:
   postgres_data:
   redis_data:
   nats_data:
+  clamav_data:
   uploads:
 
 networks:

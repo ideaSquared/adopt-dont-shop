@@ -8,9 +8,10 @@
 // client-supplied MIME + extension allowlists, every upload is magic-byte
 // sniffed (rejecting a type that contradicts the declared one) and images
 // are dimension-capped (image-bomb guard) before being written to storage.
-// See verifyUploadContent in upload-content-checks.ts.
-// TODO(ADS-848 step 3): AV scanning — wire a scanBytes() chokepoint in front
-// of provider.uploadFile once the clamd-backed lib.av-scan package lands.
+// See verifyUploadContent in upload-content-checks.ts. AV scanning (ADS-848
+// step 3 / ADS-1241): every upload's bytes are also streamed to clamd via
+// @adopt-dont-shop/lib.av-scan's scanBytes() — a single chokepoint in front
+// of provider.uploadFile, see the POST handler below.
 //
 // The signed-serve route is unauthenticated by design — the HMAC over
 // `(filepath, expiresAt)` IS the proof of authorisation. The signing
@@ -24,6 +25,7 @@ import path from 'node:path';
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { AvScanUnavailableError, type AvScanClient } from '@adopt-dont-shop/lib.av-scan';
 import {
   createStorageProvider,
   type StorageConfig,
@@ -34,6 +36,11 @@ import { verifyUploadContent } from './upload-content-checks.js';
 
 export type UploadsRoutesOptions = {
   storage: StorageConfig;
+  // AV scan chokepoint (ADS-1241 / ADS-848 step 3). Required — every route
+  // that writes to storage must scan first. server.ts builds one shared
+  // client via @adopt-dont-shop/lib.av-scan's createAvScanClient(); tests
+  // inject a stub so they never need a live clamd.
+  avScan: AvScanClient;
   // HMAC secret for signed-serve URLs. Shared with anything else that
   // wants to mint a URL (e.g. future notifications worker). When unset
   // the signed-serve route returns 503 — without a secret every signature
@@ -112,7 +119,9 @@ export const registerUploadsRoutes = async (
           },
           400: { type: 'object', properties: { error: { type: 'string' } } },
           401: { type: 'object', properties: { error: { type: 'string' } } },
+          422: { type: 'object', properties: { error: { type: 'string' } } },
           500: { type: 'object', properties: { error: { type: 'string' } } },
+          503: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
     },
@@ -167,6 +176,28 @@ export const registerUploadsRoutes = async (
       });
       if (!verification.ok) {
         return reply.code(400).send({ error: verification.error });
+      }
+
+      // AV scan chokepoint (ADS-848 step 3 / ADS-1241): the actual bytes are
+      // streamed to clamd before anything reaches storage. An infected file
+      // is rejected; when the scanner itself is unreachable, scanBytes()
+      // throws AvScanUnavailableError and — per its failClosed config — the
+      // upload is rejected here too (fails open only when a dev/local
+      // deploy explicitly sets CLAMAV_FAIL_OPEN=true).
+      try {
+        const scan = await opts.avScan.scanBytes(buffer);
+        if (!scan.clean) {
+          return reply.code(422).send({
+            error: scan.signature
+              ? `file failed the malware scan (${scan.signature})`
+              : 'file failed the malware scan',
+          });
+        }
+      } catch (err) {
+        if (err instanceof AvScanUnavailableError) {
+          return reply.code(503).send({ error: 'malware scanner unavailable' });
+        }
+        throw err;
       }
 
       let upload;

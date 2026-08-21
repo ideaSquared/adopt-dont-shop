@@ -1,0 +1,61 @@
+{
+  "name": "@adopt-dont-shop/lib.av-scan",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "description": "ClamAV-backed malware scanning for upload chokepoints",
+  "type": "module",
+  "main": "dist/index.js",
+  "sideEffects": false,
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json}\"",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "pnpm clean && pnpm build"
+  },
+  "keywords": [
+    "pet-adoption",
+    "library",
+    "typescript"
+  ],
+  "author": "Adopt Don't Shop Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
+    "@types/node": "^26.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ParagonJenko/pet-adoption-react.git",
+    "directory": "lib.av-scan"
+  },
+  "bugs": {
+    "url": "https://github.com/ParagonJenko/pet-adoption-react/issues"
+  },
+  "homepage": "https://github.com/ParagonJenko/pet-adoption-react/tree/main/lib.av-scan#readme"
+}

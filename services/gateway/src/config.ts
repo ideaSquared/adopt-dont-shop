@@ -68,6 +68,20 @@ export type GatewayConfig = {
     // else that wants to mint a signed URL.
     signingSecret?: string;
   };
+  // clamd (ClamAV daemon) AV-scan chokepoint (ADS-1241 / ADS-848 step 3).
+  // Every upload's bytes are scanned via @adopt-dont-shop/lib.av-scan
+  // before they reach storage. host/port default to the docker-compose
+  // service name + clamd's standard port, mirroring the *GrpcUrl defaults
+  // above.
+  avScan: {
+    host: string;
+    port: number;
+    // What to do when the scanner can't be reached: reject the upload
+    // (fail CLOSED, true) or let it through (fail OPEN, false).
+    // HARD-enforced true in production regardless of CLAMAV_FAIL_OPEN —
+    // see buildAvScanConfig.
+    failClosed: boolean;
+  };
   // Gateway-folded routes — per the plan's "small static reads fold
   // into service.gateway" guidance. Each block is independently
   // toggle-able so a deploy can roll out legal vs config separately.
@@ -175,6 +189,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     chatGrpcUrl: env.CHAT_GRPC_URL?.trim() || DEFAULT_CHAT_GRPC_URL,
     cmsGrpcUrl: env.CMS_GRPC_URL?.trim() || DEFAULT_CMS_GRPC_URL,
     storage: buildStorageConfig(env),
+    avScan: buildAvScanConfig(env, environment),
     legal: {
       enabled: env.GATEWAY_LEGAL_ENABLED?.trim().toLowerCase() !== 'false',
       docsDir: env.LEGAL_DOCS_DIR?.trim() || 'docs/legal',
@@ -304,6 +319,29 @@ function buildStorageConfig(env: NodeJS.ProcessEnv): GatewayConfig['storage'] {
     // (mirrors buildRateLimitConfig).
     maxFileSize: Number.isNaN(maxFileSize) || maxFileSize <= 0 ? 10485760 : maxFileSize,
     signingSecret: readOptionalSecret('UPLOAD_SIGNING_SECRET', env, 32),
+  };
+}
+
+const DEFAULT_CLAMAV_HOST = 'clamav';
+const DEFAULT_CLAMAV_PORT = 3310;
+
+// Build the AV-scan config block (ADS-1241 / ADS-848 step 3). host/port
+// default to the docker-compose service name + clamd's standard TCP port,
+// so no env override is needed in the dev/prod/staging compose files
+// (mirrors the *_GRPC_URL defaults above). failClosed governs what
+// scanBytes() does when clamd can't be reached: production HARD-enforces
+// true regardless of CLAMAV_FAIL_OPEN — an unreachable scanner must never
+// silently let a file through in prod. Other environments read
+// CLAMAV_FAIL_OPEN so a local/dev box without clamd running doesn't have
+// every upload rejected.
+function buildAvScanConfig(env: NodeJS.ProcessEnv, environment: string): GatewayConfig['avScan'] {
+  const failOpen = isEnabled(env.CLAMAV_FAIL_OPEN) && environment !== 'production';
+  const portRaw = env.CLAMAV_PORT?.trim();
+  const port = portRaw ? Number.parseInt(portRaw, 10) : DEFAULT_CLAMAV_PORT;
+  return {
+    host: env.CLAMAV_HOST?.trim() || DEFAULT_CLAMAV_HOST,
+    port: Number.isNaN(port) || port <= 0 ? DEFAULT_CLAMAV_PORT : port,
+    failClosed: !failOpen,
   };
 }
 

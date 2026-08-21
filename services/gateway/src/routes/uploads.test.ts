@@ -2,9 +2,10 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { AvScanUnavailableError, type AvScanClient } from '@adopt-dont-shop/lib.av-scan';
 import Fastify, { type FastifyInstance } from 'fastify';
 import sharp from 'sharp';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   computeUploadSignature,
@@ -21,7 +22,17 @@ const makeJpeg = (width = 8, height = 8): Promise<Buffer> =>
     .jpeg()
     .toBuffer();
 
-async function buildApp(tmp: string, secret?: string): Promise<FastifyInstance> {
+// Default AV-scan stub: every route test below is exercising unrelated
+// behaviour, so scanning always passes unless a test overrides it
+// (ADS-1241 — the chokepoint's own pass/reject/unreachable branches are
+// covered separately below).
+const CLEAN_SCAN: AvScanClient = { scanBytes: async () => ({ clean: true }) };
+
+async function buildApp(
+  tmp: string,
+  secret?: string,
+  avScan: AvScanClient = CLEAN_SCAN
+): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   const { default: multipart } = await import('@fastify/multipart');
   await app.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
@@ -32,6 +43,7 @@ async function buildApp(tmp: string, secret?: string): Promise<FastifyInstance> 
       s3: {},
     },
     signingSecret: secret,
+    avScan,
   });
   return app;
 }
@@ -244,6 +256,7 @@ describe('POST /api/v1/uploads/images', () => {
     await registerUploadsRoutes(app, {
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: SECRET,
+      avScan: CLEAN_SCAN,
     });
 
     const boundary = 'b9';
@@ -275,6 +288,75 @@ describe('POST /api/v1/uploads/images', () => {
     });
 
     expect(res.statusCode).toBe(401);
+    expect(existsSync(join(tmp, 'pets'))).toBe(false);
+  });
+
+  it('scans the uploaded bytes before writing to storage (ADS-1241)', async () => {
+    await app.close();
+    const scanBytes = vi.fn().mockResolvedValue({ clean: true });
+    app = await buildApp(tmp, SECRET, { scanBytes });
+
+    const boundary = 'b-scan-clean';
+    const jpeg = await makeJpeg();
+    const body = multipartBody(boundary, jpeg, 'cat.jpg', 'image/jpeg');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(scanBytes).toHaveBeenCalledWith(jpeg);
+  });
+
+  it('rejects an infected upload with 422 and writes nothing to storage (ADS-1241)', async () => {
+    await app.close();
+    const scanBytes = vi
+      .fn()
+      .mockResolvedValue({ clean: false, signature: 'Win.Test.EICAR_HDB-1' });
+    app = await buildApp(tmp, SECRET, { scanBytes });
+
+    const boundary = 'b-scan-infected';
+    const body = multipartBody(boundary, await makeJpeg(), 'cat.jpg', 'image/jpeg');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(422);
+    expect((res.json() as { error: string }).error).toContain('Win.Test.EICAR_HDB-1');
+    expect(existsSync(join(tmp, 'pets'))).toBe(false);
+  });
+
+  it('fails closed with 503 when the scanner is unreachable (ADS-1241)', async () => {
+    await app.close();
+    const scanBytes = vi
+      .fn()
+      .mockRejectedValue(new AvScanUnavailableError('AV scanner unreachable at clamav:3310'));
+    app = await buildApp(tmp, SECRET, { scanBytes });
+
+    const boundary = 'b-scan-unreachable';
+    const body = multipartBody(boundary, await makeJpeg(), 'cat.jpg', 'image/jpeg');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: {
+        'x-user-id': 'usr-1',
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(503);
     expect(existsSync(join(tmp, 'pets'))).toBe(false);
   });
 });

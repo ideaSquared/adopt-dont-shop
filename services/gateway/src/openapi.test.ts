@@ -33,6 +33,9 @@ const baseConfig: GatewayConfig = {
     s3: {},
     maxFileSize: 1_000_000,
   },
+  // ADS-1241: construction-only — this suite never exercises the upload
+  // routes' handlers, so scanBytes() is never actually invoked.
+  avScan: { host: '127.0.0.1', port: 3310, failClosed: true },
   legal: { enabled: false, docsDir: 'docs/legal' },
   config: { publicEnabled: false },
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },

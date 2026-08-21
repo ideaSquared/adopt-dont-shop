@@ -166,6 +166,28 @@ services:
       <<: *hc-infra-timing
       test: ['CMD-SHELL', 'redis-cli -a "$$(cat /run/secrets/redis_password)" ping | grep -q PONG']
 
+  # ClamAV daemon (clamd) — AV/malware scanning backend for uploads (ADS-1241
+  # / ADS-848 step 3). service-gateway streams every uploaded file's bytes to
+  # clamd over TCP (INSTREAM) via @adopt-dont-shop/lib.av-scan, in front of
+  # the storage write. Only needed once the gateway is up, so it's gated
+  # behind the same profiles as the services stack. First boot downloads the
+  # virus database via freshclam (can take a few minutes); clamav_data
+  # persists it across restarts so only the very first start pays that cost.
+  clamav:
+    profiles: ['services', 'full']
+    image: clamav/clamav:1.4@sha256:c3bfbf2a2c9abc1fc179e63832a9e8bfac901ede83853e3fa10acf6f1fb5c803
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3310:3310'
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ['CMD', 'clamdscan', '--ping', '1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
   # ============================================================================
   # LIB.TYPES WATCHER - Continuously compiles lib.types so the backend picks
   # up changes automatically via the workspace symlink (no manual rebuild)
@@ -456,6 +478,13 @@ services:
       # unless E2E_TOKEN_PEEK=true; the dependency is harmless when it's off.)
       database:
         condition: service_healthy
+      # ADS-1241: only `service_started`, not `service_healthy` — clamd's
+      # first-boot virus-DB download can take minutes, and the gateway's own
+      # failClosed/CLAMAV_FAIL_OPEN config already handles "scanner not
+      # ready yet" gracefully. Blocking gateway startup on clamd would fight
+      # that graceful-degradation design for no safety benefit.
+      clamav:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       <<: *hc-standard-timing
@@ -630,6 +659,7 @@ volumes:
   postgres_data:
   redis_data:
   nats_data:
+  clamav_data:
   lib_types_node_modules:
   loki_data:
   grafana_data:
