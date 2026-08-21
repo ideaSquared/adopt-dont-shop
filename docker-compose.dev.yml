@@ -80,6 +80,7 @@ x-dev-volumes: &dev-volumes
   - /app/packages/lib.applications/node_modules
   - /app/packages/lib.audit-logs/node_modules
   - /app/packages/lib.auth/node_modules
+  - /app/packages/lib.av-scan/node_modules
   - /app/packages/lib.chat/node_modules
   - /app/packages/lib.components/node_modules
   - /app/packages/lib.dev-tools/node_modules

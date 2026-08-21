@@ -30,6 +30,7 @@ import {
   registerMetrics,
   registerRequestId,
 } from '@adopt-dont-shop/observability';
+import { createAvScanClient } from '@adopt-dont-shop/lib.av-scan';
 import { registerReadinessRoute } from '@adopt-dont-shop/service-bootstrap';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
@@ -689,12 +690,18 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   void _ignoredMax;
   void _ignoredSecret;
 
+  // AV scan chokepoint (ADS-1241 / ADS-848 step 3) — a single clamd client
+  // shared by every upload route below. See @adopt-dont-shop/lib.av-scan's
+  // README for the scanBytes() contract and the fail-open/closed policy.
+  const avScanClient = createAvScanClient(config.avScan);
+
   // /api/v1/uploads/images — staged image upload. Pure gateway: bytes
   // go to @adopt-dont-shop/storage, no upstream service. The matching
   // signed-serve route mounts at /uploads-signed/* (also gateway-only).
   await registerUploadsRoutes(server, {
     storage: storageConfig,
     signingSecret: config.storage.signingSecret,
+    avScan: avScanClient,
   });
 
   if (opts.applicationsClient) {
@@ -714,6 +721,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       client: opts.applicationsClient,
       storage: storageConfig,
       signingSecret: config.storage.signingSecret,
+      avScan: avScanClient,
     });
   }
   if (opts.chatClient) {

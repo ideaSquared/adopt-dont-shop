@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { AvScanUnavailableError, type AvScanClient } from '@adopt-dont-shop/lib.av-scan';
 import { status as grpcStatus } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import sharp from 'sharp';
@@ -17,6 +18,10 @@ import {
 } from './application-documents.js';
 
 const SIGNING_SECRET = 'test-doc-signing-secret';
+
+// Default AV-scan stub: every route test below except the ADS-1241 block at
+// the end is exercising unrelated behaviour, so scanning always passes.
+const CLEAN_SCAN: AvScanClient = { scanBytes: async () => ({ clean: true }) };
 
 function makeClient(): {
   client: ApplicationsClient;
@@ -78,6 +83,7 @@ describe('application document routes', () => {
         s3: {},
       },
       signingSecret: SIGNING_SECRET,
+      avScan: CLEAN_SCAN,
     });
   });
 
@@ -158,6 +164,7 @@ describe('application document routes', () => {
       client: blockedClient,
       storage: { provider: 'local', local: { directory: blocker, publicPath: '/uploads' }, s3: {} },
       signingSecret: SIGNING_SECRET,
+      avScan: CLEAN_SCAN,
     });
 
     const boundary = 'b-storage-fail';
@@ -192,6 +199,7 @@ describe('application document routes', () => {
       client: smallLimitClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: SIGNING_SECRET,
+      avScan: CLEAN_SCAN,
     });
 
     const boundary = 'b-multipart-fail';
@@ -221,6 +229,7 @@ describe('application document routes', () => {
     await registerApplicationDocumentsRoutes(unsignedApp, {
       client: unsignedClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+      avScan: CLEAN_SCAN,
     });
 
     const boundary = 'b-no-secret';
@@ -246,6 +255,7 @@ describe('application document routes', () => {
       client: emptySecretClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: '',
+      avScan: CLEAN_SCAN,
     });
 
     const boundary = 'b-empty-secret';
@@ -316,6 +326,77 @@ describe('application document routes', () => {
     expect(existsSync(join(tmp, 'documents'))).toBe(false);
   });
 
+  it('POST → 422 rejects an infected document and writes nothing to storage (ADS-1241)', async () => {
+    const scanApp = Fastify({ logger: false });
+    const { default: multipart } = await import('@fastify/multipart');
+    await scanApp.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
+    const { client: scanClient, mocks: scanMocks } = makeClient();
+    const scanBytes = vi
+      .fn()
+      .mockResolvedValue({ clean: false, signature: 'Win.Test.EICAR_HDB-1' });
+    await registerApplicationDocumentsRoutes(scanApp, {
+      client: scanClient,
+      storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+      signingSecret: SIGNING_SECRET,
+      avScan: { scanBytes },
+    });
+
+    const boundary = 'b-scan-infected';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('%PDF-1.4 hello'),
+      'aaa.pdf',
+      'id_verification'
+    );
+    const res = await scanApp.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(422);
+    expect((res.json() as { error: string }).error).toContain('Win.Test.EICAR_HDB-1');
+    expect(scanMocks.addDocument).not.toHaveBeenCalled();
+    expect(existsSync(join(tmp, 'documents'))).toBe(false);
+    await scanApp.close();
+  });
+
+  it('POST → 503 fails closed when the scanner is unreachable (ADS-1241)', async () => {
+    const scanApp = Fastify({ logger: false });
+    const { default: multipart } = await import('@fastify/multipart');
+    await scanApp.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
+    const { client: scanClient, mocks: scanMocks } = makeClient();
+    const scanBytes = vi
+      .fn()
+      .mockRejectedValue(new AvScanUnavailableError('AV scanner unreachable at clamav:3310'));
+    await registerApplicationDocumentsRoutes(scanApp, {
+      client: scanClient,
+      storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+      signingSecret: SIGNING_SECRET,
+      avScan: { scanBytes },
+    });
+
+    const boundary = 'b-scan-unreachable';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('%PDF-1.4 hello'),
+      'aaa.pdf',
+      'id_verification'
+    );
+    const res = await scanApp.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(503);
+    expect(scanMocks.addDocument).not.toHaveBeenCalled();
+    expect(existsSync(join(tmp, 'documents'))).toBe(false);
+    await scanApp.close();
+  });
+
   it('GET /:id/documents returns { data: view[] } with a freshly-signed URL per document', async () => {
     mocks.listDocuments.mockResolvedValue({ documents: [DOC] });
     const res = await app.inject({
@@ -352,6 +433,7 @@ describe('application document routes', () => {
     await registerApplicationDocumentsRoutes(unsignedApp, {
       client: unsignedClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
+      avScan: CLEAN_SCAN,
     });
 
     const res = await unsignedApp.inject({
@@ -371,6 +453,7 @@ describe('application document routes', () => {
       client: emptySecretClient,
       storage: { provider: 'local', local: { directory: tmp, publicPath: '/uploads' }, s3: {} },
       signingSecret: '',
+      avScan: CLEAN_SCAN,
     });
 
     const res = await emptySecretApp.inject({

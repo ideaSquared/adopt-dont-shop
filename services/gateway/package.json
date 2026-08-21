@@ -39,6 +39,7 @@
   "dependencies": {
     "@adopt-dont-shop/config-secrets": "workspace:*",
     "@adopt-dont-shop/events": "workspace:*",
+    "@adopt-dont-shop/lib.av-scan": "workspace:*",
     "@adopt-dont-shop/observability": "workspace:*",
     "@adopt-dont-shop/proto": "workspace:*",
     "@adopt-dont-shop/service-bootstrap": "workspace:*",

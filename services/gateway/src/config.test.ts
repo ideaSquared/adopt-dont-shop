@@ -256,3 +256,43 @@ describe('loadConfig — CORS fail-closed in production/staging (ADS-967)', () =
     expect(() => loadConfig({})).not.toThrow();
   });
 });
+
+describe('loadConfig — AV scan (ADS-1241)', () => {
+  it('defaults host/port to the docker-compose clamav service + clamd standard port', () => {
+    const config = loadConfig({});
+    expect(config.avScan.host).toBe('clamav');
+    expect(config.avScan.port).toBe(3310);
+  });
+
+  it('honours CLAMAV_HOST / CLAMAV_PORT overrides', () => {
+    const config = loadConfig({ CLAMAV_HOST: 'clamav.internal', CLAMAV_PORT: '9310' });
+    expect(config.avScan.host).toBe('clamav.internal');
+    expect(config.avScan.port).toBe(9310);
+  });
+
+  it('falls back to the default port when CLAMAV_PORT is non-numeric or non-positive', () => {
+    expect(loadConfig({ CLAMAV_PORT: 'nope' }).avScan.port).toBe(3310);
+    expect(loadConfig({ CLAMAV_PORT: '0' }).avScan.port).toBe(3310);
+    expect(loadConfig({ CLAMAV_PORT: '-1' }).avScan.port).toBe(3310);
+  });
+
+  it('fails closed by default (CLAMAV_FAIL_OPEN unset)', () => {
+    expect(loadConfig({}).avScan.failClosed).toBe(true);
+  });
+
+  it('fails open outside production when CLAMAV_FAIL_OPEN=true', () => {
+    expect(loadConfig({ CLAMAV_FAIL_OPEN: 'true' }).avScan.failClosed).toBe(false);
+    expect(
+      loadConfig({ CLAMAV_FAIL_OPEN: 'true', NODE_ENV: 'development' }).avScan.failClosed
+    ).toBe(false);
+  });
+
+  it('HARD-enforces failClosed=true in production regardless of CLAMAV_FAIL_OPEN', () => {
+    const config = loadConfig({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://adoptdontshop.com',
+      CLAMAV_FAIL_OPEN: 'true',
+    });
+    expect(config.avScan.failClosed).toBe(true);
+  });
+});

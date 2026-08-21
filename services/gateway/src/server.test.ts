@@ -26,6 +26,9 @@ const baseConfig: GatewayConfig = {
     s3: {},
     maxFileSize: 1_000_000,
   },
+  // ADS-1241: construction-only — no test in this suite exercises the
+  // upload routes, so scanBytes() is never actually invoked.
+  avScan: { host: '127.0.0.1', port: 3310, failClosed: true },
   // Gateway-folded surfaces — disabled by default in tests; specific
   // suites that exercise them flip the flag (and pass docsDir) inline.
   legal: { enabled: false, docsDir: 'docs/legal' },

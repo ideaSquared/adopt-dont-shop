@@ -19,6 +19,7 @@ export function getLibraryAliases(appDir: string, mode: string) {
     '@adopt-dont-shop/lib.applications': resolve(appDir, '../../packages/lib.applications/src'),
     '@adopt-dont-shop/lib.audit-logs': resolve(appDir, '../../packages/lib.audit-logs/src'),
     '@adopt-dont-shop/lib.auth': resolve(appDir, '../../packages/lib.auth/src'),
+    '@adopt-dont-shop/lib.av-scan': resolve(appDir, '../../packages/lib.av-scan/src'),
     '@adopt-dont-shop/lib.chat': resolve(appDir, '../../packages/lib.chat/src'),
     '@adopt-dont-shop/lib.dev-tools': resolve(appDir, '../../packages/lib.dev-tools/src'),
     '@adopt-dont-shop/lib.discovery': resolve(appDir, '../../packages/lib.discovery/src'),

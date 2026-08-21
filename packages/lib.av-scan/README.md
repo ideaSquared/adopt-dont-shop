@@ -1,0 +1,96 @@
+# @adopt-dont-shop/lib.av-scan
+
+ClamAV-backed malware scanning for upload chokepoints.
+
+## Purpose
+
+A small clamd (ClamAV daemon) client used to scan uploaded file bytes for
+malware before they reach storage. It implements clamd's INSTREAM TCP
+protocol directly (no third-party clamd client dependency) behind a single
+`scanBytes(buffer)` call. Consumed by `service.gateway`'s upload routes
+(`/api/v1/uploads/images` and `/api/v1/applications/:id/documents`) — this
+is a service-only consumer, not a `lib.*` in the "imported by the apps"
+sense described in [`CONTRIBUTING.md`](../../CONTRIBUTING.md#where-does-my-code-go);
+it is scaffolded and named as a `lib.*` package (via `pnpm new-lib`) per
+ADS-1241 rather than as a bare `packages/<shared>` package.
+
+## Location in the architecture
+
+See [`docs/README.md`](../../docs/README.md#libraries) for where shared
+packages sit generally. This package sits in front of
+`@adopt-dont-shop/storage` in the upload path:
+
+```
+multipart upload → magic-byte + image-bomb checks (ADS-848 steps 1-2)
+  → lib.av-scan.scanBytes()  (ADS-848 step 3 / ADS-1241)
+    → @adopt-dont-shop/storage.uploadFile()
+```
+
+## Scripts
+
+```bash
+pnpm dev          # build --watch
+pnpm build        # production build
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
+```
+
+## Public API / exports
+
+The canonical list lives in [`src/index.ts`](src/index.ts):
+
+- `createAvScanClient(config: AvScanConfig, deps?): AvScanClient` — config-injected
+  factory, mirrors `@adopt-dont-shop/storage`'s `createStorageProvider(config)` shape.
+  `deps.sendInstream` is an injectable transport seam (defaults to the real TCP
+  implementation) so consumers — and this package's own tests — never need a
+  live clamd.
+- `AvScanClient.scanBytes(buffer: Buffer): Promise<ScanResult>` — `ScanResult` is
+  `{ clean: boolean; signature?: string }`. Rejects with `AvScanUnavailableError`
+  when the scanner can't be reached (or returns something other than a clean
+  OK/FOUND verdict) and `config.failClosed` is not explicitly `false`.
+- `AvScanUnavailableError` — thrown by `scanBytes()` per the fail-closed policy
+  above; callers (e.g. the gateway routes) catch this to return the right HTTP
+  status.
+- `defaultSendInstream` — the real `node:net` INSTREAM implementation, exported
+  so consumers can pass it explicitly if they ever need to (tests normally
+  inject a fake instead).
+
+```typescript
+import { createAvScanClient, AvScanUnavailableError } from '@adopt-dont-shop/lib.av-scan';
+
+const avScan = createAvScanClient({ host: 'clamav', port: 3310, failClosed: true });
+
+try {
+  const result = await avScan.scanBytes(fileBuffer);
+  if (!result.clean) {
+    // reject the upload — result.signature names the match
+  }
+} catch (err) {
+  if (err instanceof AvScanUnavailableError) {
+    // scanner unreachable and failClosed — reject the upload
+  }
+  throw err;
+}
+```
+
+## Environment variables consumed
+
+None directly — configuration (`host`, `port`, `timeoutMs`, `failClosed`) is
+passed in via `AvScanConfig` by the caller. `service.gateway` is the only
+current consumer; it reads `CLAMAV_HOST` / `CLAMAV_PORT` / `CLAMAV_FAIL_OPEN`
+itself and builds the config (see `services/gateway/src/config.ts`).
+
+## Testing notes
+
+Every test injects a fake `sendInstream` (or, in `protocol.test.ts`, talks to
+a minimal in-process fake TCP server that speaks the real wire framing) —
+nothing in this package's test suite requires a live ClamAV daemon (ADS-1241).
+`client.test.ts` covers the clean / infected / unreachable-fails-closed /
+unreachable-fails-open (dev) branches; `protocol.test.ts` covers the real
+`node:net` chunk framing and response parsing against a fake server.
+
+## Ownership
+
+See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
+`/packages/`.
