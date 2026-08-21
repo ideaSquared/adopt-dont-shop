@@ -96,12 +96,13 @@ ENCRYPTION_KEY=64_CHAR_HEX_STRING_FOR_ENCRYPTION
 
 #### Required for Production
 
-| Secret               | Purpose                | How to Generate           |
-| -------------------- | ---------------------- | ------------------------- |
-| `JWT_REFRESH_SECRET` | Sign refresh tokens    | `openssl rand -base64 32` |
-| `SESSION_SECRET`     | Encrypt sessions       | `openssl rand -base64 32` |
-| `ENCRYPTION_KEY`     | Encrypt sensitive data | `openssl rand -hex 32`    |
-| `REDIS_PASSWORD`     | Redis authentication   | `openssl rand -base64 32` |
+| Secret                  | Purpose                                       | How to Generate           |
+| ----------------------- | --------------------------------------------- | ------------------------- |
+| `JWT_REFRESH_SECRET`    | Sign refresh tokens                           | `openssl rand -base64 32` |
+| `SESSION_SECRET`        | Encrypt sessions                              | `openssl rand -base64 32` |
+| `ENCRYPTION_KEY`        | Encrypt sensitive data                        | `openssl rand -hex 32`    |
+| `REDIS_PASSWORD`        | Redis authentication                          | `openssl rand -base64 32` |
+| `PRINCIPAL_SIGNING_KEY` | Sign internal gRPC principal tokens (ADS-800) | `openssl rand -base64 32` |
 
 #### Optional (Third-Party Services)
 

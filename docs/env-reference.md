@@ -68,8 +68,9 @@ DB_SSL_MODE=disable
 
 Beyond the auto-generated block (`JWT_SECRET`, `JWT_REFRESH_SECRET`,
 `SESSION_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`,
-`JWT_REPORT_SHARE_SECRET`, `REDIS_PASSWORD`, `GF_SECURITY_ADMIN_PASSWORD` —
-all in `.env.example`, all filled in by `pnpm bootstrap` / `pnpm secrets:generate`):
+`PRINCIPAL_SIGNING_KEY`, `JWT_REPORT_SHARE_SECRET`, `REDIS_PASSWORD`,
+`GF_SECURITY_ADMIN_PASSWORD` — all in `.env.example`, all filled in by
+`pnpm bootstrap` / `pnpm secrets:generate`):
 
 ```env
 JWT_EXPIRES_IN=1h
@@ -78,14 +79,6 @@ JWT_REFRESH_EXPIRES_IN=7d
 # bcrypt cost factor. 12 is the production minimum (validate-env warns
 # below it). Lower values speed up test/dev login flows; never set below 10.
 BCRYPT_ROUNDS=12
-
-# Internal gRPC Principal Signing Key (ADS-800). Shared HMAC key for the
-# signed x-principal-token the gateway stamps on every downstream gRPC
-# call. When set, services REQUIRE a valid token and take the principal
-# from it — forged x-user-* metadata headers lose. When unset, the legacy
-# header-trust behaviour applies (phased rollout). Must be the SAME value
-# for the gateway and every gRPC service. Generate with: openssl rand -hex 32
-#PRINCIPAL_SIGNING_KEY=
 ```
 
 `ENCRYPTION_KEY` must be exactly 64 hex characters (32 bytes) for AES-256 —
@@ -93,6 +86,14 @@ BCRYPT_ROUNDS=12
 `UPLOAD_SIGNING_SECRET` (ADS-542) is a dedicated HMAC key for short-lived
 `/uploads-signed/*` URLs — required in production (min 32 chars), kept
 distinct from `JWT_SECRET` so a compromise of one doesn't forge the other.
+`PRINCIPAL_SIGNING_KEY` (ADS-800) is a shared HMAC key for the signed
+`x-principal-token` the gateway stamps on every downstream gRPC call — when
+set, services REQUIRE a valid token and take the principal from it, so a
+forged `x-user-*` header can't win. Optional in development/test only (the
+legacy header-trust fallback); required everywhere else — the service
+refuses to boot without it outside development/test (ADS-1050), and
+`pnpm secrets:generate` / `pnpm bootstrap` now generate it by default
+(ADS-1237). Must be the SAME value for the gateway and every gRPC service.
 
 ## Redis
 
