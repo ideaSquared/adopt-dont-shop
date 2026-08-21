@@ -85,11 +85,14 @@ x-healthcheck-infra: &hc-infra-timing
   timeout: 5s
   retries: 5
 
+# ADS-1236: services now probe /health/ready (DB/NATS/Redis), not just
+# liveness, so start_period is bumped 60s->90s to give migrations plus the
+# first successful dependency probe room before failures count toward retries.
 x-healthcheck-service: &hc-service-timing
   interval: 30s
   timeout: 10s
   retries: 3
-  start_period: 60s
+  start_period: 90s
 
 # Every app-* container (nginx serving a built SPA) shares this exact
 # hardened shape — only image/container_name differ per app.
@@ -262,7 +265,7 @@ services:
       - "4000"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/ready']
     # The gateway only needs NATS + the downstream services; it has no DB.
     depends_on:
       nats:
@@ -291,7 +294,7 @@ services:
       - "5002"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/ready']
 
   service-notifications:
     <<: *service-common
@@ -303,7 +306,7 @@ services:
       - "5001"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/ready']
 
   service-pets:
     <<: *service-common
@@ -315,7 +318,7 @@ services:
       - "5003"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/ready']
 
   service-rescue:
     <<: *service-common
@@ -327,7 +330,7 @@ services:
       - "5004"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/ready']
 
   service-applications:
     <<: *service-common
@@ -340,7 +343,7 @@ services:
       - "5005"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/ready']
 
   service-chat:
     <<: *service-common
@@ -352,7 +355,7 @@ services:
       - "5006"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/ready']
 
   service-moderation:
     <<: *service-common
@@ -364,7 +367,7 @@ services:
       - "5007"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/ready']
 
   service-matching:
     <<: *service-common
@@ -377,7 +380,7 @@ services:
       - "5008"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/ready']
 
   service-audit:
     <<: *service-common
@@ -389,7 +392,7 @@ services:
       - "5009"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/ready']
 
   service-cms:
     <<: *service-common
@@ -401,7 +404,7 @@ services:
       - "5010"
     healthcheck:
       <<: *hc-service-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/ready']
 
   app-client:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${APP_CLIENT_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
