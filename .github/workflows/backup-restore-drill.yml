@@ -1,0 +1,138 @@
+name: Backup Restore Drill
+
+# Automated restore-verification drill (ADS-1240 / ADR 0007 Phase 1). Backups
+# are logical-only (see backup.yml / ADS-811); until now the only proof a
+# snapshot was restorable was a "dump is > 1 KiB" size check in
+# scripts/snapshot-postgres.sh, and the actual restore path was rehearsed only
+# by a manual quarterly staging drill (docs/db-backup-runbook.md). A backup
+# that has never been restored is not a proven backup.
+#
+# This job pulls the latest Postgres snapshot backup.yml uploaded, restores it
+# into a disposable scratch Postgres via scripts/restore-postgres.sh — the
+# same script the manual runbook uses, reused as-is, not reimplemented — and
+# asserts the restore actually loaded data. It runs nightly, shortly after
+# backup.yml's 02:00 UTC snapshot has had time to upload.
+#
+# This automates the mechanical "does the dump restore and load data?"
+# question every night; it does not replace the quarterly staging drill
+# (docs/db-backup-runbook.md#quarterly-restore-drill-staging), which also
+# exercises repointing the app and records a measured RTO.
+#
+# Scope note: this restores Postgres only. Point-in-time recovery (continuous
+# WAL archiving, tightening the ~24h RPO) is intentionally NOT implemented
+# here — see "Point-in-time recovery (PITR)" in docs/db-backup-runbook.md and
+# ADR 0007 (docs/adr/0007-postgres-backups-pitr-restore.md) for that open
+# decision.
+#
+# No AWS keys flow through backup.yml (the Hetzner host's own credentials
+# authorise its S3 upload), but this job runs directly on a GitHub-hosted
+# runner with no host to borrow credentials from, so it needs its own
+# AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY repo secrets (read-only S3 access
+# is sufficient). The job no-ops cleanly — rather than failing — when those
+# secrets are absent (e.g. on a fork): `jobs.<job_id>.if` cannot reference the
+# `secrets` context directly (only github/needs/vars/inputs are available
+# there — referencing secrets there is a workflow parse error), so the guard
+# step below copies the secrets into job env (a context steps.*.if CAN read)
+# and every credential-dependent step is gated on its output.
+
+on:
+  schedule:
+    - cron: '30 3 * * *' # after backup.yml's 02:00 UTC snapshot has uploaded
+  workflow_dispatch: {}
+
+concurrency:
+  group: backup-restore-drill
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  restore-drill:
+    name: Restore latest Postgres snapshot into a scratch DB
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      # scripts/restore-postgres.sh drives Postgres via `docker compose exec`,
+      # so the drill stands up the same `database` service the dev stack
+      # already defines (docker-compose.yml at repo root) rather than
+      # reimplementing that plumbing — COMPOSE_FILE is the env var the script
+      # already supports for pointing at a non-default compose file.
+      COMPOSE_FILE: docker-compose.yml
+      POSTGRES_USER: adopt_user
+      TARGET_DB: restore_drill
+      # Dummy values purely to satisfy docker-compose.yml's whole-file
+      # variable interpolation — Compose resolves every service's env block
+      # up front (even `docker compose down`/`exec`), not just the service(s)
+      # targeted by `up`. grafana/service-auth are never started here, so
+      # these are never read; POSTGRES_PASSWORD is real but scratch-only.
+      GF_SECURITY_ADMIN_PASSWORD: ci-restore-drill-unused
+      JWT_SECRET: ci-restore-drill-unused
+      JWT_REFRESH_SECRET: ci-restore-drill-unused
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+      POSTGRES_PASSWORD: ci-restore-drill-scratch
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Check AWS credentials are configured
+        id: guard
+        run: |
+          if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY repo secrets are not configured — skipping the restore drill (expected on forks, or before the secrets are provisioned)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Start scratch Postgres + provision target DB
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          : "${BACKUP_BUCKET:?BACKUP_BUCKET not configured (repo variable)}"
+          : "${AWS_REGION:?AWS_REGION not configured (repo variable)}"
+          docker compose -f "$COMPOSE_FILE" up -d --wait database
+          docker compose -f "$COMPOSE_FILE" exec -T database \
+            createdb -U "$POSTGRES_USER" "$TARGET_DB"
+
+      - name: Find latest Postgres snapshot in S3
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          KEY="$(aws s3 ls "s3://${BACKUP_BUCKET}/postgres/" --recursive --region "$AWS_REGION" \
+            | sort | tail -n1 | awk '{print $4}')"
+          : "${KEY:?No postgres/ snapshot found under s3://$BACKUP_BUCKET — has backup.yml run yet?}"
+          echo "Restoring s3://${BACKUP_BUCKET}/${KEY}"
+          echo "S3_KEY=${KEY}" >> "$GITHUB_ENV"
+
+      - name: Restore latest snapshot (scripts/restore-postgres.sh)
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          chmod +x scripts/restore-postgres.sh
+          ./scripts/restore-postgres.sh
+
+      - name: Assert restore loaded data (auth.users has rows)
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          COUNT="$(docker compose -f "$COMPOSE_FILE" exec -T database \
+            psql -U "$POSTGRES_USER" -d "$TARGET_DB" -tAc 'select count(*) from auth.users;' \
+            | tr -d '[:space:]')"
+          echo "auth.users row count: ${COUNT:-0}"
+          # Validate COUNT is a plain digit string before the numeric `-lt`
+          # comparison — guards against a false "pass" if psql ever printed
+          # something unexpected instead of erroring outright.
+          if [[ ! "$COUNT" =~ ^[0-9]+$ || "$COUNT" -lt 1 ]]; then
+            echo "::error::Restore drill failed the smoke check — auth.users has ${COUNT:-0} rows, expected >= 1"
+            exit 1
+          fi
+          echo "Restore drill passed — ${S3_KEY} restores cleanly and loads data."
+
+      - name: Tear down scratch Postgres
+        if: always() && steps.guard.outputs.ready == 'true'
+        run: docker compose -f "$COMPOSE_FILE" down -v

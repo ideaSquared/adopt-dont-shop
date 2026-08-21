@@ -1,4 +1,4 @@
-# Database Backup & Restore Runbook (ADS-443, ADS-811)
+# Database Backup & Restore Runbook (ADS-443, ADS-811, ADS-1240)
 
 This runbook covers how the Adopt Don't Shop production PostgreSQL database is
 backed up, how to restore it, and the drill cadence required to keep that
@@ -10,7 +10,9 @@ The two scripts that implement this runbook live under `scripts/`:
   date-stamped `pg_dump` piped through `gzip -9`, uploaded to S3.
 - [`scripts/restore-postgres.sh`](../scripts/restore-postgres.sh) — pulls a
   snapshot from S3 (or a local file) and replays it with `psql`, gated by a
-  destructive-action confirmation.
+  destructive-action confirmation. Reused unmodified, nightly, by the
+  automated restore drill below — it isn't only an operator's manual tool
+  anymore.
 
 > The old `service.backend/scripts/db-backup.sh` / `db-restore.sh` referenced
 > by earlier revisions of this runbook **no longer exist** — that backend was
@@ -35,6 +37,12 @@ closes that gap.
 These are the targets for a logical-dump strategy. Tighter RPO (minutes) needs
 streaming replication / PITR — out of scope here, tracked under ADS-443.
 
+**Open decision**: whether to invest in PITR (continuous WAL archiving via
+pgBackRest, per [ADR 0007](./adr/0007-postgres-backups-pitr-restore.md)) or
+accept the ~24h RPO above as the standing target is not yet decided — this is
+documentation of the tradeoff, not an implementation. ADR 0007 lays out the
+options; nothing in this repo currently archives WAL.
+
 ## What gets backed up
 
 - **In scope**: the application database (schema + data) — the `database`
@@ -51,13 +59,21 @@ streaming replication / PITR — out of scope here, tracked under ADS-443.
 | ------------------------- | --------------------------- | ------------------------------- |
 | Nightly automated dump    | Daily 02:00 UTC             | 30 days off-site (S3 lifecycle) |
 | Pre-migration manual dump | Before every prod migration | 30 days off-site                |
-| Restore drill             | Quarterly (staging)         | Drill log retained 1 year       |
+| Automated restore drill   | Daily 03:30 UTC             | N/A — a CI job, not a snapshot  |
+| Quarterly restore drill   | Quarterly (staging)         | Drill log retained 1 year       |
 
 Nightly dumps run via the [`backup.yml`](../.github/workflows/backup.yml)
 scheduled workflow (cron `0 2 * * *`), which SSHes to the prod host and runs
 `snapshot-postgres.sh`. The S3 bucket's lifecycle rule sets the 30-day off-site
 retention — **not** the script. A host cron entry is documented as an
 alternative in the [snapshot policy](./operations/snapshot-policy.md).
+
+The automated restore drill runs via
+[`backup-restore-drill.yml`](../.github/workflows/backup-restore-drill.yml)
+(cron `30 3 * * *`) — see "Automated nightly restore verification" below. It
+proves every night's dump actually restores; it does not replace the
+quarterly staging drill, which additionally exercises repointing the app and
+records a measured RTO.
 
 ## S3 layout
 
@@ -164,10 +180,43 @@ For an in-place restore after a migration disaster, **stop the writing
 services first** (otherwise concurrent writes collide with the restore), then
 run with `TARGET_DB=$POSTGRES_DB CONFIRM_RESTORE=I_UNDERSTAND`.
 
+## Automated nightly restore verification
+
+A backup you have never restored is a backup you do not have. Restoring is no
+longer only a manual, quarterly exercise: the
+[`backup-restore-drill.yml`](../.github/workflows/backup-restore-drill.yml)
+workflow runs every night (`30 3 * * *`, shortly after the 02:00 snapshot has
+had time to upload) and, unattended:
+
+1. Starts a disposable scratch Postgres (the same `database` service
+   `docker-compose.yml` already defines).
+2. Finds the newest object under `s3://${BACKUP_BUCKET}/postgres/` (the same
+   `aws s3 ls | sort | tail -n1` lookup documented above).
+3. Restores it into a scratch database with `restore-postgres.sh` — reused
+   as-is, the same script an operator runs by hand.
+4. Asserts the restore actually loaded data (`select count(*) from
+auth.users` must return at least one row) and fails the run loudly
+   (`::error::`) if it doesn't.
+5. Tears the scratch DB down.
+
+This replaces the old "dump is > 1 KiB" size heuristic
+(`scripts/snapshot-postgres.sh`) as the real restorability signal, and means
+every snapshot is proven to restore within hours of being taken instead of
+only once a quarter. It requires its own `AWS_ACCESS_KEY_ID` /
+`AWS_SECRET_ACCESS_KEY` repo secrets (read-only S3 access is enough) because,
+unlike `backup.yml`, it runs directly on a GitHub-hosted runner rather than
+SSHing to the prod host to borrow the host's own credentials; the job no-ops
+(skips, doesn't fail) when those secrets aren't configured, e.g. on a fork.
+
+What it does **not** replace: repointing a real app at the restored data,
+measuring RTO against the target above in a prod-like environment, and a
+recorded drill log. That remains the quarterly staging drill below.
+
 ## Quarterly restore drill (staging)
 
-A backup you have never restored is a backup you do not have. We **cannot**
-prove the path against production live — instead we rehearse it in **staging**
+The automated nightly job above proves the mechanical restore path; it
+cannot prove the full disaster-recovery story end-to-end. We **cannot** prove
+that against production live either — instead we rehearse it in **staging**
 each quarter:
 
 1. Pick a snapshot at random from the last 30 days of production backups.
