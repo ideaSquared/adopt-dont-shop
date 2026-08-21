@@ -92,6 +92,15 @@ export const envBaseSchema = z.object({
   // production-only check below upgrades the missing case to an error.
   UPLOAD_SIGNING_SECRET: optionalSecretField('UPLOAD_SIGNING_SECRET'),
 
+  // ADS-800/ADS-1237: shared HMAC key that signs internal gRPC principal
+  // tokens, so a receiving service verifies the caller's identity instead of
+  // trusting spoofable x-user-* headers. Optional here (and in dev/test,
+  // where the legacy header-trust fallback is intentional); the
+  // production-only check below upgrades the missing case to an error, and
+  // the service-bootstrap boot guard (assertPrincipalVerificationConfig)
+  // refuses to start any deployed service without it.
+  PRINCIPAL_SIGNING_KEY: optionalSecretField('PRINCIPAL_SIGNING_KEY'),
+
   // Optional in all envs
   REDIS_URL: z.string().url().optional(),
   // ADS-886: Redis --requirepass value (docker-compose.yml, ADS-878/ADS-886
@@ -262,6 +271,19 @@ const productionOnlyCheck = (env: EnvMap): ValidationIssue[] => {
       path: 'UPLOAD_SIGNING_SECRET',
       message:
         'UPLOAD_SIGNING_SECRET is required in production. Generate with: pnpm secrets:generate',
+      level: 'error',
+    });
+  }
+
+  // ADS-800/ADS-1237: PRINCIPAL_SIGNING_KEY is required in production.
+  // Without it, every service falls back to trusting unsigned x-user-*
+  // headers — anything that can reach it could forge an internal principal
+  // (e.g. x-user-roles: admin).
+  if (!env.PRINCIPAL_SIGNING_KEY) {
+    issues.push({
+      path: 'PRINCIPAL_SIGNING_KEY',
+      message:
+        'PRINCIPAL_SIGNING_KEY is required in production. Generate with: pnpm secrets:generate',
       level: 'error',
     });
   }

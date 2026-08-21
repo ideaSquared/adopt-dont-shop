@@ -74,8 +74,16 @@ is cryptographically verified:
   the token payload** — the `x-user-*` headers become informational, so a
   forged header can no longer win. A missing, malformed, tampered, or
   expired token maps to gRPC `UNAUTHENTICATED`.
-- **Rollout.** The key is optional on both sides. Key unset on a service →
-  legacy header trust (unchanged). Key set on a service but not on the
+- **Rollout.** The key is optional in development/test only — legacy header
+  trust applies there when it's unset. Every other environment (staging,
+  production, or anything unrecognised) now **fails closed at boot** when the
+  key is absent: `assertPrincipalVerificationConfig`
+  ([`packages/service-bootstrap/src/principal.ts`](../../packages/service-bootstrap/src/principal.ts))
+  refuses to start the gRPC listener, so a deployed service can no longer
+  silently fall back to header trust (ADS-1050). The shared env schema
+  (`packages/lib.validation/src/schemas/env.ts`) and `pnpm secrets:generate` /
+  `pnpm bootstrap` enforce and provision the key the same way as every other
+  production-required secret (ADS-1237). Key set on a service but not on the
   gateway → that service rejects all authenticated traffic with
   `UNAUTHENTICATED`, so deploy the key to the **signers (gateway,
   notifications) first**, then to the verifiers. The dev compose passes
@@ -98,10 +106,12 @@ is cryptographically verified:
 
 **What the current model does NOT prevent:**
 
-- Without `PRINCIPAL_SIGNING_KEY` deployed (legacy mode), any process that
-  can reach the internal Docker bridge network can open a gRPC connection to
-  any service and supply arbitrary `x-user-*` metadata and impersonate any
-  user or service principal.
+- In development/test, where `PRINCIPAL_SIGNING_KEY` is optional (legacy
+  mode), any process that can reach the internal Docker bridge network can
+  open a gRPC connection to any service and supply arbitrary `x-user-*`
+  metadata and impersonate any user or service principal. Every deployed
+  environment (staging, production) refuses to boot without the key
+  (ADS-1050), so this gap does not reach production.
 - Traffic is still HTTP/2 cleartext — an attacker who can sniff the internal
   network can read payloads and capture a valid token for replay within its
   TTL. There is no certificate check or channel binding at the gRPC layer;
@@ -122,8 +132,8 @@ accessible from outside the Docker network without going through nginx.
 
 **Accepted risk:**
 
-The remaining posture (cleartext channel; header trust where the key is not
-yet deployed) is accepted on the basis that:
+The remaining posture (cleartext channel; header trust in development/test,
+where the key is intentionally optional) is accepted on the basis that:
 
 - The Docker internal network is not publicly routable.
 - No gRPC port is exposed on a host interface in any environment (dev or
@@ -139,6 +149,13 @@ current deployment scale and is tracked for remediation.
 - **Done (ADS-800):** signed principal tokens — header forgery on the
   internal network is mitigated wherever `PRINCIPAL_SIGNING_KEY` is
   deployed (see above).
+- **Done (ADS-1050):** boot-time enforcement — every service refuses to
+  start outside development/test when `PRINCIPAL_SIGNING_KEY` is absent, so
+  header-trust fallback can no longer reach a deployed environment.
+- **Done (ADS-1237):** tooling closure — `pnpm secrets:generate` /
+  `pnpm bootstrap` provision the key by default, and the shared env schema
+  (`packages/lib.validation/src/schemas/env.ts`) requires it in
+  production/staging, matching every other production-required secret.
 - **Future work:** mutual TLS (mTLS) on all inter-service gRPC channels for
   encryption-in-transit and channel-level peer authentication. Once that
   lands:

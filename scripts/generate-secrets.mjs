@@ -19,6 +19,7 @@ export const SECRET_KEYS = [
   'SESSION_SECRET',
   'ENCRYPTION_KEY',
   'UPLOAD_SIGNING_SECRET',
+  'PRINCIPAL_SIGNING_KEY',
   'JWT_REPORT_SHARE_SECRET',
   'POSTGRES_PASSWORD',
   'REDIS_PASSWORD',
@@ -56,6 +57,10 @@ export function generateSecretsBlock() {
     `SESSION_SECRET=${generateSecret('SESSION_SECRET')}`,
     `ENCRYPTION_KEY=${generateSecret('ENCRYPTION_KEY')}`,
     `UPLOAD_SIGNING_SECRET=${generateSecret('UPLOAD_SIGNING_SECRET')}`,
+    // ADS-800/ADS-1237: shared HMAC key for signed internal gRPC principal
+    // tokens. Optional in development/test; every other environment refuses
+    // to boot without it (packages/service-bootstrap/src/principal.ts).
+    `PRINCIPAL_SIGNING_KEY=${generateSecret('PRINCIPAL_SIGNING_KEY')}`,
     `JWT_REPORT_SHARE_SECRET=${generateSecret('JWT_REPORT_SHARE_SECRET')}`,
     '# Infra passwords are interpolated into DATABASE_URL / REDIS_URL, so they',
     '# use hex (URL-safe) rather than base64. Regenerate if leaked:',

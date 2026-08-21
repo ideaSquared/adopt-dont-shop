@@ -137,6 +137,7 @@ describe('DISTINCT_SECRET_PAIRS', () => {
 // behaviour that changed, not the whole validator.
 
 const UPLOAD_SECRET = 'U'.repeat(40);
+const PRINCIPAL_KEY = 'P'.repeat(40);
 const REPORT_SHARE_SECRET = 'R'.repeat(40);
 const SECOND_ENCRYPTION_KEY = 'fedcba9876543210'.repeat(4);
 
@@ -152,6 +153,7 @@ const validProdEnv = (): Record<string, string | undefined> => ({
   SESSION_SECRET: STRONG_SECRET_C,
   ENCRYPTION_KEY,
   UPLOAD_SIGNING_SECRET: UPLOAD_SECRET,
+  PRINCIPAL_SIGNING_KEY: PRINCIPAL_KEY,
   CORS_ORIGIN: 'https://app.example.com',
   FRONTEND_URL: 'https://app.example.com',
   RESCUE_FRONTEND_URL: 'https://rescue.example.com',
@@ -190,6 +192,13 @@ describe('validateEnv', () => {
       const result = validateEnv(validDevEnv());
       expect(result.ok).toBe(true);
       expect(result.errors).toEqual([]);
+    });
+
+    it('accepts a development env with PRINCIPAL_SIGNING_KEY unset (legacy header-trust)', () => {
+      const env = validDevEnv();
+      env.PRINCIPAL_SIGNING_KEY = undefined;
+      const result = validateEnv(env);
+      expect(result.ok).toBe(true);
     });
 
     it('returns ok for a test env with TEST_DB_NAME', () => {
@@ -374,6 +383,14 @@ describe('validateEnv', () => {
       const result = validateEnv(env);
       expect(errorPaths(result)).toContain('UPLOAD_SIGNING_SECRET');
       expect(errorMessages(result)).toContain('UPLOAD_SIGNING_SECRET is required in production');
+    });
+
+    it('errors when PRINCIPAL_SIGNING_KEY is missing in production', () => {
+      const env = validProdEnv();
+      env.PRINCIPAL_SIGNING_KEY = undefined;
+      const result = validateEnv(env);
+      expect(errorPaths(result)).toContain('PRINCIPAL_SIGNING_KEY');
+      expect(errorMessages(result)).toContain('PRINCIPAL_SIGNING_KEY is required in production');
     });
 
     it('errors when STATSIG_SERVER_SECRET_KEY is missing in production', () => {
