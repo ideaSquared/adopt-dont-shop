@@ -1,4 +1,4 @@
-# Volume Backup & Snapshot Policy [ADS-500]
+# Volume Backup & Snapshot Policy [ADS-500, ADS-1239]
 
 This document captures the snapshot policy for the production stack. The
 production `docker-compose.prod.yml` declares three persistent stores; each
@@ -28,7 +28,13 @@ production stack. The script:
    pruning must be configured on the `postgres/` prefix — S3 lifecycle rules
    cannot filter by user-metadata, so the metadata is descriptive only.
 
-### Cron snippet
+Runs automatically every night via the
+[`backup.yml`](../../.github/workflows/backup.yml) scheduled workflow (cron
+`0 2 * * *`), which SSHes to the prod host and runs the script — see
+[db-backup-runbook.md](../db-backup-runbook.md) for the operational detail.
+The host-cron snippet below is a documented alternative, not the live path.
+
+### Cron snippet (alternative to the `backup.yml` automation above)
 
 Daily at 02:00 UTC, hourly WAL is out of scope (see ADS-443 for streaming
 replication / PITR design).
@@ -53,7 +59,12 @@ Once the file-upload service is migrated to S3 directly (tracked separately),
 this script becomes obsolete and the bucket itself is the system of record;
 versioning + lifecycle policies replace daily snapshots.
 
-### Cron snippet
+Like the Postgres snapshot, this now runs automatically every night via the
+`snapshot-uploads` job in [`backup.yml`](../../.github/workflows/backup.yml)
+(ADS-1239, cron `0 2 * * *`) — previously this script was not wired into any
+workflow. The host-cron snippet below remains a documented alternative.
+
+### Cron snippet (alternative to the `backup.yml` automation above)
 
 ```cron
 30 2 * * * deploy /opt/adopt-dont-shop/scripts/snapshot-uploads.sh >> /var/log/snapshot.log 2>&1
@@ -74,16 +85,35 @@ short version:
 # Postgres
 gunzip -c dump.sql.gz | docker compose exec -T database psql -U "$POSTGRES_USER" "$POSTGRES_DB"
 
-# Uploads
-aws s3 sync "s3://${BACKUP_BUCKET}/uploads/$(date -u +%Y/%m/%d)/" /var/lib/docker/volumes/uploads/_data/
+# Uploads — the real host path is <project>_uploads (Compose prefixes the
+# volume name with the project name, "production" for /opt/ads/production —
+# see the snapshot-uploads job in backup.yml), not the bare "uploads" shown
+# here for brevity.
+aws s3 sync "s3://${BACKUP_BUCKET}/uploads/$(date -u +%Y/%m/%d)/" /var/lib/docker/volumes/production_uploads/_data/
 ```
 
 ## Verification
 
-A monthly restore drill against a staging environment is required to keep
-this policy honest. Track outcomes in `docs/operations/restore-drills.md`.
+The mechanical "does the latest Postgres dump actually restore?" question is
+now answered automatically, every night, by
+[`backup-restore-drill.yml`](../../.github/workflows/backup-restore-drill.yml)
+(ADS-1240) — it restores the newest snapshot into a scratch DB via
+`scripts/restore-postgres.sh` and asserts it loaded data. See "Automated
+nightly restore verification" in [db-backup-runbook.md](../db-backup-runbook.md)
+for detail.
+
+That automated job does not replace the fuller, human-run drill: a
+**quarterly** restore drill against a **staging** environment — restoring,
+repointing a real app, and measuring RTO — is still required to keep this
+policy honest. Track outcomes in `docs/operations/restore-drills.md`. (This
+cadence previously read "monthly" here, disagreeing with
+[db-backup-runbook.md](../db-backup-runbook.md#quarterly-restore-drill-staging);
+quarterly is now the single source of truth for the staging drill's cadence.)
 
 ## Related
 
+- ADS-1239 — automate the uploads snapshot (this document's `backup.yml` job)
+- ADS-1240 — automated nightly restore verification (this document's
+  "Verification" section; detail in db-backup-runbook.md)
 - ADS-443 — streaming replication / PITR (out of scope here)
 - ADS-500 — volume backup automation (this document)

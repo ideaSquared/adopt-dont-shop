@@ -1,14 +1,19 @@
 name: Backup
 
-# Nightly Postgres snapshot (ADS-811). Ships scripts/snapshot-postgres.sh to the
-# production host and runs it there — pg_dump | gzip -> S3.
-# See docs/db-backup-runbook.md.
+# Nightly Postgres snapshot (ADS-811) and uploads snapshot (ADS-1239). Ships
+# scripts/snapshot-postgres.sh + scripts/snapshot-uploads.sh to the production
+# host and runs them there — pg_dump | gzip -> S3, and an `aws s3 sync` of the
+# uploads volume (pet photos + adoption documents, incl. ID / proof-of-address)
+# -> S3, respectively.
+# See docs/db-backup-runbook.md and docs/operations/snapshot-policy.md.
+# Restore is verified nightly by backup-restore-drill.yml (ADS-1240).
 #
-# Schedule: 02:00 UTC daily, matching the documented backup window. Also
-# workflow_dispatch so an operator can take an ad-hoc / pre-migration snapshot.
+# Schedule: 02:00 UTC daily, matching the documented backup window, for both
+# jobs. Also workflow_dispatch so an operator can take an ad-hoc /
+# pre-migration snapshot.
 #
-# The script is copied from the repo at run time (rather than assumed present on
-# the host) so the workflow always runs the committed version. POSTGRES_USER /
+# The scripts are copied from the repo at run time (rather than assumed present
+# on the host) so the workflow always runs the committed version. POSTGRES_USER /
 # POSTGRES_DB are read from the host .env (same pattern as deploy/rollback);
 # BACKUP_BUCKET / AWS_REGION come from repo variables; the host's own AWS
 # credentials authorise the S3 upload (no AWS keys flow through this workflow).
@@ -79,3 +84,53 @@ jobs:
 
             chmod +x scripts/snapshot-postgres.sh
             ./scripts/snapshot-postgres.sh
+
+  snapshot-uploads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Copy snapshot script to server
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          source: scripts/snapshot-uploads.sh
+          target: /opt/ads/production
+          overwrite: true
+
+      - name: Run snapshot on server
+        env:
+          BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          envs: BACKUP_BUCKET,AWS_REGION
+          script: |
+            set -euo pipefail
+
+            : "${BACKUP_BUCKET:?BACKUP_BUCKET not configured (repo variable)}"
+            : "${AWS_REGION:?AWS_REGION not configured (repo variable)}"
+
+            cd /opt/ads/production
+
+            # ADS-1239: snapshot-uploads.sh defaults UPLOADS_PATH to
+            # /var/lib/docker/volumes/uploads/_data, but Compose prefixes
+            # volume names with the project name — the basename of this
+            # directory ("production"), since no COMPOSE_PROJECT_NAME / `name:`
+            # override is set (same reasoning as the snapshot-postgres job
+            # above passing an explicit COMPOSE_FILE). The real host path is
+            # therefore production_uploads, not the script's generic default.
+            export UPLOADS_PATH=/var/lib/docker/volumes/production_uploads/_data
+
+            chmod +x scripts/snapshot-uploads.sh
+            ./scripts/snapshot-uploads.sh
