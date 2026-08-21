@@ -210,6 +210,23 @@ EMAIL_QUEUE_CONCURRENCY=5
 # SES_WEBHOOK_SHARED_SECRET=CHANGE_THIS_SES_WEBHOOK_SECRET
 ```
 
+## Push notifications
+
+`.env.example` sets `PUSH_PROVIDER=console` (logs pushes to stdout — no
+third-party dependency). Production **refuses** `console`; the only wired
+production provider is Firebase Cloud Messaging (`fcm`), implemented in
+`services/notifications/src/push/providers/fcm.ts` (ADS-1238). When
+`PUSH_PROVIDER=fcm`, both vars below are required — boot fails fast if either
+is missing:
+
+```env
+# PUSH_PROVIDER=fcm
+# Raw GCP service-account JSON, exactly as downloaded from the Firebase
+# console (Project settings -> Service accounts -> Generate new private key).
+# FCM_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"...",...}
+# FCM_PROJECT_ID=your-firebase-project-id
+```
+
 ## File storage
 
 `.env.example` sets `STORAGE_PROVIDER=local` and `UPLOAD_DIR` — no
@@ -247,6 +264,22 @@ SERVE_LOCAL_UPLOADS=true
 # Pair it with Origin Access Control (OAC) so the distribution is the
 # only thing that can reach the bucket.
 # CLOUDFRONT_DOMAIN=d123abc.cloudfront.net
+```
+
+## Upload AV scanning (ClamAV)
+
+The gateway scans every upload through clamd before writing it to storage
+(ADS-1241 / ADS-848 step 3 — `packages/lib.av-scan` plus the `clamav` compose
+service). `.env.example` ships working defaults that point at the compose
+service, so no configuration is needed for the dev stack:
+
+```env
+CLAMAV_HOST=clamav
+CLAMAV_PORT=3310
+# CLAMAV_FAIL_OPEN lets an upload through when clamd is unreachable. It is
+# read outside production only — production hard-enforces fail-closed (an
+# unreachable scanner rejects the upload with 503) regardless of this flag.
+CLAMAV_FAIL_OPEN=false
 ```
 
 ## Feature flags (Statsig)
