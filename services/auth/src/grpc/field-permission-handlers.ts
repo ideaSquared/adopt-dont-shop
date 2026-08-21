@@ -15,11 +15,12 @@
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import {
+  ADMIN_FIELD_PERMISSIONS_READ as FIELD_PERMISSIONS_READ,
+  ADMIN_FIELD_PERMISSIONS_WRITE as FIELD_PERMISSIONS_WRITE,
   defaultFieldPermissions,
   getFieldAccessMap,
   isSensitiveField,
   type FieldPermissionConfig,
-  type Permission,
   type UserRole,
 } from '@adopt-dont-shop/lib.types';
 import {
@@ -43,11 +44,6 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './handlers.js';
-
-// --- Permissions -----------------------------------------------------
-
-const FIELD_PERMISSIONS_READ: Permission = 'admin.field_permissions.read' as Permission;
-const FIELD_PERMISSIONS_WRITE: Permission = 'admin.field_permissions.write' as Permission;
 
 // --- Enum maps -------------------------------------------------------
 

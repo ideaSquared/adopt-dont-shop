@@ -12,7 +12,13 @@
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import type { Permission } from '@adopt-dont-shop/lib.types';
+import {
+  AUTH_PRIVACY_PREFS_READ as PRIVACY_PREFS_READ,
+  AUTH_PRIVACY_PREFS_READ_ANY as PRIVACY_PREFS_READ_ANY,
+  AUTH_PRIVACY_PREFS_UPDATE as PRIVACY_PREFS_UPDATE,
+  AUTH_PRIVACY_PREFS_UPDATE_ANY as PRIVACY_PREFS_UPDATE_ANY,
+  type Permission,
+} from '@adopt-dont-shop/lib.types';
 import {
   AuthV1,
   type GetPrivacyPreferencesRequest,
@@ -30,13 +36,6 @@ import { HandlerError, type HandlerDeps } from './handlers.js';
 // the shared adapter is typed against HandlerDeps so we accept the
 // full shape and ignore the unused fields.
 export type PrivacyPrefsDeps = HandlerDeps;
-
-// --- Permissions -----------------------------------------------------
-
-const PRIVACY_PREFS_READ: Permission = 'auth.privacy-prefs.read' as Permission;
-const PRIVACY_PREFS_READ_ANY: Permission = 'auth.privacy-prefs.read:any' as Permission;
-const PRIVACY_PREFS_UPDATE: Permission = 'auth.privacy-prefs.update' as Permission;
-const PRIVACY_PREFS_UPDATE_ANY: Permission = 'auth.privacy-prefs.update:any' as Permission;
 
 // --- Row + enum mapping ---------------------------------------------
 

@@ -11,7 +11,17 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import type { Permission } from '@adopt-dont-shop/lib.types';
+import {
+  ADMIN_USERS_BROADCAST,
+  ADMIN_USERS_BULK_UPDATE,
+  ADMIN_USERS_CREATE,
+  ADMIN_USERS_DEACTIVATE,
+  ADMIN_USERS_READ,
+  ADMIN_USERS_REACTIVATE,
+  ADMIN_USERS_SEARCH,
+  ADMIN_USERS_UPDATE,
+  type Permission,
+} from '@adopt-dont-shop/lib.types';
 
 import {
   AuthV1,
@@ -61,13 +71,6 @@ import {
 
 // --- Permissions -----------------------------------------------------
 
-const ADMIN_USERS_SEARCH: Permission = 'admin.users.search' as Permission;
-const ADMIN_USERS_READ: Permission = 'admin.users.read' as Permission;
-const ADMIN_USERS_UPDATE: Permission = 'admin.users.update' as Permission;
-const ADMIN_USERS_CREATE: Permission = 'admin.users.create' as Permission;
-const ADMIN_USERS_DEACTIVATE: Permission = 'admin.users.deactivate' as Permission;
-const ADMIN_USERS_REACTIVATE: Permission = 'admin.users.reactivate' as Permission;
-const ADMIN_USERS_BULK_UPDATE: Permission = 'admin.users.bulk_update' as Permission;
 const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
 const ADMIN_SECURITY_READ: Permission = 'admin.security.read' as Permission;
 
@@ -965,8 +968,6 @@ export async function bulkUpdateUsers(
 }
 
 // --- ListUserIdsByCohort ---------------------------------------------
-
-const ADMIN_USERS_BROADCAST: Permission = 'admin.users.broadcast' as Permission;
 
 export async function listUserIdsByCohort(
   deps: HandlerDeps,

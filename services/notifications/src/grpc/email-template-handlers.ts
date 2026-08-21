@@ -11,7 +11,12 @@ import { randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import type { WithTransactionDeps } from '@adopt-dont-shop/events';
-import type { Permission } from '@adopt-dont-shop/lib.types';
+import {
+  EMAIL_TEMPLATES_CREATE as TEMPLATES_CREATE,
+  EMAIL_TEMPLATES_DELETE as TEMPLATES_DELETE,
+  EMAIL_TEMPLATES_READ as TEMPLATES_READ,
+  EMAIL_TEMPLATES_UPDATE as TEMPLATES_UPDATE,
+} from '@adopt-dont-shop/lib.types';
 import {
   NotificationsV1,
   type CreateEmailTemplateRequest,
@@ -34,13 +39,6 @@ import { renderEmailTemplate } from '../email/renderer.js';
 import { HandlerError } from './handlers.js';
 
 export type EmailTemplateDeps = WithTransactionDeps;
-
-// --- Permissions -----------------------------------------------------
-
-const TEMPLATES_READ: Permission = 'email.templates.read' as Permission;
-const TEMPLATES_CREATE: Permission = 'email.templates.create' as Permission;
-const TEMPLATES_UPDATE: Permission = 'email.templates.update' as Permission;
-const TEMPLATES_DELETE: Permission = 'email.templates.delete' as Permission;
 
 // --- Row shape + enum maps -------------------------------------------
 
