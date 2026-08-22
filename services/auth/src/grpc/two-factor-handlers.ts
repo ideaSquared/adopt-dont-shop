@@ -21,9 +21,12 @@
 // see LoginResponse.two_factor_required — and now also accepts a backup
 // code in its place (LoginRequest.backup_code).
 
+import { randomUUID } from 'node:crypto';
+
 import { generateSecret, generateURI, verifySync } from 'otplib';
 
 import type { Principal } from '@adopt-dont-shop/authz';
+import { withTransaction, type TransactionalScope } from '@adopt-dont-shop/events';
 import type {
   DisableTwoFactorRequest,
   DisableTwoFactorResponse,
@@ -59,6 +62,32 @@ const requirePrincipal = (principal: Principal | null): Principal => {
   return principal;
 };
 
+// Forensic record of a 2FA state change, published as `auth.actionTaken` so
+// service.audit's wildcard `*.actionTaken` subscriber persists it. Publishes
+// only on the write that actually changed state — never on a rejected
+// attempt (wrong code, already-enabled race, etc.), matching this module's
+// existing behaviour of throwing before any write occurs on those paths.
+function publishTwoFactorActionTaken(
+  publish: TransactionalScope['publish'],
+  params: { userId: string; action: 'setup' | 'enable' | 'disable' | 'regenerateBackupCodes' }
+): void {
+  publish({
+    type: 'auth.actionTaken',
+    id: `auth.actionTaken.${randomUUID()}`,
+    payload: {
+      eventId: randomUUID(),
+      service: 'service.auth',
+      subject: 'auth.actionTaken',
+      aggregateType: 'user',
+      aggregateId: params.userId,
+      actorUserId: params.userId,
+      action: `twoFactor.${params.action}`,
+      outcome: 'success',
+      occurredAt: new Date().toISOString(),
+    },
+  });
+}
+
 export async function setupTwoFactor(
   deps: HandlerDeps,
   principal: Principal | null,
@@ -83,18 +112,21 @@ export async function setupTwoFactor(
 
   // Persist the pending secret (AES-256-GCM encrypted) with a short TTL so
   // enableTwoFactor can verify against it without trusting the client.
-  await deps.pool.query(
-    `UPDATE auth.users
-        SET two_factor_secret_pending = $1,
-            two_factor_pending_expires_at = now() + $2::interval,
-            updated_at = now()
-      WHERE user_id = $3 AND deleted_at IS NULL`,
-    [
-      encryptTotpSecret(deps.encryptionKey, secret),
-      `${PENDING_SECRET_TTL_MINUTES} minutes`,
-      me.userId,
-    ]
-  );
+  await withTransaction(deps, async ({ client, publish }) => {
+    await client.query(
+      `UPDATE auth.users
+          SET two_factor_secret_pending = $1,
+              two_factor_pending_expires_at = now() + $2::interval,
+              updated_at = now()
+        WHERE user_id = $3 AND deleted_at IS NULL`,
+      [
+        encryptTotpSecret(deps.encryptionKey, secret),
+        `${PENDING_SECRET_TTL_MINUTES} minutes`,
+        me.userId,
+      ]
+    );
+    publishTwoFactorActionTaken(publish, { userId: me.userId, action: 'setup' });
+  });
 
   return { secret, otpauthUrl };
 }
@@ -164,22 +196,29 @@ export async function enableTwoFactor(
   // Promote the pending secret atomically. The WHERE clause re-checks both
   // two_factor_enabled = false and the pending expiry so a concurrent enable
   // or an expired setup can't slip through between the SELECT and this UPDATE.
-  const updateRes = await deps.pool.query(
-    `UPDATE auth.users
-        SET two_factor_secret = two_factor_secret_pending,
-            two_factor_enabled = true,
-            two_factor_last_step = $1,
-            two_factor_secret_pending = NULL,
-            two_factor_pending_expires_at = NULL,
-            backup_codes = $2,
-            updated_at = now()
-      WHERE user_id = $3 AND deleted_at IS NULL
-        AND two_factor_enabled = false
-        AND two_factor_secret_pending IS NOT NULL
-        AND two_factor_pending_expires_at > now()`,
-    [acceptedStep, backupCodeHashes, me.userId]
-  );
-  if (updateRes.rowCount === 0) {
+  const enabled = await withTransaction(deps, async ({ client, publish }) => {
+    const updateRes = await client.query(
+      `UPDATE auth.users
+          SET two_factor_secret = two_factor_secret_pending,
+              two_factor_enabled = true,
+              two_factor_last_step = $1,
+              two_factor_secret_pending = NULL,
+              two_factor_pending_expires_at = NULL,
+              backup_codes = $2,
+              updated_at = now()
+        WHERE user_id = $3 AND deleted_at IS NULL
+          AND two_factor_enabled = false
+          AND two_factor_secret_pending IS NOT NULL
+          AND two_factor_pending_expires_at > now()`,
+      [acceptedStep, backupCodeHashes, me.userId]
+    );
+    if (updateRes.rowCount === 0) {
+      return false;
+    }
+    publishTwoFactorActionTaken(publish, { userId: me.userId, action: 'enable' });
+    return true;
+  });
+  if (!enabled) {
     throw new HandlerError('INVALID_ARGUMENT', 'two-factor authentication is already enabled');
   }
   return { enabled: true, backupCodes };
@@ -222,14 +261,17 @@ export async function disableTwoFactor(
     throw new HandlerError('INVALID_ARGUMENT', 'invalid two-factor code');
   }
 
-  await deps.pool.query(
-    `UPDATE auth.users
-        SET two_factor_secret = NULL, two_factor_enabled = false, two_factor_last_step = NULL,
-            backup_codes = NULL, two_factor_secret_pending = NULL, two_factor_pending_expires_at = NULL,
-            updated_at = now()
-      WHERE user_id = $1`,
-    [me.userId]
-  );
+  await withTransaction(deps, async ({ client, publish }) => {
+    await client.query(
+      `UPDATE auth.users
+          SET two_factor_secret = NULL, two_factor_enabled = false, two_factor_last_step = NULL,
+              backup_codes = NULL, two_factor_secret_pending = NULL, two_factor_pending_expires_at = NULL,
+              updated_at = now()
+        WHERE user_id = $1`,
+      [me.userId]
+    );
+    publishTwoFactorActionTaken(publish, { userId: me.userId, action: 'disable' });
+  });
   return { disabled: true };
 }
 
@@ -278,9 +320,12 @@ export async function regenerateBackupCodes(
 
   const backupCodes = generateBackupCodes();
   const backupCodeHashes = await hashBackupCodes(deps.passwordHasher, backupCodes);
-  await deps.pool.query(
-    `UPDATE auth.users SET backup_codes = $2, updated_at = now() WHERE user_id = $1`,
-    [me.userId, backupCodeHashes]
-  );
+  await withTransaction(deps, async ({ client, publish }) => {
+    await client.query(
+      `UPDATE auth.users SET backup_codes = $2, updated_at = now() WHERE user_id = $1`,
+      [me.userId, backupCodeHashes]
+    );
+    publishTwoFactorActionTaken(publish, { userId: me.userId, action: 'regenerateBackupCodes' });
+  });
   return { backupCodes };
 }
