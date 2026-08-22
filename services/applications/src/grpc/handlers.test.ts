@@ -430,6 +430,39 @@ describe('submitDraft', () => {
     ).rejects.toMatchObject({ code: 'FAILED_PRECONDITION' });
   });
 
+  // ── ADS-1225: rescue staff must not force-transition an adopter's draft ──
+
+  it('denies rescue staff submitting an adopter’s unsubmitted draft', async () => {
+    // Draft owned by usr-1 and addressed to rescue-1. Under the old
+    // owner-OR-rescue scope, the rescue-1 staff principal would have been
+    // allowed to force the draft → submitted transition without the
+    // adopter's consent; now a `draft` is owner-only.
+    const { deps } = makeDeps([draftCreatedRow('app-1', 'usr-1', 'rescue-1')]);
+    await expect(
+      submitDraft(
+        deps,
+        makePrincipal({
+          userId: 'usr-staff',
+          roles: ['rescue_staff'],
+          permissions: ['applications.update'],
+          rescueId: 'rescue-1',
+        }),
+        { applicationId: 'app-1', expectedVersion: 1 } as SubmitDraftRequest
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('allows the owning adopter to submit their own draft addressed to a rescue', async () => {
+    const { deps } = makeDeps([draftCreatedRow('app-1', 'usr-1', 'rescue-1')]);
+    const res = await submitDraft(deps, makePrincipal({ userId: 'usr-1' }), {
+      applicationId: 'app-1',
+      expectedVersion: 1,
+    } as SubmitDraftRequest);
+    expect(res.application.status).toBe(
+      ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED
+    );
+  });
+
   it('surfaces a domain ILLEGAL_TRANSITION as INVALID_ARGUMENT (double submit)', async () => {
     // An already-submitted aggregate: draftCreated (v1) + draftSubmitted
     // (v2). Submitting again is an illegal transition.
