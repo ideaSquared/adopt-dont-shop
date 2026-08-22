@@ -254,6 +254,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [lib.applications consumers](./libraries/lib.applications-consumers.md) — 2 consumer(s)
 - [lib.audit-logs consumers](./libraries/lib.audit-logs-consumers.md) — 1 consumer(s)
 - [lib.auth consumers](./libraries/lib.auth-consumers.md) — 4 consumer(s)
+- [lib.av-scan consumers](./libraries/lib.av-scan-consumers.md) — 1 consumer(s)
 - [lib.chat consumers](./libraries/lib.chat-consumers.md) — 3 consumer(s)
 - [lib.components consumers](./libraries/lib.components-consumers.md) — 6 consumer(s)
 - [lib.dev-tools consumers](./libraries/lib.dev-tools-consumers.md) — 3 consumer(s)
