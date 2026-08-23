@@ -25,16 +25,44 @@ const PRINCIPAL: Principal = {
 
 const ENCRYPTION_KEY = 'a'.repeat(64);
 
+// Two-factor handlers now write their state-changing UPDATE through
+// withTransaction, so the mock harness needs both a pool (for the plain
+// SELECT reads and the replay-guard UPDATE fired by verifyAndConsumeTotp)
+// and a transactional client (for BEGIN/COMMIT/event_outbox plus the
+// state-changing UPDATE itself) — mirrors consent-handlers.test.ts.
 function makeMocks() {
-  const pool = { query: vi.fn() };
-  pool.query.mockResolvedValue({ rows: [], rowCount: 0 });
+  const clientScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
+  const client = {
+    query: vi.fn(async (sql: string) => {
+      const op = sql.trim().split(/\s+/)[0].toUpperCase();
+      if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
+        return { rows: [] };
+      }
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
+      const next = clientScript.shift();
+      if (!next) {
+        throw new Error(`client.query unscripted: ${sql.slice(0, 80)}`);
+      }
+      return next;
+    }),
+    release: vi.fn(),
+  };
+  const poolScript: Array<{ rows: unknown[]; rowCount?: number }> = [];
+  const pool = {
+    connect: vi.fn().mockResolvedValue(client),
+    query: vi.fn(async () => poolScript.shift() ?? { rows: [], rowCount: 0 }),
+  };
+  const natsPublish = vi.fn();
+  const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
   const passwordHasher = {
     hash: (value: string) => Promise.resolve(`hashed:${value}`),
     compare: (value: string, hash: string) => Promise.resolve(hash === `hashed:${value}`),
   };
   const deps: HandlerDeps = {
     pool: pool as unknown as Pool,
-    nats: {} as unknown as NatsConnection,
+    nats: nats as unknown as NatsConnection,
     passwordHasher,
     tokenIssuer: {
       mint: vi.fn(),
@@ -43,7 +71,38 @@ function makeMocks() {
     },
     encryptionKey: ENCRYPTION_KEY,
   };
-  return { deps, poolMock: pool };
+  return {
+    deps,
+    poolMock: pool,
+    clientMock: client,
+    natsMock: nats,
+    poolScript,
+    clientScript,
+  };
+}
+
+// Finds the client.query call whose SQL contains `substring` — used to pick
+// out the state-changing UPDATE from among BEGIN/COMMIT/event_outbox calls.
+function findClientCall(
+  mocks: ReturnType<typeof makeMocks>,
+  substring: string
+): [string, unknown[]] | undefined {
+  return mocks.clientMock.query.mock.calls.find(call => String(call[0]).includes(substring)) as
+    | [string, unknown[]]
+    | undefined;
+}
+
+function auditPayload(mocks: ReturnType<typeof makeMocks>): {
+  action: string;
+  outcome: string;
+  actorUserId?: string;
+} {
+  expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+  expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
+  const envelope = JSON.parse(
+    new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+  );
+  return envelope.payload as { action: string; outcome: string; actorUserId?: string };
 }
 
 describe('setupTwoFactor', () => {
@@ -53,11 +112,8 @@ describe('setupTwoFactor', () => {
   });
 
   it('returns a secret + otpauth URL and persists an encrypted pending secret', async () => {
-    mocks.poolMock.query
-      // SELECT
-      .mockResolvedValueOnce({ rows: [{ email: 'a@b.com', two_factor_enabled: false }] })
-      // UPDATE (persist pending secret)
-      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    mocks.poolScript.push({ rows: [{ email: 'a@b.com', two_factor_enabled: false }] }); // SELECT
+    mocks.clientScript.push({ rows: [], rowCount: 1 }); // UPDATE (persist pending secret)
 
     const res = await setupTwoFactor(mocks.deps, PRINCIPAL, {});
 
@@ -65,9 +121,9 @@ describe('setupTwoFactor', () => {
     expect(res.otpauthUrl).toContain('otpauth://totp/');
     expect(generateSync({ secret: res.secret })).toMatch(/^\d{6}$/);
 
-    // Second call is the UPDATE that stores the pending secret.
-    expect(mocks.poolMock.query).toHaveBeenCalledTimes(2);
-    const [updateSql, updateParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    const updateCall = findClientCall(mocks, 'two_factor_secret_pending');
+    expect(updateCall).toBeDefined();
+    const [updateSql, updateParams] = updateCall!;
     expect(updateSql).toMatch(/two_factor_secret_pending/);
     expect(updateSql).toMatch(/two_factor_pending_expires_at/);
     // The stored value is encrypted — NOT the plaintext secret.
@@ -75,14 +131,26 @@ describe('setupTwoFactor', () => {
     expect(decryptTotpSecret(ENCRYPTION_KEY, updateParams[0] as string)).toBe(res.secret);
   });
 
-  it('rejects when 2FA is already enabled', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ email: 'a@b.com', two_factor_enabled: true }],
+  it('publishes an auth.actionTaken audit event on setup', async () => {
+    mocks.poolScript.push({ rows: [{ email: 'a@b.com', two_factor_enabled: false }] });
+    mocks.clientScript.push({ rows: [], rowCount: 1 });
+
+    await setupTwoFactor(mocks.deps, PRINCIPAL, {});
+
+    expect(auditPayload(mocks)).toMatchObject({
+      action: 'twoFactor.setup',
+      outcome: 'success',
+      actorUserId: PRINCIPAL.userId,
     });
+  });
+
+  it('rejects when 2FA is already enabled', async () => {
+    mocks.poolScript.push({ rows: [{ email: 'a@b.com', two_factor_enabled: true }] });
     await expect(setupTwoFactor(mocks.deps, PRINCIPAL, {})).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
       message: expect.stringMatching(/already enabled/),
     });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('requires authentication', async () => {
@@ -114,20 +182,34 @@ describe('enableTwoFactor', () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
 
-    mocks.poolMock.query
-      // SELECT pending secret
-      .mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 })
-      // UPDATE promote pending→active
-      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 }); // SELECT pending secret
+    mocks.clientScript.push({ rows: [], rowCount: 1 }); // UPDATE promote pending→active
 
     const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
 
     expect(res.enabled).toBe(true);
 
-    const [updateSql] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
-    expect(updateSql).toMatch(/two_factor_secret = two_factor_secret_pending/);
+    const updateCall = findClientCall(mocks, 'two_factor_secret = two_factor_secret_pending');
+    expect(updateCall).toBeDefined();
+    const [updateSql] = updateCall!;
     expect(updateSql).toMatch(/two_factor_enabled = true/);
     expect(updateSql).toMatch(/two_factor_secret_pending = NULL/);
+  });
+
+  it('publishes an auth.actionTaken audit event on enable', async () => {
+    const secret = generateSecret();
+    const token = generateSync({ secret });
+
+    mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
+    mocks.clientScript.push({ rows: [], rowCount: 1 });
+
+    await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
+
+    expect(auditPayload(mocks)).toMatchObject({
+      action: 'twoFactor.enable',
+      outcome: 'success',
+      actorUserId: PRINCIPAL.userId,
+    });
   });
 
   it('persists the accepted confirmation step (not NULL) so the code cannot be replayed on Login (ADS-976)', async () => {
@@ -137,13 +219,13 @@ describe('enableTwoFactor', () => {
       const secret = generateSecret();
       const token = generateSync({ secret });
 
-      mocks.poolMock.query
-        .mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 })
-        .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+      mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
+      mocks.clientScript.push({ rows: [], rowCount: 1 });
 
       await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
 
-      const [updateSql, updateParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+      const updateCall = findClientCall(mocks, 'two_factor_secret = two_factor_secret_pending');
+      const [updateSql, updateParams] = updateCall!;
       expect(updateSql).not.toMatch(/two_factor_last_step = NULL/);
       expect(updateSql).toMatch(/two_factor_last_step = \$1/);
       expect(updateParams[0]).toBe(Math.floor(Date.now() / 1000 / 30));
@@ -158,7 +240,7 @@ describe('enableTwoFactor', () => {
     const attackerSecret = generateSecret();
     const attackerToken = generateSync({ secret: attackerSecret });
 
-    mocks.poolMock.query.mockResolvedValueOnce({
+    mocks.poolScript.push({
       rows: [
         {
           two_factor_enabled: false,
@@ -176,12 +258,14 @@ describe('enableTwoFactor', () => {
       message: expect.stringMatching(/setup.*required|setup first/i),
     });
 
-    // No UPDATE must have run.
+    // No UPDATE must have run, and no audit event was published.
     expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('rejects when no prior setupTwoFactor ran (no pending secret in DB)', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({
+    mocks.poolScript.push({
       rows: [
         {
           two_factor_enabled: false,
@@ -203,7 +287,7 @@ describe('enableTwoFactor', () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
 
-    mocks.poolMock.query.mockResolvedValueOnce({
+    mocks.poolScript.push({
       rows: [makePendingRow(secret, 1)], // expired 1 minute ago
       rowCount: 1,
     });
@@ -218,7 +302,7 @@ describe('enableTwoFactor', () => {
   it('rejects an invalid TOTP code without writing', async () => {
     const secret = generateSecret();
 
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 });
+    mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
 
     await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token: '000000' })).rejects.toMatchObject(
       { code: 'INVALID_ARGUMENT' }
@@ -230,22 +314,22 @@ describe('enableTwoFactor', () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
 
-    mocks.poolMock.query
-      .mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 })
-      .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // UPDATE matched 0 rows
+    mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
+    mocks.clientScript.push({ rows: [], rowCount: 0 }); // UPDATE matched 0 rows
 
     await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token })).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
     });
+    // The race means no state actually changed — no audit event either.
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('returns 10 unique backup codes and stores only their hashes (ADS-914b)', async () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
 
-    mocks.poolMock.query
-      .mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 })
-      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    mocks.poolScript.push({ rows: [makePendingRow(secret)], rowCount: 1 });
+    mocks.clientScript.push({ rows: [], rowCount: 1 });
 
     const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
 
@@ -255,7 +339,8 @@ describe('enableTwoFactor', () => {
       expect(code).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4}){3}$/);
     }
 
-    const [, updateParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    const updateCall = findClientCall(mocks, 'two_factor_secret = two_factor_secret_pending');
+    const [, updateParams] = updateCall!;
     const storedHashes = updateParams[1] as string[];
     expect(storedHashes).toHaveLength(10);
     for (const [i, code] of res.backupCodes.entries()) {
@@ -265,7 +350,7 @@ describe('enableTwoFactor', () => {
   });
 
   it('rejects when 2FA is already enabled', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({
+    mocks.poolScript.push({
       rows: [
         {
           two_factor_enabled: true,
@@ -301,24 +386,26 @@ describe('enableTwoFactor confirmation-code replay (ADS-976)', () => {
       const enableMocks = makeMocks();
 
       const encrypted = encryptTotpSecret(ENCRYPTION_KEY, secret);
-      enableMocks.poolMock.query
+      enableMocks.poolScript.push({
         // SELECT pending secret
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              two_factor_enabled: false,
-              two_factor_secret_pending: encrypted,
-              two_factor_pending_expires_at: new Date(Date.now() + 9 * 60_000),
-            },
-          ],
-          rowCount: 1,
-        })
-        // UPDATE promote pending→active
-        .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+        rows: [
+          {
+            two_factor_enabled: false,
+            two_factor_secret_pending: encrypted,
+            two_factor_pending_expires_at: new Date(Date.now() + 9 * 60_000),
+          },
+        ],
+        rowCount: 1,
+      });
+      enableMocks.clientScript.push({ rows: [], rowCount: 1 }); // UPDATE promote pending→active
 
       await enableTwoFactor(enableMocks.deps, PRINCIPAL, { token });
 
-      const [, updateParams] = enableMocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+      const updateCall = findClientCall(
+        enableMocks,
+        'two_factor_secret = two_factor_secret_pending'
+      );
+      const [, updateParams] = updateCall!;
       const persistedStep = updateParams[0] as number;
 
       // Login as if the very next call, within the same 30s window, supplies
@@ -392,8 +479,8 @@ describe('disableTwoFactor', () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
     const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
-    mocks.poolMock.query
-      .mockResolvedValueOnce({
+    mocks.poolScript.push(
+      {
         rows: [
           {
             two_factor_enabled: true,
@@ -401,31 +488,62 @@ describe('disableTwoFactor', () => {
             two_factor_last_step: null,
           },
         ],
-      })
+      },
       // Replay-guard UPDATE (two_factor_last_step) fired by verifyAndConsumeTotp.
-      .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+      { rows: [] }
+    );
+    mocks.clientScript.push({ rows: [], rowCount: 1 }); // clearing UPDATE
+
     const res = await disableTwoFactor(mocks.deps, PRINCIPAL, { token });
+
     expect(res.disabled).toBe(true);
-    const [sql] = mocks.poolMock.query.mock.calls[2] as [string];
-    expect(sql).toMatch(/two_factor_secret = NULL/);
+    const updateCall = findClientCall(mocks, 'two_factor_secret = NULL');
+    const [sql] = updateCall!;
     expect(sql).toMatch(/two_factor_secret_pending = NULL/);
     expect(sql).toMatch(/two_factor_pending_expires_at = NULL/);
   });
 
+  it('publishes an auth.actionTaken audit event on disable', async () => {
+    const secret = generateSecret();
+    const token = generateSync({ secret });
+    const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
+    mocks.poolScript.push(
+      {
+        rows: [
+          {
+            two_factor_enabled: true,
+            two_factor_secret: encryptedSecret,
+            two_factor_last_step: null,
+          },
+        ],
+      },
+      { rows: [] }
+    );
+    mocks.clientScript.push({ rows: [], rowCount: 1 });
+
+    await disableTwoFactor(mocks.deps, PRINCIPAL, { token });
+
+    expect(auditPayload(mocks)).toMatchObject({
+      action: 'twoFactor.disable',
+      outcome: 'success',
+      actorUserId: PRINCIPAL.userId,
+    });
+  });
+
   it('rejects when 2FA is not enabled', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({
+    mocks.poolScript.push({
       rows: [{ two_factor_enabled: false, two_factor_secret: null, two_factor_last_step: null }],
     });
     await expect(
       disableTwoFactor(mocks.deps, PRINCIPAL, { token: '123456' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('rejects a wrong code (does not clear the secret)', async () => {
     const secret = generateSecret();
     const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
-    mocks.poolMock.query.mockResolvedValueOnce({
+    mocks.poolScript.push({
       rows: [
         {
           two_factor_enabled: true,
@@ -439,6 +557,7 @@ describe('disableTwoFactor', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     // Only the SELECT ran — no replay-guard update, no clearing UPDATE.
     expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
   it('rejects a replayed code that was already accepted (ADS-914c)', async () => {
@@ -449,7 +568,7 @@ describe('disableTwoFactor', () => {
       const token = generateSync({ secret });
       const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
       const timeStep = Math.floor(Date.now() / 1000 / 30);
-      mocks.poolMock.query.mockResolvedValueOnce({
+      mocks.poolScript.push({
         rows: [
           {
             two_factor_enabled: true,
@@ -478,8 +597,8 @@ describe('regenerateBackupCodes', () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
     const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
-    mocks.poolMock.query
-      .mockResolvedValueOnce({
+    mocks.poolScript.push(
+      {
         rows: [
           {
             two_factor_enabled: true,
@@ -487,16 +606,17 @@ describe('regenerateBackupCodes', () => {
             two_factor_last_step: null,
           },
         ],
-      })
+      },
       // Replay-guard UPDATE fired by verifyAndConsumeTotp.
-      .mockResolvedValueOnce({ rows: [] })
-      // The backup_codes overwrite.
-      .mockResolvedValueOnce({ rows: [] });
+      { rows: [] }
+    );
+    mocks.clientScript.push({ rows: [] }); // The backup_codes overwrite.
 
     const res = await regenerateBackupCodes(mocks.deps, PRINCIPAL, { token });
 
     expect(res.backupCodes).toHaveLength(10);
-    const [sql, params] = mocks.poolMock.query.mock.calls[2] as [string, unknown[]];
+    const updateCall = findClientCall(mocks, 'backup_codes = $2');
+    const [sql, params] = updateCall!;
     expect(sql).toMatch(/backup_codes = \$2/);
     const storedHashes = params[1] as string[];
     expect(storedHashes).toHaveLength(10);
@@ -505,8 +625,35 @@ describe('regenerateBackupCodes', () => {
     }
   });
 
+  it('publishes an auth.actionTaken audit event on regeneration', async () => {
+    const secret = generateSecret();
+    const token = generateSync({ secret });
+    const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
+    mocks.poolScript.push(
+      {
+        rows: [
+          {
+            two_factor_enabled: true,
+            two_factor_secret: encryptedSecret,
+            two_factor_last_step: null,
+          },
+        ],
+      },
+      { rows: [] }
+    );
+    mocks.clientScript.push({ rows: [] });
+
+    await regenerateBackupCodes(mocks.deps, PRINCIPAL, { token });
+
+    expect(auditPayload(mocks)).toMatchObject({
+      action: 'twoFactor.regenerateBackupCodes',
+      outcome: 'success',
+      actorUserId: PRINCIPAL.userId,
+    });
+  });
+
   it('rejects when 2FA is not enabled', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({
+    mocks.poolScript.push({
       rows: [{ two_factor_enabled: false, two_factor_secret: null, two_factor_last_step: null }],
     });
     await expect(
@@ -517,7 +664,7 @@ describe('regenerateBackupCodes', () => {
   it('rejects a wrong code without regenerating', async () => {
     const secret = generateSecret();
     const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
-    mocks.poolMock.query.mockResolvedValueOnce({
+    mocks.poolScript.push({
       rows: [
         {
           two_factor_enabled: true,
@@ -531,6 +678,7 @@ describe('regenerateBackupCodes', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     // Only the SELECT ran — no replay-guard update, no regeneration.
     expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
   it('requires authentication', async () => {
@@ -554,7 +702,7 @@ describe('regenerateBackupCodes', () => {
       const token = generateSync({ secret });
       const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
       const timeStep = Math.floor(Date.now() / 1000 / 30);
-      mocks.poolMock.query.mockResolvedValueOnce({
+      mocks.poolScript.push({
         rows: [
           {
             two_factor_enabled: true,
