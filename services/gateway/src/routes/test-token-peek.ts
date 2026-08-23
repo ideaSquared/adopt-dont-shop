@@ -55,6 +55,13 @@ const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h
 const mintToken = (): string => randomBytes(32).toString('base64url');
 const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
+// ADS-1229 hashes staff-invitation tokens at rest the same way (rescue
+// service, services/rescue/src/grpc/handlers.ts), so this seam mints a fresh
+// invitation token, overwrites the pending invitation's stored hash, and
+// returns the raw token. Hex form matches InviteStaff's
+// randomBytes(32).toString('hex').
+const mintInvitationToken = (): string => randomBytes(32).toString('hex');
+
 type AuthTokenRow = {
   minted_verification: boolean | null;
   verification_token_expires_at: Date | null;
@@ -63,7 +70,7 @@ type AuthTokenRow = {
 };
 
 type InvitationTokenRow = {
-  token: string;
+  invitation_id: string;
 };
 
 // Pull the email/rescueId out of the (string-typed) query without trusting
@@ -153,8 +160,9 @@ export const registerTestTokenPeekRoutes = async (
   );
 
   // GET /api/v1/test/invitation-token?email=…[&rescueId=…]
-  // Returns the most recent PENDING (unused, unexpired) staff-invitation token
-  // for an email, read straight from rescue.invitations.
+  // Mints + returns a fresh token for the most recent PENDING (unused,
+  // unexpired) staff-invitation for an email, overwriting its stored hash
+  // (see the module comment) so the returned token validates end-to-end.
   app.get(
     '/api/v1/test/invitation-token',
     { schema: { hide: true }, config: { rateLimit: TEST_PEEK_RATE_LIMIT } },
@@ -166,22 +174,28 @@ export const registerTestTokenPeekRoutes = async (
       }
       const rescueId = asString(query.rescueId);
 
+      const invitationToken = mintInvitationToken();
       const res = await pool.query<InvitationTokenRow>(
-        `SELECT token
-         FROM rescue.invitations
-        WHERE email = $1
-          AND used = false
-          AND expiration > now()
-          AND ($2::uuid IS NULL OR rescue_id = $2::uuid)
-        ORDER BY created_at DESC
-        LIMIT 1`,
-        [email, rescueId ?? null]
+        `UPDATE rescue.invitations
+            SET token_hash = $2
+          WHERE invitation_id = (
+            SELECT invitation_id
+              FROM rescue.invitations
+             WHERE email = $1
+               AND used = false
+               AND expiration > now()
+               AND ($3::uuid IS NULL OR rescue_id = $3::uuid)
+             ORDER BY created_at DESC
+             LIMIT 1
+          )
+          RETURNING invitation_id`,
+        [email, hashToken(invitationToken), rescueId ?? null]
       );
       const row = res.rows[0];
       if (!row) {
         return reply.code(404).send({ error: 'no pending invitation found' });
       }
-      return reply.send({ token: row.token });
+      return reply.send({ token: invitationToken });
     }
   );
 };

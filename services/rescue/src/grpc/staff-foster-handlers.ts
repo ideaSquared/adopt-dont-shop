@@ -11,7 +11,7 @@
 //     the StaffMember message carries only rescue-owned columns; the
 //     gateway/SPA fetches names separately if needed.
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
@@ -810,6 +810,12 @@ export async function endFosterPlacement(
 
 // --- GetInvitationByToken --------------------------------------------
 
+// ADS-1229: only the SHA-256 hash of the invitation token is stored — the
+// submitted token is hashed and compared by hash, never by raw equality.
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
 export async function getInvitationByToken(
   deps: HandlerDeps,
   _principal: Principal | null,
@@ -823,9 +829,9 @@ export async function getInvitationByToken(
     `SELECT invitation_id, email, rescue_id, user_id, title, invited_by,
             expiration, used, created_at
      FROM rescue.invitations
-     WHERE token = $1
+     WHERE token_hash = $1
      LIMIT 1`,
-    [req.token]
+    [hashToken(req.token)]
   );
   const row = res.rows[0];
   // NOT_FOUND covers unknown, used, and expired — the accept page
@@ -865,9 +871,9 @@ export async function acceptInvitation(
       `SELECT invitation_id, email, rescue_id, user_id, title, invited_by,
               expiration, used, created_at
        FROM rescue.invitations
-       WHERE token = $1
+       WHERE token_hash = $1
        FOR UPDATE`,
-      [req.token]
+      [hashToken(req.token)]
     );
     const inv = invRes.rows[0];
     if (!inv || inv.expiration.getTime() <= Date.now()) {

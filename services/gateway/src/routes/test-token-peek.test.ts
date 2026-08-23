@@ -132,8 +132,8 @@ describe('GET /api/v1/test/invitation-token', () => {
     await app.close();
   });
 
-  it('returns the latest pending invitation token for an email', async () => {
-    queryMock.mockResolvedValueOnce({ rows: [{ token: 'invite-123' }] });
+  it('mints + returns a fresh token for the latest pending invitation, storing its hash', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ invitation_id: 'inv-1' }] });
 
     const res = await app.inject({
       method: 'GET',
@@ -141,18 +141,27 @@ describe('GET /api/v1/test/invitation-token', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ token: 'invite-123' });
-    // Reads rescue.invitations, only unused + unexpired rows, newest first.
+    const body = res.json() as { token: string };
+    // The raw token is freshly minted (random) — only its hash is persisted.
+    expect(typeof body.token).toBe('string');
+    expect(body.token.length).toBeGreaterThan(0);
+
+    // Re-arms the latest unused + unexpired invitation for this email,
+    // storing the sha256 of the raw token it returned.
     const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/UPDATE rescue\.invitations/);
     expect(sql).toMatch(/FROM rescue\.invitations/);
     expect(sql).toMatch(/used = false/);
     expect(sql).toMatch(/expiration > now\(\)/);
     expect(sql).toMatch(/ORDER BY created_at DESC/);
-    expect(params).toEqual(['invitee@example.com', null]);
+    expect(sql).toMatch(/RETURNING/);
+    expect(params[0]).toBe('invitee@example.com');
+    expect(params[1]).toBe(sha256Hex(body.token));
+    expect(params[2]).toBe(null);
   });
 
   it('scopes by rescueId when supplied', async () => {
-    queryMock.mockResolvedValueOnce({ rows: [{ token: 'invite-456' }] });
+    queryMock.mockResolvedValueOnce({ rows: [{ invitation_id: 'inv-2' }] });
 
     const res = await app.inject({
       method: 'GET',
@@ -161,7 +170,8 @@ describe('GET /api/v1/test/invitation-token', () => {
 
     expect(res.statusCode).toBe(200);
     const [, params] = queryMock.mock.calls[0] as [string, unknown[]];
-    expect(params).toEqual(['invitee@example.com', '11111111-1111-4111-8111-111111111111']);
+    expect(params[0]).toBe('invitee@example.com');
+    expect(params[2]).toBe('11111111-1111-4111-8111-111111111111');
   });
 
   it('404s when there is no pending invitation', async () => {

@@ -19,7 +19,7 @@
 //     scoped to the rescue (rescue staff can only mutate their own
 //     rescue; super_admin bypasses).
 
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import {
   fieldMask,
@@ -828,6 +828,12 @@ export async function deleteRescue(
 
 // --- InviteStaff -----------------------------------------------------
 
+// ADS-1229: only the SHA-256 hash of the invitation token is persisted —
+// see hashToken() usage below.
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
 export async function inviteStaff(
   deps: HandlerDeps,
   principal: Principal,
@@ -875,13 +881,13 @@ export async function inviteStaff(
     const result = await client.query<InvitationRow>(
       `
       INSERT INTO rescue.invitations (
-        invitation_id, email, token, rescue_id, title, invited_by,
+        invitation_id, email, token_hash, rescue_id, title, invited_by,
         expiration, used, created_by, version, created_at, updated_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, false, $6, 0, now(), now())
       ON CONFLICT (rescue_id, lower(email)) WHERE used = false
       DO UPDATE SET
-        token = EXCLUDED.token,
+        token_hash = EXCLUDED.token_hash,
         expiration = EXCLUDED.expiration,
         title = EXCLUDED.title,
         invited_by = EXCLUDED.invited_by,
@@ -893,7 +899,7 @@ export async function inviteStaff(
       [
         invitationId,
         req.email,
-        token,
+        hashToken(token),
         req.rescueId,
         req.title ?? null,
         principal.userId,
