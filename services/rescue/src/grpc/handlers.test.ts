@@ -1005,11 +1005,11 @@ describe('inviteStaff', () => {
     } as never);
 
     // The write targets the partial-unique conflict and refreshes the
-    // existing row's token + expiry rather than inserting a second row.
+    // existing row's token hash + expiry rather than inserting a second row.
     expect(insertSql).toMatch(/ON CONFLICT/i);
     expect(insertSql).toMatch(/lower\(email\)/i);
     expect(insertSql).toMatch(/DO UPDATE/i);
-    expect(insertSql).toMatch(/token = EXCLUDED\.token/i);
+    expect(insertSql).toMatch(/token_hash = EXCLUDED\.token_hash/i);
     expect(insertSql).toMatch(/expiration = EXCLUDED\.expiration/i);
     // The returned invitation carries the EXISTING row's id (no duplicate).
     expect(res.invitation.invitationId).toBe('inv-existing');
