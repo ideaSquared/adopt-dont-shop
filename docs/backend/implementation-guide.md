@@ -60,7 +60,7 @@ If you prefer to run the backend on the host (you must provide Postgres and Redi
 
 ```bash
 cd services/<name>       # e.g. services/gateway, services/auth, services/pets
-pnpm dev                  # tsx watch --clear-screen=false src/index.ts
+pnpm dev                  # tsx watch --import ./src/instrumentation.ts ./src/index.ts
 ```
 
 ## Environment Configuration
@@ -202,9 +202,12 @@ Each schema-owning service ships its own migrations and (where it makes sense) s
 docker compose exec service-auth pnpm db:migrate
 
 # Authoring a new migration: copy an existing file in the owning service's
-# services/<name>/src/migrations/ and follow the numbered naming pattern
-# (e.g. 01-add-something.ts). The runner picks them up automatically on the
-# next service boot (its CMD runs `pnpm run --if-present db:migrate`).
+# services/<name>/src/migrations/ and follow the numbered naming pattern —
+# a 3-digit, zero-padded, sequential prefix then snake_case
+# (e.g. 011_add_something.ts); the convention is enforced by each service's
+# migrations.test.ts (/^\d{3}_[a-z0-9_]+\.ts$/). The runner picks them up
+# automatically on the next service boot (its CMD runs
+# `pnpm run --if-present db:migrate`). See docs/backend/writing-migrations.md.
 ```
 
 Schema-owning services: `service-auth`, `service-pets`, `service-rescue`, `service-applications`, `service-chat`, `service-notifications`, `service-moderation`, `service-matching`, `service-cms`, `service-audit`. The gateway owns no tables, so `docker compose exec service-gateway pnpm db:migrate` will fail with "missing script" — that's expected, skip it.
@@ -246,14 +249,11 @@ pnpm test
 # Watch mode
 pnpm test:watch
 
-# Vitest UI
-pnpm test:ui
-
 # Coverage report
 pnpm test:coverage
 
-# Specific test file
-pnpm test -- src/__tests__/services/user.service.test.ts
+# Specific test file (tests are colocated with source; Vitest takes a path or substring filter)
+pnpm test src/grpc/handlers.test.ts
 ```
 
 Load-testing and performance-profiling scripts are not yet set up.
@@ -296,8 +296,8 @@ docker build \
   -t adoptdontshop/gateway:latest \
   -f services/gateway/Dockerfile .
 
-# Run production container
-docker run -p 5000:5000 \
+# Run production container (the gateway listens on 4000 — GATEWAY_PORT, default 4000)
+docker run -p 4000:4000 \
   --env-file .env.production \
   adoptdontshop/gateway:latest
 ```
@@ -317,7 +317,7 @@ The gateway is the only HTTP edge. Domain logic lives in a gRPC microservice; th
 
 ### Add a database table
 
-1. **Create the migration** by copying the latest file in the owning service's `services/<name>/src/migrations/` and renaming it (`NN-create-my-table.ts` — the `node-pg-migrate` runner picks files up by alphabetical order, no generator). Author both `up()` and `down()`.
+1. **Create the migration** by copying the latest file in the owning service's `services/<name>/src/migrations/` and renaming it with the next number (`NNN_create_my_table.ts` — 3-digit zero-padded prefix then snake_case; the `node-pg-migrate` runner picks files up in lexicographic order, no generator). Author both `up()` and `down()`.
 2. **Restart the service** — its boot CMD runs `pnpm run --if-present db:migrate` and applies the new migration, or run it explicitly with `docker compose exec service-<name> pnpm db:migrate`.
 3. **Update the gRPC handlers** in `services/<name>/src/grpc/` to read/write the new table via the connection from `@adopt-dont-shop/db`. Direct parameterised SQL — there is no ORM.
 4. **Add seed rows** (optional) by extending `services/<name>/src/db/seed-data.ts` + `seed.ts`. Keep inserts idempotent with `ON CONFLICT DO UPDATE`.

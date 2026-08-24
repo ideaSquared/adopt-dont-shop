@@ -41,9 +41,6 @@ pnpm test
 # Watch mode
 pnpm test:watch
 
-# Vitest UI
-pnpm test:ui
-
 # Coverage report
 pnpm test:coverage
 
@@ -347,8 +344,8 @@ pnpm test user.service.test.ts
 # Single test case
 pnpm test -- -t "should create user"
 
-# With Node debugger (Vitest)
-node --inspect-brk node_modules/.bin/vitest run --no-threads
+# With Node debugger (Vitest 4 — use a single-fork pool so the debugger attaches)
+node --inspect-brk node_modules/.bin/vitest run --pool=forks --poolOptions.forks.singleFork
 ```
 
 ### Common Issues
