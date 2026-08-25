@@ -902,13 +902,16 @@ export async function bulkUpdateUsers(
   if (req.userIds.includes(principal.userId as string)) {
     throw new HandlerError('PERMISSION_DENIED', 'cannot include your own account in a bulk update');
   }
-  if (setType) {
-    if (
-      req.userType === AuthV1.UserRole.USER_ROLE_SUPER_ADMIN &&
-      !principal.roles.includes('super_admin')
-    ) {
-      throw new HandlerError('PERMISSION_DENIED', 'only super_admin can assign super_admin');
-    }
+  const targetRole = setType ? roleToDb(req.userType) : undefined;
+  if (
+    targetRole !== undefined &&
+    ELEVATED_ROLES.has(targetRole) &&
+    !principal.roles.includes('super_admin')
+  ) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      'only a super_admin may assign admin, moderator, or super_admin roles'
+    );
   }
 
   const sets: string[] = [];
@@ -917,9 +920,9 @@ export async function bulkUpdateUsers(
     sets.push(`status = $${baseParams.length + 1}`);
     baseParams.push(statusToDb(req.status));
   }
-  if (setType) {
+  if (targetRole !== undefined) {
     sets.push(`user_type = $${baseParams.length + 1}`);
-    baseParams.push(roleToDb(req.userType));
+    baseParams.push(targetRole);
   }
   sets.push('updated_at = now()');
   sets.push('version = version + 1');
