@@ -168,6 +168,17 @@ jobs:
       - name: Verify e2e lint
         run: pnpm --filter @adopt-dont-shop/e2e run lint
 
+      # ADS-1233: e2e's type-check and format:check went through Turbo, whose
+      # global task `inputs` are scoped to `src/**` — a directory e2e doesn't
+      # have — so a warm cache could replay a stale hit and mask a type error
+      # or Prettier drift. Invoked directly for the same reason as e2e lint
+      # above, and because no CI job filter targeted the e2e workspace at all.
+      - name: Verify e2e type-check
+        run: pnpm --filter @adopt-dont-shop/e2e run type-check
+
+      - name: Verify e2e format
+        run: pnpm --filter @adopt-dont-shop/e2e run format:check
+
       # ADS-1027: fail if packages/proto's committed ts-proto output no longer
       # matches `buf generate` — otherwise any `pnpm build` silently dirties the
       # tree. The guard regenerates into a tmpdir and diffs.
