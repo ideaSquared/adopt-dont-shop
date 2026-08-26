@@ -971,6 +971,48 @@ describe('bulkUpdateUsers', () => {
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
+  it('blocks a plain admin from bulk-elevating other users to admin', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: ['usr-2'],
+        userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  });
+
+  it('blocks a plain admin from bulk-elevating other users to moderator', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: ['usr-2'],
+        userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  });
+
+  it('allows a super_admin to bulk-assign admin/moderator/super_admin', async () => {
+    mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
+
+    const res = await bulkUpdateUsers(mocks.deps, SUPER_ADMIN, {
+      userIds: ['usr-2'],
+      userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+    });
+
+    expect(res.results.find(r => r.userId === 'usr-2')?.success).toBe(true);
+  });
+
+  it('allows a plain admin to bulk-assign a non-elevated role', async () => {
+    mocks.clientScript.push({ rows: [{ user_id: 'usr-2' }] });
+
+    const res = await bulkUpdateUsers(mocks.deps, ADMIN, {
+      userIds: ['usr-2'],
+      userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
+    });
+
+    expect(res.results.find(r => r.userId === 'usr-2')?.success).toBe(true);
+  });
+
   it('returns per-id results — one success, one not-found', async () => {
     // First id: UPDATE returns a row. Second id: UPDATE returns none.
     mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
