@@ -125,6 +125,26 @@ describe('loadConfig — principal signing key (ADS-800)', () => {
       /PRINCIPAL_SIGNING_KEY must be at least 32 bytes/
     );
   });
+
+  // ADS-1259: a placeholder value long enough to clear the 32-byte floor must
+  // still fail boot in production — length alone is not a real secret check.
+  it('rejects a CHANGE_THIS-placeholder PRINCIPAL_SIGNING_KEY in production, even though it clears the byte floor', () => {
+    const placeholder = 'CHANGE_THIS_principal_signing_key_placeholder_value';
+    expect(placeholder.length).toBeGreaterThanOrEqual(32);
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        CORS_ORIGIN: 'https://app.example.com',
+        PRINCIPAL_SIGNING_KEY: placeholder,
+      })
+    ).toThrow(/PRINCIPAL_SIGNING_KEY is set to a placeholder value/);
+  });
+
+  it('allows a CHANGE_THIS-placeholder PRINCIPAL_SIGNING_KEY outside production', () => {
+    const placeholder = 'CHANGE_THIS_principal_signing_key_placeholder_value';
+    const config = loadConfig({ NODE_ENV: 'development', PRINCIPAL_SIGNING_KEY: placeholder });
+    expect(config.principalSigningKey).toBe(placeholder);
+  });
 });
 
 describe('loadConfig — upload signing secret (ADS-845)', () => {
@@ -144,6 +164,26 @@ describe('loadConfig — upload signing secret (ADS-845)', () => {
     expect(() => loadConfig({ UPLOAD_SIGNING_SECRET: 'short' })).toThrow(
       /UPLOAD_SIGNING_SECRET must be at least 32 bytes/
     );
+  });
+
+  // ADS-1259: same placeholder gap as PRINCIPAL_SIGNING_KEY above — a
+  // publicly-known .env.example placeholder must not boot production.
+  it('rejects a CHANGE_THIS-placeholder UPLOAD_SIGNING_SECRET in production, even though it clears the byte floor', () => {
+    const placeholder = 'CHANGE_THIS_upload_signing_secret_placeholder_value';
+    expect(placeholder.length).toBeGreaterThanOrEqual(32);
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        CORS_ORIGIN: 'https://app.example.com',
+        UPLOAD_SIGNING_SECRET: placeholder,
+      })
+    ).toThrow(/UPLOAD_SIGNING_SECRET is set to a placeholder value/);
+  });
+
+  it('allows a CHANGE_THIS-placeholder UPLOAD_SIGNING_SECRET outside production', () => {
+    const placeholder = 'CHANGE_THIS_upload_signing_secret_placeholder_value';
+    const config = loadConfig({ NODE_ENV: 'development', UPLOAD_SIGNING_SECRET: placeholder });
+    expect(config.storage.signingSecret).toBe(placeholder);
   });
 });
 

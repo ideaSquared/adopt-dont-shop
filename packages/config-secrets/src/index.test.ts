@@ -63,6 +63,65 @@ describe('readSecret', () => {
 
     expect(readSecret('JWT_SECRET', { JWT_SECRET_FILE: file })).toBe('');
   });
+
+  // ADS-1259: the placeholder check must fire for every resolved secret, not
+  // only ones read through requireSecret — readOptionalSecret-style callers
+  // (e.g. the gateway's PRINCIPAL_SIGNING_KEY / UPLOAD_SIGNING_SECRET loaders)
+  // call readSecret directly and must not boot production with a placeholder.
+  it('rejects a CHANGE_THIS placeholder env value in production', () => {
+    expect(() =>
+      readSecret('PRINCIPAL_SIGNING_KEY', {
+        NODE_ENV: 'production',
+        PRINCIPAL_SIGNING_KEY: 'CHANGE_THIS_principal_signing_key',
+      })
+    ).toThrow(/PRINCIPAL_SIGNING_KEY is set to a placeholder value/);
+  });
+
+  it('rejects a CHANGE_THIS placeholder file value in production', () => {
+    const file = join(tmp, 'principal-key');
+    writeFileSync(file, 'CHANGE_THIS_principal_signing_key');
+
+    expect(() =>
+      readSecret('PRINCIPAL_SIGNING_KEY', {
+        NODE_ENV: 'production',
+        PRINCIPAL_SIGNING_KEY_FILE: file,
+      })
+    ).toThrow(/PRINCIPAL_SIGNING_KEY is set to a placeholder value/);
+  });
+
+  it('matches the placeholder prefix case-insensitively', () => {
+    expect(() =>
+      readSecret('UPLOAD_SIGNING_SECRET', {
+        NODE_ENV: 'production',
+        UPLOAD_SIGNING_SECRET: 'change_this_upload_signing_secret',
+      })
+    ).toThrow(/UPLOAD_SIGNING_SECRET is set to a placeholder value/);
+  });
+
+  it('detects a placeholder even when padded with whitespace', () => {
+    expect(() =>
+      readSecret('UPLOAD_SIGNING_SECRET', {
+        NODE_ENV: 'production',
+        UPLOAD_SIGNING_SECRET: '  CHANGE_THIS_upload_signing_secret  ',
+      })
+    ).toThrow(/UPLOAD_SIGNING_SECRET is set to a placeholder value/);
+  });
+
+  it('allows a placeholder-looking value outside production (dev/test use throwaways)', () => {
+    expect(
+      readSecret('PRINCIPAL_SIGNING_KEY', {
+        NODE_ENV: 'development',
+        PRINCIPAL_SIGNING_KEY: 'CHANGE_THIS_principal_signing_key',
+      })
+    ).toBe('CHANGE_THIS_principal_signing_key');
+  });
+
+  it('accepts a real (non-placeholder) secret in production, even though it exceeds the byte floor a placeholder also clears', () => {
+    const value = 'a-real-principal-signing-key-of-at-least-32-bytes';
+    expect(
+      readSecret('PRINCIPAL_SIGNING_KEY', { NODE_ENV: 'production', PRINCIPAL_SIGNING_KEY: value })
+    ).toBe(value);
+  });
 });
 
 describe('requireSecret', () => {

@@ -301,4 +301,40 @@ describe('assertPrincipalVerificationConfig', () => {
       }
     );
   });
+
+  // ADS-1259: getDefaultPrincipalSigningKey resolves PRINCIPAL_SIGNING_KEY via
+  // config-secrets' readSecret with no env override, so it always reads the
+  // real process.env — including NODE_ENV. A placeholder value long enough to
+  // clear the 32-byte floor previously booted cleanly; it must now fail
+  // closed in production, the same as every other runtime read path.
+  describe('with a CHANGE_THIS-placeholder signing key (ADS-1259)', () => {
+    const origNodeEnv = process.env.NODE_ENV;
+    const PLACEHOLDER_KEY = 'CHANGE_THIS_principal_signing_key_placeholder_value';
+
+    afterEach(() => {
+      if (origNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = origNodeEnv;
+      }
+    });
+
+    it('is long enough to clear the byte floor on its own', () => {
+      expect(Buffer.byteLength(PLACEHOLDER_KEY, 'utf8')).toBeGreaterThanOrEqual(32);
+    });
+
+    it('fails boot in production with a clear error, not the byte-floor message', () => {
+      process.env.NODE_ENV = 'production';
+      withKey(PLACEHOLDER_KEY);
+      expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).toThrow(
+        /PRINCIPAL_SIGNING_KEY is set to a placeholder value/
+      );
+    });
+
+    it('does not fail boot in development (throwaway values are fine)', () => {
+      process.env.NODE_ENV = 'development';
+      withKey(PLACEHOLDER_KEY);
+      expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'development' })).not.toThrow();
+    });
+  });
 });
