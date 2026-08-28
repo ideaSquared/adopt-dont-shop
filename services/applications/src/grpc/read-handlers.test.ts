@@ -118,6 +118,31 @@ describe('getApplication', () => {
     expect(res.application.status).toBe(S.APPLICATION_STATUS_SUBMITTED);
   });
 
+  // ADS-1261: a draft application is private to the owning adopter until it is
+  // submitted — rescue staff are denied until it leaves draft.
+  it('lets the owning adopter read their own draft', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [storeRow(1, draftCreated)] });
+    const res = await getApplication(deps, makePrincipal(), {
+      applicationId: 'app-1',
+      includeTimeline: false,
+    });
+    expect(res.application.status).toBe(S.APPLICATION_STATUS_DRAFT);
+    expect(res.application.adopterId).toBe('usr-1');
+  });
+
+  it('denies rescue staff reading a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [storeRow(1, draftCreated)] });
+    await expect(
+      getApplication(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-1' }),
+        { applicationId: 'app-1', includeTimeline: false }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
   it('includes the timeline when requested', async () => {
     const { deps, query } = makeDeps();
     query.mockResolvedValueOnce({ rows: submittedRows() });

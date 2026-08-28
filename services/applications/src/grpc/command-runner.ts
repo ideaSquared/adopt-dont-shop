@@ -103,6 +103,38 @@ export function requireDraftScope(
   }
 }
 
+// Draft-privacy READ scope (ADS-1225 read-path half, tracked as ADS-1261).
+// A draft application is private to the owning adopter (and super_admin, via
+// requirePermission's own bypass) until it is submitted — the rescue-staff
+// read allowance exists ONLY once the application has left `draft`. This is the
+// read-side mirror of requireDraftScope, shared by getApplication and the
+// document / timeline-note / home-visit list handlers. Takes the owner fields
+// as primitives so both the folded ApplicationState and the read-model owner
+// row (user_id / rescue_id) can reuse it.
+export function requireDraftAwareReadScope(
+  principal: Principal,
+  permission: Permission,
+  scope: { status: string; adopterId: string; rescueId: string }
+): void {
+  const ownerOk = requirePermission(principal, permission, {
+    userId: scope.adopterId as UserId,
+  });
+  if (scope.status === 'draft') {
+    // Draft: owner (or super_admin) only — no rescue branch.
+    if (!ownerOk) {
+      throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
+    }
+    return;
+  }
+  // Non-draft: the usual owner-OR-rescue read scope.
+  const rescueOk = requirePermission(principal, permission, {
+    rescueId: scope.rescueId as RescueId,
+  });
+  if (!ownerOk && !rescueOk) {
+    throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
+  }
+}
+
 // Translate the pure domain's DomainError codes into HandlerError
 // codes. ILLEGAL_TRANSITION / INVALID_INPUT → INVALID_ARGUMENT;
 // CONCURRENCY → FAILED_PRECONDITION (a stale expected_version is an

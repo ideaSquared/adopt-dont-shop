@@ -27,8 +27,12 @@ function makeDeps(): { deps: HandlerDeps; query: ReturnType<typeof vi.fn> } {
 
 // The owner-row lookup every document handler runs first to scope the call
 // to the application's adopter / rescue.
-function ownerRow(overrides: Partial<{ user_id: string; rescue_id: string }> = {}) {
-  return { user_id: overrides.user_id ?? 'usr-1', rescue_id: overrides.rescue_id ?? 'rsc-1' };
+function ownerRow(overrides: Partial<{ user_id: string; rescue_id: string; status: string }> = {}) {
+  return {
+    user_id: overrides.user_id ?? 'usr-1',
+    rescue_id: overrides.rescue_id ?? 'rsc-1',
+    status: overrides.status ?? 'submitted',
+  };
 }
 
 const documentRow = {
@@ -382,6 +386,32 @@ describe('listDocuments', () => {
     );
 
     expect(res.documents).toEqual([]);
+  });
+
+  // ADS-1261: documents on a draft application are private to the owning adopter.
+  it('denies rescue staff reading documents on a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ status: 'draft' })] });
+    await expect(
+      listDocuments(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-1' }),
+        { applicationId: 'app-1' }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // Never reaches the documents SELECT.
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the owning adopter read documents on their own draft', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1', status: 'draft' })] })
+      .mockResolvedValueOnce({ rows: [documentRow] });
+    const res = await listDocuments(deps, makePrincipal({ userId: 'usr-1' }), {
+      applicationId: 'app-1',
+    });
+    expect(res.documents).toHaveLength(1);
   });
 });
 

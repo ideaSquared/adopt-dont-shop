@@ -23,7 +23,7 @@
 //     are pinned to their own rescue, adopters to their own user id.
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
-import { APPLICATIONS_VIEW, type RescueId, type UserId } from '@adopt-dont-shop/lib.types';
+import { APPLICATIONS_VIEW } from '@adopt-dont-shop/lib.types';
 import {
   ApplicationsV1,
   type GetApplicationRequest,
@@ -35,6 +35,7 @@ import {
 import { fold } from '../domain/index.js';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { requireDraftAwareReadScope } from './command-runner.js';
 import { decodeCursor, encodeCursor, InvalidCursorError } from './cursor.js';
 import { statusToDb } from './enum-map.js';
 import { loadAggregate, loadEventRows } from './event-store.js';
@@ -77,14 +78,15 @@ export async function getApplication(
 
   const state = fold(rows.map(r => r.event_data));
 
-  // Adopter-owns OR rescue-staff-of-this-rescue OR admin. super_admin
-  // short-circuits both checks inside requirePermission.
-  const canRead =
-    requirePermission(principal, APPLICATIONS_VIEW, { userId: state.adopterId as UserId }) ||
-    requirePermission(principal, APPLICATIONS_VIEW, { rescueId: state.rescueId as RescueId });
-  if (!canRead) {
-    throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_VIEW}' required`);
-  }
+  // ADS-1261: adopter-owns OR rescue-staff-of-this-rescue OR admin — but while
+  // the application is still a `draft` it is private to the owning adopter, so
+  // rescue staff are denied until it has left draft. An unknown id 404s above
+  // before any scope is leaked. super_admin short-circuits inside requirePermission.
+  requireDraftAwareReadScope(principal, APPLICATIONS_VIEW, {
+    status: state.status,
+    adopterId: state.adopterId,
+    rescueId: state.rescueId,
+  });
 
   const response: GetApplicationResponse = {
     application: stateToProto(state),

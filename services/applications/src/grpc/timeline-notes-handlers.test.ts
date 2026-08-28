@@ -25,8 +25,12 @@ function makeDeps(): { deps: HandlerDeps; query: ReturnType<typeof vi.fn> } {
   return { deps: { pool, nats: {} } as unknown as HandlerDeps, query };
 }
 
-function ownerRow(overrides: Partial<{ user_id: string; rescue_id: string }> = {}) {
-  return { user_id: overrides.user_id ?? 'usr-1', rescue_id: overrides.rescue_id ?? 'rsc-1' };
+function ownerRow(overrides: Partial<{ user_id: string; rescue_id: string; status: string }> = {}) {
+  return {
+    user_id: overrides.user_id ?? 'usr-1',
+    rescue_id: overrides.rescue_id ?? 'rsc-1',
+    status: overrides.status ?? 'submitted',
+  };
 }
 
 const noteRow = {
@@ -166,5 +170,30 @@ describe('listTimelineNotes', () => {
 
     expect(res.notes).toHaveLength(1);
     expect(res.notes[0].noteId).toBe('note-1');
+  });
+
+  // ADS-1261: timeline notes on a draft application are private to the owning adopter.
+  it('denies rescue staff reading timeline notes on a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ status: 'draft' })] });
+    await expect(
+      listTimelineNotes(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-1' }),
+        { applicationId: 'app-1' }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the owning adopter read timeline notes on their own draft', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1', status: 'draft' })] })
+      .mockResolvedValueOnce({ rows: [noteRow] });
+    const res = await listTimelineNotes(deps, makePrincipal({ userId: 'usr-1' }), {
+      applicationId: 'app-1',
+    });
+    expect(res.notes).toHaveLength(1);
   });
 });

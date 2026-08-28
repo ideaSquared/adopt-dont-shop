@@ -12,8 +12,10 @@
 //      are rejected here AND the resolver in the gateway/library enforces
 //      it after merging defaults+overrides.
 
+import { randomUUID } from 'node:crypto';
+
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
-import { withTransaction } from '@adopt-dont-shop/events';
+import { withTransaction, type TransactionalScope } from '@adopt-dont-shop/events';
 import {
   ADMIN_FIELD_PERMISSIONS_READ as FIELD_PERMISSIONS_READ,
   ADMIN_FIELD_PERMISSIONS_WRITE as FIELD_PERMISSIONS_WRITE,
@@ -280,6 +282,40 @@ async function upsertOne(
   return row;
 }
 
+// Forensic record of a field-permission change, published as `auth.actionTaken`
+// so service.audit's wildcard `*.actionTaken` subscriber persists it (the
+// field-permission half of ADS-1246, tracked as ADS-1262). Queued inside the
+// committing transaction — publish-after-commit — and only on the write that
+// actually changed state, never on a rejected write or a no-op delete. The
+// {resource, fieldName, role, accessLevel} deltas are config metadata, not
+// sensitive user data, so it is safe to carry them in the event body.
+function publishFieldPermissionActionTaken(
+  publish: TransactionalScope['publish'],
+  params: {
+    actorUserId: string;
+    action: 'upsert' | 'bulkUpsert' | 'delete';
+    aggregateId: string;
+    details: unknown;
+  }
+): void {
+  publish({
+    type: 'auth.actionTaken',
+    id: `auth.actionTaken.${randomUUID()}`,
+    payload: {
+      eventId: randomUUID(),
+      service: 'service.auth',
+      subject: 'auth.actionTaken',
+      aggregateType: 'fieldPermission',
+      aggregateId: params.aggregateId,
+      actorUserId: params.actorUserId,
+      action: `fieldPermission.${params.action}`,
+      outcome: 'success',
+      occurredAt: new Date().toISOString(),
+      payload: params.details,
+    },
+  });
+}
+
 // --- UpsertFieldPermission -------------------------------------------
 
 export async function upsertFieldPermission(
@@ -307,8 +343,15 @@ export async function upsertFieldPermission(
     );
   }
 
-  const row = await withTransaction(deps, async ({ client }) => {
-    return upsertOne(resource, fieldName, role, accessLevel, client);
+  const row = await withTransaction(deps, async ({ client, publish }) => {
+    const inserted = await upsertOne(resource, fieldName, role, accessLevel, client);
+    publishFieldPermissionActionTaken(publish, {
+      actorUserId: principal.userId,
+      action: 'upsert',
+      aggregateId: String(inserted.field_permission_id),
+      details: { resource, fieldName, role, accessLevel },
+    });
+    return inserted;
   });
   return { override: rowToProto(row) };
 }
@@ -353,11 +396,25 @@ export async function bulkUpsertFieldPermissions(
     );
   }
 
-  const rows = await withTransaction(deps, async ({ client }) => {
+  const rows = await withTransaction(deps, async ({ client, publish }) => {
     const out: FieldPermissionRow[] = [];
     for (const i of inputs) {
       out.push(await upsertOne(i.resource, i.fieldName, i.role, i.accessLevel, client));
     }
+    publishFieldPermissionActionTaken(publish, {
+      actorUserId: principal.userId,
+      action: 'bulkUpsert',
+      aggregateId: out.map(r => String(r.field_permission_id)).join(','),
+      details: {
+        count: inputs.length,
+        overrides: inputs.map(i => ({
+          resource: i.resource,
+          fieldName: i.fieldName,
+          role: i.role,
+          accessLevel: i.accessLevel,
+        })),
+      },
+    });
     return out;
   });
   return { overrides: rows.map(rowToProto) };
@@ -380,12 +437,31 @@ export async function deleteFieldPermission(
     throw new HandlerError('INVALID_ARGUMENT', 'field_name is required');
   }
 
-  const result = await deps.pool.query<{ field_permission_id: number }>(
-    `UPDATE field_permissions
-        SET deleted_at = now()
-      WHERE resource = $1 AND role = $2 AND field_name = $3 AND deleted_at IS NULL
-      RETURNING field_permission_id`,
-    [resource, role, fieldName]
-  );
-  return { deleted: result.rowCount !== null && result.rowCount > 0 };
+  // ADS-1262: route through withTransaction so the soft-delete write and its
+  // audit event commit together (publish-after-commit). A no-op delete (already
+  // deleted / never existed) changes no state and emits no event.
+  const deleted = await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<{
+      field_permission_id: number;
+      access_level: AccessLevelDb;
+    }>(
+      `UPDATE field_permissions
+          SET deleted_at = now()
+        WHERE resource = $1 AND role = $2 AND field_name = $3 AND deleted_at IS NULL
+        RETURNING field_permission_id, access_level`,
+      [resource, role, fieldName]
+    );
+    const deletedRow = result.rows[0];
+    if (deletedRow === undefined) {
+      return false;
+    }
+    publishFieldPermissionActionTaken(publish, {
+      actorUserId: principal.userId,
+      action: 'delete',
+      aggregateId: String(deletedRow.field_permission_id),
+      details: { resource, fieldName, role, before: { accessLevel: deletedRow.access_level } },
+    });
+    return true;
+  });
+  return { deleted };
 }

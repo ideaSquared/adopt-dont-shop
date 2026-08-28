@@ -46,6 +46,11 @@ function makeMocks() {
       if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
         return { rows: [] };
       }
+      // withTransaction inserts queued events into the transactional outbox
+      // (publish-after-commit) — not part of a handler's own SQL script.
+      if (sql.includes('event_outbox')) {
+        return { rows: [] };
+      }
       const next = clientScript.shift();
       if (!next) {
         throw new Error(`client.query unscripted: ${sql.slice(0, 80)}`);
@@ -83,8 +88,29 @@ function makeMocks() {
     clientMock: client,
     clientScript,
     poolScript,
+    natsPublish,
     deps,
   };
+}
+
+// Decode the single `auth.actionTaken` event withTransaction published via
+// nats.jetstream().publish(subject, <encoded envelope>). Returns the
+// AuditEventPayload (envelope.payload); its own `payload` field carries the
+// {resource, fieldName, role, ...} change details.
+function auditEvent(mocks: ReturnType<typeof makeMocks>): {
+  action: string;
+  outcome: string;
+  actorUserId?: string;
+  aggregateType: string;
+  aggregateId: string;
+  payload: unknown;
+} {
+  expect(mocks.natsPublish).toHaveBeenCalledTimes(1);
+  expect(mocks.natsPublish.mock.calls[0][0]).toBe('auth.actionTaken');
+  const envelope = JSON.parse(
+    new TextDecoder().decode(mocks.natsPublish.mock.calls[0][1] as Uint8Array)
+  );
+  return envelope.payload;
 }
 
 function row(over: Record<string, unknown> = {}) {
@@ -219,6 +245,42 @@ describe('upsertFieldPermission', () => {
     expect(beginCalls).toHaveLength(1);
   });
 
+  it('publishes an auth.actionTaken audit event on a successful upsert', async () => {
+    mocks.clientScript.push({ rows: [row({ field_permission_id: 7, access_level: 'read' })] });
+    await upsertFieldPermission(mocks.deps, ADMIN, {
+      resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+      fieldName: 'firstName',
+      role: 'admin',
+      accessLevel: AuthV1.FieldAccessLevel.FIELD_ACCESS_LEVEL_READ,
+    });
+    const ev = auditEvent(mocks);
+    expect(ev).toMatchObject({
+      action: 'fieldPermission.upsert',
+      outcome: 'success',
+      actorUserId: ADMIN.userId,
+      aggregateType: 'fieldPermission',
+      aggregateId: '7',
+    });
+    expect(ev.payload).toMatchObject({
+      resource: 'users',
+      fieldName: 'firstName',
+      role: 'admin',
+      accessLevel: 'read',
+    });
+  });
+
+  it('publishes no audit event when the write is rejected', async () => {
+    await expect(
+      upsertFieldPermission(mocks.deps, READER, {
+        resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+        fieldName: 'firstName',
+        role: 'admin',
+        accessLevel: AuthV1.FieldAccessLevel.FIELD_ACCESS_LEVEL_READ,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.natsPublish).not.toHaveBeenCalled();
+  });
+
   it('rejects sensitive field overrides with INVALID_ARGUMENT', async () => {
     await expect(
       upsertFieldPermission(mocks.deps, ADMIN, {
@@ -299,6 +361,36 @@ describe('bulkUpsertFieldPermissions', () => {
     expect(begins).toHaveLength(1);
   });
 
+  it('publishes a single auth.actionTaken audit event for the batch', async () => {
+    mocks.clientScript.push({ rows: [row({ field_permission_id: 1 })] });
+    mocks.clientScript.push({ rows: [row({ field_permission_id: 2, role: 'moderator' })] });
+    await bulkUpsertFieldPermissions(mocks.deps, ADMIN, {
+      overrides: [
+        {
+          resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+          fieldName: 'firstName',
+          role: 'admin',
+          accessLevel: AuthV1.FieldAccessLevel.FIELD_ACCESS_LEVEL_READ,
+        },
+        {
+          resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+          fieldName: 'firstName',
+          role: 'moderator',
+          accessLevel: AuthV1.FieldAccessLevel.FIELD_ACCESS_LEVEL_READ,
+        },
+      ],
+    });
+    const ev = auditEvent(mocks);
+    expect(ev).toMatchObject({
+      action: 'fieldPermission.bulkUpsert',
+      outcome: 'success',
+      actorUserId: ADMIN.userId,
+      aggregateType: 'fieldPermission',
+      aggregateId: '1,2',
+    });
+    expect(ev.payload).toMatchObject({ count: 2 });
+  });
+
   it('refuses the whole batch when any one entry is sensitive', async () => {
     await expect(
       bulkUpsertFieldPermissions(mocks.deps, ADMIN, {
@@ -334,27 +426,46 @@ describe('deleteFieldPermission', () => {
     mocks = makeMocks();
   });
 
-  it('returns deleted=true when a row was soft-deleted', async () => {
-    mocks.poolScript.push({ rows: [{ field_permission_id: 1 }], rowCount: 1 });
+  it('returns deleted=true and publishes an audit event when a row was soft-deleted', async () => {
+    // ADS-1262: delete now runs inside withTransaction, so the UPDATE goes
+    // through the transaction client (not deps.pool) and the event fires on commit.
+    mocks.clientScript.push({ rows: [{ field_permission_id: 1, access_level: 'write' }] });
     const res = await deleteFieldPermission(mocks.deps, ADMIN, {
       resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
       fieldName: 'firstName',
       role: 'admin',
     });
     expect(res.deleted).toBe(true);
-    const [sql] = mocks.poolMock.query.mock.calls[0] as [string];
-    expect(sql).toContain('UPDATE field_permissions');
-    expect(sql).toContain('SET deleted_at = now()');
+    const updateCall = mocks.clientMock.query.mock.calls.find(c =>
+      String(c[0]).includes('UPDATE field_permissions')
+    ) as [string, unknown[]] | undefined;
+    expect(updateCall).toBeDefined();
+    expect(updateCall![0]).toContain('SET deleted_at = now()');
+    const ev = auditEvent(mocks);
+    expect(ev).toMatchObject({
+      action: 'fieldPermission.delete',
+      outcome: 'success',
+      actorUserId: ADMIN.userId,
+      aggregateType: 'fieldPermission',
+      aggregateId: '1',
+    });
+    expect(ev.payload).toMatchObject({
+      resource: 'users',
+      fieldName: 'firstName',
+      role: 'admin',
+      before: { accessLevel: 'write' },
+    });
   });
 
-  it('returns deleted=false when no row matched', async () => {
-    mocks.poolScript.push({ rows: [], rowCount: 0 });
+  it('returns deleted=false and publishes no event when no row matched', async () => {
+    mocks.clientScript.push({ rows: [] });
     const res = await deleteFieldPermission(mocks.deps, ADMIN, {
       resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
       fieldName: 'firstName',
       role: 'admin',
     });
     expect(res.deleted).toBe(false);
+    expect(mocks.natsPublish).not.toHaveBeenCalled();
   });
 
   it('rejects callers without write permission', async () => {

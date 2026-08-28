@@ -25,8 +25,12 @@ function makeDeps(): { deps: HandlerDeps; query: ReturnType<typeof vi.fn> } {
   return { deps: { pool, nats: {} } as unknown as HandlerDeps, query };
 }
 
-function ownerRow(overrides: Partial<{ user_id: string; rescue_id: string }> = {}) {
-  return { user_id: overrides.user_id ?? 'usr-1', rescue_id: overrides.rescue_id ?? 'rsc-1' };
+function ownerRow(overrides: Partial<{ user_id: string; rescue_id: string; status: string }> = {}) {
+  return {
+    user_id: overrides.user_id ?? 'usr-1',
+    rescue_id: overrides.rescue_id ?? 'rsc-1',
+    status: overrides.status ?? 'submitted',
+  };
 }
 
 const visitRow = {
@@ -69,6 +73,31 @@ describe('listHomeVisits', () => {
     await expect(
       listHomeVisits(deps, makePrincipal({ userId: 'usr-1' }), { applicationId: 'app-1' })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  // ADS-1261: home visits on a draft application are private to the owning adopter.
+  it('denies rescue staff reading home visits on a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ status: 'draft' })] });
+    await expect(
+      listHomeVisits(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-1' }),
+        { applicationId: 'app-1' }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the owning adopter read home visits on their own draft', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1', status: 'draft' })] })
+      .mockResolvedValueOnce({ rows: [visitRow] });
+    const res = await listHomeVisits(deps, makePrincipal({ userId: 'usr-1' }), {
+      applicationId: 'app-1',
+    });
+    expect(res.visits).toHaveLength(1);
   });
 
   it('lets the owning adopter list their visits, newest first', async () => {

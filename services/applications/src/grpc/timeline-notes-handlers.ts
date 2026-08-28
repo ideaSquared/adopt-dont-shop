@@ -33,6 +33,7 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { requireDraftAwareReadScope } from './command-runner.js';
 
 type NoteRow = {
   note_id: string;
@@ -48,6 +49,7 @@ type NoteRow = {
 type OwnerRow = {
   user_id: string;
   rescue_id: string;
+  status: string;
 };
 
 function toTimelineNote(row: NoteRow): TimelineNote {
@@ -65,7 +67,7 @@ function toTimelineNote(row: NoteRow): TimelineNote {
 
 async function loadOwnerOrThrow(deps: HandlerDeps, applicationId: string): Promise<OwnerRow> {
   const { rows } = await deps.pool.query<OwnerRow>(
-    `SELECT user_id, rescue_id FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
+    `SELECT user_id, rescue_id, status FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
     [applicationId]
   );
   if (rows.length === 0) {
@@ -146,8 +148,14 @@ export async function listTimelineNotes(
   if (req.applicationId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
   }
+  // ADS-1261: a draft application's timeline notes are private to the owning
+  // adopter; rescue staff may read them only once it has left draft.
   const owner = await loadOwnerOrThrow(deps, req.applicationId);
-  assertOwnerOrRescue(principal, owner, APPLICATIONS_VIEW);
+  requireDraftAwareReadScope(principal, APPLICATIONS_VIEW, {
+    status: owner.status,
+    adopterId: owner.user_id,
+    rescueId: owner.rescue_id,
+  });
 
   const { rows } = await deps.pool.query<NoteRow>(
     `SELECT note_id, application_id, title, description, note_type, metadata, created_by, created_at
