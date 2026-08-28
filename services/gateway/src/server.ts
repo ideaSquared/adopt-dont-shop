@@ -273,6 +273,13 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   await server.register(helmet, {
     contentSecurityPolicy: false,
     strictTransportSecurity: { maxAge: 63072000, includeSubDomains: true, preload: true },
+    // ADS-1260: disable helmet's default X-Frame-Options (SAMEORIGIN). nginx
+    // adds `X-Frame-Options: DENY always` on every vhost and its add_header
+    // appends rather than replaces — so emitting one here yields two
+    // conflicting XFO headers (which some browsers then ignore). Let nginx own
+    // the single authoritative DENY; the gateway serves JSON (never framed),
+    // and the edge CSP `frame-ancestors 'none'` is the authoritative control.
+    frameguard: false,
   });
 
   // CORS — explicit allowed-origins list from config. nginx also handles
