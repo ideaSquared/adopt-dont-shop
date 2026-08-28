@@ -77,3 +77,51 @@ describe('resend provider — idempotency', () => {
     expect(result).toEqual({ success: true, messageId: 'provider-msg-1' });
   });
 });
+
+describe('resend provider — log hygiene (ADS-1257)', () => {
+  it('masks the recipient and logs email.type instead of the raw subject', async () => {
+    const info = vi.fn();
+    const logger = {
+      info,
+      warn: () => undefined,
+      error: () => undefined,
+      debug: () => undefined,
+    } as unknown as Parameters<typeof createResendProvider>[0]['logger'];
+    const { client } = makeClient();
+    const provider = createResendProvider({ config, logger, client });
+
+    await provider.send(
+      queuedEmail({ toEmail: 'adopter@example.com', subject: 'Reset your password' })
+    );
+
+    const [event, meta] = info.mock.calls[0] as [string, Record<string, unknown>];
+    expect(event).toBe('email.resend.send_ok');
+    expect(meta.messageId).toBe('provider-msg-1');
+    expect(meta.to).toBe('a***@example.com');
+    expect(meta.type).toBe('transactional');
+    expect(meta.subject).toBeUndefined();
+    const serialized = JSON.stringify(meta);
+    expect(serialized).not.toContain('adopter@example.com');
+    expect(serialized).not.toContain('Reset your password');
+  });
+
+  it('masks the recipient on the failure path too', async () => {
+    const error = vi.fn();
+    const logger = {
+      info: () => undefined,
+      warn: () => undefined,
+      error,
+      debug: () => undefined,
+    } as unknown as Parameters<typeof createResendProvider>[0]['logger'];
+    const send = vi.fn().mockResolvedValue({ data: null, error: { message: 'rejected' } });
+    const client = { emails: { send } } as unknown as Pick<Resend, 'emails'>;
+    const provider = createResendProvider({ config, logger, client });
+
+    await provider.send(queuedEmail({ toEmail: 'adopter@example.com' }));
+
+    const [event, meta] = error.mock.calls[0] as [string, Record<string, unknown>];
+    expect(event).toBe('email.resend.send_failed');
+    expect(meta.to).toBe('a***@example.com');
+    expect(JSON.stringify(meta)).not.toContain('adopter@example.com');
+  });
+});
