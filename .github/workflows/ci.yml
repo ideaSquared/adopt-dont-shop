@@ -573,6 +573,44 @@ jobs:
       - uses: ./.github/actions/e2e-suite
 
   # ============================================================================
+  # E2E SMOKE — ADS-1242: advisory @smoke subset on PRs touching app / service /
+  # gateway code, so the headline journeys (auth, adoption application, chat,
+  # gateway login) get a pre-merge signal instead of being protected only
+  # AFTER merge by the opt-in full suite. ADVISORY: deliberately NOT in
+  # ci-required's needs, so a smoke failure shows red on the PR but never
+  # blocks merge — the intended ratchet is to promote this to required once it
+  # has proven stable. Skipped when the PR carries `run-e2e` (the full test-e2e
+  # job already covers those journeys) or when neither app nor backend changed.
+  # ============================================================================
+  test-e2e-smoke:
+    name: E2E Smoke (Playwright)
+    needs: [changes, test-frontend, test-services]
+    if: |
+      always() &&
+      github.event_name == 'pull_request' &&
+      !contains(github.event.pull_request.labels.*.name, 'run-e2e') &&
+      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true') &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
+      (needs.test-services.result == 'success' || needs.test-services.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    # Same stack env as test-e2e (no TURBO_TOKEN — steps build/run via docker
+    # compose directly, never `turbo run`; see test-e2e's ADS-1014 note).
+    env:
+      CI: true
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+      E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      # Local composite actions can only load after the repo is checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: ./.github/actions/e2e-suite
+        with:
+          mode: smoke
+
+  # ============================================================================
   # COVERAGE REPORT — ADS-947: sticky PR comment with per-package coverage
   # delta vs main + this run's job timings. Purely informational: not in
   # ci-required's needs, and continue-on-error so a script/API hiccup (e.g.

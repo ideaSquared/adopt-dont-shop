@@ -6,6 +6,15 @@ description: >-
   job itself (name, needs, if-gating, env, timeout) stays in ci.yml so its
   status-check identity is unchanged. See that job for the opt-in-on-PRs
   rationale (`run-e2e` label / push to main / workflow_dispatch).
+inputs:
+  mode:
+    description: >-
+      Which Playwright subset to run: "full" (default — the complete suite, for
+      the opt-in test-e2e job) or "smoke" (the @smoke-tagged headline journeys:
+      auth, adoption application, chat, gateway login — for the advisory
+      test-e2e-smoke PR job, ADS-1242).
+    required: false
+    default: 'full'
 runs:
   using: 'composite'
   steps:
@@ -313,17 +322,22 @@ runs:
         done
 
     - name: Run Playwright suite
-      # E2E only reaches this point when explicitly requested (main push,
-      # `run-e2e` label, or manual dispatch), so always run the full suite —
-      # the point of opting in is to get complete integration coverage, not a
-      # smoke subset. Tag tests with @smoke and run `pnpm test:e2e:smoke`
-      # locally for a quick subset.
+      # Two callers (ADS-1242):
+      #   - the opt-in test-e2e job (main push / `run-e2e` label / dispatch)
+      #     wants complete integration coverage → mode: full (default).
+      #   - the advisory test-e2e-smoke PR job runs only the @smoke-tagged
+      #     headline journeys for a fast pre-merge signal → mode: smoke.
       #
       # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
       shell: bash
       run: |
-        echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
-        pnpm test:e2e
+        if [ "${{ inputs.mode }}" = "smoke" ]; then
+          echo "${{ github.event_name }} on ${{ github.ref }} — running @smoke subset"
+          pnpm test:e2e:smoke
+        else
+          echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
+          pnpm test:e2e
+        fi
 
     # ADS-386: Surface flaky-retry signal so engineers can see which tests
     # needed retries without having to open the full HTML report.
