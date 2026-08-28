@@ -15,14 +15,13 @@ export const EtherealCredentialsPanel: React.FC<EtherealCredentialsPanelProps> =
 }) => {
   const { credentials, loading } = useEtherealCredentials();
 
-  // Hide in production
-  if (
-    typeof window !== 'undefined' &&
-    window.location &&
-    window.location.hostname !== 'localhost' &&
-    window.location.hostname !== '127.0.0.1' &&
-    process.env.NODE_ENV === 'production'
-  ) {
+  // ADS-1231: gate on Vite's build-time `import.meta.env.DEV` rather than a
+  // runtime NODE_ENV/hostname check. It is statically replaced at build time,
+  // so this component's body (and its live-credentials fetch) is dead-code-
+  // eliminated from production bundles instead of merely hidden at runtime —
+  // a mis-built non-prod bundle served on a real host can no longer leak the
+  // shared test-inbox credentials.
+  if (!import.meta.env?.DEV) {
     return null;
   }
 
@@ -66,13 +65,13 @@ export const EtherealCredentialsPanel: React.FC<EtherealCredentialsPanelProps> =
           <div style={{ marginTop: '0.75rem' }}>
             <button
               className={styles.etherealButton}
-              onClick={() => window.open(credentials.loginUrl, '_blank')}
+              onClick={() => window.open(credentials.loginUrl, '_blank', 'noopener,noreferrer')}
             >
               🔐 Login to Ethereal
             </button>
             <button
               className={styles.etherealButton}
-              onClick={() => window.open(credentials.messagesUrl, '_blank')}
+              onClick={() => window.open(credentials.messagesUrl, '_blank', 'noopener,noreferrer')}
             >
               📬 View Messages
             </button>
