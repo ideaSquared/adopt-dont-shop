@@ -1,14 +1,25 @@
 import baseConfig from '@adopt-dont-shop/eslint-config-base';
+import pluginJsxA11y from 'eslint-plugin-jsx-a11y';
 import pluginReact from 'eslint-plugin-react';
 import pluginReactHooks from 'eslint-plugin-react-hooks';
 import pluginReactRefresh from 'eslint-plugin-react-refresh';
 
-// TODO: re-add eslint-plugin-jsx-a11y once it supports eslint 10
+// ADS-1244: eslint-plugin-jsx-a11y is re-enabled — 6.10.2 supports eslint 10
+// and flat config, so the old "wait for eslint 10" blocker is gone. Its
+// recommended rules run at 'warn' (not 'error') so accessibility is enforced
+// as an advisory signal first: pre-existing violations surface as warnings
+// rather than failing CI. Ratchet individual rules to 'error' as they reach
+// zero violations.
+const jsxA11yRecommendedAsWarn = Object.fromEntries(
+  Object.keys(pluginJsxA11y.flatConfigs.recommended.rules).map(rule => [rule, 'warn'])
+);
+
 export default [
   ...baseConfig,
   pluginReact.configs.flat.recommended,
   {
     plugins: {
+      'jsx-a11y': pluginJsxA11y,
       'react-hooks': pluginReactHooks,
       'react-refresh': pluginReactRefresh,
     },
@@ -22,6 +33,10 @@ export default [
       },
     },
     rules: {
+      // ADS-1244: jsx-a11y recommended set, all downgraded to 'warn' (advisory).
+      // Spread first so any explicit override below takes precedence.
+      ...jsxA11yRecommendedAsWarn,
+
       // react-hooks core rules (v7 "recommended" adds many React Compiler
       // rules that this codebase isn't ready for — only enable the classic two)
       'react-hooks/rules-of-hooks': 'error',
