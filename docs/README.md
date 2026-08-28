@@ -61,6 +61,8 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [ADR 0008 — pre-deploy migration strategy](./adr/0008-pre-deploy-migration-strategy.md) — _proposed_: gated pre-deploy migration runner, `CREATE INDEX CONCURRENTLY` on populated tables, and expand/contract discipline
 - [ADR 0009 — deployment strategy & high availability](./adr/0009-deployment-strategy-and-ha.md) — _proposed_: auto-rollback-on-failed-health + documented single-host SPOF/RTO/RPO vs. multi-replica / orchestrator tradeoffs (ADS-1045)
 - [ADR 0010 — frontend quality gates](./adr/0010-frontend-quality-gates.md) — _proposed_: re-enable jsx-a11y, add `no-non-null-assertion`, tighten the container CSP, ratchet app coverage floors
+- [ADR 0011 — interim availability posture](./adr/0011-interim-availability-posture.md) — _proposed_: accept the single-host SPOF budget (24h RPO / ≤2h DB-RTO) for the eyes-on launch and defer the HA build behind explicit promotion triggers (ADS-1252, builds on ADR 0009)
+- [ADR 0012 — internal defence-in-depth posture](./adr/0012-internal-defence-in-depth.md) — _proposed_: re-affirm mTLS acceptance (→ multi-host), commit the gateway auth backstop behind a public-path audit, defer migration back-compat to ADR 0008 (ADS-1255)
 - [ADR — sticky sessions for Socket.IO](./architecture/adr-socket-sticky-sessions.md) — connection-cap mitigation for the WebSocket edge
 - [Frontend technical architecture](./frontend/technical-architecture.md) — app shells, routing, state, styling
 - [Matching system scope](./matching-system-scope.md) — implementation state, scoring design, and remaining gaps for the pet-adopter matchmaking subsystem (supersedes the frontend recommendations plan)
