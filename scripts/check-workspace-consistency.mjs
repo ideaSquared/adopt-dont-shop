@@ -43,9 +43,10 @@
  *  12. Every services/*.vitest.config.ts imports defineServiceConfig from
  *     vitest.shared.config.ts — no ad-hoc defineConfig at service scope
  *     (ADS-985).
- *  14. Every services/* and packages/lib.* declares coverage thresholds in
- *     its own vitest.config.ts — the shared default is 0%, so an override
- *     is mandatory (ADS-1004).
+ *  14. Every services/*, packages/lib.*, and hand-written non-lib.* packages/*
+ *     declares coverage thresholds in its own vitest.config.ts — the shared
+ *     default is 0%, so an override is mandatory (ADS-1004, ADS-1243).
+ *     Generated packages/proto is exempt.
  *  15. Every services/*, e2e and non-lib.* packages/* package.json ships
  *     lint, format and format:check scripts (ADS-1003 / ADS-1062) — lib.*
  *     and app.* already require these via their check #1 script lists. The
@@ -217,6 +218,24 @@ function listAllPackages() {
     .filter(e => e.isDirectory())
     .map(e => e.name)
     .sort();
+}
+
+// ADS-1243: non-lib packages/* that ship hand-written source + tests must
+// declare their own coverage thresholds too — authz (permission core) and
+// events (publish-after-commit seam) are security-critical, and the rest
+// (config-secrets, db, observability, seed-faker, service-bootstrap, storage,
+// test-utils) carry real logic. `proto` is excluded — it is generated
+// ts-proto output, not hand-written code worth a coverage floor. eslint-config-*
+// have no vitest.config.ts and so are naturally skipped by the existsSync filter.
+const COVERAGE_GATE_EXCLUDED_PACKAGES = new Set(['proto']);
+
+export function listCoverageGatedPackages(packages) {
+  return packages.filter(
+    name =>
+      !name.startsWith('lib.') &&
+      !COVERAGE_GATE_EXCLUDED_PACKAGES.has(name) &&
+      existsSync(join(ROOT, 'packages', name, 'vitest.config.ts'))
+  );
 }
 
 function pkgDir(workspace) {
@@ -792,8 +811,9 @@ export function findMissingCoverageThresholds(configs) {
   return configs.flatMap(({ path, contents }) => {
     if (contents === null) {
       return [
-        `[${path}] missing or unreadable — every services/* and packages/lib.* ` +
-          `package must declare its own coverage thresholds in a vitest.config.ts (ADS-1004).`,
+        `[${path}] missing or unreadable — every services/*, packages/lib.*, and ` +
+          `hand-written packages/* package must declare its own coverage thresholds in a ` +
+          `vitest.config.ts (ADS-1004, ADS-1243).`,
       ];
     }
     const missing = missingCoverageMetrics(extractThresholdsFromSource(contents));
@@ -802,16 +822,17 @@ export function findMissingCoverageThresholds(configs) {
     }
     return [
       `[${path}] missing coverage threshold(s): ${missing.join(', ')} — every ` +
-        `services/* and packages/lib.* package must declare its own coverage thresholds (ADS-1004). ` +
-        `See CONTRIBUTING.md "Coverage thresholds".`,
+        `services/*, packages/lib.*, and hand-written packages/* package must declare its own ` +
+        `coverage thresholds (ADS-1004, ADS-1243). See CONTRIBUTING.md "Coverage thresholds".`,
     ];
   });
 }
 
-function checkCoverageThresholds(libs, services) {
+function checkCoverageThresholds(libs, services, gatedPackages) {
   const targets = [
     ...libs.map(lib => join(ROOT, pkgDir(lib), 'vitest.config.ts')),
     ...services.map(svc => join(ROOT, 'services', svc, 'vitest.config.ts')),
+    ...gatedPackages.map(pkg => join(ROOT, 'packages', pkg, 'vitest.config.ts')),
   ];
   const configs = targets.map(absolutePath => {
     const path = relative(ROOT, absolutePath);
@@ -1273,9 +1294,9 @@ function main() {
   // 13. No --noEmit task may declare dist/ outputs in turbo.json (ADS-1000)
   failures.push(...checkNoEmitTaskOutputs(turboConfig));
 
-  // 14. Every services/* and packages/lib.* must declare its own coverage
-  //     thresholds (ADS-1004)
-  failures.push(...checkCoverageThresholds(libs, services));
+  // 14. Every services/*, packages/lib.*, and hand-written non-lib packages/*
+  //     must declare its own coverage thresholds (ADS-1004, ADS-1243)
+  failures.push(...checkCoverageThresholds(libs, services, listCoverageGatedPackages(packages)));
 
   // ADS-1029: every testable package must be reachable by a CI test filter.
   failures.push(...checkCiFilterReachability());

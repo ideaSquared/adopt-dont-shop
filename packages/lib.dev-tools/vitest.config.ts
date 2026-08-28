@@ -11,14 +11,16 @@ export default defineLibConfig({
         'src/test-utils/**',
         'src/index.ts',
       ],
-      // ADS-717: lib.dev-tools has pre-existing test failures that prevent
-      // reliable coverage measurement. Thresholds held at 0 until tests are
-      // fixed (see failing tests in isDevelopmentMode.test.ts).
+      // ADS-1243: thresholds ratcheted to current coverage via
+      // scripts/ratchet-coverage.mjs. Coverage is low because the existing
+      // tests exercise little of the source (some are near-tautological);
+      // replacing them with behaviour tests to raise this floor is a
+      // follow-up.
       thresholds: {
-        statements: 0,
+        statements: 7,
         branches: 0,
-        functions: 0,
-        lines: 0,
+        functions: 19,
+        lines: 7,
       },
     },
   },
