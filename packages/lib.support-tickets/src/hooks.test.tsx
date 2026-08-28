@@ -248,7 +248,7 @@ describe('useTicketMutations', () => {
     });
 
     expect(mockApi.post).toHaveBeenCalledWith(
-      '/api/v1/admin/support/tickets/ticket_1700000000_abc/reply',
+      '/api/v1/admin/support/tickets/ticket_1700000000_abc/responses',
       { content: 'hi', isInternal: false }
     );
   });

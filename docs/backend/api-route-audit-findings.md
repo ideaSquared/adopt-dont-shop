@@ -13,6 +13,45 @@ remaining ~36 calls (section 2) target features that were never built on
 the backend and each need a design/product decision, so they are left as
 a prioritized backlog rather than fabricated.
 
+## Re-triage — ADS-1248 (2026-08)
+
+> **The numbered sections below are the ORIGINAL PR #1393 snapshot and are now
+> largely stale.** Re-verifying every finding against the current code (ADS-1248)
+> shows most were resolved after #1393 — chiefly by the
+> `frontend-backend-alignment` wave **ADS-1183 … ADS-1204** (all Done) and by the
+> gateway growing compatibility routes. Current status by section:
+>
+> - **§0 / §0b / §0c** — fixed in #1393, as described.
+> - **§1 (30 path/method repoints)** — re-verified call-by-call: **all resolved
+>   except two**, both fixed in the ADS-1248 change —
+>   `support-ticket-service.addResponse` (`/tickets/:id/reply` →
+>   `/tickets/:id/responses`) and the app.rescue demo helper in
+>   `PetManagement.tsx` (`PATCH` → `PUT /api/v1/users/:id`). The rest were
+>   repointed by the ADS-118x wave or are served by new gateway compat routes
+>   (e.g. `/notifications/mark-read`, `/notifications/user/:id`,
+>   `/notifications/preferences/:id`).
+> - **§2 (no backing)** — substantially addressed by the ADS-118x wave (e.g.
+>   account deletion → ADS-1185, reference checks → ADS-1199, quick-application
+>   → ADS-1203) and by §2a (the analytics surface has no honest minimal-viable
+>   endpoint — dead calls or real subsystems). The genuinely-unbuilt remainder
+>   (the legal/consent store, application timeline, analytics exports, report
+>   shares/schedules) stays **deferred product work**; the frontend already
+>   fails these gracefully, so nothing regresses.
+> - **§3 (silent mis-routes)** — the gateway added specific, correctly-ordered
+>   routes for `/pets/breeds[/:type]`, `/notifications/templates/:id/process`
+>   and `/chats/analytics`, and `/applications/statistics` → `/stats` was fixed
+>   (ADS-1204). The residual paths (`/pets/types`, `/pets/recent`,
+>   `/pets/statistics`, `/notifications/stats`) are reached only by **dead
+>   service methods** — no live component calls them (the pet-type filter uses a
+>   static list in `apps/client/src/pages/searchOptions.ts`, not the API).
+>   Recommended follow-up: delete the dead `getPetTypes` / `getRecentPets` /
+>   `getPetStatistics` (`lib.pets`) and `getStats` (`lib.notifications`) methods
+>   plus their endpoint constants (verify no dynamic caller first).
+>
+> **Net:** ADS-1248's actionable, decision-free residual was the two §1 repoints
+> above (now fixed). Everything else is either already resolved or deferred
+> product/feature work.
+
 ## 0. Fixed in this PR — gateway-route bugs
 
 | Area                                          | Change                                                                                                                                                                                                                                                                                                                                                                                                                 |

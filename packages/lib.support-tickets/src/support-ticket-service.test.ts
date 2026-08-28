@@ -253,7 +253,7 @@ describe('SupportTicketService', () => {
   });
 
   describe('addResponse', () => {
-    it('posts a reply to the ticket', async () => {
+    it('posts a response to the ticket', async () => {
       mockApi.post.mockResolvedValue({ data: baseTicket });
 
       await service.addResponse('ticket_1700000000_abc', {
@@ -262,7 +262,7 @@ describe('SupportTicketService', () => {
       });
 
       expect(mockApi.post).toHaveBeenCalledWith(
-        '/api/v1/admin/support/tickets/ticket_1700000000_abc/reply',
+        '/api/v1/admin/support/tickets/ticket_1700000000_abc/responses',
         { content: 'Thanks for reaching out', isInternal: false }
       );
     });
