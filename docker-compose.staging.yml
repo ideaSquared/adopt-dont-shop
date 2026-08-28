@@ -27,6 +27,12 @@ x-logging: &default-logging
 # ----------------------------------------------------------------------------
 x-service-common: &service-common
   restart: always
+  # ADS-1228: read-only root filesystem + explicit tmpfs, mirroring the
+  # x-service-common hardening in docker-compose.prod.yml so staging matches
+  # the prod tier. A compromised process can't drop persistent on-disk implants.
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
   cap_drop:
     - ALL
   security_opt:
@@ -98,6 +104,14 @@ x-healthcheck-service: &hc-service-timing
 # hardened shape — only image/container_name differ per app.
 x-app-common: &app-common
   restart: always
+  # ADS-1228: app-* containers are nginx serving a built SPA — read-only rootfs
+  # plus the same tmpfs set prod uses (nginx needs /var/run for its pid and
+  # /var/cache/nginx for its *_temp dirs), mirroring docker-compose.prod.yml.
+  read_only: true
+  tmpfs:
+    - /tmp
+    - /var/run
+    - /var/cache/nginx
   expose:
     - "8080"
   cap_drop:
