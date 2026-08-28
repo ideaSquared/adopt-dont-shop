@@ -783,9 +783,11 @@ describe('createServer — security headers (Helmet)', () => {
     expect(res.headers['x-content-type-options']).toBe('nosniff');
   });
 
-  it('sets x-frame-options on responses', async () => {
+  // ADS-1260: emit DENY (not Helmet's default SAMEORIGIN) so it agrees with the
+  // `X-Frame-Options: DENY` nginx appends at the edge — no conflicting values.
+  it('sets x-frame-options: DENY on responses', async () => {
     const res = await server.inject({ method: 'GET', url: '/health/simple' });
-    expect(res.headers['x-frame-options']).toBeDefined();
+    expect(res.headers['x-frame-options']).toBe('DENY');
   });
 
   // ADS-974: Helmet's HSTS default (180 days) conflicts with prod nginx's

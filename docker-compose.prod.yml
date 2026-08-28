@@ -526,6 +526,14 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    # ADS-1228: read-only rootfs + tmpfs, matching the x-app-common nginx
+    # hardening. All config/certs/uploads are mounted :ro; nginx only needs a
+    # writable /tmp, /var/run for its pid, and /var/cache/nginx for *_temp dirs.
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
     # The per-stack nginx listens on port 80 (HTTP) internally; the default
     # server returns 444 for unknown hosts but nginx itself is alive and
     # accepting connections. `nginx -t` validates config; checking the master
