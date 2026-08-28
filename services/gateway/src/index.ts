@@ -23,6 +23,7 @@ import { createServer } from './server.js';
 import { registerAuthSubscribers } from './ws/auth-subscriber.js';
 import { registerChatSubscribers } from './ws/chat-subscriber.js';
 import { registerNotificationSubscribers } from './ws/notifications-subscriber.js';
+import { trackSocketAdapterRedis } from './ws/metrics.js';
 import { SocketRegistry } from './ws/socket-registry.js';
 import { attachSocketServer } from './ws/socket-server.js';
 
@@ -143,6 +144,12 @@ const main = async (): Promise<void> => {
       socketAdapterSub.on('error', (err: Error) =>
         logger.warn('socket adapter Redis (sub) error', { message: err.message })
       );
+      // ADS-1251: expose the adapter's cross-replica pub/sub health on
+      // /metrics (gateway_ws_redis_adapter_up) so an alert can fire when
+      // cross-replica WS fan-out degrades — without gating readiness, since a
+      // Redis blip must not pull the gateway out of HTTP rotation.
+      trackSocketAdapterRedis(socketAdapterPub, 'pub');
+      trackSocketAdapterRedis(socketAdapterSub, 'sub');
       redisAdapter = { pubClient: socketAdapterPub, subClient: socketAdapterSub };
     }
     io = attachSocketServer({
