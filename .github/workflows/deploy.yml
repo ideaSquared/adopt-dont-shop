@@ -650,13 +650,16 @@ jobs:
             # Login to GHCR (uses a PAT stored on the server, not the job-scoped GITHUB_TOKEN)
             printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u ideasquared --password-stdin
 
-            # Pull new images — the Fastify gateway + 10 gRPC services replace
-            # the deleted service.backend monolith, plus the three frontends.
-            for image in \
-              service-gateway service-auth service-notifications service-pets \
-              service-rescue service-applications service-chat service-moderation \
-              service-matching service-audit service-cms \
-              app-client app-admin app-rescue; do
+            # The Fastify gateway + 10 gRPC services replace the deleted
+            # service.backend monolith, plus the three frontends. Defined once so
+            # the ADS-1252 auto-rollback below can re-pull the same set.
+            IMAGES="service-gateway service-auth service-notifications service-pets
+              service-rescue service-applications service-chat service-moderation
+              service-matching service-audit service-cms
+              app-client app-admin app-rescue"
+
+            # Pull new images.
+            for image in $IMAGES; do
               docker pull "$IMAGE_PREFIX/$image:$SHA"
             done
 
@@ -772,24 +775,73 @@ jobs:
             # migrate sidecar to wait on. [post-monolith; was ADS-393]
             docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
 
-            # ADS-824: wait for every service to report healthy, not just the
-            # gateway. Ordered so infrastructure-layer services are checked
-            # before the gateway, which depends on them.
+            # ADS-1252: capture the last-known-good SHA before the health gate.
+            # .last_sha still holds the PREVIOUS good SHA here — it is only
+            # overwritten on success at the very end — so the rollback below can
+            # revert to it.
+            LAST_GOOD=""
+            [ -f .last_sha ] && LAST_GOOD="$(tr -d '[:space:]' < .last_sha)"
+
+            # ADS-824: every service must report healthy, not just the gateway.
+            # Ordered so infrastructure-layer services are checked before the
+            # gateway, which depends on them. Defined once so the auto-rollback
+            # reuses the exact same gate.
             # ADS-900: shared loop (also used by rollback.yml) — see
             # scripts/wait-for-services.sh for the retry/timeout contract.
+            HEALTH_TARGETS="service-notifications:5001 service-auth:5002 \
+              service-pets:5003 service-rescue:5004 service-applications:5005 \
+              service-chat:5006 service-moderation:5007 service-matching:5008 \
+              service-audit:5009 service-cms:5010 service-gateway:4000"
             chmod +x scripts/wait-for-services.sh
-            ./scripts/wait-for-services.sh "$COMPOSE_FILE" 30 2 \
-              service-notifications:5001 \
-              service-auth:5002 \
-              service-pets:5003 \
-              service-rescue:5004 \
-              service-applications:5005 \
-              service-chat:5006 \
-              service-moderation:5007 \
-              service-matching:5008 \
-              service-audit:5009 \
-              service-cms:5010 \
-              service-gateway:4000
+            run_health_gate() {
+              # Intentional word-split of the target list.
+              # shellcheck disable=SC2086
+              ./scripts/wait-for-services.sh "$COMPOSE_FILE" 30 2 $HEALTH_TARGETS
+            }
+
+            # ADS-1252: on a failed health/smoke check, revert to LAST_GOOD and
+            # bring the stack back up before failing the deploy, so a bad rollout
+            # self-heals instead of sitting broken under `restart: always` until a
+            # human dispatches rollback.yml. CAVEAT: this reverts the IMAGES only,
+            # not the database — a forward migration must be backward-compatible
+            # (expand/contract, proposed ADR 0008) for the previous version to run
+            # against the newer schema; a destructive/contracting migration must
+            # never ship in the same deploy as the code that depends on it.
+            rollback_and_fail() {
+              echo "::error::Deploy of $SHA failed its health check on $ENV." >&2
+              if [ -z "$LAST_GOOD" ] || [ "$LAST_GOOD" = "$SHA" ]; then
+                echo "::error::No distinct last-known-good SHA to roll back to — leaving the stack for manual intervention (dispatch rollback.yml)." >&2
+                rm -f secrets/*
+                exit 1
+              fi
+              echo "Auto-rolling back to last-known-good SHA $LAST_GOOD..."
+              # Revert to a clean full-stack LAST_GOOD: drop any per-service tag
+              # overrides from THIS deploy so every service falls back to
+              # DEPLOY_SHA, then point DEPLOY_SHA at LAST_GOOD. (.last_sha stores a
+              # single SHA, so per-service overrides from a prior deploy are not
+              # reconstructed — the whole stack reverts to that SHA.)
+              sed -i '/^SERVICE_[A-Z_]*_TAG=/d;/^APP_[A-Z_]*_TAG=/d' .env
+              sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$LAST_GOOD/" .env
+              # Re-pull the last-good images — usually still cached from the prior
+              # deploy, so a transient registry error is non-fatal when the image
+              # is already present locally.
+              for image in $IMAGES; do
+                docker pull "$IMAGE_PREFIX/$image:$LAST_GOOD" ||
+                  echo "warn: could not pull $image:$LAST_GOOD (using local copy if present)"
+              done
+              docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
+              if run_health_gate; then
+                echo "Rolled back to $LAST_GOOD — the stack is healthy on the previous version."
+              else
+                echo "::error::Rollback to $LAST_GOOD also failed its health gate — manual intervention required." >&2
+              fi
+              rm -f secrets/*
+              exit 1
+            }
+
+            if ! run_health_gate; then
+              rollback_and_fail
+            fi
 
             # Smoke-check that the gateway registered its /api/v1/* routes.
             # /api/v1/auth/login exists whenever the auth service client is
@@ -802,7 +854,7 @@ jobs:
               http://localhost:4000/api/v1/auth/login 2>/dev/null || echo "000")
             if [ "$STATUS" = "404" ] || [ "$STATUS" = "000" ]; then
               echo "ERROR: POST /api/v1/auth/login returned $STATUS — gateway routes are not registered."
-              exit 1
+              rollback_and_fail
             fi
             echo "Smoke check passed (HTTP $STATUS)."
 
