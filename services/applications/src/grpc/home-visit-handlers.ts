@@ -21,12 +21,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
-import {
-  APPLICATIONS_PROCESS,
-  APPLICATIONS_VIEW,
-  type RescueId,
-  type UserId,
-} from '@adopt-dont-shop/lib.types';
+import { APPLICATIONS_PROCESS, APPLICATIONS_VIEW, type RescueId } from '@adopt-dont-shop/lib.types';
 import type {
   HomeVisitRecord,
   ListHomeVisitsRequest,
@@ -36,6 +31,7 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { requireDraftAwareReadScope } from './command-runner.js';
 
 const VALID_STATUSES = new Set(['scheduled', 'in_progress', 'completed', 'cancelled']);
 const VALID_OUTCOMES = new Set(['approved', 'rejected', 'conditional']);
@@ -70,6 +66,7 @@ type VisitRow = {
 type OwnerRow = {
   user_id: string;
   rescue_id: string;
+  status: string;
 };
 
 function toHomeVisitRecord(row: VisitRow): HomeVisitRecord {
@@ -115,7 +112,7 @@ function requireApplicationId(applicationId: string | undefined): string {
 
 async function loadOwnerOrThrow(deps: HandlerDeps, applicationId: string): Promise<OwnerRow> {
   const { rows } = await deps.pool.query<OwnerRow>(
-    `SELECT user_id, rescue_id FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
+    `SELECT user_id, rescue_id, status FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
     [applicationId]
   );
   if (rows.length === 0) {
@@ -134,12 +131,13 @@ export async function listHomeVisits(
   const applicationId = requireApplicationId(req.applicationId);
   const owner = await loadOwnerOrThrow(deps, applicationId);
 
-  const canRead =
-    requirePermission(principal, APPLICATIONS_VIEW, { userId: owner.user_id as UserId }) ||
-    requirePermission(principal, APPLICATIONS_VIEW, { rescueId: owner.rescue_id as RescueId });
-  if (!canRead) {
-    throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_VIEW}' required`);
-  }
+  // ADS-1261: a draft application's home visits are private to the owning
+  // adopter; rescue staff may read them only once it has left draft.
+  requireDraftAwareReadScope(principal, APPLICATIONS_VIEW, {
+    status: owner.status,
+    adopterId: owner.user_id,
+    rescueId: owner.rescue_id,
+  });
 
   const { rows } = await deps.pool.query<VisitRow>(
     `SELECT visit_id, application_id, scheduled_date, scheduled_time, assigned_staff, status,

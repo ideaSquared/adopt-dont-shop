@@ -39,6 +39,7 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { requireDraftAwareReadScope } from './command-runner.js';
 
 // A document metadata row as stored. size / mime_type / uploaded_by are
 // nullable; created_at is the canonical upload timestamp.
@@ -57,6 +58,7 @@ type DocumentRow = {
 type OwnerRow = {
   user_id: string;
   rescue_id: string;
+  status: string;
 };
 
 function rowToProto(row: DocumentRow): Document {
@@ -82,7 +84,7 @@ function rowToProto(row: DocumentRow): Document {
 // there (and can't skip the scope check below).
 async function loadOwnerOrThrow(deps: HandlerDeps, applicationId: string): Promise<OwnerRow> {
   const { rows } = await deps.pool.query<OwnerRow>(
-    `SELECT user_id, rescue_id FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
+    `SELECT user_id, rescue_id, status FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
     [applicationId]
   );
   if (rows.length === 0) {
@@ -192,9 +194,15 @@ export async function listDocuments(
     throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
   }
 
-  // Scope from the application's owner / rescue — the read model row.
+  // Scope from the application's owner / rescue — the read model row. ADS-1261:
+  // while the application is a `draft` it is private to the owning adopter;
+  // rescue staff may read its documents only once it has left draft.
   const owner = await loadOwnerOrThrow(deps, req.applicationId);
-  assertOwnerOrRescue(principal, owner, APPLICATIONS_VIEW);
+  requireDraftAwareReadScope(principal, APPLICATIONS_VIEW, {
+    status: owner.status,
+    adopterId: owner.user_id,
+    rescueId: owner.rescue_id,
+  });
 
   const { rows } = await deps.pool.query<DocumentRow>(
     `SELECT document_id, application_id, type, filename, url, size, mime_type, created_at
