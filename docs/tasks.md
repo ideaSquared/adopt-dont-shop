@@ -77,8 +77,8 @@ the repo root with `pnpm <script>`.
 | `pnpm check:workspaces` | `node scripts/check-workspace-consistency.mjs` |
 | `pnpm format` | `turbo run format && pnpm format:root` |
 | `pnpm format:check` | `turbo run format:check && pnpm format:root:check` |
-| `pnpm format:root` | `prettier --cache --write "*.{ts,tsx,js,mjs,jsx,json,md}" "scripts/**/*.{ts,js,mjs,jsx,json,md}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
-| `pnpm format:root:check` | `prettier --cache --check "*.{ts,tsx,js,mjs,jsx,json,md}" "scripts/**/*.{ts,js,mjs,jsx,json,md}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
+| `pnpm format:root` | `prettier --cache --write "*.{ts,tsx,js,mjs,jsx,json,md}" "scripts/**/*.{ts,js,mjs,jsx,json,md}" "{apps,packages,services}/*/*.{ts,mjs}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
+| `pnpm format:root:check` | `prettier --cache --check "*.{ts,tsx,js,mjs,jsx,json,md}" "scripts/**/*.{ts,js,mjs,jsx,json,md}" "{apps,packages,services}/*/*.{ts,mjs}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
 | `pnpm graph` | `turbo run build --graph=docs/dependency-graph.html` |
 | `pnpm graph:tasks` | `turbo run build --graph` |
 | `pnpm lint` | `turbo run lint` |
