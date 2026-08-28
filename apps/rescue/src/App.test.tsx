@@ -16,10 +16,6 @@ vi.mock('@adopt-dont-shop/lib.legal', () => ({
   attachStoredCookieConsent: vi.fn(),
 }));
 
-vi.mock('@adopt-dont-shop/lib.analytics', () => ({
-  useAnalyticsInvalidator: vi.fn(),
-}));
-
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({
     user: { userId: 'u1', userType: 'rescue_staff' },

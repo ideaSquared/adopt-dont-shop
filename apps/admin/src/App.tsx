@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router';
 import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
-import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 import { permissionsService } from './services/libraryServices';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
@@ -52,11 +51,6 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 
 const AdminApp: React.FC = () => {
   const { isAuthenticated, isInitializing } = useAuth();
-  // ADS-105: subscribe to backend analytics:invalidate events. The hook
-  // is a no-op until setRealtimeAnalyticsToken is called by the auth
-  // provider (which we'll wire up in a follow-up — for now this is
-  // safe to mount unconditionally).
-  useAnalyticsInvalidator();
 
   if (isInitializing) {
     return <PageLoader />;

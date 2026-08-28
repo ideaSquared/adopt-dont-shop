@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { io, type Socket } from 'socket.io-client';
 
 /**
@@ -10,11 +9,8 @@ import { io, type Socket } from 'socket.io-client';
  * first use and authenticated against the backend's existing JWT
  * handshake middleware.
  *
- * `useRealtimeAnalytics` lets components react to specific events.
- * `useAnalyticsInvalidator` is the common case: invalidate React
- * Query caches when the backend says metrics changed.
- *
- * Targets `@tanstack/react-query` ^5 to match the existing apps.
+ * `useRealtimeAnalytics` lets components subscribe to a specific
+ * server-pushed event and react to its payload.
  */
 
 let socket: Socket | null = null;
@@ -137,35 +133,4 @@ export const useRealtimeAnalytics = <K extends keyof EventMap>(
       bus.off(event, handler as (...args: unknown[]) => void);
     };
   }, [event, handler]);
-};
-
-/**
- * Mount once at app root. On `analytics:invalidate`, calls
- * `queryClient.invalidateQueries` for both the analytics namespace
- * (existing dashboards) and the reports namespace (executed payloads).
- */
-export const useAnalyticsInvalidator = (): void => {
-  const qc = useQueryClient();
-  useEffect(() => {
-    const s = getSocket();
-    if (!s) {
-      return;
-    }
-    const handler = (payload: AnalyticsInvalidatePayload): void => {
-      for (const cat of payload.categories) {
-        qc.invalidateQueries({ queryKey: ['analytics', cat] });
-      }
-      qc.invalidateQueries({ queryKey: ['reports'] });
-    };
-    // Same justified single cast as in useRealtimeAnalytics (see comment above).
-    type UntypedBus = {
-      on(e: string, cb: (...a: unknown[]) => void): void;
-      off(e: string, cb: (...a: unknown[]) => void): void;
-    };
-    const bus = s as unknown as UntypedBus;
-    bus.on('analytics:invalidate', handler as (...args: unknown[]) => void);
-    return () => {
-      bus.off('analytics:invalidate', handler as (...args: unknown[]) => void);
-    };
-  }, [qc]);
 };
