@@ -2,10 +2,15 @@
 // registered with an interval; the scheduler walks the registered jobs
 // every tick and runs any whose `nextRunAt` has passed.
 //
-// Why not node-cron / agenda? Both pull in a heavy dep for the one
-// scheduled task this service currently runs (the weekly digest). The
-// tick loop matches the CAD-style "minimal external surface" approach
-// and is trivial to test with a mocked clock.
+// Why not node-cron / agenda? Both pull in a heavy dep for the small set
+// of scheduled tasks this service is designed to run. The tick loop matches
+// the CAD-style "minimal external surface" approach and is trivial to test
+// with a mocked clock.
+//
+// ADS-1245: the only registered job (the weekly digest) was a send-nothing
+// scaffold and has been shelved, so nothing is wired into this scheduler
+// today. This module + scheduler/claim.ts are kept as dormant, tested infra
+// for when the real digest (or another periodic job) is built.
 //
 // Replicas + locking: cross-instance locking is OPTIONAL, via the
 // `claimRun` hook (see SchedulerOptions). When wired, the scheduler claims
