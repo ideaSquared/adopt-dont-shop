@@ -273,13 +273,14 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   await server.register(helmet, {
     contentSecurityPolicy: false,
     strictTransportSecurity: { maxAge: 63072000, includeSubDomains: true, preload: true },
-    // ADS-1260: disable helmet's default X-Frame-Options (SAMEORIGIN). nginx
-    // adds `X-Frame-Options: DENY always` on every vhost and its add_header
-    // appends rather than replaces — so emitting one here yields two
-    // conflicting XFO headers (which some browsers then ignore). Let nginx own
-    // the single authoritative DENY; the gateway serves JSON (never framed),
-    // and the edge CSP `frame-ancestors 'none'` is the authoritative control.
-    frameguard: false,
+    // ADS-1260: Helmet's default X-Frame-Options is SAMEORIGIN, but prod nginx
+    // sends `X-Frame-Options: DENY always` on every vhost. As with HSTS above,
+    // nginx's `add_header ... always` merges with — does not replace — an
+    // upstream header, so a SAMEORIGIN here plus nginx's DENY reach the browser
+    // as two *conflicting* values (which some browsers then ignore). Emit DENY
+    // to match nginx: gateway-direct responses still carry XFO, and a browser
+    // behind nginx now sees two values that agree.
+    frameguard: { action: 'deny' },
   });
 
   // CORS — explicit allowed-origins list from config. nginx also handles
