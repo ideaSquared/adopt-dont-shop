@@ -1,20 +1,25 @@
-# Major-version Upgrade Plans
+# Major-version Upgrade Plans (historical)
 
-This directory holds **planning documents** for the round of major-framework
-upgrades flagged by the Production Readiness Audit (Linear: ADS-531, ADS-532).
-Node 22, Express 5 and React 19 have all shipped; Sequelize is on 7-alpha. The
-individual planning docs below retain the original scoping, risk inventory and
-migration notes for posterity — re-read the **Status** banner at the top of
-each one before treating it as live guidance.
+> **Historical — kept for posterity, not live guidance.** These planning
+> documents predate the backend rewrite. They were written for the original
+> **monolith** (`service.backend`, Express + Sequelize) flagged by the Production
+> Readiness Audit (Linear: ADS-531, ADS-532). That monolith has since been
+> replaced by the **Fastify gateway + gRPC microservices** architecture backed by
+> raw `pg` (no ORM), so the **Express 4 → 5** and **Sequelize 6 → 7** plans below
+> are moot — neither framework remains in the codebase. The **Node 22** and
+> **React 19** upgrades did ship and are reflected in the current stack.
+
+The individual planning docs below retain the original scoping, risk inventory
+and migration notes as a record of the pre-rewrite state.
 
 ## Index
 
-| Doc                                           | Linear  | Status                                  | Driver                    |
-| --------------------------------------------- | ------- | --------------------------------------- | ------------------------- |
-| [Node 20 → 22 LTS](./node-22-migration.md)    | ADS-532 | ✅ Shipped                              | Node 20 EOL April 2026    |
-| [Express 4 → 5](./express-5-migration.md)     | ADS-531 | ✅ Shipped                              | Express 5 stable Oct 2024 |
-| [Sequelize 6 → 7](./sequelize-7-migration.md) | ADS-531 | ⚠️ On 7.0.0-alpha — stable bump pending | Active maintenance line   |
-| [React 18 → 19](./react-19-migration.md)      | ADS-531 | ✅ Shipped                              | React 19 stable Dec 2024  |
+| Doc                                           | Linear  | Status                                           | Driver                    |
+| --------------------------------------------- | ------- | ------------------------------------------------ | ------------------------- |
+| [Node 20 → 22 LTS](./node-22-migration.md)    | ADS-532 | ✅ Shipped                                       | Node 20 EOL April 2026    |
+| [Express 4 → 5](./express-5-migration.md)     | ADS-531 | ❌ Moot — Express removed in the backend rewrite | Express 5 stable Oct 2024 |
+| [Sequelize 6 → 7](./sequelize-7-migration.md) | ADS-531 | ❌ Moot — Sequelize removed; services use raw pg | Active maintenance line   |
+| [React 18 → 19](./react-19-migration.md)      | ADS-531 | ✅ Shipped                                       | React 19 stable Dec 2024  |
 
 ## Sequencing recommendation
 

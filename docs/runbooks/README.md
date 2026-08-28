@@ -15,7 +15,7 @@ diagnosis → fix format.
 | Runbook                                                          | When to open it                                                                      |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | [`dev-stack-troubleshooting.md`](./dev-stack-troubleshooting.md) | Local `pnpm docker:dev` failures (not prod on-call)                                  |
-| [`5xx-spike.md`](./5xx-spike.md)                                 | `HighFiveHundredRate` page; 5xx ratio >1% over 5m                                    |
+| [`5xx-spike.md`](./5xx-spike.md)                                 | `HighErrorRate`; HTTP 5xx ratio >1% over 5m                                          |
 | [`redis-outage.md`](./redis-outage.md)                           | `redis` container unhealthy; rate-limiters misbehaving                               |
 | [`db-pool-exhaustion.md`](./db-pool-exhaustion.md)               | `acquire timeout` errors; p95 latency climbs in lockstep                             |
 | [`deploy-rollback.md`](./deploy-rollback.md)                     | Bad deploy: image is live but error rate is up                                       |
@@ -34,7 +34,7 @@ that the rules are simple enough to follow when you're half-awake.
 ### When to page (`critical`)
 
 - A `critical` alert fired and stayed firing past its `for:` window
-  (see [`docs/observability-alerting.md`](../observability-alerting.md)).
+  (see [`docs/slo.md`](../slo.md)).
 - A schema-owning service is stuck in `restarting` (visible via
   `docker compose ps`), blocking its domain routes.
 - A deploy is in flight and the health-check loop in
@@ -72,7 +72,7 @@ The order is always:
 
 ### Severity / routing recap
 
-See [`docs/observability-alerting.md`](../observability-alerting.md)
+See [`docs/slo.md`](../slo.md)
 for the authoritative table. Quick version:
 
 - `critical` → PagerDuty + `#oncall-page` → ack in 5 min

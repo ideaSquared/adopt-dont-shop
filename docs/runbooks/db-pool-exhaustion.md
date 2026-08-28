@@ -1,7 +1,9 @@
 # Database Pool Exhaustion
 
-**Page severity:** `critical` if it causes `HighFiveHundredRate`;
-otherwise `warning` (`P95LatencyHigh`).
+**Severity:** `warning`. Pool exhaustion surfaces as `HttpP95LatencyHigh` /
+`GrpcP95LatencyHigh` (latency climbs) and, once requests start timing out into
+5xx, `HighErrorRate` — all `warning` in the shipped rules
+(`infra/prometheus/rules/`).
 
 ## Symptoms
 
@@ -107,7 +109,8 @@ is up and tracking the saturation, capacity is the cause.
 
 - `pg_stat_activity` `active` count returns to baseline (well below
   each service's pool max).
-- p95 latency drops below 500ms; `P95LatencyHigh` resolves.
+- p95 latency drops below 500ms; `HttpP95LatencyHigh` / `GrpcP95LatencyHigh`
+  resolve.
 - No new `acquire timeout` / `pool is draining` /
   `timeout exceeded when trying to connect` lines in the last 5 min of logs.
 

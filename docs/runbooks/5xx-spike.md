@@ -1,10 +1,11 @@
 # 5xx Spike
 
-**Page severity:** `critical` (`HighFiveHundredRate`, ratio >1% for 5m)
+**Severity:** `warning` — `HighErrorRate` (HTTP 5xx ratio >1% for 5m →
+`warning-chat`)
 
 ## Symptoms
 
-- PagerDuty: `HighFiveHundredRate — Backend 5xx rate >1% (5m)`.
+- Alertmanager (`warning-chat`): `HighErrorRate — service-<name> HTTP 5xx rate >1% (5m)`.
 - Grafana "Error rate by route" panel shows one or more routes climbing.
 - Users / support reporting "internal server error".
 - `/health/simple` may still return 200 (LB probe is liveness-only).
@@ -88,8 +89,8 @@ Pick the fastest reversible action:
 ## Verify
 
 - Grafana error rate drops below 1% and stays there for 5 min.
-- `HighFiveHundredRate` alert resolves (Alertmanager `resolved` event
-  in `#oncall-page`).
+- `HighErrorRate` alert resolves (Alertmanager `resolved` event
+  in `#alerts`).
 - `curl -sf https://${PROD_HOSTNAME}/health/simple` returns 200 and
   `docker compose -f docker-compose.prod.yml ps` shows every service
   healthy.
