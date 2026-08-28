@@ -56,8 +56,9 @@ const PetManagement: React.FC = () => {
         demoRescueData
       );
 
-      // Now update the user with the rescue ID
-      await apiService.patch<unknown>(`/api/v1/users/${user?.userId}`, {
+      // Now update the user with the rescue ID (gateway serves PUT
+      // /api/v1/users/:userId → AdminUpdateUser; there is no PATCH at this path)
+      await apiService.put<unknown>(`/api/v1/users/${user?.userId}`, {
         rescueId: result.data.rescueId,
       });
 

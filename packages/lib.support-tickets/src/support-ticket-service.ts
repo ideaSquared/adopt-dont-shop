@@ -99,7 +99,7 @@ export class SupportTicketService {
    */
   async addResponse(ticketId: string, data: AddResponseRequest): Promise<SupportTicket> {
     const response = await apiService.post<{ data: unknown }>(
-      `${this.baseUrl}/tickets/${ticketId}/reply`,
+      `${this.baseUrl}/tickets/${ticketId}/responses`,
       data
     );
     return SupportTicketSchema.parse(response.data);
