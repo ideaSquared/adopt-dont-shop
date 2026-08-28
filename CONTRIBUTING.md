@@ -102,7 +102,7 @@ pnpm exec turbo run test:coverage --filter='@adopt-dont-shop/lib.api'   # scope 
 
 #### Pre-commit hook (lint-staged)
 
-`.husky/pre-commit` runs [`.lintstagedrc.mjs`](./.lintstagedrc.mjs): Prettier formats the exact staged files, and ESLint runs via `pnpm exec turbo run lint --filter="...[HEAD]"` (ADS-905) — scoped to only the workspace packages your commit touches, using each package's own `eslint.config.js` (matching CI) rather than a single shared root config. A commit that only touches one package only lints that package.
+`.husky/pre-commit` runs [`.lintstagedrc.mjs`](./.lintstagedrc.mjs): Prettier formats the exact staged files, and ESLint runs via `pnpm exec turbo run lint --filter=...[HEAD] --continue` (ADS-905) — scoped to only the workspace packages your commit touches, using each package's own `eslint.config.js` (matching CI) rather than a single shared root config. A commit that only touches one package only lints that package.
 
 #### Pre-push hook (ADS-732 / ADS-905)
 

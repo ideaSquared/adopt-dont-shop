@@ -143,6 +143,13 @@ jobs:
       - name: Verify no committed focused tests (.only / fdescribe / fit)
         run: node scripts/check-no-test-only.mjs
 
+      # ADS-1263: the overrides-docs parity guard (ADS-1113) previously ran
+      # only via `pnpm ci:local`, so a `pnpm.overrides` CVE pin could merge
+      # with no matching `overridesDocumentation` note. Dependency-free, so it
+      # belongs alongside the other scripts/check-*.mjs guards here.
+      - name: Verify every pnpm.overrides pin is documented
+        run: pnpm check:overrides-docs
+
       # ADS-1075: ratchet the form-primitives debt — fail if the apps add new
       # raw <input>/<select>/<textarea> or deprecated TextInput usages beyond
       # the persisted ceiling. Forms should use FormField + Input (+ Zod).

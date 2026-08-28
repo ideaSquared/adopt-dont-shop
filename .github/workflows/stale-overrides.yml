@@ -1,0 +1,43 @@
+name: Stale Overrides
+
+# Weekly advisory report for stale pnpm.overrides pins (ADS-1234 / ADS-1112).
+# scripts/check-stale-overrides.mjs flags CVE-patched overrides whose upstream
+# has moved far enough past the pinned/vulnerable range that the pin is now
+# redundant, so the ~20 hand-maintained pins don't silently rot. The script is
+# informational and always exits 0; this workflow surfaces its report in the
+# run's job summary. It is advisory only — it runs on a schedule (and on
+# demand) and never gates a PR, matching the script's non-blocking design.
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stale-overrides
+  cancel-in-progress: false
+
+jobs:
+  stale-overrides:
+    name: Stale pnpm.overrides report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Setup workspace (Node + pnpm)
+        uses: ./.github/actions/setup-workspace
+      # The script writes its report to stdout (not $GITHUB_STEP_SUMMARY), so
+      # wrap it in a fenced block and append. `|| true` keeps the step green
+      # even on a network hiccup, honouring the script's non-blocking contract.
+      - name: Report stale pnpm.overrides pins
+        run: |
+          {
+            echo '### `pnpm.overrides` staleness report (ADS-1112)'
+            echo ''
+            echo '```text'
+            node scripts/check-stale-overrides.mjs || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

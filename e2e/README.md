@@ -98,15 +98,15 @@ pnpm db:seed
 pnpm test:e2e                                      # full suite
 pnpm test:e2e:smoke                                # @smoke subset only
 pnpm test:e2e -- --project=client                  # one Playwright project
-pnpm test:e2e:single -- tests/client/adoption-application.spec.ts
-pnpm test:e2e:single -- tests/auth.spec.ts --headed
+pnpm test:e2e -- tests/client/adoption-application.spec.ts          # one spec
+pnpm test:e2e -- tests/client/registration-and-login.spec.ts --headed
 
 # Skip global health-check / auth setup when the stack is already up and
 # `.auth/*.json` exists from a previous run.
 E2E_SKIP_HEALTH=1 E2E_SKIP_AUTH=1 pnpm test:e2e
 ```
 
-The `test:e2e:single` script forwards all arguments straight through to Playwright in the `e2e` workspace, so any Playwright flag works (`--headed`, `--debug`, `--repeat-each=3`, `--grep "approves"`, etc.).
+`test:e2e` forwards all arguments straight through to Playwright in the `e2e` workspace, so any Playwright flag works (`--headed`, `--debug`, `--repeat-each=3`, `--grep "approves"`, etc.). `test:e2e:single` is a byte-for-byte alias of `test:e2e` (kept for muscle-memory), not a distinct single-spec runner — `test:e2e -- <spec>` already runs one spec.
 
 ## Seeding the stack
 
