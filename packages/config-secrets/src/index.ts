@@ -13,12 +13,19 @@
 
 import { readFileSync } from 'node:fs';
 
-// ADS-1047: reject obvious `.env.example` placeholders at boot in production.
-// The length/hex checks below let a `CHANGE_THIS…`-style value (>= the byte
-// floor) boot cleanly, so a deploy that forgot to substitute real secrets runs
-// with a known, guessable credential. Match the repo-wide `CHANGE_THIS`
-// placeholder convention (see `.env.example` and lib.validation's env schema).
-// Production-gated only: dev/test/e2e legitimately use throwaway values.
+// ADS-1047 / ADS-1259: reject obvious `.env.example` placeholders at boot in
+// production. The length/hex checks below let a `CHANGE_THIS…`-style value
+// (>= the byte floor) boot cleanly, so a deploy that forgot to substitute
+// real secrets runs with a known, guessable credential. Match the repo-wide
+// `CHANGE_THIS` placeholder convention (see `.env.example` and
+// lib.validation's env schema). Production-gated only: dev/test/e2e
+// legitimately use throwaway values.
+//
+// Wired into readSecret (below) rather than only requireSecret, so every
+// consumer — including callers that treat the secret as optional, like the
+// gateway's PRINCIPAL_SIGNING_KEY / UPLOAD_SIGNING_SECRET loaders — is
+// covered. A byte-length floor alone gives false assurance: the published
+// `.env.example` placeholders are long enough to clear it.
 const PLACEHOLDER_PREFIX = 'change_this';
 
 const isPlaceholderValue = (value: string): boolean =>
@@ -50,6 +57,10 @@ const assertNotPlaceholder = (name: string, value: string, env: NodeJS.ProcessEn
  * Both set is an error — refusing to guess which one to trust avoids
  * silently shipping the wrong credential when a deploy is half-migrated.
  *
+ * When a value is resolved, it is also checked against the `CHANGE_THIS`
+ * placeholder convention and rejected in production (ADS-1259) — see
+ * `assertNotPlaceholder` above.
+ *
  * Errors reading the file path through.
  */
 export const readSecret = (
@@ -65,15 +76,13 @@ export const readSecret = (
     );
   }
 
-  if (filePath !== undefined) {
-    return readFileSync(filePath, 'utf8').trim();
+  const value = filePath !== undefined ? readFileSync(filePath, 'utf8').trim() : direct;
+
+  if (value !== undefined) {
+    assertNotPlaceholder(name, value.trim(), env);
   }
 
-  if (direct !== undefined) {
-    return direct;
-  }
-
-  return undefined;
+  return value;
 };
 
 /**
@@ -83,6 +92,9 @@ export const readSecret = (
  * The optional `description` is appended to the error message to match the
  * per-service phrasing: `"${name} is required (${description})"`.
  * When omitted the message is `"${name} is required"`.
+ *
+ * The `CHANGE_THIS`-placeholder check runs inside {@link readSecret}, so it
+ * applies here too.
  *
  * Pass `opts.minBytes` to additionally reject a present-but-too-short secret
  * — used for HMAC signing keys where a weak secret is offline-brute-forceable
@@ -103,7 +115,6 @@ export const requireSecret = (
     const detail = description !== undefined ? ` (${description})` : '';
     throw new Error(`${name} is required${detail}`);
   }
-  assertNotPlaceholder(name, value, env);
   if (opts?.minBytes !== undefined && Buffer.byteLength(value, 'utf8') < opts.minBytes) {
     throw new Error(`${name} must be at least ${opts.minBytes} bytes`);
   }
