@@ -237,11 +237,14 @@ export default defineLibConfig({
 });
 ```
 
-`scripts/check-workspace-consistency.mjs` fails CI if any `packages/lib.*` or
-`services/*` package omits this block — a new package can't silently land
-at 0%. A package that genuinely can't be measured yet (e.g. pre-existing test
-failures) still declares the block explicitly, at 0, with a comment
-explaining why and linking the tracking ticket — that counts as "declared".
+`scripts/check-workspace-consistency.mjs` fails CI if any `packages/lib.*`,
+`services/*`, or hand-written non-`lib.*` `packages/*` package (e.g. `authz`,
+`events`) omits this block — a new package can't silently land at 0%.
+Generated `packages/proto` is exempt: ts-proto output isn't hand-written code
+worth a coverage floor. A package that genuinely can't be measured yet (e.g.
+pre-existing test failures) still declares the block explicitly, at 0, with a
+comment explaining why and linking the tracking ticket — that counts as
+"declared".
 
 #### Automated ratchet (ADS-796)
 

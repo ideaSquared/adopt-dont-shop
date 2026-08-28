@@ -1,8 +1,16 @@
-import { defineConfig } from 'vitest/config';
+import { defineServiceConfig } from '../../vitest.shared.config';
 
-export default defineConfig({
+export default defineServiceConfig({
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
+    coverage: {
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts', 'src/**/*.test.ts', 'src/index.ts'],
+      thresholds: {
+        statements: 72,
+        branches: 68,
+        functions: 91,
+        lines: 72,
+      },
+    },
   },
 });

@@ -20,6 +20,7 @@ import {
   findRootScriptForGuardFile,
   findUncoveredPackages,
   isRunByCiLocal,
+  listCoverageGatedPackages,
   parseDevVolumesAnchor,
   parseSetupWorkspaceCachePaths,
   parseWorkspaceGlobs,
@@ -297,6 +298,27 @@ describe('findMissingCoverageThresholds (ADS-1004)', () => {
     expect(failures).toHaveLength(1);
     expect(failures[0]).toContain('[services/new-service/vitest.config.ts]');
     expect(failures[0]).toContain('missing or unreadable');
+  });
+});
+
+describe('listCoverageGatedPackages (ADS-1243)', () => {
+  it('gates hand-written non-lib packages and excludes lib.*, generated proto, and configs without a vitest.config.ts', () => {
+    const gated = listCoverageGatedPackages([
+      'authz',
+      'events',
+      'lib.api',
+      'proto',
+      'eslint-config-base',
+    ]);
+    // Security-critical + hand-written non-lib packages are gated.
+    expect(gated).toContain('authz');
+    expect(gated).toContain('events');
+    // lib.* is enforced via listLibs(), not here.
+    expect(gated).not.toContain('lib.api');
+    // Generated ts-proto output is not worth a coverage floor.
+    expect(gated).not.toContain('proto');
+    // eslint-config-* ship no vitest.config.ts, so the existsSync filter drops them.
+    expect(gated).not.toContain('eslint-config-base');
   });
 });
 
