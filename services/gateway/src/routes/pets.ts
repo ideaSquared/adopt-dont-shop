@@ -158,7 +158,7 @@ export const registerPetsRoutes = async (
   app.get(
     '/api/v1/pets',
     {
-      config: { rateLimit: PETS_RATE_LIMITS.list },
+      config: { public: true, rateLimit: PETS_RATE_LIMITS.list },
       schema: {
         tags: ['pets'],
         summary: 'List pets with pagination and optional filters',
@@ -443,7 +443,7 @@ export const registerPetsRoutes = async (
   app.get(
     '/api/v1/pets/breeds',
     {
-      config: { rateLimit: PETS_RATE_LIMITS.get },
+      config: { public: true, rateLimit: PETS_RATE_LIMITS.get },
       schema: {
         tags: ['pets'],
         summary: 'List all breed names across every species',
@@ -463,7 +463,7 @@ export const registerPetsRoutes = async (
   app.get<{ Params: { type: string } }>(
     '/api/v1/pets/breeds/:type',
     {
-      config: { rateLimit: PETS_RATE_LIMITS.get },
+      config: { public: true, rateLimit: PETS_RATE_LIMITS.get },
       schema: {
         tags: ['pets'],
         summary: 'List breed names for a species',
@@ -485,7 +485,7 @@ export const registerPetsRoutes = async (
   app.get<{ Params: { id: string }; Querystring: { limit?: string } }>(
     '/api/v1/pets/:id/similar',
     {
-      config: { rateLimit: PETS_RATE_LIMITS.get },
+      config: { public: true, rateLimit: PETS_RATE_LIMITS.get },
       schema: {
         tags: ['pets'],
         summary: 'List pets similar to the given pet',
@@ -521,7 +521,7 @@ export const registerPetsRoutes = async (
   app.get<{ Params: { id: string } }>(
     '/api/v1/pets/:id',
     {
-      config: { rateLimit: PETS_RATE_LIMITS.get },
+      config: { public: true, rateLimit: PETS_RATE_LIMITS.get },
       schema: {
         tags: ['pets'],
         summary: 'Get a single pet by ID',

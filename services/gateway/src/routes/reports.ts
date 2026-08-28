@@ -1105,7 +1105,7 @@ export const registerReportsRoutes = async (
   app.get<{ Params: { token: string } }>(
     '/api/v1/reports/shared/:token',
     {
-      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+      config: { public: true, rateLimit: { max: 30, timeWindow: '1 minute' } },
       schema: {
         tags: ['reports'],
         summary: 'View a report shared by public token link (unauthenticated)',

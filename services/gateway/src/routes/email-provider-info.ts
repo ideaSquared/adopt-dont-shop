@@ -30,6 +30,7 @@ export const registerEmailProviderInfoRoute = async (app: FastifyInstance): Prom
   app.get(
     '/api/v1/email/provider-info',
     {
+      config: { public: true },
       schema: {
         tags: ['email'],
         summary: 'Dev-only email provider descriptor (Ethereal preview links)',

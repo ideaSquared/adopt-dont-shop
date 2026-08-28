@@ -37,6 +37,7 @@ export const registerCsrfRoutes = async (app: FastifyInstance): Promise<void> =>
   app.get(
     '/api/v1/csrf-token',
     {
+      config: { public: true },
       schema: {
         tags: ['csrf'],
         summary: 'Issue a CSRF token (double-submit cookie pattern)',

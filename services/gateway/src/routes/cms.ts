@@ -229,6 +229,7 @@ export const registerCmsRoutes = async (
   app.get(
     '/api/v1/cms/public/content',
     {
+      config: { public: true },
       schema: {
         tags: ['cms'],
         summary: 'List public CMS content',
@@ -276,6 +277,7 @@ export const registerCmsRoutes = async (
   app.get<{ Params: { slug: string } }>(
     '/api/v1/cms/public/content/:slug',
     {
+      config: { public: true },
       schema: {
         tags: ['cms'],
         summary: 'Get public CMS content by slug',
