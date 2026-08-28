@@ -9,7 +9,7 @@ import type { createLogger } from '@adopt-dont-shop/observability';
 
 import type { EmailProvider, ProviderSendResult, QueuedEmail } from '../types.js';
 
-import { sanitizeEmail } from './base.js';
+import { maskRecipient, sanitizeEmail } from './base.js';
 
 // Match the monolith — without these caps a hung SMTP socket would
 // stall the queue worker indefinitely.
@@ -59,7 +59,7 @@ export const createEtherealProvider = (deps: EtherealProviderDeps): EmailProvide
         const info = await t.sendMail(sanitized);
         deps.logger.info('email.ethereal.send_ok', {
           messageId: info.messageId,
-          to: sanitized.to,
+          to: maskRecipient(sanitized.to),
           subject: sanitized.subject,
           previewUrl: nodemailer.getTestMessageUrl(info),
         });
@@ -67,7 +67,7 @@ export const createEtherealProvider = (deps: EtherealProviderDeps): EmailProvide
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         deps.logger.error('email.ethereal.send_error', {
-          to: email.toEmail,
+          to: maskRecipient(email.toEmail),
           subject: email.subject,
           error: message,
         });

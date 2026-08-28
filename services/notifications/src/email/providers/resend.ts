@@ -8,7 +8,7 @@ import type { createLogger } from '@adopt-dont-shop/observability';
 
 import type { EmailProvider, ProviderSendResult, QueuedEmail } from '../types.js';
 
-import { sanitizeEmail } from './base.js';
+import { maskRecipient, sanitizeEmail } from './base.js';
 
 // 10s per-send budget. Resend's SDK doesn't accept an AbortSignal, so we
 // race the call against a timer (same pattern the monolith uses).
@@ -70,23 +70,23 @@ export const createResendProvider = (deps: ResendProviderDeps): EmailProvider =>
         );
         if (result.error !== null) {
           deps.logger.error('email.resend.send_failed', {
-            to: sanitized.to,
-            subject: sanitized.subject,
+            to: maskRecipient(sanitized.to),
+            type: email.type,
             error: result.error.message,
           });
           return { success: false, error: result.error.message };
         }
         deps.logger.info('email.resend.send_ok', {
           messageId: result.data.id,
-          to: sanitized.to,
-          subject: sanitized.subject,
+          to: maskRecipient(sanitized.to),
+          type: email.type,
         });
         return { success: true, messageId: result.data.id };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         deps.logger.error('email.resend.send_error', {
-          to: sanitized.to,
-          subject: sanitized.subject,
+          to: maskRecipient(sanitized.to),
+          type: email.type,
           error: message,
         });
         return { success: false, error: message };
