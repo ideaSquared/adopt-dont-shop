@@ -483,6 +483,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # ADS-1247: preflight the GitHub-managed deploy secrets on the runner,
+      # before any host interaction. Each of these is written verbatim to
+      # ./secrets/<name> in the "Deploy to server" step and consumed by the
+      # containers at boot, so a missing or blank value used to surface only
+      # as a post-pull container crash-loop (an empty secret file) rather than
+      # a clear preflight failure. Fail fast here with the offending names.
+      # Only the secret NAMES are ever printed — never the values.
+      # The full host .env is provisioned out-of-band under /opt/ads/<env> and
+      # validated at container boot by the shared Zod schema
+      # (@adopt-dont-shop/lib.validation, the same source of truth as
+      # `pnpm validate:env`); running that whole-schema check against the host
+      # .env before bring-up needs the validator on the host and is tracked
+      # separately.
+      - name: Validate required deploy secrets
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          UPLOAD_SIGNING_SECRET: ${{ secrets.UPLOAD_SIGNING_SECRET }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          PRINCIPAL_SIGNING_KEY: ${{ secrets.PRINCIPAL_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          missing=""
+          for var in JWT_SECRET JWT_REFRESH_SECRET ENCRYPTION_KEY \
+            UPLOAD_SIGNING_SECRET DB_PASSWORD PRINCIPAL_SIGNING_KEY; do
+            # Indirect expansion; ${!var:-} keeps `set -u` happy when unset.
+            if [ -z "${!var:-}" ]; then
+              missing="$missing $var"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing or blank required deploy secret(s):$missing. Set them in the environment secrets before deploying (ADS-1247)."
+            exit 1
+          fi
+          echo "All required deploy secrets are present and non-blank."
+
       # ADS-824: validate tag_overrides before touching the host.
       # Keys must match ^(SERVICE|APP)_[A-Z_]+_TAG$; values must be
       # alphanumeric with dots, dashes, and underscores — no shell-injection
