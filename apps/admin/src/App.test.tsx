@@ -29,10 +29,6 @@ vi.mock('@adopt-dont-shop/lib.legal', () => ({
   attachStoredCookieConsent: vi.fn(),
 }));
 
-vi.mock('@adopt-dont-shop/lib.analytics', () => ({
-  useAnalyticsInvalidator: vi.fn(),
-}));
-
 vi.mock('./components/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));

@@ -2,7 +2,6 @@ import { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
-import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 // Components
@@ -46,8 +45,6 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 );
 
 function App() {
-  // ADS-105: subscribe to backend analytics:invalidate events.
-  useAnalyticsInvalidator();
   const { isAuthenticated, isInitializing } = useAuth();
 
   if (isInitializing) {
