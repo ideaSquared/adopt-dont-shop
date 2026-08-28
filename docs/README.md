@@ -187,7 +187,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Distributed tracing](./observability/tracing.md) — OpenTelemetry setup and conventions
 - [DB backup runbook](./db-backup-runbook.md) — taking and restoring backups
 - [Service level objectives & alerting](./slo.md) — per-service SLOs, error budgets, and the Prometheus rules under `infra/prometheus/rules/`
-- [Observability and alerting](./observability-alerting.md) — metrics, logs, alert routing (legacy — superseded by `slo.md`)
+- [Observability and alerting](./observability-alerting.md) — superseded monolith-era doc, retained as a redirect to `slo.md`
 - [Runbooks index](./runbooks/README.md) — runbook catalogue
 - [Enable observability stack runbook](./runbooks/observability-enable.md) — turn on the self-hosted metrics/logs/traces/alerting + GlitchTip stack in prod/staging
 - [Dev stack troubleshooting runbook](./runbooks/dev-stack-troubleshooting.md) — symptom → diagnosis → fix for local `pnpm docker:dev` failures

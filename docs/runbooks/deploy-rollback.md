@@ -1,7 +1,7 @@
 # Deploy Rollback
 
-**Page severity:** depends on the trigger. Usually accompanies
-`HighFiveHundredRate` (`critical`) or a manual decision after a bad
+**Severity:** depends on the trigger. Usually accompanies
+`HighErrorRate` (`warning`) or a manual decision after a bad
 release.
 
 ## When to roll back
@@ -107,7 +107,7 @@ line and a backup taken first. See
 - Error rate drops to pre-deploy baseline within 5 min.
 - `/health/simple` returns 200 and `docker compose ps` shows every
   service healthy.
-- `HighFiveHundredRate` (and any latency alerts) resolve.
+- `HighErrorRate` (and any latency alerts) resolve.
 - `docker compose ... images` shows the old tag on the affected
   services.
 
