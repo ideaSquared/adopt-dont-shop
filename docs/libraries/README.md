@@ -1,6 +1,6 @@
 # Shared Libraries
 
-The monorepo ships **24 workspace libraries** under `@adopt-dont-shop/lib.*`. Each library's authoritative documentation is its own `README.md` next to the source — those READMEs are kept code-verified.
+The monorepo ships **24 frontend-shared libraries** under `@adopt-dont-shop/lib.*`, indexed below. A 25th `lib.*`-named package, [`lib.av-scan`](../../packages/lib.av-scan/README.md), carries the `lib.*` name but is service-only (consumed by the gateway, not the apps) and is mapped with the [service-only packages](../../packages/README.md#service-only-shared-packages). Each library's authoritative documentation is its own `README.md` next to the source — those READMEs are kept code-verified.
 
 ## Standards
 
