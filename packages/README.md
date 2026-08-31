@@ -54,6 +54,7 @@ this is just the map. The `lib.*` references are also indexed from
 | [storage](./storage/README.md) | File-storage abstraction (local FS + S3 providers) behind one `StorageProvider` contract. |
 | [config-secrets](./config-secrets/README.md) | Boot-time secret loader — reads Docker-mounted secrets or env vars. |
 | [service-bootstrap](./service-bootstrap/README.md) | Shared service boot — Fastify health server, gRPC bind / shutdown, adapters, principal extractor, `HandlerError`. |
+| [lib.av-scan](./lib.av-scan/README.md) | ClamAV malware scanning for upload chokepoints — `scanBytes()` sits in front of `storage`. Carries the `lib.*` name (scaffolded via `pnpm new-lib` per ADS-1241) but is service-only: consumed only by `service.gateway`, never by the apps. |
 | [seed-faker](./seed-faker/README.md) | Dev-only bulk-seeding toolkit — env guard, seeded UK-locale Faker, batched bulk-insert helper. Backs each service's `db:spam` script; never imported by runtime code. |
 | [test-utils](./test-utils/README.md) | Dev-only test helpers for the gRPC services — stub gRPC server harness, principal/metadata builders, NATS/JetStream test doubles. A `devDependency` only. |
 
