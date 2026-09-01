@@ -170,11 +170,12 @@ current deployment scale and is tracked for remediation.
 
 ## Known gaps not covered by ADS-800
 
-- The gateway's `authenticate` middleware does not 401 unauthenticated
-  requests to non-public paths today (Phase 2.6 item noted in
-  `services/gateway/src/middleware/authenticate.ts`). Until that
-  lands, a request with no token can still reach downstream handlers that
-  apply their own auth gate.
+- **Closed (ADS-1255):** the gateway's `authenticate` middleware now 401s an
+  unauthenticated request to any route that has not opted into
+  `config: { public: true }` — the gateway is protected-by-default, so a request
+  with no token no longer reaches downstream handlers on a protected path. The
+  per-handler gates remain as defence-in-depth. (See
+  [ADR 0012](../adr/0012-internal-defence-in-depth.md), item 2.)
 - Outbound service-to-service system principals (e.g. `svc-notifications`)
   are hardcoded strings. With the key deployed they are at least signed by a
   key-holding process, but any key holder can mint any principal — there is

@@ -28,6 +28,7 @@ export const registerConfigRoutes = async (app: FastifyInstance): Promise<void> 
   app.get(
     '/api/v1/config',
     {
+      config: { public: true },
       schema: {
         tags: ['config'],
         summary: 'Return public application configuration values',

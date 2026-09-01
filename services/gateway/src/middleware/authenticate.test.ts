@@ -8,7 +8,7 @@ import { verifyPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
-import { __TEST_PUBLIC_PATH_PREFIXES, registerAuthenticate } from './authenticate.js';
+import { __TEST_INFRA_PUBLIC_PREFIXES, registerAuthenticate } from './authenticate.js';
 
 const quietLogger = {
   info: () => undefined,
@@ -25,6 +25,19 @@ type ValidatedHeaders = {
   'x-rescue-id'?: string;
 };
 
+// Echo the identity headers the middleware left on the request. Anything
+// spoofable that survives is a failure.
+const echoHandler = async (req: { headers: Record<string, unknown> }) => {
+  const h = req.headers as Record<string, string | undefined>;
+  return {
+    userId: h['x-user-id'] ?? null,
+    roles: h['x-user-roles'] ?? null,
+    permissions: h['x-user-permissions'] ?? null,
+    rescueId: h['x-rescue-id'] ?? null,
+    principalToken: h['x-principal-token'] ?? null,
+  };
+};
+
 async function makeApp(
   authClient: AuthClient,
   principalSigningKey?: string,
@@ -34,21 +47,25 @@ async function makeApp(
   // Cookie parsing (ADS-919) — the middleware falls back to the
   // `accessToken` cookie when no Authorization header is present.
   await app.register(cookie);
-  // Echo endpoint that returns the headers the middleware left on
-  // the request. Anything spoofable that survives is a failure.
-  app.get('/api/echo', async req => {
-    const h = req.headers as Record<string, string | undefined>;
-    return {
-      userId: h['x-user-id'] ?? null,
-      roles: h['x-user-roles'] ?? null,
-      permissions: h['x-user-permissions'] ?? null,
-      rescueId: h['x-rescue-id'] ?? null,
-      principalToken: h['x-principal-token'] ?? null,
-    };
-  });
+  // Protected echo — no `config.public`, so the ADS-1255 backstop 401s it
+  // when no token is present.
+  app.get('/api/echo', echoHandler);
+  // Public echo — opts in via `config.public`, mirroring a real public route,
+  // so a tokenless request reaches the handler (and we can still assert the
+  // header-strip ran).
+  app.get('/api/public-echo', { config: { public: true } }, echoHandler);
   app.get('/health/simple', async () => ({ ok: true }));
-  app.post('/api/v1/auth/login', async () => ({ logged: 'in' }));
-  app.post('/api/v1/auth/refresh-token', async () => ({ refreshed: true }));
+  // Infra endpoints reachable via the INFRA_PUBLIC_PREFIXES exception (they're
+  // registered by shared packages in production, so they carry no config.public
+  // and must pass on prefix alone).
+  app.get('/metrics', async () => 'ok');
+  app.get('/openapi.json', async () => ({ openapi: '3.0.0' }));
+  // Auth mint/verify routes are public in production (config.public); mirror
+  // that here so the validate-but-don't-block behaviour is exercised.
+  app.post('/api/v1/auth/login', { config: { public: true } }, async () => ({ logged: 'in' }));
+  app.post('/api/v1/auth/refresh-token', { config: { public: true } }, async () => ({
+    refreshed: true,
+  }));
   await registerAuthenticate(app, {
     authClient,
     logger: quietLogger,
@@ -103,9 +120,12 @@ describe('registerAuthenticate — header spoofing', () => {
   });
 
   it('strips client-supplied x-user-* headers when no Authorization is present', async () => {
+    // Public route so the tokenless request reaches the echo handler (a
+    // protected route would be 401'd by the ADS-1255 backstop before the
+    // handler runs); the strip must still have happened.
     const res = await app.inject({
       method: 'GET',
-      url: '/api/echo',
+      url: '/api/public-echo',
       headers: {
         'x-user-id': 'attacker',
         'x-user-roles': 'super_admin',
@@ -207,8 +227,8 @@ describe('registerAuthenticate — accessToken cookie fallback (ADS-919)', () =>
     expect(res.statusCode).toBe(401);
   });
 
-  it('passes through with no principal when neither an Authorization header nor a cookie is present', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/echo' });
+  it('passes through with no principal when neither an Authorization header nor a cookie is present (public route)', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/public-echo' });
 
     expect(res.statusCode).toBe(200);
     expect(validateMock).not.toHaveBeenCalled();
@@ -351,10 +371,19 @@ describe('registerAuthenticate — public paths', () => {
     expect(res.json()).toEqual({ refreshed: true });
   });
 
-  it('lists only real /api/v1/auth/* prefixes in the public allowlist', () => {
-    for (const prefix of __TEST_PUBLIC_PATH_PREFIXES) {
-      expect(prefix === '/health' || prefix.startsWith('/api/v1/auth/')).toBe(true);
+  it('exposes only the shared-infra prefixes as the non-config public exception', () => {
+    // The /api/v1/* surface is public-gated per-route via config.public; only
+    // the shared-package infra endpoints are matched by prefix, and each must
+    // be collision-free (no protected route lives under these).
+    expect([...__TEST_INFRA_PUBLIC_PREFIXES]).toEqual(['/health', '/metrics', '/openapi.json']);
+  });
+
+  it('lets tokenless requests through to the infra endpoints via the prefix exception', async () => {
+    for (const url of ['/health/simple', '/metrics', '/openapi.json']) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode).toBe(200);
     }
+    expect(validateMock).not.toHaveBeenCalled();
   });
 });
 
@@ -399,9 +428,13 @@ describe('registerAuthenticate — token validation errors', () => {
   });
 
   it('ignores a malformed Authorization header (no Bearer prefix)', async () => {
+    // A malformed header yields no token, so on a public route the request
+    // proceeds unauthenticated and ValidateToken is never called with garbage.
+    // (On a protected route the same no-token state is 401'd by the backstop —
+    // covered separately.)
     const res = await app.inject({
       method: 'GET',
-      url: '/api/echo',
+      url: '/api/public-echo',
       headers: { authorization: 'not-bearer-format' },
     });
     expect(res.statusCode).toBe(200);
@@ -409,20 +442,44 @@ describe('registerAuthenticate — token validation errors', () => {
   });
 });
 
-describe('registerAuthenticate — no token on protected route', () => {
-  it('passes through (strangler-fig: catch-all proxy / downstream service decides)', async () => {
-    const { client } = makeAuthClient();
-    const app = await makeApp(client);
-    try {
-      const res = await app.inject({ method: 'GET', url: '/api/echo' });
-      expect(res.statusCode).toBe(200);
-      // Headers absent because the strip step removed any potential
-      // spoof, and the middleware didn't add any.
-      const body = res.json() as ValidatedHeaders;
-      expect(body['x-user-id']).toBeUndefined();
-    } finally {
-      await app.close();
-    }
+describe('registerAuthenticate — tokenless backstop (ADS-1255)', () => {
+  let app: FastifyInstance;
+  let validateMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    const m = makeAuthClient();
+    validateMock = m.validateMock;
+    app = await makeApp(m.client);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('401s a tokenless request to a protected route (no config.public)', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/echo' });
+
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toEqual({ error: 'authentication required' });
+    // Rejected before any upstream call — no token to validate.
+    expect(validateMock).not.toHaveBeenCalled();
+  });
+
+  it('passes a tokenless request through to a route marked config.public', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/public-echo' });
+
+    expect(res.statusCode).toBe(200);
+    expect(validateMock).not.toHaveBeenCalled();
+    // The strip still ran; no principal was stamped.
+    expect((res.json() as ValidatedHeaders)['x-user-id']).toBeUndefined();
+  });
+
+  it('401s a tokenless mutation even when a sibling GET on the same path is public', async () => {
+    // Distinct from the public GET /api/public-echo above: a route that did
+    // not opt in stays protected. This is the property a URL-prefix allowlist
+    // could not provide (GET public + POST protected on one path).
+    const res = await app.inject({ method: 'POST', url: '/api/echo' });
+    expect(res.statusCode).toBe(401);
   });
 });
 
@@ -433,9 +490,11 @@ describe('registerAuthenticate — signed principal token (ADS-800)', () => {
     const { client } = makeAuthClient();
     const app = await makeApp(client);
     try {
+      // Public route: a tokenless request reaches the handler so we can assert
+      // the forged principal token was stripped (a protected route would 401).
       const res = await app.inject({
         method: 'GET',
-        url: '/api/echo',
+        url: '/api/public-echo',
         headers: { 'x-principal-token': 'forged.token' },
       });
       expect(res.statusCode).toBe(200);
@@ -494,7 +553,9 @@ describe('registerAuthenticate — signed principal token (ADS-800)', () => {
     const { client, validateMock } = makeAuthClient();
     const app = await makeApp(client, SIGNING_KEY);
     try {
-      const res = await app.inject({ method: 'GET', url: '/api/echo' });
+      // Public route so the tokenless request is not backstopped; even so, with
+      // no validated principal nothing is signed.
+      const res = await app.inject({ method: 'GET', url: '/api/public-echo' });
       expect(res.statusCode).toBe(200);
       expect((res.json() as { principalToken: string | null }).principalToken).toBeNull();
       expect(validateMock).not.toHaveBeenCalled();

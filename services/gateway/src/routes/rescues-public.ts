@@ -87,7 +87,7 @@ export const registerRescuesPublicRoutes = async (
   app.get(
     '/api/v1/rescues',
     {
-      config: { rateLimit: RL_READ },
+      config: { public: true, rateLimit: RL_READ },
       schema: {
         tags: ['rescues'],
         summary: 'List rescues',
@@ -133,7 +133,7 @@ export const registerRescuesPublicRoutes = async (
   app.get(
     '/api/v1/rescues/featured',
     {
-      config: { rateLimit: RL_READ },
+      config: { public: true, rateLimit: RL_READ },
       schema: {
         tags: ['rescues'],
         summary: 'List featured rescues',
@@ -180,7 +180,7 @@ export const registerRescuesPublicRoutes = async (
   app.get(
     '/api/v1/rescues/search',
     {
-      config: { rateLimit: RL_READ },
+      config: { public: true, rateLimit: RL_READ },
       schema: {
         tags: ['rescues'],
         summary: 'Search rescues',
@@ -229,7 +229,7 @@ export const registerRescuesPublicRoutes = async (
   app.get(
     '/api/v1/rescues/nearby',
     {
-      config: { rateLimit: RL_READ },
+      config: { public: true, rateLimit: RL_READ },
       schema: {
         tags: ['rescues'],
         summary: 'List nearby rescues by location',
@@ -417,7 +417,7 @@ export const registerRescuesPublicRoutes = async (
   app.get<{ Params: { id: string } }>(
     '/api/v1/rescues/:id',
     {
-      config: { rateLimit: RL_READ },
+      config: { public: true, rateLimit: RL_READ },
       schema: {
         tags: ['rescues'],
         summary: 'Get a rescue by ID',
@@ -541,7 +541,7 @@ export const registerRescuesPublicRoutes = async (
   app.get<{ Params: { id: string } }>(
     '/api/v1/rescues/:id/adoption-policies',
     {
-      config: { rateLimit: RL_READ },
+      config: { public: true, rateLimit: RL_READ },
       schema: {
         tags: ['rescues'],
         summary: "Get a rescue's adoption policies",
