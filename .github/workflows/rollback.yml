@@ -179,8 +179,14 @@ jobs:
             chmod +x scripts/wait-for-services.sh
             ./scripts/wait-for-services.sh "$COMPOSE_FILE" 30 2 service-gateway:4000
 
-            # Remove secret files now that containers have started. [ADS-675]
-            rm -f secrets/*
+            # ADS-1247: KEEP the materialized secret files — do not rm -f them
+            # as ADS-675 originally did. They are docker-compose file-secrets
+            # (`file: ./secrets/<name>`) bind-mounted into containers that run
+            # `restart: always`, so a host reboot / recreate re-resolves the
+            # mount source; a deleted file would strand the rolled-back service
+            # reading an absent secret. Files stay dir-700 / file-600 owned by
+            # `deploy` and are overwritten by the next deploy/rollback. Mirrors
+            # the same fix in deploy.yml.
 
             echo "$SHA" > .last_sha
             echo "Rolled back $ENV to $SHA."
