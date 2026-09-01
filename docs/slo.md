@@ -17,7 +17,23 @@ them into a Prometheus server.
 
 Every service mounts the shared registry from
 [`packages/observability/src/metrics.ts`](../packages/observability/src/metrics.ts)
-on an unauthenticated `/metrics` endpoint. The series available **right now**
+on an unauthenticated `/metrics` endpoint. This is safe **only** because the
+endpoint is never reachable from outside the deploy network today — verified
+against both prod and staging (ADS-1251):
+
+- No service (including the gateway) publishes its HTTP port to the host in
+  `docker-compose.prod.yml` / `docker-compose.staging.yml` — every service
+  uses `expose:`, not `ports:`, so only containers on the compose network
+  (nginx, and an in-network Prometheus) can reach it.
+- The edge nginx explicitly denies the public route: `location = /metrics { deny
+all; return 403; }` in both `nginx/nginx.prod.conf` and the dev
+  `nginx/nginx.conf`.
+
+If a service HTTP port is ever published directly (bypassing nginx), or a
+reverse proxy is added that doesn't carry this same deny rule, `/metrics`
+must gain its own auth (e.g. a bearer token checked in `registerMetrics`)
+before that change ships — this doc's "unauthenticated" note stops being true
+the moment either guardrail is removed. The series available **right now**
 are:
 
 | Metric                          | Type          | Labels                                                   | Source                             |
