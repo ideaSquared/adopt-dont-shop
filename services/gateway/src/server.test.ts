@@ -686,15 +686,20 @@ describe('createServer — /docs gate (admin only)', () => {
     await server?.close();
   });
 
-  it('returns 403 for unauthenticated requests to /docs when authClient is wired', async () => {
+  it('returns 401 for unauthenticated requests to /docs when authClient is wired', async () => {
+    // ADS-1255: /docs is not public, so the authenticate backstop now rejects a
+    // tokenless request with 401 (unauthenticated) before the admin-only /docs
+    // gate — which is more correct than the gate's 403 (forbidden) for a caller
+    // with no credentials. The gate still 403s an authenticated non-admin (next
+    // test).
     server = await createServer({
       config: baseConfig,
       logger: quietLogger,
       authClient: makeAuthClient([]), // stub — won't be called (no Bearer token)
     });
     const res = await server.inject({ method: 'GET', url: '/docs' });
-    expect(res.statusCode).toBe(403);
-    expect(res.json()).toEqual({ error: 'forbidden' });
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toEqual({ error: 'authentication required' });
   });
 
   it('returns 403 for non-admin authenticated requests to /docs', async () => {
@@ -761,6 +766,58 @@ describe('createServer — /docs gate (admin only)', () => {
     });
     const res = await server.inject({ method: 'GET', url: '/docs' });
     expect(res.statusCode).not.toBe(403);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ADS-1255 backstop × CORS preflight — the tokenless backstop must NOT break
+// browser preflight. @fastify/cors is registered before authenticate, so it
+// short-circuits an OPTIONS preflight before the backstop's onRequest hook
+// runs. If that ordering ever regressed, every cross-origin authenticated
+// request would fail preflight — hence this guard.
+// ---------------------------------------------------------------------------
+describe('createServer — auth backstop does not 401 CORS preflight', () => {
+  let server: FastifyInstance;
+
+  const authClientStub = {
+    validateToken: () => Promise.resolve({ principal: undefined }),
+    close: () => undefined,
+  } as unknown as Parameters<typeof createServer>[0]['authClient'];
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('lets an OPTIONS preflight to a protected path through (CORS answers before the backstop)', async () => {
+    server = await createServer({
+      config: baseConfig,
+      logger: quietLogger,
+      authClient: authClientStub,
+    });
+    const res = await server.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/applications',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'authorization,content-type',
+      },
+    });
+    // CORS handles preflight — never the 401 the backstop would give a
+    // tokenless protected request.
+    expect(res.statusCode).not.toBe(401);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+  });
+
+  it('still 401s a real tokenless request to a protected path (backstop is active)', async () => {
+    server = await createServer({
+      config: baseConfig,
+      logger: quietLogger,
+      authClient: authClientStub,
+    });
+    const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toEqual({ error: 'authentication required' });
   });
 });
 

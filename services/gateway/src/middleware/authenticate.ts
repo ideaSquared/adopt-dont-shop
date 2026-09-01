@@ -42,6 +42,19 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { extractAccessTokenFromCookie } from './auth-cookies.js';
 
+// ADS-1255: routes that are reachable WITHOUT an authenticated principal opt
+// in explicitly via `config: { public: true }`. The authenticate onRequest
+// hook 401s a tokenless request to any route that does NOT set this — the
+// gateway is protected-by-default, so a handler that forgets its own gate is
+// still backstopped. Keyed on the matched route (not a URL prefix) so a public
+// read and a protected mutation on the same path — GET /api/v1/pets (public)
+// vs POST /api/v1/pets (protected) — are distinguished correctly.
+declare module 'fastify' {
+  interface FastifyContextConfig {
+    public?: boolean;
+  }
+}
+
 export type AuthMiddlewareOptions = {
   authClient: AuthClient;
   logger: Logger;
@@ -125,23 +138,21 @@ const SPOOFABLE_HEADERS = [
   'x-principal-token',
 ] as const;
 
-// Paths the gateway lets through WITHOUT requiring (or rejecting on
-// invalid) Authorization. These are the routes that mint/verify
-// credentials themselves OR that don't need a principal.
-//
-// The list stays small and explicit — anything outside it goes
-// through best-effort validation. Adding a new public endpoint means
-// editing this list, which is the audit point.
-const PUBLIC_PATH_PREFIXES = [
-  '/health',
-  '/api/v1/auth/login',
-  '/api/v1/auth/register',
-  '/api/v1/auth/refresh-token',
-  '/api/v1/auth/verify-email',
-  '/api/v1/auth/resend-verification',
-  '/api/v1/auth/forgot-password',
-  '/api/v1/auth/reset-password',
-] as const;
+// Infrastructure endpoints registered by shared packages — the liveness /
+// readiness probes (service-bootstrap) and the Prometheus scrape
+// (observability) — plus the OpenAPI spec. We can't tag these with
+// `config: { public: true }` at their registration site, so they're matched
+// by prefix here. This is safe ONLY because these prefixes have NO protected
+// sibling routes (unlike the /api/v1/* surface, where public reads and
+// protected mutations share prefixes — hence the per-route flag for those).
+const INFRA_PUBLIC_PREFIXES = ['/health', '/metrics', '/openapi.json'] as const;
+
+// A route is public when it opted in via `config: { public: true }` OR it's one
+// of the shared-package infra endpoints above. Everything else is protected —
+// a tokenless request to it is rejected by the hook below.
+const isPublicRoute = (req: FastifyRequest): boolean =>
+  req.routeOptions?.config?.public === true ||
+  INFRA_PUBLIC_PREFIXES.some(prefix => req.url.startsWith(prefix));
 
 export const registerAuthenticate = async (
   app: FastifyInstance,
@@ -156,22 +167,27 @@ export const registerAuthenticate = async (
     }
 
     const token = extractBearerToken(req) ?? extractAccessTokenFromCookie(req);
+    const isPublic = isPublicRoute(req);
 
-    // No token + public path → pass through. No token + non-public
-    // path → still pass through (the downstream handler / catch-all
-    // proxy decides whether to 401). Letting the gateway 401 here
-    // would break the strangler-fig: the monolith handles its own
-    // unauth responses today, and switching to gateway-side 401s is
-    // a behaviour change we save for Phase 2.6 when all auth flows
-    // come through the gateway.
+    // ADS-1255: protected-by-default backstop. A request with no token to a
+    // route that has NOT opted into `config: { public: true }` is rejected
+    // here rather than trusting the downstream handler to gate it — so a
+    // handler that forgets its own check still fails closed. This path used to
+    // pass through: a strangler-fig holdover from when the now-deleted monolith
+    // served its own unauthenticated responses.
     if (!token) {
-      return;
+      if (isPublic) {
+        return;
+      }
+      logger.warn('rejecting request: authentication required on protected path', {
+        url: req.url,
+      });
+      return reply.code(401).send({ error: 'authentication required' });
     }
 
     // Public paths with a token: validate-but-don't-block. A login
     // request that happens to carry an old expired token shouldn't
     // 401 before the login attempt even starts.
-    const isPublic = PUBLIC_PATH_PREFIXES.some(p => req.url.startsWith(p));
 
     try {
       const metadata = new Metadata();
@@ -307,6 +323,6 @@ function stringifyRole(role: number): string {
   }
 }
 
-// Exported for tests so the constant stays in sync with the middleware
-// behaviour without duplication.
-export const __TEST_PUBLIC_PATH_PREFIXES = PUBLIC_PATH_PREFIXES;
+// Exported for tests so the infra-prefix exception stays in sync with the
+// middleware behaviour without duplication.
+export const __TEST_INFRA_PUBLIC_PREFIXES = INFRA_PUBLIC_PREFIXES;

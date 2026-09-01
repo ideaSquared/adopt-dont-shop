@@ -227,7 +227,7 @@ export const registerUploadsRoutes = async (
   }>(
     '/uploads-signed/:expiresAt/:signature/*',
     {
-      config: { rateLimit: UPLOAD_RATE_LIMITS.signedServe },
+      config: { public: true, rateLimit: UPLOAD_RATE_LIMITS.signedServe },
       schema: {
         tags: ['uploads'],
         summary: 'Serve a signed upload URL',

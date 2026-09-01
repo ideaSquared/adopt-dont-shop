@@ -99,7 +99,7 @@ export const registerTestTokenPeekRoutes = async (
   // returns null. Reads/writes auth.users only.
   app.get(
     '/api/v1/test/auth-token',
-    { schema: { hide: true }, config: { rateLimit: TEST_PEEK_RATE_LIMIT } },
+    { schema: { hide: true }, config: { public: true, rateLimit: TEST_PEEK_RATE_LIMIT } },
     async (req, reply) => {
       const query = (req.query ?? {}) as Record<string, unknown>;
       const email = asString(query.email);
@@ -165,7 +165,7 @@ export const registerTestTokenPeekRoutes = async (
   // (see the module comment) so the returned token validates end-to-end.
   app.get(
     '/api/v1/test/invitation-token',
-    { schema: { hide: true }, config: { rateLimit: TEST_PEEK_RATE_LIMIT } },
+    { schema: { hide: true }, config: { public: true, rateLimit: TEST_PEEK_RATE_LIMIT } },
     async (req, reply) => {
       const query = (req.query ?? {}) as Record<string, unknown>;
       const email = asString(query.email);

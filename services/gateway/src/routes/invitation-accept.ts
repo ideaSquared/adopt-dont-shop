@@ -80,7 +80,7 @@ export const registerInvitationAcceptRoutes = async (
   app.post(
     '/api/v1/invitations/accept',
     {
-      config: { rateLimit: IP_RATE_LIMIT },
+      config: { public: true, rateLimit: IP_RATE_LIMIT },
       preHandler: tokenRateLimit,
       schema: {
         tags: ['invitations'],

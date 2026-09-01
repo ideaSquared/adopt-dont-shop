@@ -291,6 +291,7 @@ export const registerStaffFosterRoutes = async (
   app.get<{ Params: { token: string } }>(
     '/api/v1/invitations/details/:token',
     {
+      config: { public: true },
       schema: {
         tags: ['staff'],
         summary: 'Get invitation details by token',

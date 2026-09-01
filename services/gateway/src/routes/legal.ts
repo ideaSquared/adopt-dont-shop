@@ -86,6 +86,7 @@ export const registerLegalRoutes = async (
   app.get(
     '/api/v1/legal/terms',
     {
+      config: { public: true },
       schema: {
         tags: ['legal'],
         summary: 'Return the current terms of service document',
@@ -121,6 +122,7 @@ export const registerLegalRoutes = async (
   app.get(
     '/api/v1/legal/privacy',
     {
+      config: { public: true },
       schema: {
         tags: ['legal'],
         summary: 'Return the current privacy policy document',
@@ -156,6 +158,7 @@ export const registerLegalRoutes = async (
   app.get(
     '/api/v1/legal/cookies',
     {
+      config: { public: true },
       schema: {
         tags: ['legal'],
         summary: 'Return the current cookie policy document',

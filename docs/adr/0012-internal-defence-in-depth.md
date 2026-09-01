@@ -1,11 +1,12 @@
 # ADR 0012 — Internal defence-in-depth posture for the eyes-on launch (ADS-1255)
 
-- Status: Proposed — awaiting maintainer sign-off
+- Status: Accepted (2026-08-28). Item 2 (gateway auth backstop) is now
+  **implemented** — see the update note under that item. Items 1 (mTLS) and 3
+  (migration back-compat) remain deferred per the decision below.
 - Date: 2026-08-28
 - Scope: three internal defence-in-depth items — inter-service gRPC channel
   security, the gateway `authenticate` hook's non-enforcement of unauthenticated
-  requests, and migration back-compat. **Decision-only — no code ships with this
-  ADR.** Builds on
+  requests, and migration back-compat. Builds on
   [`docs/security/internal-grpc-trust.md`](../security/internal-grpc-trust.md)
   (ADS-829 / 800 / 1050) and
   [ADR 0008](./0008-pre-deploy-migration-strategy.md).
@@ -66,6 +67,18 @@ tests asserting each public path passes tokenless while each protected path 401s
 tokenless. That is why this is planned-and-deferred rather than a drive-by flip.
 It is defence-in-depth only: the handler gates already enforce; this adds the
 missing backstop.
+
+**Update (implemented, 2026-08-28):** built as described. The audit ran across
+every `services/gateway/src/routes/*` file (evidence-backed: downstream
+`requirePermission`, principal reads, `security: []` schema markers), and the
+mechanism is a per-route `config: { public: true }` opt-in read by the
+`authenticate` onRequest hook — **not** a URL-prefix allowlist, which the audit
+proved unsafe (a public read and a protected mutation share prefixes, e.g. GET
+`/api/v1/pets` public vs POST `/api/v1/pets` protected). The gateway is now
+protected-by-default: a tokenless request to any route that has not opted in is
+401'd. ~38 genuinely-public routes carry the flag; the shared-package infra
+endpoints (`/health`, `/metrics`, `/openapi.json`) are matched by a
+collision-free prefix exception. mTLS (item 1) and the migration contract (item 3) remain deferred as decided.
 
 ### 3. Migration back-compat — already owned by ADR 0008; no new decision
 

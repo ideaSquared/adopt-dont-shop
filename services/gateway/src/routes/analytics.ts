@@ -115,7 +115,7 @@ export const registerAnalyticsRoutes = async (
   app.post(
     '/api/v1/analytics/pageviews',
     {
-      config: { rateLimit: ANALYTICS_RATE_LIMIT },
+      config: { public: true, rateLimit: ANALYTICS_RATE_LIMIT },
       schema: {
         tags: ['analytics'],
         summary: 'Record a page view event',
@@ -167,7 +167,7 @@ export const registerAnalyticsRoutes = async (
   app.post(
     '/api/v1/analytics/events',
     {
-      config: { rateLimit: ANALYTICS_RATE_LIMIT },
+      config: { public: true, rateLimit: ANALYTICS_RATE_LIMIT },
       schema: {
         tags: ['analytics'],
         summary: 'Record a single analytics event',
@@ -216,7 +216,7 @@ export const registerAnalyticsRoutes = async (
   app.post(
     '/api/v1/analytics/events/batch',
     {
-      config: { rateLimit: ANALYTICS_BATCH_RATE_LIMIT },
+      config: { public: true, rateLimit: ANALYTICS_BATCH_RATE_LIMIT },
       schema: {
         tags: ['analytics'],
         summary: 'Record a batch of analytics events',
@@ -284,6 +284,7 @@ export const registerAnalyticsRoutes = async (
   app.get(
     '/api/v1/analytics/health',
     {
+      config: { public: true },
       schema: {
         tags: ['analytics'],
         summary: 'Health check for the analytics endpoint',

@@ -194,7 +194,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/login',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.login },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.login },
       // Per-email cap layered on top of the per-IP limit above (ADS-916) —
       // catches a credential-stuffing flood against one account spread
       // across many source IPs, which the per-IP cap alone misses.
@@ -285,7 +285,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/logout',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.logout },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.logout },
       schema: {
         tags: ['auth'],
         summary: 'Invalidate the current session and refresh token',
@@ -336,7 +336,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/refresh-token',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.refreshToken },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.refreshToken },
       schema: {
         tags: ['auth'],
         summary: 'Exchange a refresh token for a new access token',
@@ -501,7 +501,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/register',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.register },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.register },
       preHandler: emailRateLimit(b => b.email ?? b.email_address),
       schema: {
         tags: ['auth'],
@@ -591,7 +591,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/verify-email',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.verifyEmail },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.verifyEmail },
       schema: {
         tags: ['auth'],
         summary: 'Verify email address using a verification token',
@@ -642,7 +642,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/resend-verification',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.resendVerification },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.resendVerification },
       preHandler: emailRateLimit(b => b.email),
       schema: {
         tags: ['auth'],
@@ -692,7 +692,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/forgot-password',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.forgotPassword },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.forgotPassword },
       preHandler: emailRateLimit(b => b.email),
       schema: {
         tags: ['auth'],
@@ -739,7 +739,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/reset-password',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.resetPassword },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.resetPassword },
       // reset-password carries no email — key the per-target cap on the reset
       // token instead, so a flood against one token (across IPs) is throttled.
       preHandler: emailRateLimit(b => b.resetToken ?? b.reset_token),
@@ -795,7 +795,7 @@ export const registerAuthRoutes = async (
   app.post(
     '/api/v1/auth/redeem-invitation',
     {
-      config: { rateLimit: AUTH_RATE_LIMITS.redeemInvitation },
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.redeemInvitation },
       // No email on this body either — key the per-target cap on the
       // invitation token, same reasoning as reset-password.
       preHandler: emailRateLimit(b => b.invitationToken ?? b.invitation_token),
