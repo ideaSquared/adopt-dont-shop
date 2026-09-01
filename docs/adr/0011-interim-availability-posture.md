@@ -1,9 +1,11 @@
 # ADR 0011 — Interim availability posture for the eyes-on launch (ADS-1252)
 
-- Status: Proposed — awaiting maintainer sign-off
+- Status: Accepted (2026-08-28). The first promotion-trigger item —
+  auto-rollback-on-failed-health — is now **implemented** in `deploy.yml` (see
+  the note under "Promotion triggers"). The rest of the HA build (start-first,
+  multi-host, managed datastores) remains deferred per the decision below.
 - Date: 2026-08-28
-- Scope: production availability / SLA posture. **Decision-only — no code,
-  workflow, or compose change ships with this ADR.** Builds on
+- Scope: production availability / SLA posture. Builds on
   [ADR 0009](./0009-deployment-strategy-and-ha.md) (deployment-strategy & HA
   option survey) and the recovery objectives already recorded in
   [`docs/db-backup-runbook.md`](../db-backup-runbook.md).
@@ -60,8 +62,12 @@ ADR 0009's Option A → B → C order:
 - **Auto-rollback-on-failed-health (0009 Option A, step 1)** — the cheapest item
   and the one that removes the worst failure mode: a failed deploy sitting as an
   open-ended live outage waiting on a human. It works with plain
-  `docker compose` today. This ADR defers it only because the decision this pass
-  was to plan, not build; it is the **recommended first follow-up.**
+  `docker compose` today. **Implemented (2026-08-28):** the "Deploy to server"
+  step in `deploy.yml` now reverts `DEPLOY_SHA` to `.last_sha` and re-ups the
+  stack when the health gate or route smoke check fails, before exiting non-zero
+  — so a bad rollout self-heals to the last-known-good version instead of
+  waiting on a manual `rollback.yml` dispatch. (Reverts images only; safe under
+  the expand/contract migration contract — proposed ADR 0008.)
 - **A committed availability SLA, or an RPO/RTO tighter than 24h / 2h** → build
   PITR (ADR 0007) and/or a warm Postgres standby.
 - **Traffic that can no longer absorb the deploy-window downtime** → build
