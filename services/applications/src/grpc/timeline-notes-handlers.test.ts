@@ -143,6 +143,39 @@ describe('addTimelineNote', () => {
 
     expect(res.note?.noteType).toBe('review');
   });
+
+  // ADS-1272: a draft application is private to the owning adopter — rescue
+  // staff of the pet's rescue must not add notes to it until it is submitted.
+  it('denies rescue staff adding a note to a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({
+      rows: [ownerRow({ user_id: 'other', rescue_id: 'rsc-9', status: 'draft' })],
+    });
+    await expect(
+      addTimelineNote(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-9' }),
+        { applicationId: 'app-1', title: 't', description: 'd' }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // Never reaches the INSERT.
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the owning adopter add a note to their own draft', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1', status: 'draft' })] })
+      .mockResolvedValueOnce({ rows: [noteRow] });
+
+    const res = await addTimelineNote(deps, makePrincipal({ userId: 'usr-1' }), {
+      applicationId: 'app-1',
+      title: 'Called applicant',
+      description: 'Left a voicemail',
+    });
+
+    expect(res.note?.noteId).toBe('note-1');
+  });
 });
 
 describe('listTimelineNotes', () => {

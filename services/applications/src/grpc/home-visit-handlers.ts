@@ -170,6 +170,12 @@ export async function updateHomeVisit(
   ) {
     throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_PROCESS}' required`);
   }
+  // ADS-1272 (defence-in-depth): refuse to mutate a home visit while the
+  // application is still a private draft. A visit normally only exists
+  // post-submission, but guard the write path for parity with the read scope.
+  if (owner.status === 'draft') {
+    throw new HandlerError('PERMISSION_DENIED', 'application is a draft');
+  }
 
   const { rows } = await deps.pool.query<VisitRow>(
     `SELECT visit_id, application_id, scheduled_date, scheduled_time, assigned_staff, status,

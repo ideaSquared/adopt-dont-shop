@@ -335,4 +335,26 @@ describe('updateHomeVisit', () => {
     expect(res.visit?.outcome).toBe('approved');
     expect(res.visit?.completedAt).toBe('2026-06-10T15:00:00.000Z');
   });
+
+  // ADS-1272 (defence-in-depth): home visits are a post-submission staff action
+  // — even staff of the owning rescue must not mutate one while the application
+  // is still a private draft.
+  it('denies updating a home visit on a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ status: 'draft' })] });
+    await expect(
+      updateHomeVisit(
+        deps,
+        makePrincipal({
+          userId: 'staff-1',
+          roles: ['rescue_staff'],
+          rescueId: 'rsc-1',
+          permissions: ['applications.review'],
+        }),
+        { applicationId: 'app-1', visitId: 'visit-1', status: 'in_progress' }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // Never reaches the visit SELECT.
+    expect(query).toHaveBeenCalledTimes(1);
+  });
 });

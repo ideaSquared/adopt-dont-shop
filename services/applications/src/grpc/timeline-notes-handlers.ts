@@ -16,14 +16,8 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
-import {
-  APPLICATIONS_UPDATE,
-  APPLICATIONS_VIEW,
-  type Permission,
-  type RescueId,
-  type UserId,
-} from '@adopt-dont-shop/lib.types';
+import { type Principal } from '@adopt-dont-shop/authz';
+import { APPLICATIONS_UPDATE, APPLICATIONS_VIEW } from '@adopt-dont-shop/lib.types';
 import type {
   AddTimelineNoteRequest,
   AddTimelineNoteResponse,
@@ -33,7 +27,7 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { requireDraftAwareReadScope } from './command-runner.js';
+import { requireDraftAwareReadScope, requireDraftAwareWriteScope } from './command-runner.js';
 
 type NoteRow = {
   note_id: string;
@@ -76,15 +70,6 @@ async function loadOwnerOrThrow(deps: HandlerDeps, applicationId: string): Promi
   return rows[0];
 }
 
-function assertOwnerOrRescue(principal: Principal, owner: OwnerRow, permission: Permission): void {
-  const ok =
-    requirePermission(principal, permission, { userId: owner.user_id as UserId }) ||
-    requirePermission(principal, permission, { rescueId: owner.rescue_id as RescueId });
-  if (!ok) {
-    throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
-  }
-}
-
 function parseMetadata(raw: string | undefined): Record<string, unknown> {
   if (raw === undefined || raw === '') {
     return {};
@@ -115,7 +100,13 @@ export async function addTimelineNote(
     throw new HandlerError('INVALID_ARGUMENT', 'title is required');
   }
   const owner = await loadOwnerOrThrow(deps, req.applicationId);
-  assertOwnerOrRescue(principal, owner, APPLICATIONS_UPDATE);
+  // ADS-1272: while the application is a `draft` it is private to the owning
+  // adopter; rescue staff may add a timeline note only once it has left draft.
+  requireDraftAwareWriteScope(principal, APPLICATIONS_UPDATE, {
+    status: owner.status,
+    adopterId: owner.user_id,
+    rescueId: owner.rescue_id,
+  });
 
   const metadata = parseMetadata(req.metadataJson);
 

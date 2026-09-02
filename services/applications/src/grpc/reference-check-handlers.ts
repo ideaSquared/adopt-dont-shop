@@ -29,6 +29,7 @@ const VALID_STATUSES = new Set(['pending', 'contacted', 'completed', 'failed']);
 type ApplicationRow = {
   rescue_id: string;
   documents: { references?: ReadonlyArray<StoredReference> } | null;
+  status: string;
 };
 
 type StoredReference = {
@@ -107,7 +108,7 @@ export async function updateReferenceCheck(
   }
 
   const { rows } = await deps.pool.query<ApplicationRow>(
-    `SELECT rescue_id, documents FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
+    `SELECT rescue_id, documents, status FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
     [req.applicationId]
   );
   const application = rows[0];
@@ -120,6 +121,13 @@ export async function updateReferenceCheck(
     })
   ) {
     throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_PROCESS}' required`);
+  }
+  // ADS-1272 (defence-in-depth): a draft application is private to the owning
+  // adopter, and reference checks are a post-submission staff action — refuse to
+  // seed/update one while the application is still a draft (the upsert below would
+  // otherwise let rescue staff inject a reference check onto a private draft).
+  if (application.status === 'draft') {
+    throw new HandlerError('PERMISSION_DENIED', 'application is a draft');
   }
 
   const stored = findStoredReference(application, req.referenceId);

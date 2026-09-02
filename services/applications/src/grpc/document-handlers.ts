@@ -20,14 +20,8 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
-import {
-  APPLICATIONS_UPDATE,
-  APPLICATIONS_VIEW,
-  type Permission,
-  type RescueId,
-  type UserId,
-} from '@adopt-dont-shop/lib.types';
+import { type Principal } from '@adopt-dont-shop/authz';
+import { APPLICATIONS_UPDATE, APPLICATIONS_VIEW } from '@adopt-dont-shop/lib.types';
 import type {
   AddDocumentRequest,
   AddDocumentResponse,
@@ -39,7 +33,7 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { requireDraftAwareReadScope } from './command-runner.js';
+import { requireDraftAwareReadScope, requireDraftAwareWriteScope } from './command-runner.js';
 
 // A document metadata row as stored. size / mime_type / uploaded_by are
 // nullable; created_at is the canonical upload timestamp.
@@ -91,17 +85,6 @@ async function loadOwnerOrThrow(deps: HandlerDeps, applicationId: string): Promi
     throw new HandlerError('NOT_FOUND', 'application not found');
   }
   return rows[0];
-}
-
-// adopter-owns OR rescue-staff-of-this-rescue OR admin — the same OR-scope
-// getApplication uses, applied to a document read/write.
-function assertOwnerOrRescue(principal: Principal, owner: OwnerRow, permission: Permission): void {
-  const ok =
-    requirePermission(principal, permission, { userId: owner.user_id as UserId }) ||
-    requirePermission(principal, permission, { rescueId: owner.rescue_id as RescueId });
-  if (!ok) {
-    throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
-  }
 }
 
 // Document URLs must reference either same-origin local storage (a
@@ -159,7 +142,13 @@ export async function addDocument(
   }
   assertValidDocumentUrl(req.url);
   const owner = await loadOwnerOrThrow(deps, req.applicationId);
-  assertOwnerOrRescue(principal, owner, APPLICATIONS_UPDATE);
+  // ADS-1272: while the application is a `draft` it is private to the owning
+  // adopter; rescue staff may add/remove its documents only once it has left draft.
+  requireDraftAwareWriteScope(principal, APPLICATIONS_UPDATE, {
+    status: owner.status,
+    adopterId: owner.user_id,
+    rescueId: owner.rescue_id,
+  });
 
   const sql = `
     INSERT INTO application_documents
@@ -229,7 +218,13 @@ export async function removeDocument(
     throw new HandlerError('INVALID_ARGUMENT', 'document_id is required');
   }
   const owner = await loadOwnerOrThrow(deps, req.applicationId);
-  assertOwnerOrRescue(principal, owner, APPLICATIONS_UPDATE);
+  // ADS-1272: while the application is a `draft` it is private to the owning
+  // adopter; rescue staff may add/remove its documents only once it has left draft.
+  requireDraftAwareWriteScope(principal, APPLICATIONS_UPDATE, {
+    status: owner.status,
+    adopterId: owner.user_id,
+    rescueId: owner.rescue_id,
+  });
 
   const { rowCount } = await deps.pool.query(
     `UPDATE application_documents

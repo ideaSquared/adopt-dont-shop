@@ -27,6 +27,7 @@ function makeDeps(): { deps: HandlerDeps; query: ReturnType<typeof vi.fn> } {
 
 const applicationRow = {
   rescue_id: 'rsc-1',
+  status: 'submitted',
   documents: {
     references: [
       { name: 'Ada Lovelace', email: 'ada@example.com', relationship: 'friend' },
@@ -151,5 +152,22 @@ describe('updateReferenceCheck', () => {
 
     const [, upsertParams] = query.mock.calls[1];
     expect(upsertParams.slice(2, 5)).toEqual(['', '', '']);
+  });
+
+  // ADS-1272 (defence-in-depth): reference checks are a post-submission staff
+  // action — even staff of the owning rescue must not seed/update one while the
+  // application is still a private draft.
+  it('denies updating a reference check on a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [{ ...applicationRow, status: 'draft' }] });
+    await expect(
+      updateReferenceCheck(deps, makePrincipal(), {
+        applicationId: 'app-1',
+        referenceId: 'ref-0',
+        status: 'contacted',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // Never reaches the upsert.
+    expect(query).toHaveBeenCalledTimes(1);
   });
 });
