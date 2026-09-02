@@ -490,12 +490,18 @@ jobs:
       # as a post-pull container crash-loop (an empty secret file) rather than
       # a clear preflight failure. Fail fast here with the offending names.
       # Only the secret NAMES are ever printed — never the values.
-      # The full host .env is provisioned out-of-band under /opt/ads/<env> and
-      # validated at container boot by the shared Zod schema
-      # (@adopt-dont-shop/lib.validation, the same source of truth as
-      # `pnpm validate:env`); running that whole-schema check against the host
-      # .env before bring-up needs the validator on the host and is tracked
-      # separately.
+      # NOTE: this runner-side step covers only the GitHub-managed secrets
+      # above. The full host .env (provisioned out-of-band under /opt/ads/<env>)
+      # is NOT schema-validated before bring-up — the monolith's boot validator
+      # is gone post-split and no microservice re-validates the whole .env. Its
+      # genuinely-required keys are guarded elsewhere though: POSTGRES_USER /
+      # POSTGRES_DB / REDIS_PASSWORD by `read_env` (fails before `up -d`), and
+      # CORS_ORIGIN / DEPLOY_SHA by compose `${VAR:?}`. A whole-.env schema
+      # preflight would first need the shared `validate:env` schema reconciled
+      # with the microservices contract (it still requires monolith-era
+      # DB_HOST / DB_USERNAME / SESSION_SECRET / PROD_DB_NAME that the services
+      # replaced with the database_url file-secret), then the validator shipped
+      # to the host — tracked in ADS-1247.
       - name: Validate required deploy secrets
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -811,7 +817,9 @@ jobs:
               echo "::error::Deploy of $SHA failed its health check on $ENV." >&2
               if [ -z "$LAST_GOOD" ] || [ "$LAST_GOOD" = "$SHA" ]; then
                 echo "::error::No distinct last-known-good SHA to roll back to — leaving the stack for manual intervention (dispatch rollback.yml)." >&2
-                rm -f secrets/*
+                # ADS-1247: keep secrets/* — the (unhealthy) new stack still runs
+                # under restart:always, and its bind-mounted file-secrets must
+                # survive a reboot. See the keep-secrets note on the success path.
                 exit 1
               fi
               echo "Auto-rolling back to last-known-good SHA $LAST_GOOD..."
@@ -835,7 +843,9 @@ jobs:
               else
                 echo "::error::Rollback to $LAST_GOOD also failed its health gate — manual intervention required." >&2
               fi
-              rm -f secrets/*
+              # ADS-1247: keep secrets/* — the rolled-back LAST_GOOD stack is what
+              # now runs under restart:always, so its bind-mounted file-secrets
+              # must persist across a reboot. See the success-path note.
               exit 1
             }
 
@@ -858,9 +868,18 @@ jobs:
             fi
             echo "Smoke check passed (HTTP $STATUS)."
 
-            # Remove secret files now that containers have started (they hold
-            # in-memory copies; the files on disk are no longer needed). [ADS-675]
-            rm -f secrets/*
+            # ADS-1247: KEEP the materialized secret files on disk — do not
+            # rm -f them as ADS-675 originally did. docker-compose file-secrets
+            # (`file: ./secrets/<name>`) are BIND-MOUNTED into the containers,
+            # not copied, and every service runs `restart: always`. On a host
+            # reboot / container recreate the daemon re-resolves the mount
+            # source, so a deleted file leaves the restarted service reading an
+            # absent/empty secret and crash-looping. The files stay dir-700 /
+            # file-600 owned by `deploy` (set at materialization above) and are
+            # overwritten by the next deploy. Tradeoff: secrets remain at rest on
+            # the host — but the host .env already persists POSTGRES_* /
+            # REDIS_PASSWORD, so this is consistent, and it buys reboot
+            # survivability the file-secret + restart:always design requires.
 
             # Record deployed SHA
             echo "$SHA" > .last_sha
