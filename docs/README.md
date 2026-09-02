@@ -80,6 +80,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [UX review & component consolidation plan (Aug 2026)](./UX-REVIEW-2026-08.md) — cross-app UX review of `app.admin`/`app.client`/`app.rescue` + `lib.components`, with a Linear-ready backlog
 - [Services code quality review](./services-code-quality-review.md) — audit of the microservices (first pass)
 - [Services code quality review — pass 2](./services-code-quality-review-pass-2.md) — follow-up audit of the microservices
+- [Production readiness review (Aug 2026)](./production-readiness-review.md) — cross-cutting technical assessment of what remains before production launch, prioritised P0–P3
 
 ## Frontend development
 
