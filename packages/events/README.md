@@ -45,6 +45,35 @@ primary alert signal), `events_outbox_published_total`, and
 `events_outbox_publish_failures_total` are exposed on the shared `/metrics`
 registry.
 
+### Durable consumers, retries, and the dead-letter stream
+
+`subscribe()` does a create-or-reuse on its JetStream durable consumer
+(`jsm.consumers.add(DOMAIN_STREAM, { durable_name, filter_subject, deliver_policy,
+max_deliver, … })`). **Footgun:** JetStream fixes `deliver_policy` and
+`filter_subject` at consumer-creation time and silently ignores them on a re-add
+of an existing durable. So flipping `deliverNew` in code, or changing the
+`subject` for a durable that already exists, has **no effect** anywhere the
+durable is already present — staging/prod, and any dev container whose NATS
+volume persisted. Changing either is a deliberate ops step: delete and recreate
+the consumer (`nats consumer rm DOMAIN_EVENTS <durable-name>`, then restart the
+service so it re-adds), or pick a new durable name (which starts from
+`deliver_policy` again — `All` replays the 7-day backlog, `New` skips it).
+[`src/consumer-registry.ts`](src/consumer-registry.ts) is the inventory of every
+durable (name, subject, registering file) — consult it when you need to know
+which one to recreate. Two replicas binding the **same** durable load-share
+(each message delivered once across them); fan-out consumers that must each see
+every message (e.g. gateway WS subscribers) use per-replica-unique durable
+names.
+
+Retry budget: a parseable but persistently-failing message is `nak()`'d with
+exponential backoff (`min(30s, 1s · 2^(attempt-1))`) up to `MAX_DELIVER = 7`,
+then parked in the dead-letter stream `DOMAIN_EVENTS_DLQ` (subjects `dlq.>`,
+14-day retention) and `term()`'d. The main stream keeps a 7-day `max_age` and a
+2-minute `Nats-Msg-Id` duplicate window — far shorter than retention, so
+redelivery-safety rests on **consumer idempotency** (`claimEvent` /
+`processed_events`), not on the broker dedup. See
+[`docs/adr/0003-idempotent-event-consumers.md`](../../docs/adr/0003-idempotent-event-consumers.md).
+
 This is a service-only shared package (not a `lib.*`) — imported by every
 schema-owning service. See the decision tree in
 [`CONTRIBUTING.md`](../../CONTRIBUTING.md#where-does-my-code-go).
@@ -106,7 +135,7 @@ None — the connection and configuration are passed in by the caller.
 Vitest, against an in-memory NATS double (`@adopt-dont-shop/test-utils`) — the
 suite asserts publish-only-after-commit ordering, no-publish-on-rollback,
 handler idempotency, and clean skips on malformed messages. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership

@@ -267,18 +267,22 @@ function buildRateLimitConfig(env: NodeJS.ProcessEnv): GatewayConfig['rateLimit'
 }
 
 // Build the test-token-peek config block (ADS-871). The seam is OFF by
-// default and can only be turned on outside production: even if a misconfig
-// sets E2E_TOKEN_PEEK=true in a production deploy, this THROWS at boot so the
-// gateway never comes up exposing one-time secrets. The seam additionally
-// needs DATABASE_URL (which prod never wires to the gateway) — defence in
-// depth. Enabled requires the exact string "true" (case-insensitive), per the
+// default and can only be turned on outside a deployed environment: even if a
+// misconfig sets E2E_TOKEN_PEEK=true in a production or staging deploy, this
+// THROWS at boot so the gateway never comes up exposing one-time secrets.
+// Staging is included alongside production (ADS-1271) — it's treated as a
+// deployed environment everywhere else in this file (see buildTrustProxy /
+// buildCorsConfig), and the unauthenticated token-mint routes this seam
+// exposes are just as exploitable there. The seam additionally needs
+// DATABASE_URL (which prod never wires to the gateway) — defence in depth.
+// Enabled requires the exact string "true" (case-insensitive), per the
 // isEnabled() convention.
 function buildTestTokenPeekConfig(env: NodeJS.ProcessEnv): GatewayConfig['testTokenPeek'] {
   const enabled = isEnabled(env.E2E_TOKEN_PEEK);
   const environment = env.NODE_ENV?.trim() || 'development';
-  if (enabled && environment === 'production') {
+  if (enabled && (environment === 'production' || environment === 'staging')) {
     throw new Error(
-      'E2E_TOKEN_PEEK must never be enabled in production — it exposes one-time auth tokens'
+      `E2E_TOKEN_PEEK must never be enabled in ${environment} — it exposes one-time auth tokens`
     );
   }
   return {

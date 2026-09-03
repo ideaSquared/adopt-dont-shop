@@ -6,7 +6,8 @@
   `services/*/src/gdpr/`, the saga subscribers in
   `packages/events/src/gdpr-saga.ts`, and the shared `claimEvent` primitive in
   `packages/events/src/idempotency.ts`
-- Related: ADS-808, PR #1002 (JetStream migration)
+- Linear: ADS-808 (PR #1002, JetStream migration)
+- Supersedes / Superseded by: —
 
 ## Context
 

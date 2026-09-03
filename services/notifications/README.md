@@ -21,7 +21,9 @@ feature no-ops if the URL is unset): **service.auth** (`ListUserIdsByCohort`
 for `Broadcast`), **service.pets** (`ListFavoriters`), **service.rescue**
 (`ListStaffMembers` / `Get`). Depends on the shared backend packages
 `@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
-proto, service-bootstrap}`.
+proto, service-bootstrap}`. For how this service was carved out of the
+monolith, see
+[`docs/backend/microservices-extraction-history.md`](../../docs/backend/microservices-extraction-history.md#notifications).
 
 ## Scripts
 
@@ -36,6 +38,31 @@ pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
 
+## Running locally
+
+In the Docker dev stack (primary workflow) this runs as container
+`service-notifications`, HTTP published on `127.0.0.1:5001`:
+
+```bash
+pnpm docker:dev:detach                            # start the whole stack
+docker compose logs -f service-notifications      # follow just this service
+curl localhost:5001/health/simple                 # liveness probe
+# Expected: {"status":"ok","service":"@adopt-dont-shop/service.notifications","environment":"development"}
+```
+
+Bare-metal (this service alone, against host Postgres + NATS from
+`pnpm dev:services`). Its cross-service gRPC calls (auth / pets / rescue) no-op
+when their `*_GRPC_URL` is unset:
+
+```bash
+DATABASE_URL=postgres://adopt_user:adopt_pass@localhost:5432/adopt_dont_shop_dev \
+NATS_URL=nats://localhost:4222 \
+pnpm --filter @adopt-dont-shop/service.notifications dev
+```
+
+To debug the container, see
+[`docs/runbooks/dev-stack-troubleshooting.md`](../../docs/runbooks/dev-stack-troubleshooting.md).
+
 ## REST / gRPC contract
 
 HTTP surface: `/health/simple`. Everything else is gRPC `NotificationService`
@@ -44,23 +71,25 @@ HTTP surface: `/health/simple`. Everything else is gRPC `NotificationService`
 are **self-scoped** (a `*:any` permission unlocks acting on another user);
 admin surfaces require an explicit permission. `super_admin` bypasses.
 
-| RPC | Permission |
-| --- | --- |
-| `Create` | `notifications.create` |
-| `List` / `GetNotification` / `GetUnreadCount` / `Dismiss` / `MarkAllRead` / `DeleteNotification` | self-scoped |
-| `Get/Update/ResetNotificationPreferences` | self; `notification-prefs:*:any` for others |
-| `CleanupExpiredNotifications` | `notifications.cleanup` |
-| `SendEmail` | `notifications.email.send` (or service-to-service) |
-| `Get/UpdateEmailPreferences` | self; `email-prefs:*:any` for others |
-| `List/Get/PreviewEmailTemplate` | `email.templates.read` |
-| `Create/Update/DeleteEmailTemplate` | `email.templates.{create,update,delete}` |
-| `Register/UnregisterDeviceToken` / `ListDeviceTokens` | self-scoped (`device-tokens:list:any` for others) |
-| `Broadcast` | `admin.notifications.broadcast` |
+| RPC                                                                                              | Permission                                         |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| `Create`                                                                                         | `notifications.create`                             |
+| `List` / `GetNotification` / `GetUnreadCount` / `Dismiss` / `MarkAllRead` / `DeleteNotification` | self-scoped                                        |
+| `Get/Update/ResetNotificationPreferences`                                                        | self; `notification-prefs:*:any` for others        |
+| `CleanupExpiredNotifications`                                                                    | `notifications.cleanup`                            |
+| `SendEmail`                                                                                      | `notifications.email.send` (or service-to-service) |
+| `Get/UpdateEmailPreferences`                                                                     | self; `email-prefs:*:any` for others               |
+| `List/Get/PreviewEmailTemplate`                                                                  | `email.templates.read`                             |
+| `Create/Update/DeleteEmailTemplate`                                                              | `email.templates.{create,update,delete}`           |
+| `Register/UnregisterDeviceToken` / `ListDeviceTokens`                                            | self-scoped (`device-tokens:list:any` for others)  |
+| `Broadcast`                                                                                      | `admin.notifications.broadcast`                    |
 
 Schema (`notifications`): `notifications`, `device_tokens`,
 `user_notification_prefs`, `email_queue`, `email_templates`,
 `email_template_versions`, `email_preferences`, `scheduled_job_runs`,
-`processed_events` (event-dedup for idempotent consumers).
+`processed_events` (event-dedup for idempotent consumers), and `event_outbox`
+(the transactional publish-after-commit outbox — see
+[`packages/events`](../../packages/events/README.md)).
 Migrations: `src/migrations/001`–`011`.
 
 **NATS** — emits (publish-after-commit): `notifications.created`,
@@ -88,20 +117,10 @@ Vitest. Pure handlers + the email/push workers tested with pool, NATS, and stub
 provider/clients injected — assert self-scope vs `*:any` permission gates,
 idempotent dismiss / dedup via `processed_events`, the event→notification
 translation for each consumed subject, and publish-after-commit ordering. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership
 
 See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 `/services/`.
-
----
-
-## Migration history
-
-Notifications was the Phase 1 extraction (the first stateful one): boot
-skeleton (1.1), the `notifications.*` schema (1.2), the gRPC
-`NotificationService` with the pure-handler-plus-thin-adapter pattern (1.3), the
-NATS fan-out subscribers (1.4), the gateway WebSocket termination + Redis
-pub/sub between replicas (1.5), and the monolith cutover (1.6).

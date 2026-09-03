@@ -1,9 +1,11 @@
 # ADR 0006 — Field-level permission enforcement (ADS-1037)
 
-- Status: Accepted (partial rollout — see Scope shipped)
+- Status: Partially implemented (partial rollout — see Scope shipped below)
 - Date: 2026-08-04
 - Scope: `packages/authz`, `packages/lib.types` (field-permission-defaults),
   `services/rescue`
+- Linear: ADS-1037
+- Supersedes / Superseded by: —
 
 ## Context
 

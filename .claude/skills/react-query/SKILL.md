@@ -19,10 +19,7 @@ shared UI state is React Context, server state is React Query. Don't mix them.
 Keys are arrays. Convention: `[entity, filters?]`.
 
 ```typescript
-['pets']                          // list of pets
-['pets', filters]                 // filtered list
-['pets', { id: petId }]           // single pet
-['pets', petId, 'comments']       // nested resource
+['pets'][('pets', filters)][('pets', { id: petId })][('pets', petId, 'comments')]; // list of pets // filtered list // single pet // nested resource
 ```
 
 Identical keys share a cache entry. Use plain objects/arrays — React Query does
@@ -38,19 +35,19 @@ export const usePets = (filters: PetFilters = {}) =>
   useQuery({
     queryKey: ['pets', filters],
     queryFn: () => petService.getAll(filters),
-    placeholderData: keepPreviousData,    // avoid blank flash on filter change
-    staleTime: 30_000,                    // 30s before refetch
+    placeholderData: keepPreviousData, // avoid blank flash on filter change
+    staleTime: 30_000, // 30s before refetch
   });
 ```
 
-| Option | When to use |
-|--------|-------------|
-| `staleTime` | How long data is "fresh". Set per-query based on volatility. Default 0 (always stale). |
-| `gcTime` | How long to keep unused data cached (was `cacheTime` in v4). Default 5min. |
-| `placeholderData: keepPreviousData` | For paginated/filtered lists — keeps the old data visible while the new query loads |
-| `enabled: boolean` | Conditionally run the query. E.g. `enabled: !!userId` skips until userId exists |
-| `select` | Transform/narrow data before returning — derived data without recomputing |
-| `refetchInterval` | Polling. Use sparingly — prefer WebSocket or invalidation. |
+| Option                              | When to use                                                                            |
+| ----------------------------------- | -------------------------------------------------------------------------------------- |
+| `staleTime`                         | How long data is "fresh". Set per-query based on volatility. Default 0 (always stale). |
+| `gcTime`                            | How long to keep unused data cached (was `cacheTime` in v4). Default 5min.             |
+| `placeholderData: keepPreviousData` | For paginated/filtered lists — keeps the old data visible while the new query loads    |
+| `enabled: boolean`                  | Conditionally run the query. E.g. `enabled: !!userId` skips until userId exists        |
+| `select`                            | Transform/narrow data before returning — derived data without recomputing              |
+| `refetchInterval`                   | Polling. Use sparingly — prefer WebSocket or invalidation.                             |
 
 ## Service module pattern
 
@@ -63,11 +60,10 @@ import type { Pet, PetFilters } from '../types/pet';
 
 export const petService = {
   getAll: (filters: PetFilters) =>
-    apiService.get<{ data: Pet[] }>('/api/v1/pets', { params: filters }),
-  getById: (petId: string) =>
-    apiService.get<{ data: Pet }>(`/api/v1/pets/${petId}`),
-  create: (payload: CreatePetPayload) =>
-    apiService.post<{ data: Pet }>('/api/v1/pets', payload),
+    // query params are the 2nd arg directly — NOT wrapped in { params }
+    apiService.get<{ data: Pet[] }>('/api/v1/pets', filters),
+  getById: (petId: string) => apiService.get<{ data: Pet }>(`/api/v1/pets/${petId}`),
+  create: (payload: CreatePetPayload) => apiService.post<{ data: Pet }>('/api/v1/pets', payload),
 };
 ```
 
@@ -159,6 +155,7 @@ export const useTogglePetFavourite = () => {
 ```
 
 The four hooks:
+
 - `onMutate` — snapshot + apply optimistic value
 - `onError` — roll back to snapshot
 - `onSuccess` — usually empty (server already confirmed)
@@ -238,3 +235,5 @@ Mock the service module, not React Query itself. Don't `vi.mock('@tanstack/react
   returns void, use mutateAsync if you need the promise
 - Forgetting `placeholderData: keepPreviousData` on paginated queries → flicker
   on page change
+
+Canonical doc: [`packages/lib.api/README.md`](../../../packages/lib.api/README.md).

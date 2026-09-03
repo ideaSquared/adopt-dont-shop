@@ -33,16 +33,32 @@ pnpm type-check        # TypeScript type-check
 
 The canonical list lives in [`src/index.ts`](src/index.ts), grouped:
 
-- **Theme**: `ThemeProvider`, `useTheme`, `darkTheme`, `lightTheme`, `vars`.
-- **Foundation**: `Avatar`, `Badge`, `Button`, `DateTime`, `Heading`,
-  `Spinner`, `DotSpinner`, `Text`.
-- **Layout**: `Container`, `Stack`, `Card` (+ `CardHeader` / `CardContent` /
-  `CardFooter`).
-- **Form**: `CheckboxInput`, `SelectInput`, `TextInput`, `TextArea`, `Input`,
-  `FileUpload`.
-- **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `Toast` / `ToastContainer`.
-- **Navigation**: `Breadcrumbs`, `Footer`, `Header`, `Navbar`.
-- **Hooks**: `useConfirm`, `useToast`.
+- **Theme**: `ThemeProvider`, `useTheme`, `ThemeToggle`, `darkTheme`,
+  `lightTheme`, `normalTheme`, `vars`, `THEME_STORAGE_KEY`.
+- **Hooks**: `useConfirm`, `useToast`, `useDebouncedValue`.
+- **Foundation**: `Logo`, `Avatar`, `Badge`, `Button`, `DateTime`, `Heading`,
+  `Spinner`, `DotSpinner`, `Text`, `MatchReasonChips`, `Skeleton` (+
+  `SkeletonCard` / `SkeletonText` / `SkeletonTableRow`).
+- **Layout**: `Container`, `Stack`, `SplitPaneDetail`, `Card` (+ `CardHeader` /
+  `CardContent` / `CardFooter`).
+- **Data**: `EntityInspector`, `QueryBoundary`, `SearchToolbar`.
+- **Form**: `CheckboxInput`, `SelectInput`, `TextArea`, `Input`, `FileUpload`,
+  `FormField` (+ `FormRow` / `FormSection`), `DateRangePicker` (+
+  `createDefaultDateRangePresets`). `TextInput` is deprecated — prefer `Input`;
+  it is still exported for existing consumers, do not add new call sites.
+- **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `EmptyState`, `ErrorState`,
+  `Stepper`. `Toaster` / `toast` (sonner-based, ADS-125) is the current toast
+  system; the legacy `Toast` / `ToastContainer` remain for existing call sites.
+- **Navigation**: `Breadcrumbs`, `Footer`, `Header`, `Navbar`, `NavSidebar` (+
+  `SIDEBAR_COLLAPSED_WIDTH` / `SIDEBAR_EXPANDED_WIDTH` /
+  `SIDEBAR_MOBILE_MAX_WIDTH`).
+- **Charts** (ADS-105): `ChartFrame`, `LineChart`, `BarChart`, `PieChart`,
+  `AreaChart`, `MetricCard`, `DataTable`, `ChartPalette`.
+- **Reports**: `ReportRenderer`, `ReportBuilder`, `FilterPanel`, `WidgetPicker`
+  (+ `DEFAULT_WIDGET_PRESETS`), `DrillDownModal`.
+- **Images / banners**: `ProgressiveImage`, `PetImage`, `InstallPwaBanner`,
+  `SanctionBanner`.
+- **A11y**: `SkipLink`.
 
 Styles are imported via `@adopt-dont-shop/lib.components/styles`. Each component
 owns its directory (`*.tsx`, `*.css.ts`, `*.test.tsx`, and where present
@@ -71,4 +87,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 6 workspace package(s) depend on this library. See [lib.components-consumers.md](../../docs/libraries/lib.components-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

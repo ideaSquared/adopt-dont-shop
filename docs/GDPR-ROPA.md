@@ -2,6 +2,7 @@
 
 **Controller:** Adopt Don't Shop
 **Last reviewed:** 2026-05-08
+**Next review due:** 2027-05-08 (annually, or on any new processing activity)
 **Owner:** Engineering — see `CODEOWNERS`
 
 This document is the controller-side record required by Article 30(1) of the
@@ -9,8 +10,10 @@ UK GDPR / EU GDPR. It must be reviewed at least annually and whenever a new
 processing activity is added (new feature touching personal data, new third
 party, new lawful basis).
 
-The companion user-facing notice lives in `docs/PRIVACY.md`. If you change a
-field's purpose / retention here, update PRIVACY.md too.
+The user-facing privacy notice is `docs/legal/privacy.md` (the text the gateway
+serves to users). `docs/PRIVACY.md` is the engineering data inventory, not a
+user-facing notice. If you change a field's purpose / retention here, update
+both companions.
 
 ---
 

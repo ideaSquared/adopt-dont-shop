@@ -1,11 +1,13 @@
 # Frontend & Shared-Libraries Code-Quality Review
 
-A pass over the areas the two backend `services/*` reviews did not touch: the
-three React apps (`app.admin`, `app.client`, `app.rescue`) and the shared
-`packages/lib.*` libraries. Each area was audited independently for security,
-correctness, data, accessibility and type-safety. Genuine defects were fixed
-in place with tests; defense-in-depth / policy / pre-existing-dead-code items
-are catalogued below rather than changed.
+_A defect register for the three React apps (`app.admin`, `app.client`, `app.rescue`) and the shared
+`packages/lib.*` libraries — companion to the backend `services/*` code-quality passes. Audit as of
+its original date; Deferred items re-verified 2026-09-03._
+
+This was a pass over the frontend areas outside the backend service reviews. Each area was audited
+independently for security, correctness, data, accessibility and type-safety. Genuine defects were
+fixed in place with tests; defense-in-depth / policy / pre-existing-dead-code items are catalogued
+below rather than changed.
 
 ## Fixed
 
@@ -41,5 +43,11 @@ are catalogued below rather than changed.
 | lib.validation           | Local `EmailSchema` in `rescue.ts`/`application.ts` bypasses the canonical NFKC/single-script normalization; over-permissive UK postcode regex + stale "mirrors backend" comment | Low impact (homograph defense-in-depth); regex tightening risks false-rejects                             |
 | lib.api / lib.components | Dead code: unused `cache` field + `clearCache()` in api-service; unexported `en-US` `utils/date.ts` & `utils/currency.ts`; unrendered `EditUserModal`                            | Pre-existing dead code — flagged, not deleted (per repo convention)                                       |
 | app.client               | `useApplicationDraft` shows "Failed to save draft" on a load failure; module-singleton chat/search caches not cleared on logout (no cross-user leak — keys are id-scoped)        | Low / cosmetic                                                                                            |
+
+**Re-verification (2026-09-03):** the Deferred rows still hold — `PlanGate` has zero call sites in
+`apps/*/src` and is not exported from `packages/lib.components/src/index.ts` (so "wrap routes in it"
+needs the component sourced first); `PetManagement` still renders create/edit/delete without a
+`useHasPermission`/`PermissionGate` gate; and api-service still carries the unused `cache` field +
+`clearCache()`. The "Browse Pets → `/search`" fix above verifies clean (no `to='/pets'` remains).
 
 **Verification:** `turbo lint type-check test` for the touched packages (lib.auth, lib.validation, lib.components, app.admin, app.client) — all green.

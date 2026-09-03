@@ -1,11 +1,16 @@
 # ADR 0009 — Deployment strategy & high availability (ADS-1045)
 
-- Status: Proposed
+- Status: Superseded by [ADR 0011](./0011-interim-availability-posture.md)
+  (2026-08-28) for the eyes-on launch phase. Option A step 1
+  (auto-rollback-on-failed-health) is implemented in
+  `.github/workflows/deploy.yml` (`rollback_and_fail`); the remaining options
+  survive as the option survey ADR 0011 defers to.
 - Date: 2026-08-05
 - Scope: `.github/workflows/deploy.yml`, `.github/workflows/rollback.yml`,
   `docker-compose.prod.yml` — production release mechanics and single-host
-  topology. No code or config is changed by this ADR; it is a decision
-  proposal only.
+  topology.
+- Linear: ADS-1045
+- Supersedes / Superseded by: Superseded by ADR 0011
 
 ## Context
 

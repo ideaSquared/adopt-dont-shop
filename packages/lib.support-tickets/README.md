@@ -48,7 +48,7 @@ None directly — reaches the backend through the shared `lib.api` client. See
 
 Vitest + React Testing Library — the schemas (valid/invalid payloads), the
 service (against a mocked API), and the hooks + utilities are tested directly.
-See [`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+See [`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -61,4 +61,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 1 workspace package(s) depend on this library. See [lib.support-tickets-consumers.md](../../docs/libraries/lib.support-tickets-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

@@ -1,16 +1,15 @@
 # Alertmanager routing for the deployed observability stack (ADS-1041 / ADS-1052).
 #
 # Routes the SLO alert rules (infra/prometheus/rules/, loaded by Prometheus) by
-# their `severity` label. Ships INERT: both receivers are defined but carry no
-# notifier configs, so Alertmanager starts cleanly with zero secrets and simply
-# drops notifications (alerts still group and show in the Alertmanager UI).
+# their `severity` label. Both receivers (critical-pager, warning-chat) deliver
+# to Discord via an incoming webhook. There is no Slack/email/PagerDuty path.
 #
-# Wire a real destination LATER (the ADS-1041 "template both, decide later"
-# choice): uncomment the slack_configs / email_configs block under the relevant
-# receiver and drop the secret into observability/alertmanager/secrets/ on the
-# host (mounted read-only at /etc/alertmanager/secrets/). Alertmanager reads the
-# webhook URL / SMTP password from a file so it never lands in `docker inspect`.
-# Reload with `docker compose kill -s HUP alertmanager` (or restart).
+# The webhook URL is a file secret: drop it into
+# observability/alertmanager/secrets/discord_webhook_url on the host (gitignored,
+# mounted read-only at /etc/alertmanager/secrets/). Alertmanager reads it via
+# webhook_url_file so it never lands in `docker inspect`, and it will NOT start
+# until that file exists. Reload after editing with
+# `docker compose kill -s HUP alertmanager` (or restart).
 
 global:
   resolve_timeout: 5m

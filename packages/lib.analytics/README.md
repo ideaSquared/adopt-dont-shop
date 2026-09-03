@@ -10,7 +10,9 @@ metrics, reports, conversion funnels, and A/B-test results.
 
 See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
 libraries sit. Events flush to the gateway's in-process `/api/v1/analytics`
-ingestion surface; reporting reads the analytics-metrics routes.
+ingestion surface; reporting reads the analytics-metrics routes. For the report
+model (saved reports, schedules, sharing) see
+[`docs/ANALYTICS-REPORTS.md`](../../docs/ANALYTICS-REPORTS.md).
 
 ## Scripts
 
@@ -33,9 +35,22 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `getSystemPerformance`, `generateReport`, `getConversionFunnel`,
   `getABTestResults`. Lifecycle: `getConfig` / `updateConfig`, `getSessionId` /
   `startNewSession`, `healthCheck`, `destroy` (flush + stop timer).
+- `ReportService` + `reportService` — saved-report CRUD, execution, scheduling
+  and sharing client (`./services/report-service`).
+- **Report hooks** (React Query, from `./hooks`): `useReports`, `useReport`,
+  `useReportTemplates`, `useExecuteSavedReport`, `useExecuteReportPreview`,
+  `useSaveReport`, `useUpdateReport`, `useDeleteReport`, `useUpsertSchedule`,
+  `useDeleteSchedule`, `useCreateUserShare`, `useCreateTokenShare`,
+  `useRevokeShare`, and `useRealtimeAnalytics` (live metric updates over the
+  socket).
+- Report schemas + constants re-exported from `./schemas/reports` and
+  `./constants`.
 - Types: `AnalyticsServiceConfig`, `UserEngagementEvent`, `PageViewEvent`,
   `EngagementMetrics`, `AnalyticsReport`, `ConversionFunnel`, `ABTestResults`,
   `TimeRange`, …
+
+The report **UI** (builder + renderer) lives in `lib.components`
+(`ReportBuilder`, `ReportRenderer`); this library owns the data layer.
 
 ## Environment variables consumed
 
@@ -47,7 +62,7 @@ resolved by the injected `lib.api` client. See
 
 Vitest — the queue/batch flushing, session lifecycle, and reporting calls are
 tested against a mocked API + fake timers. See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -60,4 +75,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 3 workspace package(s) depend on this library. See [lib.analytics-consumers.md](../../docs/libraries/lib.analytics-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

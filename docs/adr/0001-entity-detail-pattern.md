@@ -2,7 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-05-22
+- Scope: entity-detail views across `app.admin`, `app.rescue`, `app.client`
 - Linear: ADS-654 (foundation for ADS-650 split-pane refactor)
+- Supersedes / Superseded by: —
 
 ## Context
 

@@ -1,12 +1,13 @@
 # @adopt-dont-shop/e2e
 
-Behaviour-focused end-to-end tests for the adopt-dont-shop monorepo, driven by [Playwright](https://playwright.dev/).
+Behaviour-focused end-to-end tests for the adopt-dont-shop monorepo, driven by [Playwright](https://playwright.dev/) (audience: engineers writing or running cross-app journey tests).
 
 The suite exercises real user journeys across the three React apps (`app.client`, `app.rescue`, `app.admin`) and the gateway API. Tests assert on **user-observable outcomes** (visible text, route changes, API responses) rather than on component internals — those concerns are covered by the per-package Vitest suites.
 
 > **Phase 11 status (post-monolith) — incremental un-park.** The auth rework landed in #1076: the gateway↔SPA contract (Bearer tokens, the `/me` envelope, and proto-enum casing) is aligned, so `global-setup` can drive a real UI login per role and snapshot storageState. The legacy app-driven projects are now being **un-parked one journey at a time** rather than all at once — each spec is validated in CI (the `run-e2e` PR label, and the full suite on push to `main`) before being added to the `UNPARKED` allowlist in `playwright.config.ts`, so `main` gates on real coverage without going red on un-vetted specs.
 >
 > **Un-parked so far:**
+>
 > - `gateway-smoke` — gateway health + seeded-persona login (always on).
 > - `client/registration-and-login.spec.ts` — the `@smoke` public-registration + failed-login journey (runs unauthenticated).
 > - `client/adoption-application.spec.ts` — the `@smoke` full adoption journey (submit → rescue approves → adopter sees approval). The `apiAs` fixture and `seeds.ts` mutation helpers now authenticate with Bearer tokens (no CSRF), matching the gateway.
@@ -147,17 +148,17 @@ FAKER_SEED=7 pnpm db:spam                            # different generated text
 
 **Seeded personas** (all share the password `DevPassword123!`, override with `SEED_PASSWORD`):
 
-| Email | Role | App |
-| --- | --- | --- |
-| `john.smith@gmail.com` | adopter | app.client |
-| `emily.davis@yahoo.com` | adopter | app.client |
-| `michael.brown@outlook.com` | adopter | app.client |
+| Email                           | Role         | App        |
+| ------------------------------- | ------------ | ---------- |
+| `john.smith@gmail.com`          | adopter      | app.client |
+| `emily.davis@yahoo.com`         | adopter      | app.client |
+| `michael.brown@outlook.com`     | adopter      | app.client |
 | `rescue.manager@pawsrescue.dev` | rescue_staff | app.rescue |
-| `sarah.johnson@pawsrescue.dev` | rescue_staff | app.rescue |
-| `maria@happytailsrescue.dev` | rescue_staff | app.rescue |
-| `superadmin@adoptdontshop.dev` | super_admin | app.admin |
-| `admin@adoptdontshop.dev` | admin | app.admin |
-| `moderator@adoptdontshop.dev` | moderator | app.admin |
+| `sarah.johnson@pawsrescue.dev`  | rescue_staff | app.rescue |
+| `maria@happytailsrescue.dev`    | rescue_staff | app.rescue |
+| `superadmin@adoptdontshop.dev`  | super_admin  | app.admin  |
+| `admin@adoptdontshop.dev`       | admin        | app.admin  |
+| `moderator@adoptdontshop.dev`   | moderator    | app.admin  |
 
 **Reference data:** two verified rescues (Paws Rescue, Happy Tails Rescue) with staff links, plus a small pet catalogue (available / pending / adopted / on-hold) attached to those rescues. Pet + adopter ids are pinned to the values `helpers/seeds.ts` expects.
 
@@ -175,12 +176,12 @@ curl -s -X POST http://localhost:4000/api/v1/auth/login \
 
 Playwright is configured in `playwright.config.ts` to capture diagnostics automatically:
 
-| Artefact | When it's captured | Where it lands |
-| --- | --- | --- |
-| `trace.zip` | `trace: 'on-first-retry'` | `e2e/test-results/<spec>/` |
-| Screenshot | `screenshot: 'only-on-failure'` | `e2e/test-results/<spec>/` |
-| Video (`.webm`) | `video: 'retain-on-failure'` | `e2e/test-results/<spec>/` |
-| HTML report | always | `e2e/playwright-report/` |
+| Artefact        | When it's captured              | Where it lands             |
+| --------------- | ------------------------------- | -------------------------- |
+| `trace.zip`     | `trace: 'on-first-retry'`       | `e2e/test-results/<spec>/` |
+| Screenshot      | `screenshot: 'only-on-failure'` | `e2e/test-results/<spec>/` |
+| Video (`.webm`) | `video: 'retain-on-failure'`    | `e2e/test-results/<spec>/` |
+| HTML report     | always                          | `e2e/playwright-report/`   |
 
 Recommended workflow when something fails:
 
@@ -238,17 +239,17 @@ Aim to keep the smoke suite under ~5 minutes total. If you tag a new spec, run `
 
 ## Environment overrides
 
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `E2E_API_URL` | gateway base URL | `http://localhost:4000` |
-| `E2E_CLIENT_URL` | app.client base URL | `http://localhost:3000` |
-| `E2E_ADMIN_URL` | app.admin base URL | `http://localhost:3001` |
-| `E2E_RESCUE_URL` | app.rescue base URL | `http://localhost:3002` |
-| `E2E_ADOPTER_EMAIL` / `E2E_RESCUE_EMAIL` / `E2E_ADMIN_EMAIL` | Override seeded login emails | seeded users |
-| `E2E_SEED_PASSWORD` | Override seeded password | `DevPassword123!` |
-| `E2E_SKIP_HEALTH` | Skip the global health probe | unset |
-| `E2E_SKIP_AUTH` | Skip the global UI login (reuse cached `.auth/*.json`) | unset |
-| `E2E_RUN_ID` | Stamp used in unique fixture data | `local` (CI sets a unique id) |
+| Variable                                                     | Purpose                                                | Default                       |
+| ------------------------------------------------------------ | ------------------------------------------------------ | ----------------------------- |
+| `E2E_API_URL`                                                | gateway base URL                                       | `http://localhost:4000`       |
+| `E2E_CLIENT_URL`                                             | app.client base URL                                    | `http://localhost:3000`       |
+| `E2E_ADMIN_URL`                                              | app.admin base URL                                     | `http://localhost:3001`       |
+| `E2E_RESCUE_URL`                                             | app.rescue base URL                                    | `http://localhost:3002`       |
+| `E2E_ADOPTER_EMAIL` / `E2E_RESCUE_EMAIL` / `E2E_ADMIN_EMAIL` | Override seeded login emails                           | seeded users                  |
+| `E2E_SEED_PASSWORD`                                          | Override seeded password                               | `DevPassword123!`             |
+| `E2E_SKIP_HEALTH`                                            | Skip the global health probe                           | unset                         |
+| `E2E_SKIP_AUTH`                                              | Skip the global UI login (reuse cached `.auth/*.json`) | unset                         |
+| `E2E_RUN_ID`                                                 | Stamp used in unique fixture data                      | `local` (CI sets a unique id) |
 
 ## Adding a new spec
 

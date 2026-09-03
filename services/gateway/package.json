@@ -53,7 +53,7 @@
     "@fastify/swagger-ui": "^6.0.0",
     "@grpc/grpc-js": "^1.14.4",
     "@socket.io/redis-adapter": "^8.3.0",
-    "fastify": "^5.8.5",
+    "fastify": "^5.12.1",
     "file-type": "^22.0.1",
     "ioredis": "^5.11.1",
     "jspdf": "4.2.1",

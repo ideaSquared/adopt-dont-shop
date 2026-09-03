@@ -18,11 +18,16 @@ models; if a doc / skill tells you to create files under
 `src/controllers/` or `src/models/`, it describes the deleted
 architecture — don't follow it.
 
-| Layer | Responsibility | Lives in |
-|-------|----------------|----------|
-| Proto contract | Request / response types and the RPC signature | `packages/proto/proto/<domain>.v1.proto` |
-| gRPC handler   | Business logic, DB writes, audit, transactions | `services/<name>/src/grpc/` |
-| Gateway route  | REST → gRPC translation, auth/RBAC/rate limits | `services/gateway/src/routes/` |
+| Layer          | Responsibility                                                                             | Lives in                                                          |
+| -------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Proto contract | Request / response types and the RPC signature                                             | `packages/proto/proto/adopt_dont_shop/<domain>/v1/<domain>.proto` |
+| gRPC handler   | Business logic, DB writes, **permission gates**, field masking, transactions, audit events | `services/<name>/src/grpc/`                                       |
+| Gateway route  | REST → gRPC translation, body validation, rate limits (no business logic, no authz)        | `services/gateway/src/routes/`                                    |
+
+The gateway authenticates the request and stamps the `Principal`, but it does
+**not** enforce domain permissions or field access — those live in the handler,
+because a direct gRPC caller must not be able to bypass them (the gateway has no
+`@adopt-dont-shop/authz` dependency).
 
 Validation lives in `lib.validation` (Zod schemas) where the SPA and
 the gateway share one source of truth.
@@ -33,7 +38,7 @@ Add the request / response message + the RPC method to the owning
 domain's proto.
 
 ```proto
-// packages/proto/proto/things.v1.proto
+// packages/proto/proto/adopt_dont_shop/things/v1/things.proto
 service ThingsService {
   rpc CreateThing (CreateThingRequest) returns (CreateThingResponse);
   rpc GetThing (GetThingRequest) returns (GetThingResponse);
@@ -76,21 +81,24 @@ local conventions before writing yours.
 // services/things/src/grpc/thing-handlers.ts
 import { randomUUID } from 'node:crypto';
 
-import type { Principal } from '@adopt-dont-shop/authz';
-import {
-  type CreateThingRequest,
-  type CreateThingResponse,
-} from '@adopt-dont-shop/proto';
-
-import { HandlerError, type HandlerDeps } from './handlers.js';
+import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import { HandlerError, type HandlerDeps } from '@adopt-dont-shop/service-bootstrap';
+import { THINGS_CREATE } from '@adopt-dont-shop/lib.types';
+import { type CreateThingRequest, type CreateThingResponse } from '@adopt-dont-shop/proto';
 
 export async function createThing(
   deps: HandlerDeps,
   principal: Principal | null,
-  req: CreateThingRequest,
+  req: CreateThingRequest
 ): Promise<CreateThingResponse> {
   if (!principal?.userId) {
     throw new HandlerError('UNAUTHENTICATED', 'authentication required');
+  }
+  // Permission gate lives HERE, in the handler — not on the gateway route.
+  // requirePermission returns a boolean; throw on false. Import the constant
+  // from lib.types; never inline the permission string.
+  if (!requirePermission(principal, THINGS_CREATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${THINGS_CREATE}' required`);
   }
   if (!req.name) {
     throw new HandlerError('INVALID_ARGUMENT', 'name is required');
@@ -100,7 +108,7 @@ export async function createThing(
   await deps.pool.query(
     `INSERT INTO things.things (thing_id, name, description, created_by, created_at, updated_at)
      VALUES ($1, $2, $3, $4, now(), now())`,
-    [thingId, req.name, req.description ?? null, principal.userId],
+    [thingId, req.name, req.description ?? null, principal.userId]
   );
 
   return { thing: { thingId, name: req.name, description: req.description ?? '' } };
@@ -136,9 +144,7 @@ the plugin function.
 // services/gateway/src/routes/things.ts
 import type { FastifyInstance } from 'fastify';
 
-import {
-  type CreateThingRequest as GrpcCreateThingRequest,
-} from '@adopt-dont-shop/proto';
+import { type CreateThingRequest as GrpcCreateThingRequest } from '@adopt-dont-shop/proto';
 
 import type { ThingsClient } from '../grpc-clients/things-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -148,10 +154,7 @@ export type ThingsRoutesOptions = {
   client: ThingsClient;
 };
 
-export function registerThingsRoutes(
-  app: FastifyInstance,
-  opts: ThingsRoutesOptions,
-): void {
+export function registerThingsRoutes(app: FastifyInstance, opts: ThingsRoutesOptions): void {
   const { client } = opts;
 
   app.post<{ Body: { name: string; description?: string } }>(
@@ -181,7 +184,7 @@ export function registerThingsRoutes(
       } catch (err) {
         return handleGrpcError(err, reply);
       }
-    },
+    }
   );
 }
 ```
@@ -202,15 +205,17 @@ forwarding to gRPC.
 
 ## Step 4 — Auth + RBAC + rate limits
 
-The gateway exposes hooks for these:
+The gateway handles **authentication and rate limiting**; **permission gates
+live in the handler** (Step 2), not here:
 
 - **Authentication**: requests carrying a valid JWT get a populated
-  principal automatically (see `services/gateway/src/middleware/authenticate.ts`).
-  Routes that don't need auth set `config: { public: true }` or live
-  under the public route prefix.
-- **Permission gates**: use the `requirePermission(...)` hook from
-  `@adopt-dont-shop/authz` (read an existing route — admin routes are
-  the canonical example).
+  principal automatically (see `services/gateway/src/middleware/authenticate.ts`),
+  which the gateway stamps into gRPC metadata. Routes that don't need auth set
+  `config: { public: true }` or live under the public route prefix.
+- **Permission gates**: enforced in the gRPC handler with
+  `requirePermission(principal, PERMISSION)` from `@adopt-dont-shop/authz`
+  (Step 2). The gateway does **not** call `requirePermission` — it has no authz
+  dependency, and a gateway-only gate would be bypassable by a direct gRPC call.
 - **Rate limits**: a global plugin caps every route; override
   per-route via `config: { rateLimit: { max, timeWindow } }`. The
   `email-rate-limiter.ts` route shows the pattern.
@@ -243,9 +248,10 @@ skill for the Vitest + behaviour-driven patterns.
 ## Step 7 — Field permissions (if applicable)
 
 If the resource is one of `users`, `rescues`, `pets`, `applications` —
-or you're adding a new one — read the `field-permissions` skill. You
-must register field defaults and apply the field-mask / field-write
-hooks on the gateway route.
+or you're adding a new one — read the `field-permissions` skill. Register the
+field defaults in `lib.types`, and call `fieldMask` (read) / `fieldWriteGuard`
+(write) from `@adopt-dont-shop/authz` **inside the gRPC handler**, at the
+response / request boundary of the owning service — never on the gateway route.
 
 ## Step 8 — Document the route shape
 
@@ -283,3 +289,7 @@ querystring schemas reflect the real shape so the generated
   and then `as`-casting `req.body` — annotate the generic instead.
 - Direct DB access from the gateway — the gateway owns no tables.
   Always go through a gRPC call.
+- Putting the permission gate or field masking on the gateway route — both
+  live in the owning service's handler, or a direct gRPC call bypasses them.
+
+Canonical doc: [`docs/backend/implementation-guide.md`](../../../docs/backend/implementation-guide.md).

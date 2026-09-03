@@ -1,5 +1,10 @@
 # Container Image Signing (Cosign + Sigstore)
 
+How production images are signed and verified in the deploy pipeline.
+Audience: release/infra engineers.
+
+`Last reviewed: 2026-09-03`
+
 Container images published to GHCR by `.github/workflows/deploy.yml` are
 signed with [cosign](https://github.com/sigstore/cosign) using
 [Sigstore](https://www.sigstore.dev/) **keyless** OIDC signing. The deploy

@@ -20,7 +20,8 @@ scanning. `OpenChat` makes outbound gRPC calls to `service.applications`
 participants; all other RPCs read participants from its own schema. Depends on
 the shared backend packages `@adopt-dont-shop/{authz,
 config-secrets, db, events, lib.types, observability, proto,
-service-bootstrap}`.
+service-bootstrap}`. For how this service was carved out of the monolith, see
+[`docs/backend/microservices-extraction-history.md`](../../docs/backend/microservices-extraction-history.md#chat).
 
 ## Scripts
 
@@ -35,6 +36,32 @@ pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
 
+## Running locally
+
+In the Docker dev stack (primary workflow) this runs as container
+`service-chat`, HTTP published on `127.0.0.1:5006`:
+
+```bash
+pnpm docker:dev:detach                   # start the whole stack
+docker compose logs -f service-chat      # follow just this service
+curl localhost:5006/health/simple        # liveness probe
+# Expected: {"status":"ok","service":"@adopt-dont-shop/service.chat","environment":"development"}
+```
+
+Bare-metal (this service alone, against host Postgres + NATS from
+`pnpm dev:services`). `OpenChat` calls applications + rescue over gRPC, so
+point those at running services for that path:
+
+```bash
+DATABASE_URL=postgres://adopt_user:adopt_pass@localhost:5432/adopt_dont_shop_dev \
+NATS_URL=nats://localhost:4222 \
+APPLICATIONS_GRPC_URL=localhost:6005 RESCUE_GRPC_URL=localhost:6004 \
+pnpm --filter @adopt-dont-shop/service.chat dev
+```
+
+To debug the container, see
+[`docs/runbooks/dev-stack-troubleshooting.md`](../../docs/runbooks/dev-stack-troubleshooting.md).
+
 ## REST / gRPC contract
 
 HTTP surface: `/health/simple`. Everything else is gRPC `ChatService`
@@ -42,19 +69,21 @@ HTTP surface: `/health/simple`. Everything else is gRPC `ChatService`
 additionally require **participant membership** in the chat; `super_admin`
 bypasses the membership check.
 
-| RPC | Permission |
-| --- | --- |
-| `OpenChat` | `chats.create` |
-| `SendMessage` / `React` | `messages.create` + participant |
-| `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat` / `DeleteChat` | `chats.read` + participant |
-| `ListChats` / `SearchChats` | `chats.read` |
-| `DeleteMessage` | sender, or `chat.message.delete:any` |
+| RPC                                                                           | Permission                           |
+| ----------------------------------------------------------------------------- | ------------------------------------ |
+| `OpenChat`                                                                    | `chats.create`                       |
+| `SendMessage` / `React`                                                       | `messages.create` + participant      |
+| `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat` / `DeleteChat` | `chats.read` + participant           |
+| `ListChats` / `SearchChats`                                                   | `chats.read`                         |
+| `DeleteMessage`                                                               | sender, or `chat.message.delete:any` |
 
 Schema (`chat`): `chats` (anchored to an application), `chat_participants`
 (with read watermarks), `messages` (with a full-text search vector),
-`message_reactions`, `message_reads`. Migrations: `src/migrations/001`–`007`
-(004 installs the search-vector trigger, replacing the monolith's afterSync
-hook so the DB owns the invariant).
+`message_reactions`, `message_reads`, and `event_outbox` (the transactional
+publish-after-commit outbox — see
+[`packages/events`](../../packages/events/README.md)). Migrations:
+`src/migrations/001`–`007` (004 installs the search-vector trigger so the DB
+owns the invariant).
 
 **NATS** — emits (publish-after-commit): `chat.created`, `chat.messageCreated`,
 `chat.messageRead`, `chat.reactionAdded`, `chat.reactionRemoved`,
@@ -76,19 +105,10 @@ Vitest. Pure handlers with pool + NATS injected — assert permission +
 participant-membership gates, read-watermark / unread-count logic,
 sender-or-admin delete authorization, and publish-after-commit ordering for
 every `chat.*` event. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership
 
 See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 `/services/`.
-
----
-
-## Migration history
-
-Chat was the Phase 6 extraction: boot skeleton (6.1), the `chat.*` schema with
-its search-vector trigger (6.2), the gRPC `ChatService` (6.3), the `chat.*` NATS
-publishers feeding the gateway's Phase 1.5 WS subscriber (6.4), gateway routes
-(6.5), and the monolith cutover (6.6, bundled into Phase 11).

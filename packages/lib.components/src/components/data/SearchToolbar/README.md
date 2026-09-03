@@ -1,11 +1,11 @@
-# SearchToolbar Component
+# SearchToolbar
 
 A presentational composition that ties together the pieces every list page rebuilds by hand: a search field, an optional filter panel, removable active-filter chips, and an accessible result-count summary. It owns no data — callers keep the search string, filter values and result count in their own state (and debounce if they need to).
 
 ## Usage
 
 ```tsx
-import { SearchToolbar } from '@lib/components';
+import { SearchToolbar } from '@adopt-dont-shop/lib.components';
 
 function PetsList() {
   const [search, setSearch] = useState('');

@@ -237,7 +237,14 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // unbounded) let a client-supplied XFF prefix pass straight through and
     // rotate req.ip on every request, bypassing every per-IP rate limiter
     // (login brute-force, GDPR spam) — ADS-915.
-    trustProxy: 1,
+    //
+    // fastify 5.12.1 removed numeric (hop-count) trustProxy (GHSA-3m5p-2c4r-xxw2):
+    // it now always fails closed, since a hop count alone can't validate the
+    // immediate peer's address. `hop === 0` reproduces the identical "trust
+    // only the immediate hop" logic the old `trustProxy: 1` used — safe here
+    // because it's network isolation (gateway:4000 unreachable directly), not
+    // this predicate, that guarantees the immediate hop is always nginx.
+    trustProxy: (_address, hop) => hop === 0,
   });
 
   // Tag every error that escapes a route — the only winston call site

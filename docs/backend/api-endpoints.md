@@ -1,257 +1,103 @@
 # API Endpoints Reference
 
-## Overview
+Orientation for the gateway's REST surface. For the exhaustive, per-route contract
+(request/response schemas, every path and status) the authoritative source is the OpenAPI
+document, not this page.
 
-The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, pets, applications, messaging, and admin functions. All endpoints return JSON responses and follow REST conventions.
+## Where the full contract lives
 
-**Base URLs:**
+The gateway generates its OpenAPI spec at runtime from each route's `schema` block
+(`@fastify/swagger`, wired in `services/gateway/src/server.ts`).
 
-- Development: `http://localhost:4000` (the Fastify gateway, or `http://api.localhost` via the nginx proxy)
-- Staging: `https://api-staging.adoptdontshop.com`
-- Production: `https://api.adoptdontshop.com`
+- Human-browsable UI: `GET /docs`
+- Machine-readable JSON: `GET /openapi.json`
+- Checked-in snapshot: [`generated-openapi.json`](./generated-openapi.json) and
+  [`generated-openapi.yaml`](./generated-openapi.yaml)
 
-**Current Version:** `/api/v1/`
+The live `/openapi.json` served by a running gateway is the source of truth. The two
+`generated-openapi.*` files are a committed snapshot of it; regenerate them by capturing the
+live spec from a running gateway, e.g. `curl -s http://localhost:4000/openapi.json > docs/backend/generated-openapi.json`.
+
+## Base URLs
+
+| Environment | Base URL                                                             |
+| ----------- | -------------------------------------------------------------------- |
+| Development | `http://localhost:4000` (the Fastify gateway; the only HTTP surface) |
+| Staging     | `https://api-staging.adoptdontshop.com`                              |
+| Production  | `https://api.adoptdontshop.com`                                      |
+
+All routes are versioned under `/api/v1/`.
 
 ## Authentication
 
-### Quick Start
+Browser apps authenticate with cookies, not a hand-managed bearer token. `apiService` in
+`@adopt-dont-shop/lib.api` sends `credentials: 'include'` and attaches a CSRF token
+automatically:
 
-1. **Register**: `POST /api/v1/auth/register`
-2. **Login**: `POST /api/v1/auth/login` (returns JWT tokens)
-3. **Use Token**: Include in Authorization header: `Authorization: Bearer <token>`
-4. **Refresh**: `POST /api/v1/auth/refresh-token` (when token expires)
+1. `POST /api/v1/auth/login` — establishes the session.
+2. `GET /api/v1/csrf-token` — issues the double-submit `csrfToken` cookie (ADS-919).
+3. State-changing requests (POST/PUT/PATCH/DELETE) must echo that value in the `x-csrf-token`
+   header; the gateway rejects a mutating request that carries the cookie but not the header.
+4. `GET /api/v1/auth/me` — current user profile. `POST /api/v1/auth/refresh-token` renews.
 
-### Auth Endpoints
+The OpenAPI document also declares a `bearerAuth` (JWT) scheme for non-browser integrators;
+public routes (login, register, health) opt out with `security: []`.
 
-| Method | Endpoint                           | Description                                  | Auth Required     |
-| ------ | ---------------------------------- | -------------------------------------------- | ----------------- |
-| POST   | `/api/v1/auth/register`            | Create new user account                      | No                |
-| POST   | `/api/v1/auth/login`               | Authenticate and get tokens                  | No                |
-| POST   | `/api/v1/auth/logout`              | Invalidate current session                   | Yes               |
-| POST   | `/api/v1/auth/refresh-token`       | Refresh access token (refresh token in body) | No (rate-limited) |
-| POST   | `/api/v1/auth/forgot-password`     | Request password reset                       | No                |
-| POST   | `/api/v1/auth/reset-password`      | Reset password with token                    | No                |
-| POST   | `/api/v1/auth/verify-email`        | Verify email address (token in body)         | No                |
-| POST   | `/api/v1/auth/resend-verification` | Resend verification email                    | No                |
-| GET    | `/api/v1/auth/me`                  | Get current user profile                     | Yes               |
-| PUT    | `/api/v1/auth/me`                  | Update current user profile                  | Yes               |
-| POST   | `/api/v1/auth/2fa/setup`           | Begin two-factor enrolment                   | Yes               |
-| POST   | `/api/v1/auth/2fa/enable`          | Enable two-factor (verify OTP)               | Yes               |
-| POST   | `/api/v1/auth/2fa/disable`         | Disable two-factor                           | Yes               |
-| POST   | `/api/v1/auth/2fa/backup-codes`    | Regenerate backup codes                      | Yes               |
+## Pagination
 
-## Core Resources
+List routes parse `page` and `limit` through a shared parser
+(`services/gateway/src/middleware/pagination.ts`). Defaults are page 1, limit 20 (a route may
+override). `limit` is hard-capped at `MAX_PAGE_LIMIT = 100`; a non-integer `page`/`limit` or a
+`limit` above 100 returns HTTP 400 (no silent clamp). `sort`/`order` are per-route, not
+universal.
 
-### Users
+## Errors
 
-User listing lives under [Admin Endpoints](#admin-endpoints) (`GET /api/v1/admin/users`); the `/api/v1/users` mount is for the current user's own resources.
+Every error response is `{ "error": string }`. The gateway maps the upstream gRPC status to an
+HTTP status (`services/gateway/src/middleware/grpc-error.ts`). For 5xx and for
+`PERMISSION_DENIED` / `FAILED_PRECONDITION` / `UNAUTHENTICATED`, the body carries a generic
+message; other 4xx forward the upstream validation text.
 
-| Method | Endpoint                          | Description                                    |
-| ------ | --------------------------------- | ---------------------------------------------- |
-| GET    | `/api/v1/users/profile`           | Get current user profile                       |
-| PUT    | `/api/v1/users/profile`           | Update current user profile                    |
-| GET    | `/api/v1/users/preferences`       | Get current user's preferences                 |
-| PUT    | `/api/v1/users/preferences`       | Update current user's preferences              |
-| POST   | `/api/v1/users/preferences/reset` | Reset preferences to defaults                  |
-| DELETE | `/api/v1/users/account`           | Delete own account (soft delete; rate-limited) |
-| GET    | `/api/v1/users/:userId`           | Get another user's public profile              |
+| gRPC status                                    | HTTP |
+| ---------------------------------------------- | ---- |
+| OK                                             | 200  |
+| INVALID_ARGUMENT                               | 400  |
+| UNAUTHENTICATED                                | 401  |
+| PERMISSION_DENIED                              | 403  |
+| NOT_FOUND                                      | 404  |
+| ALREADY_EXISTS / ABORTED / FAILED_PRECONDITION | 409  |
+| RESOURCE_EXHAUSTED                             | 429  |
+| INTERNAL                                       | 500  |
+| UNIMPLEMENTED                                  | 501  |
+| UNAVAILABLE                                    | 503  |
+| DEADLINE_EXCEEDED                              | 504  |
 
-### Pets
+## Rate limiting
 
-| Method | Endpoint                       | Description                                         |
-| ------ | ------------------------------ | --------------------------------------------------- |
-| GET    | `/api/v1/pets`                 | Search/browse pets (supports filtering, pagination) |
-| POST   | `/api/v1/pets`                 | Create new pet (rescue staff only)                  |
-| GET    | `/api/v1/pets/:petId`          | Get pet details                                     |
-| PUT    | `/api/v1/pets/:petId`          | Update pet information                              |
-| DELETE | `/api/v1/pets/:petId`          | Delete pet (soft delete)                            |
-| POST   | `/api/v1/pets/:petId/images`   | Upload / replace pet images                         |
-| DELETE | `/api/v1/pets/:petId/images`   | Delete pet image (identifier in body)               |
-| PATCH  | `/api/v1/pets/:petId/status`   | Update pet availability status                      |
-| POST   | `/api/v1/pets/:petId/favorite` | Add to favorites                                    |
-| DELETE | `/api/v1/pets/:petId/favorite` | Remove from favorites                               |
+One global per-IP limiter (`@fastify/rate-limit`, `global: true`), default 100 requests per
+1 minute, tunable via `GATEWAY_RATE_LIMIT_MAX` / `GATEWAY_RATE_LIMIT_WINDOW`
+(`services/gateway/src/config.ts`). It is Redis-backed when `REDIS_URL` is set (N-replica-safe),
+in-memory otherwise. Some domains set stricter per-route caps — e.g. `CHAT_RATE_LIMITS` in
+`routes/chat.ts` (open-chat 10/min, send-message 60/min, react 30/min) — and the auth surface
+adds a per-email limiter (~5/min/email, login 5/5min) on top of the per-IP cap. There are no
+`X-RateLimit-*` headers; an exceeded limit returns HTTP 429.
 
-### Discovery (Swipe Interface)
+## WebSocket events
 
-| Method | Endpoint                                | Description                                |
-| ------ | --------------------------------------- | ------------------------------------------ |
-| GET    | `/api/v1/discovery/pets`                | Get personalized pet queue for swiping     |
-| POST   | `/api/v1/discovery/swipe/action`        | Record swipe action (like/pass/super-like) |
-| GET    | `/api/v1/discovery/swipe/stats/:userId` | Get user swipe analytics                   |
-| POST   | `/api/v1/discovery/pets/more`           | Load more pets for infinite scroll         |
+Socket.IO is mounted at `/socket.io`. The gateway fans NATS domain events out to connected
+sockets (`services/gateway/src/ws/`). Server-emitted events:
 
-### Applications
+| Event                    | Payload                                     |
+| ------------------------ | ------------------------------------------- |
+| `chat:message:created`   | `{ messageId, chatId, senderUserId, body }` |
+| `chat:message:read`      | `{ chatId, userId, upToMessageId }`         |
+| `chat:reaction:added`    | `{ messageId, chatId, userId, emoji }`      |
+| `chat:reaction:removed`  | `{ messageId, chatId, userId, emoji }`      |
+| `notification:created`   | `{ notificationId, type, channel }`         |
+| `notification:dismissed` | `{ notificationId }`                        |
 
-| Method | Endpoint                                       | Description                          |
-| ------ | ---------------------------------------------- | ------------------------------------ |
-| GET    | `/api/v1/applications`                         | List applications (filtered by role) |
-| POST   | `/api/v1/applications`                         | Submit new application               |
-| GET    | `/api/v1/applications/:applicationId`          | Get application details              |
-| PATCH  | `/api/v1/applications/:applicationId/status`   | Update application status            |
-| POST   | `/api/v1/applications/:applicationId/withdraw` | Withdraw application                 |
-| GET    | `/api/v1/applications/:applicationId/history`  | Get status history                   |
+There is no server-side typing indicator.
 
-### Rescues
+## Health
 
-| Method | Endpoint                                  | Description                     |
-| ------ | ----------------------------------------- | ------------------------------- |
-| GET    | `/api/v1/rescues`                         | List rescue organizations       |
-| POST   | `/api/v1/rescues`                         | Register new rescue             |
-| GET    | `/api/v1/rescues/:rescueId`               | Get rescue profile              |
-| PUT    | `/api/v1/rescues/:rescueId`               | Update rescue information       |
-| GET    | `/api/v1/rescues/:rescueId/staff`         | Get rescue staff                |
-| POST   | `/api/v1/rescues/:rescueId/staff`         | Add staff member                |
-| DELETE | `/api/v1/rescues/:rescueId/staff/:userId` | Remove staff member             |
-| GET    | `/api/v1/rescues/:rescueId/pets`          | Get rescue's pets               |
-| GET    | `/api/v1/rescues/:rescueId/analytics`     | Get rescue metrics (staff only) |
-
-### Chat & Messaging
-
-Chat routes are mounted at `/api/v1/chats` (canonical). `/api/v1/conversations` is registered as an alias for backwards compatibility — prefer `chats` in new code. The schema field is `chat_id`.
-
-| Method | Endpoint                                      | Description                           |
-| ------ | --------------------------------------------- | ------------------------------------- |
-| GET    | `/api/v1/chats`                               | List user's chats                     |
-| POST   | `/api/v1/chats`                               | Create new chat                       |
-| GET    | `/api/v1/chats/search`                        | Search chats                          |
-| GET    | `/api/v1/chats/analytics`                     | Chat analytics (rescue staff / admin) |
-| GET    | `/api/v1/chats/:chatId`                       | Get chat details                      |
-| PUT    | `/api/v1/chats/:chatId`                       | Update chat metadata                  |
-| PATCH  | `/api/v1/chats/:chatId`                       | Lock/unlock or change status          |
-| DELETE | `/api/v1/chats/:chatId`                       | Archive/delete chat                   |
-| GET    | `/api/v1/chats/:chatId/messages`              | Get messages (paginated)              |
-| POST   | `/api/v1/chats/:chatId/messages`              | Send message                          |
-| DELETE | `/api/v1/chats/:chatId/messages/:messageId`   | Delete message                        |
-| POST   | `/api/v1/chats/:chatId/read`                  | Mark messages as read                 |
-| GET    | `/api/v1/chats/:chatId/unread-count`          | Get unread message count              |
-| POST   | `/api/v1/chats/:chatId/participants`          | Add participant                       |
-| DELETE | `/api/v1/chats/:chatId/participants/:userId`  | Remove participant                    |
-| POST   | `/api/v1/chats/messages/:messageId/reactions` | Add reaction to a message             |
-| DELETE | `/api/v1/chats/messages/:messageId/reactions` | Remove reaction                       |
-| POST   | `/api/v1/chats/:chatId/attachments/upload`    | Upload chat attachment                |
-
-### Notifications
-
-| Method | Endpoint                                     | Description                        |
-| ------ | -------------------------------------------- | ---------------------------------- |
-| GET    | `/api/v1/notifications`                      | Get user notifications (paginated) |
-| PATCH  | `/api/v1/notifications/:notificationId/read` | Mark as read                       |
-| DELETE | `/api/v1/notifications/:notificationId`      | Delete notification                |
-| GET    | `/api/v1/notifications/unread/count`         | Get unread count                   |
-| POST   | `/api/v1/notifications/read-all`             | Mark all as read                   |
-| GET    | `/api/v1/notifications/preferences`          | Get notification preferences       |
-| PUT    | `/api/v1/notifications/preferences`          | Update preferences                 |
-
-## Admin Endpoints
-
-Mounted at `/api/v1/admin`. Moderation routes live under the separate `/api/v1/admin/moderation` mount.
-
-| Method | Endpoint                                             | Description                                                    |
-| ------ | ---------------------------------------------------- | -------------------------------------------------------------- |
-| GET    | `/api/v1/admin/users`                                | List all users (with filtering)                                |
-| PATCH  | `/api/v1/admin/users/:userId`                        | Update a user record                                           |
-| PATCH  | `/api/v1/admin/users/:userId/action`                 | Perform an admin action (suspend, restore, force-logout, etc.) |
-| GET    | `/api/v1/admin/rescues`                              | List all rescues                                               |
-| PATCH  | `/api/v1/admin/rescues/:rescueId/moderate`           | Verify / reject a rescue (sets `verification_status`)          |
-| PATCH  | `/api/v1/admin/rescues/:rescueId/plan`               | Change rescue subscription plan                                |
-| GET    | `/api/v1/admin/moderation/reports`                   | Get content reports                                            |
-| POST   | `/api/v1/admin/moderation/reports/:reportId/actions` | Take moderation action                                         |
-| GET    | `/api/v1/admin/system/health`                        | System health status                                           |
-| GET    | `/api/v1/admin/analytics/dashboard`                  | Admin dashboard analytics                                      |
-
-## Common Patterns
-
-### Pagination
-
-Query parameters for list endpoints:
-
-```
-?page=1&limit=20&sort=createdAt&order=desc
-```
-
-Response format:
-
-```json
-{
-  "data": [...],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 150,
-    "totalPages": 8
-  }
-}
-```
-
-### Filtering
-
-Use query parameters:
-
-```
-GET /api/v1/pets?type=DOG&age=1-3&location=London
-```
-
-### Error Responses
-
-Standard error format:
-
-```json
-{
-  "error": "Error message",
-  "code": "ERROR_CODE",
-  "details": {...}
-}
-```
-
-Common HTTP status codes:
-
-- `200` OK
-- `201` Created
-- `400` Bad Request (validation error)
-- `401` Unauthorized (missing/invalid token)
-- `403` Forbidden (insufficient permissions)
-- `404` Not Found
-- `500` Internal Server Error
-
-## Interactive API Documentation
-
-**Swagger UI**: Available at `/api/docs` (e.g. http://localhost:4000/api/docs in dev).
-
-- Full endpoint documentation with request/response schemas
-- Interactive testing interface
-- Authentication token management
-- Generated OpenAPI specs are also committed at `docs/backend/generated-openapi.json` / `.yaml`
-
-## Rate Limiting
-
-- **Default**: 100 requests per 15 minutes per IP
-- **Authenticated**: 1000 requests per 15 minutes per user
-- **Admin**: 5000 requests per 15 minutes
-
-Rate limit headers included in responses:
-
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1640000000
-```
-
-## WebSocket Events (Real-time)
-
-Connect to `/socket.io` with JWT authentication.
-
-**Events:**
-
-- `message:new` - New chat message received
-- `message:read` - Message read status updated
-- `typing:start` - User started typing
-- `typing:stop` - User stopped typing
-- `notification:new` - New notification received
-- `application:updated` - Application status changed
-
-## Additional Resources
-
-- **Implementation Guide**: [implementation-guide.md](./implementation-guide.md)
-- **Database Schema**: [database-schema.md](./database-schema.md)
-- **Deployment Guide**: [deployment.md](./deployment.md)
-- **Troubleshooting**: [troubleshooting.md](./troubleshooting.md)
+`GET /health/simple` returns `{ status, service, environment }`. There is no `/health/ready`.

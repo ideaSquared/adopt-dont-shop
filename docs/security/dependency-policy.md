@@ -1,8 +1,13 @@
 # Dependency update & vulnerability policy
 
-Two separate CI workflows watch the dependency graph. Each has a different
-job: one blocks merges on real risk, the other surfaces staleness without
-blocking anything.
+How CI treats dependency risk vs. staleness, and how Renovate keeps updates
+moving. Audience: anyone triaging a red dependency check or an update PR.
+
+`Last reviewed: 2026-09-03`
+
+Three CI surfaces watch the dependency graph. Two block merges on real risk
+(one on the npm advisory data, one on the built image), and one surfaces
+staleness without blocking anything.
 
 ## Blocking: `security.yml` (Dependency Audit)
 
@@ -21,6 +26,22 @@ workflow run page for anyone who looks.
 > regardless of the dependency tree. `scripts/audit-bulk.mjs` queries npm's
 > supported _bulk advisory_ endpoint directly against the versions resolved in
 > `pnpm-lock.yaml` — same npm advisory data, same `high`/`critical` gate.
+
+## Blocking: `docker.yml` (Trivy image scan)
+
+`docker.yml` builds each service's production image on every PR and push, then
+runs the Trivy scanner against it (`aquasec/trivy image --severity CRITICAL,HIGH
+--exit-code 1`, ADS-833). A `CRITICAL` or `HIGH` finding in the built image
+fails the job. This catches vulnerabilities in the OS base layer and any
+transitive dependency that `audit-bulk.mjs` (which reads `pnpm-lock.yaml`) does
+not surface.
+
+**Sync invariant — `.trivyignore` ↔ `scripts/audit-bulk.mjs`.** Both scanners
+carry an exemption list, and they must agree: an advisory that is un-actionable
+in the npm-audit gate (no reachable patched version) is equally un-actionable in
+the image scan. When you add or remove an exemption in one, do the same in the
+other in the same PR. Both files carry a comment stating this; keep them in sync.
+Today both lists are empty.
 
 ## Advisory: `quality.yml` (Dependency Check)
 
@@ -45,3 +66,18 @@ noisy to trust (blocking on routine minor bumps) or too quiet to act on
 - Staleness is visible without being a merge gate — Renovate's automerge for
   minor/patch devDependencies (`renovate.json`) keeps most of it moving
   without human intervention anyway.
+
+## Renovate
+
+`renovate.json` configures the routine-update bot:
+
+- Runs on the `schedule:earlyMondays` schedule with a 3-day `minimumReleaseAge`
+  (skip a release that was just yanked), capped at 5 concurrent / 2 hourly PRs.
+- Groups related updates into single PRs (non-major devDependencies,
+  `typescript-eslint`, Vitest, the React types + `react`/`react-dom` — the last
+  also updates the matching `pnpm.overrides` pins via a custom manager).
+- **Automerges** minor/patch devDependency updates once CI is green; everything
+  else opens a PR for human review.
+
+Renovate handles staleness; it does not decide vulnerability policy — a CVE is
+gated by the two blocking surfaces above, not by waiting for a Renovate PR.

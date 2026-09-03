@@ -9,17 +9,18 @@ disable-model-invocation: true
 # Adding a Component to lib.components
 
 ## Existing components
-!`ls lib.components/src/components/ui/ lib.components/src/components/form/ lib.components/src/components/layout/ lib.components/src/components/navigation/ 2>/dev/null`
+
+!`ls packages/lib.components/src/components/{ui,form,layout,navigation,data}/ 2>/dev/null`
 
 ## Component categories
 
-| Category | Path | What goes here |
-|----------|------|----------------|
-| `ui` | `src/components/ui/` | Standalone display components (Badge, Alert, Avatar, Modal) |
-| `form` | `src/components/form/` | Form inputs and controls (TextInput, SelectInput, CheckboxInput) |
-| `layout` | `src/components/layout/` | Structural layout components (Card, Container, Stack) |
-| `navigation` | `src/components/navigation/` | Navigation components (Navbar, Breadcrumbs, Footer) |
-| `data` | `src/components/data/` | Data display (tables, lists) — add here if data-heavy |
+| Category     | Path                         | What goes here                                               |
+| ------------ | ---------------------------- | ------------------------------------------------------------ |
+| `ui`         | `src/components/ui/`         | Standalone display components (Badge, Alert, Avatar, Modal)  |
+| `form`       | `src/components/form/`       | Form inputs and controls (Input, SelectInput, CheckboxInput) |
+| `layout`     | `src/components/layout/`     | Structural layout components (Card, Container, Stack)        |
+| `navigation` | `src/components/navigation/` | Navigation components (Navbar, Breadcrumbs, Footer)          |
+| `data`       | `src/components/data/`       | Data display (tables, lists) — add here if data-heavy        |
 
 ## Step 1 — Write the test first (TDD)
 
@@ -126,9 +127,18 @@ export const myComponent = recipe({
       },
     },
     size: {
-      sm: { padding: `${vars.spacing['1']} ${vars.spacing['2']}`, fontSize: vars.typography.size.sm },
-      md: { padding: `${vars.spacing['2']} ${vars.spacing['4']}`, fontSize: vars.typography.size.base },
-      lg: { padding: `${vars.spacing['3']} ${vars.spacing['6']}`, fontSize: vars.typography.size.lg },
+      sm: {
+        padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+        fontSize: vars.typography.size.sm,
+      },
+      md: {
+        padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+        fontSize: vars.typography.size.base,
+      },
+      lg: {
+        padding: `${vars.spacing['3']} ${vars.spacing['6']}`,
+        fontSize: vars.typography.size.lg,
+      },
     },
   },
 
@@ -144,7 +154,7 @@ export const myComponent = recipe({
 ```typescript
 // MyComponent.tsx
 import React from 'react';
-import { clsx } from 'clsx';
+import clsx from 'clsx';
 import * as styles from './MyComponent.css';
 
 export type MyComponentProps = {
@@ -177,9 +187,10 @@ export default MyComponent;
 ```
 
 Key conventions from the existing codebase:
+
 - Styles live in a separate `*.css.ts` file using vanilla-extract
 - Use `recipe()` for components with variants, `style()` for simple cases
-- Use `clsx()` (from `src/utils/cn.ts`) to merge class strings with consumer `className`
+- Use `clsx` (`import clsx from 'clsx'` — default import of the npm package) to merge class strings with consumer `className`
 - Always set `displayName` — it shows in React DevTools
 - Spread `...props` after explicit props so consumers can pass `aria-*`, `role`, etc.
 - Include `prefers-reduced-motion` for animations/transitions
@@ -207,14 +218,24 @@ export type { MyComponentProps } from './components/ui/MyComponent';
 Both the component and its prop types must be exported so consuming apps can type their
 own wrappers.
 
+## Step 5b — Add a Storybook story (required for `ui/`)
+
+Every component in `src/components/ui/` needs a `<ComponentName>.stories.tsx`, or it lowers
+Storybook coverage against a persisted floor. `pnpm check:stories`
+(`scripts/check-storybook-coverage.mjs`) ratchets that floor upward and fails CI on any regression.
+
 ## Step 6 — Build and verify
 
 ```bash
-# Build lib.components
-pnpm build:components
+# Build the libraries (there is no build:components script)
+pnpm build:libs
 
-# Run the tests
-pnpm test:components
+# Run this package's tests
+pnpm exec turbo test --filter=@adopt-dont-shop/lib.components
+
+# Storybook + form-primitive ratchets
+pnpm check:stories
+pnpm check:forms
 ```
 
 If the app uses Vite aliases (it should — see new-app skill), changes to the source file
@@ -224,18 +245,18 @@ are reflected in the dev server without a build.
 
 Access theme values via `vars.<path>` from `../../styles/theme.css`. Common tokens:
 
-| Token | Example |
-|-------|---------|
-| Colors | `vars.colors.primary`, `vars.colors.danger`, `vars.colors.success` |
-| Color states | `vars.colors.primaryHover`, `vars.colors.primaryActive` |
-| Color subtle | `vars.colors.primaryBgSubtle`, `vars.colors.primaryBorderSubtle` |
-| Text | `vars.text.primary`, `vars.text.secondary`, `vars.text.inverse` |
-| Background | `vars.background.primary`, `vars.background.secondary` |
-| Spacing | `vars.spacing['2']`, `vars.spacing['4']` (string keys) |
-| Typography | `vars.typography.size.sm`, `vars.typography.weight.medium`, `vars.typography.family.sans` |
-| Border | `vars.border.radius.base`, `vars.border.radius.lg`, `vars.border.color.primary` |
-| Shadows | `vars.shadows.sm`, `vars.shadows.md` |
-| Transitions | `vars.transitions.fast` |
+| Token        | Example                                                                                   |
+| ------------ | ----------------------------------------------------------------------------------------- |
+| Colors       | `vars.colors.primary`, `vars.colors.danger`, `vars.colors.success`                        |
+| Color states | `vars.colors.primaryHover`, `vars.colors.primaryActive`                                   |
+| Color subtle | `vars.colors.primaryBgSubtle`, `vars.colors.primaryBorderSubtle`                          |
+| Text         | `vars.text.primary`, `vars.text.secondary`, `vars.text.inverse`                           |
+| Background   | `vars.background.body`, `vars.background.surface`, `vars.background.muted`                |
+| Spacing      | `vars.spacing['2']`, `vars.spacing['4']` (string keys)                                    |
+| Typography   | `vars.typography.size.sm`, `vars.typography.weight.medium`, `vars.typography.family.sans` |
+| Border       | `vars.border.radius.base`, `vars.border.radius.lg`, `vars.border.color.default`           |
+| Shadows      | `vars.shadows.sm`, `vars.shadows.lg`                                                      |
+| Transitions  | `vars.transitions.fast`                                                                   |
 
 ## Common mistakes
 
@@ -247,3 +268,6 @@ Access theme values via `vars.<path>` from `../../styles/theme.css`. Common toke
 - Skipping `prefers-reduced-motion` for animated components
 - Using `jest.fn()` instead of `vi.fn()` (project uses Vitest, not Jest)
 - Using styled-components patterns — the project uses vanilla-extract exclusively
+- Skipping the `.stories.tsx` for a `ui/` component — regresses `pnpm check:stories`
+
+Canonical doc: [`packages/lib.components/README.md`](../../../packages/lib.components/README.md).

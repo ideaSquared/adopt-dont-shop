@@ -19,7 +19,7 @@ with rescues."
 - Full product spec: link to the relevant `docs/frontend/app-*-prd.md`.
 - How it talks to the backend: which gateway routes / apps it depends on,
   whether it goes through nginx or the Vite dev proxy locally.
-- Link to [`docs/frontend/technical-architecture.md`](../../docs/frontend/technical-architecture.md)
+- Link to [`docs/frontend/app-shell.md`](../../docs/frontend/app-shell.md)
   for the shared app-shell pattern (routing, state, styling) instead of
   repeating it here.
 
@@ -51,7 +51,7 @@ rather than duplicating vars shared across apps.
 ## Testing notes
 
 Anything specific to this app's tests: MSW handlers used, fixtures,
-known-flaky areas. Link to [`docs/frontend/testing.md`](../../docs/testing.md)
+known-flaky areas. Link to [`docs/frontend/testing.md`](../../docs/frontend/testing.md)
 or the equivalent for anything not app-specific.
 
 ## Ownership

@@ -25,13 +25,17 @@ pnpm type-check   # TypeScript type-check
 
 The canonical list lives in [`src/index.ts`](src/index.ts):
 
-- `PetsService` — adopter read-side client (`searchPets`, `getPetById`,
-  `getFeaturedPets`, `getRecentPets`, `getPetsByRescue`, `getSimilarPets`,
-  `getPetBreeds` / `getPetTypes`, favourites `addToFavorites` /
-  `removeFromFavorites` / `getFavorites` / `isFavorite`, `reportPet`,
-  `getPetStats`).
+- `PetsService` + `petsService` (singleton) — adopter read-side client
+  (`searchPets`, `getPetById`, `getFeaturedPets`, `getRecentPets`,
+  `getPetsByRescue`, `getSimilarPets`, `getPetBreeds` / `getPetTypes`,
+  favourites `addToFavorites` / `removeFromFavorites` / `getFavorites` /
+  `isFavorite`, `reportPet`, `getPetStats`).
 - `PetManagementService` + `petManagementService` — rescue write-side client
   (`createPet`, … — see `src/services/pets-management-service.ts`).
+- **CSV import** (ADS-133, from `./csv-import`): `parseCsv`, `autoMapColumns`,
+  `validateMappedRow`, `IMPORTABLE_FIELDS` / `REQUIRED_FIELDS`, and the types
+  `ImportableField`, `CsvRow`, `ParsedCsv`, `ColumnMapping`, `ValidRow`,
+  `InvalidRow`, `ValidatedRow`.
 - Types (`PetsServiceConfig`, …) and constants (species, status enums)
   re-exported from `./types` / `./constants`.
 
@@ -45,7 +49,7 @@ the service config by the consuming app. See
 
 Vitest — the read and management services are tested against a mocked API
 (search filters, favourites, create/update). See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -58,4 +62,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.pets-consumers.md](../../docs/libraries/lib.pets-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

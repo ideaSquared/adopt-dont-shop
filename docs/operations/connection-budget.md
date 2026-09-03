@@ -80,6 +80,15 @@ during an incident — see
 [`docs/runbooks/db-pool-exhaustion.md`](../runbooks/db-pool-exhaustion.md).
 Whatever you set, keep the left side of the formula below `max_connections`.
 
+> **Caveat:** `DB_POOL_MAX` is **not** declared in `docker-compose.prod.yml`
+> today (the shared `x-service-env` anchor omits it), so every service currently
+> runs at the `DEFAULT_POOL_MAX` of 8. To raise it on the host, add
+> `DB_POOL_MAX: "<n>"` under the target service's `environment:` in
+> `/opt/ads/production/docker-compose.prod.yml` and recreate just that service
+> (`docker compose -f docker-compose.prod.yml up -d service-<name>`). The next
+> deploy overwrites the compose file, so fold a lasting change back into the
+> repo's `x-service-env` anchor.
+
 ## Recommended next step: pgbouncer
 
 This budget makes single-digit replica scale-out safe, but the real fix for

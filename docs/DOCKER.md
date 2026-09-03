@@ -1,6 +1,6 @@
 # Docker Infrastructure Guide
 
-Comprehensive guide to the Docker setup for this monorepo. Pairs with [the root README](../README.md) — that has the quick-start commands; this has the architectural detail.
+Authoritative reference for the Docker dev stack (audience: engineers running or debugging the stack locally). Pairs with [the root README](../README.md) — that has the quick-start commands; this has the architectural detail. Production deploys are owned by [`docs/operations/deploy.md`](./operations/deploy.md).
 
 ## Table of Contents
 
@@ -8,7 +8,7 @@ Comprehensive guide to the Docker setup for this monorepo. Pairs with [the root 
 - [Architecture Overview](#architecture-overview)
 - [Best Practices](#best-practices)
 - [Development Workflow](#development-workflow)
-- [Production Deployment](#production-deployment)
+- [Smoke-testing production images locally](#smoke-testing-production-images-locally)
 - [Reproducing CI E2E locally](#reproducing-ci-e2e-locally)
 - [Troubleshooting](#troubleshooting)
 
@@ -64,14 +64,30 @@ Every microservice under `services/` is built from a single parameterised [`Dock
 
 - `database` — PostgreSQL 16 with PostGIS (`postgis/postgis:16-3.4`)
 - `redis` — Redis 7 for cache and sessions
-- `nginx` — Reverse proxy with subdomain routing (api, admin, rescue)
+- `nats` — JetStream event bus between microservices
+- `nginx` — Reverse proxy for subdomain routing. Profile-gated (`proxy` / `full`) in dev — it does **not** run under the default `dev` profile; bring it up with `pnpm docker:dev --profile full` (or `proxy`).
 
 **Application**
 
-- `service-gateway` — Fastify API gateway on port 4000 (health: `/health/simple`)
+- `service-gateway` — Fastify API gateway on port 4000 (dev health: `/health/simple`)
 - `app-client` — Public portal on 3000
 - `app-admin` — Admin dashboard on 3001
 - `app-rescue` — Rescue portal on 3002
+
+The ten domain gRPC services (`service-auth`, `service-pets`, …) sit behind the `services` / `full` profiles and are also started by `pnpm docker:dev`.
+
+### Subdomain routing
+
+When nginx is running (`--profile full` / `proxy`), the apps are reachable on `*.localhost` subdomains — modern browsers resolve these to `127.0.0.1` automatically, so no `/etc/hosts` edit is needed:
+
+| Host               | Serves                   | Direct-port fallback    |
+| ------------------ | ------------------------ | ----------------------- |
+| `localhost`        | Public client app        | `http://localhost:3000` |
+| `admin.localhost`  | Admin dashboard          | `http://localhost:3001` |
+| `rescue.localhost` | Rescue management portal | `http://localhost:3002` |
+| `api.localhost`    | Gateway API              | `http://localhost:4000` |
+
+Without nginx, use the direct ports. If `*.localhost` does not resolve in your browser, add the three subdomains to `/etc/hosts` pointing at `127.0.0.1`.
 
 ## Best Practices
 
@@ -183,9 +199,9 @@ Attach your IDE debugger to `localhost:9229`.
 
 **Frontend** — React DevTools and browser DevTools work out of the box.
 
-## Production Deployment
+## Smoke-testing production images locally
 
-### Smoke Test Locally
+> This section is for building and running the production-mode images on your **own machine**. The real production deploy runs `docker compose -f docker-compose.prod.yml` on the Hetzner host from `/opt/ads/production` and is driven by `.github/workflows/deploy.yml` — see [`docs/operations/deploy.md`](./operations/deploy.md), the authoritative release procedure.
 
 ```bash
 pnpm prod:build               # build production images
@@ -237,21 +253,13 @@ VITE_WS_BASE_URL=wss://api.your-domain.com
 
 ## CI/CD Integration
 
-`.github/workflows/docker.yml`:
+`.github/workflows/docker.yml` runs on changes to Dockerfiles / compose files / `.dockerignore` and has three jobs:
 
-1. Build backend (development + production targets)
-2. Build all three frontend apps in parallel via `Dockerfile.app`
-3. Validate full-stack compose integration using `docker-compose.yml --profile full` (see [Reproducing CI E2E locally](#reproducing-ci-e2e-locally) — there is no separate CI compose overlay)
-4. Trivy security scan on built images
+1. `build-apps` — builds each frontend app's development and production targets via `Dockerfile.app` (matrix over the three apps).
+2. `build-services` — builds each microservice's development and production targets via `Dockerfile.service` (matrix), then runs a Trivy scan on the built image and fails on fixable CRITICAL/HIGH vulnerabilities.
+3. `build-dev-image` — builds the shared dev image and pushes it to GHCR on non-PR runs.
 
-CI uses BuildKit cache for 40-60% faster builds:
-
-```yaml
-- uses: actions/cache@v4
-  with:
-    path: /tmp/.buildx-cache
-    key: ${{ runner.os }}-buildx-${{ github.sha }}
-```
+`docker.yml` does **not** stand up the stack — full-stack compose integration is exercised by the `test-e2e` job in `.github/workflows/ci.yml` (see [Reproducing CI E2E locally](#reproducing-ci-e2e-locally)). Both Dockerfiles use BuildKit cache mounts (see [BuildKit Optimizations](#buildkit-optimizations)) rather than an external buildx cache action.
 
 ## Reproducing CI E2E locally
 

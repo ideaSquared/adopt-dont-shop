@@ -39,7 +39,7 @@ re-exported twice (CAD lesson #7 — ts-proto emits every message as both an
 `interface` and a `const` factory, which collide in type position):
 
 ```ts
-export * as AuthV1 from './generated/.../auth.js';          // value namespace
+export * as AuthV1 from './generated/.../auth.js'; // value namespace
 export type { LoginRequest } from './generated/.../auth.js'; // flat type
 ```
 
@@ -59,7 +59,7 @@ Vitest — an encode/decode round-trip smoke test plus a dual-binding shape
 assertion. `pnpm check:fresh` runs `buf generate` into a tmpdir and diffs
 against the committed `src/generated/`, failing the build with a "run `pnpm
 generate` and commit" message when stale. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership

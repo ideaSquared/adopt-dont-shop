@@ -23,8 +23,8 @@ effective access over gRPC; `service.gateway` exposes the admin REST surface at
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # ESM + CJS dual build
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -68,7 +68,7 @@ Vitest — the default-config resolution and the `FieldPermissionsService`
 masking / effective-access logic are tested directly (`src/**/__tests__`). This
 is a security-sensitive, widely-consumed library — treat the default access map
 and its invariants as a contract. See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -81,4 +81,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 4 workspace package(s) depend on this library. See [lib.permissions-consumers.md](../../docs/libraries/lib.permissions-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

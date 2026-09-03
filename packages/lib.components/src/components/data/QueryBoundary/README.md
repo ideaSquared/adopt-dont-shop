@@ -1,4 +1,4 @@
-# QueryBoundary Component
+# QueryBoundary
 
 A prop-driven wrapper that renders the correct branch for an async data view:
 loading, error, empty, or the successful `children`. It removes the hand-written
@@ -18,7 +18,7 @@ error or empty flag.
 ## Usage
 
 ```tsx
-import { QueryBoundary } from '@lib/components';
+import { QueryBoundary } from '@adopt-dont-shop/lib.components';
 import { useQuery } from '@tanstack/react-query';
 
 function PetList() {

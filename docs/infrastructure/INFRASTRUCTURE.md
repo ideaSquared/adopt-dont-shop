@@ -1,397 +1,123 @@
 # Infrastructure Documentation
 
-## Overview
-
-The Adopt Don't Shop platform uses a modern microservices architecture with shared libraries, Docker containerization, and subdomain-based routing. This document provides a comprehensive overview of the infrastructure setup.
+Authoritative overview of the Adopt Don't Shop system topology (audience: engineers orienting on the platform). For the dev stack see [DOCKER.md](../DOCKER.md); for deploys see [operations/deploy.md](../operations/deploy.md); for one-time provisioning see [DEPLOYMENT-PLAN.md](./DEPLOYMENT-PLAN.md).
 
 ## Architecture Overview
 
+Three React SPAs and a Fastify gateway sit behind nginx. The gateway is the only HTTP surface; it fans out to ten gRPC microservices over the internal network. Every service shares one Postgres (schema-per-service), one Redis, and one NATS JetStream event bus. ClamAV scans uploaded files.
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Nginx Reverse Proxy                      │
-│              (Subdomain-based routing)                      │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-        ┌─────────────┼─────────────┐
-        │             │             │
-        ▼             ▼             ▼
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│ app.client  │ │ app.admin   │ │ app.rescue  │
-│   (React)   │ │   (React)   │ │   (React)   │
-│   Port:3000 │ │   Port:3001 │ │   Port:3002 │
-└─────────────┘ └─────────────┘ └─────────────┘
-        │             │             │
-        └─────────────┼─────────────┘
-                      │
-                      ▼
-              ┌─────────────┐
-              │service.gateway│
-              │  (Fastify)   │
-              │   Port:4000  │
-              └─────────────┘
-                      │
-        ┌─────────────┼─────────────┐
-        │             │             │
-        ▼             ▼             ▼
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│ PostgreSQL  │ │    Redis    │ │   Uploads   │
-│ (PostGIS)   │ │ (Sessions)  │ │   (Files)   │
-│ Port:5432   │ │ Port:6379   │ │             │
-└─────────────┘ └─────────────┘ └─────────────┘
+                        ┌──────────────────────┐
+                        │        nginx         │  subdomain routing, TLS,
+                        │   (reverse proxy)    │  serves /uploads read-only
+                        └──────────┬───────────┘
+             ┌─────────────┬───────┼───────┬─────────────┐
+             ▼             ▼       │       ▼             ▼
+       ┌──────────┐ ┌──────────┐   │ ┌──────────┐  ┌──────────┐
+       │app-client│ │app-admin │   │ │app-rescue│  │ /uploads │
+       │  :3000   │ │  :3001   │   │ │  :3002   │  │ (volume) │
+       └──────────┘ └──────────┘   │ └──────────┘  └──────────┘
+                                   ▼
+                        ┌──────────────────────┐
+                        │   service-gateway     │  Fastify REST/WS edge :4000
+                        │   (Fastify, gRPC hub) │  signs x-principal-token
+                        └──────────┬───────────┘
+                                   │ gRPC (:600x)
+     ┌──────────┬──────────┬───────┼───────┬──────────┬──────────┐
+     ▼          ▼          ▼       ▼       ▼          ▼          ▼
+ service-   service-   service-  service- service-  service-   … (10 total:
+  auth       pets      rescue    apps     chat      cms         auth pets
+ (:5002)    (:5003)   (:5004)   (:5005)  (:5006)   (:5010)      rescue applications
+                                                                notifications moderation
+                                                                matching audit chat cms)
+     │          │          │       │       │          │
+     └──────────┴──────────┴───┬───┴───────┴──────────┘
+                               ▼
+      ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐
+      │ database  │   │   redis   │   │   nats    │   │  clamav   │
+      │ PG16+GIS  │   │  cache /  │   │ JetStream │   │ AV scan   │
+      │ schema-   │   │ sessions  │   │  events   │   │ (uploads) │
+      │ per-svc   │   └───────────┘   └───────────┘   └───────────┘
+      └───────────┘
 ```
 
 ## Services
 
-### Frontend Applications
-
-**app.client** - Public adoption portal
-
-- Technology: React + TypeScript + Vite
-- Port: 3000
-- Domain: localhost / www.adoptdontshop.com
-- Features: Pet discovery, swipe interface, applications
-
-**app.admin** - Admin dashboard
-
-- Technology: React + TypeScript + Vite
-- Port: 3001
-- Domain: admin.localhost / admin.adoptdontshop.com
-- Features: User management, system configuration
-
-**app.rescue** - Rescue management portal
-
-- Technology: React + TypeScript + Vite
-- Port: 3002
-- Domain: rescue.localhost / rescue.adoptdontshop.com
-- Features: Pet management, application processing, staff coordination
-
-### Backend Services
-
-**service.gateway** - Main API edge
-
-- Technology: Node.js + Fastify + TypeScript
-- Port: 4000
-- Domain: api.localhost / api.adoptdontshop.com
-- Features: REST API, WebSocket messaging, authentication. Fronts the gRPC microservices (auth, pets, rescue, applications, notifications, moderation, matching, audit, chat, cms).
-
-### Databases & Storage
-
-**PostgreSQL** - Primary database
-
-- Version: `postgis/postgis:16-3.4` (PostgreSQL 16 with PostGIS 3.4)
-- Port: 5432
-- Features: User data, pets, applications, messaging
-
-**Redis** - Cache & sessions
-
-- Port: 6379
-- Features: Session storage, API caching, rate limiting
-
-**File Storage** - Media files
-
-- Development: Local uploads directory
-- Production: AWS S3 with CloudFront CDN
-
-## Shared Libraries (24 libraries)
-
-All libraries follow ESM-only architecture with TypeScript strict mode. Package names are scoped as `@adopt-dont-shop/lib.<name>` (dots, matching the directory names).
-
-**Core & Transport:**
-
-- `@adopt-dont-shop/lib.api` - HTTP client
-- `@adopt-dont-shop/lib.types` - Shared TypeScript types
-- `@adopt-dont-shop/lib.validation` - Zod schemas and validators
-
-**Authentication & Access:**
-
-- `@adopt-dont-shop/lib.auth` - Authentication hooks/session
-- `@adopt-dont-shop/lib.permissions` - Role-based access control
-- `@adopt-dont-shop/lib.invitations` - Staff/user invitations
-
-**Domain Services:**
-
-- `@adopt-dont-shop/lib.applications` - Adoption application lifecycle
-- `@adopt-dont-shop/lib.chat` - Real-time messaging
-- `@adopt-dont-shop/lib.discovery` - Pet discovery / swipe sessions
-- `@adopt-dont-shop/lib.notifications` - Multi-channel notifications
-- `@adopt-dont-shop/lib.pets` - Pet management
-- `@adopt-dont-shop/lib.rescue` - Rescue organizations
-- `@adopt-dont-shop/lib.search` - Search and filters
-- `@adopt-dont-shop/lib.moderation` - Reporting and moderation
-- `@adopt-dont-shop/lib.support-tickets` - Support tickets
-- `@adopt-dont-shop/lib.audit-logs` - Audit logging
-- `@adopt-dont-shop/lib.matching` - Pet-adopter matching types
-
-**UI & Analytics:**
-
-- `@adopt-dont-shop/lib.components` - Shared React components
-- `@adopt-dont-shop/lib.analytics` - Event tracking
-- `@adopt-dont-shop/lib.feature-flags` - Statsig hooks + typed gate/config constants
-- `@adopt-dont-shop/lib.observability` - Sentry init, Web Vitals reporter, analytics-consent gate
-- `@adopt-dont-shop/lib.legal` - Legal re-acceptance modal, cookie banner, consent service
-
-**Utilities:**
-
-- `@adopt-dont-shop/lib.utils` - Shared helpers
-- `@adopt-dont-shop/lib.dev-tools` - Development tooling
-
-See [Libraries Documentation](../libraries/README.md) for details.
-
-## Docker Setup
-
-### Development
-
-```bash
-# Start the full dev stack via the preflight wrapper
-pnpm docker:dev
-
-# Start a single service in the foreground (e.g. service-pets)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up service-pets
-
-# View logs
-pnpm docker:logs
-
-# Force-rebuild the shared dev image (pnpm-lock.yaml or Dockerfile.dev changes)
-pnpm docker:dev:build
-```
-
-### Production
-
-Production uses the prod overlay on top of the base compose file — both `-f` flags are required, or use the root `prod:*` pnpm scripts.
-
-```bash
-# Build optimized images
-docker compose -f docker-compose.yml -f docker-compose.prod.yml build
-# or: pnpm prod:build
-
-# Deploy
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-# or: pnpm prod:up
-```
-
-### Subdomain Routing
-
-**Development:**
-
-- `localhost` → app.client (port 3000)
-- `admin.localhost` → app.admin (port 3001)
-- `rescue.localhost` → app.rescue (port 3002)
-- `api.localhost` → service.gateway (port 4000)
-
-**Production:**
-
-- `www.adoptdontshop.com` → app.client
-- `admin.adoptdontshop.com` → app.admin
-- `rescue.adoptdontshop.com` → app.rescue
-- `api.adoptdontshop.com` → service.gateway
-
-## Development Workflow
-
-### Initial Setup
-
-> pnpm is provided via Corepack — run `corepack enable` once. Its version is pinned by the `"packageManager"` field in the root `package.json`.
-
-```bash
-# Install dependencies
-pnpm install
-
-# Setup environment
-cp .env.example .env
-
-# Start with Docker
-pnpm docker:dev
-
-# Or start subsets via Turbo filters
-pnpm dev:apps           # all React apps in parallel
-pnpm dev:services       # Postgres + Redis (Docker)
-pnpm exec turbo dev --filter=@adopt-dont-shop/app.admin   # one app
-```
-
-### Working with Libraries
-
-```bash
-# Build all libraries
-pnpm build:libs
-
-# Build specific library
-cd lib.api && pnpm build
-
-# Run library tests
-cd lib.api && pnpm test
-
-# Watch mode
-cd lib.api && pnpm dev
-```
-
-### Database Migrations
-
-Each service owns its migrations under `services/<name>/src/migrations/` and runs them itself — a service applies its own schema automatically when its container starts (the entrypoint runs `pnpm run --if-present db:migrate`).
-
-```bash
-# Migrate one service by hand (containers must be running):
-docker compose exec service-auth pnpm db:migrate
-
-# Authoring a new migration: copy the latest file in the relevant
-# services/<name>/src/migrations/ directory and follow the numbered naming pattern.
-```
-
-## CI/CD Pipeline
-
-### Build Process
-
-1. **Install Dependencies** - pnpm install across workspace
-2. **Lint & Type Check** - ESLint + TypeScript compilation
-3. **Test** - Unit and integration tests
-4. **Build Libraries** - Compile all shared libraries
-5. **Build Apps** - Build frontend and backend services
-6. **Docker Build** - Create optimized container images
-7. **Deploy** - Push to registry and deploy
-
-### Environments
-
-All deploys are driven from `main` via the `Makefile` targets at the repo root, which dispatch the `deploy.yml` workflow with the appropriate `environment` input. See [DEPLOYMENT-PLAN.md](./DEPLOYMENT-PLAN.md) for the full procedure.
-
-**Staging:**
-
-- `make staging` — deploys `main` to staging (runs immediately)
-- URL: staging.adoptdontshop.com
-
-**Production:**
-
-- `make prod` — deploys `main` to production (requires GitHub UI approval)
-- Rollback: `make rollback env=production sha=<commit>`
-- URL: adoptdontshop.com
-
-## Monitoring & Logging
-
-### Application Monitoring
-
-- Error tracking (Sentry or similar)
-- Performance monitoring (Web Vitals)
-- API response times
-- Database query performance
-
-### Infrastructure Monitoring
-
-- Docker container health
-- Resource usage (CPU, memory, disk)
-- Network traffic
-- Database connections
-
-### Logging
-
-- Centralized logging (Winston + ELK stack)
-- Structured JSON logs
-- Log levels: error, warn, info, debug
-- Log rotation and retention
-
-## Security
-
-### Authentication & Authorization
-
-- JWT tokens with refresh rotation
-- Role-based access control (RBAC)
-- Permission-based endpoints
-- Session management with Redis
-
-### Data Protection
-
-- HTTPS/TLS encryption
-- Database encryption at rest
-- Environment variable secrets
-- API rate limiting
-
-### Best Practices
-
-- Regular security audits
-- Dependency vulnerability scanning
-- Container security scanning
-- Automated backups
-
-## Performance Optimization
-
-### Frontend
-
-- Code splitting and lazy loading
-- Image optimization and CDN
-- Bundle size optimization
-- Caching strategies
+### Frontend applications
+
+| App          | Port | Dev host           | Prod host               |
+| ------------ | ---- | ------------------ | ----------------------- |
+| `app-client` | 3000 | `localhost`        | `$PROD_HOSTNAME`        |
+| `app-admin`  | 3001 | `admin.localhost`  | `admin.$PROD_HOSTNAME`  |
+| `app-rescue` | 3002 | `rescue.localhost` | `rescue.$PROD_HOSTNAME` |
+
+React 19 + TypeScript + Vite, built to static assets served by nginx in production. Prod hostnames come from the `__PROD_HOSTNAME__` template substituted into `nginx/nginx.prod.conf` at deploy time.
 
 ### Backend
 
-- Database query optimization
-- Redis caching
-- Connection pooling
-- Load balancing (production)
+- **service-gateway** (Fastify, port 4000; prod host `api.$PROD_HOSTNAME`) — the only HTTP/WS surface. Validates requests, stamps a signed `x-principal-token`, and calls the domain services over gRPC. No business logic, owns no schema.
+- **Ten domain gRPC services** — `auth`, `notifications`, `pets`, `rescue`, `applications`, `chat`, `moderation`, `matching`, `audit`, `cms`. Each owns one Postgres schema, exposes HTTP health on `:500x` and gRPC on `:600x`, and migrates its own schema on container start.
 
-### Database
+### Data stores
 
-- Indexed queries
-- Query optimization
-- Connection pooling
-- Read replicas (production)
+| Store      | Image                    | Role                                                                                           |
+| ---------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `database` | `postgis/postgis:16-3.4` | Primary DB; one schema per service, `search_path = <schema>, public`, no cross-schema FKs.     |
+| `redis`    | `redis:7.4-alpine`       | Cache, sessions, rate limiting.                                                                |
+| `nats`     | `nats:2.10-alpine`       | JetStream event backbone; transactional outbox → subscribers (audit persists `*.actionTaken`). |
+| `clamav`   | `clamav/clamav:1.4`      | AV/malware scan of uploaded bytes (gateway streams via INSTREAM).                              |
 
-## Scaling Strategy
+### File storage
 
-### Horizontal Scaling
+- Uploads are written to a shared local Docker volume (`uploads`) by the gateway and served read-only by the per-stack nginx via `auth_request` (`SERVE_LOCAL_UPLOADS=false` in prod, so the gateway does not stream files itself). There is **no S3/CDN in the serving path today** — an S3-native migration is planned but not implemented (see [snapshot-policy.md](../operations/snapshot-policy.md)). Uploads are backed up nightly to S3 by `scripts/snapshot-uploads.sh`.
 
-- Multiple backend instances behind load balancer
-- Session sharing via Redis
-- Stateless application design
+## Shared libraries
 
-### Vertical Scaling
+Frontend-shared libraries are scoped `@adopt-dont-shop/lib.<name>` (e.g. `lib.api`, `lib.components`, `lib.types`, `lib.permissions`, `lib.feature-flags`, `lib.observability`). Service-only shared packages use bare names (`@adopt-dont-shop/proto`, `db`, `events`, `authz`, `observability`, `storage`, …). See [Libraries Documentation](../libraries/README.md) for the full list.
 
-- Database resource allocation
-- Container resource limits
-- Cache size optimization
+## Subdomain routing
 
-### Database Scaling
+nginx routes by `Host`. In dev, nginx is profile-gated (`--profile full` / `proxy`) and the apps resolve on `*.localhost`; without it, use the direct ports. See [DOCKER.md](../DOCKER.md#subdomain-routing). In production, `nginx/nginx.prod.conf` maps `$PROD_HOSTNAME`, `admin.`, `rescue.` and `api.` to the app and gateway containers.
 
-- Read replicas for read-heavy operations
-- Connection pooling
-- Query optimization
-- Partitioning strategies (if needed)
+## Docker & deploys
 
-## Troubleshooting
+- **Dev stack** — `pnpm docker:dev` (see [DOCKER.md](../DOCKER.md)).
+- **Production** — pre-built GHCR images pulled by `docker-compose.prod.yml` on a single Hetzner host under `/opt/ads/<env>/`, driven by `.github/workflows/deploy.yml`. `docker compose -f docker-compose.yml -f docker-compose.prod.yml …` locally is only a **smoke test** of the prod images, not the real deploy. The authoritative release procedure is [operations/deploy.md](../operations/deploy.md); one-time provisioning is [DEPLOYMENT-PLAN.md](./DEPLOYMENT-PLAN.md).
 
-### Common Issues
+Deploys and rollbacks are dispatched via the repo-root `Makefile` (`make staging`, `make prod`, `make rollback env=production sha=<sha>`), which run the `deploy.yml` / `rollback.yml` GitHub Actions workflows.
 
-**Port Conflicts:**
+## Database migrations
+
+Each service owns its migrations under `services/<name>/src/migrations/` and applies them itself when its container starts (entrypoint runs `pnpm run --if-present db:migrate`). To migrate one service by hand (containers running):
 
 ```bash
-# Check port usage
-netstat -ano | findstr :5000
-
-# Kill process
-taskkill /PID <pid> /F
+docker compose exec service-auth pnpm db:migrate
 ```
 
-**Database Connection:**
+Never modify a shipped migration — add a new `NNN_snake_case.ts` file in the owning service (see [writing-migrations.md](../backend/writing-migrations.md)).
 
-```bash
-# Check PostgreSQL is running
-docker compose ps database
+## Observability (opt-in)
 
-# View logs
-docker compose logs database
-```
+The self-hosted observability stack is off by default and layered in per host via `docker-compose.observability.yml` (`OBSERVABILITY_ENABLED=true`):
 
-**Build Errors:**
+- **Logs** — Loki (shipped from services via `LOKI_URL`), viewed in Grafana. (Winston structured JSON logs.)
+- **Metrics** — Prometheus scrapes services; alert rules in `infra/prometheus/rules/`, routed by Alertmanager to **Discord** (see [slo.md](../slo.md)).
+- **Traces** — OpenTelemetry → Tempo (`OTEL_EXPORTER_OTLP_ENDPOINT`), viewed in Grafana (see [observability/tracing.md](../observability/tracing.md)).
+- **Error tracking** — GlitchTip (Sentry-compatible), activated by `SENTRY_DSN` via `docker-compose.glitchtip.yml`.
 
-```bash
-# Clear node_modules and rebuild
-rm -rf node_modules && pnpm install
+See [runbooks/observability-enable.md](../runbooks/observability-enable.md) to enable it on a host.
 
-# Clear Docker cache
-docker compose down -v
-docker compose build --no-cache
-```
+## Security
+
+- **Auth** — JWT access + refresh tokens (auth service); the gateway stamps a signed `x-principal-token` on every downstream gRPC call, and each service re-checks permissions with `requirePermission` (the gateway gate is not sufficient on its own).
+- **Secrets** — file-mounted Docker secrets (`/run/secrets/*`) loaded via `@adopt-dont-shop/config-secrets`, kept out of `docker inspect`. See [SECRETS-MANAGEMENT.md](../SECRETS-MANAGEMENT.md).
+- **Container hardening** — read-only root filesystems, `cap_drop: ALL`, `no-new-privileges`, non-root users, per-service CPU/memory limits, and rotated JSON-file logging (`docker-compose.prod.yml`).
+- **Image supply chain** — service/app images are built in CI, scanned with Trivy (`docker.yml`), and signed by digest with cosign keyless OIDC in `deploy.yml`.
 
 ## Additional Resources
 
-- **Docker Setup**: [docker-setup.md](./docker-setup.md)
+- **Docker (dev stack)**: [../DOCKER.md](../DOCKER.md)
+- **Deploys**: [../operations/deploy.md](../operations/deploy.md), [DEPLOYMENT-PLAN.md](./DEPLOYMENT-PLAN.md)
 - **Microservices Standards**: [MICROSERVICES-STANDARDS.md](./MICROSERVICES-STANDARDS.md)
 - **New App Generator**: [new-app-generator.md](./new-app-generator.md)
-- **Backend Documentation**: [../backend/](../backend/)
-- **Frontend Documentation**: [../frontend/](../frontend/)
-- **Libraries Documentation**: [../libraries/](../libraries/)
+- **Backend / Frontend / Libraries**: [../backend/](../backend/), [../frontend/](../frontend/), [../libraries/](../libraries/)

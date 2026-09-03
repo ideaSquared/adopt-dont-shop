@@ -1,5 +1,9 @@
 # Product Requirements Document: Client App
 
+_Product requirements for `app.client`. A per-section Status marker (Shipped / Partial / Roadmap)
+shows what is built; this doc is not a delivery plan. Architecture is in
+[app-shell.md](./app-shell.md)._
+
 ## Overview
 
 The Client App is the public-facing React application for potential pet adopters. It provides a modern, intuitive interface for discovering pets, communicating with rescues, and managing adoption applications.
@@ -13,6 +17,8 @@ The Client App is the public-facing React application for potential pet adopters
 ## Key Features
 
 ### 1. Pet Discovery & Browsing
+
+_Status: Shipped (roadmap items noted inline)._
 
 #### Dual Discovery Experience
 
@@ -41,9 +47,11 @@ _Out of scope / roadmap:_ breed filter, special-needs filter, urgency sort.
 - Detailed pet profiles with photo galleries
 - Favorites across both interfaces (swipe likes auto-add to favorites server-side)
 
-_Out of scope / roadmap:_ Smart recommendations engine — see [recommendations plan](./recommendations-plan.md) (separate doc, design only).
+_Out of scope / roadmap:_ Smart recommendations engine — see the [matching system scope](../matching-system-scope.md).
 
 ### 2. User Authentication & Account Management
+
+_Status: Shipped._
 
 - Email-based registration with verification (`RegisterPage` → `CheckYourEmailPage` → `VerifyEmailPage`)
 - Secure login/logout with JWT (15-min access tokens + httpOnly refresh cookie)
@@ -54,6 +62,8 @@ _Out of scope / roadmap:_ Smart recommendations engine — see [recommendations 
 - Account deletion via `authService.deleteAccount`
 
 ### 3. Adoption Application System
+
+_Status: Shipped (roadmap items noted inline)._
 
 - **Question-driven dynamic forms** fetched per rescue (`/api/v1/rescues/:id/questions`)
 - Progressive form with validation, conditional question logic, and auto-save (drafts)
@@ -69,6 +79,8 @@ _Out of scope / roadmap:_ Document upload as a first-class step (rescue question
 
 ### 4. Communication
 
+_Status: Shipped (roadmap items noted inline)._
+
 - Real-time messaging with rescues (Socket.IO via `lib.chat`)
 - Message history and conversation archive
 - File attachments
@@ -78,6 +90,8 @@ _Out of scope / roadmap:_ Document upload as a first-class step (rescue question
 _Out of scope / roadmap:_ Group / multi-participant chat (data model supports it, UX is 1:1 only today).
 
 ### 5. User Settings & Preferences
+
+_Status: Shipped (roadmap items noted inline)._
 
 - **Profile information** (name, email, phone, address)
 - **Discovery preferences**: pet types, search radius
@@ -89,11 +103,13 @@ _Out of scope / roadmap:_ Swipe sensitivity preference, characteristic preferenc
 
 ### 6. Analytics & Personalization
 
+_Status: Partial (analytics shipped; personalization is roadmap)._
+
 - Swipe analytics + engagement tracking via Statsig + backend `recordSwipeAction`
 - Session persistence: `localStorage`-backed session ID + last-viewed pet IDs (see §1)
 - Backend `discovery` endpoint returns a sorted queue (proximity, freshness, sponsored)
 
-_Out of scope / roadmap:_ Behavioural learning / recommendation engine — see [recommendations plan](./recommendations-plan.md). Personal adoption readiness scores — roadmap.
+_Out of scope / roadmap:_ Behavioural learning / recommendation engine — see the [matching system scope](../matching-system-scope.md). Personal adoption readiness scores — roadmap.
 
 ## Technical Requirements
 
@@ -107,12 +123,14 @@ _Out of scope / roadmap:_ Behavioural learning / recommendation engine — see [
 
 ### Accessibility
 
-- High-contrast toggle in Settings
+- Theme toggle (`ThemeToggle` — light / normal / dark; see §5)
 - Keyboard navigation across swipe + bottom-tab nav
 - ARIA labels on swipe cards + nav
+- `prefers-reduced-motion` respected on the swipe surfaces (`SwipeCard`, `SwipeStack`,
+  `SwipeFloatingButton`) — animations disabled under reduce (regression-tested)
 - WCAG 2.1 AA targeted (no formal audit artefact)
 
-_Out of scope / roadmap:_ `prefers-reduced-motion` handling.
+_Out of scope / roadmap:_ Full `prefers-reduced-motion` audit of the remaining surfaces.
 
 ### Security
 
@@ -228,9 +246,8 @@ _Out of scope / roadmap:_ Personalised dashboard with personal stats; AI-enhance
 
 ### Near Term
 
-- Recommendations engine (see [recommendations plan](./recommendations-plan.md))
+- Recommendations engine (see the [matching system scope](../matching-system-scope.md))
 - Breed + special-needs filters
-- `prefers-reduced-motion` support
 - Swipe sensitivity + characteristic preferences
 - Offline pet browsing via PWA cache
 
@@ -250,7 +267,6 @@ _Out of scope / roadmap:_ Personalised dashboard with personal stats; AI-enhance
 
 ## Additional Resources
 
-- **Implementation Plan**: [implementation-plan.md](./implementation-plan.md)
-- **Technical Architecture**: [technical-architecture.md](./technical-architecture.md)
-- **Recommendations Plan**: [recommendations-plan.md](./recommendations-plan.md)
+- **App-shell architecture**: [app-shell.md](./app-shell.md)
+- **Matching / recommendation scope**: [../matching-system-scope.md](../matching-system-scope.md)
 - **API Documentation**: [../backend/api-endpoints.md](../backend/api-endpoints.md)

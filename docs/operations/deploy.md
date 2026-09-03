@@ -1,102 +1,32 @@
 # Production Deploy Runbook
 
-Companion to `docker-compose.prod.yml` and `nginx/nginx.prod.conf`. Covers
-the operator-side steps that the compose file alone doesn't capture.
+Authoritative procedure for cutting a normal production/staging release (audience: operators). One-time server, DNS, cert and GitHub environment/secret provisioning lives in [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md); an in-progress deploy that has gone wrong (health-gate failure, incident rollback) is handled by [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md). This document is the happy-path release procedure.
 
 ## Prerequisites
 
-- Production host with Docker Engine ≥ 24 and Docker Compose v2.
-- TLS cert + key mounted at `nginx/ssl/fullchain.pem` and `nginx/ssl/privkey.pem`,
-  or a working letsencrypt volume populated by certbot.
-- All `${VAR:?}` env vars in `docker-compose.prod.yml` set in `.env`.
-- `GHCR_TOKEN` repository secret set to a PAT scoped **`read:packages` only** — used by the deploy and rollback workflows to `docker pull` images on the server. See [`docs/SECRETS-MANAGEMENT.md`](../SECRETS-MANAGEMENT.md#github-actions-repository-secrets). [ADS-671]
+- One-time provisioning complete — see [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md): server + Docker, DNS, TLS, and the six GitHub Actions repo secrets `deploy.yml` validates (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`).
+- `GHCR_TOKEN` repository secret set to a PAT scoped **`read:packages` only** — the deploy and rollback workflows `docker pull` images with it (they FAIL fast on `write:packages`/`repo` scope). See [`docs/SECRETS-MANAGEMENT.md`](../SECRETS-MANAGEMENT.md#github-actions-repository-secrets). [ADS-671]
+- `gh` CLI authenticated (the `make` targets dispatch workflows through it).
 
-## One-time setup
+## Secret rotation
 
-1. Replace `__PROD_HOSTNAME__` in `nginx/nginx.prod.conf` with your real hostname
-   (e.g. `adoptdontshop.example`). nginx does not expand env vars in
-   `server_name`, so this is a build-time substitution. A simple `sed` works:
-
-   ```bash
-   sed -i.bak "s/__PROD_HOSTNAME__/${PROD_HOSTNAME}/g" nginx/nginx.prod.conf
-   ```
-
-2. Provision DNS A/AAAA records for `${PROD_HOSTNAME}`,
-   `api.${PROD_HOSTNAME}`, `admin.${PROD_HOSTNAME}`, `rescue.${PROD_HOSTNAME}`
-   pointing at the host.
-
-## Pre-launch secret rotation
-
-Run this section **before the first production deploy** and whenever a secret may
-have been compromised.
-
-### 1. Generate fresh production secrets
+Rotate application secrets before the first production deploy and whenever one may be compromised. `pnpm validate:env` (`scripts/validate-env.ts`) enforces that five secrets — `JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET` — are present, ≥32 chars, not placeholders, and distinct:
 
 ```bash
-pnpm secrets:generate
+NODE_ENV=production pnpm validate:env -- --env-file=.env.prod   # non-zero exit = fix before deploying
 ```
 
-Copy the output into your production `.env` (or secrets manager). Each run produces
-cryptographically random values — **do not re-use values from staging or development**.
-
-The five application secrets that must be rotated for every new environment:
-
-| Variable                | Purpose                                                          |
-| ----------------------- | ---------------------------------------------------------------- |
-| `JWT_SECRET`            | Signs short-lived access tokens                                  |
-| `JWT_REFRESH_SECRET`    | Signs long-lived refresh tokens                                  |
-| `SESSION_SECRET`        | Encrypts server-side sessions                                    |
-| `ENCRYPTION_KEY`        | AES-256-GCM key for PII fields (must be 64 hex chars / 32 bytes) |
-| `UPLOAD_SIGNING_SECRET` | Signs upload URLs                                                |
-
-Regenerate `POSTGRES_PASSWORD` and `REDIS_PASSWORD` too if they carried over from a
-development or staging environment.
-
-### 2. Verify secrets are valid and distinct
-
-`validate-env.ts` enforces that all five secrets are present, at least 32 characters
-long, not a placeholder (`CHANGE_THIS…`), and distinct from each other. Run it against
-your production env file before deploying:
-
-```bash
-# Validate a named file
-NODE_ENV=production pnpm validate:env -- --env-file=.env.prod
-
-# Or with secrets already in the environment (CI)
-NODE_ENV=production pnpm validate:env
-```
-
-A non-zero exit means at least one secret is missing, too short, uses a placeholder
-value, or is duplicated across secrets — fix it before proceeding.
-
-### 3. Confirm staging values are not reused
-
-`validate-env.ts` already rejects known placeholder patterns. For an extra check,
-verify that no production secret shares a value with your staging env file:
-
-```bash
-# Any output here means a secret is shared between staging and prod — must fix.
-comm -12 \
-  <(grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET)=' .env.staging | sort) \
-  <(grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET)=' .env.prod    | sort)
-```
-
-Expected output: (empty — no shared values).
-
-### 4. Log the rotation
-
-Record the rotation date, who performed it, and the reason in your secrets manager
-or secured ops log. At minimum: `date`, `rotated_by`, `reason`.
-
-### Rotation cadence
+Note the two validators check **different** sets: the local `validate:env` script covers the five above (including `SESSION_SECRET`), while `deploy.yml`'s "Validate required deploy secrets" step gates on the six GitHub repo secrets listed under Prerequisites — which include `DB_PASSWORD` and `PRINCIPAL_SIGNING_KEY` (ADS-800) but **not** `SESSION_SECRET`. Provision both sets.
 
 | Trigger                        | Action                                                                      |
 | ------------------------------ | --------------------------------------------------------------------------- |
-| Initial production launch      | Full rotation of all five application secrets                               |
-| Quarterly (~every 90 days)     | Full rotation of all five application secrets                               |
+| Initial production launch      | Full rotation of all application secrets                                    |
+| Quarterly (~every 90 days)     | Full rotation of all application secrets                                    |
 | Suspected compromise           | Immediate rotation of affected secret(s); full rotation if scope is unclear |
 | Team member off-boarding       | Rotate any secret the person had access to                                  |
 | Staging value detected in prod | Immediate full rotation                                                     |
+
+Full secret generation and provisioning steps: [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md).
 
 ## Image signing & verification
 
@@ -130,59 +60,36 @@ the preflight job fails the run if it is empty — and every bypass (staging
 included) is recorded in the run summary and as a GitHub issue labelled
 `deploy-bypass-audit`.
 
-### One-time admin setup
-
-Configure required reviewers once per repository (repo admin):
-
-1. Go to **Settings → Environments**.
-2. Click **New environment** (or open it if it already exists from a past
-   run), name it exactly `production`, and click **Configure environment**.
-3. Tick **Required reviewers** and add the people/teams allowed to approve
-   production deploys (up to six entries).
-4. Tick **Prevent self-review** so the person who dispatched the deploy
-   cannot approve their own run.
-5. Click **Save protection rules**.
-6. Repeat steps 2-5 for a second environment named exactly
-   `production-bypass`. Keep its reviewer list to the small set of people
-   allowed to sign off on safety-check bypasses.
-
-Note: environments that have not been configured do not block anything —
-GitHub auto-creates an unprotected environment the first time a workflow
-references it, and an unprotected environment deploys without approval. The
-workflow change therefore merges safely before this setup is done; the gate
-only takes effect once required reviewers are saved.
+The one-time configuration of the `production` / `production-bypass` reviewer environments is covered in [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md).
 
 ## Release deploy
 
-Every schema-owning service migrates **its own** schema on every
-boot — the entrypoint in `Dockerfile.service` runs
-`pnpm run --if-present db:migrate` before the long-running process
-starts. There is no dedicated `service-backend-migrate` init
-container; migrations land alongside the new binary in the same
-container, and Docker keeps the container restarting until the
-migration step succeeds. [ADS-393]
+The deploy is dispatched through GitHub Actions, not run by hand on the host. `deploy.yml` builds every service/app image, tags it `ghcr.io/ideasquared/adopt-dont-shop/<image>:<git-sha>` (the full 40-char commit SHA), signs it with cosign, then SSHes to the host, writes `DEPLOY_SHA=<sha>` into `/opt/ads/<env>/.env`, and runs `docker compose -f docker-compose.prod.yml up -d`. Production runs also push and re-tag `:latest`, but the compose file pins images to `DEPLOY_SHA` (a specific SHA) — `:latest` is not what a prod container runs.
 
-The runner is `node-pg-migrate` wrapped by `@adopt-dont-shop/db`
-(`packages/db/src/migrate.ts`), with applied migrations recorded in
-a `pgmigrations` table inside each owning schema. The runner takes
-a database-wide advisory lock around `pgmigrations` and retries with
-linear backoff (12× × 250ms × attempt) so simultaneous service boots
-don't trample each other.
+Every schema-owning service migrates **its own** schema on boot — the `Dockerfile.service` entrypoint runs `pnpm run --if-present db:migrate` before the long-running process starts (no separate migrate init container). The runner is `node-pg-migrate` wrapped by `@adopt-dont-shop/db` (`packages/db/src/migrate.ts`); applied migrations are recorded in a `pgmigrations` table in each owning schema, guarded by a database-wide advisory lock with linear backoff (12× × 250ms × attempt) so simultaneous service boots don't trample each other. [ADS-393]
 
-```bash
-# Pull immutable image tags (sha-prefixed or vX.Y.Z) — never :latest in
-# production deploys. See ADS-396 for the rationale.
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
-```
+**Preconditions:** `gh` authenticated; the release commit is on `main`; one-time provisioning done.
 
-Verify:
+1. Dispatch the deploy:
+
+   ```bash
+   make staging                # deploy main to staging (auto, no approval)
+   make prod                   # dispatch a production deploy (pauses for reviewer approval)
+   ```
+
+   Expected: `gh` prints the dispatched run URL. `make watch` streams it.
+
+2. For a production run, approve it in the GitHub Actions UI when the `deploy` job pauses on the `production` environment. The build + cosign-verify jobs run first, so you approve a fully built, signature-verified release.
+
+3. The workflow runs its own per-service health gate (`wait-for-services.sh`) after `compose up`; a failed gate auto-rolls back to the last-known-good SHA (see [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md)). Wait for the run to go green.
+
+**Verify** (SSH to the host, `cd /opt/ads/production`, `export PROD_HOSTNAME=…`):
 
 ```bash
 docker compose -f docker-compose.prod.yml ps           # all healthy
 # Each schema-owning service logs its own migration output on boot:
 docker compose -f docker-compose.prod.yml logs service-auth | grep migration
-curl -sf https://${PROD_HOSTNAME}/health/simple
+curl -sf https://${PROD_HOSTNAME}/health/simple        # Expected: 200
 ```
 
 ## When a service's migrations fail
@@ -229,23 +136,21 @@ Summary of the four canonical paths:
 
 ## Rollback
 
-Because release.yml emits immutable `:sha-<long>` and `:vX.Y.Z` tags
-**per service**, rollback is deterministic: pick the previous
-known-good tag(s) and re-deploy. Each service has its own
-`SERVICE_<NAME>_TAG` env var that overrides `DEPLOY_SHA` for that
-one service, so single-service rollback is supported without
-reverting the whole stack. [ADS-396]
+The sanctioned rollback is the `rollback.yml` workflow, dispatched via `make`:
 
 ```bash
-# Single-service rollback (preferred):
-export SERVICE_PETS_TAG=sha-abc1234
+make rollback env=production sha=<git-sha>   # re-deploys the whole stack at that SHA
+```
+
+It must be a full 40-char (or ≥7-char hex prefix) git SHA whose images already exist in GHCR — never a `:latest` or a `sha-`/`vX.Y.Z` tag. `deploy.yml` also auto-rolls back to the last-known-good SHA on a failed health/smoke gate and persists it in `/opt/ads/<env>/.env`. The step-by-step incident procedure (single-service `SERVICE_<NAME>_TAG` overrides, break-glass on the host, auto-rollback behaviour) lives in [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md).
+
+Break-glass single-service pin, on the host (`cd /opt/ads/production`) — not persisted, the next deploy overwrites `.env`:
+
+```bash
+# Pin one service to a known-good SHA (bare git SHA, not sha-/vX.Y.Z):
+export SERVICE_PETS_TAG=<git-sha>
 docker compose -f docker-compose.prod.yml pull service-pets
 docker compose -f docker-compose.prod.yml up -d service-pets
-
-# Whole-stack rollback:
-export DEPLOY_SHA=sha-abc1234
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d
 ```
 
 There is **no `pnpm db:migrate:undo` script** — the runner is
@@ -261,8 +166,8 @@ path E.
 ## Database TLS (ADS-540)
 
 `docker-compose.prod.yml` defaults `DB_SSL_MODE=require`, which makes the
-Sequelize/`pg` driver open the link to Postgres over TLS. Three modes are
-supported:
+`pg` driver (`packages/db/src/client.ts`) open the link to Postgres over TLS.
+Three modes are supported:
 
 | `DB_SSL_MODE` | Behaviour                                                           |
 | ------------- | ------------------------------------------------------------------- |
@@ -316,7 +221,7 @@ sockets land on one gateway. With nginx in front, add `ip_hash;` to
 the gateway upstream block; with AWS ALB, enable `lb_cookie`
 stickiness on the target group.
 
-See [`../architecture/adr-socket-sticky-sessions.md`](../architecture/adr-socket-sticky-sessions.md)
+See [`../adr/0013-socket-sticky-sessions.md`](../adr/0013-socket-sticky-sessions.md)
 for the full rationale, alternatives considered, and the explicit LB
 settings the ops team must apply.
 

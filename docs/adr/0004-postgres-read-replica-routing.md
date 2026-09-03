@@ -5,7 +5,8 @@
 - Scope: `packages/db` (`createDbClient`), the per-service `READ_DATABASE_URL`
   config convention, and the read-only call sites in read-heavy services
   (`pets`, `rescue`, `cms`)
-- Related: ADS-815, ADS-1007 (file-mounted secret loader)
+- Linear: ADS-815 (ADS-1007, file-mounted secret loader)
+- Supersedes / Superseded by: —
 
 ## Context
 

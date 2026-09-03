@@ -1,10 +1,11 @@
 # ADR 0005 — Pact consumer-driven contract tests
 
-- Status: Accepted
+- Status: Accepted — implemented
 - Date: 2026-06-18
-- Linear: ADS-816
 - Scope: `services/gateway`, `services/auth`, `services/applications`,
   `services/notifications`, `pacts/`, `.github/workflows/ci.yml`
+- Linear: ADS-816
+- Supersedes / Superseded by: —
 
 ## Context
 

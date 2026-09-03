@@ -64,7 +64,7 @@ All optional — the bootstraps silently no-op when unset:
 Vitest. The redaction logic (`redactSentryEvent`, `redactSecretFields`) is
 exported separately so it's unit-tested in isolation; the bootstraps are tested
 for their no-op / no-throw contracts. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership

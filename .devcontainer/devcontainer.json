@@ -17,7 +17,10 @@
   },
   "forwardPorts": [80, 3000, 3001, 3002, 4000, 5432, 6380],
   "portsAttributes": {
-    "80": { "label": "nginx (prod-like)", "onAutoForward": "ignore" },
+    "80": {
+      "label": "nginx (not started by pnpm docker:dev — requires --profile full)",
+      "onAutoForward": "ignore"
+    },
     "3000": { "label": "app.client", "onAutoForward": "notify" },
     "3001": { "label": "app.admin", "onAutoForward": "silent" },
     "3002": { "label": "app.rescue", "onAutoForward": "silent" },

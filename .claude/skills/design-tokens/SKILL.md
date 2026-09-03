@@ -20,7 +20,7 @@ how the three themes (`light`, `normal`, `dark`) stay consistent and WCAG AA.
 ```typescript
 // At the top of every *.css.ts file
 import { style } from '@vanilla-extract/css';
-import { vars } from '../../styles/theme.css';      // adjust path per directory depth
+import { vars } from '../../styles/theme.css'; // adjust path per directory depth
 ```
 
 For variant-driven styles, also import `recipe`:
@@ -31,19 +31,20 @@ import { recipe } from '@vanilla-extract/recipes';
 
 ## Available token categories
 
-| Category | Path | Examples |
-|----------|------|----------|
-| Brand colours | `vars.colors.*` | `primary`, `primaryHover`, `secondary`, `danger`, `success`, `warning`, `info` |
-| Color states | `vars.colors.{name}Hover`, `{name}Active` | `vars.colors.primaryHover` |
-| Color subtle | `vars.colors.{name}BgSubtle`, `{name}BorderSubtle` | `vars.colors.primaryBgSubtle` |
-| Text | `vars.text.*` | `primary`, `secondary`, `tertiary`, `inverse`, `disabled` |
-| Background | `vars.background.*` | `primary`, `secondary`, `tertiary`, `subtle` |
-| Border | `vars.border.*` | `radius.{none,sm,base,md,lg,xl,full}`, `color.{primary,subtle,strong}`, `width.{thin,base,thick}` |
-| Spacing | `vars.spacing['{0,1,2,3,...}']` | **string keys**, e.g. `vars.spacing['4']` |
-| Typography | `vars.typography.*` | `size.{xs,sm,base,lg,xl,2xl,...}`, `weight.{normal,medium,semibold,bold}`, `family.{sans,mono}`, `lineHeight.*` |
-| Shadows | `vars.shadows.*` | `sm`, `base`, `md`, `lg`, `xl` |
-| Transitions | `vars.transitions.*` | `fast`, `base`, `slow` |
-| Z-index | `vars.zIndex.*` | `dropdown`, `modal`, `tooltip` |
+| Category      | Path                                               | Examples                                                                                                                                                                              |
+| ------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Brand colours | `vars.colors.*`                                    | `primary`, `primaryHover`, `secondary`, `danger`, `success`, `warning`, `info`                                                                                                        |
+| Color states  | `vars.colors.{name}Hover`, `{name}Active`          | `vars.colors.primaryHover`                                                                                                                                                            |
+| Color subtle  | `vars.colors.{name}BgSubtle`, `{name}BorderSubtle` | `vars.colors.primaryBgSubtle`                                                                                                                                                         |
+| Text          | `vars.text.*`                                      | `primary`, `secondary`, `tertiary`, `muted`, `inverse`, `disabled`, `link`                                                                                                            |
+| Background    | `vars.background.*`                                | `body`, `surface`, `muted`, `inverse`, `overlay`, `disabled`, `danger`, `success`, `warning`, `info`                                                                                  |
+| Border        | `vars.border.*`                                    | `radius.{sm,base,lg,xl,'2xl',pill}`, `color.{default,muted,strong,focus,danger,...}`, `width.{thin,base,thick}`                                                                       |
+| Spacing       | `vars.spacing['{0,1,2,3,...8}']`                   | **string keys**, e.g. `vars.spacing['4']`                                                                                                                                             |
+| Typography    | `vars.typography.*`                                | `size.{xs,sm,base,lg,...,7xl}`, `weight.{light,normal,medium,semibold,bold}`, `family.{sans,serif,display,mono}`, `lineHeight.{none,tight,...}`, `letterSpacing.{tighter,...,widest}` |
+| Shadows       | `vars.shadows.*`                                   | `none`, `sm`, `base`, `lg`, `xl`, `inner`, `focus`, `focusDanger`                                                                                                                     |
+| Animations    | `vars.animations.*`                                | `duration.{instant,fast,normal,slow,slower}`, `easing.{linear,easeIn,...,smooth}`                                                                                                     |
+| Transitions   | `vars.transitions.*`                               | `none`, `fast`, `base`, `slow`                                                                                                                                                        |
+| Z-index       | `vars.zIndex.*`                                    | `base`, `docked`, `dropdown`, `modal`, `tooltip`                                                                                                                                      |
 
 The full list lives in `lib.components/src/styles/theme.css.ts`. If you need a
 token that doesn't exist, add it there rather than hardcoding.
@@ -56,16 +57,16 @@ import { style } from '@vanilla-extract/css';
 import { vars } from '../../styles/theme.css';
 
 export const card = style({
-  backgroundColor: vars.background.primary,
+  backgroundColor: vars.background.surface,
   color: vars.text.primary,
   padding: vars.spacing['4'],
   borderRadius: vars.border.radius.base,
-  border: `${vars.border.width.thin} solid ${vars.border.color.subtle}`,
+  border: `${vars.border.width.thin} solid ${vars.border.color.muted}`,
   boxShadow: vars.shadows.sm,
   transition: `box-shadow ${vars.transitions.fast}`,
   selectors: {
     '&:hover': {
-      boxShadow: vars.shadows.md,
+      boxShadow: vars.shadows.lg,
     },
   },
   '@media': {
@@ -132,9 +133,18 @@ export const button = recipe({
       danger: { backgroundColor: vars.colors.danger, color: vars.text.inverse },
     },
     size: {
-      sm: { padding: `${vars.spacing['1']} ${vars.spacing['2']}`, fontSize: vars.typography.size.sm },
-      md: { padding: `${vars.spacing['2']} ${vars.spacing['4']}`, fontSize: vars.typography.size.base },
-      lg: { padding: `${vars.spacing['3']} ${vars.spacing['6']}`, fontSize: vars.typography.size.lg },
+      sm: {
+        padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+        fontSize: vars.typography.size.sm,
+      },
+      md: {
+        padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+        fontSize: vars.typography.size.base,
+      },
+      lg: {
+        padding: `${vars.spacing['3']} ${vars.spacing['6']}`,
+        fontSize: vars.typography.size.lg,
+      },
     },
   },
   defaultVariants: { variant: 'primary', size: 'md' },
@@ -207,3 +217,5 @@ The colour, padding, and border on that progress bar still come from the
 - Forgetting `prefers-reduced-motion` on transitions — fails the a11y skill
 - `outline: none` on focus — replace with a visible outline using token values
 - Re-declaring theme values locally instead of adding them to `theme.css.ts`
+
+Canonical doc: [`DESIGN_TOKENS.md`](../../../DESIGN_TOKENS.md) (source of truth: `packages/lib.components/src/styles/theme.css.ts`).

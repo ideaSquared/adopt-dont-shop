@@ -1,6 +1,6 @@
 # Adopt Don't Shop — Pet Adoption Platform
 
-New here? Start at [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md) for a linear Day 1 walkthrough.
+This README is the reference: **what** the project is, **how** to run it, and **where** to find things. For a linear, ordered Day-1 path, start at [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md).
 
 A monorepo containing three React frontends, a Fastify API gateway fronting a fleet of Node.js gRPC microservices, and shared libraries for connecting rescue organizations with potential adopters.
 
@@ -10,7 +10,7 @@ A monorepo containing three React frontends, a Fastify API gateway fronting a fl
 
 ### Devcontainer / Codespaces (zero local setup)
 
-Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 22, runs `pnpm bootstrap -- --skip-playwright` on first launch, and ships docker-in-docker so `pnpm docker:dev` works inside the container. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
+Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 22 and ships docker-in-docker so `pnpm docker:dev` works inside the container. Its `postCreateCommand` runs `corepack enable && pnpm bootstrap -- --skip-playwright --no-start --no-enable-prepush` on first launch — so bootstrap sets up `.env` and secrets but the dev stack is **not** started automatically (run `pnpm docker:dev` yourself) and the pre-push hook is left disabled. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
 
 For full local control (faster HMR, native Docker performance) follow the prerequisites below.
 
@@ -33,17 +33,20 @@ pnpm bootstrap
 That's it. `pnpm bootstrap` is the one-shot bootstrap and it will:
 
 1. Verify Node.js v22
-2. Create `.env` from `.env.example` (if missing)
-3. **Generate fresh JWT / session / encryption secrets straight into `.env`** (won't overwrite existing values)
-4. Install all dependencies (`pnpm install --frozen-lockfile`)
-5. Build shared libraries (required by apps)
-6. Run `pnpm validate:env` to surface any remaining required values
-7. Install Playwright browsers so `pnpm test:e2e` works out of the box (~200 MB download)
-8. Offer to start the docker dev stack and wait until the nginx edge `http://localhost/health` returns 200
+2. Enable Corepack so `pnpm` resolves the pinned version
+3. Create `.env` from `.env.example` (if missing)
+4. **Generate fresh JWT / session / encryption secrets straight into `.env`** (won't overwrite existing values)
+5. Install all dependencies (`pnpm install --frozen-lockfile`)
+6. Build shared libraries (required by apps)
+7. Run `pnpm validate:env` to surface any remaining required values
+8. Install Playwright browsers so `pnpm test:e2e` works out of the box (~200 MB download)
+9. Wire up the `.gitmessage` commit template (`git config commit.template .gitmessage`)
+10. Offer (interactive prompt, defaults to yes) to enable the opt-in pre-push hook that runs `ci:local:quick` before every push
+11. Offer to start the docker dev stack and wait until `service.gateway` reports healthy at `http://localhost:4000/health/simple` (the `dev` profile does not start nginx, so it checks the gateway directly, not `http://localhost`)
 
 Skip the Playwright step with `pnpm bootstrap -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `pnpm test:e2e:install`.
 
-Pass `--no-start` to skip the stack-start prompt (default when stdin is not a TTY, e.g. CI sandboxes), or `--start` to force it without prompting. All secrets — including `POSTGRES_PASSWORD` and `REDIS_PASSWORD` — are generated for you; you only need to add any third-party API keys you want in `.env`. If you accepted the prompt, the stack is already running on the URLs printed above.
+Pass `--start` to start the stack without prompting, or `--no-start` to skip it. When stdin is **not** a TTY (CI sandboxes, devcontainer postCreate) the prompts fall back to their defaults — the stack **is** started and the pre-push hook is **not** enabled — unless you pass the explicit flags (`--no-start`, `--enable-prepush` / `--no-enable-prepush`). All secrets — including `POSTGRES_PASSWORD` and `REDIS_PASSWORD` — are generated for you; you only need to add any third-party API keys you want in `.env`. If you accepted the start prompt, the stack is already running on the URLs printed above.
 
 ### Speed up your builds (Turbo remote cache)
 
@@ -66,9 +69,19 @@ pnpm docker:logs         # follow logs
 pnpm docker:down         # stop
 ```
 
+### Seed dev data
+
+Once the stack is running, load seed data so you can log in and browse:
+
+```bash
+pnpm db:seed             # host-side orchestrator: runs each service's db:seed in dependency order
+```
+
+Only `auth`, `pets`, `rescue`, `applications` and `chat` have seeders, and they run in that order. The generated accounts share the `SEED_PASSWORD` from `.env` (default `DevPassword123!`). See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset.
+
 ### Run (native — no Docker)
 
-You'll need Postgres + Redis running locally. The quickest option is to let Docker run just those two services while the rest of the stack runs natively:
+You'll need Postgres + Redis running locally. The quickest option is to let Docker run just those two services while the rest of the stack runs natively. `.env.example` uses the Docker Compose hostnames, so before running natively edit `.env` to point at your host: set `DB_HOST=localhost`, `REDIS_HOST=localhost`, and `REDIS_PORT=6380` (the host port `pnpm dev:services` publishes Redis on).
 
 ```bash
 pnpm dev:services        # start Postgres + Redis in Docker (detached)
@@ -78,13 +91,13 @@ pnpm dev:apps            # frontend apps only
 
 ### Access
 
-| App         | URL                   | Purpose                                                                                    |
-| ----------- | --------------------- | ------------------------------------------------------------------------------------------ |
-| Client      | http://localhost:3000 | Public adoption portal                                                                     |
-| Admin       | http://localhost:3001 | Internal management                                                                        |
-| Rescue      | http://localhost:3002 | Rescue organization portal                                                                 |
-| API gateway | http://localhost:4000 | Fastify REST + WebSocket edge (health: `/health/simple`)                                   |
-| Nginx proxy | http://localhost      | Reverse proxy (subdomains: api, admin, rescue); `/api` + `/socket.io` route to the gateway |
+| App         | URL                   | Purpose                                                                                                                                                                                                        |
+| ----------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client      | http://localhost:3000 | Public adoption portal                                                                                                                                                                                         |
+| Admin       | http://localhost:3001 | Internal management                                                                                                                                                                                            |
+| Rescue      | http://localhost:3002 | Rescue organization portal                                                                                                                                                                                     |
+| API gateway | http://localhost:4000 | Fastify REST + WebSocket edge (health: `/health/simple`)                                                                                                                                                       |
+| Nginx proxy | http://localhost      | Reverse proxy (subdomains: api, admin, rescue); `/api` + `/socket.io` route to the gateway. **Not started by `pnpm docker:dev`** — it is gated to the `proxy`/`full` profile: `pnpm docker:dev --profile full` |
 
 ## Project Structure
 
@@ -102,8 +115,9 @@ adopt-dont-shop/
 ├── packages/                   # All shared workspace packages
 │   ├── proto/ events/ authz/   #   service-only shared packages
 │   ├── db/ observability/ storage/ config-secrets/
+│   ├── seed-faker/ service-bootstrap/ test-utils/
 │   ├── eslint-config-{base,node,react}/
-│   └── lib.*                   #   24 frontend libs (api, auth, chat, components, types, …)
+│   └── lib.*                   #   the lib.* packages (see docs/libraries/README.md)
 ├── docker-compose.yml          # Dev stack (gateway + services + apps under the `full` profile)
 ├── docker-compose.staging.yml  # Staging (pre-built GHCR images)
 ├── docker-compose.prod.yml     # Production overlay
@@ -114,7 +128,7 @@ adopt-dont-shop/
 
 ## Common Commands
 
-The root `package.json` defines ~80 scripts. `pnpm commands` prints all of
+The root `package.json` defines a lot of scripts. `pnpm commands` prints all of
 them, grouped by category with a one-line description — the fastest way to
 discover a command you don't already know (`pnpm run tasks` / `docs/tasks.md`
 has the full command bodies and per-package scripts too).
@@ -186,7 +200,7 @@ JWT_SECRET=<auto-generated by pnpm bootstrap>
 JWT_REFRESH_SECRET=<auto-generated by pnpm bootstrap>
 SESSION_SECRET=<auto-generated by pnpm bootstrap>
 
-VITE_API_BASE_URL=        # empty in Docker (uses Vite proxy → nginx → gateway)
+VITE_API_BASE_URL=http://localhost:4000
 VITE_WS_BASE_URL=ws://localhost:4000
 ```
 

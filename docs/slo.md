@@ -1,17 +1,6 @@
 # Service Level Objectives & Alerting (ADS-806)
 
-Per-service SLOs, error-budget windows, and the Prometheus alerting rules
-that watch them. The rules are committed as loadable rule files under
-[`infra/prometheus/rules/`](../infra/prometheus/rules/) — see that
-directory's [README](../infra/prometheus/rules/README.md) for how to wire
-them into a Prometheus server.
-
-> **This supersedes [`docs/observability-alerting.md`](./observability-alerting.md).**
-> That document targets the deleted monolith
-> (`service="adopt-dont-shop-backend"`, `http_requests_total`,
-> `METRICS_AUTH_TOKEN`) — none of which exist in the current microservices
-> stack. It is kept for history; treat this file and the rule files as
-> canonical.
+Authoritative reference for per-service SLOs, error-budget windows, and the Prometheus alerting rules that watch them (audience: operators + service owners). The rules are committed as loadable rule files under [`infra/prometheus/rules/`](../infra/prometheus/rules/) — see that directory's [README](../infra/prometheus/rules/README.md) for how to wire them into a Prometheus server. To enable the observability stack on a host, see [`runbooks/observability-enable.md`](./runbooks/observability-enable.md).
 
 ## What metrics actually exist today
 
@@ -134,18 +123,35 @@ runbook to open on fire.
 ## Severity & on-call
 
 As of ADS-1041 the rules are **loaded** by Prometheus and routed by
-Alertmanager (severity-based) in the deployed observability stack
-(`docker-compose.observability.yml` / dev `observability` profile). Alertmanager
-ships **inert** — the `critical-pager` / `warning-chat` receivers carry no
-notifier config, so alerts group and show in the UI but nothing is sent until an
-operator drops a Slack webhook / SMTP secret in and uncomments the receiver block
-(`observability/alertmanager/alertmanager.yml`; see
-`docs/runbooks/observability-enable.md`). The routing convention:
+Alertmanager on their `severity` label in the deployed observability stack
+(`docker-compose.observability.yml` / dev `observability` profile). Both
+receivers deliver to **Discord** via an incoming webhook, read from a file
+secret so the URL never lands in `docker inspect`
+(`observability/alertmanager/alertmanager.yml`,
+`webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url`). There is
+**no PagerDuty and no Slack/SMTP** — Discord is the only sink.
 
-| Severity   | Alertmanager route | Once wired   | Response             |
-| ---------- | ------------------ | ------------ | -------------------- |
-| `critical` | `critical-pager`   | page         | ack within 5 min     |
-| `warning`  | `warning-chat`     | chat channel | review within 30 min |
+Alertmanager will not start until that secret file exists. To wire it up
+(also in [`runbooks/observability-enable.md`](./runbooks/observability-enable.md)):
+
+1. Create a Discord incoming webhook for the alerts channel.
+2. Drop it into the host secret file:
+   ```bash
+   printf '%s' '<discord-webhook-url>' \
+     > /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url
+   chmod 600 /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url
+   ```
+3. Reload: `docker compose … kill -s HUP alertmanager`.
+4. Validate: `amtool check-config observability/alertmanager/alertmanager.yml`.
+
+Two severities are defined:
+
+| Severity   | Alertmanager receiver | Sink    | Response                                          |
+| ---------- | --------------------- | ------- | ------------------------------------------------- |
+| `critical` | `critical-pager`      | Discord | ack within 5 min; escalate by DMing the secondary |
+| `warning`  | `warning-chat`        | Discord | review within 30 min                              |
+
+A firing `critical` inhibits the same alert's `warning` (see the `inhibit_rules` in `alertmanager.yml`).
 
 Retention is sized to the objectives above: Prometheus keeps **30 days** of
 metrics (the error-budget window), Loki **14 days** of logs, Tempo **3 days** of

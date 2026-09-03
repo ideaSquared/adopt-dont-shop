@@ -46,7 +46,13 @@ import { {{SERVICE_NAME}}, {{LIB_NAME}}Service } from '@adopt-dont-shop/lib.{{LI
 ```
 
 <!-- TODO: Summarise the grouped public surface (types, hooks, services) rather
-than duplicating every export's signature here. -->
+than duplicating every export's signature here.
+
+Convention: type-only exports (`*Schema` / `*Props` / `*Config` and other
+`z.infer` types) are not enumerated — `src/index.ts` is authoritative for them.
+Runtime values (services, singletons, hooks, components, constants) must all be
+listed. -->
+
 
 ## Environment variables consumed
 
