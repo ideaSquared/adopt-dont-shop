@@ -197,6 +197,45 @@ describe('addDocument', () => {
     expect(res.document?.size).toBeUndefined();
     expect(res.document?.mimeType).toBeUndefined();
   });
+
+  // ADS-1272: a draft application is private to the owning adopter — rescue
+  // staff of the pet's rescue must not add documents to it until it is submitted.
+  it('denies rescue staff adding a document to a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({
+      rows: [ownerRow({ user_id: 'other', rescue_id: 'rsc-9', status: 'draft' })],
+    });
+    await expect(
+      addDocument(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-9' }),
+        {
+          applicationId: 'app-1',
+          type: 'reference',
+          filename: 'ref.pdf',
+          url: '/uploads/documents/ref.pdf',
+        }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // Never reaches the INSERT.
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the owning adopter add a document to their own draft', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1', status: 'draft' })] })
+      .mockResolvedValueOnce({ rows: [documentRow] });
+
+    const res = await addDocument(deps, makePrincipal({ userId: 'usr-1' }), {
+      applicationId: 'app-1',
+      type: 'reference',
+      filename: 'ref.pdf',
+      url: '/uploads/documents/ref.pdf',
+    });
+
+    expect(res.document?.documentId).toBe('doc-1');
+  });
 });
 
 describe('addDocument — url validation (ADS-930)', () => {
@@ -473,5 +512,53 @@ describe('removeDocument', () => {
     await expect(
       removeDocument(deps, makePrincipal(), { applicationId: 'app-1', documentId: 'gone' })
     ).rejects.toBeInstanceOf(HandlerError);
+  });
+
+  // ADS-1272: rescue staff must not soft-delete documents on a private draft.
+  it('denies rescue staff removing a document from a draft application', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({
+      rows: [ownerRow({ user_id: 'other', rescue_id: 'rsc-9', status: 'draft' })],
+    });
+    await expect(
+      removeDocument(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-9' }),
+        { applicationId: 'app-1', documentId: 'doc-1' }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // Never reaches the UPDATE.
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the owning adopter remove a document from their own draft', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1', status: 'draft' })] })
+      .mockResolvedValueOnce({ rowCount: 1 });
+
+    const res = await removeDocument(deps, makePrincipal({ userId: 'usr-1' }), {
+      applicationId: 'app-1',
+      documentId: 'doc-1',
+    });
+
+    expect(res).toEqual({});
+  });
+
+  // Regression guard: once the application has left draft, rescue staff of the
+  // owning rescue can still remove its documents (the pre-ADS-1272 behaviour).
+  it('lets rescue staff of the application rescue remove a document once submitted', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'other', rescue_id: 'rsc-9' })] })
+      .mockResolvedValueOnce({ rowCount: 1 });
+
+    const res = await removeDocument(
+      deps,
+      makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-9' }),
+      { applicationId: 'app-1', documentId: 'doc-1' }
+    );
+
+    expect(res).toEqual({});
   });
 });

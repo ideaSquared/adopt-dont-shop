@@ -103,18 +103,19 @@ export function requireDraftScope(
   }
 }
 
-// Draft-privacy READ scope (ADS-1225 read-path half, tracked as ADS-1261).
+// Draft-privacy scope (ADS-1225), shared by the read and write helpers below.
 // A draft application is private to the owning adopter (and super_admin, via
-// requirePermission's own bypass) until it is submitted — the rescue-staff
-// read allowance exists ONLY once the application has left `draft`. This is the
-// read-side mirror of requireDraftScope, shared by getApplication and the
-// document / timeline-note / home-visit list handlers. Takes the owner fields
-// as primitives so both the folded ApplicationState and the read-model owner
-// row (user_id / rescue_id) can reuse it.
-export function requireDraftAwareReadScope(
+// requirePermission's own bypass) until it is submitted: while `status` is
+// `draft`, only the owner may act; the rescue-staff branch applies once the
+// application has left `draft`. Takes the owner fields as primitives so both
+// the folded ApplicationState and the read-model owner row (user_id /
+// rescue_id) can reuse it.
+type DraftAwareScope = { status: string; adopterId: string; rescueId: string };
+
+function assertDraftAwareScope(
   principal: Principal,
   permission: Permission,
-  scope: { status: string; adopterId: string; rescueId: string }
+  scope: DraftAwareScope
 ): void {
   const ownerOk = requirePermission(principal, permission, {
     userId: scope.adopterId as UserId,
@@ -126,13 +127,38 @@ export function requireDraftAwareReadScope(
     }
     return;
   }
-  // Non-draft: the usual owner-OR-rescue read scope.
+  // Non-draft: the usual owner-OR-rescue scope.
   const rescueOk = requirePermission(principal, permission, {
     rescueId: scope.rescueId as RescueId,
   });
   if (!ownerOk && !rescueOk) {
     throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
   }
+}
+
+// Draft-privacy READ scope (ADS-1225 read-path half, tracked as ADS-1261).
+// The read-side mirror of requireDraftScope, shared by getApplication and the
+// document / timeline-note / home-visit list handlers.
+export function requireDraftAwareReadScope(
+  principal: Principal,
+  permission: Permission,
+  scope: DraftAwareScope
+): void {
+  assertDraftAwareScope(principal, permission, scope);
+}
+
+// Draft-privacy WRITE scope (ADS-1272 — the write-side mirror of the read
+// scope, and the sibling of requireDraftScope for the auxiliary write paths).
+// addDocument / removeDocument / addTimelineNote previously used a status-blind
+// owner-OR-rescue check, which let rescue staff mutate an adopter's private
+// draft; this narrows those writes to the owning adopter while `status` is
+// `draft`, restoring the rescue branch once the application has left draft.
+export function requireDraftAwareWriteScope(
+  principal: Principal,
+  permission: Permission,
+  scope: DraftAwareScope
+): void {
+  assertDraftAwareScope(principal, permission, scope);
 }
 
 // Translate the pure domain's DomainError codes into HandlerError
