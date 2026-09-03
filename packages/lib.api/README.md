@@ -81,5 +81,4 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 19 workspace package(s) depend on this library. See [lib.api-consumers.md](../../docs/libraries/lib.api-consumers.md) for the auto-generated list — check it before making a breaking change.
-
 <!-- CONSUMERS:END -->

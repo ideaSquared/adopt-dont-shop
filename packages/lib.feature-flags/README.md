@@ -63,5 +63,4 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.feature-flags-consumers.md](../../docs/libraries/lib.feature-flags-consumers.md) for the auto-generated list — check it before making a breaking change.
-
 <!-- CONSUMERS:END -->
