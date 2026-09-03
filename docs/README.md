@@ -167,6 +167,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 > Point-in-time snapshots — true when written, not maintained. Check `git log` and the code before trusting them.
 
 - **Runtime & framework upgrades**: Node 22 and React 19 have shipped; Express and Sequelize were removed in the microservices rewrite. The `docs/upgrades/` migration notes were deleted — see `git log` before HEAD `cddba6a` for that history.
+- [Production readiness review (Aug 2026)](./production-readiness-review.md) — cross-cutting technical assessment of what remains before production launch, prioritised P0–P3
 - [UX review & component consolidation plan (Aug 2026)](./UX-REVIEW-2026-08.md) — cross-app UX review + Linear-ready backlog
 - [Frontend libs quality review](./frontend-libs-quality-review.md) — audit of the frontend `lib.*` packages
 - [Matching system scope](./matching-system-scope.md) — implementation state, scoring design, and remaining gaps for pet-adopter matching
