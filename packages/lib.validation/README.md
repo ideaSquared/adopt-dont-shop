@@ -49,7 +49,7 @@ None — pure schemas.
 
 Vitest — each schema is tested against valid and invalid payloads (boundary
 values, enum membership, required-field omission). See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) or the frontend
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) or the frontend
 equivalent for anything not library-specific.
 
 ## Ownership
@@ -62,4 +62,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.validation-consumers.md](../../docs/libraries/lib.validation-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

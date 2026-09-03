@@ -1,5 +1,7 @@
 # Dependency Updates — Renovate [ADS-706]
 
+How automated dependency updates are configured and reviewed in this repo (audience: maintainers triaging Renovate PRs).
+
 Automated dependency updates are managed by [Renovate](https://docs.renovatebot.com/),
 configured via `renovate.json` at the repo root. The config extends
 `config:recommended` and runs on the `schedule:earlyMondays` schedule so PRs

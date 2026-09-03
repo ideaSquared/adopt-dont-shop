@@ -42,7 +42,7 @@ None read directly — the `apiUrl` (typically `VITE_API_BASE_URL`) is passed in
 
 Vitest — the queue fetch, swipe recording, and session lifecycle methods are
 tested against a mocked API. See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -55,4 +55,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.discovery-consumers.md](../../docs/libraries/lib.discovery-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

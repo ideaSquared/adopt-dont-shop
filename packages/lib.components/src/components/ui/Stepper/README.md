@@ -1,11 +1,11 @@
-# Stepper Component
+# Stepper
 
 A presentational progress indicator for multi-step flows, paired with a `useStepper` hook that manages wizard state (next/back/go-to plus a validation gate). Use the two together, or drop the `Stepper` into any flow that already tracks its own active step.
 
 ## Usage
 
 ```tsx
-import { Stepper, useStepper } from '@lib/components';
+import { Stepper, useStepper } from '@adopt-dont-shop/lib.components';
 
 const steps = [
   { id: 'account', title: 'Account' },

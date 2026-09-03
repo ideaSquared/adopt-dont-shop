@@ -23,50 +23,60 @@ to reviewers.
 ## The format
 
 ```
-<type>(<optional scope>): <short summary>
+<type>(<optional scope>): <short summary> (ADS-NNN)
 
 <optional longer body, wrapped at ~72 cols>
 
-<optional footer(s) — BREAKING CHANGE, Refs:, Closes:>
+<optional footer(s) — BREAKING CHANGE, Co-authored-by>
 ```
 
-Examples from the repo's history:
+The Linear ticket goes in the **subject**, in parentheses at the end — this is
+the repo's actual practice (see `git log`), not in a footer.
+
+Examples from recent `main` history:
 
 ```
-feat(audit): system audit row for scheduled report execution
-fix(email): reap stuck SENDING rows so crashed-worker sends aren't lost
-fix: file-upload size + orphans, CMS publishedAt enforcement
-fix: plan-limit TOCTOU on pet create, drop activity_level data loss
-docs(claude): add backend-focused skills for endpoints, migrations, tests, audit, errors
+feat(gateway): auth backstop — 401 tokenless requests on non-public routes (ADS-1255)
+fix(deploy): keep host secret files so a reboot doesn't strand services (ADS-1247)
+fix(notifications): stop logging recipient PII and email tokens (ADS-1257)
+test: gate coverage on non-lib packages, restore disabled lib gates (ADS-1243)
+docs(backend): correct stale command and migration-naming examples
 ```
 
 ## Types
 
-| Type | Use for | Triggers release? |
-|------|---------|-------------------|
-| `feat` | New user-facing feature or capability | minor bump |
-| `fix` | Bug fix visible to users or callers | patch bump |
-| `docs` | Docs only (READMEs, CLAUDE.md, ADRs, skill files) | no bump |
-| `refactor` | Code restructure with no behaviour change | no bump |
-| `test` | Test-only changes (new tests, refactored tests) | no bump |
-| `chore` | Build, deps, tooling, internal housekeeping | no bump |
-| `perf` | Performance improvement | patch bump |
-| `style` | Whitespace, formatting (rare — Prettier handles most) | no bump |
-| `ci` | CI config (GitHub Actions, etc.) | no bump |
-| `build` | Build system / external deps (Webpack, npm scripts) | no bump |
-| `revert` | Reverting a previous commit | matches reverted |
+| Type       | Use for                                               | Triggers release? |
+| ---------- | ----------------------------------------------------- | ----------------- |
+| `feat`     | New user-facing feature or capability                 | minor bump        |
+| `fix`      | Bug fix visible to users or callers                   | patch bump        |
+| `docs`     | Docs only (READMEs, CLAUDE.md, ADRs, skill files)     | no bump           |
+| `refactor` | Code restructure with no behaviour change             | no bump           |
+| `test`     | Test-only changes (new tests, refactored tests)       | no bump           |
+| `chore`    | Build, deps, tooling, internal housekeeping           | no bump           |
+| `perf`     | Performance improvement                               | patch bump        |
+| `style`    | Whitespace, formatting (rare — Prettier handles most) | no bump           |
+| `ci`       | CI config (GitHub Actions, etc.)                      | no bump           |
+| `build`    | Build system / external deps (Webpack, npm scripts)   | no bump           |
+
+`docs`, `test`, `ci`, `chore`, `build` and `style` are hidden from the generated
+changelog (`release-please-config.json`). There is **no `revert` changelog
+section** — a revert is not a recognised release type here; write the reversal as
+the appropriate `fix`/`chore` instead.
 
 **Use `feat` only for things a user can observe.** Internal additions that don't
 change behaviour are usually `refactor` or `chore`.
 
 ## Scopes
 
-Scope is the area of the codebase affected. Use sparingly and consistently.
-Common scopes from this repo:
+Scope is the area of the codebase affected. Scopes are **advisory** — commitlint
+does not enforce a scope enum (`commitlint.config.js` is
+`config-conventional` only), so consistency is a convention, not a gate.
 
-- App / lib package short names: `audit`, `email`, `pet`, `application`, `auth`,
-  `claude`, `chat`, `gdpr`, `field-permissions`, `inbox`
-- Cross-cutting: `deps`, `ci`, `docker`
+Scopes actually seen on recent `main` (use these where they fit):
+
+`deploy`, `gateway`, `auth`, `applications`, `rescue`, `notifications`,
+`security`, `authz`, `observability`, `frontend`, `backend`, `ci`, `adr`,
+`review`, `docs`.
 
 Skip the scope if the change spans many areas (`fix: ...`) — it's better than
 inventing a misleading one.
@@ -93,17 +103,14 @@ in the changelog (release-please includes it).
 
 - Wrap around 72 cols
 - Explain WHY, not WHAT (the diff shows the what)
-- Reference tickets in the footer, not the subject
+- The ticket goes in the subject `(ADS-NNN)`, not in a footer
 
 ```
-fix(application): prevent duplicate audit rows on bulk approve
+fix(applications): close submitDraft draft-privacy authz gap (ADS-1225)
 
-Bulk approval was calling AuditLogService.log inside the transaction
-AND auditRoute() on the route, producing two rows per record. Switched
-to the in-transaction path only to preserve atomicity with the status
-write.
-
-Refs: ADS-712
+submitDraft read the draft before checking the caller owned it, so a
+different authenticated user could probe another adopter's draft. Moved
+the ownership check ahead of the read and covered it with a handler test.
 ```
 
 ## Breaking changes
@@ -111,11 +118,13 @@ Refs: ADS-712
 Two ways to mark a breaking change — pick one:
 
 1. **`!` after type/scope:**
+
    ```
    feat(api)!: remove /api/v1/legacy-pets endpoint
    ```
 
 2. **`BREAKING CHANGE:` footer:**
+
    ```
    feat(api): rename pet status enum values
 
@@ -127,13 +136,13 @@ Either form triggers a **major** version bump. Use one, not both.
 
 ## Footers
 
-Standard footers release-please recognises:
+Only two footers are used in this repo:
 
-- `Refs: ADS-123` or `Closes: #456` — links to ticket / issue
 - `BREAKING CHANGE: <description>` — see above
 - `Co-authored-by: Name <email>` — multi-person commit
 
-`Refs:` is preferred for in-flight work; `Closes:` for completing the ticket.
+The Linear ticket does **not** go in a footer — it goes in the subject as
+`(ADS-NNN)`. There is no `Refs:` / `Closes:` convention here.
 
 ## PR titles
 
@@ -159,19 +168,20 @@ handles a multi-commit PR fine.
 - Misusing `feat` for refactors → causes spurious minor bumps in releases
 - Unscoped sprawling commits (`feat: lots of stuff`) → split or summarise honestly
 - Forgetting `BREAKING CHANGE:` → users get bitten by a silent major-shape change
-- Ticket reference in the subject (`feat: ADS-712 add foo`) → put it in the
-  footer (`Refs: ADS-712`)
+- Ticket at the front of the subject (`feat: ADS-712 add foo`) → put it at the
+  end in parentheses (`feat: add foo (ADS-712)`)
 - Skipping the type → commitlint rejects the commit at pre-commit
 
 ## Quick reference
 
 ```
-feat(scope): short imperative summary
+feat(scope): short imperative summary (ADS-NNN)
 
 [Optional body explaining WHY, wrapped at 72 cols.]
-
-Refs: ADS-XXX
 ```
 
 That's it. Match the existing log style (`git log --oneline -20`) when in
 doubt.
+
+Canonical doc: [`CONTRIBUTING.md`](../../../CONTRIBUTING.md) — the commits
+section there is the human-facing companion to this skill; keep the two in sync.

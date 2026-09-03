@@ -1,11 +1,11 @@
-# CheckboxInput Component
+# CheckboxInput
 
 A checkbox input component with label, validation, and consistent styling across the application.
 
 ## Usage
 
 ```tsx
-import { CheckboxInput } from '@/components/form/CheckboxInput'
+import { CheckboxInput } from '@adopt-dont-shop/lib.components'
 
 // Basic usage
 <CheckboxInput

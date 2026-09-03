@@ -11,11 +11,16 @@ description: >
 Forms in this project follow a consistent stack:
 
 - **Schema** — Zod (shared with the backend via `lib.validation` where possible)
-- **Inputs** — components from `lib.components/src/components/form/` (`TextInput`,
-  `SelectInput`, `CheckboxInput`, `DateInput`, `TextArea`, `FileUpload`, etc.) wrapped
-  in `<FormField>` for label + error wiring
+- **Inputs** — `Input` from `lib.components` plus `SelectInput`, `CheckboxInput`,
+  `TextArea`, `FileUpload` from `lib.components/src/components/form/`, wrapped in
+  `<FormField>` for label + error wiring. **Do not use `TextInput`** — it is deprecated
+  in the barrel in favour of `Input`.
 - **Submission** — through `apiService` (see `api-fetch` skill)
 - **Server state** — via React Query `useMutation` (see `react-query` skill)
+
+**CI gate:** `pnpm check:forms` (`scripts/check-form-primitives.mjs`) ratchets the count of raw
+`<input>/<select>/<textarea>` and `<TextInput>` downward and fails on any increase. New form code must
+use `FormField` + `Input`, not raw controls or `TextInput`.
 
 ## The full pattern
 
@@ -24,7 +29,7 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FormField,
-  TextInput,
+  Input,
   SelectInput,
   CheckboxInput,
   Button,
@@ -73,7 +78,7 @@ export const CreatePetForm = ({ onSuccess }: { onSuccess: () => void }) => {
   return (
     <form onSubmit={handleSubmit} noValidate>
       <FormField label="Name" htmlFor="pet-name" required error={errors.name}>
-        <TextInput
+        <Input
           id="pet-name"
           value={values.name ?? ''}
           onChange={e => setValues(v => ({ ...v, name: e.target.value }))}
@@ -167,6 +172,7 @@ See the `api-fetch` and `react-query` skills.
 ### 5. Surface errors accessibly
 
 Per the `accessibility` skill, every error must:
+
 - Be linked to its input via `aria-describedby`
 - Set `aria-invalid="true"` on the input
 - Be announced — `FormField` handles this via `role="alert"` on the error slot
@@ -205,6 +211,7 @@ const PostcodeSchema = z.string().refine(validatePostcode, 'Invalid UK postcode'
 ## File uploads
 
 Use `FileUpload` from `lib.components/src/components/form/FileUpload`. It handles:
+
 - Drag-and-drop
 - File type filtering
 - Size limits
@@ -261,16 +268,20 @@ it('rejects an empty submission', async () => {
 
 ## Helpers
 
-A `formatZodErrors` utility flattens a `ZodError` into `{ [field]: message }`:
+There is no shared `formatZodErrors` export in the repo — inline it. In Zod 4, `z.flattenError`
+gives per-field messages; take the first message per field:
 
 ```typescript
-const formatZodErrors = (error: z.ZodError) =>
-  Object.fromEntries(
-    error.errors.map(e => [e.path.join('.'), e.message])
-  );
+const formatZodErrors = <T>(error: z.ZodError): Partial<Record<keyof T, string>> => {
+  const { fieldErrors } = z.flattenError(error);
+  return Object.fromEntries(
+    Object.entries(fieldErrors).map(([field, messages]) => [field, messages?.[0]])
+  ) as Partial<Record<keyof T, string>>;
+};
 ```
 
-Some apps already export this from `src/utils/`; check before redefining.
+The `handleSubmit` above calls this on `parsed.error`. If an app already has an equivalent in
+`src/utils/`, use that instead of redefining.
 
 ## Common mistakes
 
@@ -287,3 +298,6 @@ Some apps already export this from `src/utils/`; check before redefining.
 - Not handling the loading state on submit → double-submits
 - Skipping the postcode/phone formatter for UK fields → inconsistent display
   (see the `uk-localization` skill)
+- Using `TextInput` in new code → deprecated, and regresses `pnpm check:forms`; use `Input`
+
+Canonical doc: [`packages/lib.components/README.md`](../../../packages/lib.components/README.md).

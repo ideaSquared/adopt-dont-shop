@@ -16,8 +16,8 @@ are the gateway's `/api/v1/admin/moderation/*` routes over
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -30,8 +30,17 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 - Schemas + types: `ReportSchema` / `Report`,
   `CreateModeratorActionRequestSchema`, and the supporting moderation types
   (Zod-first).
-- `moderationService` — API client (`getReports`, `takeAction`, …).
-- React hooks: `useReports`, `useReportDetail`, … (React Query-backed).
+- `ModerationService` (class) + `moderationService` (singleton) — API client:
+  reports (`getReports`, `getReportById`, `createReport`, `updateReportStatus`,
+  `assignReport`, `escalateReport`, `bulkUpdateReports`, `resolveReport`,
+  `dismissReport`) and actions (`getActions`, `getActiveActions`,
+  `createAction`, `takeAction`, `getMetrics`).
+- React hooks (React Query-backed): `useReports`, `useReportDetail`,
+  `useModerationMetrics`, `useActiveActions`, `useReportMutations`.
+- Display utilities: `getCategoryLabel`, `getStatusLabel`, `getSeverityLabel`,
+  `getActionTypeLabel`, `getEntityTypeLabel`, `getSeverityColor`,
+  `getStatusColor`, `formatDate`, `formatRelativeTime`,
+  `calculateResolutionTime`, `isReportOverdue`, `buildQueryString`.
 
 ## Environment variables consumed
 
@@ -42,7 +51,7 @@ None directly — reaches the backend through the shared `lib.api` client. See
 
 Vitest + React Testing Library — schemas are tested against valid/invalid
 payloads, the service against a mocked API, and the hooks with RTL. See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -55,4 +64,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 1 workspace package(s) depend on this library. See [lib.moderation-consumers.md](../../docs/libraries/lib.moderation-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

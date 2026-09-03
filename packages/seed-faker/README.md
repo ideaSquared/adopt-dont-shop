@@ -40,12 +40,12 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 
 ## Environment variables consumed
 
-| Variable | Purpose | Required |
-| --- | --- | --- |
+| Variable     | Purpose                                                                  | Required               |
+| ------------ | ------------------------------------------------------------------------ | ---------------------- |
 | `ALLOW_SPAM` | Must be truthy for `assertSpamAllowed()` to pass — the safety interlock. | Yes (to run `db:spam`) |
-| `NODE_ENV` | Guard refuses to run under `production`. | — |
-| `FAKER_SEED` | Overrides `DEFAULT_FAKER_SEED` for reproducible data. | No |
-| `SPAM_PETS` | Row-count override read by `spamCount()`. | No |
+| `NODE_ENV`   | Guard refuses to run under `production`.                                 | —                      |
+| `FAKER_SEED` | Overrides `DEFAULT_FAKER_SEED` for reproducible data.                    | No                     |
+| `SPAM_PETS`  | Row-count override read by `spamCount()`.                                | No                     |
 
 See [`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
@@ -53,7 +53,7 @@ See [`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
 Each unit has a sibling `*.test.ts` (env-guard, faker-rng, bulk-insert,
 counts). The env guard is the security-relevant path — its tests assert it
-fails closed. See [`docs/backend/testing.md`](../../docs/backend/testing.md)
+fails closed. See [`docs/testing.md`](../../docs/testing.md#backend-specifics)
 for shared conventions.
 
 ## Ownership

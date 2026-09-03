@@ -1,8 +1,8 @@
 # Volume Backup & Snapshot Policy [ADS-500, ADS-1239]
 
-This document captures the snapshot policy for the production stack. The
-production `docker-compose.prod.yml` declares three persistent stores; each
-has its own RPO / RTO and backup mechanism.
+Policy reference for what the production stack backs up, on what cadence, and with what retention (audience: operators + planners). The **restore and drill procedures** live in the authoritative [db-backup-runbook.md](../db-backup-runbook.md); this document is policy only.
+
+The production `docker-compose.prod.yml` declares three persistent stores; each has its own RPO / RTO and backup mechanism.
 
 ## What gets backed up
 
@@ -46,7 +46,7 @@ PATH=/usr/local/bin:/usr/bin:/bin
 BACKUP_BUCKET=adopt-dont-shop-prod-backups
 AWS_REGION=eu-west-2
 
-0 2 * * * deploy /opt/adopt-dont-shop/scripts/snapshot-postgres.sh >> /var/log/snapshot.log 2>&1
+0 2 * * * deploy /opt/ads/production/scripts/snapshot-postgres.sh >> /var/log/snapshot.log 2>&1
 ```
 
 ## Uploads — S3-native
@@ -67,7 +67,7 @@ workflow. The host-cron snippet below remains a documented alternative.
 ### Cron snippet (alternative to the `backup.yml` automation above)
 
 ```cron
-30 2 * * * deploy /opt/adopt-dont-shop/scripts/snapshot-uploads.sh >> /var/log/snapshot.log 2>&1
+30 2 * * * deploy /opt/ads/production/scripts/snapshot-uploads.sh >> /var/log/snapshot.log 2>&1
 ```
 
 ## letsencrypt — regenerable, no backup
@@ -76,39 +76,16 @@ certbot renews on demand; backing up the state directory adds no resilience
 (rate-limit risk is low at our scale). If the volume is lost, the renewal
 hook re-issues certs at next nginx restart.
 
-## Restore procedure
+## Restore & verification
 
-See [docs/operations/restore.md](./restore.md) for the full runbook. The
-short version:
-
-```bash
-# Postgres
-gunzip -c dump.sql.gz | docker compose exec -T database psql -U "$POSTGRES_USER" "$POSTGRES_DB"
-
-# Uploads — the real host path is <project>_uploads (Compose prefixes the
-# volume name with the project name, "production" for /opt/ads/production —
-# see the snapshot-uploads job in backup.yml), not the bare "uploads" shown
-# here for brevity.
-aws s3 sync "s3://${BACKUP_BUCKET}/uploads/$(date -u +%Y/%m/%d)/" /var/lib/docker/volumes/production_uploads/_data/
-```
-
-## Verification
-
-The mechanical "does the latest Postgres dump actually restore?" question is
-now answered automatically, every night, by
-[`backup-restore-drill.yml`](../../.github/workflows/backup-restore-drill.yml)
-(ADS-1240) — it restores the newest snapshot into a scratch DB via
-`scripts/restore-postgres.sh` and asserts it loaded data. See "Automated
-nightly restore verification" in [db-backup-runbook.md](../db-backup-runbook.md)
-for detail.
-
-That automated job does not replace the fuller, human-run drill: a
-**quarterly** restore drill against a **staging** environment — restoring,
-repointing a real app, and measuring RTO — is still required to keep this
-policy honest. Track outcomes in `docs/operations/restore-drills.md`. (This
-cadence previously read "monthly" here, disagreeing with
-[db-backup-runbook.md](../db-backup-runbook.md#quarterly-restore-drill-staging);
-quarterly is now the single source of truth for the staging drill's cadence.)
+The restore procedures (Postgres and uploads), the automated nightly restore
+drill, and the quarterly staging drill are documented in the authoritative
+[db-backup-runbook.md](../db-backup-runbook.md). This policy only fixes the
+**cadence**: a quarterly restore drill against staging (restoring, repointing a
+real app, and measuring RTO) is required to keep the policy honest, in addition
+to the automated nightly `backup-restore-drill.yml` check. Quarterly is the
+single source of truth for the staging drill's cadence; drill outcomes are
+tracked in `docs/operations/restore-drills.md`.
 
 ## Related
 

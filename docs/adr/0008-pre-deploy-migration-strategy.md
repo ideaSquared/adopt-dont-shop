@@ -3,6 +3,8 @@
 - Status: Proposed
 - Date: 2026-08-05
 - Scope: `Dockerfile.service` entrypoint, `.github/workflows/deploy.yml` + `rollback.yml`, every service's `src/migrations/*` and migration discipline
+- Linear: ADS-1044
+- Supersedes / Superseded by: —
 
 ## Context
 

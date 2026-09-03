@@ -1,5 +1,7 @@
 # Pet CSV Import
 
+Reference for the rescue-app bulk pet-import feature: accepted CSV format, import flow, and idempotency model (audience: rescue staff and engineers supporting them).
+
 The rescue app supports bulk-loading existing pet records from a CSV file
 via the **Import CSV** button on Pet Management (or directly from the
 empty state when a rescue has no pets yet — see ADS-646).

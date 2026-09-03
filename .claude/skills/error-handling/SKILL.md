@@ -1,194 +1,120 @@
 ---
 name: error-handling
 description: >
-  Backend error class hierarchy and how errors propagate through routes. Apply when
-  throwing errors from services, writing controllers, or implementing middleware
-  that needs to signal HTTP status codes.
+  How backend errors are raised and mapped to HTTP status. Apply when throwing from a
+  gRPC handler, or when working on the gateway's gRPC→HTTP error middleware. Covers
+  HandlerError, the HandlerErrorCode union, and the gRPC→HTTP status table.
 ---
 
 # Backend Error Handling
 
-The backend has a single error-handler middleware (`src/middleware/error-handler.ts`)
-that translates thrown errors into HTTP responses. Services and controllers throw —
-they never write status codes themselves.
-
-## The error class hierarchy
+There is no Express, no error-handler middleware class hierarchy, and no
+`res.status()`. The backend is a Fastify gateway in front of ten gRPC services.
+Errors flow:
 
 ```
-Error
-└── ApiError(statusCode, message)
-    ├── BadRequestError       400
-    ├── UnauthorizedError     401
-    ├── ForbiddenError        403
-    ├── NotFoundError         404
-    ├── ConflictError         409
-    └── UnprocessableError    422
+gRPC handler  throws HandlerError('NOT_FOUND', …)
+  → per-service adapter (packages/service-bootstrap/src/adapter.ts)
+       maps HandlerErrorCode → grpc status via CODE_TO_GRPC, sends as a ServiceError
+    → gateway route calls handleGrpcError(err, reply)
+         (services/gateway/src/middleware/grpc-error.ts) maps grpc status → HTTP
 ```
 
-All defined in `src/middleware/error-handler.ts`. Import from there:
+Handlers throw a typed code; the transport does the rest. A handler never sets an
+HTTP status and never touches a `reply`.
 
-```typescript
-import {
-  BadRequestError,
-  NotFoundError,
-  ConflictError,
-  ForbiddenError,
-  UnprocessableError,
-} from '../middleware/error-handler';
+## HandlerError
+
+`HandlerError` and its code union live in
+[`packages/service-bootstrap/src/adapter.ts`](../../../packages/service-bootstrap/src/adapter.ts).
+Import from the package, not a relative middleware path:
+
+```ts
+import { HandlerError } from '@adopt-dont-shop/service-bootstrap';
+
+throw new HandlerError('NOT_FOUND', 'pet not found');
 ```
 
-## When to use each
+`HandlerErrorCode` is a closed union — these eight, nothing else:
 
-| Class | Status | Meaning |
-|-------|--------|---------|
-| `BadRequestError` | 400 | Request is malformed in a way the client can fix (other than schema validation — Zod handles 422 for that) |
-| `UnauthorizedError` | 401 | Caller is not authenticated. Usually emitted by auth middleware, rarely by services |
-| `ForbiddenError` | 403 | Caller is authenticated but not allowed (RBAC denial, ownership mismatch) |
-| `NotFoundError` | 404 | Resource doesn't exist or is hidden from this caller |
-| `ConflictError` | 409 | Operation conflicts with current state (duplicate key, already-approved application) |
-| `UnprocessableError` | 422 | Well-formed request, semantically invalid (failed business rule). Also the status the Zod validator emits for schema failures |
+| Code                  | gRPC status           | Gateway HTTP | Use for                                                                                          |
+| --------------------- | --------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| `INVALID_ARGUMENT`    | `INVALID_ARGUMENT`    | 400          | Malformed / failed input validation. Message forwarded to caller.                                |
+| `UNAUTHENTICATED`     | `UNAUTHENTICATED`     | 401          | No / invalid principal. Message replaced with `unauthenticated`.                                 |
+| `PERMISSION_DENIED`   | `PERMISSION_DENIED`   | 403          | Authenticated but not allowed. Message replaced with `forbidden`.                                |
+| `NOT_FOUND`           | `NOT_FOUND`           | 404          | Missing, or hidden from this caller. Message forwarded.                                          |
+| `ALREADY_EXISTS`      | `ALREADY_EXISTS`      | 409          | Duplicate / uniqueness conflict. Message forwarded.                                              |
+| `FAILED_PRECONDITION` | `FAILED_PRECONDITION` | 409          | Valid request, wrong state (e.g. already approved). Message replaced with `precondition failed`. |
+| `UNAVAILABLE`         | `UNAVAILABLE`         | 503          | Downstream dependency down.                                                                      |
+| `INTERNAL`            | `INTERNAL`            | 500          | Bug / unexpected. Message replaced with `internal_error`.                                        |
 
-When in doubt: 404 for "missing", 403 for "forbidden", 409 for "already exists", 422
-for "rule violated", 400 for "garbled input".
+The gateway forwards the upstream message verbatim only for `INVALID_ARGUMENT`,
+`NOT_FOUND`, and `ALREADY_EXISTS` (caller-facing validation/business text). For
+`PERMISSION_DENIED` / `FAILED_PRECONDITION` / `UNAUTHENTICATED` it sends a
+generic string (the real message may leak internal identifiers), and for any 5xx
+it sends a fixed `internal_error` / `service_unavailable` etc. — see
+`GENERIC_4XX_MESSAGE` / `GENERIC_5XX_MESSAGE` in `grpc-error.ts`. So put
+caller-safe detail only in the three forwarded codes.
 
-## Pattern: throw from the service
+The gateway table (`GRPC_TO_HTTP`) also maps codes the resilience layer raises
+that handlers do not throw directly: `ABORTED` → 409 (concurrent-write
+conflict), `RESOURCE_EXHAUSTED` → 429 (rate limit), `DEADLINE_EXCEEDED` → 504
+(retry exhausted), `UNIMPLEMENTED` → 501.
 
-```typescript
-import { NotFoundError, ConflictError } from '../middleware/error-handler';
+## Pattern: throw from the handler
 
-export class PetService {
-  static async getById(petId: string): Promise<Pet> {
-    const pet = await Pet.findByPk(petId);
-    if (!pet) {
-      throw new NotFoundError('Pet not found');
-    }
-    return pet;
+Guard clauses, one throw per failure. No try/catch for control flow.
+
+```ts
+export async function getContent(deps: HandlerDeps, principal: Principal, req: GetContentRequest) {
+  if (!requirePermission(principal, CMS_CONTENT_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CMS_CONTENT_READ}' required`);
   }
-
-  static async create(payload: CreatePetRequest): Promise<Pet> {
-    const existing = await Pet.findOne({ where: { microchipId: payload.microchipId } });
-    if (existing) {
-      throw new ConflictError('A pet with this microchip is already registered');
-    }
-    return Pet.create(payload);
-  }
+  const { rows } = await deps.pool.query<ContentRow>(
+    `SELECT ... FROM cms.cms_content WHERE content_id = $1`,
+    [req.contentId]
+  );
+  if (!rows[0]) throw new HandlerError('NOT_FOUND', 'content not found');
+  return rowToProto(rows[0]);
 }
 ```
 
-## Pattern: no try/catch in controllers
+See [`services/cms/src/grpc/handlers.ts`](../../../services/cms/src/grpc/handlers.ts)
+for a full service's worth of examples.
 
-Controllers are thin. Express forwards thrown errors to the error middleware
-automatically (Express 5 catches async rejections; Express 4 needs `express-async-errors`
-which is already wired here).
+Rules:
 
-```typescript
-// GOOD — let it propagate
-static async getById(req: Request, res: Response) {
-  const pet = await PetService.getById(req.params.petId);
-  return res.status(200).json({ data: pet });
-}
-
-// BAD — translation belongs in middleware
-static async getById(req: Request, res: Response) {
-  try {
-    const pet = await PetService.getById(req.params.petId);
-    return res.status(200).json({ data: pet });
-  } catch (err) {
-    if (err.message === 'Pet not found') {
-      return res.status(404).json({ error: err.message });   // ← duplicates middleware
-    }
-    return res.status(500).json({ error: 'Server error' });   // ← swallows the stack
-  }
-}
-```
-
-The only time a controller catches is to **enrich** before re-throwing:
-
-```typescript
-try {
-  return await PetService.transfer(...);
-} catch (err) {
-  if (err instanceof ConflictError) {
-    throw new ConflictError(`Transfer failed: ${err.message} (petId: ${petId})`);
-  }
-  throw err;
-}
-```
-
-## Response shape the middleware emits
-
-```json
-{
-  "status": "error",
-  "message": "Pet not found",
-  "code": 404
-}
-```
-
-(`stack` is included when `NODE_ENV=development`.)
-
-Frontend consumers should read `message` and `code`. The api-fetch skill describes
-how `apiService` surfaces these.
-
-## Sequelize errors
-
-The error handler unwraps a few common Sequelize errors automatically:
-
-- `UniqueConstraintError` → 409 with the field name
-- `ValidationError` → 422 with the field details
-- Other `BaseError` → 500 (treat as a bug)
-
-This means services usually don't need to translate Sequelize errors — let them
-propagate. Only catch when you want to swap the message for something user-friendly.
-
-## Auth middleware errors
-
-`authenticateToken` throws `UnauthorizedError`. `requirePermission`,
-`requireRole`, `requirePermissionOrOwnership` respond with 403 directly (they don't
-throw because they need to log the denial with request context first). Don't
-re-implement that pattern — call the existing middleware.
-
-## Logging vs throwing
-
-Always do both for serious errors — log with context, then throw:
-
-```typescript
-import { logger } from '../utils/logger';
-
-if (!staff || staff.rescueId !== pet.rescueId) {
-  logger.warn('Unauthorized pet access attempt', {
-    callerUserId,
-    callerRescueId: staff?.rescueId,
-    petRescueId: pet.rescueId,
-  });
-  throw new ForbiddenError('Access denied: pet belongs to another rescue');
-}
-```
-
-For audit-worthy authorisation denials, also write an audit row — see the
-`audit-logging` skill.
+- `requirePermission` returns a boolean — the handler throws on `false`. Never
+  re-decode the JWT; the gateway already stamped the `Principal`.
+- Prefer `NOT_FOUND` over `PERMISSION_DENIED` when revealing existence would leak
+  information (a resource the caller may not see should read as absent).
+- Never `throw new Error(...)` — an untyped error is caught by the adapter and
+  mapped to `INTERNAL` (500), losing the intended status.
 
 ## Tests
 
-Assert on the error TYPE (so call sites can branch reliably), not on the message
-string (messages change with copy edits):
+Assert on the code, through the public handler, not on the message string:
 
-```typescript
-import { NotFoundError } from '../../middleware/error-handler';
-
-await expect(PetService.getById('missing'))
-  .rejects.toBeInstanceOf(NotFoundError);
+```ts
+await expect(getContent(deps, principal, { contentId: 'missing' })).rejects.toMatchObject({
+  code: 'NOT_FOUND',
+});
 ```
+
+At the gateway, assert the HTTP status the route returns for a stubbed client
+error (the `backend-test` skill covers the stub-client pattern).
 
 ## Common mistakes
 
-- `throw new Error('Not found')` — loses the 404, middleware returns 500
-- `res.status(400).json(...)` inside a service — services have no `res`. Throw instead.
-- `try/catch` in a controller that returns `{ error }` — duplicates the middleware
-  and breaks the consistent response shape
-- Throwing `BadRequestError` for schema validation failures — Zod's `validateBody`
-  already emits 422. Use `BadRequestError` for semantic-but-not-schema problems
-- Throwing `ForbiddenError` from a service when you meant `UnauthorizedError` —
-  401 = "who are you?", 403 = "I know you, you can't do this"
-- Swallowing errors with `catch { /* ignore */ }` — every catch should either
-  re-throw, throw a new typed error, or do meaningful recovery
+- Importing error classes from a `middleware/error-handler` path — that file does
+  not exist. Use `HandlerError` from `@adopt-dont-shop/service-bootstrap`.
+- Reaching for `BadRequestError` / `ForbiddenError` / `ConflictError` — those
+  classes do not exist; they are `HandlerError('INVALID_ARGUMENT' | 'PERMISSION_DENIED' | 'ALREADY_EXISTS', …)`.
+- Setting an HTTP status or writing a `reply` inside a handler — handlers return a
+  response object or throw; the gateway owns HTTP.
+- Putting sensitive detail in a `PERMISSION_DENIED` / 5xx message expecting the
+  caller to see it — the gateway replaces those with generic text.
+- Swallowing an error with `catch { /* ignore */ }` — re-throw, throw a typed
+  `HandlerError`, or do real recovery.
+
+Canonical doc: [`services/gateway/src/middleware/grpc-error.ts`](../../../services/gateway/src/middleware/grpc-error.ts).

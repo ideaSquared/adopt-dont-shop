@@ -1,7 +1,18 @@
 # 5xx Spike
 
-**Severity:** `warning` — `HighErrorRate` (HTTP 5xx ratio >1% for 5m →
-`warning-chat`)
+> **Audience:** on-call, shell access on the prod host, no context.
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** `HighErrorRate`, `HighGrpcErrorRate` (`warning`,
+> `infra/prometheus/rules/high-error-rate.yml`); `ServiceDown`
+> (`critical`, `service-down.yml`); `GatewayCircuitOpen` (`critical`,
+> `gateway-resilience.yml`). A `critical` here means page-fast — treat a
+> `GatewayCircuitOpen` or `ServiceDown` as more urgent than a bare
+> `HighErrorRate` warning.
+
+## Preconditions
+
+See [`README.md`](./README.md#preconditions): prod SSH, `cd /opt/ads/production`,
+`export PROD_HOSTNAME=…`, `docker compose -f docker-compose.prod.yml`.
 
 ## Symptoms
 
@@ -41,13 +52,14 @@ The route with the highest rate is your starting point.
 
 Match the symptom to a cause:
 
-| Signal                                                           | Likely cause                       | Jump to                                            |
-| ---------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------- |
-| Started immediately after a deploy                               | Bad release                        | [`deploy-rollback.md`](./deploy-rollback.md)       |
-| Auth / rate-limit routes erroring; `redis` container unhealthy   | Redis outage                       | [`redis-outage.md`](./redis-outage.md)             |
-| `acquire timeout` / `pool is draining` in service logs           | DB pool exhaustion                 | [`db-pool-exhaustion.md`](./db-pool-exhaustion.md) |
-| One service stuck in `restarting`; recent deploy ran a migration | Migration failure for that service | [`migration-failure.md`](./migration-failure.md)   |
-| Errors confined to one route, no other signal                    | Application bug on a code path     | continue below                                     |
+| Signal                                                           | Likely cause                                    | Jump to                                                       |
+| ---------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------- |
+| Started immediately after a deploy                               | Bad release                                     | [`deploy-rollback.md`](./deploy-rollback.md)                  |
+| Auth / rate-limit routes erroring; `redis` container unhealthy   | Redis outage                                    | [`redis-outage.md`](./redis-outage.md)                        |
+| `acquire timeout` / `pool is draining` in service logs           | DB pool exhaustion                              | [`db-pool-exhaustion.md`](./db-pool-exhaustion.md)            |
+| One service stuck in `restarting`; recent deploy ran a migration | Migration failure for that service              | [`migration-failure.md`](./migration-failure.md)              |
+| Whole domain 404s, `unmatched API route` warns in gateway logs   | Backing service unreachable at its `*_GRPC_URL` | `docker compose -f docker-compose.prod.yml ps` + gateway logs |
+| Errors confined to one route, no other signal                    | Application bug on a code path                  | continue below                                                |
 
 The gateway only exposes `/health/simple` (liveness — `200 ok`). There
 is no aggregated `/api/v1/health` route; check per-dependency state by
@@ -89,11 +101,25 @@ Pick the fastest reversible action:
 ## Verify
 
 - Grafana error rate drops below 1% and stays there for 5 min.
-- `HighErrorRate` alert resolves (Alertmanager `resolved` event
-  in `#alerts`).
+- `HighErrorRate` alert resolves (Alertmanager posts a `resolved`
+  event to the Discord alerts channel).
 - `curl -sf https://${PROD_HOSTNAME}/health/simple` returns 200 and
   `docker compose -f docker-compose.prod.yml ps` shows every service
   healthy.
+
+## Rollback
+
+Every mitigation above is reversible: a `restart` is idempotent, a rolled-back
+deploy rolls forward again (see [`deploy-rollback.md`](./deploy-rollback.md)),
+and a maintenance flag or feature gate flips back. If a restart made things
+worse, roll the offending service's image back instead.
+
+## Escalate
+
+If the 5xx rate has not fallen **15 minutes** after your mitigation, or a
+`critical` (`ServiceDown` / `GatewayCircuitOpen`) is still firing, DM the
+secondary on-call. Hand over: the failing route(s), the suspect service and its
+SHA, what you've already tried, and the Grafana screenshot.
 
 ## Capture before you leave
 

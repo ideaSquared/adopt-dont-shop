@@ -1,8 +1,12 @@
 # Backend Deployment
 
+Prerequisites, environment shape, and rollback for production deploys.
+
 > **Authoritative runbook:** [`docs/operations/deploy.md`](../operations/deploy.md). This page is a higher-level companion that covers prerequisites, environment shape, and rollback. The operator-side steps live in the runbook.
 
-The backend ships as a Docker image alongside three frontend images. Production deploys are driven by `Makefile` targets at the repo root that dispatch GitHub Actions workflows (`deploy.yml`, `rollback.yml`).
+The stack ships as 14 images: the gateway plus each of the 10 gRPC services (11 backend images),
+and the 3 frontend apps (admin, client, rescue). Production deploys are driven by `Makefile`
+targets at the repo root that dispatch GitHub Actions workflows (`deploy.yml`, `rollback.yml`).
 
 ## Prerequisites
 
@@ -10,12 +14,12 @@ The backend ships as a Docker image alongside three frontend images. Production 
 
 - **Node.js**: v22 (pinned in `.nvmrc` and `package.json` engines `>=22 <23`). All backend services share the top-level `Dockerfile.service` (parameterised via the `SERVICE` / `SERVICE_DIR` build args), built on `node:22-alpine`.
 - **PostgreSQL**: 16 with the **PostGIS** extension (`postgis/postgis:16-3.4` in `docker-compose.yml`). Location features depend on PostGIS — a plain Postgres install is not enough.
-- **Redis**: 7+ (`redis:7-alpine`) — used by the gateway for the shared rate-limit store and by services for idempotency keys.
+- **Redis**: 7 (`redis:7.4-alpine`; digest-pinned in the prod/staging overlays) — used by the gateway for the shared rate-limit store and by services for idempotency keys.
 
 ### Storage and external services
 
 - File storage (local volume for dev, S3-compatible for production uploads).
-- SMTP provider for transactional email (configured via env vars).
+- Transactional email provider (Resend in production, selected by `EMAIL_PROVIDER`).
 - Sentry DSN for error tracking (optional but recommended).
 
 ## Environment Configuration
@@ -74,21 +78,41 @@ GATEWAY_RATE_LIMIT_WINDOW="1 minute"  # any @lukeed/ms format
 
 ## Deploy
 
-Deploys go through GitHub Actions, triggered by `Makefile` targets:
+Deploys go through GitHub Actions, dispatched by `Makefile` targets. The `make` commands return
+immediately (they only fire `gh workflow run`); follow the run with `make watch`. The operator
+procedure is the [runbook](../operations/deploy.md) — this is the shape of it:
+
+1. **Precondition:** work is merged to `main` and CI is green on that commit.
+2. **Staging first:** `make staging` (deploys `main`). Verify: `make watch` shows the run
+   succeed, then smoke-test staging.
+3. **Production:** `make prod`. This only _dispatches_ the deploy — a reviewer must approve it in
+   the GitHub Actions UI before it runs. Verify with `make watch`.
+4. **Rollback (if needed):** `make history` lists recent commits; `make rollback env=production
+sha=<sha>` pins production to a previously published image SHA.
 
 ```bash
-make staging                              # deploy main to staging
-make prod                                 # deploy main to production (requires manual approval)
+make staging                              # dispatch a staging deploy of main
+make prod                                 # dispatch a production deploy (needs UI approval)
+make watch                                # stream the most recent deploy.yml run
 make rollback env=production sha=abc1234  # roll back to a specific commit
 make history                              # list recent commits to pick a rollback target
 ```
 
 Behind the scenes:
 
-- `deploy.yml` SSHes into the Hetzner host using `HETZNER_HOST` / `HETZNER_SSH_KEY` / `HETZNER_HOST_FINGERPRINT` secrets, pulls the backend image from GHCR (`GHCR_TOKEN`), and starts `docker-compose.prod.yml`.
+- `deploy.yml` SSHes into the Hetzner host using `HETZNER_HOST` / `HETZNER_SSH_KEY` /
+  `HETZNER_HOST_FINGERPRINT` secrets, pulls the 14 images from GHCR (`GHCR_TOKEN`), and starts
+  `docker-compose.prod.yml`.
 - `rollback.yml` uses the same flow but pins to a previously published image SHA.
 
-> `pnpm prod:up` spins the production Docker stack up locally for a smoke test. It does **not** deploy anywhere — use `make prod` for that.
+Every image in `docker-compose.prod.yml` resolves as
+`…/service-<name>:${SERVICE_<NAME>_TAG:-${DEPLOY_SHA:?…}}`: there is **no `:latest` fallback**.
+`DEPLOY_SHA` must be exported to a specific git SHA (the deploy job writes it into the host's
+`.env`), or Compose refuses to start. This is why every image is a reproducible, pinned build.
+
+> `pnpm prod:up` spins the production Docker stack up locally for a smoke test. It does **not**
+> deploy anywhere — and because of the guard above you must `export DEPLOY_SHA=<sha>` first, or
+> it fails immediately. Use `make prod` for a real deploy.
 
 ## Database migrations
 
@@ -123,5 +147,5 @@ For destructive or long migrations see [`docs/migrations/schema-equivalence-runb
 - [`docs/operations/deploy.md`](../operations/deploy.md) — the operator-side runbook.
 - [`docs/runbooks/deploy-rollback.md`](../runbooks/deploy-rollback.md) — incident rollback procedure.
 - [`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md) — when migrations fail mid-deploy.
-- [`docs/INFRA.md`](../INFRA.md) — infra topology (nginx, uploads, signed URLs).
-- [`docs/security/`](../security/) — production security guidance (data protection, gRPC trust, webhook replay protection, image signing).
+- [`docs/infrastructure/INFRASTRUCTURE.md`](../infrastructure/INFRASTRUCTURE.md) — infra topology (nginx, uploads, signed URLs).
+- [`docs/security/`](../security/) — production security guidance (data protection, gRPC trust, image signing).

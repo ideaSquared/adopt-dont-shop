@@ -17,14 +17,14 @@ authoring rules that prevent regressions.
 Use the right element for the job before reaching for ARIA. Most a11y bugs come
 from `<div>` doing the job of something else.
 
-| Job | Use | Not |
-|-----|-----|-----|
-| Click target that submits / navigates | `<button>` or `<a>` | `<div onClick>` |
-| Heading hierarchy | `<h1>`–`<h6>` (one `<h1>` per page) | `<div class="heading-1">` |
-| Form fields | `<input>` with `<label>` | `<div>` with placeholder only |
-| Lists | `<ul>` / `<ol>` / `<li>` | flex `<div>`s |
-| Tabular data | `<table>` | grid of `<div>`s |
-| Region landmarks | `<main>`, `<nav>`, `<aside>`, `<header>`, `<footer>` | unlabeled `<div>` |
+| Job                                   | Use                                                  | Not                           |
+| ------------------------------------- | ---------------------------------------------------- | ----------------------------- |
+| Click target that submits / navigates | `<button>` or `<a>`                                  | `<div onClick>`               |
+| Heading hierarchy                     | `<h1>`–`<h6>` (one `<h1>` per page)                  | `<div class="heading-1">`     |
+| Form fields                           | `<input>` with `<label>`                             | `<div>` with placeholder only |
+| Lists                                 | `<ul>` / `<ol>` / `<li>`                             | flex `<div>`s                 |
+| Tabular data                          | `<table>`                                            | grid of `<div>`s              |
+| Region landmarks                      | `<main>`, `<nav>`, `<aside>`, `<header>`, `<footer>` | unlabeled `<div>`             |
 
 **Rule of thumb:** every interactive element should be reachable via Tab and
 operable via Enter/Space without extra code on your part. If you're adding
@@ -87,15 +87,15 @@ all of this up — use it rather than building from scratch.
 
 Standard interactions must work without a mouse:
 
-| Element | Keys |
-|---------|------|
-| Button | Enter, Space activates |
-| Link | Enter activates |
-| Checkbox | Space toggles |
-| Radio group | Arrow keys move within group, Tab leaves |
+| Element           | Keys                                         |
+| ----------------- | -------------------------------------------- |
+| Button            | Enter, Space activates                       |
+| Link              | Enter activates                              |
+| Checkbox          | Space toggles                                |
+| Radio group       | Arrow keys move within group, Tab leaves     |
 | Select / combobox | Up/Down arrows, Enter selects, Escape closes |
-| Dialog | Escape closes |
-| Tabs | Left/Right arrows move, Home/End jump |
+| Dialog            | Escape closes                                |
+| Tabs              | Left/Right arrows move, Home/End jump        |
 
 If you're building a custom widget, refer to the WAI-ARIA Authoring Practices for
 the keyboard pattern — don't invent your own.
@@ -155,7 +155,9 @@ Every page should have:
 - One `<h1>` describing the page
 - Heading hierarchy that doesn't skip levels (no `<h3>` directly after `<h1>`)
 - A `<main>` landmark wrapping the primary content
-- Skip-to-content link (provided by the app shell — don't remove it)
+- Skip-to-content link — all three app shells render `<SkipLink />` (from `lib.components`) as the
+  first focusable element, targeting `#main-content`: `app.client` (`AppShell`), `app.rescue`
+  (`Layout`), `app.admin` (`AdminLayout`). Don't remove it when editing a layout.
 
 ## Testing accessibility
 
@@ -163,14 +165,16 @@ In React Testing Library, query by accessibility metadata — this exercises a11
 as a side effect:
 
 ```typescript
-screen.getByRole('button', { name: /save/i });  // exercises accessible name
-screen.getByLabelText(/email/i);                 // exercises input label
+screen.getByRole('button', { name: /save/i }); // exercises accessible name
+screen.getByLabelText(/email/i); // exercises input label
 ```
 
 If `getByRole` can't find your control, it's probably not accessible.
 
-For automated audits, run axe via `@axe-core/react` in dev or `vitest-axe` in
-tests. The Playwright e2e suite runs axe on key pages — don't add regressions.
+There is currently **no** automated axe coverage in this repo — no `@axe-core/react` or `vitest-axe`
+dependency, and the Playwright e2e suite does not run axe. Accessibility is enforced by role-based
+RTL queries (above) and the manual [`docs/runbooks/screen-reader-smoke.md`](../../../docs/runbooks/screen-reader-smoke.md)
+runbook. Adding `vitest-axe` is an open item — don't cite axe coverage that doesn't exist.
 
 ## Common mistakes
 
@@ -184,3 +188,5 @@ tests. The Playwright e2e suite runs axe on key pages — don't add regressions.
 - Auto-playing animation/video without controls — vestibular and attention issues
 - Hidden text fields used as state (e.g. `<input type="hidden">` carrying meaning
   for sighted users) — invisible to assistive tech
+
+Canonical doc: [`docs/ACCESSIBILITY.md`](../../../docs/ACCESSIBILITY.md).

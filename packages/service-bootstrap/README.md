@@ -58,7 +58,7 @@ directly; callers pass in the values their own `config.ts` resolved (e.g.
 Each unit is covered by a sibling `*.test.ts` (adapter, principal, server,
 shutdown). Downstream services stub the gRPC transport with
 [`@adopt-dont-shop/test-utils`](../test-utils/README.md). See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership

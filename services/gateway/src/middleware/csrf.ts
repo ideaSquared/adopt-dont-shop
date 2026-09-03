@@ -8,7 +8,7 @@
 // file is the server-side half: comparing the header against the cookie.
 //
 // Enforcement scope (widened from Phase 0 — see
-// docs/security/ADS-919-token-storage-plan.md): a state-changing request
+// docs/adr/0014-httponly-cookie-token-storage.md): a state-changing request
 // is enforced (must carry a valid double-submit header) whenever the
 // browser is opted into EITHER cookie flow:
 //   - it already fetched the CSRF cookie (the original Phase 0 rule), OR

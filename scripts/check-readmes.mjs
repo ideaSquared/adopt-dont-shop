@@ -34,7 +34,7 @@ const SHARED_HEADINGS = [
 
 const FAMILY_HEADINGS = {
   apps: [...SHARED_HEADINGS, '## Public surface'],
-  services: [...SHARED_HEADINGS, '## REST / gRPC contract'],
+  services: [...SHARED_HEADINGS, '## Running locally', '## REST / gRPC contract'],
   packages: [...SHARED_HEADINGS, '## Public API / exports'],
 };
 

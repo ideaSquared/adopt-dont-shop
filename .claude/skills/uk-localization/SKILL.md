@@ -11,59 +11,18 @@ description: >
 The platform is UK-only. All user-facing dates, times, phone numbers, postcodes,
 and currency follow UK conventions via helpers in `@adopt-dont-shop/lib.utils`.
 
-See `docs/UK_LOCALIZATION.md` and `docs/UK_LOCALIZATION_QUICK_REFERENCE.md` for
-the canonical reference.
-
-## Formats at a glance
-
-| Type | Format | Example |
-|------|--------|---------|
-| Date | DD/MM/YYYY | `19/01/2025` |
-| Time | HH:mm (24-hour) | `14:30` |
-| Phone | 0XXX XXX XXXX | `020 1234 5678` |
-| Postcode | AA9A 9AA | `SW1A 1AA` |
-| Currency | £X,XXX.XX | `£150.00` |
-
-## Helpers
-
-All from `@adopt-dont-shop/lib.utils`:
-
-```typescript
-import {
-  // Dates
-  formatDate,
-  formatDateTime,
-  formatTime,
-  formatRelativeDate,
-
-  // Currency
-  formatCurrency,
-  formatCurrencyWhole,
-  formatNumber,
-
-  // Phone
-  formatPhoneNumber,
-  validatePhoneNumber,
-  getPhonePlaceholder,
-
-  // Address
-  validatePostcode,
-  formatPostcode,
-  getPostcodePlaceholder,
-  UK_COUNTIES,
-
-  // Config
-  LOCALE_CONFIG,
-} from '@adopt-dont-shop/lib.utils';
-```
+This skill is the **authoring guide** — when and how to reach for the helpers. The full inventory of
+helpers, formats, address fields, and signatures lives in the canonical reference,
+[`docs/UK_LOCALIZATION.md`](../../../docs/UK_LOCALIZATION.md); don't restate it here. Everything below
+imports from `@adopt-dont-shop/lib.utils`.
 
 ## Dates and times
 
 ```typescript
-formatDate(application.createdAt)        // "19/01/2025"
-formatDateTime(message.sentAt)           // "19/01/2025 14:30"
-formatTime(slot.startsAt)                // "14:30"
-formatRelativeDate(notification.createdAt)  // "2 days ago"
+formatDate(application.createdAt); // "19/01/2025"
+formatDateTime(message.sentAt); // "19/01/2025 14:30"
+formatTime(slot.startsAt); // "14:30"
+formatRelativeDate(notification.createdAt); // "2 days ago"
 ```
 
 **Never** use `toLocaleDateString()` without an explicit locale — the result
@@ -77,10 +36,10 @@ in the schema — only at render.
 ## Currency
 
 ```typescript
-formatCurrency(150)        // "£150.00"
-formatCurrency(1500.5)     // "£1,500.50"
-formatCurrencyWhole(150)   // "£150"      — for round numbers
-formatNumber(1234567)      // "1,234,567"
+formatCurrency(150); // "£150.00"
+formatCurrency(1500.5); // "£1,500.50"
+formatCurrencyWhole(150); // "£150"      — for round numbers
+formatNumber(1234567); // "1,234,567"
 ```
 
 Currency is always GBP. There's no multi-currency support — don't introduce one
@@ -90,35 +49,32 @@ boundary if precision matters, format at display.
 ## Phone numbers
 
 ```typescript
-formatPhoneNumber('02012345678')          // "020 1234 5678"
-formatPhoneNumber('+44 20 1234 5678')     // "020 1234 5678"  — normalises +44
-validatePhoneNumber('not a phone')        // false
-getPhonePlaceholder()                     // "0XXX XXX XXXX"
+formatPhoneNumber('02012345678'); // "020 1234 5678"
+formatPhoneNumber('+44 20 1234 5678'); // "020 1234 5678"  — normalises +44
+validatePhoneNumber('not a phone'); // false
+getPhonePlaceholder(); // "020 1234 5678"  (default 'any'); 'mobile' → "07123 456 789"
 ```
 
 For form fields, set `placeholder={getPhonePlaceholder()}` and validate on
 submit:
 
 ```typescript
-const PhoneFieldSchema = z.string().refine(
-  validatePhoneNumber,
-  'Enter a valid UK phone number'
-);
+const PhoneFieldSchema = z.string().refine(validatePhoneNumber, 'Enter a valid UK phone number');
 ```
 
 ## Postcodes
 
 ```typescript
-validatePostcode('sw1a 1aa')   // true   — case-insensitive, space-tolerant
-formatPostcode('sw1a1aa')      // "SW1A 1AA"
-getPostcodePlaceholder()       // "AA9A 9AA"
+validatePostcode('sw1a 1aa'); // true   — case-insensitive, space-tolerant
+formatPostcode('sw1a1aa'); // "SW1A 1AA"
+getPostcodePlaceholder(); // "SW1A 1AA"
 ```
 
 Store the canonical formatted form (`"SW1A 1AA"`) at the schema boundary, not
 the user's raw input. Format on submit before sending to the API:
 
 ```typescript
-const cleaned = formatPostcode(values.postcode);  // normalise before submit
+const cleaned = formatPostcode(values.postcode); // normalise before submit
 ```
 
 The backend uses the same validator (shared from `lib.utils`) so a postcode that
@@ -126,10 +82,10 @@ passes the frontend will pass the backend.
 
 ## Addresses
 
-UK addresses use the structured fields (`address_line_1`, `address_line_2`,
-`town_city`, `county`, `postcode`, `country`). See `UK_LOCALIZATION.md` for the
-canonical schema. **Don't** use a generic single-line address field — postcode
-lookups and validation depend on the structured form.
+UK addresses use the structured fields on `RescueAddress` (`apps/rescue/src/types/rescue.ts`):
+`street`, `city` (labelled "Town/City"), `county` (optional), `postcode`, `country`. Labels and
+placeholders come from `UK_ADDRESS_CONFIG` in `lib.utils`. **Don't** use a generic single-line address
+field — postcode lookups and validation depend on the structured form.
 
 The `UK_COUNTIES` constant exports the canonical list for SelectInput options.
 
@@ -172,3 +128,5 @@ the helpers are the swap point — don't scatter locale-specific code outside
 - A generic single-line address `<input>` → use the structured fields
 - Hardcoded county lists → use `UK_COUNTIES`
 - US-style dollar amounts in any user-facing string
+
+Canonical doc: [`docs/UK_LOCALIZATION.md`](../../../docs/UK_LOCALIZATION.md).

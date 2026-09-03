@@ -63,9 +63,9 @@ Read the README's [Project Structure](../README.md#project-structure) for the to
 
 ## 8. Make your first change
 
-Pick your track from [docs/README.md "Quick start by role"](./README.md#quick-start-by-role):
+Pick your track from [docs/README.md "Develop"](./README.md#develop):
 
-- **Frontend** (an `apps/*` page or a `lib.*` component) — start with [docs/frontend/technical-architecture.md](./frontend/technical-architecture.md).
+- **Frontend** (an `apps/*` page or a `lib.*` component) — start with [docs/frontend/app-shell.md](./frontend/app-shell.md).
 - **Backend** (a `services/*` gRPC handler, route, or migration) — start with [docs/backend/implementation-guide.md](./backend/implementation-guide.md). Writing a migration? [docs/backend/writing-migrations.md](./backend/writing-migrations.md). A whole new service? [docs/infrastructure/new-microservice.md](./infrastructure/new-microservice.md).
 - **A new shared library** — `pnpm new-lib <name>` scaffolds it; see [scripts/templates/lib/common/README.md](../scripts/templates/lib/common/README.md).
 

@@ -130,6 +130,21 @@ describe('pnpm new-lib (create-new-lib.js)', () => {
     }
   });
 
+  it('scaffold README template contains exactly the check:readmes package headings', () => {
+    // Guard the source template (not just generated output): its `## ` headings
+    // must be exactly the set FAMILY_HEADINGS.packages enforces in
+    // scripts/check-readmes.mjs — no missing heading, no stray one.
+    const template = readFileSync(
+      join(SCRIPTS_DIR, 'templates', 'lib', 'common', 'README.md'),
+      'utf8'
+    );
+    const headings = template
+      .split('\n')
+      .filter(line => line.startsWith('## '))
+      .map(line => line.trim());
+    expect([...headings].sort()).toEqual([...LIB_README_HEADINGS].sort());
+  });
+
   it('prints a copy-pasteable workspace dependency using a dot, not a hyphen (ADS-1059)', () => {
     const output = runGenerator('create-new-lib.js', [
       'widgets',

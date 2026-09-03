@@ -39,6 +39,11 @@ The canonical list lives in `src/index.ts` — link to it and summarise the
 grouped public surface (types, hooks, services) rather than duplicating
 every export's signature here.
 
+Convention: type-only exports (`*Schema` / `*Props` / `*Config` and other
+`z.infer` types) are not enumerated — `src/index.ts` is authoritative for them.
+Runtime values (services, singletons, hooks, components, constants) must all be
+listed.
+
 ## Environment variables consumed
 
 Table of any env vars this library reads directly (most `lib.*` packages
@@ -48,7 +53,7 @@ take config via constructor args instead — say so if that's the case here).
 
 Anything specific to this library's tests: how it's mocked by consumers,
 fixtures, known edge cases. Link to
-[`docs/backend/testing.md`](../../docs/backend/testing.md) or the frontend
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) or the frontend
 equivalent for anything not library-specific.
 
 ## Ownership

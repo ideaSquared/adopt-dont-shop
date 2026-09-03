@@ -38,6 +38,16 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   and the admin React Query hooks (`useAdminChats`, `useAdminChatById`,
   `useAdminChatMessages`, `useAdminChatStats`, `useAdminSearchChats`,
   `useAdminChatMutations`).
+- **Provider**: `ChatProvider` + `useChat` (React context). Note:
+  `useUnreadConversations()` reads this context and throws if rendered outside a
+  `ChatProvider`.
+- **UI components**: `ChatWindow`, `MessageList`, `MessageInput`,
+  `ConversationList`, `ConnectionStatusBanner`, `ImageLightbox`, `PDFPreview`,
+  `ReactionDisplay`, `ReactionPicker`, `ReadReceiptIndicator`,
+  `TypingIndicatorBubble` (the `TypingIndicator` name is taken by the event
+  type), `MessageBubbleComponent`, `MessageItemComponent`, `AvatarComponent`.
+- **Adapter types**: `OfflineAdapter`, `OfflineState`, `PendingMessage`,
+  `PendingAction`, `FeatureFlagsAdapter`, `ResolveFileUrl`.
 - Types: `Conversation`, `Message`, `Participant`, `MessageAttachment`,
   `TypingIndicator`, `MessageReaction`, `MessageReadReceipt`,
   `ReconnectionConfig`, `QueuedMessage`, plus response shapes.
@@ -52,7 +62,7 @@ into `ChatServiceConfig` by the consuming app. See
 
 Vitest + React Testing Library — the service (reconnection, message queue) is
 tested against a mock socket, and the hooks with RTL under a `ChatProvider`. See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -65,4 +75,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 3 workspace package(s) depend on this library. See [lib.chat-consumers.md](../../docs/libraries/lib.chat-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

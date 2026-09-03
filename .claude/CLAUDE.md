@@ -188,7 +188,7 @@ as `ApiError`.
 | Audit trail for a state change              | `audit-logging`            | `services/audit/src/nats/event-types.ts`                                |
 | Errors and HTTP status mapping              | `error-handling`           | `services/gateway/src/middleware/grpc-error.ts`                         |
 | Field-level read/write masking (backend)    | `field-permissions`        | `docs/adr/0006-field-permission-enforcement.md`                         |
-| Backend tests (handlers, routes)            | `backend-test`             | `docs/testing.md`, `docs/backend/testing.md`                            |
+| Backend tests (handlers, routes)            | `backend-test`             | `docs/testing.md`                                                       |
 | Frontend tests (components, hooks, MSW)     | `frontend-test`            | `docs/testing.md`                                                       |
 | Playwright journeys                         | `e2e-test`                 | `e2e/README.md`                                                         |
 | Fetching or mutating server data            | `react-query`, `api-fetch` | `packages/lib.api/README.md`                                            |
@@ -198,7 +198,7 @@ as `ApiError`.
 | Gating UI by permission                     | `permissions-frontend`     | `packages/lib.permissions/README.md`                                    |
 | Feature flags (Statsig)                     | `feature-flags`            | `packages/lib.feature-flags/README.md`                                  |
 | Dates, money, postcodes, phones             | `uk-localization`          | `docs/UK_LOCALIZATION.md`                                               |
-| App layout, routing, providers              | —                          | `docs/frontend/app-shell.md`, `docs/frontend/technical-architecture.md` |
+| App layout, routing, providers              | —                          | `docs/frontend/app-shell.md`, `docs/frontend/rescue-architecture.md`    |
 | New shared component                        | `new-component`            | `packages/lib.components/README.md`                                     |
 | New `lib.*` package                         | `new-lib`                  | `docs/libraries/README.md`, `docs/templates/README.lib.md`              |
 | New `app.*` package                         | `new-app`                  | `docs/templates/README.app.md`                                          |

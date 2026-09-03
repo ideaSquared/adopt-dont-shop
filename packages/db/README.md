@@ -59,7 +59,7 @@ the shared list.
 
 ## Testing notes
 
-Vitest. See [`docs/backend/testing.md`](../../docs/backend/testing.md) for
+Vitest. See [`docs/testing.md`](../../docs/testing.md#backend-specifics) for
 shared conventions.
 
 ## Ownership
