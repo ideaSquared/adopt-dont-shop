@@ -215,6 +215,24 @@ describe('loadConfig — test-token-peek seam (ADS-871)', () => {
     );
   });
 
+  // ADS-1271: staging is a deployed environment too (see buildTrustProxy /
+  // buildCorsConfig, which already treat it as such) — the guard must not
+  // let this misconfiguration slip through there just because it isn't
+  // literally "production".
+  it('refuses to enable under NODE_ENV=staging (boot fails)', () => {
+    expect(() => loadConfig({ E2E_TOKEN_PEEK: 'true', NODE_ENV: 'staging' })).toThrow(
+      /E2E_TOKEN_PEEK must never be enabled in staging/
+    );
+  });
+
+  it('does not throw in staging when the flag is off', () => {
+    // ADS-967: staging also requires CORS_ORIGIN — set it here so this test
+    // isolates the test-token-peek behaviour it actually asserts.
+    expect(() =>
+      loadConfig({ NODE_ENV: 'staging', CORS_ORIGIN: 'https://app.example.com' })
+    ).not.toThrow();
+  });
+
   it('allows enabling under non-production environments', () => {
     expect(
       loadConfig({ E2E_TOKEN_PEEK: 'true', NODE_ENV: 'development' }).testTokenPeek.enabled
