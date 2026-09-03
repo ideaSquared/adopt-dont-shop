@@ -14,20 +14,34 @@ API mocking. Each app has a `src/test-utils/` directory with the shared render h
 ## The shared render helper
 
 Every test should use `renderWithProviders` from `src/test-utils/render.tsx`, never
-the raw `render` from `@testing-library/react`. It wires up:
+the raw `render` from `@testing-library/react`. It wires up a `QueryClientProvider`
+(retries disabled), a router, and `ThemeProvider` from `lib.components`.
 
-- `QueryClientProvider` with retries disabled
-- `MemoryRouter` (configurable `initialRoute`)
-- `ThemeProvider` from `lib.components`
+**The three helpers differ — the router and the route option are not the same:**
+
+| App          | Router          | Route option                                                         |
+| ------------ | --------------- | -------------------------------------------------------------------- |
+| `app.admin`  | `MemoryRouter`  | `renderWithProviders(ui, { initialRoute: '/things' })` (default `/`) |
+| `app.client` | `BrowserRouter` | none — takes `Omit<RenderOptions, 'wrapper'>`                        |
+| `app.rescue` | `BrowserRouter` | none — takes `Omit<RenderOptions, 'wrapper'>`                        |
+
+Only `app.admin` supports `initialRoute`. In `app.client` / `app.rescue`, set the URL before
+rendering with `window.history.pushState`:
 
 ```typescript
-import { renderWithProviders, screen, fireEvent } from '../test-utils';
-import { describe, it, expect, vi } from 'vitest';
+import { renderWithProviders, screen } from '../test-utils';
+import { describe, it, expect } from 'vitest';
 import { MyPage } from './MyPage';
 
 describe('MyPage', () => {
-  it('renders the heading', () => {
+  it('renders the heading (admin)', () => {
     renderWithProviders(<MyPage />, { initialRoute: '/things' });
+    expect(screen.getByRole('heading', { name: /things/i })).toBeInTheDocument();
+  });
+
+  it('renders at a route (client/rescue)', () => {
+    window.history.pushState({}, '', '/things');
+    renderWithProviders(<MyPage />);
     expect(screen.getByRole('heading', { name: /things/i })).toBeInTheDocument();
   });
 });
@@ -135,12 +149,21 @@ it('returns pets from the service', async () => {
 ## MSW for network-layer mocks
 
 For integration tests that exercise multiple components fetching real network
-calls, use MSW handlers from `src/test-utils/msw-handlers.ts` instead of mocking
-each service. MSW intercepts `fetch`/`axios` at the network boundary:
+calls, use the shared handlers from `src/test-utils/msw-handlers.ts` (exported as
+`mswHandlers`) instead of mocking each service. Only `app.client` and `app.rescue` ship a
+handler module; `app.admin` mocks services directly. There is **no** shared `msw-server`
+module — each behaviour test in `src/__tests__/` builds its own server from the handlers and
+overrides per-test with `server.use(...)`:
 
 ```typescript
 import { http, HttpResponse } from 'msw';
-import { server } from '../test-utils/msw-server';
+import { setupServer } from 'msw/node';
+import { mswHandlers } from '../test-utils/msw-handlers';
+
+const server = setupServer(...mswHandlers);
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 it('handles a 500 from the API', async () => {
   server.use(
@@ -208,3 +231,6 @@ await waitForElementToBeRemoved(() => screen.queryByText(/loading/i));
 - Forgetting to mock the network → tests hit real endpoints, fail in CI
 - Not awaiting `userEvent` actions — they're async since v14
 - Sharing a `QueryClient` across tests → cached responses leak between cases
+- Passing `initialRoute` to the client/rescue helper → silently ignored (admin-only); use `window.history.pushState`
+
+Canonical doc: [`docs/frontend/testing.md`](../../../docs/frontend/testing.md).

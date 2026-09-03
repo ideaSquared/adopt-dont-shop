@@ -1,11 +1,14 @@
-# MarkdownEditor Component
+# MarkdownEditor
 
 A rich markdown editor component with live preview and formatting toolbar.
+
+> **Not exported** from `src/index.ts` — import it by relative path within this
+> package, or add it to `src/index.ts` first.
 
 ## Usage
 
 ```tsx
-import { MarkdownEditor } from '@/components/form/MarkdownEditor'
+import { MarkdownEditor } from './MarkdownEditor'
 
 // Basic usage
 <MarkdownEditor

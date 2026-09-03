@@ -15,8 +15,8 @@ libraries sit. Consumed by `app.admin`; the read path terminates at
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -30,7 +30,8 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `action`, `userId`, `entity`, `level`, `status`, `startDate` / `endDate`
   (defaults to the last 7 days), `page`, `limit` (default 50). Results are
   sorted newest-first.
-- Types + enums: `AuditLog`, `AuditLogLevel` (`INFO` / `WARNING` / `ERROR`),
+- Types + enums: `AuditLog`, `AuditLogFilters`, `PaginatedAuditLogsResponse`,
+  `PaginationInfo`, `AuditLogLevel` (`INFO` / `WARNING` / `ERROR`),
   `AuditLogStatus` (`success` / `failure`).
 
 ## Environment variables consumed
@@ -41,7 +42,7 @@ None directly — reaches the backend through the shared `lib.api` client. See
 ## Testing notes
 
 Vitest — `getAuditLogs` is tested against a mocked API for filter/date-range
-defaulting and pagination. See [`docs/frontend/testing.md`](../../docs/testing.md)
+defaulting and pagination. See [`docs/testing.md`](../../docs/testing.md)
 for anything not library-specific.
 
 ## Ownership
@@ -54,4 +55,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 1 workspace package(s) depend on this library. See [lib.audit-logs-consumers.md](../../docs/libraries/lib.audit-logs-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

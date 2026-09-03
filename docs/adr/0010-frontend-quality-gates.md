@@ -1,12 +1,16 @@
 # ADR 0010 — Frontend quality gates: a11y lint, no-non-null-assertion, container CSP, coverage floors (ADS-1055)
 
-- Status: Proposed
+- Status: Partially implemented (2026-08-28). a11y lint re-enabled as advisory
+  (ADS-1244, `packages/eslint-config-react/index.js`); container CSP tightened
+  (ADS-847, `Dockerfile.app`); coverage floors set (ADS-1243,
+  `apps/*/vitest.config.ts`). Outstanding: `no-non-null-assertion`.
 - Date: 2026-08-05
 - Scope: `packages/eslint-config-react`, `packages/eslint-config-base`,
   `packages/eslint-config-node`, `Dockerfile.app`,
   `services/gateway/src/routes/users.ts` (proto-assertion hotspot),
-  `apps/rescue` + `apps/client` vitest coverage thresholds (proposal only —
-  no code or config changed in this PR)
+  `apps/rescue` + `apps/client` vitest coverage thresholds
+- Linear: ADS-1055
+- Supersedes / Superseded by: —
 
 ## Context
 
@@ -78,6 +82,10 @@ Four independent sub-decisions; each has its own options and tradeoffs.
 
 ### a11y linting
 
+> Shipped (ADS-1244): Option A, as advisory `warn`. `eslint-plugin-jsx-a11y` is
+> re-enabled in `packages/eslint-config-react/index.js` with the recommended set
+> downgraded to `warn`.
+
 - **A. Re-enable `eslint-plugin-jsx-a11y` in `eslint-config-react`.** Restores
   static checks at author time / in CI for every app and lib that extends the
   React config. Catches the common regressions (missing `alt`, unlabelled
@@ -93,6 +101,8 @@ Four independent sub-decisions; each has its own options and tradeoffs.
 
 ### `no-non-null-assertion`
 
+> Outstanding. Not yet enabled in any `eslint-config-*` package.
+
 - **A. Enable as `error` immediately.** Honest and enforced, but requires fixing
   all ~50–90 sites in the same change — a large, cross-cutting diff that fights
   the "small increments" rule and risks rushed guard code.
@@ -107,6 +117,10 @@ Four independent sub-decisions; each has its own options and tradeoffs.
 
 ### container CSP
 
+> Shipped (ADS-847): the baked `Dockerfile.app` nginx CSP drops
+> `unsafe-inline`/`unsafe-eval` (vanilla-extract replaced styled-components), so
+> `style-src` and `script-src` are now `'self'`.
+
 - **A. Tighten `Dockerfile.app`'s `connect-src` to match the proxy's pinned
   policy** (parameterised per environment). Removes the exfiltration surface even
   when the container is served without the proxy — true defence-in-depth. Cost:
@@ -120,6 +134,10 @@ Four independent sub-decisions; each has its own options and tradeoffs.
   threat model the ticket calls out.
 
 ### coverage floors
+
+> Shipped (ADS-1243): Option B. `apps/rescue` and `apps/client`
+> `vitest.config.ts` carry explicit ratcheted thresholds, enforced for
+> coverage-gated packages by `scripts/check-workspace-consistency.mjs`.
 
 - **A. One-shot raise** to a target (e.g. rescue/client lines → 70/75). Clear
   destination, but a large jump likely lands red immediately and forces a big

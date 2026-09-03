@@ -1,19 +1,26 @@
-# <type>(<scope>): <subject>
+# <type>(<scope>): <subject> (ADS-NNN)
 #
 # Types: feat | fix | refactor | test | docs | chore | ci | perf | style | build
-# Scope (optional): package name without @adopt-dont-shop/ prefix.
-#                   Examples: lib.auth, app.admin, service.gateway, ci, deps
+#
+# Scope (optional, advisory — not enforced by commitlint):
+#   the area affected. Scopes seen on main include:
+#   deploy, gateway, auth, applications, rescue, notifications, security,
+#   authz, observability, frontend, backend, ci, adr, docs.
+#   Skip it if the change spans many areas.
 #
 # Subject: imperative, <= 72 chars, no trailing period.
+#   Put the Linear ticket at the end in parentheses: (ADS-NNN).
 #
 # Examples:
-#   feat(lib.auth): add two-factor authentication support
-#   fix(service.pets): correct date format in rescue profile
-#   chore(deps): bump vitest to 4.0.9
+#   feat(gateway): auth backstop — 401 tokenless requests on non-public routes (ADS-1255)
+#   fix(deploy): keep host secret files so a reboot doesn't strand services (ADS-1247)
+#   test: gate coverage on non-lib packages, restore disabled lib gates (ADS-1243)
 #
 # --- Body (optional) ---
 # Explain WHY, not WHAT. Wrap at 72 cols.
 #
 # --- Footer (optional) ---
-# BREAKING CHANGE: <description>
-# Closes #123 / Refs ADS-456
+# Only two footers are used here:
+#   BREAKING CHANGE: <description>
+#   Co-authored-by: Name <email>
+# The ticket goes in the subject, NOT in a footer.

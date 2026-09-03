@@ -8,86 +8,89 @@ disable-model-invocation: true
 
 # Create a New Shared Library
 
+Frontend-shared libraries live under `packages/lib.<name>` and are published as
+`@adopt-dont-shop/lib.<name>`. The generator is argv-driven (not interactive).
+
 ## Current libraries
-!`ls -d lib.*/ 2>/dev/null | tr '\n' ' '`
+
+!`ls -d packages/lib.*/ 2>/dev/null | xargs -n1 basename | tr '\n' ' '`
 
 ## Step 1 — Run the generator
 
 ```bash
-pnpm new-lib
+pnpm new-lib <library-name> [description] [--type=service|utility] [--with-api]
 ```
 
-The script is interactive. It will prompt for:
-- **Library name** — enter without the `lib.` prefix (e.g. `payments` → creates `lib.payments`)
-- **Library type** — `utility` (pure functions, no HTTP) or `service` (wraps API endpoints)
-- **Include lib.api integration?** — yes if the lib will call backend endpoints
+- `<library-name>` — without the `lib.` prefix (e.g. `payments` → `packages/lib.payments`). Required; running `pnpm new-lib` with no name prints usage and exits 1.
+- `[description]` — optional quoted summary; defaults to a generic string.
+- `--type=service` (default) — wraps API endpoints, emits `src/services/<name>-service.ts`. `--type=utility` — pure functions/components/hooks (`src/components`, `src/hooks`, `src/utils`).
+- `--with-api` — adds `@adopt-dont-shop/lib.api` as a dependency and uses the `service-with-api` variant.
 
-Follow the prompts. The script generates the full package structure.
+Examples:
+
+```bash
+pnpm new-lib chat "Real-time chat" --type=service
+pnpm new-lib dev-tools "Development utilities" --type=utility
+pnpm new-lib billing "Billing client" --type=service --with-api
+```
 
 ## Step 2 — Verify the generated structure
 
-The script creates `lib.<name>/` containing:
+A `service` lib generates `packages/lib.<name>/`:
 
 ```
-lib.<name>/
-├── package.json          # @adopt-dont-shop/lib.<name>
+packages/lib.<name>/
+├── package.json          # @adopt-dont-shop/lib.<name>, "type": "module"
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── eslint.config.js
+├── .prettierrc.json
+├── Dockerfile
+├── docker-compose.lib.yml
+├── README.md             # scaffolded from the lib template — has TODOs to fill
 └── src/
-    ├── index.ts          # Public exports
-    ├── types/
-    │   └── index.ts
-    └── services/
-        └── <name>-service.ts
+    ├── index.ts          # public exports
+    ├── types/index.ts
+    ├── services/<name>-service.ts
+    ├── services/__tests__/<name>-service.test.ts
+    └── test-utils/setup-tests.ts
 ```
 
-Check the generated `package.json`:
-- Name must be `@adopt-dont-shop/lib.<name>`
-- Must have `"type": "module"`
-- `main` points to `dist/index.js`, `types` to `dist/index.d.ts`
+Tests live in `src/services/__tests__/`, next to the code they cover. A
+`utility` lib swaps `services/` and `types/` for `components/`, `hooks/`, and
+`utils/` index files.
 
-## Step 3 — Add the library to the root workspace
+## Step 3 — Workspace registration (already covered)
 
-Open the root `package.json` and verify the new package appears in `workspaces`. The script
-should add it automatically, but confirm:
+The `packages/*` glob in `pnpm-workspace.yaml` already covers
+`packages/lib.<name>` — the generator adds nothing, and there is **no** root
+`package.json` `workspaces` key to edit. Do not add per-lib scripts or a
+workspaces entry (the old generator did; it no longer applies).
 
-```json
-"workspaces": [
-  "lib.<name>",
-  ...
-]
-```
+## Step 4 — Add the dev alias (once, centrally)
 
-If missing, add it manually.
-
-## Step 4 — Add vite.config.ts alias in consuming apps (dev only)
-
-For each app that will use the new lib during development, add a source alias to its
-`vite.config.ts` so Vite resolves the library source directly (no build step needed in dev):
+For Vite to resolve the library's source in dev (no build step), add one entry
+to `getLibraryAliases()` in the root `vite.shared.config.ts` — all three apps
+read from that single map, so add it **once**, not per app:
 
 ```typescript
-// In the libraryAliases object inside vite.config.ts
-'@adopt-dont-shop/lib.<name>': resolve(__dirname, '../lib.<name>/src'),
+'@adopt-dont-shop/lib.<name>': resolve(appDir, '../../packages/lib.<name>/src'),
 ```
 
-This is already the pattern used by all existing libs. Do not skip this step — without it,
-the app will require a full lib build before changes appear in the dev server.
+`check-workspace-consistency.mjs` fails on per-app aliases, so keep it central.
 
 ## Step 5 — Install and build
 
 ```bash
-# From the monorepo root
-pnpm install
-pnpm build:libs
+pnpm install          # unless you passed --skip-install
+pnpm build:libs       # Turbo builds libs in dependency order
 ```
 
-`build:libs` uses Turbo and builds all libraries in dependency order. Run this before
-starting any app that depends on the new lib.
+Rebuild the dev image after lockfile changes: `pnpm docker:dev:build`.
 
-## Step 6 — Add the dependency to consuming packages
+## Step 6 — Add the dependency to consumers
 
-In the app's or other lib's `package.json`:
+In each consuming app/lib `package.json`, using the `workspace:*` protocol:
 
 ```json
 "dependencies": {
@@ -95,25 +98,37 @@ In the app's or other lib's `package.json`:
 }
 ```
 
-Always use the `workspace:*` protocol as the version — pnpm workspaces resolves it to the local package.
+Import from the package root: `import { Foo } from '@adopt-dont-shop/lib.<name>'`.
 
 ## Step 7 — Write tests first (TDD)
 
-Create `src/<name>-service.test.ts` before implementing anything. Tests live alongside
-their implementation file — not in a separate `__tests__/` directory for libs.
+Fill in `src/services/__tests__/<name>-service.test.ts` before implementing.
+Tests verify behaviour through the public API only — no internals.
 
-Tests verify behaviour through public API only. No testing internals.
+## Step 8 — Fill the README and check it
+
+Replace the `TODO` blocks in the generated `README.md` (Purpose, Location,
+Public API / exports, Environment variables, Testing notes). Enumerate every
+runtime export; type-only exports are covered by `src/index.ts`. Then:
+
+```bash
+node scripts/check-readmes.mjs   # or: pnpm check:readmes
+```
+
+The scaffold ships every required heading, so this passes once the TODOs are
+filled without drifting the section headings.
 
 ## TypeScript rules
 
-- Strict mode is mandatory — do not add `"strict": false` to tsconfig
-- No `any` types — use `unknown` if the type is genuinely unknown
-- Define schemas with Zod first, then derive types: `type Foo = z.infer<typeof FooSchema>`
-- Export only what consumers need — keep internals private
+- Strict mode is mandatory — never set `"strict": false`.
+- No `any` — use `unknown`. Define a Zod schema first, then `z.infer` the type.
+- Export only what consumers need.
 
 ## Common mistakes
 
-- Forgetting to add the vite alias → stale lib in dev server
-- Using `||` instead of `??` for empty string defaults (empty string is valid config)
-- Not running `pnpm install` after adding the workspace → unresolved module errors
-- Writing tests that check implementation details rather than behaviour
+- Adding a per-app vite alias instead of the single central one → consistency check fails.
+- Re-adding a root `workspaces` array or per-lib scripts → not used by pnpm workspaces.
+- Using `||` instead of `??` for empty-string config defaults.
+- Leaving README TODOs unfilled → `check:readmes` / review friction.
+
+Canonical doc: [`docs/libraries/README.md`](../../../docs/libraries/README.md) and [`docs/templates/README.lib.md`](../../../docs/templates/README.lib.md).

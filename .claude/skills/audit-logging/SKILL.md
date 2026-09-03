@@ -13,12 +13,12 @@ The backend separates **operational logs** (Layer 1 — `logger.*`) from
 **audit events** (Layer 2 — durable `audit.audit_events` table). This skill
 is about Layer 2.
 
-| | Layer 1 — `logger.*` | Layer 2 — audit |
-|---|---|---|
-| Purpose | Debugging, ops | Forensics: who did what to what |
-| Storage | console + files + Loki | `audit.audit_events` table (owned by `services/audit`) + Loki |
-| Mutable | Yes | No (immutable, append-only) |
-| How | `logger.info/warn/error` via `@adopt-dont-shop/observability` | `publish({ type: '<domain>.actionTaken', … })` inside `withTransaction` |
+|         | Layer 1 — `logger.*`                                          | Layer 2 — audit                                                         |
+| ------- | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Purpose | Debugging, ops                                                | Forensics: who did what to what                                         |
+| Storage | console + files + Loki                                        | `audit.audit_events` table (owned by `services/audit`) + Loki           |
+| Mutable | Yes                                                           | No (immutable, append-only)                                             |
+| How     | `logger.info/warn/error` via `@adopt-dont-shop/observability` | `publish({ type: '<domain>.actionTaken', … })` inside `withTransaction` |
 
 ## How the audit pipeline actually works
 
@@ -44,8 +44,13 @@ handler
 ```
 
 `withTransaction` (in `@adopt-dont-shop/events`) enforces **publish-after-
-commit**: it queues the event during the block and only sends it to NATS
-after `COMMIT` succeeds, so a rollback drops the event with no work needed.
+commit** via a **transactional outbox** (ADS-1048): the queued event is written
+as a row in the service's `event_outbox` table _inside the same transaction_ as
+the business write, so a rollback drops it with no work needed. After commit,
+an inline fast-path publishes the row and a background `startOutboxRelay` sweep
+re-publishes anything the fast-path missed — so a committed event is never lost.
+Any new event-publishing service therefore needs an `event_outbox` migration and
+a `startOutboxRelay` call at boot (see [`packages/events`](../../../packages/events/README.md)).
 
 ## When to audit
 
@@ -56,8 +61,9 @@ to reconstruct months later:
   rescues, invitations, etc.)
 - Authentication events (login, logout, password reset, MFA changes)
 - Authorisation changes (role grant, permission change, suspension)
-- Sensitive reads (admin viewing a user's PII record) — use `audit: true`
-  on the field-mask hook, which fans out into an `actionTaken` publish
+- Sensitive reads (admin viewing a user's PII record) — publish an explicit
+  `<domain>.actionTaken` read event from the handler; there is no automatic
+  audit flag on field masking
 - Bulk operations, exports, data deletions
 
 Don't audit pure read-only endpoints unless they expose sensitive data.
@@ -70,15 +76,19 @@ not act on.
 // services/pets/src/grpc/pet-handlers.ts (illustrative)
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-
-import type { HandlerDeps } from './handlers.js';
+import { HandlerError, type HandlerDeps } from '@adopt-dont-shop/service-bootstrap';
+import { PETS_CREATE } from '@adopt-dont-shop/lib.types';
 
 export async function createPet(
   deps: HandlerDeps,
   principal: Principal,
-  req: { name: string; rescueId: string },
+  req: { name: string; rescueId: string }
 ) {
-  requirePermission(principal, 'pet.write');
+  // requirePermission returns a boolean — the handler throws on false.
+  // Import the constant from lib.types; never inline the permission string.
+  if (!requirePermission(principal, PETS_CREATE, { rescueId: req.rescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_CREATE}' required for this rescue`);
+  }
 
   const petId = randomUUID();
 
@@ -86,7 +96,7 @@ export async function createPet(
     await client.query(
       `INSERT INTO pets.pets (pet_id, name, rescue_id, created_at, updated_at)
        VALUES ($1, $2, $3, now(), now())`,
-      [petId, req.name, req.rescueId],
+      [petId, req.name, req.rescueId]
     );
 
     publish({
@@ -125,10 +135,12 @@ transaction and record the diff — the audit row then tells the full story.
 
 ```typescript
 await withTransaction(deps, async ({ client, publish }) => {
-  const { rows: [before] } = await client.query(
+  const {
+    rows: [before],
+  } = await client.query(
     `SELECT name, description, updated_at FROM pets.pets
      WHERE pet_id = $1 FOR UPDATE`,
-    [petId],
+    [petId]
   );
   if (!before) throw new HandlerError('NOT_FOUND', 'pet not found');
 
@@ -136,7 +148,7 @@ await withTransaction(deps, async ({ client, publish }) => {
   await client.query(
     `UPDATE pets.pets SET name = $1, description = $2, updated_at = now()
      WHERE pet_id = $3`,
-    [after.name, after.description, petId],
+    [after.name, after.description, petId]
   );
 
   publish({
@@ -211,3 +223,5 @@ noise, audit for forensics.
   it).
 - **Skipping `await`** — a fire-and-forget `withTransaction` is silently
   dropped on error.
+
+Canonical doc: [`services/audit/src/nats/event-types.ts`](../../../services/audit/src/nats/event-types.ts).

@@ -11,6 +11,11 @@ tsconfig.base.json              # root — strict mode, module/moduleResolution,
 │   │                           # allowSyntheticDefaultImports + noEmit:false
 │   └── packages/lib.*/tsconfig.json
 │
+├── tsconfig.cjs.base.json      # CommonJS dual-build overlay (module: CommonJS,
+│   │                           # moduleResolution: node) for the few libs that
+│   │                           # ship a CJS build alongside ESM
+│   └── packages/{lib.types,lib.permissions}/tsconfig.cjs.json
+│
 └── tsconfig.service.base.json  # services/* + the Node-only shared packages
     │                           # (authz, config-secrets, db, events,
     │                           # observability, proto, seed-faker,

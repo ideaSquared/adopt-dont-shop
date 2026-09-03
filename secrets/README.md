@@ -12,17 +12,17 @@ before `docker compose up -d`; the deploy workflow
 
 ## Required files
 
-| File                          | Consumed by                     | Contents                                                      |
-| ----------------------------- | ------------------------------- | ------------------------------------------------------------- |
-| `database_url`                | every domain service            | `postgresql://user:pass@database:5432/db`                      |
-| `redis_url`                   | every domain service            | `redis://:pass@redis:6379`                                     |
-| `jwt_secret`                  | `service-auth`                  | access-token signing secret                                    |
-| `jwt_refresh_secret`          | `service-auth`                  | refresh-token signing secret                                   |
-| `encryption_key`              | `service-auth`                  | AES-256-GCM key (64 hex chars / 32 bytes) for TOTP 2FA secrets at rest (ADS-914) |
-| `upload_signing_secret`       | `service-gateway`               | HMAC secret for `/uploads-signed` URLs                         |
-| `principal_signing_key`       | `service-gateway` + every domain service | HMAC key for the signed `x-principal-token` gRPC metadata (ADS-800) |
-| `db_password`                 | `database` container (staging + production) | Postgres superuser password (read via `POSTGRES_PASSWORD_FILE`) |
-| `redis_password`              | `redis` container (staging + dev) | Same value as in `redis_url`; the redis container reads it directly (`cat /run/secrets/redis_password`) for its own `--requirepass` instead of via `environment:` (ADS-878) |
+| File                    | Consumed by                                    | Contents                                                                                                                                                                    |
+| ----------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `database_url`          | every domain service                           | `postgresql://user:pass@database:5432/db`                                                                                                                                   |
+| `redis_url`             | every domain service                           | `redis://:pass@redis:6379`                                                                                                                                                  |
+| `jwt_secret`            | `service-auth`                                 | access-token signing secret                                                                                                                                                 |
+| `jwt_refresh_secret`    | `service-auth`                                 | refresh-token signing secret                                                                                                                                                |
+| `encryption_key`        | `service-auth`                                 | AES-256-GCM key (64 hex chars / 32 bytes) for TOTP 2FA secrets at rest (ADS-914)                                                                                            |
+| `upload_signing_secret` | `service-gateway`                              | HMAC secret for `/uploads-signed` URLs                                                                                                                                      |
+| `principal_signing_key` | `service-gateway` + every domain service       | HMAC key for the signed `x-principal-token` gRPC metadata (ADS-800)                                                                                                         |
+| `db_password`           | `database` container (staging + production)    | Postgres superuser password (read via `POSTGRES_PASSWORD_FILE`)                                                                                                             |
+| `redis_password`        | `redis` container (production + staging + dev) | Same value as in `redis_url`; the redis container reads it directly (`cat /run/secrets/redis_password`) for its own `--requirepass` instead of via `environment:` (ADS-878) |
 
 Each file must contain only the secret value (trailing whitespace is
 trimmed by the loader). No quoting, no `KEY=value` framing — just the value.

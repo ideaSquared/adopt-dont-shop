@@ -18,8 +18,8 @@ consumed by the apps and other libraries.
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -42,6 +42,20 @@ constructed with `{ debug?, timezone?, currency? }` (with `updateConfig` /
 - **Formatting**: `formatCurrency`, `formatFileSize`, `formatPhoneNumber`,
   `formatAddress`.
 
+Standalone helpers exported alongside the service:
+
+- `safeHref` — XSS-hardened `href`/`src` sanitizer.
+- `escapeLikePattern` — escape SQL `LIKE`/`ILIKE` wildcards in user search terms.
+- `getErrorMessage` — user-facing message from an HTTP status / network error.
+- `safeFormatDate` — null-safe date formatter.
+
+Sub-module exports:
+
+- `./env` — environment/URL config helpers (`getEnvironmentConfig`,
+  `getApiBaseUrl`, `buildApiUrl`, …) plus `EnvironmentUrls` / `EnvironmentConfig`.
+- `./locale` — UK-locale date/currency/phone/address utilities plus
+  `LocaleConfig` and `UKCounty`.
+
 Plus the supporting types (`DateFormatOptions`, `TruncateOptions`,
 `SlugOptions`, `ValidationResult`, `CurrencyOptions`, `AddressData`, …). For
 UK-locale conventions on dates / phone / currency, see the `uk-localization`
@@ -55,7 +69,7 @@ None — configuration is passed to the `UtilsService` constructor.
 
 Vitest — each utility category is covered with edge cases (invalid inputs,
 partial data, boundary formatting). See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -68,4 +82,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 3 workspace package(s) depend on this library. See [lib.utils-consumers.md](../../docs/libraries/lib.utils-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

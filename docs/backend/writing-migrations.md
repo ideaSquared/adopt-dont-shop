@@ -24,8 +24,6 @@ services/auth/src/migrations/
   002_create_roles.ts
   003_create_permissions.ts
   ...
-  024_hash_auth_tokens.ts
-  025_hash_refresh_tokens.ts
 ```
 
 The filename pattern is enforced by a test in every service's migration
@@ -139,16 +137,6 @@ pattern — each service's `001_*.ts` just creates its own tables explicitly
 with `pgm.createTable(...)`, the same as any other migration. There's no
 `sync()`-generated baseline to keep in step with model files, because there
 are no Sequelize models anymore.
-
-[`docs/migrations/per-model-rebaseline.md`](../migrations/per-model-rebaseline.md)
-describes a **different, historical** problem: the deleted `service.backend`
-monolith's `00-baseline.ts` called `sequelize.sync()`, which silently
-regenerated its baseline schema from whatever the Sequelize model files
-looked like _at migration-run time_ — a real footgun that motivated
-per-model baseline files. None of that applies to the current node-pg-migrate
-services; the doc is kept for historical context, not as a pattern to follow
-here. If you're not touching `service.backend/` (it's deleted — you can't
-be), you can ignore it.
 
 ## 4. Failure recovery (advisory locks, partial applies)
 

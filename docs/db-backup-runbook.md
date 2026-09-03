@@ -1,8 +1,6 @@
 # Database Backup & Restore Runbook (ADS-443, ADS-811, ADS-1240)
 
-This runbook covers how the Adopt Don't Shop production PostgreSQL database is
-backed up, how to restore it, and the drill cadence required to keep that
-restore path trustworthy.
+Authoritative runbook for backing up and restoring the production data stores (audience: operators). Covers how the Adopt Don't Shop production PostgreSQL database is backed up, how to restore it, how to restore the `uploads` volume, and the drill cadence required to keep that restore path trustworthy. Retention/cadence policy lives in [snapshot-policy.md](./operations/snapshot-policy.md).
 
 The two scripts that implement this runbook live under `scripts/`:
 
@@ -100,8 +98,12 @@ Backup (`snapshot-postgres.sh`):
 - `BACKUP_BUCKET` — S3 bucket (no `s3://` prefix).
 - `AWS_REGION` — bucket region.
 - `POSTGRES_USER`, `POSTGRES_DB` — superuser + database name (from `.env`).
-- `COMPOSE_FILE` — optional, defaults to
-  `/opt/adopt-dont-shop/docker-compose.prod.yml`.
+- `COMPOSE_FILE` — on the prod host this must be
+  `/opt/ads/production/docker-compose.prod.yml` (the value `backup.yml`
+  exports before invoking the script). Note: the script's built-in default
+  still reads the stale monolith-era `/opt/adopt-dont-shop/…` path
+  (`scripts/snapshot-postgres.sh:21`), so always pass `COMPOSE_FILE`
+  explicitly on the host until that default is corrected.
 
 Restore (`restore-postgres.sh`):
 
@@ -156,7 +158,7 @@ Restore into a **scratch DB** first, verify, then repoint the application.
 
 ```bash
 # 1. Provision a scratch DB inside the prod stack's Postgres
-docker compose -f /opt/adopt-dont-shop/docker-compose.prod.yml exec -T database \
+docker compose -f /opt/ads/production/docker-compose.prod.yml exec -T database \
   createdb -U "$POSTGRES_USER" adopt_restore_check
 
 # 2. Restore the chosen snapshot into it
@@ -168,7 +170,7 @@ S3_KEY=postgres/2026/06/16/020000/dump.sql.gz \
 ./scripts/restore-postgres.sh
 
 # 3. Verify row counts on critical tables (schemas are per-service)
-docker compose -f /opt/adopt-dont-shop/docker-compose.prod.yml exec -T database \
+docker compose -f /opt/ads/production/docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d adopt_restore_check -c \
   'select count(*) from auth.users; select count(*) from rescue.rescues; select count(*) from pets.pets;'
 
@@ -179,6 +181,28 @@ docker compose -f /opt/adopt-dont-shop/docker-compose.prod.yml exec -T database 
 For an in-place restore after a migration disaster, **stop the writing
 services first** (otherwise concurrent writes collide with the restore), then
 run with `TARGET_DB=$POSTGRES_DB CONFIRM_RESTORE=I_UNDERSTAND`.
+
+## Uploads restore
+
+The `uploads` volume (pet photos + adoption documents) is snapshotted nightly
+to S3 by `scripts/snapshot-uploads.sh` (`backup.yml`, `snapshot-uploads` job).
+To restore a day's snapshot back onto the volume:
+
+**Preconditions:** SSH to the prod host; `$BACKUP_BUCKET` / `$AWS_REGION` set.
+
+```bash
+# Sync the chosen day's snapshot back onto the volume (adjust the date).
+# The real host path is production_uploads — Compose prefixes the volume
+# name with the project name (the basename of /opt/ads/production), so it is
+# NOT the generic "uploads" the script's default assumes.
+aws s3 sync "s3://${BACKUP_BUCKET}/uploads/2026/07/18/" \
+  /var/lib/docker/volumes/production_uploads/_data/
+```
+
+Expected: `aws s3 sync` prints one `download:` line per restored object and
+exits 0. `letsencrypt` TLS state is intentionally excluded — it regenerates on
+its own. Once uploads move to S3-native storage (see the snapshot policy), the
+bucket becomes the system of record and this step is no longer needed.
 
 ## Automated nightly restore verification
 
@@ -222,7 +246,7 @@ each quarter:
 1. Pick a snapshot at random from the last 30 days of production backups.
 2. On the **staging** host, provision a scratch DB in the staging Postgres:
    ```bash
-   docker compose -f /opt/adopt-dont-shop/docker-compose.staging.yml exec -T database \
+   docker compose -f /opt/ads/staging/docker-compose.staging.yml exec -T database \
      createdb -U "$POSTGRES_USER" adopt_drill_$(date +%Y%m%d)
    ```
 3. Restore the production snapshot into it with `restore-postgres.sh`

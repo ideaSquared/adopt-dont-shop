@@ -1,876 +1,256 @@
-# Troubleshooting Guide
+# Backend Troubleshooting
 
-## Overview
+Symptom → diagnostics → solution for the backend stack (gateway + gRPC services + Postgres +
+NATS). Each section gives numbered diagnostic commands with the output to expect. For deep dives
+see the [runbooks](../runbooks/README.md); for the observability surface see
+[`../observability/tracing.md`](../observability/tracing.md).
 
-This guide provides solutions to common issues encountered when developing, deploying, or maintaining the Adopt Don't Shop Backend Service. Issues are organized by category with detailed diagnostic steps and solutions.
+## General debugging
 
-## General Debugging
-
-### Enable Debug Logging
+Logs are structured JSON on stdout (shipped to Loki in deployed environments); there is no
+`app.log` file. Raise verbosity with `LOG_LEVEL`:
 
 ```bash
-# Enable all debug logs
-DEBUG=* pnpm dev
-
-# Enable specific module debug logs
-DEBUG=auth:*,database:* pnpm dev
-
-# Set log level
 LOG_LEVEL=debug pnpm dev
 ```
 
-### Health Check Diagnostics
+Follow a single container's logs:
 
-The gateway exposes a single `/health/simple` liveness probe on port 4000
-(no aggregated / DB / detailed endpoint — the LB probe is liveness-only):
+```bash
+docker compose logs -f service-auth
+```
+
+## Health diagnostics
+
+The gateway exposes one liveness probe, `/health/simple`, on port 4000. There is no aggregated
+`/health` or `/health/ready` route.
 
 ```bash
 curl http://localhost:4000/health/simple
+# Expected: {"status":"ok","service":"service.gateway","environment":"development"}
 ```
 
-To check a specific backing service, hit its own `/health/simple` on its
-container port (5001–5010) via `docker compose exec`, or inspect its
-container state directly with `docker compose ps`.
-
-## Database Issues
-
-### Connection Problems
-
-**Symptoms:**
-
-- "Connection refused" errors
-- "ECONNREFUSED" errors
-- Database timeout errors
-
-**Diagnostics:**
+Each backing service exposes its own `/health/simple` on its container port (5001–5010, bound to
+127.0.0.1). Check one service, or the whole fleet's container state:
 
 ```bash
-# Test database connectivity
-pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER
-
-# Test connection with psql
-psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "SELECT version();"
-
-# Check database logs
-docker logs postgres_container
-
-# Verify environment variables
-echo $DATABASE_URL
-echo $DB_HOST $DB_PORT $DB_NAME $DB_USER
+docker compose exec service-pets curl -fsS http://localhost:5002/health/simple
+docker compose ps          # STATUS column should read "healthy" for every service
 ```
 
-**Solutions:**
+## Database: connection problems
 
-1. **Database not running:**
+Symptoms: `ECONNREFUSED`, "Connection refused", connection timeouts.
 
-   ```bash
-   # Start PostgreSQL service
-   sudo systemctl start postgresql
-
-   # Or start Docker container
-   docker start postgres_container
-   ```
-
-2. **Wrong connection parameters:**
-
-   ```bash
-   # Verify .env file
-   cat .env | grep DB_
-
-   # Update connection string
-   export DATABASE_URL="postgresql://user:pass@host:port/dbname"
-   ```
-
-3. **Firewall blocking connection:**
-
-   ```bash
-   # Check if port is open
-   telnet $DB_HOST $DB_PORT
-
-   # Open port in firewall
-   sudo ufw allow 5432
-   ```
-
-4. **SSL/TLS issues:**
-
-   ```javascript
-   // Disable SSL for development
-   dialectOptions: {
-     ssl: false
-   }
-
-   // Or configure SSL properly
-   dialectOptions: {
-     ssl: {
-       require: true,
-       rejectUnauthorized: false
-     }
-   }
-   ```
-
-### Migration Issues
-
-**Symptoms:**
-
-- Migration fails with SQL errors
-- "Table already exists" errors
-- "Column does not exist" errors
-
-**Diagnostics:**
+Diagnostics:
 
 ```bash
-# View migration history (each service owns a pgmigrations table in its own schema)
+# 1. Is Postgres reachable?
+pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"
+# Expected: "<host>:<port> - accepting connections"
+
+# 2. Is the container healthy?
+docker compose ps database
+# Expected: STATUS "healthy"
+
+# 3. Are the env vars what you think they are?
+echo "$DB_HOST $DB_PORT $DB_NAME"
+```
+
+Solutions:
+
+1. Container not up: `pnpm dev:services` (or `pnpm docker:dev:detach`) to start Postgres + Redis.
+2. Wrong host: native `pnpm dev` needs `DB_HOST=localhost` / `REDIS_HOST=localhost` in `.env`
+   (`.env.example` uses the Docker hostnames `database` / `redis`).
+3. The pool is not env-tunable. Connection/timeout defaults live in `TIMEOUT_DEFAULTS`
+   (`packages/db/src/client.ts`); change them there, not via env.
+
+## Database: migration problems
+
+Symptoms: migration fails with a SQL error, "table already exists", "column does not exist".
+
+Diagnostics:
+
+```bash
+# 1. What has each service applied? Every service owns a pgmigrations table in its own schema.
 psql -c "SELECT name, run_on FROM auth.pgmigrations ORDER BY id DESC LIMIT 10;"
-# repeat with pets.pgmigrations / rescue.pgmigrations / … as needed
+#   repeat for pets.pgmigrations, applications.pgmigrations, …
 
-# Check current database schema
-\dn+                                     -- list schemas
-\dt+ auth.*                              -- tables in a schema
+# 2. Inspect the live schema
+psql -c "\dn+"                # list schemas
+psql -c "\dt+ auth.*"         # tables in a schema
 ```
 
-**Solutions:**
+Solutions:
 
-1. **Failed migration:**
+1. There is no `db:migrate:undo` — the shared runner (`packages/db/src/migrate.ts`) only runs
+   forward (`direction: 'up'` is hardcoded). Recover by writing a corrective forward migration;
+   see [`../runbooks/migration-failure.md`](../runbooks/migration-failure.md).
+2. Dev-only hard reset (wipes all data): `pnpm docker:reset` then `pnpm docker:dev:detach` —
+   each service re-runs its own migrations on boot.
 
-   There is **no `pnpm db:migrate:undo` script** — the shared runner in
-   `packages/db/src/migrate.ts` only runs migrations forward. See
-   [`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md)
-   paths B (write a corrective forward migration) and E (manual pgmigrations
-   surgery) for the actual recovery procedures.
+## Database: slow queries
 
-2. **Out of sync migrations:**
-
-   ```bash
-   # Reset database (development only — wipes ALL data)
-   pnpm docker:reset
-   pnpm docker:dev:detach
-   # Each service re-runs its own migrations on container start.
-   ```
-
-3. **Manual migration fix:**
-
-   ```sql
-   -- Remove migration record (per schema — each service owns its own table)
-   DELETE FROM auth.pgmigrations WHERE name = 'problematic-migration';
-
-   -- Fix database manually
-   ALTER TABLE users ADD COLUMN new_column VARCHAR(255);
-
-   -- Re-run migration
-   ```
-
-### Performance Issues
-
-**Symptoms:**
-
-- Slow query responses
-- Database timeouts
-- High CPU usage
-
-**Diagnostics:**
+Diagnostics:
 
 ```sql
--- Check active connections
-SELECT * FROM pg_stat_activity;
+-- Active connections
+SELECT pid, state, query FROM pg_stat_activity WHERE state != 'idle';
 
--- Find slow queries
+-- Slowest statements (pg_stat_statements must be enabled)
 SELECT query, mean_exec_time, calls
-FROM pg_stat_statements
-ORDER BY mean_exec_time DESC
-LIMIT 10;
+FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10;
 
--- Check table sizes
-SELECT schemaname, tablename,
-       pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
-FROM pg_tables
-ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+-- Plan for a suspect query
+EXPLAIN ANALYZE SELECT * FROM pets WHERE type = 'DOG';
 ```
 
-**Solutions:**
+Solution: add the missing index in a new migration in the owning service (never edit a shipped
+one) — see [`writing-migrations.md`](./writing-migrations.md).
 
-1. **Missing indexes:**
+## gRPC UNAVAILABLE / circuit breaker open at the gateway
 
-   ```sql
-   -- Add missing indexes
-   CREATE INDEX idx_pets_type_status ON pets(type, status);
-   CREATE INDEX idx_applications_user_status ON applications(user_id, status);
-   ```
+Symptom: a route returns HTTP 503 with `{"error":"service_unavailable"}`. The gateway maps gRPC
+`UNAVAILABLE` → 503 (`services/gateway/src/middleware/grpc-error.ts`). This means a downstream
+service is down, or the gateway's per-service circuit breaker has opened
+(`services/gateway/src/grpc-clients/resilience.ts`): after repeated failures within
+`GRPC_CIRCUIT_WINDOW_MS` (default 30 000 ms) the breaker opens and rejects calls immediately with
+an `UNAVAILABLE`-coded error until a cooldown lets one half-open probe through.
 
-2. **Connection pool issues:**
-
-   ```javascript
-   // Increase pool size
-   pool: {
-     max: 20,
-     min: 5,
-     acquire: 30000,
-     idle: 10000
-   }
-   ```
-
-3. **Query optimization:**
-   ```sql
-   -- Use EXPLAIN to analyze queries
-   EXPLAIN ANALYZE SELECT * FROM pets WHERE type = 'DOG';
-   ```
-
-## Authentication Issues
-
-### JWT Token Problems
-
-**Symptoms:**
-
-- "Invalid token" errors
-- "Token expired" errors
-- Authentication fails silently
-
-**Diagnostics:**
+Diagnostics:
 
 ```bash
-# Decode JWT token (without verification)
-echo "eyJhbGciOiJIUzI1NiIs..." | base64 -d
+# 1. Which downstream is failing? 503 means "a service", not "the gateway".
+docker compose ps
+# Expected: the culprit shows STATUS other than "healthy" (restarting / unhealthy).
 
-# Test token with curl
-curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/v1/users/me
+# 2. Read the breaker state metric (0=closed, 1=half-open, 2=open).
+curl -s http://localhost:4000/metrics | grep grpc_circuit_state
+# Expected healthy: grpc_circuit_state{service="pets"} 0
 
-# Check JWT secret
-echo $JWT_SECRET | wc -c  # Should be 32+ characters
+# 3. Read the failing service's own logs for the root cause.
+docker compose logs --tail=100 service-pets
 ```
 
-**Solutions:**
+Solutions:
 
-1. **Token expired:**
+1. If the service is down/unhealthy, restart it (`docker compose restart service-pets`) and
+   confirm its `/health/simple` returns ok; the breaker closes on the next successful probe.
+2. If the service is healthy but the breaker is stuck open (gauge `2`), it half-opens
+   automatically after the cooldown — the next request is the probe. A persistent open state is
+   a real downstream fault; fix that, do not bypass the breaker.
 
-   ```javascript
-   // Check token expiration
-   const decoded = jwt.decode(token);
-   console.log('Token expires at:', new Date(decoded.exp * 1000));
+## NATS JetStream: stuck consumer / dead-letter queue
 
-   // Refresh token
-   const newToken = await refreshAccessToken(refreshToken);
-   ```
+Symptom: events stop being processed, or a message redelivers forever. A parseable-but-failing
+message is `nak()`'d with exponential backoff up to `MAX_DELIVER = 7`
+(`packages/events/src/subscribe.ts`); after the 7th attempt it is parked in the dead-letter
+stream `DOMAIN_EVENTS_DLQ` (subjects `dlq.>`, 14-day retention;
+`packages/events/src/stream.ts`) and `term()`'d.
 
-2. **Wrong JWT secret:**
-
-   ```bash
-   # Verify JWT_SECRET in environment
-   grep JWT_SECRET .env
-
-   # Ensure secret is consistent across environments
-   export JWT_SECRET="your-consistent-secret-key"
-   ```
-
-3. **Token format issues:**
-
-   ```javascript
-   // Ensure proper Bearer format
-   const token = authHeader.replace('Bearer ', '');
-
-   // Handle missing Authorization header
-   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-     return res.status(401).json({ error: 'Missing or invalid token' });
-   }
-   ```
-
-### Password Issues
-
-**Symptoms:**
-
-- Login fails with correct password
-- Password reset doesn't work
-- Hash comparison errors
-
-**Diagnostics:**
-
-```javascript
-// Test password hashing
-const bcrypt = require('bcrypt');
-const password = 'testpassword';
-const hash = await bcrypt.hash(password, 12);
-const isValid = await bcrypt.compare(password, hash);
-console.log('Password valid:', isValid);
-
-// Check stored hash
-const user = await User.findOne({ where: { email: 'test@example.com' } });
-console.log('Stored hash:', user.passwordHash);
-```
-
-**Solutions:**
-
-1. **Bcrypt rounds mismatch:**
-
-   ```javascript
-   // Ensure consistent salt rounds
-   const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-   const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-   ```
-
-2. **Password reset token issues:**
-
-   ```javascript
-   // Check token expiration
-   if (user.passwordResetExpires < new Date()) {
-     throw new Error('Password reset token expired');
-   }
-
-   // Generate secure token
-   const token = crypto.randomBytes(32).toString('hex');
-   ```
-
-## API Issues
-
-### Request/Response Problems
-
-**Symptoms:**
-
-- 404 errors for existing endpoints
-- CORS errors
-- Request timeout errors
-- Malformed JSON responses
-
-**Diagnostics:**
+Diagnostics (from a container with the `nats` CLI, or `docker compose exec nats ...`):
 
 ```bash
-# Test endpoint availability
-curl -I http://localhost:5000/api/v1/pets
+# 1. Consumer health: are messages piling up unacked?
+nats consumer info DOMAIN_EVENTS <durable-name>
+# Expected healthy: "Unprocessed Messages: 0" and a low "Redelivered" count.
 
-# Check CORS headers
-curl -H "Origin: http://localhost:3000" \
-     -H "Access-Control-Request-Method: POST" \
-     -H "Access-Control-Request-Headers: X-Requested-With" \
-     -X OPTIONS \
-     http://localhost:5000/api/v1/pets
+# 2. Anything dead-lettered?
+nats stream info DOMAIN_EVENTS_DLQ
+# Expected healthy: "Messages: 0". A non-zero count = messages that exhausted MAX_DELIVER.
 
-# Test with verbose output
-curl -v http://localhost:5000/api/v1/pets
+# 3. Inspect a dead-lettered message without consuming it.
+nats stream view DOMAIN_EVENTS_DLQ
+
+# 4. Read the consuming service's logs for the handler error that caused the failure.
+docker compose logs --tail=100 service-audit
 ```
 
-**Solutions:**
+Solutions:
 
-1. **Route not found:**
+1. Fix the handler bug that made the message fail, redeploy the consumer, then replay from the
+   DLQ if the side effect is still needed.
+2. Footgun: a durable consumer's `deliver_policy` / `filter_subject` are fixed at creation.
+   Changing them in code has no effect on an existing durable — delete and recreate it
+   (`nats consumer rm DOMAIN_EVENTS <durable-name>`, then restart the service to re-add it), or
+   use a new durable name. See `packages/events/README.md`.
 
-   ```javascript
-   // Check route registration
-   app.use('/api/v1', routes);
+## Migration advisory-lock contention
 
-   // Verify route definition
-   router.get('/pets', petController.getAllPets);
+Symptom: a service crashes on boot with "Another migration is already running". When several
+services boot against the same Postgres at once, they race for the database-wide advisory lock
+node-pg-migrate takes around `pgmigrations`.
 
-   // Check middleware order
-   app.use(cors());
-   app.use('/api/v1', routes);
-   ```
-
-2. **CORS issues:**
-
-   ```javascript
-   // Configure CORS properly
-   app.use(
-     cors({
-       origin: process.env.CORS_ORIGIN?.split(',') || '*',
-       credentials: true,
-       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-       allowedHeaders: ['Content-Type', 'Authorization'],
-     })
-   );
-   ```
-
-3. **Request timeout:**
-
-   ```javascript
-   // Increase timeout
-   app.use(timeout('30s'));
-
-   // Handle timeout gracefully
-   app.use((req, res, next) => {
-     if (!req.timedout) next();
-   });
-   ```
-
-### Validation Errors
-
-**Symptoms:**
-
-- Request validation fails
-- Unexpected validation messages
-- Schema validation errors
-
-**Diagnostics:**
-
-```javascript
-// Test validation schema
-const { error } = schema.validate(requestData);
-if (error) {
-  console.log('Validation errors:', error.details);
-}
-
-// Check request body
-console.log('Request body:', req.body);
-console.log('Content-Type:', req.headers['content-type']);
-```
-
-**Solutions:**
-
-1. **Schema validation:**
-
-   ```typescript
-   // Update validation schema (project uses Zod, not Joi)
-   import { z } from 'zod';
-   const schema = z.object({
-     email: z.string().email(),
-     password: z.string().min(8),
-   });
-   ```
-
-2. **Content-Type issues:**
-   ```javascript
-   // Ensure JSON parsing
-   app.use(express.json({ limit: '10mb' }));
-   app.use(express.urlencoded({ extended: true }));
-   ```
-
-## Email Service Issues
-
-### Email Delivery Problems
-
-**Symptoms:**
-
-- Emails not being sent
-- Email delivery failures
-- SMTP connection errors
-
-**Diagnostics:**
+Diagnostics:
 
 ```bash
-# Test SMTP connection
-telnet smtp.sendgrid.net 587
+# 1. Confirm the message in the crashing service's logs.
+docker compose logs service-pets | grep -i "another migration"
 
-# Check email queue
-SELECT * FROM email_queue WHERE status = 'failed';
-
-# Test email service
-curl -X POST http://localhost:5000/api/v1/email/test \
-     -H "Content-Type: application/json" \
-     -d '{"to": "test@example.com"}'
+# 2. Check whether a lock is genuinely held right now.
+psql -c "SELECT pid, granted FROM pg_locks WHERE locktype = 'advisory';"
+# Expected once boots settle: no un-granted rows.
 ```
 
-**Solutions:**
+Solution: the shared runner already retries this with linear backoff (`maxRetries = 12`,
+`retryBackoffMs * attempt`; `packages/db/src/migrate.ts`), so transient contention resolves on
+its own — losers queue and succeed. A migration that stays stuck past the retry budget is a real
+failure (a long-running or crashed migration holding the lock); see
+[`writing-migrations.md`](./writing-migrations.md#4-failure-recovery-advisory-locks-partial-applies).
 
-1. **SMTP configuration:**
-
-   ```javascript
-   // Verify SMTP settings
-   const transporter = nodemailer.createTransporter({
-     host: process.env.SMTP_HOST,
-     port: process.env.SMTP_PORT,
-     secure: process.env.SMTP_SECURE === 'true',
-     auth: {
-       user: process.env.SMTP_USER,
-       pass: process.env.SMTP_PASS,
-     },
-   });
-
-   // Test connection
-   await transporter.verify();
-   ```
-
-2. **API key issues:**
-
-   ```bash
-   # Verify SendGrid API key
-   curl -X GET "https://api.sendgrid.com/v3/user/account" \
-        -H "Authorization: Bearer $SENDGRID_API_KEY"
-   ```
-
-3. **Email template issues:**
-   ```javascript
-   // Check template compilation
-   try {
-     const compiled = handlebars.compile(template);
-     const html = compiled(templateData);
-   } catch (error) {
-     console.error('Template compilation error:', error);
-   }
-   ```
-
-## File Upload Issues
-
-### Storage Problems
-
-**Symptoms:**
-
-- File upload failures
-- "Permission denied" errors
-- Storage quota exceeded
-
-**Diagnostics:**
+## Email not sending
 
 ```bash
-# Check disk space
-df -h
+# Follow the notifications service and look for the provider init line.
+docker compose logs -f service-notifications
 
-# Check directory permissions
-ls -la uploads/
-
-# Test file write permissions
-touch uploads/test.txt && rm uploads/test.txt
-
-# Check file size limits
-curl -F "file=@large-file.jpg" http://localhost:5000/api/v1/upload
+# Inspect the queue for failed rows.
+psql -c "SELECT id, status, error FROM notifications.email_queue WHERE status = 'failed';"
 ```
 
-**Solutions:**
+Providers are `console` / `ethereal` (dev) and `resend` (prod), selected by `EMAIL_PROVIDER`;
+`resend` requires `RESEND_API_KEY` and `DEFAULT_FROM_EMAIL` or the service refuses to boot.
+There is no SMTP/SendGrid/nodemailer path.
 
-1. **Permission issues:**
+## File upload failures
 
-   ```bash
-   # Fix directory permissions
-   chmod 755 uploads/
-   chown www-data:www-data uploads/
-   ```
-
-2. **File size limits:**
-
-   ```javascript
-   // Increase upload limits
-   app.use(express.json({ limit: '50mb' }));
-   app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-   // Configure multer limits
-   const upload = multer({
-     limits: {
-       fileSize: 10 * 1024 * 1024, // 10MB
-     },
-   });
-   ```
-
-3. **AWS S3 issues:**
-   ```javascript
-   // Test S3 connection
-   const s3 = new AWS.S3();
-   try {
-     await s3.headBucket({ Bucket: bucketName }).promise();
-   } catch (error) {
-     console.error('S3 connection error:', error);
-   }
-   ```
-
-## Performance Issues
-
-### High Memory Usage
-
-**Symptoms:**
-
-- Application crashes with "out of memory"
-- Slow response times
-- Memory leaks
-
-**Diagnostics:**
+The local storage provider writes under the owning service's `uploads/` directory. The size cap
+is `MAX_FILE_SIZE` (`services/gateway/src/config.ts`, default 10 MB), enforced via
+`@fastify/multipart`; storage goes through `@adopt-dont-shop/storage`.
 
 ```bash
-# Monitor memory usage
-top -p $(pgrep node)
-
-# Node.js memory usage
-node --inspect app.js
-# Then use Chrome DevTools
-
-# Check for memory leaks
-node --trace-warnings --trace-deprecation app.js
+docker compose exec service-pets ls -la uploads/
+# Expected: directory exists and is writable by the container's non-root user.
 ```
 
-**Solutions:**
+Wipe local upload state with `pnpm docker:reset`.
 
-1. **Memory leaks:**
-
-   ```javascript
-   // Properly close database connections
-   process.on('SIGINT', async () => {
-     await sequelize.close();
-     process.exit(0);
-   });
-
-   // Remove event listeners
-   emitter.removeAllListeners();
-
-   // Clear intervals/timeouts
-   clearInterval(intervalId);
-   ```
-
-2. **Large query results:**
-
-   ```javascript
-   // Use pagination
-   const pets = await Pet.findAndCountAll({
-     limit: 20,
-     offset: page * 20,
-   });
-
-   // Stream large datasets
-   const stream = Pet.findAll({ raw: true }).stream();
-   ```
-
-### High CPU Usage
-
-**Symptoms:**
-
-- Server becomes unresponsive
-- High CPU usage in monitoring
-- Request timeouts
-
-**Diagnostics:**
+## Docker: container problems
 
 ```bash
-# Monitor CPU usage
-htop
+# 1. Status and recent exits
+docker compose ps -a
 
-# Profile Node.js application
-node --prof app.js
-node --prof-process isolate-*.log > processed.txt
+# 2. Why did it exit?
+docker compose logs --tail=100 service-auth
+
+# 3. Port already in use? (gateway is 4000; services are 5001–5010)
+sudo lsof -ti:4000
 ```
 
-**Solutions:**
+Solutions:
 
-1. **Optimize algorithms:**
+1. Free the port (`sudo kill -9 $(lsof -ti:4000)`) or change the published port in `.env`.
+2. After a lockfile change, rebuild the shared dev image: `pnpm docker:dev:build` (the baked
+   `node_modules` is re-exposed to every container; the host's is never used inside one).
 
-   ```javascript
-   // Use efficient data structures
-   const userMap = new Map();
-
-   // Avoid nested loops
-   const results = pets.filter(pet => petIds.includes(pet.id));
-   ```
-
-2. **Add caching:**
-
-   ```javascript
-   // Cache frequent queries
-   const redis = require('redis');
-   const client = redis.createClient();
-
-   const cached = await client.get(`pets:${type}`);
-   if (cached) {
-     return JSON.parse(cached);
-   }
-   ```
-
-## Docker Issues
-
-### Container Problems
-
-**Symptoms:**
-
-- Container won't start
-- "Port already in use" errors
-- Container exits immediately
-
-**Diagnostics:**
+## Common commands
 
 ```bash
-# Check container status
-docker ps -a
-
-# View container logs
-docker logs container_name
-
-# Inspect container
-docker inspect container_name
-
-# Check port usage
-netstat -tulpn | grep :5000
+pnpm docker:dev:detach                              # start the full stack (background)
+pnpm docker:down                                    # stop
+pnpm docker:reset                                   # stop + wipe volumes (incl. DB)
+docker compose logs -f service-<name>               # follow one service
+docker compose exec service-auth pnpm db:migrate    # migrate one service by hand
+pnpm db:seed                                         # re-seed dev data
 ```
-
-**Solutions:**
-
-1. **Port conflicts:**
-
-   ```bash
-   # Kill process using port
-   sudo kill -9 $(lsof -ti:5000)
-
-   # Use different port
-   docker run -p 5001:5000 app_image
-   ```
-
-2. **Container exits:**
-
-   ```dockerfile
-   # Fix Dockerfile — project pins Node 22 (engines: ">=22 <23")
-   FROM node:22-alpine
-   WORKDIR /app
-   COPY package*.json ./
-   RUN pnpm install --frozen-lockfile
-   COPY . .
-   EXPOSE 5000
-   CMD ["npm", "start"]
-   ```
-
-3. **Volume mount issues:**
-   ```bash
-   # Fix volume permissions
-   docker run -v $(pwd):/app --user $(id -u):$(id -g) app_image
-   ```
-
-## Deployment Issues
-
-### Production Deployment
-
-**Symptoms:**
-
-- Application crashes in production
-- Environment variable issues
-- SSL certificate problems
-
-**Diagnostics:**
-
-```bash
-# Check application logs
-pm2 logs
-journalctl -u app-service
-
-# Verify environment variables
-printenv | grep -E "(NODE_ENV|DB_|JWT_)"
-
-# Test SSL certificate
-openssl s_client -connect domain.com:443
-```
-
-**Solutions:**
-
-1. **Environment configuration:**
-
-   ```bash
-   # Set production environment
-   export NODE_ENV=production
-
-   # Load environment file
-   source .env.production
-
-   # Verify critical variables
-   if [ -z "$JWT_SECRET" ]; then
-     echo "JWT_SECRET not set"
-     exit 1
-   fi
-   ```
-
-2. **SSL certificate:**
-
-   ```bash
-   # Renew Let's Encrypt certificate
-   certbot renew
-
-   # Update nginx configuration
-   nginx -t && nginx -s reload
-   ```
-
-3. **Process management:**
-   ```bash
-   # Use PM2 for production
-   pm2 start ecosystem.config.js
-   pm2 startup
-   pm2 save
-   ```
-
-## Monitoring and Alerting
-
-### Log Analysis
-
-**Common log patterns to watch:**
-
-```bash
-# Error patterns
-grep -E "(ERROR|FATAL)" logs/app.log
-
-# Authentication failures
-grep "Invalid credentials" logs/app.log
-
-# Database connection issues
-grep "ECONNREFUSED" logs/app.log
-
-# High response times
-grep "response_time.*[5-9][0-9][0-9][0-9]" logs/app.log
-```
-
-### Health Check Monitoring
-
-```bash
-#!/bin/bash
-# health-monitor.sh
-
-ENDPOINT="http://localhost:5000/health"
-SLACK_WEBHOOK="your-slack-webhook-url"
-
-response=$(curl -s -o /dev/null -w "%{http_code}" $ENDPOINT)
-
-if [ $response -ne 200 ]; then
-  curl -X POST -H 'Content-type: application/json' \
-    --data '{"text":"🚨 API Health Check Failed: HTTP '$response'"}' \
-    $SLACK_WEBHOOK
-fi
-```
-
-## Getting Help
-
-### Debug Information to Collect
-
-When reporting issues, include:
-
-1. **Environment details:**
-
-   ```bash
-   node --version
-   pnpm --version
-   cat package.json | grep version
-   echo $NODE_ENV
-   ```
-
-2. **Error logs:**
-
-   ```bash
-   tail -n 100 logs/error.log
-   docker logs --tail 100 container_name
-   ```
-
-3. **System information:**
-
-   ```bash
-   uname -a
-   free -h
-   df -h
-   ```
-
-4. **Network information:**
-   ```bash
-   netstat -tulpn
-   curl -I http://localhost:5000/health
-   ```
-
-### Common Commands Reference
-
-```bash
-# Application management
-pnpm docker:dev               # Start full stack (Docker)
-pnpm dev                  # Start in development mode
-pnpm test                     # Run tests
-pnpm build               # Build for production
-
-# Database management
-docker compose exec service-auth pnpm db:migrate   # Run migrations (per service)
-pnpm db:seed            # Seed database
-pnpm docker:reset        # Reset database
-
-# Docker management
-docker compose up -d        # Start services
-docker compose logs -f      # View logs
-docker compose down         # Stop services
-
-# Process management
-pm2 start app.js           # Start with PM2
-pm2 restart app            # Restart application
-pm2 logs                   # View logs
-pm2 monit                  # Monitor processes
-```
-
----
-
-This troubleshooting guide covers the most common issues encountered with the Adopt Don't Shop Backend Service. For additional help, consult the specific service documentation or contact the development team.

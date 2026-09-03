@@ -1,11 +1,11 @@
-# TextInput Component
+# TextInput
 
 A text input component with validation, icons, and various input types support.
 
 ## Usage
 
 ```tsx
-import { TextInput } from '@/components/form/TextInput'
+import { TextInput } from '@adopt-dont-shop/lib.components'
 
 // Basic usage
 <TextInput

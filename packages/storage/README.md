@@ -4,10 +4,11 @@
 
 Config-injected file-storage abstraction for the backend microservices: a
 single `StorageProvider` contract backed by two implementations — local
-filesystem and S3 — extracted from `service.backend`'s storage service with no
-coupling to a global config, logger, or uuid helper. Malware/AV scanning is
-intentionally out of scope (a documented follow-up; wire a scan step in front of
-`uploadFile`).
+filesystem and S3 — carried over from the deleted monolith's storage service
+with no coupling to a global config, logger, or uuid helper. Malware/AV scanning
+is not part of this package: it ships separately as
+[`lib.av-scan`](../lib.av-scan/README.md) (`scanBytes()`), which the gateway
+calls in front of `uploadFile` at the upload chokepoint.
 
 This is a service-only shared package (not a `lib.*`) — used today by the
 gateway's uploads surface. See the decision tree in
@@ -56,7 +57,7 @@ callers typically source `S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID`,
 Vitest — the local provider is tested against a temp directory (image
 processing, non-image passthrough, signed-URL rejection); the S3 provider is
 tested with the AWS SDK client stubbed. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership

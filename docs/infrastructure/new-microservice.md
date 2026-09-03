@@ -112,6 +112,17 @@ first migration is just `001_create_<your_table>.ts` — look at
 verbatim and swap the `serviceName` string; it just points
 `@adopt-dont-shop/db`'s `runMigrations()` at `../migrations`.
 
+**If your service publishes any NATS events** (almost all do), it also needs an
+`event_outbox` table in its own schema — the transactional outbox
+`withTransaction` stages events into (ADS-1048). Add a migration that re-exports
+the shared DDL, exactly like `services/cms/src/migrations/004_create_event_outbox.ts`:
+
+```typescript
+export { up, down } from '@adopt-dont-shop/events/outbox-schema';
+```
+
+Then start the relay once at boot (step 5).
+
 ## 5. gRPC handlers: error + audit patterns
 
 Handlers live in `src/grpc/handlers.ts` as plain async functions
@@ -122,16 +133,25 @@ Handlers live in `src/grpc/handlers.ts` as plain async functions
   for expected failures — the gRPC adapter maps these to gRPC status codes.
   Grep `HandlerError` in any existing service's `grpc/handlers.ts` for the
   pattern (e.g. `services/cms/src/grpc/handlers.ts`).
+- Permission gates live in the handler: `requirePermission(principal, PERMISSION)`
+  from `@adopt-dont-shop/authz` (constants from `@adopt-dont-shop/lib.types`,
+  never inlined). The gateway does not enforce domain permissions.
 - State-changing handlers run their DB write + NATS publish inside
   `withTransaction` from `@adopt-dont-shop/events` so events only fire
   after commit (publish-after-commit — see any `handlers.ts` for the
   `withTransaction(deps, async ({ client, publish }) => {...})` shape).
-- **Audit logging** — pick exactly one path per action (see the
-  `audit-logging` skill / CLAUDE.md "Logging vs. Auditing" section for the
-  full decision rule): call `AuditLogService.log({..., transaction: t})`
-  inside the service if it runs in a transaction; use the `auditRoute()`
-  gateway middleware for route-level CRUD with no service transaction;
-  never both on the same action.
+- **Audit logging** — there is **no** `AuditLogService.log()` and **no**
+  `auditRoute()` middleware (those were the deleted monolith). For any action
+  that needs a forensic trail, `publish({ type: '<domain>.actionTaken', … })`
+  from inside the `withTransaction` block; `services/audit` consumes the
+  wildcard `*.actionTaken` and persists it. Never write to `audit.audit_events`
+  directly, and never emit the audit event from the gateway. See the
+  `audit-logging` skill for the payload shape.
+- **Outbox relay** — start it once at boot in `index.ts`:
+  `const relay = startOutboxRelay({ pool, nats, logger });` and `relay.stop()`
+  on shutdown (copy `services/cms/src/index.ts`). Without it, events staged in
+  `event_outbox` are only best-effort published on the inline path and never
+  swept if that misses.
 - If your service stores any user-linked data, register a GDPR erasure
   subscriber (`src/gdpr/erase.ts`, wired in `index.ts` via
   `registerGdprSubscriber`) — see `services/cms/src/gdpr/erase.ts`.
@@ -157,51 +177,64 @@ places — follow the `cms` wiring as the template:
      await registerCmsRoutes(server, { client: opts.cmsClient });
    }
    ```
+4. **Pact contract test** — add
+   `services/gateway/src/grpc-clients/<name>-client.contract.test.ts`
+   (mirror `cms-client.contract.test.ts`) so the consumer↔provider contract is
+   pinned. The gateway's `test:contracts:consumer` / `test:contracts:provider`
+   scripts and the root `pacts/` directory pick it up.
 
-## 7. Docker Compose, Dockerfile, `.env.example`
+## 7. Wire the service into every pipeline file
 
-`Dockerfile.service` is a single parameterised Dockerfile shared by every
-service — you don't create a new Dockerfile, you reference the existing one
-with build args. Add a block to `docker-compose.yml` (mirroring
-`service-cms`, right before the `volumes:` section):
+This is the step that's easy to half-do — a new service must be added to
+**every** file below or it silently never starts, never builds, never deploys,
+or never gets health-checked. `Dockerfile.service` is a single parameterised
+Dockerfile shared by every service, so you never create a new one; you add the
+service to each list. Worked example: everywhere `service-cms` / `cms` already
+appears is exactly the set you must touch. One line per file:
 
-```yaml
-service-<name>:
-  profiles: ['services', 'full']
-  build:
-    context: .
-    dockerfile: Dockerfile.service
-    target: development
-    args:
-      SERVICE: '@adopt-dont-shop/service.<name>'
-      SERVICE_DIR: services/<name>
-  environment:
-    <<: *ms-env
-  ports:
-    - '127.0.0.1:500N:500N'
-  depends_on: *ms-deps
-  restart: unless-stopped
-  healthcheck:
-    test: ['CMD', 'curl', '-fsS', 'http://localhost:500N/health/simple']
-    interval: 10s
-    timeout: 5s
-    retries: 5
-    start_period: 40s
+| File                                       | What to add (mirror the `cms` line)                                                                                                                                                                      |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker-compose.yml`                       | The dev-container `service-<name>:` block (build args `SERVICE` / `SERVICE_DIR`, `<<: *ms-env`, `ports: ['127.0.0.1:500N:500N']`, healthcheck on `/health/simple`), right before the `volumes:` section. |
+| `docker-compose.dev.yml`                   | The `service-<name>:` overlay block (migrate-then-`dev` command), **and** the service's `node_modules` anonymous-volume line in the shared `*dev-volumes` list (`- /app/services/<name>/node_modules`).  |
+| `docker-compose.prod.yml`                  | The `service-<name>:` block: pinned `image:` (`…/service-<name>:${SERVICE_<NAME>_TAG:-…}`) and `container_name: ads_prod_<name>`.                                                                        |
+| `docker-compose.staging.yml`               | Same block as prod, `container_name: ads_staging_<name>`.                                                                                                                                                |
+| `.github/workflows/docker.yml`             | Add `- <name>` to the image build matrix.                                                                                                                                                                |
+| `.github/workflows/release.yml`            | Add the `{ name: service-<name>, pkg: '@adopt-dont-shop/service.<name>', dir: services/<name> }` matrix entry.                                                                                           |
+| `.github/workflows/deploy.yml`             | Add the service to **all four** lists: the image manifest line, the `docker compose pull` service list, the up/restart service list, and the `wait-for-services` host:port list (`service-<name>:500N`). |
+| `.github/workflows/rollback.yml`           | Add `service-<name>` to the rollback health-check service list.                                                                                                                                          |
+| `.github/workflows/schema-equivalence.yml` | Add `<name>` to the `for svc in …` schema loop.                                                                                                                                                          |
+| `package.json` (root)                      | Add `service-<name>` to the `docker:logs:services` script's service list.                                                                                                                                |
+
+`.env.example` doesn't need a new entry for the common case — services resolve
+their gRPC URL to `service-<name>:600N` by default (the Docker Compose network
+alias). Only add one if your service needs a var no shared pattern covers
+(e.g. a third-party API key); if so, also document it in
+[`docs/env-reference.md`](../env-reference.md).
+
+Close the loop with a grep — every file above should show your service, exactly
+as `cms` does:
+
+```bash
+grep -rn "service-<name>\|<name>" \
+  docker-compose*.yml .github/workflows/ package.json
 ```
 
-`.env.example` doesn't need a new entry for the common case — services
-resolve their gRPC URL to `service-<name>:600N` by default (the Docker
-Compose network alias), same as every existing service. Only add an
-`.env.example` entry if your service needs a var no shared pattern already
-covers (e.g. a third-party API key).
+## 8. Docs index
 
-`.github/workflows/deploy.yml` needs the new service added to its image pull
-list and to the [`scripts/wait-for-services.sh`](../../scripts/wait-for-services.sh)
-call (`service-<name>:500N`) — see the `deploy` job's `Deploy to server`
-step. `rollback.yml` only health-checks the gateway, so it doesn't need a
-per-service change.
+A new service is not done until the docs point at it:
 
-## 8. Local smoke test
+- Add a row to the index table in [`services/README.md`](../../services/README.md)
+  (npm name, HTTP + gRPC ports, schema, one-line purpose, key deps).
+- Add the port pair to the table in **step 1** of this file, and bump "the next
+  new service is 501(N+1) / 601(N+1)".
+- Write `services/<name>/README.md` from
+  [`docs/templates/README.service.md`](../templates/README.service.md) — every
+  templated heading (including `## Running locally`) is enforced by
+  `scripts/check-readmes.mjs`, so run `node scripts/check-readmes.mjs` before you
+  commit.
+- Document any new env var in [`docs/env-reference.md`](../env-reference.md).
+
+## 9. Local smoke test
 
 ```bash
 pnpm --filter @adopt-dont-shop/proto build   # regenerate stubs

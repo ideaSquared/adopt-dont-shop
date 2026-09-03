@@ -1,11 +1,14 @@
-# RadioInput Component
+# RadioInput
 
 A flexible radio input component for selecting a single option from a group.
+
+> **Not exported** from `src/index.ts` — import it by relative path within this
+> package, or add it to `src/index.ts` first.
 
 ## Usage
 
 ```tsx
-import { RadioInput } from '@lib/components';
+import { RadioInput } from './RadioInput';
 
 const options = [
   { value: 'option1', label: 'Option 1' },

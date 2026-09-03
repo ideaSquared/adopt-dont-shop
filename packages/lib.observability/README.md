@@ -13,13 +13,13 @@ See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
 libraries sit. Each app calls the init helpers once at bootstrap; the cookie
 banner in [`lib.legal`](../lib.legal/README.md) owns the consent UI and toggles
 the analytics gate here. Sentry feeds alerting per
-[`docs/observability-alerting.md`](../../docs/observability-alerting.md).
+[`docs/slo.md`](../../docs/slo.md).
 
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -37,9 +37,10 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `web-vitals`), `WebVitalMetric`, `WebVitalsReporter`.
 - **Analytics consent gate** (localStorage-backed; Sentry is out of scope):
   `hasAnalyticsConsent()`, `setAnalyticsConsent('granted' | 'denied' |
-  'unknown')` (dispatches `ads:analytics-consent-change` for same-tab
+'unknown')` (dispatches `ads:analytics-consent-change` for same-tab
   listeners), `subscribeToAnalyticsConsent(listener)`,
-  `ANALYTICS_CONSENT_STORAGE_KEY`.
+  `ANALYTICS_CONSENT_STORAGE_KEY`, and the `ConsentState` type
+  (`'granted' | 'denied' | 'unknown'`).
 
 ## Environment variables consumed
 
@@ -51,7 +52,7 @@ None read directly — each app passes `VITE_SENTRY_DSN` / `VITE_BUILD_SHA` /
 
 Vitest — the consent gate (storage + same-tab/cross-tab events), the Web Vitals
 subscription, and the Sentry no-op-on-empty-DSN path are tested directly. See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -64,4 +65,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 4 workspace package(s) depend on this library. See [lib.observability-consumers.md](../../docs/libraries/lib.observability-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

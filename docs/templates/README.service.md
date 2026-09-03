@@ -35,6 +35,34 @@ pnpm db:migrate   # run pending migrations (node-pg-migrate) — omit if this
                   # service owns no schema
 ```
 
+## Running locally
+
+One paragraph plus the four commands every service exposes the same way. Fill
+in `<name>` (compose service `service-<name>`) and `<httpPort>` (published on
+`127.0.0.1:<httpPort>` by `docker-compose.yml`).
+
+In the Docker dev stack (primary workflow):
+
+```bash
+pnpm docker:dev:detach                        # start the whole stack
+docker compose logs -f service-<name>         # follow just this service
+curl localhost:<httpPort>/health/simple       # liveness probe
+# Expected: {"status":"ok","service":"@adopt-dont-shop/service.<name>","environment":"development"}
+```
+
+Bare-metal (this service alone, against host Postgres + NATS you supply with
+`pnpm dev:services`):
+
+```bash
+DATABASE_URL=postgres://adopt_user:adopt_pass@localhost:5432/adopt_dont_shop_dev \
+NATS_URL=nats://localhost:4222 \
+pnpm --filter @adopt-dont-shop/service.<name> dev
+```
+
+List any extra **required** env this service needs on top of the two above (see
+`## Environment variables consumed`). To debug the container, see
+[`docs/runbooks/dev-stack-troubleshooting.md`](../../docs/runbooks/dev-stack-troubleshooting.md).
+
 ## REST / gRPC contract
 
 - HTTP surface: `/health/simple` at minimum; list anything else the gateway
@@ -53,7 +81,7 @@ rather than duplicating vars shared across services.
 
 Anything specific to this service's tests: fixtures, stubbed downstream
 clients, coverage thresholds set in its own `vitest.config.ts`. Link to
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for anything not
 service-specific.
 
 ## Ownership

@@ -19,7 +19,9 @@ gRPC calls — it is a pure event sink + query surface. Depends on the shared
 backend packages `@adopt-dont-shop/{authz, config-secrets, db, events,
 lib.types, observability, proto, service-bootstrap}`. The GDPR saga is
 documented in [`docs/slo.md`](../../docs/slo.md) and the
-[GDPR erasure runbook](../../docs/runbooks/gdpr-erasure-incident.md).
+[GDPR erasure runbook](../../docs/runbooks/gdpr-erasure-incident.md). For how
+this service was carved out of the monolith, see
+[`docs/backend/microservices-extraction-history.md`](../../docs/backend/microservices-extraction-history.md#audit).
 
 ## Scripts
 
@@ -33,6 +35,31 @@ pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
 
+## Running locally
+
+In the Docker dev stack (primary workflow) this runs as container
+`service-audit`, HTTP published on `127.0.0.1:5009`:
+
+```bash
+pnpm docker:dev:detach                    # start the whole stack
+docker compose logs -f service-audit      # follow just this service
+curl localhost:5009/health/simple         # liveness probe
+# Expected: {"status":"ok","service":"@adopt-dont-shop/service.audit","environment":"development"}
+```
+
+Bare-metal (this service alone, against host Postgres + NATS from
+`pnpm dev:services`). It is a pure event sink + query surface, so it needs no
+`*_GRPC_URL`:
+
+```bash
+DATABASE_URL=postgres://adopt_user:adopt_pass@localhost:5432/adopt_dont_shop_dev \
+NATS_URL=nats://localhost:4222 \
+pnpm --filter @adopt-dont-shop/service.audit dev
+```
+
+To debug the container, see
+[`docs/runbooks/dev-stack-troubleshooting.md`](../../docs/runbooks/dev-stack-troubleshooting.md).
+
 ## REST / gRPC contract
 
 HTTP surface: `/health/simple`. Everything else is gRPC `AuditQueryService`
@@ -40,17 +67,19 @@ HTTP surface: `/health/simple`. Everything else is gRPC `AuditQueryService`
 RPC. Proxied by the gateway under `/api/v1/audit/*` and `/api/v1/reports/*`,
 gated on the `view Audit` ability (admin+). `super_admin` bypasses.
 
-| RPC | Permission |
-| --- | --- |
-| `Query` / `GetByTarget` | `admin.audit_logs` |
-| `ListSavedReports` / `GetSavedReport` | `reports.read` |
-| `CreateSavedReport` / `UpdateSavedReport` / `DeleteSavedReport` | `reports.create` / `.update` / `.delete` |
-| `ListReportTemplates` | read-only (template library) |
-| `GetGdprErasureRequest` | `admin.gdpr.read` (or the subject reading their own saga) |
+| RPC                                                             | Permission                                                |
+| --------------------------------------------------------------- | --------------------------------------------------------- |
+| `Query` / `GetByTarget`                                         | `admin.audit_logs`                                        |
+| `ListSavedReports` / `GetSavedReport`                           | `reports.read`                                            |
+| `CreateSavedReport` / `UpdateSavedReport` / `DeleteSavedReport` | `reports.create` / `.update` / `.delete`                  |
+| `ListReportTemplates`                                           | read-only (template library)                              |
+| `GetGdprErasureRequest`                                         | `admin.gdpr.read` (or the subject reading their own saga) |
 
 Schema (`audit`): `audit_events` (append-only, PK `event_id`),
 `gdpr_erasure_requests` (saga state per `correlation_id`), `saved_reports`,
-`report_templates`. Migrations: `src/migrations/001`–`008`.
+`report_templates`, `saved_report_schedules`, and `saved_report_shares`.
+Migrations: `src/migrations/001`–`008`. (This service consumes events rather
+than publishing them, so it owns no `event_outbox` table.)
 
 **NATS** — consumes `*.actionTaken` (persist an immutable event, idempotent on
 `event_id`), `gdpr.erasureRequested` (durable `audit-workers-gdpr-request`), and
@@ -75,20 +104,10 @@ SQL), and the sweep scheduler (timeout + retry passes) are tested directly with
 an injected pool + NATS — assert idempotent event persistence, the saga
 completion/failure/timeout state machine, retry re-publish behaviour, and the
 `gdpr_sagas` gauge values. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership
 
 See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 `/services/`.
-
----
-
-## Migration history
-
-Audit was the Phase 10 extraction — it replaces the monolith's
-`auditLog.service.ts` + audit middleware. Landed as a boot skeleton (10.1), the
-`audit.*` schema with the immutability trigger (10.2), the read-only gRPC query
-service with keyset cursors (10.3), the `*.actionTaken` NATS subscribers across
-all services (10.4), the gateway routes (10.5), and the monolith cutover (10.6).

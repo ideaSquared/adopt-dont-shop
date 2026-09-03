@@ -58,20 +58,21 @@ The `lib.*` packages split cleanly by whether they touch React/DOM:
 
 ```
 adopt-dont-shop/
-├── app.admin/  app.client/  app.rescue/   # React web (Vite)
-├── app.mobile/                            # NEW — React Native + Expo
-│   ├── app/                               # screens (Expo Router)
-│   ├── src/components/                    # RN UI primitives (replaces lib.components)
-│   ├── app.json / app.config.ts           # Expo config
-│   ├── package.json                       # @adopt-dont-shop/app.mobile
-│   └── tsconfig.json
-├── lib.*/                                 # shared libraries (unchanged)
+├── apps/
+│   ├── admin/  client/  rescue/           # React web (Vite)
+│   └── mobile/                            # NEW — React Native + Expo
+│       ├── app/                           # screens (Expo Router)
+│       ├── src/components/                # RN UI primitives (replaces lib.components)
+│       ├── app.json / app.config.ts       # Expo config
+│       ├── package.json                   # @adopt-dont-shop/app.mobile
+│       └── tsconfig.json
+├── packages/lib.*/                        # shared libraries (unchanged)
 └── services/                              # backend services; the gateway is the API mobile consumes
 ```
 
 Integration points:
 
-- **pnpm workspace:** add `"app.mobile"` to the root `package.json` `workspaces` array. It then resolves `@adopt-dont-shop/lib.*` like every other package.
+- **pnpm workspace:** add the app's path to the `packages:` list in `pnpm-workspace.yaml` (this repo uses `pnpm-workspace.yaml`, not a root `package.json` `workspaces` key). `scripts/create-new-app.js` calls `registerWorkspace()`, which does this automatically. It then resolves `@adopt-dont-shop/lib.*` like every other package.
 - **Turborepo:** `build`, `lint`, `type-check`, and `test` tasks work out of the box once `app.mobile/package.json` defines those scripts. Mobile-specific tasks (`expo start`, EAS builds) live as additional scripts and run outside the normal web pipeline.
 - **TypeScript:** extend `tsconfig.base.json` as the other packages do.
 - **Testing:** the repo standard is Vitest; React Native's ecosystem standard is Jest + `@testing-library/react-native`. This is a real divergence — see Open Questions.
@@ -105,6 +106,6 @@ Each phase should leave the repo in a working, shippable state (per our TDD / sm
 
 ## References
 
-- [Frontend technical architecture](./technical-architecture.md) — how the web app shells, routing, state, and styling are structured today
+- [Frontend app-shell pattern](./app-shell.md) — how the web app shells, routing, state, and styling are structured today
 - [Design tokens](../../DESIGN_TOKENS.md) — theme tokens to mirror on mobile
-- [Backend service PRD](../backend/service-backend-prd.md) — the API surface mobile would consume
+- [Backend product requirements](../backend/product-requirements.md) — the API surface mobile would consume

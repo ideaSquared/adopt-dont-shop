@@ -1,6 +1,23 @@
 # Contributing to Adopt Don't Shop
 
-Thanks for contributing! This guide covers everything you need to open a good PR.
+**Scope:** how to contribute — branch, commit, test, and get a PR through CI. For running the stack see [README.md](./README.md#quick-start); for architecture and code patterns see [.claude/CLAUDE.md](./.claude/CLAUDE.md).
+
+## Contents
+
+- [Getting started](#getting-started)
+- [Where does my code go?](#where-does-my-code-go)
+- [Development workflow](#development-workflow)
+- [Before opening a PR](#before-opening-a-pr)
+- [Code style](#code-style)
+- [Test requirements](#test-requirements)
+- [Reporting bugs / proposing features](#reporting-bugs--proposing-features)
+- [Reviewing & code ownership](#reviewing--code-ownership)
+- [Dependency updates](#dependency-updates)
+- [E2E Testing](#e2e-testing)
+
+## AI agent skills
+
+This repo is set up for AI coding agents (Claude Code). [`.claude/CLAUDE.md`](./.claude/CLAUDE.md) holds the normative repo-wide rules and dispatches to task-specific skills under [`.claude/skills/`](./.claude/skills/) (backend endpoints, migrations, tests, forms, styling, and more) that load on demand. Read the relevant skill before writing code in its area — the same conventions apply whether a human or an agent is writing the change.
 
 ## Getting started
 
@@ -8,7 +25,7 @@ Follow the Quick Start in [README.md](./README.md#quick-start) to get the stack 
 
 ### Onboarding health
 
-`.github/workflows/onboarding-smoke.yml` runs nightly (and on manual dispatch) to catch regressions in the onboarding path above before a new contributor hits them: it checks out a clean copy of the repo (no restored caches) and runs the bootstrap script non-interactively, asserting `.env` gets created, secrets get generated, and `pnpm validate:env` passes. It does not boot the docker dev stack — see the workflow file's header comment for the scope rationale (ADS-951).
+`.github/workflows/onboarding-smoke.yml` runs nightly (03:17 UTC) and on manual dispatch, and — since ADS-1110 — on any push or PR that touches an onboarding-critical file (`scripts/bootstrap.mjs`, `.env.example`, `scripts/validate-env.ts`, `pnpm-workspace.yaml`, `docker-compose*.yml`), so a regression is caught on the introducing PR rather than at the next nightly run. It checks out a clean copy of the repo (no restored caches) and runs the bootstrap script non-interactively, asserting `.env` gets created, secrets get generated, and `pnpm validate:env` passes. It does not boot the docker dev stack — see the workflow file's header comment for the scope rationale (ADS-951).
 
 ## Where does my code go?
 
@@ -76,7 +93,7 @@ fail CI if it reappears.
 
 ## Before opening a PR
 
-CI runs **twelve** checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
+CI spans `.github/workflows/ci.yml` (whose `ci-required` aggregator fans in eleven jobs — see the [Full CI matrix](#full-ci-matrix-for-reference) below), plus the standalone required checks in `lib-test-guard.yml` and `schema-equivalence.yml`, plus the advisory `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
 
 The PR description includes a short "Before requesting review" checklist (see [`.github/pull_request_template.md`](./.github/pull_request_template.md)) that mirrors the most-failed CI checks — tick it off before requesting review.
 
@@ -85,13 +102,13 @@ The PR description includes a short "Before requesting review" checklist (see [`
 Two aggregated scripts run the CI-equivalent checks for you:
 
 ```bash
-pnpm ci:local:quick   # fast preflight (~30s): format + lint + type-check
-pnpm ci:local         # full preflight (~3-5min): format + lint + type-check + test + lib-test guard + workspace drift
+pnpm ci:local:quick   # fast preflight (~30s): format:check + turbo run lint type-check
+pnpm ci:local         # full preflight (~3-5min): format:check + turbo run lint type-check test:coverage + the check:* guards + test:scripts
 ```
 
-`ci:local` covers everything in the fast and slow tiers below except E2E and the backend coverage thresholds — run those separately when relevant.
+`ci:local` runs `test:coverage` (with the per-package thresholds), so it covers the coverage gate as well as the drift/consistency guards. What it does **not** cover is the Playwright E2E suite — run that separately when relevant.
 
-**Coverage parity.** Root `pnpm test` (and `ci:local`) run plain `turbo run test` — they skip the coverage thresholds. CI's `test-frontend`, `test-libs`, `test-packages`, and `test-services` jobs run `test:coverage` and enforce the thresholds declared in `vitest.shared.config.ts`, so a PR that's green on `pnpm test` locally can still fail CI on coverage. To match the CI gate locally, run coverage the same way CI does:
+**Coverage parity.** Because `ci:local` runs `turbo run … test:coverage`, it enforces the same per-package thresholds CI does. Root `pnpm test` alone runs plain `turbo run test` and skips them, so a PR that's green on `pnpm test` locally can still fail CI on coverage. To reproduce just the coverage gate without the full `ci:local`, run coverage the way CI does:
 
 ```bash
 pnpm exec turbo run test:coverage                 # every package, with thresholds
@@ -138,10 +155,18 @@ pnpm exec turbo run lint test type-check --filter='@adopt-dont-shop/service.*'
 # Catches new lib.* packages without tests
 node scripts/check-lib-tests.mjs
 
-# Catches high-severity vulnerabilities across all workspaces
-pnpm audit --audit-level high
+# Catches high-severity vulnerabilities across all workspaces (mirrors security.yml).
+# NOT `pnpm audit`: npm's quick-audit endpoint returns 410, so CI queries npm's
+# bulk advisory endpoint against pnpm-lock.yaml via this script instead.
+node scripts/audit-bulk.mjs
 
-# Playwright E2E suite — run if you touched anything user-facing or auth (~5 min).
+# Fast @smoke E2E subset — the headline journeys only (~1-2 min).
+# On PRs touching app/service code, CI runs this same subset automatically and
+# advisorily (the `test-e2e-smoke` job — red on the PR, never blocks merge),
+# unless the PR carries the `run-e2e` label.
+pnpm test:e2e:smoke
+
+# Full Playwright E2E suite — run if you touched anything user-facing or auth (~5 min).
 # Requires the Docker stack running (pnpm docker:dev:detach).
 # In CI this is opt-in on PRs: add the `run-e2e` label to run it there too
 # (see "CI behaviour" under E2E Testing below).
@@ -152,27 +177,29 @@ pnpm test:e2e
 
 ### Full CI matrix (for reference)
 
-The required checks that gate merge (all feed into the `ci-required` aggregator job in `ci.yml`):
+The `ci-required` aggregator job in `ci.yml` fans in these eleven jobs (its `needs:` list, in order). For the authoritative branch-protection reference, see [`.github/workflows/README.md`](./.github/workflows/README.md#branch-protection):
 
-1. **Verify Workspace ↔ Filesystem Alignment** (`ci.yml` → `workspace-drift`) — catches a `lib.*` added to `package.json` workspaces with no matching directory (or vice-versa).
-2. **Build Libraries** (`ci.yml` → `build-libs`) — compiles every `lib.*` package; downstream jobs depend on the artifact.
-3. **Frontend Tests (app.client / app.admin / app.rescue)** (`ci.yml` → `test-frontend` matrix, ×3) — lint + test + type-check + build per app.
-4. **Library Tests** (`ci.yml` → `test-libs`) — lint, test and type-check across every `lib.*`.
-5. **Service Tests** (`ci.yml` → `test-services`) — lint + test + type-check across every `services/*` package. Added in ADS-822 so zero-test services no longer merge green.
-6. **Package Tests** (`ci.yml` → `test-packages`) — lint + test + type-check across the service-only shared packages under `packages/*` that are not `lib.*` (`proto`, `events`, `authz`, `db`, `storage`, `observability`, …). Gated on the `libs` or `backend` path filter.
-7. **Contract Tests (Pact)** (`ci.yml` → `test-contracts`) — two-phase consumer-driven Pact verification (consumers write pact files, providers verify them). Gated on the `backend` path filter — frontend-only PRs skip it (treated as success). See [ADR 0005](./docs/adr/0005-pact-contract-tests.md) (ADS-816).
-8. **Dev-Auth Guard** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
-9. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
+1. **Verify Workspace ↔ Filesystem Alignment** (`ci.yml` → `workspace-drift`) — catches a `lib.*` added to the `pnpm-workspace.yaml` globs with no matching directory (or vice-versa); also runs the repo-wide format/docs/env drift guards.
+2. **Verify Commit Messages** (`ci.yml` → `commit-lint`) — runs commitlint over every commit on the PR (ADS-1103); the local `commit-msg` hook that `--no-verify` bypasses is not enough.
+3. **Detect Changes** (`ci.yml` → `changes`) — path-filter helper whose outputs gate the heavier jobs below.
+4. **Build Shared Libraries** (`ci.yml` → `build-libs`) — compiles every `lib.*` package into `dist/` and saves it to an `actions/cache` entry (ADS-909) that the downstream test jobs restore via `.github/actions/checkout-and-setup` instead of rebuilding.
+5. **Frontend Tests (app.client / app.admin / app.rescue)** (`ci.yml` → `test-frontend` matrix, ×3) — lint + test:coverage + type-check + build per app.
+6. **Library Tests** (`ci.yml` → `test-libs`) — lint, test:coverage and type-check across every `lib.*`.
+7. **Package Tests** (`ci.yml` → `test-packages`) — lint + test:coverage + type-check across the service-only shared packages under `packages/*` that are not `lib.*` (`proto`, `events`, `authz`, `db`, `storage`, `observability`, …). Gated on the `libs` or `backend` path filter.
+8. **Service Tests** (`ci.yml` → `test-services`) — lint + test:coverage + type-check across every `services/*` package. Added in ADS-822 so zero-test services no longer merge green.
+9. **Contract Tests (Pact)** (`ci.yml` → `test-contracts`) — two-phase consumer-driven Pact verification (consumers write pact files, providers verify them). Gated on the `backend` path filter — frontend-only PRs skip it (treated as success). See [ADR 0005](./docs/adr/0005-pact-contract-tests.md) (ADS-816).
+10. **Verify Dev Auth is Properly Gated** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
+11. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
 
-Additional checks that run but are not part of `ci-required`:
+Checks that run but are **not** part of `ci-required`:
 
-- **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`.
-- **Dependency Audit** (`security.yml`) — `pnpm audit --audit-level high`.
-- **Dependency Check** (`quality.yml`) — `pnpm list -r --depth=0` for duplicates.
+- **E2E Smoke (Playwright)** (`ci.yml` → `test-e2e-smoke`) — advisory `@smoke` subset that runs automatically on PRs touching app/service code (unless the PR is labelled `run-e2e`); red on the PR but never blocks merge (ADS-1242).
+- **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`. A separate required check in branch protection.
+- **Schema Equivalence** (`schema-equivalence.yml`) — pg_dump diff of migrated vs synced schemas. A separate required check in branch protection, path-filtered to migrations.
+- **Dependency Audit** (`security.yml`) — one `dependency-audit` job running `node scripts/audit-bulk.mjs`; advisory.
+- **Dependency Check** (`quality.yml`) — one `dependency-check` job: `pnpm outdated -r` and `pnpm list -r --depth 0`, both advisory (`continue-on-error`).
 
-The Quality workflow's `pnpm outdated -r` step is informational (`continue-on-error: true`) and does not block merge.
-
-If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the nine `ci-required` checks above will not be merged.
+If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the eleven `ci-required` jobs above will not be merged.
 
 ## Code style
 
@@ -185,7 +212,12 @@ Full guidelines are in [.claude/CLAUDE.md](./.claude/CLAUDE.md). Key rules:
 
 ### Markdown formatting
 
-Markdown (`*.md`) is formatted by Prettier like everything else — `pnpm format` / `pnpm format:check` cover it, and `.vscode/settings.json` formats it on save. The one exception is `docs/tasks.md`, excluded in `.prettierignore` because `scripts/generate-task-index.mjs` regenerates it with unpadded Markdown tables that Prettier would re-pad, so the generator and Prettier would otherwise fight on every run. Other generated Markdown (`docs/libraries/*-consumers.md`, and the `## Consumers` / `### Library consumer lists` blocks `scripts/generate-dependency-docs.mjs` writes into `docs/README.md` and `packages/lib.*/README.md`) stays in Prettier's scope because that generator already emits Prettier-idempotent output. If you touch either generator, keep its Markdown idempotent under `prettier --write` (blank line before headings, no unpadded tables) rather than reaching for another `.prettierignore` entry.
+Markdown (`*.md`) is formatted by Prettier like everything else:
+
+- `pnpm format` / `pnpm format:check` cover it, and `.vscode/settings.json` formats it on save.
+- **Exception:** `docs/tasks.md` is excluded in `.prettierignore` — `scripts/generate-task-index.mjs` regenerates it with unpadded Markdown tables that Prettier would re-pad, so the generator and Prettier would otherwise fight on every run.
+- Other generated Markdown stays **in** Prettier's scope because its generator already emits Prettier-idempotent output: `docs/libraries/*-consumers.md`, and the `## Consumers` / `### Library consumer lists` blocks `scripts/generate-dependency-docs.mjs` writes into `docs/README.md` and `packages/lib.*/README.md`.
+- If you touch either generator, keep its Markdown idempotent under `prettier --write` (blank line before headings, no unpadded tables) rather than reaching for another `.prettierignore` entry.
 
 ### Editor configuration
 
@@ -333,6 +365,7 @@ pnpm test:e2e:report
 ### CI behaviour
 
 - **E2E is opt-in on PRs.** The `test-e2e` job only runs automatically on pushes to `main` and via manual `workflow_dispatch`. On a pull request it is skipped (which `ci-required` treats as success) **unless** you add the **`run-e2e`** label — adding it re-triggers CI and runs the full Playwright suite. Add the label once your branch is ready (especially for user-facing, auth, or cross-app changes); leaving it off keeps in-progress PRs fast. See the `test-e2e` job in `.github/workflows/ci.yml`.
+- **A `@smoke` subset runs automatically as an advisory signal.** On PRs touching app/service code, the `test-e2e-smoke` job runs the critical-path `@smoke` journeys without waiting for the `run-e2e` label (ADS-1242). It is **not** in `ci-required`'s needs, so a smoke failure shows red on the PR but never blocks merge; it is skipped when the PR carries `run-e2e` (the full suite already covers it). Reproduce it locally with `pnpm test:e2e:smoke`.
 - Playwright runs with `retries: 2` in CI. A test must fail 3 times in a row before it counts as a failure.
 - Flaky retry counts are printed in the "Report E2E retry counts" CI step.
 - When E2E does run (labelled PR or `main` push) it is a blocking signal — a failure fails the PR check. The suite was reworked for the post-monolith gateway stack in ADS-792 (see the `ci-required` aggregator in `.github/workflows/ci.yml`).

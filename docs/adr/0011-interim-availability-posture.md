@@ -9,6 +9,9 @@
   [ADR 0009](./0009-deployment-strategy-and-ha.md) (deployment-strategy & HA
   option survey) and the recovery objectives already recorded in
   [`docs/db-backup-runbook.md`](../db-backup-runbook.md).
+- Linear: ADS-1252
+- Supersedes / Superseded by: supersedes [ADR 0009](./0009-deployment-strategy-and-ha.md)
+  for the eyes-on launch phase
 
 ## Context
 

@@ -29,6 +29,30 @@ pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
 
+## Running locally
+
+In the Docker dev stack (primary workflow) this runs as container
+`service-cms`, HTTP published on `127.0.0.1:5010`:
+
+```bash
+pnpm docker:dev:detach                  # start the whole stack
+docker compose logs -f service-cms      # follow just this service
+curl localhost:5010/health/simple       # liveness probe
+# Expected: {"status":"ok","service":"@adopt-dont-shop/service.cms","environment":"development"}
+```
+
+Bare-metal (this service alone, against host Postgres + NATS from
+`pnpm dev:services`):
+
+```bash
+DATABASE_URL=postgres://adopt_user:adopt_pass@localhost:5432/adopt_dont_shop_dev \
+NATS_URL=nats://localhost:4222 \
+pnpm --filter @adopt-dont-shop/service.cms dev
+```
+
+To debug the container, see
+[`docs/runbooks/dev-stack-troubleshooting.md`](../../docs/runbooks/dev-stack-troubleshooting.md).
+
 ## REST / gRPC contract
 
 HTTP surface: `/health/simple`. Everything else is gRPC `CmsService`
@@ -36,18 +60,18 @@ HTTP surface: `/health/simple`. Everything else is gRPC `CmsService`
 gateway under `/api/v1/cms/*`. Admin / `super_admin` short-circuit the
 permission check.
 
-| RPC | Permission |
-| --- | --- |
-| `ListPublicContent` / `GetPublicContentBySlug` | none (public) |
-| `ListContent` / `GetContent` / `GetContentBySlug` / `GetVersionHistory` | `cms.content.read` |
-| `CreateContent` | `cms.content.create` |
-| `UpdateContent` / `RestoreVersion` | `cms.content.update` |
-| `DeleteContent` | `cms.content.delete` |
-| `PublishContent` / `UnpublishContent` / `ArchiveContent` | `cms.content.publish` |
-| `ListMenus` / `GetMenu` | `cms.menu.read` |
-| `CreateMenu` | `cms.menu.create` |
-| `UpdateMenu` | `cms.menu.update` |
-| `DeleteMenu` | `cms.menu.delete` |
+| RPC                                                                     | Permission            |
+| ----------------------------------------------------------------------- | --------------------- |
+| `ListPublicContent` / `GetPublicContentBySlug`                          | none (public)         |
+| `ListContent` / `GetContent` / `GetContentBySlug` / `GetVersionHistory` | `cms.content.read`    |
+| `CreateContent`                                                         | `cms.content.create`  |
+| `UpdateContent` / `RestoreVersion`                                      | `cms.content.update`  |
+| `DeleteContent`                                                         | `cms.content.delete`  |
+| `PublishContent` / `UnpublishContent` / `ArchiveContent`                | `cms.content.publish` |
+| `ListMenus` / `GetMenu`                                                 | `cms.menu.read`       |
+| `CreateMenu`                                                            | `cms.menu.create`     |
+| `UpdateMenu`                                                            | `cms.menu.update`     |
+| `DeleteMenu`                                                            | `cms.menu.delete`     |
 
 Schema (`cms`): `cms_content` (pages / posts / help articles with status +
 per-edit version history) and `cms_navigation_menus` (nestable menu trees).
@@ -75,7 +99,7 @@ Promise<response>` with the DB pool + NATS injected — assert every
 PERMISSION_DENIED / INVALID_ARGUMENT / NOT_FOUND path, the
 public-vs-authenticated split, version-history capture + restore, and
 publish-after-commit ordering (the event fires only after `COMMIT`). See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership

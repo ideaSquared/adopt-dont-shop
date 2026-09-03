@@ -1,5 +1,12 @@
 # Enabling the self-hosted observability stack (ADS-1041)
 
+> **Audience:** operator provisioning the stack on a host (not a paged incident).
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** none — this is a setup guide. Once the stack is up, the
+> `infra/prometheus/rules/` alerts route via Alertmanager to Discord (step 4).
+> For the stack itself falling over later, see
+> [`observability-stack-down.md`](./observability-stack-down.md).
+
 Setup guide (not a firefighting runbook) for turning on the self-hosted
 observability + error-tracking stacks in staging/production. Everything is
 **opt-in and off by default** — the app stack is unchanged until you complete
@@ -64,6 +71,8 @@ GF_SECURITY_ADMIN_PASSWORD=<random>
 # GlitchTip (required when GLITCHTIP_ENABLED=true)
 GLITCHTIP_SECRET_KEY=<random 50+ chars>
 GLITCHTIP_DB_PASSWORD=<random>
+GLITCHTIP_DOMAIN=http://localhost:8000   # the URL GlitchTip serves itself on
+                                          # (docker-compose.glitchtip.yml)
 ```
 
 Leave `SENTRY_DSN` unset for now — you mint it from GlitchTip in step 6.
@@ -77,20 +86,45 @@ the deploy layers the overlay(s) into `docker compose up -d` automatically.
 
 Confirm containers are healthy: `docker compose -f docker-compose.<env>.yml -f docker-compose.observability.yml ps`.
 
-## 4. Wire Alertmanager (decide the destination)
+## 4. Wire Alertmanager (Discord webhook secret)
 
-Alertmanager starts **inert** — alerts group and show in its UI but nothing is
-sent. To route `critical`/`warning`:
+`alertmanager.yml` ships with **active** Discord receivers — both
+`critical-pager` and `warning-chat` are configured with
+`discord_configs.webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url`.
+There is nothing to uncomment; Alertmanager just needs the secret file to
+exist, and **it must exist before the container starts** or Alertmanager fails
+to load the config.
 
-1. Drop the secret on the host, e.g. the Slack incoming-webhook URL into
-   `observability/alertmanager/secrets/slack_api_url` (git-ignored, mounted at
-   `/etc/alertmanager/secrets/`).
-2. Uncomment the `slack_configs` / `email_configs` block under the
-   `critical-pager` / `warning-chat` receiver in
-   `observability/alertmanager/alertmanager.yml`.
-3. Reload: `docker compose ... kill -s HUP alertmanager` (or restart it).
+1. Create a Discord incoming webhook (Server Settings → Integrations →
+   Webhooks) for the alerts channel; copy its URL.
+2. Write it to the secret file on the host (git-ignored, mounted read-only at
+   `/etc/alertmanager/secrets/`):
 
-Validate config with `amtool check-config observability/alertmanager/alertmanager.yml`.
+   ```bash
+   cd /opt/ads/<env>
+   printf '%s' '<discord-webhook-url>' \
+     > observability/alertmanager/secrets/discord_webhook_url
+   chmod 600 observability/alertmanager/secrets/discord_webhook_url
+   ```
+
+3. Reload Alertmanager so it re-reads the secret:
+
+   ```bash
+   docker compose -f docker-compose.<env>.yml -f docker-compose.observability.yml \
+     kill -s HUP alertmanager
+   ```
+
+4. Validate the running config:
+
+   ```bash
+   docker compose -f docker-compose.<env>.yml -f docker-compose.observability.yml \
+     exec alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
+   # Expected: "Checking '/etc/alertmanager/alertmanager.yml'  SUCCESS" and
+   # both receivers listed.
+   ```
+
+Both severities currently point at the same webhook (single Discord channel).
+Split them by pointing `critical-pager` at a second `*_url` secret file later.
 
 ## 5. Reach Grafana
 

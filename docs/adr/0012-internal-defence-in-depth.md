@@ -10,6 +10,8 @@
   [`docs/security/internal-grpc-trust.md`](../security/internal-grpc-trust.md)
   (ADS-829 / 800 / 1050) and
   [ADR 0008](./0008-pre-deploy-migration-strategy.md).
+- Linear: ADS-1255
+- Supersedes / Superseded by: —
 
 ## Context
 

@@ -19,7 +19,9 @@ ownership, and **service.applications** (`APPLICATIONS_GRPC_URL`) in
 attribution (ADS-941). Read over gRPC by **service.notifications**
 (`ListStaffMembers` / `Get`) for rescue fan-out. Depends on the shared backend
 packages `@adopt-dont-shop/{authz, config-secrets, db, events, lib.types,
-observability, proto, service-bootstrap}`.
+observability, proto, service-bootstrap}`. For how this service was carved out
+of the monolith, see
+[`docs/backend/microservices-extraction-history.md`](../../docs/backend/microservices-extraction-history.md#rescue).
 
 ## Scripts
 
@@ -34,6 +36,32 @@ pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
 
+## Running locally
+
+In the Docker dev stack (primary workflow) this runs as container
+`service-rescue`, HTTP published on `127.0.0.1:5004`:
+
+```bash
+pnpm docker:dev:detach                     # start the whole stack
+docker compose logs -f service-rescue      # follow just this service
+curl localhost:5004/health/simple          # liveness probe
+# Expected: {"status":"ok","service":"@adopt-dont-shop/service.rescue","environment":"development"}
+```
+
+Bare-metal (this service alone, against host Postgres + NATS from
+`pnpm dev:services`). It also calls pets + applications over gRPC, so point
+those at running services (or accept the degraded paths):
+
+```bash
+DATABASE_URL=postgres://adopt_user:adopt_pass@localhost:5432/adopt_dont_shop_dev \
+NATS_URL=nats://localhost:4222 \
+PETS_GRPC_URL=localhost:6003 APPLICATIONS_GRPC_URL=localhost:6005 \
+pnpm --filter @adopt-dont-shop/service.rescue dev
+```
+
+To debug the container, see
+[`docs/runbooks/dev-stack-troubleshooting.md`](../../docs/runbooks/dev-stack-troubleshooting.md).
+
 ## REST / gRPC contract
 
 HTTP surface: `/health/simple`. Everything else is gRPC `RescueService`
@@ -42,24 +70,38 @@ HTTP surface: `/health/simple`. Everything else is gRPC `RescueService`
 `/api/v1/events/*`. Permission scope is the `rescue_id`; admin / `super_admin`
 bypass scope.
 
-| RPC                                           | Permission                                             |
-| --------------------------------------------- | ------------------------------------------------------ |
-| `Create`                                      | `rescues.create`                                       |
-| `Get` / `List`                                | `rescues.read` (List defaults to verified-only)        |
-| `Update`                                      | `rescues.update` (scoped; does not change status)      |
-| `Verify`                                      | `admin.security.manage` (admin-only status transition) |
-| `InviteStaff`                                 | `staff.create` (scoped; mints token, returned once)    |
-| `GetMyStaffMembership`                        | authenticated (self-scoped)                            |
-| `ListStaffMembers`                            | `staff.read`                                           |
-| `CreateFosterPlacement`                       | `foster.create` (scoped; validates pet via pets gRPC)  |
-| `ListFosterPlacements` / `GetFosterPlacement` | `foster.read` (scoped)                                 |
-| `EndFosterPlacement`                          | `foster.update` (scoped; idempotent)                   |
-| `GetInvitationByToken`                        | none (the token is the credential)                     |
+| RPC                                                                                                                     | Permission                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `Create`                                                                                                                | `rescues.create`                                                                      |
+| `Get`                                                                                                                   | `rescues.read` (anonymous/non-privileged readers see a `verified` rescue only)        |
+| `List`                                                                                                                  | `rescues.read` (defaults to verified-only; `admin.security.manage` sees all statuses) |
+| `Update`                                                                                                                | `rescues.update` (scoped; does not change status)                                     |
+| `Verify` / `Delete` / `UpdateRescuePlan` / `SendRescueEmail`                                                            | `admin.security.manage` (admin-only)                                                  |
+| `GetRescueStatistics` / `CountRescues`                                                                                  | `rescues.read`                                                                        |
+| `InviteStaff`                                                                                                           | `staff.create` (scoped) or `admin.security.manage`; mints token, returned once        |
+| `GetMyStaffMembership`                                                                                                  | authenticated (self-scoped)                                                           |
+| `ListStaffMembers`                                                                                                      | `staff.read` (or `admin.security.manage`)                                             |
+| `CreateStaffMember`                                                                                                     | `staff.create` (scoped)                                                               |
+| `UpdateStaffMember`                                                                                                     | `staff.update` (scoped)                                                               |
+| `RemoveStaffMember`                                                                                                     | `staff.delete` (scoped) or `admin.security.manage`                                    |
+| `ListRescueInvitations` / `CancelRescueInvitation`                                                                      | `admin.security.manage`                                                               |
+| `CreateFosterPlacement`                                                                                                 | `foster.create` (scoped; validates pet via pets gRPC)                                 |
+| `ListFosterPlacements` / `GetFosterPlacement`                                                                           | `foster.read` (scoped)                                                                |
+| `EndFosterPlacement`                                                                                                    | `foster.update` (scoped; idempotent)                                                  |
+| `GetInvitationByToken` / `AcceptInvitation`                                                                             | none (the token is the credential)                                                    |
+| `ListApplicationQuestions`                                                                                              | `applications.read` (scoped)                                                          |
+| `CreateApplicationQuestion` / `UpdateApplicationQuestion` / `DeleteApplicationQuestion` / `ReorderApplicationQuestions` | `applications.update` (scoped)                                                        |
+| `ListEvents` / `GetEvent` / `GetEventAttendees` / `GetEventAnalytics`                                                   | `events.read` (+ rescue scope)                                                        |
+| `CreateEvent`                                                                                                           | `events.create`                                                                       |
+| `UpdateEvent` / `AddEventAttendee` / `CheckInAttendee`                                                                  | `events.update` (+ rescue scope)                                                      |
+| `DeleteEvent`                                                                                                           | `events.delete` (+ rescue scope)                                                      |
 
 Schema (`rescue`): `rescues`, `rescue_settings`, `staff_members` (user↔rescue
 join, no cross-schema FK), `invitations` (one-time token), `foster_placements`,
-`application_questions`, `events`, `event_attendees`. Migrations:
-`src/migrations/001`–`011`.
+`application_questions`, `events`, `event_attendees`, and `event_outbox` (the
+transactional publish-after-commit outbox — see
+[`packages/events`](../../packages/events/README.md)). Migrations:
+`src/migrations/001`–`012`.
 
 **NATS** — emits (publish-after-commit): `rescue.created`, `rescue.updated`,
 `rescue.verified` / `rescue.rejected`, `rescue.staffInvited`,
@@ -84,20 +126,10 @@ and a stub applications client) injected — assert each permission/scope path,
 one-time invitation-token behaviour, foster-placement validation against the
 pets client, event-analytics attribution against the applications client, and
 publish-after-commit ordering. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership
 
 See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 `/services/`.
-
----
-
-## Migration history
-
-Rescue was the Phase 4 extraction: boot skeleton (4.1), the `rescue.*` schema
-(4.2), the proto stubs + pure verification status-machine + handlers (4.3), and
-the downstream NATS flow — the `rescue.verified` / `rescue.rejected` /
-`rescue.staffInvited` subscribers in `services/notifications` (4.4). Gateway
-routes (4.5) and the monolith cutover (4.6) followed.

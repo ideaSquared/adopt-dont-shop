@@ -6,6 +6,8 @@
 
 The matchmaking system is **substantially built**. Phase 1 of the recommendations plan (rule-based scoring) is live across all layers: gRPC service, gateway routes, frontend library client, and client app pages. The primary decision for the team is whether to close the eight remaining gaps now or track them as follow-on tickets.
 
+Last verified against commit `cd76490`.
+
 ---
 
 ## What Is Implemented
@@ -58,12 +60,9 @@ The matching microservice owns the `matching.*` Postgres schema and exposes a fu
 
 - `gdpr/erase.ts` — erases a user's swipe sessions and actions on account deletion.
 
-**Database migrations (4 applied)**
-
-1. `001_create_swipe_sessions`
-2. `002_create_swipe_actions`
-3. `003_create_adopter_match_profiles`
-4. `004_swipe_actions_user_pet_recency_idx`
+**Database migrations** — see `services/matching/src/migrations/` (5 applied:
+`001_create_swipe_sessions`, `002_create_swipe_actions`, `003_create_adopter_match_profiles`,
+`004_swipe_actions_user_pet_recency_idx`, `005_create_event_outbox`).
 
 ### Gateway — `services/gateway`
 
@@ -130,13 +129,13 @@ The eight gaps below are all schema columns or proto fields that exist in the da
 
 ### 3. Distance filtering stored but pets have no location data
 
-**Gap:** `max_distance_km` is stored and surfaced to the adopter via `GetMatchProfile`, but the `Pet` proto message (`packages/proto/proto/adopt_dont_shop/pets/v1/pet.proto`) has no location coordinates. The distance dimension from the original recommendations plan cannot be implemented without adding latitude/longitude to the pets schema.
+**Gap:** `max_distance_km` is stored and surfaced to the adopter via `GetMatchProfile`, but no code computes a pet-to-adopter distance. The `Pet` proto has no dedicated coordinate fields; its `extra_json` comment (`pet.proto:211`) does list `location lat/lng` as a value that can ride in that blob, but pets does not populate it today and there is no indexed column for it.
 
 **Impact:** Adopters who set a distance preference get no filtering benefit. The field is visible in the UI but inert.
 
-**Effort:** High (prerequisite is out of scope). Adding location to `service.pets` requires: a new migration on the pets schema, updated `Pet` proto fields, PostGIS queries in the pets list endpoint, and then consuming the location in the matching scorer. Estimated 5–8 days net of pets-service changes.
+**Effort:** Medium–High. A rough distance filter could read lat/lng from `extra_json` once pets populates it — no proto change needed. An efficient radius query still wants real PostGIS columns and an index in the pets schema, plus consumption in the matching scorer.
 
-**Recommendation:** Defer. Track as a separate ticket under the pets service. Remove the `max_distance_km` field from the onboarding wizard UI until the feature can be delivered end-to-end, to avoid misleading adopters.
+**Recommendation:** Defer. Track as a pets-service ticket (populate location, then wire the scorer). Consider hiding `max_distance_km` in the onboarding wizard until it filters, to avoid misleading adopters.
 
 ---
 
@@ -178,13 +177,13 @@ The eight gaps below are all schema columns or proto fields that exist in the da
 
 ### 7. `breed_name` and `photo_url` not populated in `TopPick`
 
-**Gap:** The `TopPick` proto message has `optional breed_name` and `optional photo_url` fields. The proto comment notes: "Pets has no breed NAME (only breed_id) and no photo/image field, so these stay unset until that data is available." The `toTopPick` mapper in `top-picks-handlers.ts` never sets either field.
+**Gap:** The `TopPick` proto message has `optional breed_name` and `optional photo_url` fields, and the `toTopPick` mapper in `top-picks-handlers.ts` never sets either. The proto comment predates the pets breed/media work — that prerequisite is now satisfied: pets has a `breeds` table and `pet_media`, and the gateway exposes `GET /api/v1/pets/breeds` (and `/breeds/:type`) plus `GET /api/v1/pets/:id/images`.
 
 **Impact:** The top picks UI cannot render a pet photo or breed name; the SPA's `MatchTopPick` type marks both as optional for exactly this reason.
 
-**Effort:** Medium–High (prerequisite). Breed name requires a breed lookup in `service.pets`; photos require a pet image storage/retrieval layer. Both are pets-service concerns. Estimated 3–5 days once the pets service exposes the data.
+**Effort:** Low–Medium. The source data now exists in `service.pets` — the work is to have the matching mapper fetch/join breed name and a primary photo when building each `TopPick`. No new pets-schema work required.
 
-**Recommendation:** Defer. Track as a pets-service enhancement.
+**Recommendation:** Build. The prerequisite that made this a defer is gone; this is now a self-contained matching-service change.
 
 ---
 

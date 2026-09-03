@@ -1,7 +1,17 @@
 # Redis Outage
 
-**Page severity:** `critical` when auth or rate-limit-dependent
-flows start failing.
+> **Audience:** on-call, shell access on the prod host, no context.
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** none watches Redis directly — it surfaces through
+> `HighErrorRate` (`warning`, `infra/prometheus/rules/high-error-rate.yml`) on
+> auth / rate-limited routes. Treat as effectively `critical` once auth or
+> rate-limit-dependent flows start failing.
+
+## Preconditions
+
+See [`README.md`](./README.md#preconditions): prod SSH, `cd /opt/ads/production`,
+`docker compose -f docker-compose.prod.yml`. `$REDIS_PASSWORD` is set in the host
+`.env`.
 
 ## Symptoms
 
@@ -72,17 +82,22 @@ Match the symptom:
    no gateway restart is needed.
 
 2. **If restart fails** — check the AOF / RDB on the `redis_data`
-   volume. If corrupt, accept data loss:
+   volume. If corrupt, **DESTRUCTIVE** — accept data loss by wiping the volume:
 
    ```bash
+   # DESTRUCTIVE: deletes the redis_data volume. Only when the persistence
+   # file is corrupt and a plain restart won't recover.
    docker compose -f docker-compose.prod.yml stop redis
-   docker volume rm $(docker compose -f docker-compose.prod.yml \
-     config --volumes | grep redis_data)
+   # Confirm the exact volume name first (project prefix varies):
+   #   docker volume ls | grep redis_data
+   docker volume rm "$(docker volume ls -q | grep redis_data)"
    docker compose -f docker-compose.prod.yml up -d redis
    ```
 
-   Cost: rate-limit windows reset and namespace version stamps
-   reset (full cache miss for ~minutes). Acceptable in an outage.
+   Expected: a fresh `redis` container comes up healthy within ~10s.
+   Cost: rate-limit windows reset and namespace version stamps reset (full
+   cache miss for ~minutes). Acceptable in an outage; the caches are read-through
+   so no source-of-truth data is lost.
 
 3. **If Redis is down for >5 min** — flip
    `APPLICATION_SETTINGS.maintenance_mode = true` to shed write
@@ -98,6 +113,15 @@ Match the symptom:
 - `redis-cli ping` returns `PONG` and the container is healthy.
 - A test login round-trip succeeds (auth → rate-limiter writes work).
 - Error rate in Grafana returns to baseline.
+
+## Escalate
+
+If Redis won't come back after a restart and a volume wipe (step 2), or the
+host is out of disk (Redis `MISCONF` from a failed AOF write), DM the secondary
+on-call — a wipe is data-loss-bearing and a host-disk problem is its own
+incident (see [`postgres-disk-full.md`](./postgres-disk-full.md) for the
+host-disk angle). While Redis is down, keep write-heavy flows shed via
+[`maintenance-mode.md`](./maintenance-mode.md).
 
 ## Capture
 

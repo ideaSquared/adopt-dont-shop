@@ -1,5 +1,9 @@
 # Product Requirements Document: Rescue App
 
+_Product requirements for `app.rescue`. A per-section Status marker (Shipped / Partial / Roadmap)
+shows what is built; this doc is not a delivery plan. Architecture is in
+[rescue-architecture.md](./rescue-architecture.md)._
+
 ## Overview
 
 The Rescue App is the operational hub for rescue organizations to manage pets, review adoption applications, communicate with adopters, and oversee day-to-day rescue operations.
@@ -9,11 +13,13 @@ The Rescue App is the operational hub for rescue organizations to manage pets, r
 - **Primary**: Rescue staff with admin permissions
 - **Secondary**: General rescue staff and volunteers (server-side role: `rescue_staff`)
 
-_Note on roles:_ The backend has a single `rescue_staff` `UserRole`. Finer permission granularity (admin vs staff vs volunteer within a rescue) is enforced **client-side** via `PermissionsContext` fallback maps (`rescue_admin`, `rescue_staff`, `rescue_volunteer` permission sets). There is no separate `rescue_manager` or `volunteer` `UserRole`.
+_Note on roles:_ The backend has a single `rescue_staff` `UserRole`. Finer permission granularity (admin vs staff vs volunteer within a rescue) is enforced **client-side** via `PermissionsProvider` / `useHasPermission` from `lib.auth` (backed by `lib.permissions`) fallback maps (`rescue_admin`, `rescue_staff`, `rescue_volunteer` permission sets). There is no separate `rescue_manager` or `volunteer` `UserRole`.
 
 ## Key Features
 
 ### 1. Pet Management
+
+_Status: Shipped (roadmap items noted inline)._
 
 - Pet database with detailed profiles
 - Pet registration form with photos
@@ -27,6 +33,8 @@ _Note on roles:_ The backend has a single `rescue_staff` `UserRole`. Finer permi
 _Out of scope / roadmap:_ Dedicated medical-records timeline UI, dedicated vaccination tracking UI, dedicated behavioural-assessment workflow. Schema supports these as inline fields; rich UI is a future enhancement.
 
 ### 2. Application Management
+
+_Status: Shipped (roadmap items noted inline)._
 
 **Backend status model (authoritative):**
 
@@ -53,6 +61,8 @@ These stages are **display-only**; they do not persist as a backend column. Stag
 
 ### 3. Rescue Configuration
 
+_Status: Shipped (roadmap items noted inline)._
+
 - Customize application questions via `QuestionsBuilder`
 - Configure adoption policies via `AdoptionPolicyForm`
 - Manage rescue contact information via `RescueProfileForm`
@@ -63,6 +73,8 @@ _Out of scope / roadmap:_ Public rescue profile editor, in-app role/permission a
 
 ### 4. Communication Tools
 
+_Status: Shipped (roadmap items noted inline)._
+
 - Direct messaging with adopters via `lib.chat` (`ConversationList` + `ChatWindow`)
 - Conversation filter: active / resolved
 - Email/push/SMS preferences toggleable via `NotificationPreferencesForm` (backend handles delivery)
@@ -71,17 +83,22 @@ _Out of scope / roadmap:_ Internal staff chat, message templates library, search
 
 ### 5. Analytics & Reporting
 
+_Status: Shipped (roadmap items noted inline)._
+
 - **Reachable from sidebar nav** (Analytics + Reports links wired)
-- Adoption metrics + success rates (`AdoptionMetricsChart`)
+- Adoption metrics + success rates (`AdoptionTrendsChart`)
 - Application analytics + conversion funnel (`ConversionFunnelChart`, `StageDistributionChart`)
 - Pet performance tracking
-- Response time monitoring (`ResponseTimeChart`)
 - Custom report generation via `lib.analytics` (`useReports`, `useReportTemplates`, scheduling, token shares)
 - CSV + PDF export via `analyticsService.exportToCSV/exportToPDF`
 
-_Out of scope / roadmap:_ Financial reporting, Excel export.
+_Out of scope / roadmap:_ Financial reporting, Excel export. Response-time monitoring — the metric is
+available from the gateway (`services/gateway/src/routes/analytics-metrics.ts`) but there is no
+chart component in the rescue app yet.
 
 ### 6. Staff Management
+
+_Status: Shipped (roadmap items noted inline)._
 
 - Staff directory and profiles (`StaffOverview`, `StaffList`)
 - Add/edit/remove staff
@@ -91,12 +108,16 @@ _Out of scope / roadmap:_ Role/permission assignment UI, activity tracking UI, t
 
 ### 7. Event Management
 
+_Status: Shipped (roadmap items noted inline)._
+
 - Create/list adoption events, fundraisers, meet-and-greets (`Events.tsx`)
 - Calendar view (`EventCalendar`)
 
 _Out of scope / roadmap:_ External calendar integration (Google/iCal), event analytics surfaced in UI, training-specific event types.
 
 ### 8. Foster Coordination
+
+_Status: Shipped._
 
 - **`FosterCoordination` page** with list of active and historical placements
 - Create placement: select pet + foster user, start date, notes → triggers Pet status transition to `FOSTER`
@@ -115,7 +136,7 @@ _Out of scope / roadmap:_ External calendar integration (Google/iCal), event ana
 
 ### Security
 
-- Role-based access via `PermissionsContext` (client-side fallback maps over server `rescue_staff` role)
+- Role-based access via `PermissionsProvider` / `useHasPermission` from `lib.auth` (client-side fallback maps over server `rescue_staff` role)
 - Audit logging via backend `auditLog.service.ts`
 - Field-level permission overrides via backend `FieldPermission` model
 
@@ -144,7 +165,7 @@ _Out of scope / roadmap:_ Excel export, webhooks for third-party integrations.
 
 - `rescue_staff` — only role enforced server-side for rescue access
 
-### Client-side permission tiers (via `PermissionsContext`)
+### Client-side permission tiers (via `PermissionsProvider` from `lib.auth`)
 
 - **`rescue_admin`** (permission key): full rescue configuration, staff management, analytics, reports
 - **`rescue_staff`** (permission key): pet management, application review, communication, basic reporting
@@ -267,7 +288,7 @@ _Out of scope:_ Calendar/payment/social/vet third-party integrations.
 
 ### Deferred / De-scoped
 
-- AI matching (cross-app; see client recommendations plan)
+- AI matching (cross-app; see the [matching system scope](../matching-system-scope.md))
 - Veterinary system integration
 - Transport network integration
 - IoT smart-collar integration
@@ -276,7 +297,7 @@ _Out of scope:_ Calendar/payment/social/vet third-party integrations.
 
 ## Additional Resources
 
-- **Implementation Plan**: [implementation-plan.md](./implementation-plan.md)
-- **Technical Architecture**: [technical-architecture.md](./technical-architecture.md)
-- **Backend PRD (foster + status model)**: [../backend/service-backend-prd.md](../backend/service-backend-prd.md)
+- **App-shell architecture**: [app-shell.md](./app-shell.md)
+- **Rescue app architecture**: [rescue-architecture.md](./rescue-architecture.md)
+- **Backend PRD (foster + status model)**: [../backend/product-requirements.md](../backend/product-requirements.md)
 - **API Documentation**: [../backend/api-endpoints.md](../backend/api-endpoints.md)

@@ -1,8 +1,29 @@
 # JetStream Consumer Backlog
 
-**Page severity:** `warning` (a durable consumer's pending count climbs and
-does not drain) escalating to `critical` if user-visible (notifications stop,
-the GDPR saga stalls, the read-model projections lag).
+> **Audience:** on-call, shell access on the prod host, no context.
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** no rule watches consumer lag directly. If the stalled
+> consumer is the GDPR saga you'll see `GdprSagaTimedOut` /
+> `GdprErasureRequestedNotCompleted` (`infra/prometheus/rules/gdpr-saga.yml`).
+> Effective severity is `warning`, escalating to `critical` once user-visible
+> (notifications stop, the saga stalls, read models lag).
+
+## Preconditions
+
+See [`README.md`](./README.md#preconditions): prod SSH,
+`cd /opt/ads/production`, `docker compose -f docker-compose.prod.yml`.
+
+**The `nats` CLI is not installed in any prod container** (the `nats` service
+runs `nats:2.10-alpine`, server only). The `nats …` commands below assume you
+have run a throwaway `natsio/nats-box` container attached to `ads-prod-network`,
+or replace them with the JetStream monitoring endpoint:
+
+```bash
+docker compose -f docker-compose.prod.yml exec nats \
+  wget -qO- 'http://localhost:8222/jsz?consumers=true'
+# Expected: JSON with per-stream/per-consumer num_pending, num_ack_pending,
+# num_redelivered. Growing + non-draining pending = the backlog.
+```
 
 ## Background
 
@@ -36,8 +57,9 @@ Key behaviours that shape this runbook:
 ## Triage in 60 seconds
 
 ```bash
-# Stream + consumer state (run from the prod host; `nats` CLI against the
-# server, or via the NATS box container if present).
+# Stream + consumer state. `nats` here = the nats-box container / your
+# workstation CLI pointed at the server (see Preconditions); the same numbers
+# are on the /jsz?consumers=true monitoring endpoint.
 nats stream info DOMAIN_EVENTS
 nats consumer ls DOMAIN_EVENTS
 
@@ -119,6 +141,15 @@ Match the shape of the backlog:
 - `num_redelivered` stops climbing.
 - `DOMAIN_EVENTS_DLQ` stops growing.
 - Downstream effects resume (notifications arrive, saga progresses).
+
+## Escalate
+
+If the backlog is still growing **30 minutes** after restarting the consuming
+service, if `DOMAIN_EVENTS_DLQ` is filling with a class of message you can't
+diagnose, or if a consumer was offline long enough to risk the 7-day `max_age`
+window, DM the secondary on-call. Data aged out of the stream is unrecoverable
+from the bus — flag it early. If NATS itself is down (not just a consumer), that
+is [`nats-down.md`](./nats-down.md).
 
 ## Capture
 

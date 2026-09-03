@@ -20,8 +20,8 @@ respect the choice on the same tab without a reload. Backs onto the gateway's
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -36,9 +36,9 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `useCookieConsent` (Accept-all vs Essentials-only, persisted to
   `legal-consent-v1` and POSTed to `/api/v1/privacy/consent` for signed-in
   users), `ManageCookiesLink`.
-- **Service**: `legal-service` — Zod-validated `fetchPendingReacceptance()`,
+- **Service functions**: Zod-validated `fetchPendingReacceptance()`,
   `fetchCookiesVersion()`, `recordReacceptance()`, plus the
-  `PendingReacceptance*Schema` types.
+  `PendingReacceptance*Schema` schemas and their inferred types.
 - **Consent storage helpers**: `readStoredConsent` / `writeStoredConsent` /
   `clearStoredConsent`, `attachStoredCookieConsent()` (migrate an anonymous
   choice to a new account on sign-in), `COOKIE_CONSENT_STORAGE_KEY`.
@@ -52,7 +52,7 @@ None directly — reaches the backend through the shared `lib.api` client. See
 
 Vitest + React Testing Library — the modal gating, banner consent flows +
 localStorage persistence, and the Zod-validated service are tested with RTL and
-a mocked API. See [`docs/frontend/testing.md`](../../docs/testing.md) for
+a mocked API. See [`docs/testing.md`](../../docs/testing.md) for
 anything not library-specific.
 
 ## Ownership
@@ -65,4 +65,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 3 workspace package(s) depend on this library. See [lib.legal-consumers.md](../../docs/libraries/lib.legal-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

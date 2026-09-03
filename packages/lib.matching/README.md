@@ -19,7 +19,7 @@ the swipe UI.
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
+pnpm dev          # tsc --watch
 pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
@@ -44,7 +44,7 @@ None — types only.
 ## Testing notes
 
 Vitest — the `isReasonChipKind` type guard and the const-tuple shapes are tested
-directly. See [`docs/frontend/testing.md`](../../docs/testing.md) for anything
+directly. See [`docs/testing.md`](../../docs/testing.md) for anything
 not library-specific.
 
 ## Ownership
@@ -57,4 +57,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 1 workspace package(s) depend on this library. See [lib.matching-consumers.md](../../docs/libraries/lib.matching-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

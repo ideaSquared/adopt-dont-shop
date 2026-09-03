@@ -78,3 +78,49 @@ zero test files. The allowlist is currently empty (ADS-528) — if you
 add a new library that legitimately has no testable behaviour, add it
 to the allowlist with a Linear ticket reference and a plan to remove
 the entry.
+
+## Backend specifics
+
+Backend tests are Vitest, colocated with the source (`handlers.ts` next to
+`handlers.test.ts`; no `__tests__/` directory). They exercise behaviour through public APIs.
+The pyramid:
+
+- **Gateway route tests** (`services/gateway/src/routes/*.test.ts`) — build the server with
+  Fastify and drive it through `inject()`, with `vi.mock()` on the downstream gRPC clients so
+  no real service is needed. Worked example: `services/gateway/src/routes/pets.test.ts`.
+- **gRPC handler tests** (`services/<name>/src/grpc/*.test.ts`) — call the handler function
+  directly with a synthetic `(deps, principal, request)` context; there is no server or
+  transport in the loop. Worked example: `services/pets/src/grpc/handlers.test.ts`.
+- **Pure unit tests** — adapters, mappers, and domain logic tested in isolation.
+
+### `@adopt-dont-shop/test-utils`
+
+Shared helpers for the services, added as a devDependency
+(`packages/test-utils/src/index.ts`):
+
+| Export                | Use                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `startStubGrpcServer` | Start an in-process gRPC server on an ephemeral port for contract/integration tests |
+| `testPrincipal`       | Build a `Principal` with sensible defaults (override per test)                      |
+| `metadataFor`         | Serialise a `Principal` into the `x-user-*` gRPC metadata the gateway stamps        |
+| `makeNatsDouble`      | A NATS/JetStream publish-recording double for asserting emitted events              |
+
+### Running backend tests
+
+Run from a `services/<name>` package, or filtered from the repo root:
+
+```bash
+pnpm exec turbo test --filter=@adopt-dont-shop/service.pets   # one service
+pnpm test                       # all tests in the current package
+pnpm test:watch                 # watch mode
+pnpm test:coverage              # coverage (fails below the package's floor)
+pnpm test handlers.test.ts      # Vitest substring filter
+```
+
+There are no separate `test:integration` / `test:e2e` scripts in a service — route and
+integration tests run in the same Vitest invocation; target them by substring or path. Each
+service configures Vitest in its own `vitest.config.ts`; the services do not use Jest.
+
+Vitest reads the database via the `DB_*` / `TEST_DB_NAME` env vars (see `.env.example`). In
+Docker, confirm the database is healthy first (`docker compose ps database`); each service runs
+its own `db:migrate` on boot.

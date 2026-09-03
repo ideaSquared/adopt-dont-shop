@@ -31,7 +31,9 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `authContext`), `EtherealCredentialsPanel` (per-session Ethereal SMTP creds
   when `EMAIL_PROVIDER=ethereal`), `DevOnly` (renders children only when
   `isDevelopmentMode()`).
-- **Hooks**: `useSeededUsers()`, `useEtherealCredentials()` (React Query).
+- **Hooks**: `useSeededUsers(options?)` (React Query) — `options` is
+  `UseSeededUsersOptions` (`userTypes`, `query`, `limit`, `debounceMs` = 200,
+  `fallbackToLocal` = true); `useEtherealCredentials()`.
 - **Seeded-user data**: `seededDevUsers`, `SEEDED_PASSWORD`, and the filtered
   accessors (`getAllDevUsers`, `getAdminUsers`, `getRescueUsers`,
   `getAdopterUsers`, `getDevUsersByType`).
@@ -49,7 +51,7 @@ Reads `NODE_ENV` (server-side `isDevelopmentMode()` fallback). See
 
 Vitest + React Testing Library — the `isDevelopmentMode()` hostname logic (the
 security-relevant guard) is tested directly, and the panels/hooks with RTL
-against a mocked API. See [`docs/frontend/testing.md`](../../docs/testing.md)
+against a mocked API. See [`docs/testing.md`](../../docs/testing.md)
 for anything not library-specific.
 
 ## Ownership
@@ -62,4 +64,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 3 workspace package(s) depend on this library. See [lib.dev-tools-consumers.md](../../docs/libraries/lib.dev-tools-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

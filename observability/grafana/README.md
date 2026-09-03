@@ -14,14 +14,15 @@ Anonymous access is **off by default** (ADS-968) — Grafana at `127.0.0.1:3030`
 
 Everything under `provisioning/` is bind-mounted read-only into the container and picked up on boot — no manual clicking required.
 
-| Path | What it provisions |
-|---|---|
-| `provisioning/datasources/loki.yaml` | Loki log datasource (`http://loki:3100`) |
-| `provisioning/datasources/prometheus.yaml` | Prometheus metrics datasource (`http://prometheus:9090`) |
-| `provisioning/dashboards/dashboards.yaml` | Dashboard provider (polls `provisioning/dashboards/` every 30 s) |
-| `provisioning/dashboards/service-overview.json` | HTTP req/s, p50/p95 latency, 5xx rate, circuit breaker state per service |
-| `provisioning/dashboards/domain-operations.json` | Auth login/registration/token-refresh counters, GDPR saga state |
-| `provisioning/dashboards/audit-events.json` | Audit log event counts from Loki |
+| Path                                             | What it provisions                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------ |
+| `provisioning/datasources/loki.yaml`             | Loki log datasource (`http://loki:3100`)                                 |
+| `provisioning/datasources/prometheus.yaml`       | Prometheus metrics datasource (`http://prometheus:9090`)                 |
+| `provisioning/datasources/tempo.yaml`            | Tempo traces datasource (`http://tempo:3200`)                            |
+| `provisioning/dashboards/dashboards.yaml`        | Dashboard provider (polls `provisioning/dashboards/` every 30 s)         |
+| `provisioning/dashboards/service-overview.json`  | HTTP req/s, p50/p95 latency, 5xx rate, circuit breaker state per service |
+| `provisioning/dashboards/domain-operations.json` | Auth login/registration/token-refresh counters, GDPR saga state          |
+| `provisioning/dashboards/audit-events.json`      | Audit log event counts from Loki                                         |
 
 ## How to add a new dashboard
 
@@ -54,7 +55,9 @@ export const createMyServiceMetrics = () => {
   return _metrics;
 };
 
-export const __resetMyServiceMetricsForTest = () => { _metrics = null; };
+export const __resetMyServiceMetricsForTest = () => {
+  _metrics = null;
+};
 ```
 
 Then call `createMyServiceMetrics()` inside your handlers and increment at each outcome path. The metric appears on `/metrics` automatically and is scraped by Prometheus within 15 s.

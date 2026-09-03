@@ -35,7 +35,7 @@ e2e/
 ## Running
 
 ```bash
-# From repo root (all three apps + backend must be running)
+# From repo root (all three apps + gateway + services must be running)
 cd e2e
 pnpm test                          # full suite
 pnpm test -- admin/                # one app
@@ -45,17 +45,19 @@ pnpm test:debug                # pause on failure
 pnpm report                    # open HTML report
 ```
 
-The suite expects the full stack to be running. `docker compose up -d` first.
+The suite expects the full stack (apps + gateway + services + infra) to be
+running. Bare `docker compose up -d` starts only infra — use `pnpm docker:dev:detach`
+first (it selects the right profiles), then `pnpm db:seed`.
 
 ## The fixture system
 
 Tests import `test` and `expect` from `../../fixtures`, NOT directly from
 `@playwright/test`. The custom fixtures provide:
 
-| Fixture | Purpose |
-|---------|---------|
-| `apiAs(role)` | Returns an `ApiClient` already authenticated as that role. Use for API contract tests and seed setup. |
-| `asRole(role)` | Opens a fresh browser context authenticated as `role`. Use for cross-role journeys. |
+| Fixture        | Purpose                                                                                               |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| `apiAs(role)`  | Returns an `ApiClient` already authenticated as that role. Use for API contract tests and seed setup. |
+| `asRole(role)` | Opens a fresh browser context authenticated as `role`. Use for cross-role journeys.                   |
 
 ```typescript
 import { test, expect } from '../../fixtures';
@@ -79,6 +81,7 @@ For tests in `tests/admin/`, the `page` fixture is already authenticated as
 ## Roles
 
 Defined in `fixtures/roles.ts`. Each role has:
+
 - `email` + `password` for login
 - `appUrl` — which app to navigate to
 - `authFile` — the storage state path
@@ -133,6 +136,7 @@ skill for why that matters.
 ## Timeouts
 
 Defaults from `playwright.config.ts`:
+
 - Test timeout: 60s
 - `expect` timeout: 10s
 - Action timeout: 10s
@@ -153,11 +157,13 @@ await expect(page.getByText(/loaded/i)).toBeVisible();
 ## Traces, screenshots, video
 
 `playwright.config.ts` already enables:
+
 - `trace: 'on-first-retry'` — full trace on retry
 - `screenshot: 'only-on-failure'`
 - `video: 'retain-on-failure'`
 
 When a CI failure is unclear, download the artefact and open the trace viewer:
+
 ```bash
 pnpm exec playwright show-trace path/to/trace.zip
 ```
@@ -194,13 +200,13 @@ fixable reason, fix the reason.
 
 E2E tests are expensive — slow, flaky-prone, hard to debug. Prefer:
 
-| Pre-flight | Type |
-|------------|------|
-| Service business logic | Backend Vitest (`backend-test` skill) |
+| Pre-flight                        | Type                                          |
+| --------------------------------- | --------------------------------------------- |
+| Service business logic            | Backend Vitest (`backend-test` skill)         |
 | Component rendering / interaction | Frontend Vitest + RTL (`frontend-test` skill) |
-| API contract | Backend route test + supertest |
-| Cross-app or auth-state journey | E2E |
-| Real CSRF / cookie / proxy flow | E2E |
+| API contract                      | Backend route test + supertest                |
+| Cross-app or auth-state journey   | E2E                                           |
+| Real CSRF / cookie / proxy flow   | E2E                                           |
 
 A failing e2e should usually indicate a missing cheaper test, not the only test.
 
@@ -217,3 +223,7 @@ A failing e2e should usually indicate a missing cheaper test, not the only test.
 - Snapshotting full pages — every minor copy change breaks the test
 - Forgetting to seed via API before driving UI — slow setup
 - Writing an e2e for logic that a backend service test would cover
+
+---
+
+Canonical doc: [`e2e/README.md`](../../../e2e/README.md)

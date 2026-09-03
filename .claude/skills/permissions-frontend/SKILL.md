@@ -1,7 +1,7 @@
 ---
 name: permissions-frontend
 description: >
-  How to gate UI by permission or field-level access in React apps using
+  React apps: how to gate UI by permission or field-level access using
   PermissionGate, useHasPermission, and FieldPermissionsService. Apply when
   conditionally rendering staff/admin controls, route-level capability gates,
   or fields hidden by the field-permissions system.
@@ -11,10 +11,10 @@ description: >
 
 The frontend has two permission layers, each with a clear job:
 
-| Layer | Purpose | API |
-|-------|---------|-----|
-| **Permission gates** | "Can this user perform action X?" | `lib.auth` `<PermissionGate>` / `useHasPermission` |
-| **Field gates** | Per-field read/write access by role + resource | `lib.permissions` `FieldPermissionsService` (see `field-permissions` skill) |
+| Layer                | Purpose                                        | API                                                                         |
+| -------------------- | ---------------------------------------------- | --------------------------------------------------------------------------- |
+| **Permission gates** | "Can this user perform action X?"              | `lib.auth` `<PermissionGate>` / `useHasPermission`                          |
+| **Field gates**      | Per-field read/write access by role + resource | `lib.permissions` `FieldPermissionsService` (see `field-permissions` skill) |
 
 **Critical rule:** frontend permission checks are UX, not security. The backend
 enforces every permission on every request. Never use a frontend check as the
@@ -130,6 +130,7 @@ consumers can ignore it — `<PermissionGate>` renders nothing on error — but
 top-level screens may want to render a retry CTA.
 
 Variants:
+
 - `useHasAnyPermission(permissions: Permission[])` — `allowed` is true if user has at least one
 - `useHasAllPermissions(permissions: Permission[])` — `allowed` is true only if user has all
 
@@ -228,11 +229,11 @@ loop — pull it once at the top of the component.
 
 ## What the access levels mean
 
-| Level | UI behaviour |
-|-------|--------------|
-| `write` | Render as an editable input |
-| `read` | Render as read-only (label + value) |
-| `none` | Don't render the field at all (not even disabled — hide entirely) |
+| Level   | UI behaviour                                                      |
+| ------- | ----------------------------------------------------------------- |
+| `write` | Render as an editable input                                       |
+| `read`  | Render as read-only (label + value)                               |
+| `none`  | Don't render the field at all (not even disabled — hide entirely) |
 
 `none` means the backend will strip the field from the response too (see the
 `field-permissions` skill), so the value won't be present even if you tried to
@@ -242,8 +243,9 @@ render it.
 
 Hide controls the user can't invoke. If a user lacks `pet.delete`, don't render
 the delete button. Disabled-but-visible is acceptable when:
+
 - The button is part of a primary toolbar that would feel broken if missing
-- The disabled state communicates *why* via tooltip / aria-describedby
+- The disabled state communicates _why_ via tooltip / aria-describedby
 
 ```typescript
 const { allowed: canDelete, isLoading } = useHasPermission(PETS_DELETE);
@@ -305,7 +307,7 @@ vi.mock('@adopt-dont-shop/lib.auth', async () => {
 });
 
 // In tests — ADS-757: hook returns { allowed, isLoading, error }.
-mockedUseHasPermission.mockImplementation((p) => ({
+mockedUseHasPermission.mockImplementation(p => ({
   allowed: p === 'pets.create',
   isLoading: false,
   error: null,
@@ -355,3 +357,5 @@ for building synthetic access maps in tests.
   but can't open it. Decide once and apply everywhere
 - Adding new permission strings without checking `lib.permissions` exports
   and the `Permission` type in `lib.types`
+
+Canonical doc: [`packages/lib.permissions/README.md`](../../../packages/lib.permissions/README.md).

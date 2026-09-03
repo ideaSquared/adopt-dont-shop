@@ -26,6 +26,12 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 ## What's in `vars`
 
+### Active theme name
+
+```ts
+vars.mode; // 'light' | 'normal' | 'dark' — the active theme name, for style hooks
+```
+
 ### Colors — brand + semantic
 
 Every brand/semantic color is one named token (no scale step), plus five
@@ -83,9 +89,13 @@ vars.spacing['7']; // 4rem     (64px)
 vars.spacing['8']; // 6rem     (96px)
 ```
 
-### Border radius
+### Borders
 
 ```ts
+// Widths
+vars.border.width.thin | base | thick;
+
+// Radius
 vars.border.radius.sm; // 4px
 vars.border.radius.base; // 8px  — default for buttons, inputs
 vars.border.radius.lg; // 12px
@@ -98,30 +108,41 @@ vars.border.radius.pill; // 9999px — pills, avatars
 
 ```ts
 vars.typography.family.sans     // Inter — body, UI
+vars.typography.family.serif    // serif stack
 vars.typography.family.display  // Fredoka — wordmark + h1/h2
 vars.typography.family.mono     // JetBrains Mono — code
 
 vars.typography.size.xs | sm | base | lg | xl | 2xl | 3xl | 4xl | 5xl | 6xl | 7xl
 vars.typography.weight.light | normal | medium | semibold | bold
-vars.typography.lineHeight.tight | snug | normal | relaxed | loose
+vars.typography.lineHeight.none | tight | snug | normal | relaxed | loose
+vars.typography.letterSpacing.tighter | tight | normal | wide | wider | widest
+```
+
+### Animations
+
+```ts
+vars.animations.duration.instant | fast | normal | slow | slower;
+vars.animations.easing.linear | easeIn | easeOut | easeInOut | bounce | elastic | smooth;
 ```
 
 ### Shadows, transitions, z-index
 
 ```ts
-vars.shadows.sm | base | lg | xl;
+vars.shadows.none | sm | base | lg | xl;
 vars.shadows.focus | focusDanger | inner;
-vars.transitions.fast | base | slow;
-vars.zIndex.dropdown | sticky | overlay | modal | popover | toast | tooltip;
+vars.transitions.none | fast | base | slow;
+vars.zIndex.base | docked | dropdown | sticky | overlay | modal | popover | toast | tooltip;
 ```
 
 ### Breakpoints
 
 ```ts
 '@media': {
-  [`(min-width: ${vars.breakpoints.sm})`]: { … },  // 640px
-  [`(min-width: ${vars.breakpoints.md})`]: { … },  // 768px
-  [`(min-width: ${vars.breakpoints.lg})`]: { … },  // 1024px
+  [`(min-width: ${vars.breakpoints.sm})`]: { … },   // 640px
+  [`(min-width: ${vars.breakpoints.md})`]: { … },   // 768px
+  [`(min-width: ${vars.breakpoints.lg})`]: { … },   // 1024px
+  [`(min-width: ${vars.breakpoints.xl})`]: { … },   // 1280px
+  [`(min-width: ${vars.breakpoints['2xl']})`]: { … }, // 1536px
 }
 ```
 
@@ -129,13 +150,14 @@ vars.zIndex.dropdown | sticky | overlay | modal | popover | toast | tooltip;
 
 Before writing your own CSS, check whether
 [`lib.components`](./packages/lib.components/src/index.ts) already exports what you
-need. Frequently overlooked:
+need. Frequently overlooked, grouped:
 
-- **`Stack`** / **`Container`** — layout primitives instead of manual flex/grid
-- **`Card`** / **`CardHeader`** / **`CardContent`** / **`CardFooter`**
-- **`EmptyState`** — empty/error/loading/search states with consistent styling
-- **`FormSection`** / **`FormRow`** / **`FormField`** — form layout primitives
-- **`Badge`** / **`Alert`** / **`Heading`** / **`Text`** / **`Logo`**
+- **Layout**: `Stack` / `Container` / `SplitPaneDetail` — instead of manual flex/grid; `NavSidebar` for app navigation
+- **Data**: `DataTable` / `QueryBoundary` / `SearchToolbar` / `FilterPanel` / `EntityInspector`
+- **Form**: `FormSection` / `FormRow` / `FormField` / `Input` (not the deprecated `TextInput`) / `DateRangePicker` / `Stepper`
+- **States**: `EmptyState` / `ErrorState` — empty/error/loading/search states with consistent styling
+- **Charts**: `MetricCard` / `LineChart` / `BarChart` / `PieChart` / `AreaChart`
+- **Foundation**: `Card` (+ `CardHeader` / `CardContent` / `CardFooter`), `Badge` / `Alert` / `Heading` / `Text` / `Logo` / `SkipLink`
 
 ## Checklist when reviewing styles
 
@@ -146,3 +168,6 @@ need. Frequently overlooked:
 - [ ] Status colors use `vars.colors.danger|success|warning|info` rather than ad-hoc greens/reds
 - [ ] States use `vars.colors.primaryHover` / `…Active` — not raw alternate colors
 - [ ] Page layout uses `Stack` / `Container` / `FormRow` rather than hand-rolled grids
+
+`theme.css.ts` is the complete contract — if a token is not on it, it does not exist; add it there
+before referencing it, never inline a raw value.

@@ -1,9 +1,22 @@
 # Migration Failure
 
-**Page severity:** `critical` for the affected service — the failing
-service won't start until its migrations apply. The rest of the stack
-keeps serving on the old binary (gateway + healthy services), so the
-site is degraded, not down.
+> **Audience:** on-call, shell access on the prod host, no context.
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** no dedicated migration alert — surfaces as `ServiceDown`
+> (`critical`, `infra/prometheus/rules/service-down.yml`) for the stuck service
+> and `HighGrpcErrorRate` (`warning`, `high-error-rate.yml`) on its domain. The
+> deploy job's own health-check loop also fails.
+
+Severity is effectively `critical` for the affected service — it won't start
+until its migrations apply. The rest of the stack keeps serving on the old
+binary (gateway + healthy services), so the site is degraded, not down.
+
+## Preconditions
+
+See [`README.md`](./README.md#preconditions): prod SSH, `cd /opt/ads/production`,
+`docker compose -f docker-compose.prod.yml`, `psql` via the `database`
+container. A recent DB backup exists (see [`../db-backup-runbook.md`](../db-backup-runbook.md))
+before you attempt any hand-revert.
 
 ## Background — how migrations run
 
@@ -201,10 +214,20 @@ curl -sf https://${PROD_HOSTNAME}/health/simple
 docker compose -f docker-compose.prod.yml logs --no-color \
   service-<name> > /tmp/migration-incident-$(date +%s).log
 
-# Note the backup filename you took before the deploy.
-ls -lh /var/backups/adopt-dont-shop/ | tail
+# Confirm which nightly S3 snapshot predates the bad migration — the backups
+# live in S3, not on the host. See ../db-backup-runbook.md for the S3 layout.
 ```
 
-File a Linear follow-up linking the PR that introduced the bad
-migration. If recovery used path B or E, schedule a restore drill
-sooner than the next quarterly cycle.
+File a Linear follow-up linking the PR that introduced the bad migration. If
+recovery used path B or E, schedule a restore drill sooner than the next
+quarterly cycle (log it in [`../operations/restore-drills.md`](../operations/restore-drills.md)).
+
+## Escalate
+
+Paths B (hand-revert partial DDL) and E (schema ahead of binary with a
+destructive `down()`) are **DBA-on-the-line** situations — do not attempt them
+solo. Escalate immediately if: the fix will take >15 min and the service is in a
+hot path (e.g. `service-auth`), a hand-revert is required, or restoring from
+backup is on the table. Hand over the failing migration filename, the service,
+and the `pgmigrations` state. While escalating a hot-path service, shed traffic
+via [`maintenance-mode.md`](./maintenance-mode.md).

@@ -1,8 +1,20 @@
 # GDPR Erasure Saga Incident
 
-**Page severity:** `critical` — `GdprSagaFailed` or `GdprSagaTimedOut` (see
-[`infra/prometheus/rules/gdpr-saga.yml`](../../infra/prometheus/rules/gdpr-saga.yml)).
-An unfulfilled erasure request is a legal obligation, not a best-effort job.
+> **Audience:** on-call, shell access on the prod host, no context.
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** `GdprSagaFailed`, `GdprSagaTimedOut` (`critical`),
+> `GdprErasureRequestedNotCompleted` (`warning`) —
+> [`infra/prometheus/rules/gdpr-saga.yml`](../../infra/prometheus/rules/gdpr-saga.yml).
+> An unfulfilled erasure request is a legal obligation, not a best-effort job.
+
+## Preconditions
+
+See [`README.md`](./README.md#preconditions): prod SSH, `cd /opt/ads/production`,
+`docker compose -f docker-compose.prod.yml`, `psql` via the `database` container.
+The `nats pub` step in mitigation needs the `nats` CLI, which is **not** in any
+prod container — run it from a `natsio/nats-box` container on `ads-prod-network`
+(see the README preconditions). Know who your Data Protection lead is before you
+need them — the escalation here is compliance, not just engineering.
 
 ## Background
 
@@ -147,6 +159,15 @@ File the Linear follow-up. Because this is a compliance event, record the
 resolution date and confirm the erasure actually completed for the data
 subject. If a handler bug caused it, add a test reproducing the failing erasure
 before closing.
+
+## Escalate
+
+An erasure request that cannot be completed is a compliance breach with a legal
+clock. Escalate to the Data Protection lead (not just the secondary on-call) if
+the saga is still not `completed` **1 hour** after you fixed the culprit
+service, if a service genuinely cannot erase a data subject's rows, or if you're
+tempted to hand-edit `audit.gdpr_erasure_requests`. Hand over the
+`correlation_id`, the `user_id`, the stuck service(s), and the completions blob.
 
 ## Related
 

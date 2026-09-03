@@ -19,8 +19,8 @@ For the broader gating conventions see the `feature-flags` guidance.
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -30,8 +30,10 @@ pnpm type-check   # TypeScript type-check
 
 The canonical list lives in [`src/index.ts`](src/index.ts):
 
-- Hooks: `useFeatureGate`, `useDynamicConfig`, `useConfigValue` (on top of
-  `@statsig/react-bindings`).
+- Hooks (on top of `@statsig/react-bindings`):
+  `useFeatureGate(name)` → `{ value: boolean }` (not a bare boolean);
+  `useDynamicConfig(name)` → `ConfigValue<T> | null`;
+  `useConfigValue(name, key, defaultValue)` → the typed value at `key`.
 - Constants: `KNOWN_GATES` (e.g. `ENABLE_REAL_TIME_MESSAGING`,
   `ENABLE_ADVANCED_SEARCH`, `UI_SHOW_BETA_FEATURES`, …) and `KNOWN_CONFIGS`
   (`APPLICATION_SETTINGS`, `SYSTEM_SETTINGS`, `MODERATION_SETTINGS`).
@@ -48,7 +50,7 @@ list.
 ## Testing notes
 
 Vitest — the hooks and constant shapes are tested against a stubbed Statsig
-binding. See [`docs/frontend/testing.md`](../../docs/testing.md) for anything
+binding. See [`docs/testing.md`](../../docs/testing.md) for anything
 not library-specific.
 
 ## Ownership
@@ -61,4 +63,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.feature-flags-consumers.md](../../docs/libraries/lib.feature-flags-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

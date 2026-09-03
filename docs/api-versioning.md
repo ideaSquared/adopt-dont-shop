@@ -130,7 +130,33 @@ are its runtime counterpart. Keep the two in sync.
 4. **Mark it deprecated.** Set `deprecated: true` in the route's `schema`
    annotation in the gateway (it flows into the generated spec), wire the
    `Deprecation` / `Sunset` / `Link` headers on the route, and add the dates
-   to the route's `description`.
+   to the route's `description`. Attach the headers with a per-route `onSend`
+   hook so every response — success or error — carries them
+   (`Deprecation` and `Sunset` are RFC 8594 / RFC 8594 §3; `Link` points
+   clients at the successor and the docs):
+
+   ```ts
+   app.post(
+     '/api/v1/old-thing',
+     {
+       schema: { deprecated: true /* … */ },
+       onSend: async (_req, reply, payload) => {
+         reply.headers({
+           // RFC 8594: `true`, or an IMF-fixdate the route became deprecated
+           Deprecation: 'true',
+           // RFC 8594: the retirement instant, as an HTTP-date
+           Sunset: 'Mon, 01 Feb 2027 00:00:00 GMT',
+           Link:
+             '</api/v1/new-thing>; rel="successor-version", ' +
+             '<https://docs.adoptdontshop.com/api-versioning>; rel="deprecation"; type="text/html"',
+         });
+         return payload;
+       },
+     },
+     handler
+   );
+   ```
+
 5. **Announce.** Note the deprecation in the commit using a conventional
    commit `BREAKING CHANGE:` footer so it surfaces in the changelog:
 

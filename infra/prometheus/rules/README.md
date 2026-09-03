@@ -71,10 +71,12 @@ These files are now **loaded** by Prometheus (`rule_files:` in
 profile and the prod/staging overlay (`docker-compose.observability.yml`).
 
 Routing keys off the `severity` label: `critical` → the `critical-pager`
-receiver, `warning` → `warning-chat`. Both receivers ship **inert** (no notifier
-config) so the stack starts with zero secrets and simply drops notifications.
-Wire a real destination by uncommenting the Slack/email block in
-`alertmanager.yml` and dropping the secret into
-`observability/alertmanager/secrets/` — see
-`docs/runbooks/observability-enable.md`. `docs/slo.md` documents the intended
-severity → routing convention.
+receiver, `warning` → `warning-chat`. Both receivers deliver to **Discord** via
+an incoming webhook, read from a file secret
+(`webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url`) so the URL
+stays out of `docker inspect`. There is no Slack/email/PagerDuty path.
+Alertmanager will not start until that secret file exists — create the Discord
+webhook, drop it into `observability/alertmanager/secrets/discord_webhook_url`
+(chmod 600), and reload with `docker compose kill -s HUP alertmanager`. See
+`docs/runbooks/observability-enable.md`; `docs/slo.md` documents the severity →
+routing convention.

@@ -1,6 +1,8 @@
 # Distributed Tracing (ADS-660)
 
-The backend ships with the OpenTelemetry Node SDK and the standard
+How OpenTelemetry tracing is wired across the services and how to enable/view it (audience: engineers debugging cross-service requests).
+
+Each service boots the OpenTelemetry Node SDK with the standard
 auto-instrumentation bundle. Traces are exported via OTLP/HTTP to
 whatever collector is configured in the environment — Tempo, Jaeger,
 the OTel Collector itself, or any compatible backend.
@@ -15,10 +17,11 @@ correlation-ID + W3C `traceparent` scaffold continues to work.
 ```bash
 # .env / .env.local
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-OTEL_SERVICE_NAME=adopt-dont-shop-backend     # optional, this is the default
 OTEL_TRACES_SAMPLER=parentbased_traceidratio  # optional
 OTEL_TRACES_SAMPLER_ARG=1.0                   # optional
 ```
+
+Each service sets its own service name (`service.gateway`, `service.auth`, …) when it boots its SDK — there is no single `adopt-dont-shop-backend` default. Set `OTEL_SERVICE_NAME` only to override one.
 
 ## Deployed backend (prod/staging, ADS-1041)
 
@@ -86,8 +89,8 @@ operational signal. Override via the standard
 ```
 Inbound request
   └── HTTP instrumentation creates a server span (root)
-      └── requestContextMiddleware reads the span via trace.getActiveSpan()
-          and stores its traceparent in AsyncLocalStorage
+      └── the request-id hook (packages/observability/src/request-id.ts) reads
+          the span via trace.getActiveSpan() and stores its traceparent in AsyncLocalStorage
               └── Winston stamps `traceparent` on every log line
                   └── Sentry's beforeSend adds trace_id to every event
                       └── Outbound HTTP / Redis / PG spans become children
@@ -100,8 +103,8 @@ Loki, exceptions in Sentry, and downstream service spans.
 
 ## Sentry correlation
 
-`config/sentry.ts` reads the active OTel span in `beforeSend` and
-sets `event.contexts.trace.trace_id` plus a `trace_id` tag on every
+`packages/observability/src/sentry.ts` reads the active OTel span in `beforeSend`
+and sets `event.contexts.trace.trace_id` plus a `trace_id` tag on every
 event. The Sentry UI then renders a "View trace" link that pivots to
 the collector when the IDs match.
 
@@ -119,11 +122,11 @@ The SDK respects the standard env vars:
 
 There are no in-process worker daemons in the microservices — recurring
 work happens via NATS JetStream consumers (durable subscriptions started
-by `src/index.ts` in the owning service) and standalone `docker compose
-run` cron jobs configured in `docker-compose.yml`. Both inherit the
-per-service SDK boot, so their spans appear under the same service name
-as the HTTP surface. Standalone one-shot scripts need
-`OTEL_EXPORTER_OTLP_ENDPOINT` set in the shell that invokes them.
+by `src/index.ts` in the owning service). These inherit the per-service SDK
+boot, so their spans appear under the same service name as the HTTP surface.
+(There are no `docker compose run` cron jobs in the compose files.) Standalone
+one-shot scripts need `OTEL_EXPORTER_OTLP_ENDPOINT` set in the shell that
+invokes them.
 
 ## Disabling
 

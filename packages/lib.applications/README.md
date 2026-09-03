@@ -46,7 +46,7 @@ None directly — reaches the backend through the shared `lib.api` client. See
 
 Vitest — the applicant, rescue, and document methods are tested against a mocked
 API (submission, status transitions, multipart document upload). See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -59,4 +59,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.applications-consumers.md](../../docs/libraries/lib.applications-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

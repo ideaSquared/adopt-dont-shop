@@ -19,7 +19,7 @@ It is the most widely-consumed package in the workspace.
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
+pnpm dev          # tsc --watch
 pnpm build        # ESM + CJS dual build
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
@@ -38,7 +38,15 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `RescuePermissionGroups`, and the individual constants (`STAFF_CREATE`,
   `RESCUE_SETTINGS_UPDATE`, …).
 - **Default configs**: `defaultFieldPermissions`, `getDefaultFieldAccess`,
-  `getFieldAccessMap`.
+  `getFieldAccessMap`, and the sensitive-field guard `SENSITIVE_FIELD_DENYLIST`,
+  `isSensitiveField`, `enforceSensitiveDenylist`.
+- **Plan tiers**: from `./types/plans` (tier types + limits).
+- **Status**: `./status-labels` (shared display labels for status enums) and
+  `./types/domain-status` (canonical value sets for every entity).
+- **Notifications**: `./types/notifications` (cross-cutting enums + helpers).
+- **Common + activity**: `./types/common` (sort, date range, service config),
+  `./types/entity-activity` and `./types/user-activity` (admin
+  `EntityInspector` / user-detail activity shapes).
 
 ## Environment variables consumed
 
@@ -49,7 +57,7 @@ None — pure types + data.
 Vitest — the default-config resolution functions are tested directly. Because
 so many packages depend on this one, treat the exported types and default access
 map as a contract when changing them. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) or the frontend
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) or the frontend
 equivalent for anything not library-specific.
 
 ## Ownership
@@ -62,4 +70,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 30 workspace package(s) depend on this library. See [lib.types-consumers.md](../../docs/libraries/lib.types-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->
