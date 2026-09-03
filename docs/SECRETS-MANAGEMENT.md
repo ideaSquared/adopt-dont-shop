@@ -1,6 +1,6 @@
 # Secrets Management Guide
 
-This guide covers best practices for managing secrets and sensitive configuration in the Adopt Don't Shop platform.
+How secrets are generated, stored, and delivered to the services in the Adopt Don't Shop platform (audience: developers and operators). The authoritative list of what `deploy.yml` materialises is `docker-compose.prod.yml`'s `secrets:` block; the generator is `scripts/generate-secrets.mjs`.
 
 ## Table of Contents
 
@@ -123,47 +123,52 @@ Production deployments use file-based Docker secrets (plain Compose v2, not Swar
 - ✅ Not visible in `docker inspect`
 - ✅ Automatically mounted at `/run/secrets/<name>` — same path as Swarm secrets
 - ✅ Compatible with plain `docker compose up -d` (no Swarm infrastructure required)
-- ✅ Secret files are removed from disk after `docker compose up -d` completes
+- ✅ Secret files **persist** on the host at `./secrets/<name>` (dir-700 / file-600, owned by `deploy`) — they are bind-mounted, not copied, into `restart: always` containers, so they must survive a host reboot / container recreate (ADS-1247). They are overwritten by the next deploy, never deleted.
 
 ### How the Deploy Workflow Materializes Secrets
 
 The `deploy.yml` and `rollback.yml` workflows pass the rotating secrets via the `env:` block of the `appleboy/ssh-action` step (never interpolated into the script text) and run for **both staging and production**. On the server, before `docker compose up -d`, the script writes each file the compose `secrets:` block mounts, using `printf '%s'` (no trailing newline). `database_url` / `redis_url` are composed from the DB password plus the non-rotating identifiers already in the host `.env` (so the URLs always match what the database / redis containers use):
 
 ```bash
-mkdir -p secrets && chmod 700 secrets
+mkdir -p secrets
 PG_USER="$(read_env POSTGRES_USER)"; PG_DB="$(read_env POSTGRES_DB)"; REDIS_PW="$(read_env REDIS_PASSWORD)"
 printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url
 printf '%s' "redis://:${REDIS_PW}@redis:6379"      > secrets/redis_url
+printf '%s' "$REDIS_PW"                             > secrets/redis_password
 printf '%s' "$SECRET_JWT_SECRET"                    > secrets/jwt_secret
 printf '%s' "$SECRET_JWT_REFRESH_SECRET"            > secrets/jwt_refresh_secret
+printf '%s' "$SECRET_ENCRYPTION_KEY"                > secrets/encryption_key
 printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret
 printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
 printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
 chmod 600 secrets/*
-# ... docker compose up -d ...
-rm -f secrets/*
+# ... docker compose up -d ... (the files are LEFT on disk — see the note above)
 ```
 
-The `secrets/` directory is gitignored and must never be committed.
+The `secrets/` directory is gitignored and must never be committed. `database_url` / `redis_url` / `redis_password` are composed on the host from `DB_PASSWORD` + the non-rotating identifiers in the host `.env`; the six rotating application secrets (`jwt_secret`, `jwt_refresh_secret`, `encryption_key`, `upload_signing_secret`, `principal_signing_key`, `db_password`) come from the GitHub repo secrets `deploy.yml` validates.
 
 ### Compose Configuration (`docker-compose.prod.yml`)
 
 ```yaml
 secrets:
+  db_password:
+    file: ./secrets/db_password
   database_url:
     file: ./secrets/database_url
   redis_url:
     file: ./secrets/redis_url
+  redis_password:
+    file: ./secrets/redis_password
   jwt_secret:
     file: ./secrets/jwt_secret
   jwt_refresh_secret:
     file: ./secrets/jwt_refresh_secret
+  encryption_key:
+    file: ./secrets/encryption_key
   upload_signing_secret:
     file: ./secrets/upload_signing_secret
   principal_signing_key:
     file: ./secrets/principal_signing_key
-  db_password:
-    file: ./secrets/db_password
 ```
 
 Each service that needs a secret lists it under its own `secrets:` key; Compose mounts the file content at `/run/secrets/<name>`.
@@ -187,8 +192,10 @@ mkdir -p secrets && chmod 700 secrets
 # Connection URLs — use the same POSTGRES_USER / POSTGRES_DB / passwords as .env.
 printf '%s' "postgresql://USER:DB_PASSWORD@database:5432/DB_NAME" > secrets/database_url
 printf '%s' "redis://:REDIS_PASSWORD@redis:6379"                  > secrets/redis_url
+printf '%s' "REDIS_PASSWORD"               > secrets/redis_password  # same value used in redis_url
 printf '%s' "$(openssl rand -base64 32)"  > secrets/jwt_secret
 printf '%s' "$(openssl rand -base64 32)"  > secrets/jwt_refresh_secret
+printf '%s' "$(openssl rand -hex 32)"     > secrets/encryption_key   # 64 hex chars
 printf '%s' "$(openssl rand -base64 32)"  > secrets/upload_signing_secret
 printf '%s' "$(openssl rand -base64 32)"  > secrets/principal_signing_key
 printf '%s' "DB_PASSWORD"                  > secrets/db_password   # same value used in database_url
@@ -382,10 +389,10 @@ docker compose --env-file .env.prod up -d
 # Write secret files, then bring up the stack (deploy workflow does this automatically)
 mkdir -p secrets && chmod 700 secrets
 printf '%s' "$JWT_SECRET" > secrets/jwt_secret
-# ... (repeat for all 8 secrets) ...
+# ... (repeat for every file in the compose secrets: block) ...
 chmod 600 secrets/*
 docker compose -f docker-compose.prod.yml --env-file .env up -d
-rm -f secrets/*
+# Leave the files in place — they are bind-mounted into restart:always containers (ADS-1247).
 ```
 
 **Method 4: External Secrets Manager (Enterprise)**

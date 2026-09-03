@@ -41,7 +41,7 @@ None read directly — the `apiUrl` (typically `VITE_API_BASE_URL`) is passed in
 ## Testing notes
 
 Vitest — the search/suggestion/faceted methods are tested against a mocked API.
-See [`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+See [`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -54,4 +54,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.search-consumers.md](../../docs/libraries/lib.search-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

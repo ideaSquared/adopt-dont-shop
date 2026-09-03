@@ -1,5 +1,7 @@
 # Microservices + Shared Libraries Architecture
 
+Reference for the architectural patterns and standards shared across the services and libraries (audience: engineers designing or reviewing service/library changes).
+
 ## Overview
 
 The Adopt Don't Shop platform uses a hybrid microservices architecture combining shared libraries with a single database. This approach balances modularity with simplicity, avoiding the complexity of distributed databases while maintaining code reusability.
@@ -51,7 +53,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 **✅ Microservice Apps**
 
 - Frontend apps (React + Vite)
-- Backend services (Node.js + Express)
+- Backend services (Fastify at the gateway edge; gRPC servers for the domain services)
 - Independent deployment
 - Shared infrastructure
 
@@ -349,7 +351,7 @@ When to consider microservices:
 ## Additional Resources
 
 - **Infrastructure Overview**: [INFRASTRUCTURE.md](./INFRASTRUCTURE.md)
-- **Docker Setup**: [docker-setup.md](./docker-setup.md)
+- **Docker (dev stack)**: [../DOCKER.md](../DOCKER.md)
 - **New App Generator**: [new-app-generator.md](./new-app-generator.md)
 - **Libraries Documentation**: [../libraries/README.md](../libraries/README.md)
 - **Database Schema**: [../backend/database-schema.md](../backend/database-schema.md)

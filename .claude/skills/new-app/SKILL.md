@@ -9,7 +9,8 @@ disable-model-invocation: true
 # Create a New App
 
 ## Current apps
-!`ls -d app.*/ 2>/dev/null | tr '\n' ' '`
+
+!`ls -d apps/*/ 2>/dev/null | tr '\n' ' '`
 
 ## Step 1 — Run the generator
 
@@ -17,179 +18,149 @@ disable-model-invocation: true
 pnpm new-app <app-name> [--template <template>]
 ```
 
-**App name** must start with `app.` (e.g. `app.dashboard`, `app.staff`).
+**App name** must start with `app.` (e.g. `app.dashboard`, `app.staff`). The `app.` prefix is
+stripped for the directory: `pnpm new-app app.dashboard` creates `apps/dashboard/`, while the package
+keeps the full name `@adopt-dont-shop/app.dashboard`.
 
-**Templates:**
+**Templates** (dependency lists live in each template's `package.json`):
 
-| Template | What it includes |
-|----------|-----------------|
-| `minimal` | React, Auth, React Router, styled-components |
-| `standard` | Minimal + React Query, ApiService, Analytics, Error Boundaries |
-| `enterprise` | Standard + Feature Flags, Notifications, Permissions |
+| Template     | What it includes                                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `minimal`    | React, `lib.auth`, React Router, vanilla-extract                                                               |
+| `standard`   | Minimal + React Query, `lib.api`, `lib.analytics`, Error Boundaries                                            |
+| `enterprise` | Standard + `lib.feature-flags`, `lib.notifications`, `lib.permissions`, `lib.discovery`, `lib.search`, Statsig |
 
-Default is `standard`. Use `enterprise` for apps that need the full permission/notification
-stack. Use `minimal` for simple internal tools.
+Default is `standard`. Use `enterprise` for the full permission/notification stack; `minimal` for
+simple internal tools.
 
-Examples:
 ```bash
 pnpm new-app app.dashboard
 pnpm new-app app.staff --template enterprise
 ```
 
+The generator already does a lot for you (see the [`new-app-generator` doc](../../../docs/infrastructure/new-app-generator.md)):
+it creates `apps/<slug>/` from `common/` + the template, creates the empty scaffolding dirs, and
+registers the workspace (`pnpm-workspace.yaml` already globs `apps/*`). It prints a reminder about
+the Docker dev-volume mount (step 4 below).
+
 ## Step 2 — Verify the generated structure
 
 ```
-app.<name>/
-├── package.json          # @adopt-dont-shop/app.<name>
-├── tsconfig.json
-├── tsconfig.node.json
-├── vite.config.ts
-├── jest.config.js
+apps/<slug>/
+├── package.json          # @adopt-dont-shop/app.<slug>
+├── tsconfig.json  tsconfig.node.json
+├── vite.config.ts        # imports getLibraryAliases; proxies /api to the gateway
+├── vitest.config.ts      # Vitest, not Jest — there is no jest.config
 ├── index.html
+├── README.md
 └── src/
-    ├── main.tsx
-    ├── App.tsx
+    ├── main.tsx  App.tsx
     ├── vite-env.d.ts
-    ├── components/
-    │   └── layout/
-    ├── contexts/
-    ├── hooks/
-    ├── pages/
-    ├── services/
-    │   └── libraryServices.ts   ← critical — must exist
-    ├── types/
-    └── utils/
-        └── env.ts
+    ├── components/dev/DevLoginPanel.{tsx,css.ts}
+    ├── contexts/AuthContext.tsx      # + Analytics/Notifications/Permissions/Statsig (standard/enterprise)
+    ├── pages/HomePage.{tsx,css.ts}
+    └── hooks/ services/ utils/ types/ test-utils/ __tests__/   # empty scaffolding dirs
 ```
 
-## Step 3 — Configure the Vite proxy
+Note: the generator does **not** create a `src/services/libraryServices.ts` — you add it (step 3) if
+the app talks to the backend.
 
-Open the generated `vite.config.ts` and confirm the proxy is configured correctly.
-It should match the pattern from the other apps (not bypass proxy in Docker, but change
-target to `service-backend`):
+## Step 3 — Vite proxy and library aliases (already wired)
+
+The generated `vite.config.ts` already imports `getLibraryAliases` from `../../vite.shared.config`
+and proxies `/api`, `/health`, `/monitoring` to the gateway. Just confirm it matches the other apps —
+do **not** hand-roll per-lib aliases or the proxy block:
 
 ```typescript
+import { getLibraryAliases } from '../../vite.shared.config';
+
 const isDocker = process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'production';
-const backendHost = isDocker ? 'service-backend' : 'localhost';
-
-// In server config:
-proxy: {
-  '/api': {
-    target: `http://${backendHost}:5000`,
-    changeOrigin: true,
-    secure: false,
-  },
-  '/health': {
-    target: `http://${backendHost}:5000`,
-    changeOrigin: true,
-    secure: false,
-  },
-},
+const backendHost = isDocker ? 'service-gateway' : '127.0.0.1'; // 127.0.0.1, NOT localhost (IPv6)
+const backendPort = 4000;
+const libraryAliases = getLibraryAliases(__dirname, mode);
 ```
 
-If the generated config uses `!isDocker ? { proxy } : undefined`, fix it to always proxy
-with the dynamic host. This is required for CSRF to work in Docker.
+Adding a new `lib.*` for every app is a one-line edit in `vite.shared.config.ts` — never a per-app
+alias list.
 
-## Step 4 — Configure libraryServices.ts
+## Step 4 — Configure the shared apiService (if the app calls the backend)
 
-Ensure `src/services/libraryServices.ts` initialises `ApiService` with `?? ''` (not `|| 'http://...'`):
+Add `src/services/libraryServices.ts` that configures the shared `apiService` singleton via
+`updateConfig` — there is **no** token reader; auth tokens are httpOnly cookies sent with
+`credentials: 'include'`:
 
 ```typescript
-import { ApiService, AuthenticationError } from '@adopt-dont-shop/lib.api';
+import { apiService as globalApiService } from '@adopt-dont-shop/lib.api';
 
-export const globalApiService = new ApiService({
-  apiUrl: import.meta.env.VITE_API_BASE_URL ?? '',
+globalApiService.updateConfig({
+  apiUrl: import.meta.env.VITE_API_BASE_URL ?? '', // '' in Docker → relative URLs through the proxy
   debug: import.meta.env.DEV,
-  getAuthToken: () =>
-    localStorage.getItem('authToken') || localStorage.getItem('accessToken'),
+});
+
+// Import and construct domain services AFTER configuring the global apiService.
+import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
+export const permissionsService = new PermissionsService({
+  apiUrl: import.meta.env.VITE_API_BASE_URL ?? '',
 });
 ```
 
-Using `||` treats an empty string as falsy and falls back to a hardcoded absolute URL,
-which breaks CSRF in Docker. Use `??` so an empty string is respected.
+Use `??` (not `||`) so an empty string is respected — `||` would fall back to a hardcoded absolute
+URL and break CSRF in Docker. See the `api-fetch` skill.
 
-## Step 5 — Add to docker-compose.yml
+## Step 5 — Add the app to docker-compose.yml
 
-Add a new service entry following the exact pattern of the existing apps:
+Apps share the root `Dockerfile.app` (built with an `APP_NAME` arg) via YAML anchors. Copy an existing
+block (e.g. `app-rescue`) and parameterise it. **`profiles` is required** or the service never starts
+under `pnpm docker:dev`:
 
 ```yaml
-app-<name>:
+app-<slug>:
+  profiles: ["<slug>", "full"]
   build:
-    context: .
-    dockerfile: Dockerfile.app
-    target: development
+    <<: *app-build-defaults        # context: ., dockerfile: Dockerfile.app, target: development
     args:
-      APP_NAME: app.<name>
+      APP_NAME: <slug>
   ports:
-    - '<port>:3000'          # Pick the next available port (3003, 3004, ...)
+    - '127.0.0.1:<port>:3000'      # next free host port; container port is always 3000
   volumes:
     - .:/app
     - /app/node_modules
-    - /app/app.<name>/node_modules
+    - /app/apps/<slug>/node_modules
   environment:
-    NODE_ENV: ${NODE_ENV:-development}
-    DOCKER_ENV: 'true'
-    VITE_API_BASE_URL: ''    # Empty — requests go through Vite proxy
-    VITE_WS_BASE_URL: ws://localhost:4000
-    CHOKIDAR_USEPOLLING: true
-    CHOKIDAR_INTERVAL: 1000
-    CHOKIDAR_AWAITWRITEFINISH: 2000
-    NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
-  depends_on:
-    - service-backend
-  restart: unless-stopped
-  healthcheck:
-    test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
-    interval: 30s
-    timeout: 10s
-    retries: 3
-    start_period: 60s
-  mem_limit: 2g
-  memswap_limit: 2g
+    <<: *app-env                   # includes VITE_API_BASE_URL: '' and DOCKER_ENV: 'true'
+  <<: *app-common                  # depends_on: service-gateway, healthcheck, mem limits
 ```
 
-`VITE_API_BASE_URL: ''` is intentional — see the api-fetch skill for why.
+## Step 6 — Add the node_modules mount to the dev stack
 
-## Step 6 — Add vite aliases for all libs the app uses
+Add the app's line to the `x-dev-volumes` anchor in `docker-compose.dev.yml`
+(`pnpm check:workspaces` fails CI if it drifts from the filesystem):
 
-In the new `vite.config.ts`, add source aliases for each library the app imports,
-so dev changes to libs are reflected immediately without a build:
-
-```typescript
-const libraryAliases = mode === 'development' ? {
-  '@adopt-dont-shop/lib.components': resolve(__dirname, '../lib.components/src'),
-  '@adopt-dont-shop/lib.api':        resolve(__dirname, '../lib.api/src'),
-  '@adopt-dont-shop/lib.auth':       resolve(__dirname, '../lib.auth/src'),
-  // ... add others as needed
-} : {};
+```yaml
+- /app/apps/<slug>/node_modules
 ```
 
-## Step 7 — Add to root package.json scripts
-
-Add convenient dev/build/test scripts to the root `package.json` following existing patterns:
-
-```json
-"dev:<shortname>":   "turbo run dev --filter=@adopt-dont-shop/app.<name>",
-"build:<shortname>": "turbo run build --filter=@adopt-dont-shop/app.<name>",
-"test:<shortname>":  "turbo run test --filter=@adopt-dont-shop/app.<name>"
-```
-
-## Step 8 — Install and start
+## Step 7 — Install and start
 
 ```bash
 pnpm install
-docker compose up -d --force-recreate app-<name>
+docker compose --profile <slug> up -d --force-recreate app-<slug>
 ```
 
 Or for local dev without Docker:
+
 ```bash
-pnpm dev:<shortname>
+pnpm --filter @adopt-dont-shop/app.<slug> dev
 ```
 
 ## Common mistakes
 
-- `VITE_API_BASE_URL` set to `http://localhost:5000` in docker-compose → breaks CSRF
-- Vite proxy disabled in Docker (`!isDocker ? proxy : undefined`) → ECONNREFUSED errors
-- Missing `DOCKER_ENV: 'true'` in docker-compose → proxy targets wrong host
-- Using `||` instead of `??` in libraryServices.ts → empty string ignored, absolute URL used
-- Forgetting `pnpm install` after adding the workspace
+- `VITE_API_BASE_URL` set to an absolute URL in compose → breaks CSRF; keep it `''` (from `*app-env`)
+- Hand-rolling per-lib Vite aliases instead of `getLibraryAliases` → drifts from the shared list
+- Proxy target `service-backend:5000` or `localhost:5000` → the monolith is gone; use `service-gateway:4000` / `127.0.0.1:4000`
+- Reading tokens from `localStorage` in `libraryServices.ts` → tokens are httpOnly cookies; use `updateConfig` only
+- Omitting `profiles` on the compose service → it never starts under `pnpm docker:dev`
+- Forgetting the `x-dev-volumes` mount → `pnpm check:workspaces` fails
+- Using `||` instead of `??` for `VITE_API_BASE_URL`
+
+Canonical doc: [`docs/infrastructure/new-app-generator.md`](../../../docs/infrastructure/new-app-generator.md) and [`docs/templates/README.app.md`](../../../docs/templates/README.app.md).

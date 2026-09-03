@@ -1,8 +1,19 @@
 # Maintenance Mode
 
-**Page severity:** N/A — this is an action, not an alarm. Used to
-shed traffic during another incident, a planned outage, or a
-controlled brownout.
+> **Audience:** on-call, shell access on the prod host, no context.
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** none fires this directly — it's an action, not an alarm.
+> `GatewayRateLimitSpike` (`warning`, `infra/prometheus/rules/gateway-resilience.yml`)
+> annotates this runbook as one response to a rate-limit surge. Use it to shed
+> traffic during another incident, a planned outage, or a controlled brownout.
+
+## Preconditions
+
+- Access to the **Statsig console** (`console.statsig.com`) for the project —
+  this is where the flag lives. There is **no** maintenance-mode API on the
+  gateway.
+- For the hard-offline fallback: prod SSH, `cd /opt/ads/production`,
+  `docker compose -f docker-compose.prod.yml`.
 
 ## What "maintenance mode" means here
 
@@ -47,69 +58,47 @@ the API. If you need a hard block, stop nginx (preferred) or stop
 
 ## Flipping the flag
 
-The flag is stored in the feature-flags backend (see
-`lib.feature-flags`). Use the admin UI when you have a browser; use
-the API when you have a terminal at 03:00.
+`application_settings` is a **Statsig dynamic config**, not a value in any of
+our services. The frontends read it via `useDynamicConfig(KNOWN_CONFIGS.APPLICATION_SETTINGS)`
+(`packages/lib.feature-flags/src/hooks/useDynamicConfig.ts`). There is **no
+gateway route** to change it — `services/gateway/src/routes/config.ts` only
+serves a static public-config literal, and the admin app's Configuration page
+(`apps/admin/src/pages/Configuration.tsx`) **displays** the flag read-only. So:
 
-### Via the admin UI
+1. Sign in to the **Statsig console** (`console.statsig.com`) for the project.
+2. Open **Dynamic Configs → `application_settings`**.
+3. Edit the config so `maintenance_mode` → `true`. Change only that key — the
+   config also holds `max_applications_per_user`, `new_registrations_enabled`,
+   etc. Save.
+4. Confirm in an incognito window that the maintenance banner appears (the
+   frontends re-fetch on Statsig's polling cadence, ~30s).
 
-1. Sign in to `https://admin.${PROD_HOSTNAME}` as an admin.
-2. Navigate to **Feature Flags → Dynamic Configs**.
-3. Edit `application_settings`.
-4. Toggle `maintenance_mode` → `true`. Save.
-5. Open the public site in an incognito window to confirm the
-   banner appears (frontend polls every ~30s).
-
-### Via the API (terminal-only fallback)
-
-```bash
-# Replace the JSON below with your real admin token + base URL.
-ADMIN_TOKEN="..."
-
-# 1. Read the current config so you don't clobber other fields.
-curl -sf -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  https://${PROD_HOSTNAME}/api/v1/feature-flags/configs/application_settings \
-  | jq
-
-# 2. PATCH only the field you're changing. The exact route shape is
-#    in lib.feature-flags / the admin app's services layer — confirm
-#    against the admin UI's network tab if uncertain.
-curl -sf -X PATCH -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{"value":{"maintenance_mode":true}}' \
-  https://${PROD_HOSTNAME}/api/v1/feature-flags/configs/application_settings
-```
-
-**Always read-then-write.** PUT-ing a fresh body without reading
-first will silently wipe `max_applications_per_user`, etc.
+There is no read-then-write clobber risk here — the Statsig editor edits the
+existing config in place rather than replacing it wholesale.
 
 ## Verify maintenance mode is active
 
 - Hit the public site in an incognito window — maintenance banner is
   visible within 30s.
-- `curl -sf https://${PROD_HOSTNAME}/api/v1/feature-flags/configs/application_settings | jq '.value.maintenance_mode'`
-  returns `true`.
+- The Statsig console shows `application_settings.maintenance_mode = true`, and
+  the admin app's Configuration page reflects `true` after its next poll.
 - Backend logs do **not** show a flood of errors — maintenance mode
   shouldn't be generating its own noise. If they do, the frontends
   aren't honouring it; investigate before assuming traffic is shed.
 
 ## Lifting maintenance mode
 
-```bash
-# Same as above, with maintenance_mode flipped back.
-curl -sf -X PATCH -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{"value":{"maintenance_mode":false}}' \
-  https://${PROD_HOSTNAME}/api/v1/feature-flags/configs/application_settings
-```
-
-Confirm:
+Flip `maintenance_mode` back to `false` in the Statsig console (same path as
+above). Then confirm:
 
 - Banner disappears from the public site within 30s.
 - A test write path (e.g. submit a saved-pet) succeeds end-to-end.
-- Watch `http_requests_total` and error rate for 5 min after
-  lifting; surfacing a still-broken dependency immediately after the
-  flag flips is a common pattern.
+- Watch request volume and error rate on the Grafana **service-overview**
+  dashboard for 5 min after lifting (the gateway exposes the
+  `http_request_duration_seconds` histogram — its `_count` series is the request
+  counter, e.g. `sum(rate(http_request_duration_seconds_count[5m]))`; there is
+  no `http_requests_total`). Surfacing a still-broken dependency immediately
+  after the flag flips is a common pattern.
 
 ## Hard offline (when maintenance mode isn't enough)
 
@@ -126,6 +115,14 @@ docker compose -f docker-compose.prod.yml start nginx
 This is louder than maintenance mode (no friendly banner, just a
 connection failure) but it's the cleanest way to guarantee zero
 traffic reaches the gateway / backing services.
+
+## Escalate
+
+Maintenance mode is a stopgap, not a fix. If the underlying incident isn't
+resolving and you've been in maintenance mode for **30 minutes**, DM the
+secondary on-call — an extended brownout is a business decision, not just an
+engineering one. If you cannot reach the Statsig console at all, fall back to
+hard-offline (stop nginx) and escalate the Statsig access problem separately.
 
 ## Capture
 

@@ -1,4 +1,4 @@
-# ErrorState Component
+# ErrorState
 
 A presentational error display for surfacing failed operations in a consistent,
 accessible way. Renders an alert with a title, an optional message and icon, and
@@ -7,7 +7,7 @@ an optional retry button.
 ## Usage
 
 ```tsx
-import { ErrorState } from '@lib/components';
+import { ErrorState } from '@adopt-dont-shop/lib.components';
 
 function PetList() {
   const { data, isError, error, refetch } = usePets();

@@ -47,7 +47,7 @@ None — the harness is configured entirely through function arguments.
 ## Testing notes
 
 The utilities are themselves covered by sibling `*.test.ts` files. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for how services
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for how services
 wire these doubles into their suites.
 
 ## Ownership

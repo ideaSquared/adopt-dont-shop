@@ -1,10 +1,21 @@
 # Troubleshooting the dev stack (ADS-955)
 
+> **Audience:** a developer on their own machine — **not** prod on-call.
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** none — this is a local-dev doc, not a paged incident.
+
 Symptom → diagnosis → fix for the Docker dev stack (`pnpm docker:dev`).
 Unlike the rest of `docs/runbooks/` (production on-call playbooks), this one
-is for **local development** — no prod host, no PagerDuty. If you hit a
+is for **local development** — no prod host, no on-call rotation. If you hit a
 failure mode not covered here, add it once you've solved it (see
 "Contributing to this doc" at the bottom).
+
+## Preconditions
+
+A local checkout with `corepack enable` done, Docker running, and `pnpm bootstrap`
+completed so `.env` exists. Everything runs on your machine — there is nothing to
+escalate; if you're stuck, ask in the team dev channel and add the fix here once
+solved.
 
 Background reading: [`docs/DOCKER.md`](../DOCKER.md) for architecture, and
 `scripts/docker-dev.mjs` for the exact preflight `pnpm docker:dev` runs

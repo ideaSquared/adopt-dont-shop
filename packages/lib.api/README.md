@@ -3,11 +3,15 @@
 ## Purpose
 
 A **pure HTTP transport layer** for the frontend apps: a typed `ApiService`
-with a request/response interceptor pipeline, pluggable auth-token injection,
-CSRF handling for state-changing requests, structured error types with HTTP
-status mapping, configurable `AbortController` timeouts, and a small in-memory
-request cache. The domain libraries (`lib.auth`, `lib.pets`, `lib.chat`, …)
-build on top of this — it is the infrastructure layer beneath them.
+with a request/response interceptor pipeline, cookie-based auth (every request
+sends `credentials: 'include'`; the gateway sets the session cookies), a
+double-submit CSRF token on state-changing requests (the non-HttpOnly
+`csrfToken` cookie is echoed in the `x-csrf-token` header), structured error
+types with HTTP status mapping, configurable `AbortController` timeouts, and a
+small in-memory request cache. A `getAuthToken` config hook is a bearer-token
+escape hatch for non-cookie callers, not the default path. The domain libraries
+(`lib.auth`, `lib.pets`, `lib.chat`, …) build on top of this — it is the
+infrastructure layer beneath them.
 
 ## Location in the architecture
 
@@ -20,8 +24,8 @@ this package — `lib.api` deliberately exports no `authService`.
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -32,7 +36,9 @@ pnpm type-check   # TypeScript type-check
 The canonical list lives in [`src/index.ts`](src/index.ts):
 
 - `ApiService` (class), `apiService` (default singleton), `api` (alias).
-- `API_PATHS`, `buildApiPath` — URL helpers.
+- `API_PATHS`, `buildApiPath` — URL helpers. (Note: `API_PATHS.AUTH.REFRESH`
+  is `/auth/refresh` in code, but the gateway route is `/auth/refresh-token` —
+  tracked as a code mismatch, see F14.)
 - Everything from `./interceptors` and `./errors` (the error classes each
   extend `Error` directly — `createHttpError(status, …)` picks the right one:
   `ApiError`, `NotFoundError`, `AuthenticationError`, `AuthorizationError`,
@@ -41,9 +47,13 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `PaginatedResponse`, `ApiPet`, `TransformedPet`, …).
 
 `ApiService` methods: `get` / `post` / `put` / `patch` / `delete`, `fetch` /
-`fetchWithAuth`, `uploadFile`, `healthCheck`, plus `updateConfig` / `getConfig`
-/ `clearCache` / `clearCsrfToken`. Configure the singleton once per app via
-`apiService.updateConfig({ apiUrl, getAuthToken, timeout, debug })`.
+`fetchWithAuth`, `uploadFile`, `healthCheck`, `getCsrfToken()` (resolves the
+double-submit CSRF token — public, and reused by `lib.chat` for its own
+requests), plus `updateConfig` / `getConfig` / `clearCache` / `clearCsrfToken`.
+Configure the singleton once per app via
+`apiService.updateConfig({ apiUrl, getAuthToken, timeout, debug })` — pass
+`getAuthToken` only for the bearer-token escape hatch; cookie auth needs no
+config.
 
 ## Environment variables consumed
 
@@ -58,7 +68,7 @@ each app's `vite-env.d.ts`. Consumers typically pass these through
 Vitest — the interceptor pipeline, auth/CSRF injection, timeout/abort, and the
 error-class mapping are tested with a mocked `fetch`. This is a widely-consumed
 library, so treat its public surface as a contract when changing it. See
-[`docs/frontend/testing.md`](../../docs/testing.md) or the backend equivalent
+[`docs/testing.md`](../../docs/testing.md) or the backend equivalent
 for anything not library-specific.
 
 ## Ownership
@@ -71,4 +81,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 19 workspace package(s) depend on this library. See [lib.api-consumers.md](../../docs/libraries/lib.api-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

@@ -1,9 +1,16 @@
 # Database Pool Exhaustion
 
-**Severity:** `warning`. Pool exhaustion surfaces as `HttpP95LatencyHigh` /
-`GrpcP95LatencyHigh` (latency climbs) and, once requests start timing out into
-5xx, `HighErrorRate` — all `warning` in the shipped rules
-(`infra/prometheus/rules/`).
+> **Audience:** on-call, shell access on the prod host, no context.
+> **Last reviewed:** 2026-09-03
+> **Related alerts:** `HttpP95LatencyHigh`, `GrpcP95LatencyHigh` (`warning`,
+> `infra/prometheus/rules/p95-latency.yml`); escalates to `HighErrorRate`
+> (`warning`, `high-error-rate.yml`) once requests time out into 5xx.
+
+## Preconditions
+
+See [`README.md`](./README.md#preconditions): prod SSH, `cd /opt/ads/production`,
+`docker compose -f docker-compose.prod.yml`, `psql` via the `database` container.
+`$POSTGRES_USER` / `$POSTGRES_DB` are set in the host `.env`.
 
 ## Symptoms
 
@@ -83,18 +90,37 @@ is up and tracking the saturation, capacity is the cause.
 
    Watch the `state` distribution drop back to mostly `idle`.
 
-2. **Bump the pool** — the pool `max` (default `8`) is env-tunable per
-   service via `DB_POOL_MAX`. Raise it for the affected service and
-   redeploy that service (no code change needed). Do **not** exceed the
-   Postgres `max_connections` ceiling (tuned to `200` in
-   `docker-compose.{prod,staging}.yml`). Every schema-owning service
-   holds up to `max` connections; budget across all of them (auth, pets,
-   rescue, applications, chat, notifications, moderation, matching, cms,
-   audit) and leave headroom for backups, migrations, `psql` + the
-   operator — the full formula is in
-   [`docs/operations/connection-budget.md`](../operations/connection-budget.md).
-   A targeted `pg_terminate_backend` or a feature-flag flip is usually a
-   faster first response than a redeploy.
+2. **Bump the pool** — the pool `max` (default `8`, `DEFAULT_POOL_MAX` in
+   `packages/db/src/client.ts`) is env-tunable per service via `DB_POOL_MAX`,
+   read from the environment at boot. **It is not set in the prod compose file**,
+   so the effective value is the code default until you add it. To raise it for
+   one service, edit the compose file on the host and recreate just that service:
+
+   ```bash
+   cd /opt/ads/production
+   # Add DB_POOL_MAX under the affected service's `environment:` block, e.g.:
+   #   service-pets:
+   #     environment:
+   #       DB_POOL_MAX: "16"
+   $EDITOR docker-compose.prod.yml
+   docker compose -f docker-compose.prod.yml up -d service-pets
+   ```
+
+   Expected: compose recreates only `service-pets`; `docker compose ... ps`
+   shows it `Up (healthy)`.
+
+   **This host edit does not persist** — the next deploy copies the repo's
+   `docker-compose.prod.yml` over it. If the higher pool should stick, land the
+   `DB_POOL_MAX` change in the repo compose file too (follow-up PR).
+
+   Do **not** exceed the Postgres `max_connections` ceiling (tuned to `200` in
+   `docker-compose.{prod,staging}.yml`). Every schema-owning service holds up to
+   `max` connections; budget across all of them (auth, pets, rescue,
+   applications, chat, notifications, moderation, matching, cms, audit) and leave
+   headroom for backups, migrations, `psql` + the operator — the full formula is
+   in [`docs/operations/connection-budget.md`](../operations/connection-budget.md).
+   A targeted `pg_terminate_backend` or a feature-flag flip is usually a faster
+   first response than a compose edit.
 
 3. **Disable a hot endpoint** — if a known feature is driving the
    load (e.g. a search endpoint hitting a missing index), flip its
@@ -113,6 +139,22 @@ is up and tracking the saturation, capacity is the cause.
   resolve.
 - No new `acquire timeout` / `pool is draining` /
   `timeout exceeded when trying to connect` lines in the last 5 min of logs.
+
+## Rollback
+
+`pg_terminate_backend` cannot be undone — the killed query's client sees a
+connection error and must retry (mark that step **DESTRUCTIVE** in your notes).
+A `DB_POOL_MAX` compose bump is reversed by removing the line and running
+`up -d service-<name>` again, or simply by the next deploy. A feature-gate flip
+reverses in the Statsig console.
+
+## Escalate
+
+If the pool stays saturated **15 minutes** after killing the obvious query and
+bumping the pool — or you're approaching the Postgres `max_connections` ceiling
+across services — DM the secondary on-call / DB owner. Hand over the
+`pg_stat_activity` snapshot, the affected service, and the `DB_POOL_MAX` values
+in play.
 
 ## Capture
 

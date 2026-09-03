@@ -2,6 +2,24 @@
 
 This document explains how to use Statsig feature flags directly in your React components.
 
+## Preferred hook: `useFeatureGate`
+
+For a simple on/off gate, use `useFeatureGate` from `@adopt-dont-shop/lib.feature-flags`. **It
+returns an object `{ value: boolean }`, not a bare boolean** — destructure it, or the gate reads as
+permanently on:
+
+```tsx
+import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
+
+function MyComponent() {
+  const { value: enabled } = useFeatureGate('advanced_search_filters');
+  return enabled ? <AdvancedFilters /> : <BasicFilters />;
+}
+```
+
+Use the `useStatsig` hook below only as the imperative escape hatch — when you also need to log
+events or fetch experiments alongside a gate check.
+
 ## Quick Start
 
 ### 1. Import the hook
@@ -39,7 +57,11 @@ function MyComponent() {
 - `advanced_search_filters` — toggles the advanced filter UI in `SearchPage`
 - `new_hero_design` — toggles the new hero variant in `HomePage`
 
-These two are passed as string literals to `useFeatureGate(...)`. The broader catalog of platform-wide gates ships as constants in `@adopt-dont-shop/lib.feature-flags` under `KNOWN_GATES` — prefer those constants when you're adding a gate that appears in the catalog.
+These two are passed as string literals to `useFeatureGate(...)` and are the only gates evaluated in
+the client today. The `KNOWN_GATES` catalogue in `@adopt-dont-shop/lib.feature-flags` currently has
+10 entries and **zero call sites** across `apps/*/src` — treat it as a placeholder catalogue of
+platform-wide gate names, not deployed gates. If you add a gate that appears there, prefer the
+constant.
 
 ### Setting up new gates in Statsig Console:
 
@@ -64,12 +86,21 @@ return <button style={{ backgroundColor: buttonColor }}>Click me</button>;
 
 ### Dynamic Configuration
 
+The real dynamic configs are `application_settings`, `system_settings`, and `moderation_settings`
+(`KNOWN_CONFIGS` in `@adopt-dont-shop/lib.feature-flags`). Prefer the `useConfigValue` hook:
+
+```tsx
+import { useConfigValue, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
+
+const maxFileSize = useConfigValue(KNOWN_CONFIGS.SYSTEM_SETTINGS, 'max_file_upload_size_mb', 10);
+```
+
+`apps/admin/src/pages/Configuration.tsx` is the live example. The imperative `useStatsig` form is:
+
 ```tsx
 const { getDynamicConfig } = useStatsig();
-
-const config = getDynamicConfig('app_settings');
-const maxFileSize = config?.get('max_upload_size_mb', 10) || 10;
-const apiTimeout = config?.get('api_timeout_ms', 5000) || 5000;
+const config = getDynamicConfig('system_settings');
+const maxFileSize = config?.get('max_file_upload_size_mb', 10) || 10;
 ```
 
 ### Event Logging

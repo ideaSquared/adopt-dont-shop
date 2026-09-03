@@ -1,11 +1,11 @@
-# FileUpload Component
+# FileUpload
 
 A versatile file upload component with drag-and-drop functionality, file validation, and preview capabilities.
 
 ## Usage
 
 ```tsx
-import { FileUpload } from '@lib/components';
+import { FileUpload } from '@adopt-dont-shop/lib.components';
 
 function MyComponent() {
   const [files, setFiles] = useState<File[]>([]);

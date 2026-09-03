@@ -29,18 +29,18 @@ Migrations live in the schema-owning service. If you're adding a
 column to `pets.pets`, the migration goes in
 `services/pets/src/migrations/`. Schema ownership:
 
-| Service                | Schema                          |
-|------------------------|---------------------------------|
-| `services/auth/`       | `auth.*`                        |
-| `services/pets/`       | `pets.*`                        |
-| `services/rescue/`     | `rescue.*`                      |
-| `services/applications/` | `applications.*`              |
-| `services/chat/`       | `chat.*`                        |
-| `services/notifications/` | `notifications.*`            |
-| `services/moderation/` | `moderation.*`                  |
-| `services/matching/`   | `matching.*`                    |
-| `services/cms/`        | `cms.*`                         |
-| `services/audit/`      | `audit.*`                       |
+| Service                   | Schema            |
+| ------------------------- | ----------------- |
+| `services/auth/`          | `auth.*`          |
+| `services/pets/`          | `pets.*`          |
+| `services/rescue/`        | `rescue.*`        |
+| `services/applications/`  | `applications.*`  |
+| `services/chat/`          | `chat.*`          |
+| `services/notifications/` | `notifications.*` |
+| `services/moderation/`    | `moderation.*`    |
+| `services/matching/`      | `matching.*`      |
+| `services/cms/`           | `cms.*`           |
+| `services/audit/`         | `audit.*`         |
 
 ## Step 2 — Pick the filename
 
@@ -50,6 +50,7 @@ service's migrations directory. `node-pg-migrate` orders by filename,
 so the prefix is load-bearing.
 
 Examples:
+
 - `007_pets_list_keyset_index.ts`
 - `012_add_favourite_colour_to_pets.ts`
 
@@ -81,41 +82,63 @@ export const down = async (pgm: MigrationBuilder): Promise<void> => {
 import type { MigrationBuilder } from 'node-pg-migrate';
 
 export const up = async (pgm: MigrationBuilder): Promise<void> => {
-  pgm.createIndex('audit_logs', ['user_id', 'action'], {
-    name: 'audit_logs_user_action_idx',
+  pgm.createIndex('pets', ['created_at', 'pet_id'], {
+    name: 'pets_created_at_pet_id_keyset_idx',
   });
 };
 
 export const down = async (pgm: MigrationBuilder): Promise<void> => {
-  pgm.dropIndex('audit_logs', ['user_id', 'action'], {
-    name: 'audit_logs_user_action_idx',
+  pgm.dropIndex('pets', ['created_at', 'pet_id'], {
+    name: 'pets_created_at_pet_id_keyset_idx',
   });
 };
 ```
 
-### Add an ENUM value
+(Pattern taken from `services/pets/src/migrations/007_pets_list_keyset_index.ts`.)
 
-Postgres ENUMs require `ALTER TYPE ... ADD VALUE`, which cannot run
-inside a transaction. Tell `node-pg-migrate` to skip the transaction
-wrapper by exporting `shorthands` / using raw SQL with `IF NOT EXISTS`.
+### Constrained value sets — varchar + CHECK, not Postgres ENUM
+
+This repo does **not** use Postgres `ENUM` types for status / tier / kind
+columns. The convention is a plain `varchar` with a `CHECK` constraint, with the
+canonical value list owned in `@adopt-dont-shop/lib.types`. A varchar + CHECK is
+cheaper to evolve (adding a value is an ordinary in-transaction
+`ALTER TABLE ... DROP/ADD CONSTRAINT`) than an ENUM, whose `ALTER TYPE ... ADD
+VALUE` cannot run inside a transaction. Pattern from
+`services/rescue/src/migrations/008_add_rescue_plan.ts`:
 
 ```typescript
 import type { MigrationBuilder } from 'node-pg-migrate';
 
-// Run outside a transaction — required for ADD VALUE.
-export const shorthands = undefined;
+const PLAN_VALUES = ['free', 'growth', 'professional'];
 
 export const up = async (pgm: MigrationBuilder): Promise<void> => {
-  pgm.sql(
-    `ALTER TYPE "notifications"."notification_type" ADD VALUE IF NOT EXISTS 'NEW_VALUE'`,
-  );
+  pgm.addColumns('rescues', {
+    plan: { type: 'varchar(32)', notNull: true, default: 'free' },
+    plan_expires_at: { type: 'timestamptz' },
+  });
+  pgm.addConstraint('rescues', 'rescues_plan_check', {
+    check: `plan IN (${PLAN_VALUES.map(v => `'${v}'`).join(', ')})`,
+  });
 };
 
-export const down = async (): Promise<void> => {
-  // Postgres can't cleanly remove an enum value. Leave as a no-op
-  // unless you've planned a full table-rewrite path.
+export const down = async (pgm: MigrationBuilder): Promise<void> => {
+  pgm.dropConstraint('rescues', 'rescues_plan_check');
+  pgm.dropColumns('rescues', ['plan', 'plan_expires_at']);
 };
 ```
+
+To add a value later, author a new migration that drops and re-adds the CHECK
+constraint with the extended list — no `ALTER TYPE`, no transaction escape hatch.
+
+### The `noTransaction` escape hatch (rare)
+
+`node-pg-migrate` wraps each migration in a transaction by default. A handful of
+statements cannot run inside one — `CREATE INDEX CONCURRENTLY`, or `ALTER TYPE
+... ADD VALUE` if you ever inherit a real ENUM. The correct opt-out is the
+module-level flag `export const noTransaction = true;` (there is **no**
+`shorthands = undefined` transaction trick — that does nothing). No migration in
+the repo needs it today, so reach for it only when Postgres explicitly rejects
+the statement inside a transaction.
 
 ### Create a table
 
@@ -192,8 +215,8 @@ automatically — read the test header to confirm. For unusual migrations
 ## Conventions checklist
 
 - [ ] Filename uses next zero-padded prefix + `snake_case_summary`
-- [ ] `up` + `down` both implemented (or `down` deliberately a no-op
-      for unrecoverable ENUM ADD VALUE)
+- [ ] `up` + `down` both implemented (constrained columns use varchar +
+      CHECK, not a Postgres ENUM)
 - [ ] gRPC handlers updated to use the new column / table
 - [ ] Migration test in the service's `migrations.test.ts` still passes
 - [ ] Brief comment header explaining WHY the change (ticket ref,
@@ -204,9 +227,11 @@ automatically — read the test header to confirm. For unusual migrations
 - Modifying an existing migration — never. They're append-only.
 - Wrapping the body in a transaction — `node-pg-migrate` already does
   this by default; nesting can break.
-- Trying to run `ALTER TYPE ... ADD VALUE` inside the default
-  transaction — Postgres rejects it. Use `pgm.sql(...)` with
-  `IF NOT EXISTS` and let the runner pick up the no-transaction hint.
+- Introducing a Postgres `ENUM` for a status / tier column — use varchar +
+  CHECK with the value list owned in `lib.types` (see the section above).
+- Believing `export const shorthands = undefined;` disables the transaction
+  wrapper — it does not. The real opt-out is `export const noTransaction = true;`,
+  needed only for statements Postgres forbids in a transaction.
 - Reaching for `pnpm db:migrate:undo` — the script doesn't exist. To
   reverse a forward change, author a new migration that performs the
   reverse DDL.
@@ -216,3 +241,5 @@ automatically — read the test header to confirm. For unusual migrations
 - Putting the migration in the wrong service — the runner only sees
   files under `services/<name>/src/migrations/`, so a misplaced
   migration silently never runs.
+
+Canonical doc: [`docs/backend/writing-migrations.md`](../../../docs/backend/writing-migrations.md).

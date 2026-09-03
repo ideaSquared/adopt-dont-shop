@@ -1,11 +1,11 @@
-# Stack Component
+# Stack
 
 A flexible layout component for stacking elements vertically or horizontally with consistent spacing.
 
 ## Usage
 
 ```tsx
-import { Stack } from '@/components/layout/Stack'
+import { Stack } from '@adopt-dont-shop/lib.components'
 
 // Basic vertical stack
 <Stack>

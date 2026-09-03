@@ -1,9 +1,9 @@
 ---
 name: api-fetch
 description: >
-  Rules for making API calls in frontend components. Apply when writing or reviewing any
-  component, hook, or service that fetches data or submits state-changing requests.
-user-invocable: false
+  Rules for the shared apiService — imperative fetches and mutations in frontend apps outside
+  React Query. Apply when a component, hook, or service file calls the backend directly (event
+  handler, service module) rather than through a React Query hook.
 ---
 
 # API Fetch Rules for Adopt Don't Shop
@@ -14,12 +14,12 @@ All API calls in frontend apps MUST go through the shared `apiService` instance 
 ## Why This Matters
 
 This project runs in Docker with a Vite dev server proxy. The proxy rewrites requests from the
-browser origin (e.g. `localhost:3001`) to the backend (`service-backend:5000`). Raw `fetch`
-calls that bypass the proxy — for example by using an absolute `http://localhost:5000` URL —
+browser origin (e.g. `localhost:3001`) to the gateway (`service-gateway:4000`). Raw `fetch`
+calls that bypass the proxy — for example by using an absolute `http://127.0.0.1:4000` URL —
 break CSRF protection because:
 
 1. The CSRF token cookie is issued to the Vite proxy origin
-2. A raw `fetch` to `localhost:5000` hits a different origin, so the browser either blocks the
+2. A raw `fetch` to `127.0.0.1:4000` hits a different origin, so the browser either blocks the
    cookie or the backend rejects the token as mismatched
 
 Every state-changing request (POST, PUT, PATCH, DELETE) requires a CSRF token header
@@ -36,6 +36,9 @@ import { apiService } from '../services/libraryServices';
 
 const data = await apiService.get<{ data: User[] }>('/api/v1/users');
 await apiService.post('/api/v1/field-permissions/bulk', { overrides });
+
+// Query params are the SECOND argument — a plain object, NOT wrapped in { params }
+const page = await apiService.get<{ data: User[] }>('/api/v1/users', { status: 'active', page: 2 });
 ```
 
 ```typescript
@@ -83,8 +86,11 @@ You may still import `useAuth` for reading auth state (e.g. `isAuthenticated`) i
 The Vite proxy target is determined at dev server startup by the `DOCKER_ENV` environment
 variable (set to `'true'` in all app Docker containers):
 
-- `DOCKER_ENV=true` → proxy target is `http://service-backend:5000` (Docker internal DNS)
-- otherwise → proxy target is `http://localhost:5000` (local dev outside Docker)
+- `DOCKER_ENV=true` → proxy target is `http://service-gateway:4000` (Docker internal DNS)
+- otherwise → proxy target is `http://127.0.0.1:4000` (local dev outside Docker)
+
+Use the `127.0.0.1` literal, not `localhost`: the gateway binds `0.0.0.0` (IPv4-only), so on
+IPv6-first hosts `localhost` resolving to `::1` first would `ECONNREFUSED`.
 
 `VITE_API_BASE_URL` is set to `''` (empty string) in Docker so that `apiService` uses relative
 URLs, which always route through the Vite proxy on the same origin.
@@ -123,3 +129,6 @@ export const myFeatureService = {
     apiService.post<{ data: MyThing }>('/api/v1/my-things', payload),
 };
 ```
+
+Canonical doc: [`packages/lib.api/README.md`](../../../packages/lib.api/README.md). For fetching/mutating
+server state inside React components, use the `react-query` skill instead.

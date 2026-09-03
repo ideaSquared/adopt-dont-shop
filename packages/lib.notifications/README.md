@@ -46,7 +46,7 @@ the service config by the consuming app. See
 
 Vitest — the send/schedule, listing, acknowledge, and preference methods are
 tested against a mocked API. See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -59,4 +59,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.notifications-consumers.md](../../docs/libraries/lib.notifications-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

@@ -1,8 +1,24 @@
 # New App Generator
 
+_How `pnpm new-app` scaffolds a new React app: the CLI, what the generator does for you, the files it
+writes, and the manual wiring (compose, nginx, dev volumes) you still add. Verified against
+`scripts/create-new-app.js` and `scripts/templates/app/`._
+
 ## Overview
 
-The `pnpm new-app` command scaffolds new applications in the workspace with all established patterns and shared libraries pre-configured.
+The `pnpm new-app` command scaffolds new React applications under `apps/` with the established
+patterns and shared libraries pre-configured.
+
+## What the generator already does
+
+`scripts/create-new-app.js` performs these steps for you — you do **not** do them by hand:
+
+1. Creates the app directory at `apps/<slug>/` (the `app.` prefix is stripped: `pnpm new-app app.foo`
+   → `apps/foo/`), copying `scripts/templates/app/common/` first, then overlaying the chosen template.
+2. Creates the empty scaffolding dirs `public/` and `src/{hooks,services,utils,types,test-utils,__tests__}`.
+3. Registers the workspace via `registerWorkspace()` — since `pnpm-workspace.yaml` already globs
+   `apps/*`, no edit is needed.
+4. Prints a reminder to add the app's `node_modules` mount to the dev stack (see step 3 below).
 
 ## Usage
 
@@ -42,146 +58,111 @@ pnpm new-app app.superadmin enterprise
 pnpm new-app app.mobile standard --overwrite
 ```
 
-## What Gets Created
+## What gets created
 
-### Frontend Apps (client, rescue, admin)
+Files written into `apps/<slug>/` (a `common/` layer plus the chosen template):
 
 ```
-app.{name}/
+apps/{slug}/
+├── index.html                       # from common/
+├── package.json                     # from the template (deps per template)
+├── tsconfig.json  tsconfig.node.json
+├── vite-env.d.ts
+├── vite.config.ts                   # imports getLibraryAliases; proxies /api to the gateway
+├── vitest.config.ts
+├── README.md
 ├── src/
-│   ├── components/      # React components
-│   ├── pages/          # Route pages
-│   ├── hooks/          # Custom React hooks
-│   ├── contexts/       # React Context providers
-│   ├── services/       # Pre-configured API services
-│   ├── utils/          # Utility functions
-│   ├── styles/         # Global styles
-│   ├── types/          # TypeScript definitions
-│   ├── App.tsx         # Main app component
-│   └── main.tsx        # Entry point
-├── public/             # Static assets
-├── .env.example        # Environment template
-├── Dockerfile          # Container configuration
-├── package.json        # Dependencies (libraries pre-installed)
-├── tsconfig.json       # TypeScript config
-├── vite.config.ts      # Vite build config
-└── README.md           # App documentation
+│   ├── App.tsx  main.tsx            # from the template
+│   ├── components/dev/DevLoginPanel.{tsx,css.ts}
+│   ├── contexts/AuthContext.tsx     # (+ Analytics/Notifications/Permissions/Statsig for standard/enterprise)
+│   ├── pages/HomePage.{tsx,css.ts}
+│   ├── hooks/  services/  utils/  types/  test-utils/  __tests__/   # empty scaffolding dirs
+│   └── ...
+└── public/                          # empty
 ```
 
-**Pre-installed Libraries:**
+There is **no** generated `Dockerfile`, `.env.example`, `src/styles/`, or `src/pages/` route tree —
+apps share the root `Dockerfile.app` and load env from the monorepo-root `.env` via `envDir` in
+`vite.config.ts`.
 
-- Client: api, auth, pets, discovery, chat, analytics, validation
-- Rescue: api, auth, pets (enhanced), applications, chat, rescues
-- Admin: api, auth, users, rescues, analytics, permissions
+### Backend services
 
-### Backend Services
+This generator produces frontend `app.*` packages only. To add a backend microservice (Fastify +
+gRPC, `pg` + `node-pg-migrate`), follow [`new-microservice.md`](./new-microservice.md).
 
-This generator does not scaffold backend services — it produces frontend `app.*` packages only. To add a backend microservice (Fastify + gRPC, `pg` + `node-pg-migrate`), follow the manual runbook in [`new-microservice.md`](./new-microservice.md).
+## Post-generation steps
 
-## Configuration
-
-### Generated package.json
-
-Frontend apps include:
-
-```json
-{
-  "name": "@adopt-dont-shop/app.{name}",
-  "dependencies": {
-    "@adopt-dont-shop/lib.api": "workspace:*",
-    "@adopt-dont-shop/lib.auth": "workspace:*",
-    "@adopt-dont-shop/lib.validation": "workspace:*",
-    "react": "^19.2.7",
-    "react-router": "^8.3.0",
-    "@tanstack/react-query": "^5.101.0"
-  }
-}
-```
-
-### Generated Dockerfile
-
-Multi-stage build optimized for workspace:
-
-```dockerfile
-FROM node:22-alpine AS base
-WORKDIR /app
-
-# Copy workspace and install
-COPY package*.json ./
-RUN pnpm install --frozen-lockfile
-
-# Build libraries
-COPY lib.* ./
-RUN pnpm build:libs
-
-# Build app
-FROM base AS build
-COPY app.{name} ./app.{name}
-RUN cd app.{name} && pnpm build
-
-# Production
-FROM nginx:alpine
-COPY --from=build /app/app.{name}/dist /usr/share/nginx/html
-```
-
-## Post-Generation Steps
-
-### 1. Configure Environment
-
-```bash
-cd app.{name}
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-### 2. Install Dependencies
+### 1. Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### 3. Update docker-compose.yml
+### 2. Add the app to docker-compose.yml
 
-Add service to root `docker-compose.yml`:
+Apps are containerised by the shared root `Dockerfile.app` with an `APP_NAME` build arg — there is no
+per-app Dockerfile. Copy an existing app block (e.g. `app-rescue`) and parameterise it. The service is
+`app-<slug>`, uses the shared YAML anchors, and **must** declare `profiles` or it never starts under
+`pnpm docker:dev`:
 
 ```yaml
-app.{name}:
+app-{slug}:
+  profiles: ["{slug}", "full"]
   build:
-    context: .
-    dockerfile: app.{name}/Dockerfile
+    <<: *app-build-defaults          # context: ., dockerfile: Dockerfile.app, target: development
+    args:
+      APP_NAME: {slug}
   ports:
-    - '300X:3000' # Choose available port
+    - '127.0.0.1:300X:3000'          # pick a free host port; container port is always 3000
+  volumes:
+    - .:/app
+    - /app/node_modules
+    - /app/apps/{slug}/node_modules  # anon volume re-exposing the baked node_modules
   environment:
-    - VITE_API_BASE_URL=http://api.localhost
+    <<: *app-env
+  <<: *app-common
 ```
 
-### 4. Update nginx Configuration
+### 3. Add the node_modules mount to the dev stack
 
-Add subdomain routing to `nginx/nginx.conf`:
+Add the app's line to the `x-dev-volumes` anchor in `docker-compose.dev.yml` (`pnpm check:workspaces`
+fails CI if this list drifts from the filesystem):
+
+```yaml
+- /app/apps/{slug}/node_modules
+```
+
+### 4. Add nginx subdomain routing (optional; `--profile full`)
+
+Add an upstream and a server block to `nginx/nginx.conf`, mirroring the `rescue` entries:
 
 ```nginx
-server {
-  listen 80;
-  server_name {name}.localhost;
+upstream {slug} {
+    server app-{slug}:3000;
+}
 
-  location / {
-    proxy_pass http://app.{name}:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'upgrade';
-  }
+server {
+    listen 80;
+    server_name {slug}.localhost;
+
+    location / {
+        proxy_pass http://{slug};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+    }
 }
 ```
 
-### 5. Start Development
+### 5. Start development
 
 ```bash
-# With Docker
-docker compose up app.{name}
+# Full stack via Docker (the app needs its profile enabled)
+docker compose --profile {slug} up app-{slug}
 
 # Or locally
-cd app.{name}
-pnpm dev
+pnpm --filter @adopt-dont-shop/app.{slug} dev
 ```
 
 ## Customization
@@ -201,14 +182,18 @@ Edit `package.json` to add libraries:
 
 ### Modifying Templates
 
-Generator templates located in:
+Generator templates live under `scripts/templates/`. The app generator copies `app/common/` first,
+then overlays the chosen template:
 
 ```
 scripts/templates/
-├── client/     # Client app template
-├── rescue/     # Rescue app template
-├── admin/      # Admin app template
-└── service/    # Backend service template
+├── app/
+│   ├── common/       # copied into every app (config, HomePage, DevLoginPanel, AuthContext)
+│   ├── minimal/      # + package.json, App.tsx, main.tsx
+│   ├── standard/     # + AnalyticsContext
+│   └── enterprise/   # + Analytics/FeatureFlags/Notifications/Permissions/Statsig contexts
+└── lib/
+    ├── common/  service/  utility/   # used by the lib generator, not this one
 ```
 
 ## Best Practices
@@ -227,21 +212,17 @@ scripts/templates/
 
 ### Configuration
 
-- Use environment variables for all configuration
+- Use `VITE_*` environment variables for all configuration (loaded from the monorepo-root `.env` via `envDir`)
 - Never commit `.env` files
-- Provide comprehensive `.env.example`
-- Document all environment variables
+- Document the app's env vars in its `README.md` and `docs/env-reference.md`
 
 ## Troubleshooting
 
 ### Port Already in Use
 
 ```bash
-# Find process using port
-netstat -ano | findstr :3000
-
-# Kill process
-taskkill /PID <pid> /F
+# Find and kill the process using the port (Linux/macOS)
+lsof -ti:3000 | xargs kill
 ```
 
 ### Library Not Found
@@ -262,12 +243,12 @@ docker compose down -v
 docker system prune -a
 
 # Rebuild without cache
-docker compose build --no-cache app.{name}
+docker compose build --no-cache app-{slug}
 ```
 
 ## Additional Resources
 
 - **Infrastructure Guide**: [INFRASTRUCTURE.md](./INFRASTRUCTURE.md)
-- **Docker Setup**: [docker-setup.md](./docker-setup.md)
+- **Docker Setup**: [DOCKER.md](../DOCKER.md)
 - **Microservices Standards**: [MICROSERVICES-STANDARDS.md](./MICROSERVICES-STANDARDS.md)
 - **Libraries Documentation**: [../libraries/README.md](../libraries/README.md)

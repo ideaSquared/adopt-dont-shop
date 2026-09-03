@@ -46,9 +46,18 @@ If you want to see this in action, generate the graph and trace the inbound edge
 The CI workflows mirror the same layered ordering:
 
 ```
-build-libs  ->  (test-services || test-frontend || test-libs)  ->  test-e2e
+build-libs  ->  (test-frontend || test-libs || test-packages || test-services || test-contracts)
+            ->  (test-e2e | test-e2e-smoke)  ->  ci-required
 ```
 
 1. **build-libs** — compile every `lib.*` first so downstream jobs can consume the built artefacts.
-2. **test-services / test-frontend / test-libs** — run in parallel once the libraries are built; none of them depend on each other.
-3. **test-e2e** — runs last, after backend + frontend test jobs pass, since it exercises the full stack.
+2. **test-frontend / test-libs / test-packages / test-services / test-contracts** — run in
+   parallel once the libraries are built; none depend on each other. `test-services`,
+   `test-packages`, and `test-contracts` are gated on the `backend` path filter (a skipped job
+   counts as success for the gate).
+3. **test-e2e / test-e2e-smoke** — the full Playwright suite (`test-e2e`) runs only on `main`,
+   on a PR carrying the `run-e2e` label, or on manual dispatch; otherwise it is skipped.
+   `test-e2e-smoke` is the inverse: an advisory `@smoke` subset that runs on PRs _without_ the
+   `run-e2e` label (and is `continue-on-error`, so it never blocks merge).
+4. **ci-required** — the single required status check that fans in on the jobs above; a
+   path-filtered or opt-in job reporting `skipped` is treated as a pass.

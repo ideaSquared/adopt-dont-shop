@@ -54,7 +54,7 @@ secrets services request through it lives in
 
 Behaviour is covered in [`src/index.test.ts`](src/index.test.ts) against
 temp files for the `_FILE` path. Nothing service-specific — see
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership

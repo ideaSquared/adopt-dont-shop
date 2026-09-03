@@ -1,5 +1,10 @@
 # Internal gRPC trust model
 
+How services trust the gateway-stamped principal on internal gRPC calls, and
+what that does and does not defend against. Audience: backend/security engineers.
+
+`Last reviewed: 2026-09-03`
+
 > Tracked in [ADS-829](https://linear.app/ideasquared/issue/ADS-829). Created
 > 2026-06 as part of the production-readiness security review.
 > [ADS-800](https://linear.app/ideasquared/issue/ADS-800) added signed

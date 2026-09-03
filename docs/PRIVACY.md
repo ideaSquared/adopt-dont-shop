@@ -3,6 +3,14 @@
 Internal reference for engineers and ops. Not a user-facing legal notice.
 Last updated: 2026-04-27 (plan 6.2 + 5.2).
 
+## Which privacy document?
+
+| Document                      | Audience         | Purpose                                                                                             |
+| ----------------------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
+| `docs/legal/privacy.md`       | End users        | The published privacy notice — the exact text the gateway serves at `GET /api/v1/legal/privacy`.    |
+| `docs/PRIVACY.md` (this file) | Engineers / ops  | Data inventory: which fields exist in code, where, and how long they are retained. Not user-facing. |
+| `docs/GDPR-ROPA.md`           | DPO / compliance | Record of Processing Activities (UK/EU GDPR Art. 30) — purposes, lawful bases, subjects.            |
+
 ---
 
 ## 1. What we collect

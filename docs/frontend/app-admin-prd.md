@@ -1,5 +1,9 @@
 # Product Requirements Document: Admin App (app.admin)
 
+_Product requirements for `app.admin`. A per-section Status marker (Shipped / Partial / Roadmap)
+shows what is built; this doc is not a delivery plan. Architecture is in
+[app-shell.md](./app-shell.md)._
+
 ## Overview
 
 The Admin App is a comprehensive administrative dashboard for platform administrators, moderators, and support agents to manage the entire Adopt Don't Shop ecosystem. It provides tools for user management, rescue oversight, content moderation, analytics, and platform configuration.
@@ -14,12 +18,14 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 
 ### 1. User Management
 
+_Status: Shipped (roadmap items noted inline)._
+
 - **User Directory**: Complete user database with search and filtering
-- **User Profiles**: Detailed user information and account status (`UserDetailModal`)
+- **User Profiles**: Detailed user information and account status (`UserDetailPanel`, opened as a split-pane detail via `EntityDetailLayout`, ADS-650)
 - **Add User**: Create new users via `AddUserModal` (admin-initiated)
 - **Role Management**: Assign and modify user roles. Active roles: `adopter | rescue_staff | admin | moderator | super_admin | support_agent`
 - **Account Actions**: Enable/disable accounts, suspend/unsuspend, password reset
-- **User Activity Tab**: Per-user activity log surfaced via `UserDetailModal`
+- **User Activity Tab**: Per-user activity log surfaced via `UserDetailPanel`
 - **Bulk Operations**: Mass activate/deactivate/delete with export to CSV
 - **User Analytics**: Registration trends in Dashboard + Analytics pages
 
@@ -27,13 +33,17 @@ _Out of scope / roadmap:_ CSV import, account merging.
 
 ### 2. Rescue Organization Management
 
+_Status: Shipped._
+
 - **Rescue Directory**: Searchable, filterable
 - **Verification System**: Approve and verify rescue organizations via `RescueVerificationModal`
-- **Profile Management**: Edit rescue profiles via `RescueDetailModal` (tabs: Overview / Contact / Listings / Plan / Policies / Staff / Foster)
+- **Profile Management**: Edit rescue profiles via `RescueDetailModal` (still a modal; tabs: Overview / Contact / Listings / Plan / Policies / Staff)
 - **Performance Metrics**: Adoption counts + avg time-to-adoption ranking
 - **Communication**: Templated email to rescue contact via `SendEmailModal`
 
 ### 3. Platform Analytics & Reporting
+
+_Status: Shipped (roadmap items noted inline)._
 
 - **Dashboard Overview**: Platform metric cards (`usePlatformMetrics`)
 - **User Analytics**: Registration trend chart on Analytics page
@@ -45,6 +55,8 @@ _Out of scope / roadmap:_ Real-time KPI streaming, server-rendered large-dataset
 
 ### 4. Content Management
 
+_Status: Shipped._
+
 - **Static Content**: Pages, terms, policies (`ContentManagement.tsx` + `cmsService.ts` — full CRUD, publish/unpublish, archive, versioning, scheduling)
 - **Blog Management**: `contentType: 'blog_post'`
 - **Help Documentation**: `contentType: 'help_article'`
@@ -55,7 +67,9 @@ _Removed from PRD:_ Media library (no consumers; CMS uses direct image URLs). Em
 
 ### 5. System Configuration
 
-- **Feature Flags**: **Read-only display** of Statsig gates with link to Statsig console. Backend feature-flag system was removed; Statsig is single source of truth. See `lib.feature-flags/src/index.ts:13`. Toggling happens in Statsig console, not in-app.
+_Status: Shipped (roadmap items noted inline)._
+
+- **Feature Flags**: **Read-only display** of Statsig gates with link to Statsig console. Backend feature-flag system was removed; Statsig is single source of truth. See the migration note at the top of `packages/lib.feature-flags/src/index.ts`. Toggling happens in Statsig console, not in-app.
 - **System Settings**: Read-only display of platform configuration
 - **Application Questions**: Question library lives per-rescue in `app.rescue` (cross-app concern; not duplicated in admin)
 - **Security Settings**: Full Security Center (`SecurityCenter.tsx`) covering MFA, sessions, IP rules, login history, suspicious activity, account recovery
@@ -65,16 +79,20 @@ _Out of scope / roadmap:_ In-app feature toggle (delegated to Statsig), maintena
 
 ### 6. Pet & Application Management
 
+_Status: Shipped._
+
 - **Pet Oversight**: List, filter, archived toggle, status badges, bulk publish/unpublish/archive
-- **Pet Detail Modal**: Row-click opens `PetDetailModal` (tabs: Overview / Rescue / Status history / Media / Reports)
+- **Pet Detail**: Row-click opens the split-pane detail (`PetDetailPanel` via `EntityDetailLayout`, ADS-650) with tabs Overview / Rescue / Status history / Media / Reports
 - **Application Monitoring**: List, filter, bulk approve/reject with reason
-- **Application Detail Modal**: Row-click opens `ApplicationDetailModal` with read-only view + admin override actions (force-status-change, audit-log link)
+- **Application Detail**: Row-click opens the split-pane detail (`ApplicationDetailPanel` via `EntityDetailLayout`) with read-only view + admin override actions (force-status-change, audit-log link)
 - **Quality Control**: Reports flow via Moderation page
 - **Bulk Operations**: Mass updates wired to backend
 
 _Out of scope / roadmap:_ Duplicate detection/merge, dedicated data-integrity tooling.
 
 ### 7. Communication Systems
+
+_Status: Shipped._
 
 - **Message Monitoring**: `Messages.tsx` via `useAdminChats` from `lib.chat`
 - **Conversation Management**: `ChatDetailModal` (tabs: Messages / Participants / Moderation / Details)
@@ -86,6 +104,8 @@ _Out of scope / roadmap:_ Email campaign workflow, response templates, knowledge
 
 ### 8. Content Moderation & Safety
 
+_Status: Shipped (roadmap items noted inline)._
+
 - **Single Moderation page** (`/moderation`) with internal tabs for Queue, Reports, Sanctions
 - **Content Reports**: Queue via `lib.moderation` (`useReports`)
 - **Moderation Actions**: Resolve / dismiss / action via `ActionSelectionModal`
@@ -95,6 +115,8 @@ _Out of scope / roadmap:_ Email campaign workflow, response templates, knowledge
 _Out of scope / roadmap:_ Appeals UI, automated/AI screening, policy management UI, educational resources.
 
 ### 9. Support, Audit, GDPR
+
+_Status: Shipped._
 
 - **Ticket Management**: Full UI via `lib.support-tickets`
 - **Audit Logs**: `Audit.tsx` via `AuditLogsService` from `lib.audit-logs`
@@ -211,9 +233,9 @@ For support/moderation models see backend PRD §5–§8.
 
 ### Theme
 
-- High-contrast toggle (a11y)
+- Theme toggle (`ThemeToggle` — light / normal / dark); see Accessibility above.
 
-_Out of scope / roadmap:_ Light/dark theme switch, inline editing, auto-save.
+_Out of scope / roadmap:_ Inline editing, auto-save.
 
 ## Workflow & User Journey
 
@@ -248,7 +270,7 @@ _Out of scope:_ Revenue tracking (no monetization), cost analysis, predictive an
 ### Data Protection
 
 - GDPR Art. 17 + Art. 20 admin tools via `PrivacyTools.tsx`
-- Consent records visible in `UserDetailModal`
+- Consent records visible in `UserDetailPanel`
 - Field-level access restrictions enforced server-side
 
 ### Security Monitoring
@@ -283,7 +305,6 @@ _Out of scope:_ Revenue tracking (no monetization), cost analysis, predictive an
 - AI-assisted content screening
 - Email template CRUD (currently hardcoded list in `SendEmailModal`)
 - Knowledge base for support agents
-- Light/dark theme
 
 ### Deferred / De-scoped from earlier PRDs
 

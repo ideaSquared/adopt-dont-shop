@@ -13,14 +13,16 @@ See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
 libraries sit. Builds on [`@adopt-dont-shop/lib.api`](../lib.api/README.md)
 (HTTP transport) and pairs with
 [`@adopt-dont-shop/lib.permissions`](../lib.permissions/README.md) (RBAC).
-`lib.api` reads the stored access token through this library's `getToken()` via
-its `getAuthToken` hook.
+Tokens are never JS-readable: the gateway sets `accessToken` / `refreshToken`
+as HttpOnly cookies plus a non-HttpOnly `hasSession` marker cookie, and
+`lib.api` sends `credentials: 'include'` on every request. This library never
+reads or writes a token; it tracks session state from the `hasSession` marker.
 
 ## Scripts
 
 ```bash
-pnpm dev          # build --watch
-pnpm build        # production build
+pnpm dev          # tsc --watch
+pnpm build        # tsc → dist/
 pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
@@ -35,14 +37,16 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `isAuthenticated`), profile (`getProfile`, `updateProfile`, `deleteAccount` —
   step-up auth per ADS-592), password/email (`forgotPassword`, `resetPassword`,
   `changePassword`, `verifyEmail`, `resendVerificationEmail`), two-factor
-  (`twoFactorSetup` / `Enable` / `Disable` / `RegenerateBackupCodes`), and local
-  token storage (`getToken` / `setToken` / `clearTokens`). `register` returns
+  (`twoFactorSetup` / `Enable` / `Disable` / `RegenerateBackupCodes`), and
+  session state (`isAuthenticated()` reads the `hasSession` marker cookie;
+  `clearTokens()` clears it on a 401). `register` returns
   `{ user, message }` and requires email verification before login — route to a
   "check your email" screen, not a session.
 - **React**: `AuthProvider` / `AuthContext` / `useAuth`, `PermissionsProvider` /
   `usePermissions`, `useHasPermission` / `useHasAnyPermission` /
   `useHasAllPermissions`, `PermissionGate`, and the UI components (`AuthLayout`,
-  `LoginForm`, `RegisterForm`, `SocialSignInButtons`, `TwoFactorSettings`).
+  `LoginForm`, `RegisterForm`, `SocialSignInButtons`, `TwoFactorSettings`,
+  `BackupCodesReveal`).
 - **Types**: `User`, `LoginRequest`, `RegisterRequest`, `AuthResponse`, the
   two-factor response types, `RescueRole`, `Permission`, `rolePermissions`.
 
@@ -55,7 +59,7 @@ None directly — the underlying `lib.api` client resolves the API base URL. See
 
 Vitest + React Testing Library — the service is tested against a mocked
 `lib.api`, and the provider/hooks + UI components with RTL. See
-[`docs/frontend/testing.md`](../../docs/testing.md) for anything not
+[`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
 ## Ownership
@@ -68,4 +72,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 4 workspace package(s) depend on this library. See [lib.auth-consumers.md](../../docs/libraries/lib.auth-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

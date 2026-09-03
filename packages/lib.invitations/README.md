@@ -41,7 +41,7 @@ None read directly — the `apiUrl` (typically `VITE_API_BASE_URL`) is passed in
 ## Testing notes
 
 Vitest — the send/list/cancel and token detail/accept methods are tested against
-a mocked API. See [`docs/frontend/testing.md`](../../docs/testing.md) for
+a mocked API. See [`docs/testing.md`](../../docs/testing.md) for
 anything not library-specific.
 
 ## Ownership
@@ -54,4 +54,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 1 workspace package(s) depend on this library. See [lib.invitations-consumers.md](../../docs/libraries/lib.invitations-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

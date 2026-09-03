@@ -1,4 +1,9 @@
-# Backend Service Implementation Guide
+# Backend Implementation Guide
+
+How to work in the backend day to day: run the stack, migrate and seed, add an endpoint, add a
+table, author a gRPC handler, and publish domain events. For the architectural "why" see
+[`../infrastructure/MICROSERVICES-STANDARDS.md`](../infrastructure/MICROSERVICES-STANDARDS.md);
+for the behavioural contract see [`product-requirements.md`](./product-requirements.md).
 
 ## Quick Start
 
@@ -65,67 +70,12 @@ pnpm dev                  # tsx watch --import ./src/instrumentation.ts ./src/in
 
 ## Environment Configuration
 
-### Development (.env)
-
-```bash
-# Environment
-NODE_ENV=development
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-# `.env.example` uses POSTGRES_DB + DEV_DB_NAME / TEST_DB_NAME / PROD_DB_NAME
-# (validate-env.ts selects per NODE_ENV); see `.env.example` for the full list.
-POSTGRES_DB=adopt_dont_shop_dev
-DEV_DB_NAME=adopt_dont_shop_dev
-
-# JWT
-JWT_SECRET=your-development-jwt-secret
-JWT_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
-
-# Email — one of: console | ethereal | resend (see Email Service Setup)
-EMAIL_PROVIDER=ethereal
-
-# Storage (Development - Free)
-STORAGE_PROVIDER=local
-UPLOAD_DIR=uploads
-PUBLIC_UPLOAD_PATH=/uploads
-MAX_FILE_SIZE=10485760
-
-# Security
-BCRYPT_ROUNDS=12
-SESSION_SECRET=your-development-session-secret
-
-# CORS
-CORS_ORIGIN=http://localhost:3000
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-```
-
-### Production Configuration
-
-```bash
-# Environment
-NODE_ENV=production
-
-# Email (Production)
-EMAIL_PROVIDER=resend
-RESEND_API_KEY=your_resend_api_key
-DEFAULT_FROM_EMAIL=noreply@adoptdontshop.com
-
-# Storage (Production)
-STORAGE_PROVIDER=s3
-S3_BUCKET_NAME=adoptdontshop-uploads
-S3_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-CLOUDFRONT_DOMAIN=cdn.adoptdontshop.com
-```
+Do not copy an env block from here — it drifts. `.env.example` is the complete, annotated list
+of variables, and [`../env-reference.md`](../env-reference.md) explains what each one does and
+which are mandatory per `NODE_ENV`. `pnpm bootstrap` writes a working `.env` and generates
+secrets. The provider-selection variables you will reach for most (`EMAIL_PROVIDER`,
+`STORAGE_PROVIDER`, `AV_PROVIDER`, and the rate-limit knobs `GATEWAY_RATE_LIMIT_MAX` /
+`GATEWAY_RATE_LIMIT_WINDOW`) are covered in the sections below and in the env reference.
 
 ## Email Service Setup
 
@@ -187,6 +137,7 @@ uploads/
    ```bash
    STORAGE_PROVIDER=s3
    S3_BUCKET_NAME=your-bucket-name
+   S3_REGION=eu-west-2
    AWS_ACCESS_KEY_ID=your_key
    AWS_SECRET_ACCESS_KEY=your_secret
    ```
@@ -289,12 +240,18 @@ docker compose logs -f service-auth # one service
 
 ### Production
 
+All services build from the single root `Dockerfile.service`, parameterised by two build args:
+`SERVICE` (the workspace package name) and `SERVICE_DIR` (its path under the repo root). There
+is no per-service Dockerfile.
+
 ```bash
-# Build a service's production image (multi-stage target; each service ships its own Dockerfile)
+# Build the gateway's production image (multi-stage; --target production)
 docker build \
   --target production \
+  --build-arg SERVICE=@adopt-dont-shop/service.gateway \
+  --build-arg SERVICE_DIR=services/gateway \
   -t adoptdontshop/gateway:latest \
-  -f services/gateway/Dockerfile .
+  -f Dockerfile.service .
 
 # Run production container (the gateway listens on 4000 — GATEWAY_PORT, default 4000)
 docker run -p 4000:4000 \
@@ -313,7 +270,10 @@ The gateway is the only HTTP edge. Domain logic lives in a gRPC microservice; th
 1. **Define / extend the proto** in `packages/proto/proto/<domain>.v1.proto`, regenerate (`pnpm exec turbo build --filter=@adopt-dont-shop/proto`), and implement the new RPC in `services/<domain>/src/grpc/handlers.ts` with a co-located `*.test.ts`.
 2. **Add the gateway route** in `services/gateway/src/routes/<domain>.ts` — register a Fastify route that validates input with the shared zod schemas in `lib.validation`, calls the gRPC client, and maps the response with the generated proto JSON helpers.
 3. **Wire the route** in `services/gateway/src/server.ts` (or its existing per-domain registration helper).
-4. **Permission-gate** the route via the `requirePermission(...)` Fastify hook from `@adopt-dont-shop/authz`.
+4. **Permission-gate inside the handler.** The gateway does not enforce permissions — it only
+   validates the body and stamps the `Principal` into gRPC metadata. The handler calls
+   `requirePermission(principal, PERMISSION, scope?)` itself and throws on `false` (see the
+   gRPC handler authoring section below). The gateway gate alone is never sufficient.
 
 ### Add a database table
 
@@ -321,6 +281,70 @@ The gateway is the only HTTP edge. Domain logic lives in a gRPC microservice; th
 2. **Restart the service** — its boot CMD runs `pnpm run --if-present db:migrate` and applies the new migration, or run it explicitly with `docker compose exec service-<name> pnpm db:migrate`.
 3. **Update the gRPC handlers** in `services/<name>/src/grpc/` to read/write the new table via the connection from `@adopt-dont-shop/db`. Direct parameterised SQL — there is no ORM.
 4. **Add seed rows** (optional) by extending `services/<name>/src/db/seed-data.ts` + `seed.ts`. Keep inserts idempotent with `ON CONFLICT DO UPDATE`.
+
+### gRPC handler authoring
+
+Handlers live in `services/<name>/src/grpc/*-handlers.ts` and are pure async functions of the
+shape `(deps, principal, request) => response` — no Fastify, no HTTP. The gateway authenticates
+the caller and stamps a signed `Principal` into the `x-user-*` gRPC metadata (verified with
+`PRINCIPAL_SIGNING_KEY`); the handler receives it already parsed.
+
+1. **Authorize first.** Call `requirePermission(principal, PERMISSION, scope?)` from
+   `@adopt-dont-shop/authz`. It is a pure predicate returning `boolean`; throw on `false`.
+   Permission constants come from `@adopt-dont-shop/lib.types`
+   (`packages/lib.types/src/types/rescue-permissions.ts`) — never inline a permission string.
+2. **Query with raw parameterised SQL** via the pool in `deps` (`@adopt-dont-shop/db`). There
+   is no ORM.
+3. **Signal errors** by throwing `HandlerError` with one of `INVALID_ARGUMENT`,
+   `UNAUTHENTICATED`, `PERMISSION_DENIED`, `NOT_FOUND`, `ALREADY_EXISTS`, `INTERNAL`; the
+   per-service `adapter.ts` maps it to a gRPC status, and the gateway maps that to HTTP.
+
+```ts
+export async function archivePet(deps: HandlerDeps, principal: Principal, req: ArchivePetRequest) {
+  if (!requirePermission(principal, PETS_ARCHIVE, { rescueId: req.rescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_ARCHIVE}' required for this rescue`);
+  }
+  const { rows } = await deps.pool.query<PetRow>(`SELECT ... FROM pets WHERE pet_id = $1`, [
+    req.petId,
+  ]);
+  if (!rows[0]) throw new HandlerError('NOT_FOUND', 'pet not found');
+  // write + publish — see the next task
+}
+```
+
+### Add an event-publishing handler
+
+State changes that need a forensic trail (`services/audit` persists every `*.actionTaken`) or
+that other services react to must publish through the transactional outbox, so the event fires
+only on commit. Never publish to NATS directly from a handler.
+
+1. **Wrap the write in `withTransaction`** from `@adopt-dont-shop/events` (not
+   `@adopt-dont-shop/db`). Its scope gives you `{ client, publish }`: run all writes on
+   `client`, and `publish(event)` stages the event as an outbox row inside the same
+   transaction. If `fn` throws, the whole thing rolls back and nothing is staged; after commit
+   an inline publish plus the background relay deliver the event, so a committed event is never
+   lost.
+
+   ```ts
+   await withTransaction(deps, async ({ client, publish }) => {
+     const { rows } = await client.query(`INSERT INTO pets (...) VALUES (...) RETURNING *`, [
+       /* params */
+     ]);
+     publish({
+       type: 'pets.created',
+       id: `pets.created.${rows[0].pet_id}`,
+       payload: { petId: rows[0].pet_id, rescueId: req.rescueId },
+     });
+   });
+   ```
+
+2. **On the consumer side, claim before acting.** A JetStream message can be redelivered, so an
+   event handler that has side effects calls `claimEvent(conn, consumer, eventId)` from
+   `@adopt-dont-shop/events`. It inserts into `processed_events` with `ON CONFLICT DO NOTHING`
+   and returns `true` only for the first delivery; pass a `PoolClient` to claim atomically with
+   the work (a rolled-back handler un-claims the event). See
+   [ADR 0003 — idempotent event consumers](../adr/0003-idempotent-event-consumers.md) and the
+   audit-logging skill.
 
 ### Update an email template
 
@@ -334,6 +358,28 @@ curl -X POST http://localhost:4000/api/v1/email/templates/<templateId>/preview \
 ```
 
 To add a brand-new template, `POST /api/v1/email/templates` with the template body + subject + variables, or insert a seed row in `services/notifications/src/db/seed.ts` for it to land on every fresh stack.
+
+## Gateway view adapters (response shape)
+
+A gateway route MUST return the frontend contract, not raw proto-JSON. A gRPC handler's ts-proto `toJSON` output is not a drop-in REST body: ts-proto emits `SCREAMING_SNAKE` enum names, `*Json` stringified-blob fields, and proto field names (`applicationId`, `adopterId`), while the frontend's Zod schemas expect a different shape. Every gateway route that surfaces a domain aggregate needs a **view adapter** that maps proto-JSON to the frontend contract (and the inverse for request bodies), wrapped in the `{ data }` envelope the SPA expects.
+
+Reference implementation: `services/gateway/src/routes/applications-view.ts` (`applicationToView`), used by the List/Get routes.
+
+Example of the divergence (applications):
+
+| Concept      | Gateway proto-JSON               | Frontend schema shape                                                         |
+| ------------ | -------------------------------- | ----------------------------------------------------------------------------- |
+| id           | `applicationId`                  | `id`                                                                          |
+| adopter      | `adopterId`                      | `userId`                                                                      |
+| status       | `"APPLICATION_STATUS_SUBMITTED"` | `"submitted"` (lowercase)                                                     |
+| answers      | `answersJson` (stringified blob) | nested camelCase `data` object (`personalInfo`, `livingConditions`, …)        |
+| extra fields | —                                | `stage`, `priority`, `reviewedAt`, `reviewedBy`, `reviewNotes`, `documents[]` |
+
+Rules:
+
+- **Response**: proto-JSON → frontend shape (field rename, enum → lowercase, parse `*Json` blobs into the nested object, surface proto optionals).
+- **Request**: frontend payload → gRPC request (the inverse). The write path is often a protocol adapter, not a field rename — e.g. a single `submitApplication(data)` POST maps onto a multi-RPC draft flow (StartDraft → SaveDraftAnswers → SubmitDraft).
+- Cover the mapping with golden-fixture tests asserting the real frontend Zod `parse()` succeeds.
 
 ## Troubleshooting
 
@@ -420,6 +466,6 @@ Load-testing and performance-profiling scripts are not yet set up.
 
 - **API Reference**: [api-endpoints.md](./api-endpoints.md)
 - **Database Schema**: [database-schema.md](./database-schema.md)
-- **Testing Guide**: [testing.md](./testing.md)
+- **Testing Guide**: [testing.md](../testing.md#backend-specifics)
 - **Deployment Guide**: [deployment.md](./deployment.md)
 - **Troubleshooting**: [troubleshooting.md](./troubleshooting.md)

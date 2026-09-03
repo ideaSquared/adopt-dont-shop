@@ -1,5 +1,13 @@
 # Terms of Service
 
+> **Source of truth for the published policy text.** The gateway serves this
+> file verbatim at `GET /api/v1/legal/terms` (read from `LEGAL_DOCS_DIR`,
+> default `docs/legal/`). The version identifier is hardcoded separately as
+> `TERMS_VERSION` in `services/gateway/src/routes/legal.ts`. Any change to the
+> text below MUST bump that constant in the same PR — a new version triggers the
+> re-acceptance flow (`LegalReacceptanceModal`, `packages/lib.legal`) on next
+> sign-in.
+
 **Version:** 2026-05-10-v1
 **Last updated:** 10 May 2026
 

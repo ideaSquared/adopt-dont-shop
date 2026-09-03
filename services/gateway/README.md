@@ -25,7 +25,8 @@ per-attempt retries (idempotent RPCs only — reads retried on `UNAVAILABLE` /
 per-service circuit breaker (closed → open → half-open), exported as
 `grpc_circuit_state{service}`. Depends on the shared backend packages
 `@adopt-dont-shop/{config-secrets, events, observability, proto,
-service-bootstrap, storage}` plus the generated clients for all ten services.
+service-bootstrap, storage, lib.av-scan}` (`lib.av-scan`'s `scanBytes()` runs on
+the uploads chokepoint) plus the generated clients for all ten services.
 
 ## Scripts
 
@@ -37,6 +38,32 @@ pnpm test         # Vitest (run mode)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
+
+## Running locally
+
+In the Docker dev stack (primary workflow) this runs as container
+`service-gateway`, published on `127.0.0.1:4000` — the only HTTP surface:
+
+```bash
+pnpm docker:dev:detach                      # start the whole stack
+docker compose logs -f service-gateway      # follow just the edge
+curl localhost:4000/health/simple           # liveness probe
+# Expected: {"status":"ok","service":"@adopt-dont-shop/service.gateway","environment":"development"}
+```
+
+Bare-metal (the edge alone). It owns no schema, so it needs no `DATABASE_URL`;
+instead it needs the ten `*_GRPC_URL` targets and `REDIS_URL` for the shared
+rate-limit store (falls back to in-memory with a `warn` if Redis is
+unreachable):
+
+```bash
+NATS_URL=nats://localhost:4222 REDIS_URL=redis://localhost:6380 \
+AUTH_GRPC_URL=localhost:6002 PETS_GRPC_URL=localhost:6003 …other *_GRPC_URL \
+pnpm --filter @adopt-dont-shop/service.gateway dev
+```
+
+To debug the container, see
+[`docs/runbooks/dev-stack-troubleshooting.md`](../../docs/runbooks/dev-stack-troubleshooting.md).
 
 ## REST / gRPC contract
 
@@ -51,7 +78,8 @@ and `/metrics`. Route groups under `/api/v1/*`: `auth` / `sessions` /
 audit; `cms` → cms. Gateway-folded (in-process): `legal`, `config`,
 `analytics`, `dashboard`, `uploads`, `csrf-token`, and
 `users/me/erasure-request`. There is **no** catch-all monolith proxy — unowned
-`/api/*` paths return 404.
+`/api/*` paths return 404. The `/api/v1/*` prefix and the versioning policy are
+documented in [`docs/api-versioning.md`](../../docs/api-versioning.md).
 
 `/api/v1/test/*` is a test-only one-time-token peek seam (ADS-871) that is
 **not registered** unless `E2E_TOKEN_PEEK=true`; `loadConfig()` throws at boot
@@ -94,7 +122,7 @@ translation + response adaptation), the authenticate middleware against a stub
 WS subscribers against a fake NATS — asserting header-stripping, 401/404 paths,
 and event→socket fan-out without a live transport. Also runs Pact
 consumer/provider contract tests. See
-[`docs/backend/testing.md`](../../docs/backend/testing.md) for shared
+[`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
 ## Ownership

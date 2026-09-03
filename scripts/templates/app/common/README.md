@@ -11,7 +11,7 @@
 
 <!-- TODO: Which gateway routes this app depends on, and how it reaches the
 backend (nginx in prod, the Vite dev proxy locally). Link to
-[`docs/frontend/technical-architecture.md`](../../docs/frontend/technical-architecture.md)
+[`docs/frontend/app-shell.md`](../../docs/frontend/app-shell.md)
 for the shared app-shell pattern instead of repeating it here. -->
 
 ## Scripts

@@ -26,10 +26,25 @@ services/gateway/src/
 
 services/things/src/grpc/
   thing-handlers.ts
-  thing-handlers.test.ts         # gRPC handler → stubbed pool/audit
+  thing-handlers.test.ts         # gRPC handler → stubbed pool + NATS double
   adapter.ts
   adapter.test.ts                # pure mapping helpers
 ```
+
+## Test utilities
+
+`@adopt-dont-shop/test-utils` (a `devDependency`) provides the shared doubles —
+prefer them over hand-rolled mocks:
+
+- `makeNatsDouble()` → a `NatsConnection` stand-in exposing `publishSpy`; its
+  `jetstream().publish` routes to the same spy, so `withTransaction`'s
+  publish-after-commit lands there.
+- `testPrincipal(overrides?)` → a fully-formed `Principal`.
+- `metadataFor(principal)` → gRPC `Metadata` for adapter-level tests.
+- `startStubGrpcServer(...)` → an in-process stub server for cross-service
+  client tests.
+
+See [`packages/test-utils/README.md`](../../../packages/test-utils/README.md).
 
 Run all tests for a service:
 
@@ -51,6 +66,7 @@ cd services/things && pnpm test handlers
 3. **Refactor** — clean up with tests green
 
 State the success criteria before you start:
+
 > "createThing returns the new thing id and writes one audit row with action=CREATE"
 
 ## What to test
@@ -58,10 +74,10 @@ State the success criteria before you start:
 **Test behaviour through public APIs only.** Internals must be
 invisible.
 
-| Good | Bad |
-|------|-----|
-| "Suspending a user blocks future logins" | "calls userRepo.update with status=suspended" |
-| "POST /things 201s and returns the new id" | "Controller calls ThingService.create" |
+| Good                                            | Bad                                             |
+| ----------------------------------------------- | ----------------------------------------------- |
+| "Suspending a user blocks future logins"        | "calls userRepo.update with status=suspended"   |
+| "POST /things 201s and returns the new id"      | "Controller calls ThingService.create"          |
 | "Rejecting an application emits a notification" | "spy was called with NotificationType.REJECTED" |
 
 A test that breaks every time you refactor is testing implementation,
@@ -78,43 +94,50 @@ project does not use Jest.
 
 ## gRPC handler test pattern
 
-Stub the pool, principal, and any cross-service clients in `deps`.
-Assert on the SQL the handler ran and the response shape it produced.
+`HandlerDeps` is `{ pool: Pool; nats: NatsConnection }` — import the type from
+`@adopt-dont-shop/service-bootstrap` (there is no `audit` dependency). Stub the
+pool and pass a NATS double; state-change handlers publish through
+`withTransaction`, so assert the event on the double's `publishSpy`.
 
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
+import { makeNatsDouble, testPrincipal } from '@adopt-dont-shop/test-utils';
+import type { HandlerDeps } from '@adopt-dont-shop/service-bootstrap';
+import type { Pool } from 'pg';
 
 import { createThing } from './thing-handlers.js';
-import type { HandlerDeps } from './handlers.js';
 
 const makeDeps = (overrides: Partial<HandlerDeps> = {}): HandlerDeps => ({
-  pool: { query: vi.fn().mockResolvedValue({ rows: [] }) } as never,
-  audit: { log: vi.fn().mockResolvedValue(undefined) } as never,
+  pool: { query: vi.fn().mockResolvedValue({ rows: [] }) } as unknown as Pool,
+  nats: makeNatsDouble(),
   ...overrides,
 });
 
 describe('createThing', () => {
-  it('inserts the row + writes an audit log', async () => {
+  it('inserts the row + publishes things.actionTaken after commit', async () => {
     const deps = makeDeps();
-    const res = await createThing(
-      deps,
-      { userId: 'u-1', roles: [] },
-      { name: 'Buddy', description: '' },
-    );
+    const res = await createThing(deps, testPrincipal({ permissions: ['things.create'] }), {
+      name: 'Buddy',
+      description: '',
+    });
 
     expect(res.thing.name).toBe('Buddy');
     expect(deps.pool.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO things.things'),
-      expect.any(Array),
+      expect.any(Array)
     );
-    expect(deps.audit.log).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'CREATE', entity: 'Thing' }),
+    // makeNatsDouble exposes publishSpy; withTransaction routes JetStream
+    // publishes to it. Assert the subject you emitted.
+    const nats = deps.nats as ReturnType<typeof makeNatsDouble>;
+    expect(nats.publishSpy).toHaveBeenCalledWith(
+      expect.stringContaining('things.actionTaken'),
+      expect.anything()
     );
   });
 
   it('rejects unauthenticated callers', async () => {
     await expect(
-      createThing(makeDeps(), null, { name: 'X', description: '' }),
+      createThing(makeDeps(), null, { name: 'X', description: '' })
     ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
   });
 });
@@ -166,18 +189,34 @@ returned shape. If you need true round-trip behaviour, set up a
 disposable Postgres in the test (`pg-mem` is sometimes appropriate
 for migration tests) — but most handler tests don't need it.
 
-## Auditing assertions
+## Event / audit assertions
 
-Don't assert on the contents of audit calls by mocking
-`AuditLogService.log` in production code paths and snapshotting the
-args — that tests implementation. Instead, assert the action +
-entity + entityId fields you actually care about:
+There is no `AuditLogService` and no `deps.audit`. A forensic trail is a
+`<domain>.actionTaken` event staged inside `withTransaction` and relayed to
+NATS after commit (`services/audit` consumes it). Assert the staged publish on
+the NATS double's `publishSpy`, and assert publish-after-commit ordering (no
+publish when the transaction throws):
 
 ```typescript
-expect(deps.audit.log).toHaveBeenCalledWith(
-  expect.objectContaining({ action: 'CREATE', entity: 'Thing', entityId: 't-1' }),
-);
+const nats = deps.nats as ReturnType<typeof makeNatsDouble>;
+
+// The event fired, on the right subject.
+const [subject, body] = nats.publishSpy.mock.calls[0] as [string, Uint8Array];
+expect(subject).toContain('things.actionTaken');
+
+// It did NOT fire when the write rolled back.
+it('does not publish when the INSERT throws', async () => {
+  const deps = makeDeps({
+    pool: { query: vi.fn().mockRejectedValue(new Error('boom')) } as unknown as Pool,
+  });
+  await expect(
+    createThing(deps, testPrincipal(), { name: 'X', description: '' })
+  ).rejects.toThrow();
+  expect((deps.nats as ReturnType<typeof makeNatsDouble>).publishSpy).not.toHaveBeenCalled();
+});
 ```
+
+See the `audit-logging` skill for what belongs in an `actionTaken` payload.
 
 ## Error path coverage
 
@@ -189,7 +228,7 @@ it('rejects unknown pets', async () => {
     pool: { query: vi.fn().mockRejectedValue({ code: '23503' }) } as never,
   });
   await expect(
-    addFavorite(deps, { userId: 'u-1' } as never, { petId: 'missing' }),
+    addFavorite(deps, { userId: 'u-1' } as never, { petId: 'missing' })
   ).rejects.toMatchObject({ code: 'NOT_FOUND' });
 });
 ```
@@ -224,3 +263,7 @@ it('rejects unknown pets', async () => {
   `handleGrpcError`) — they're implementation details
 - Skipping `beforeEach(() => vi.clearAllMocks())` when sharing mocks
   across tests — call-count assertions leak between cases
+- Building `deps` with an `audit` field — `HandlerDeps` is `{ pool, nats }`
+  only; the audit trail is a NATS event, not an injected logger
+
+Canonical doc: [`docs/testing.md`](../../../docs/testing.md).

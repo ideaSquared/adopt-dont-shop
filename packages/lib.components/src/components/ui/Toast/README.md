@@ -1,12 +1,12 @@
-# Toast Component
+# Toast
 
 A notification system component that displays temporary messages to users with smooth animations and auto-dismiss functionality.
 
 ## Usage
 
 ```tsx
-import { Toast, ToastContainer } from '@lib/components';
-import { useToast } from '@lib/components/hooks';
+import { Toast, ToastContainer } from '@adopt-dont-shop/lib.components';
+import { useToast } from '@adopt-dont-shop/lib.components';
 
 function MyApp() {
   const { toasts, showToast, hideToast } = useToast();
@@ -171,7 +171,7 @@ function PositionExample() {
 The Toast component works seamlessly with the provided `useToast` hook:
 
 ```tsx
-import { useToast } from '@lib/components/hooks';
+import { useToast } from '@adopt-dont-shop/lib.components';
 
 const { toasts, showToast, hideToast, clearToasts } = useToast();
 

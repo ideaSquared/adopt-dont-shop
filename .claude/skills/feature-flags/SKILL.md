@@ -16,11 +16,14 @@ The backend-managed feature flag system was removed — Statsig is the only path
 
 ## The three hooks
 
-| Hook | Returns | Use when |
-|------|---------|----------|
-| `useFeatureGate(name)` | boolean | Simple on/off toggle |
-| `useDynamicConfig(name)` | full config object | You need multiple values from one config |
-| `useConfigValue(name, key, fallback)` | a single value | You only need one value from a config |
+| Hook                                  | Returns                                   | Use when                                 |
+| ------------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| `useFeatureGate(name)`                | `{ value: boolean }` — **destructure it** | Simple on/off toggle                     |
+| `useDynamicConfig(name)`              | full config object                        | You need multiple values from one config |
+| `useConfigValue(name, key, fallback)` | a single value                            | You only need one value from a config    |
+
+**`useFeatureGate` returns an object, not a boolean.** `const x = useFeatureGate(...)` is always
+truthy — the gate reads as permanently on. Always destructure `{ value }`:
 
 ```typescript
 import {
@@ -30,18 +33,29 @@ import {
   KNOWN_CONFIGS,
 } from '@adopt-dont-shop/lib.feature-flags';
 
-const NewPetSearch = () => {
-  const isEnabled = useFeatureGate(KNOWN_GATES.NEW_PET_SEARCH);
+const AdvancedSearch = () => {
+  const { value: isEnabled } = useFeatureGate(KNOWN_GATES.ENABLE_ADVANCED_SEARCH);
   const maxResults = useConfigValue(
-    KNOWN_CONFIGS.PET_SEARCH_CONFIG,
-    'maxResults',
+    KNOWN_CONFIGS.SYSTEM_SETTINGS,
+    'api_rate_limit_per_minute',
     20
   );
 
-  if (!isEnabled) return <LegacyPetSearch />;
-  return <PetSearchV2 maxResults={maxResults} />;
+  if (!isEnabled) return <LegacySearch />;
+  return <SearchV2 maxResults={maxResults} />;
 };
 ```
+
+The real gate names are in `KNOWN_GATES` (`packages/lib.feature-flags/src/types/index.ts`):
+`ENABLE_REAL_TIME_MESSAGING`, `ENABLE_ADVANCED_SEARCH`, `ENABLE_NOTIFICATION_CENTER`,
+`ENABLE_APPLICATION_WORKFLOW`, `ENABLE_CONTENT_MODERATION`, `UI_SHOW_BETA_FEATURES`,
+`FEATURE_SOCIAL_SHARING`, `ENABLE_ANALYTICS_TRACKING`, `ALLOW_BULK_OPERATIONS`,
+`FEATURE_RATING_SYSTEM`. The real configs are `APPLICATION_SETTINGS`, `SYSTEM_SETTINGS`,
+`MODERATION_SETTINGS`.
+
+> Note: as of today no `KNOWN_GATES` constant is referenced anywhere in `apps/*/src` — the only live
+> gates are two string literals (`advanced_search_filters`, `new_hero_design`). Treat `KNOWN_GATES`
+> as the catalogue to add to when you deploy a named gate.
 
 ## Use the constants, not string literals
 
@@ -50,33 +64,33 @@ deployed. Using them gives type safety + autocomplete:
 
 ```typescript
 // GOOD — typo here is a compile error
-useFeatureGate(KNOWN_GATES.NEW_PET_SEARCH);
+useFeatureGate(KNOWN_GATES.ENABLE_ADVANCED_SEARCH);
 
-// BAD — silently returns false if the gate name is misspelled
-useFeatureGate('new-pet-serach');
+// BAD — silently returns { value: false } if the gate name is misspelled
+useFeatureGate('enable_advnaced_search');
 ```
 
 When adding a new gate or config:
 
 1. Define it in Statsig first
 2. Add it to `KNOWN_GATES` / `KNOWN_CONFIGS` in
-   `lib.feature-flags/src/types/index.ts`
-3. Rebuild: `cd lib.feature-flags && pnpm build` (or rely on the Vite alias
-   in dev — see the `new-lib` skill)
+   `packages/lib.feature-flags/src/types/index.ts`
+3. In dev the Vite alias picks up the source directly; for a production build run
+   `pnpm build:libs` (see the `new-lib` skill)
 
 ## Flag patterns
 
 ### Simple toggle
 
 ```typescript
-const showNewBanner = useFeatureGate(KNOWN_GATES.NEW_DASHBOARD_BANNER);
-return showNewBanner ? <NewBanner /> : null;
+const { value: showCenter } = useFeatureGate(KNOWN_GATES.ENABLE_NOTIFICATION_CENTER);
+return showCenter ? <NotificationCenter /> : null;
 ```
 
 ### A/B variant
 
 ```typescript
-const variant = useConfigValue(KNOWN_CONFIGS.SIGNUP_FLOW, 'variant', 'control');
+const variant = useConfigValue(KNOWN_CONFIGS.APPLICATION_SETTINGS, 'variant', 'control');
 
 switch (variant) {
   case 'control': return <SignupControl />;
@@ -95,7 +109,7 @@ default, not a blank screen.
 import { Navigate } from 'react-router';
 
 const ReportsRoute = () => {
-  const enabled = useFeatureGate(KNOWN_GATES.REPORTS_V2);
+  const { value: enabled } = useFeatureGate(KNOWN_GATES.UI_SHOW_BETA_FEATURES);
   if (!enabled) return <Navigate to="/dashboard" replace />;
   return <ReportsV2Page />;
 };
@@ -107,7 +121,7 @@ Don't roll your own backend gate — pass the flag to the API and let the backen
 decide:
 
 ```typescript
-const includeBeta = useFeatureGate(KNOWN_GATES.PET_SEARCH_BETA_FILTERS);
+const { value: includeBeta } = useFeatureGate(KNOWN_GATES.ENABLE_APPLICATION_WORKFLOW);
 const { data } = usePets({ ...filters, beta: includeBeta });
 ```
 
@@ -117,12 +131,9 @@ re-check Statsig — only the frontend evaluates user-targeted gates.
 ## Loading state
 
 Statsig evaluates client-side after a roundtrip. Until the SDK is ready, every
-gate returns `false`. For most UI this is fine — the safe default renders, then
-flips when the SDK loads.
-
-If you need to wait for SDK readiness, the provider exposes a `useStatsigReady`
-hook (or similar — check the lib API). Use it sparingly; gating the whole app
-on Statsig readiness adds a perceptible delay.
+gate returns `{ value: false }`. For most UI this is fine — the safe default
+renders, then flips when the SDK loads. Frame gates so that "off" is the safe
+state and no readiness check is needed.
 
 ## Fallback safety
 
@@ -131,12 +142,12 @@ the user see?" — usually the existing behaviour, not the new one.
 
 ```typescript
 // GOOD — feature is off when SDK is down or slow
-const showExperimental = useFeatureGate(KNOWN_GATES.EXPERIMENTAL_FEATURE);
-return showExperimental ? <Experimental /> : <Stable />;
+const { value: showBeta } = useFeatureGate(KNOWN_GATES.UI_SHOW_BETA_FEATURES);
+return showBeta ? <Experimental /> : <Stable />;
 
-// BAD — defaulting to "on" means a Statsig outage shows experimental UI to all
-const hideExperimental = useFeatureGate(KNOWN_GATES.HIDE_EXPERIMENTAL_FEATURE);
-return hideExperimental ? <Stable /> : <Experimental />;
+// BAD — a gate named to mean "hide the new thing" shows experimental UI on outage
+const { value: hideBeta } = useFeatureGate(KNOWN_GATES.UI_SHOW_BETA_FEATURES);
+return hideBeta ? <Stable /> : <Experimental />;
 ```
 
 Frame gates as "show the new thing" not "hide the new thing" — the false default
@@ -171,19 +182,19 @@ Mock the hook in tests:
 ```typescript
 vi.mock('@adopt-dont-shop/lib.feature-flags', () => ({
   useFeatureGate: vi.fn(),
-  KNOWN_GATES: { NEW_PET_SEARCH: 'new_pet_search' },
+  KNOWN_GATES: { ENABLE_ADVANCED_SEARCH: 'enable_advanced_search' },
 }));
 
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 
 it('renders legacy when flag off', () => {
-  vi.mocked(useFeatureGate).mockReturnValue(false);
+  vi.mocked(useFeatureGate).mockReturnValue({ value: false });
   renderWithProviders(<PetSearchEntry />);
   expect(screen.getByTestId('legacy-search')).toBeInTheDocument();
 });
 
 it('renders v2 when flag on', () => {
-  vi.mocked(useFeatureGate).mockReturnValue(true);
+  vi.mocked(useFeatureGate).mockReturnValue({ value: true });
   renderWithProviders(<PetSearchEntry />);
   expect(screen.getByTestId('search-v2')).toBeInTheDocument();
 });
@@ -202,3 +213,6 @@ Test both branches — that's the entire point of the flag.
 - Flag left in code after full rollout → dead code, confused readers
 - Using flags for permission gates → bypassable, use RBAC instead
 - Testing only the "flag on" branch — the off branch is the rollback path, test it
+- Not destructuring `useFeatureGate` — `{ value }`, never the bare object
+
+Canonical doc: [`packages/lib.feature-flags/README.md`](../../../packages/lib.feature-flags/README.md).

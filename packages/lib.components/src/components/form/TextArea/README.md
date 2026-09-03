@@ -1,11 +1,11 @@
-# TextArea Component
+# TextArea
 
 A textarea component with auto-resize, character counting, and validation features.
 
 ## Usage
 
 ```tsx
-import { TextArea } from '@/components/form/TextArea'
+import { TextArea } from '@adopt-dont-shop/lib.components'
 
 // Basic usage
 <TextArea

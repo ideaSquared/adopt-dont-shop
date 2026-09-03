@@ -1,10 +1,14 @@
 # ADR 0007 — Postgres backups, PITR & restore verification (ADS-1043)
 
-- Status: Proposed
+- Status: Partially implemented (2026-08-28). Phase 1 restore verification
+  shipped (ADS-1240, `.github/workflows/backup-restore-drill.yml`). Outstanding:
+  pgBackRest WAL/PITR, enforced S3 retention/Object Lock.
 - Date: 2026-08-05
 - Scope: `scripts/snapshot-postgres.sh`, `.github/workflows/backup.yml`,
   `docs/operations/snapshot-policy.md`, production S3 backup bucket — the
   Postgres backup, retention, and restore-verification pipeline
+- Linear: ADS-1043
+- Supersedes / Superseded by: —
 
 ## Context
 
