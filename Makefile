@@ -1,10 +1,13 @@
 .PHONY: help staging prod rollback watch history
 
+# DEPLOY-ONLY. This Makefile drives staging/production deploys; local
+# development uses pnpm scripts (`pnpm docker:dev`, `pnpm commands`).
+#
 # `make` (or `make help`) lists every target. Each target's `## ` comment is the
 # description shown by `help`. Deploy targets dispatch GitHub Actions workflows
 # via `gh workflow run` — they return immediately, so use `make watch` to follow
 # the run. See README "Deployment" for the gh prerequisites.
-help: ## Show this help
+help: ## Show this help (deploy targets only — local dev uses pnpm)
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
 .DEFAULT_GOAL := help
@@ -12,7 +15,7 @@ help: ## Show this help
 staging: ## Deploy main to staging (runs immediately)
 	gh workflow run deploy.yml -f environment=staging
 
-prod: ## Deploy main to production (requires approval in the GitHub UI)
+prod: ## DISPATCHES A REAL PRODUCTION DEPLOY — a reviewer must approve it in the GitHub Actions UI
 	gh workflow run deploy.yml -f environment=production
 
 rollback: ## Roll an env back to a SHA — usage: make rollback env=production sha=abc1234

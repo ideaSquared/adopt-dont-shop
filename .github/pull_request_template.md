@@ -1,4 +1,4 @@
-<!-- Before opening: make sure you've read [CONTRIBUTING.md](../CONTRIBUTING.md) and that all CI checks pass. -->
+<!-- Before opening: read CONTRIBUTING.md (../CONTRIBUTING.md). Fill in every section rather than deleting it. -->
 
 ## Summary
 
@@ -14,22 +14,21 @@
 
 ## Before requesting review
 
-<!-- Quick PR-readiness signal — see CONTRIBUTING.md for context. -->
+<!-- Mirrors the most-failed CI checks — see CONTRIBUTING.md "Before opening a PR". -->
 
-- [ ] Ran `pnpm ci:local:quick` locally (or installed the pre-push hook — see CONTRIBUTING.md)
-- [ ] Tests for new behaviour added (TDD)
-- [ ] If touching `.env` requirements, updated `.env.example`'s REQUIRED block
-- [ ] If touching a `lib.*`, considered consumer impact across `app.*` and the backend `service.*` packages
+- [ ] Commit messages follow Conventional Commits (`feat:`, `fix:`, …) — the `commit-lint` CI job fails otherwise
+- [ ] Ran `pnpm ci:local:quick` (format + lint + type-check), or the pre-push hook is enabled
+- [ ] Ran `pnpm exec turbo run test:coverage --filter=<package-you-changed>` — CI enforces each package's coverage thresholds; plain `pnpm test` does not
+- [ ] New behaviour has a test written first (TDD)
+- [ ] If a new env var is required, it is in `.env.example`'s REQUIRED banner and documented in `docs/env-reference.md`
+- [ ] If touching a `lib.*`, checked its consumer list (`docs/libraries/<lib>-consumers.md`)
 
 ## Test plan
 
-<!-- How did you verify this works? Check off items as you go. -->
+<!-- How did you verify this works? -->
 
-- [ ] Existing tests pass (`pnpm test`)
-- [ ] New behaviour is covered by tests
 - [ ] Tested manually (describe how)
-- [ ] No TypeScript errors (`pnpm type-check`)
-- [ ] Lint passes (`pnpm lint`)
+- [ ] Added the `run-e2e` label if this touches user-facing, auth, or cross-app flows
 
 ## Screenshots / recordings
 

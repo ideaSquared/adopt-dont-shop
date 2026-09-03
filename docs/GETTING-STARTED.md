@@ -1,17 +1,12 @@
 # Getting Started — Day 1
 
-A single, linear walkthrough from `git clone` to your first PR-worthy
-change. If you only read one doc before writing code, read this one — every
-step links to the deeper reference for when you need more than the summary
-here.
+The ordered Day-1 path from `git clone` to a first PR-worthy change, for a new engineer. It is not the reference: the root [README](../README.md) says what the repo is, how to run it and where things live; this page only tells you what to do next. Every step links to the deeper doc.
 
 ## 1. Install prerequisites
 
-See the root [README "Prerequisites"](../README.md#prerequisites) section:
-Node.js v22 (via `.nvmrc`), pnpm via Corepack, Docker Desktop, Git. Using
-GitHub Codespaces or a devcontainer? Skip straight to step 2 — see the
-[README "Devcontainer / Codespaces"](../README.md#devcontainer--codespaces-zero-local-setup)
-section instead, it does steps 1-2 for you.
+See the README's [Prerequisites](../README.md#prerequisites): Node.js v22 (via `.nvmrc`), pnpm via Corepack, Docker Desktop, Git.
+
+Using GitHub Codespaces or the devcontainer? It does steps 1-2 for you (with `--no-start`, so the stack is not running yet) — see [Devcontainer / Codespaces](../README.md#devcontainer--codespaces-zero-local-setup) and continue at step 3.
 
 ## 2. Bootstrap
 
@@ -21,23 +16,22 @@ cd adopt-dont-shop
 pnpm bootstrap
 ```
 
-`pnpm bootstrap` enables Corepack, creates `.env` from `.env.example`, generates
-fresh JWT/session/encryption secrets into it, and installs every
-workspace dependency. It'll also prompt you about the opt-in pre-push hook
-(answering yes is recommended for your first month) — see
-[CONTRIBUTING.md "Pre-push hook"](../CONTRIBUTING.md#pre-push-hook-ads-732--ads-905)
-if you want the details later.
+What it does, step by step, is in the README's [Setup](../README.md#setup-3-steps). Two prompts matter:
+
+- **Pre-push hook** — answer yes (recommended for your first month). Details: [CONTRIBUTING "Pre-push hook"](../CONTRIBUTING.md#pre-push-hook-ads-732--ads-905).
+- **Start the development stack now?** — answer yes and the stack starts detached; skip step 3.
+
+Expected: the run ends with `Setup Complete!` and, if you started the stack, `service.gateway is healthy.` followed by the app URLs.
 
 ## 3. Boot the stack
+
+Only if you answered no in step 2 (or used the devcontainer):
 
 ```bash
 pnpm docker:dev
 ```
 
-First boot takes a few minutes (image builds + `pnpm install` inside
-containers). Subsequent boots are fast. If anything looks stuck or you hit
-an error, jump ahead to [step 9 (debugging)](#9-debugging) rather than
-guessing.
+First boot takes a few minutes (image build + `pnpm install` inside containers). Subsequent boots are fast. If anything looks stuck, jump to [step 10](#10-debugging) rather than guessing.
 
 ## 4. Verify it's running
 
@@ -48,64 +42,39 @@ guessing.
 | Rescue (rescue org portal)      | http://localhost:3002               |
 | API gateway health check        | http://localhost:4000/health/simple |
 
-All four should respond. If the frontends 502 for the first ~40s after the
-containers report "up", that's expected — see the note in
-[docs/DOCKER.md](./DOCKER.md) about frontends waiting on the gateway's
-health check.
+All four should respond. The frontends can 502 for ~40 s after the containers report up — they wait on the gateway's health check (see [docs/DOCKER.md](./DOCKER.md)). Nginx on `http://localhost` is not started by `pnpm docker:dev`; it needs `--profile full`.
 
-## 5. Run the tests
+## 5. Log in with seed data
+
+A fresh stack seeds itself on boot. Log in at http://localhost:3000 as `john.smith@gmail.com` / `DevPassword123!` (adopter), or use the admin / rescue personas from [docs/operations/dev-seed-data.md](./operations/dev-seed-data.md). That page also covers re-seeding (`pnpm db:seed`) and adding synthetic volume (`pnpm db:spam`).
+
+## 6. Run the tests
 
 ```bash
-pnpm test              # everything, no coverage thresholds
-pnpm ci:local:quick     # ~30s: format + lint + type-check (what pre-push runs)
-pnpm ci:local           # ~3-5min: the above + test + lib-test guard + workspace drift
+pnpm test              # every package, no coverage thresholds
+pnpm ci:local:quick    # ~30 s: format + lint + type-check (what the pre-push hook runs)
 ```
 
-See [CONTRIBUTING.md "Before opening a PR"](../CONTRIBUTING.md#before-opening-a-pr)
-for the full CI-equivalence picture, including the coverage-threshold gate
-that plain `pnpm test` skips.
+Expected: both exit 0. Before your first push, read [CONTRIBUTING "One-shot preflight"](../CONTRIBUTING.md#one-shot-preflight-recommended-before-pushing) — `pnpm ci:local` runs the full CI-equivalent set, including the coverage thresholds that plain `pnpm test` skips.
 
-## 6. Tour the repo
+## 7. Tour the repo
 
-Read the root README's
-[Project Structure](../README.md#project-structure) section for the
-top-level layout (`apps/`, `services/`, `packages/`), then
-[docs/dependency-graph.md](./dependency-graph.md) for how the layers
-(apps → lib.\* → packages) are allowed to depend on each other and the
-generator that visualises it.
+Read the README's [Project Structure](../README.md#project-structure) for the top-level layout (`apps/`, `services/`, `packages/`), then [docs/dependency-graph.md](./dependency-graph.md) for how the layers (apps → `lib.*` → packages) may depend on each other.
 
-## 7. Make your first change
+## 8. Make your first change
 
-Which docs you need next depends on what you're touching — pick your track
-from [docs/README.md "Quick start by role"](./README.md#quick-start-by-role):
+Pick your track from [docs/README.md "Quick start by role"](./README.md#quick-start-by-role):
 
-- **Frontend** (an `apps/*` page or a `lib.*` component) — start with
-  [docs/frontend/technical-architecture.md](./frontend/technical-architecture.md).
-- **Backend** (a `services/*` gRPC handler, route, or migration) — start
-  with [docs/backend/implementation-guide.md](./backend/implementation-guide.md).
-  Writing a migration specifically? Go straight to
-  [docs/backend/writing-migrations.md](./backend/writing-migrations.md).
-  Adding an entirely new service? See
-  [docs/infrastructure/new-microservice.md](./infrastructure/new-microservice.md).
-- **A new shared library** — `pnpm new-lib <name>` scaffolds it; see
-  [scripts/templates/lib/common/README.md](../scripts/templates/lib/common/README.md).
+- **Frontend** (an `apps/*` page or a `lib.*` component) — start with [docs/frontend/technical-architecture.md](./frontend/technical-architecture.md).
+- **Backend** (a `services/*` gRPC handler, route, or migration) — start with [docs/backend/implementation-guide.md](./backend/implementation-guide.md). Writing a migration? [docs/backend/writing-migrations.md](./backend/writing-migrations.md). A whole new service? [docs/infrastructure/new-microservice.md](./infrastructure/new-microservice.md).
+- **A new shared library** — `pnpm new-lib <name>` scaffolds it; see [scripts/templates/lib/common/README.md](../scripts/templates/lib/common/README.md).
 
-Whatever you're touching, this repo follows TDD (see
-[CONTRIBUTING.md "TDD loop"](../CONTRIBUTING.md#tdd-loop)) — write the
-failing test first.
+Whatever you touch, this repo follows TDD ([CONTRIBUTING "TDD loop"](../CONTRIBUTING.md#tdd-loop)) — write the failing test first.
 
-## 8. Open a PR
+## 9. Open a PR
 
-Follow [CONTRIBUTING.md](../CONTRIBUTING.md) for branch naming, commit
-conventions, and the pre-PR checklist. The
-[PR template](../.github/pull_request_template.md) mirrors the
-most-commonly-failed CI checks — fill it in rather than deleting sections.
+Follow [CONTRIBUTING.md](../CONTRIBUTING.md) for branch naming, Conventional Commits and the pre-PR checklist. The [PR template](../.github/pull_request_template.md) mirrors the most-failed CI checks — fill it in rather than deleting sections. Which CI jobs run, and when to add the `run-e2e` label, is in [.github/workflows/README.md](../.github/workflows/README.md).
 
-## 9. Debugging
+## 10. Debugging
 
-Something not working? [docs/DOCKER.md "Troubleshooting"](./DOCKER.md#troubleshooting)
-covers the common failure modes (out of memory, HMR not picking up
-changes, port conflicts, stale build cache, DB connection issues) and the
-per-tier `pnpm docker:logs:*` shortcuts for narrowing down which container
-is misbehaving. [docs/backend/troubleshooting.md](./backend/troubleshooting.md)
-covers backend-specific failure modes.
+[docs/runbooks/dev-stack-troubleshooting.md](./runbooks/dev-stack-troubleshooting.md) covers the dev stack's failure modes (migration failures, NATS races, nginx 502s, stale images, port conflicts, HMR). [docs/DOCKER.md "Troubleshooting"](./DOCKER.md#troubleshooting) has the per-tier `pnpm docker:logs:*` shortcuts, and [docs/backend/troubleshooting.md](./backend/troubleshooting.md) covers backend-specific failures.
