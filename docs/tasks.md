@@ -40,7 +40,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm test` | `turbo run test` |
+| `pnpm test` | `turbo run test --filter='!@adopt-dont-shop/e2e'` |
 | `pnpm test:changed` | `turbo run test -- --changed` |
 | `pnpm test:coverage` | `turbo run test:coverage` |
 | `pnpm test:e2e` | `pnpm --filter @adopt-dont-shop/e2e test` |
