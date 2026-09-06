@@ -35,7 +35,11 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { petToView, viewToCreateRequest, viewToUpdateRequest } from './pets-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { GRPC_TO_HTTP, handleGrpcError } from '../middleware/grpc-error.js';
-import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
+import {
+  buildPaginationEnvelope,
+  MAX_PAGE_LIMIT,
+  parsePagination,
+} from '../middleware/pagination.js';
 
 export type PetsRoutesOptions = {
   client: PetsClient;
@@ -506,6 +510,12 @@ export const registerPetsRoutes = async (
     async (req, reply) => {
       const rawLimit = Number(req.query.limit);
       const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : 0;
+      // ADS-1275: no silent clamp — reject an out-of-range limit rather than
+      // forwarding it unbounded, matching the GET /api/v1/pets convention
+      // (parsePagination's MAX_PAGE_LIMIT).
+      if (limit > MAX_PAGE_LIMIT) {
+        return reply.code(400).send({ error: `limit must be <= ${MAX_PAGE_LIMIT}` });
+      }
       try {
         const res = await client.getSimilarPets(
           { petId: req.params.id, limit },
