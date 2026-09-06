@@ -1,6 +1,7 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -9,6 +10,8 @@ import {
   findUnpinnedFromLines,
   findUnpinnedImages,
 } from './check-docker-pinning.mjs';
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 describe('COMPOSE_FILES scope (ADS-1115)', () => {
   it('scans the prod/staging base files AND the optional prod overlays deploy.yml can merge', () => {
@@ -30,6 +33,19 @@ describe('COMPOSE_FILES scope (ADS-1115)', () => {
     // files) is digest-pinned, so a future bare-tag edit fails CI here.
     const failures = COMPOSE_FILES.flatMap(file => findUnpinnedImages(file));
     expect(failures).toEqual([]);
+  });
+});
+
+describe('lib-types-watcher digest pin (ADS-1277)', () => {
+  // docker-compose.yml (dev infra) is outside COMPOSE_FILES' prod/staging
+  // scope, so it isn't covered by the CI guard above — this asserts the
+  // fix directly against the real file instead of relying on that guard.
+  it('pins the lib-types-watcher node image to a digest, not a bare tag', () => {
+    const lines = readFileSync(join(REPO_ROOT, 'docker-compose.yml'), 'utf8').split('\n');
+    const serviceIndex = lines.findIndex(line => line.trim() === 'lib-types-watcher:');
+    expect(serviceIndex).toBeGreaterThan(-1);
+    const imageLine = lines.slice(serviceIndex + 1).find(line => /^\s*image:\s*/.test(line));
+    expect(imageLine).toMatch(/^\s*image:\s*node:22\.23\.1-alpine@sha256:[0-9a-f]{64}\s*$/);
   });
 });
 
