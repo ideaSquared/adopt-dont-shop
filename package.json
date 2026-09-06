@@ -142,7 +142,8 @@
     "@fastify/static": "Force @fastify/static >=10.1.2 to patch the route-guard-bypass path traversal (GHSA-83w8-p2f5-377r) and the non-canonical-URL authorization bypass (GHSA-8pvw-jcv7-9cmj); everything <=10.1.0 is vulnerable and there is NO patched 9.x, so the fix requires the 10.x major. It is transitive via @fastify/swagger-ui (which declares @fastify/static ^9.1.2); v10 needs fastify 5, which the gateway already runs (^5.8.5), and swagger-ui only uses it to serve its own fixed-prefix bundled assets, so the override is verified against the gateway's openapi/swagger tests. Do not downgrade below 10.1.2.",
     "@opentelemetry/propagator-jaeger": "Force @opentelemetry/propagator-jaeger >=2.9.0 to patch the JaegerPropagator DoS via unhandled exception on a malformed header (GHSA-45rx-2jwx-cxfr); everything <2.9.0 is vulnerable. Transitive via the @opentelemetry auto-instrumentations bundle used by @adopt-dont-shop/observability. Do not downgrade below 2.9.0.",
     "ws": "Force the transitive ws copies up to 8.21.0 to keep them on the patched line; the selector `ws@>=8.0.0 <8.21.0` rewrites every nested copy that npm/pnpm would otherwise resolve inside the vulnerable range (ws reaches the tree via socket.io / the gateway WebSocket layer, the same subtree the socket.io-parser override covers). Do not downgrade below 8.21.0.",
-    "nanoid": "Force the transitive nanoid copies up to 3.3.18 to keep them on the patched 3.3.x line; the selector `nanoid@<3.3.18` rewrites every nested copy resolved below it (nanoid is a common build-chain transitive dependency). 3.3.18 patches the infinite-loop DoS in customAlphabet/customRandom when size is zero (GHSA-2v37-7h3g-55p8); everything below is vulnerable. Supersedes the earlier 3.3.17 pin, which is now itself vulnerable. Do not downgrade below 3.3.18."
+    "nanoid": "Force the transitive nanoid copies up to 3.3.18 to keep them on the patched 3.3.x line; the selector `nanoid@<3.3.18` rewrites every nested copy resolved below it (nanoid is a common build-chain transitive dependency). 3.3.18 patches the infinite-loop DoS in customAlphabet/customRandom when size is zero (GHSA-2v37-7h3g-55p8); everything below is vulnerable. Supersedes the earlier 3.3.17 pin, which is now itself vulnerable. Do not downgrade below 3.3.18.",
+    "uuid": "Force the transitive uuid copies up to 11.1.1 via the selector `uuid@<11.1.1` to patch the missing buffer-bounds check in v3()/v5()/v6() (GHSA-w5hq-g745-h8pq, CVE-2026-41907); everything below 11.1.1 is vulnerable. Reached transitively via service.notifications' firebase-admin -> @google-cloud/storage -> gaxios chain, which declares uuid ^9.0.1; no workspace package depends on uuid directly, so the major-version jump is safe. Do not downgrade below 11.1.1."
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -184,7 +185,8 @@
       "socket.io-parser@<4.2.7": "4.2.7",
       "brace-expansion@>=3.0.0 <5.0.9": "5.0.9",
       "@fastify/static@<10.1.2": "10.1.2",
-      "@opentelemetry/propagator-jaeger@<2.9.0": "2.9.0"
+      "@opentelemetry/propagator-jaeger@<2.9.0": "2.9.0",
+      "uuid@<11.1.1": "11.1.1"
     }
   },
   "engines": {
