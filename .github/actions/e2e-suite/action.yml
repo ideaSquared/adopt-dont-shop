@@ -110,6 +110,12 @@ runs:
           # and verified by packages/service-bootstrap (read via
           # config-secrets as PRINCIPAL_SIGNING_KEY).
           echo "PRINCIPAL_SIGNING_KEY=$(openssl rand -hex 32)"
+          # ADS-1273 made NATS_AUTH_TOKEN a required secret in
+          # docker-compose.yml (every service's NATS client and the nats
+          # container itself). Compose interpolates every service's
+          # environment block up front, so a missing value fails the very
+          # first `up -d database redis` below, same as REDIS_PASSWORD.
+          echo "NATS_AUTH_TOKEN=$(openssl rand -hex 32)"
           # ADS-600 made REDIS_PASSWORD a required secret in
           # docker-compose.yml; the CI stack-up step refuses to
           # start without it. Generate it here so every E2E run
