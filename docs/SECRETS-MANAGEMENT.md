@@ -106,12 +106,11 @@ ENCRYPTION_KEY=64_CHAR_HEX_STRING_FOR_ENCRYPTION
 
 #### Optional (Third-Party Services)
 
-| Secret                 | Purpose            | Where to Get            |
-| ---------------------- | ------------------ | ----------------------- |
-| `SENDGRID_API_KEY`     | Email sending      | SendGrid Dashboard      |
-| `AWS_S3_ACCESS_KEY_ID` | File storage       | AWS IAM                 |
-| `STRIPE_SECRET_KEY`    | Payment processing | Stripe Dashboard        |
-| `SENTRY_DSN`           | Error tracking     | Sentry Project Settings |
+| Secret              | Purpose        | Where to Get            |
+| ------------------- | -------------- | ----------------------- |
+| `SENDGRID_API_KEY`  | Email sending  | SendGrid Dashboard      |
+| `AWS_ACCESS_KEY_ID` | File storage   | AWS IAM                 |
+| `SENTRY_DSN`        | Error tracking | Sentry Project Settings |
 
 ## Docker Secrets
 
