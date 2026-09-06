@@ -28,6 +28,7 @@
         "vitest.config.ts",
         "package.json",
         "$TURBO_ROOT$/vitest.shared.config.ts",
+        "$TURBO_ROOT$/vite.shared.config.ts",
         "$TURBO_ROOT$/tsconfig.base.json"
       ]
     },
@@ -47,6 +48,7 @@
         "vitest.config.ts",
         "package.json",
         "$TURBO_ROOT$/vitest.shared.config.ts",
+        "$TURBO_ROOT$/vite.shared.config.ts",
         "$TURBO_ROOT$/tsconfig.base.json"
       ]
     },
