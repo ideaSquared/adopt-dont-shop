@@ -157,7 +157,7 @@ needs the resilience work already designed in ADRs 0007/0009.
 
 - **The 52-spec E2E suite does not gate PRs.** It runs only on push-to-`main`,
   `workflow_dispatch`, or a `run-e2e` label; on a normal PR it is skipped, and
-  `ci-required` treats skipped as pass (`.github/workflows/ci.yml:530-536,620-626`).
+  `ci-required` treats skipped as pass (`.github/workflows/ci.yml:542-556`).
   Headline journeys (auth, adoption-application, chat) can regress and merge
   green. _Make at least the `@smoke` subset a required PR gate._
 - **Coverage gate holes.** `authz` (the permission core) and `events` (the

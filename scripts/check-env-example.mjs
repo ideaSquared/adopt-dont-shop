@@ -36,6 +36,7 @@ const REQUIRED_KEYS = [
   'JWT_REFRESH_SECRET',
   'SESSION_SECRET',
   'ENCRYPTION_KEY',
+  'NATS_AUTH_TOKEN',
 ];
 
 const examplePath = path.join(rootDir, '.env.example');

@@ -28,6 +28,7 @@
         "vitest.config.ts",
         "package.json",
         "$TURBO_ROOT$/vitest.shared.config.ts",
+        "$TURBO_ROOT$/vite.shared.config.ts",
         "$TURBO_ROOT$/tsconfig.base.json"
       ]
     },
@@ -47,12 +48,13 @@
         "vitest.config.ts",
         "package.json",
         "$TURBO_ROOT$/vitest.shared.config.ts",
+        "$TURBO_ROOT$/vite.shared.config.ts",
         "$TURBO_ROOT$/tsconfig.base.json"
       ]
     },
     "lint": {
       "outputs": [],
-      "inputs": ["src/**", "*.config.{js,ts,mjs}"]
+      "inputs": ["src/**", "tests/**", "fixtures/**", "helpers/**", "*.config.{js,ts,mjs}"]
     },
     "format": {
       "outputs": [],
@@ -68,6 +70,9 @@
       "inputs": [
         "src/**",
         "test/**",
+        "tests/**",
+        "fixtures/**",
+        "helpers/**",
         "tsconfig*.json",
         "package.json",
         "$TURBO_ROOT$/tsconfig.base.json",

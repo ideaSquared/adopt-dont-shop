@@ -1,9 +1,10 @@
-import { connect, type NatsConnection } from 'nats';
+import type { NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { type SubscriptionHandle } from '@adopt-dont-shop/events';
 import { createLogger } from '@adopt-dont-shop/observability';
 import {
+  connectNats,
   installProcessErrorHandlers,
   runServiceShutdown,
 } from '@adopt-dont-shop/service-bootstrap';
@@ -39,7 +40,7 @@ const main = async (): Promise<void> => {
       connectionString: config.databaseUrl,
       schema: config.schema,
     });
-    nats = await connect({ servers: config.natsUrl });
+    nats = await connectNats(config.natsUrl);
     // Create-or-update the JetStream DOMAIN_EVENTS stream before anything
     // publishes or subscribes. Idempotent across every service's boot.
     {

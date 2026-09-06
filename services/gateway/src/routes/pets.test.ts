@@ -404,6 +404,22 @@ describe('GET /api/v1/pets/:id/similar', () => {
       await app.close();
     }
   });
+
+  it('rejects a limit above the pagination max (ADS-1275) without forwarding it', async () => {
+    const { client, getSimilarPetsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/pet-1/similar?limit=100000',
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'limit must be <= 100' });
+      expect(getSimilarPetsMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
 });
 
 describe('POST /api/v1/pets', () => {

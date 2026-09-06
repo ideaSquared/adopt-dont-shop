@@ -646,6 +646,28 @@ describe('GET /api/v1/admin/security/suspicious-activity', () => {
     expect(mocks.query).not.toHaveBeenCalled();
   });
 
+  it('rejects a failureThreshold above the upper bound with 400 (ADS-1276)', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/suspicious-activity?failureThreshold=1000000',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body)).toEqual({ error: 'failureThreshold must be <= 1000' });
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a windowHours above the upper bound with 400 (ADS-1276)', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/suspicious-activity?windowHours=999999',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body)).toEqual({ error: 'windowHours must be <= 720' });
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
   it('maps gRPC PERMISSION_DENIED to HTTP 403', async () => {
     mocks.query.mockRejectedValueOnce({
       code: status.PERMISSION_DENIED,

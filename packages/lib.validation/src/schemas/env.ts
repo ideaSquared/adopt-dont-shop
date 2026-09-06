@@ -87,6 +87,13 @@ export const envBaseSchema = z.object({
     })
     .regex(/^[0-9a-f]+$/i, { message: 'ENCRYPTION_KEY must be hex (0-9, a-f)' }),
 
+  // ADS-1273: shared token the nats service requires via --auth; every
+  // service's NATS client must present it to connect. Required in every
+  // environment (dev included) — the event bus was previously
+  // unauthenticated everywhere, letting anything that could reach it forge
+  // *.actionTaken audit events or eavesdrop on the whole bus.
+  NATS_AUTH_TOKEN: secretField('NATS_AUTH_TOKEN'),
+
   // ADS-542: dedicated HMAC key for signed upload URLs. Optional in
   // dev/test (boot validator falls back to a derived placeholder); the
   // production-only check below upgrades the missing case to an error.
