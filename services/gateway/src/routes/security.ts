@@ -91,6 +91,13 @@ const parsePayloadJson = (raw: string): Record<string, unknown> | null => {
 // unbounded query is never issued — this is the proto's documented max.
 const SUSPICIOUS_ACTIVITY_QUERY_LIMIT = 200;
 
+// ADS-1276: upper bounds for the suspicious-activity query params so a
+// caller can't force an unbounded scan (a huge windowHours widens the
+// occurred_at_from filter arbitrarily; a huge failureThreshold is just
+// pointless work grouping events that will never pass the filter).
+const MAX_FAILURE_THRESHOLD = 1000;
+const MAX_WINDOW_HOURS = 720; // 30 days
+
 // IpRuleType proto enum <-> the 'allow'|'block' string the SPA's
 // securityService.ts contract uses.
 const ipRuleTypeToProto = (type: string): AuthV1.IpRuleType =>
@@ -557,6 +564,14 @@ export const registerSecurityRoutes = async (
         return reply
           .code(400)
           .send({ error: 'failureThreshold and windowHours must be positive integers' });
+      }
+      if (failureThreshold > MAX_FAILURE_THRESHOLD) {
+        return reply
+          .code(400)
+          .send({ error: `failureThreshold must be <= ${MAX_FAILURE_THRESHOLD}` });
+      }
+      if (windowHours > MAX_WINDOW_HOURS) {
+        return reply.code(400).send({ error: `windowHours must be <= ${MAX_WINDOW_HOURS}` });
       }
       const occurredAtFrom = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
       const grpcReq: AuditQueryRequest = {
