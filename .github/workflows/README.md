@@ -161,11 +161,11 @@ The ruleset itself lives in the repo at
 
 Three required status checks on `main`:
 
-| Check                                  | Source workflow          | Why required                                                                                                       |
-| -------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `CI Required`                          | `ci.yml`                 | Aggregates workspace-drift, build-libs, backend/frontend/library tests (with coverage gates), dev-auth-guard, E2E. |
-| `Verify every lib.* package has tests` | `lib-test-guard.yml`     | Deterministic script; always runs; prevents `--passWithNoTests` regressions (ADS-186 / ADS-328).                   |
-| `Schema Equivalence (migrate vs sync)` | `schema-equivalence.yml` | Deterministic pg_dump diff; path-filtered to migrations/models. Required to block schema drift on relevant PRs.    |
+| Check                                  | Source workflow          | Why required                                                                                                                                            |
+| -------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CI Required`                          | `ci.yml`                 | Aggregates workspace-drift, commit-lint, build-libs, backend/frontend/library/package tests (with coverage gates), contract tests, dev-auth-guard, E2E. |
+| `Verify every lib.* package has tests` | `lib-test-guard.yml`     | Deterministic script; always runs; prevents `--passWithNoTests` regressions (ADS-186 / ADS-328).                                                        |
+| `Schema Equivalence (migrate vs sync)` | `schema-equivalence.yml` | Deterministic pg_dump diff; path-filtered to migrations/models. Required to block schema drift on relevant PRs.                                         |
 
 #### Why these three (and not the others)
 
