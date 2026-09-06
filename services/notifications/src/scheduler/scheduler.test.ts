@@ -474,6 +474,107 @@ describe('scheduler metrics + cross-instance claim', () => {
     }
   });
 
+  it(
+    'ADS-1127: a real 7-day job with no anchorMs grid-aligns to Thursday 00:00 UTC ' +
+      'regardless of boot time — this is the reported drift, reproduced with real dates',
+    async () => {
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      const claimCalls: Date[] = [];
+      const claimRun = async (_job: string, scheduledFor: Date): Promise<boolean> => {
+        claimCalls.push(scheduledFor);
+        return true;
+      };
+      // A realistic boot time, decades from the epoch and on an arbitrary
+      // weekday — the bug is that this doesn't matter at all: the fire day
+      // is fully determined by the epoch's weekday once anchorMs is 0.
+      const bootNow = Date.UTC(2026, 8, 1, 12, 0, 0); // 2026-09-01T12:00:00Z (Tuesday)
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'weekly-digest',
+          intervalMs: ONE_WEEK_MS,
+          // anchorMs intentionally omitted — the un-fixed configuration a
+          // rebuilt weekly-digest job would have if it just reused the
+          // grid-aligned scheduler without setting an anchor.
+          run: async () => undefined,
+        },
+      ];
+      let now = bootNow;
+      const scheduler = startScheduler(jobs, {
+        logger: quietLogger(),
+        tickIntervalMs: 100,
+        now: () => now,
+        claimRun,
+      });
+      try {
+        // Jump straight to the seeded (epoch-aligned) boundary and tick.
+        now = Math.ceil(bootNow / ONE_WEEK_MS) * ONE_WEEK_MS;
+        const fired = await scheduler.tick();
+        expect(fired).toEqual(['weekly-digest']);
+        expect(claimCalls).toHaveLength(1);
+        const firedAt = claimCalls[0];
+        // 1970-01-01T00:00:00Z (the epoch) was a Thursday — every
+        // epoch-anchored weekly boundary inherits that weekday and midnight
+        // time, which is exactly the silently-wrong send time this ticket
+        // reports.
+        expect(firedAt.getUTCDay()).toBe(4); // Thursday
+        expect(firedAt.getUTCHours()).toBe(0);
+        expect(firedAt.getUTCMinutes()).toBe(0);
+      } finally {
+        await scheduler.stop();
+      }
+    }
+  );
+
+  it(
+    'ADS-1127 fix: anchoring the weekly grid to the intended weekday/time fires there ' +
+      'instead of drifting to Thursday 00:00 UTC',
+    async () => {
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      // 1970-01-05T09:00:00Z is a Monday (the epoch, 1970-01-01, was a
+      // Thursday, so +4 days lands on Monday). Anchoring the grid to this
+      // instant — rather than the epoch — makes every subsequent weekly
+      // boundary land on Monday 09:00 UTC instead of Thursday 00:00 UTC.
+      // (No send day/time is documented anywhere in the repo for the
+      // shelved digest beyond a "weekly" cadence, so Monday 09:00 UTC here
+      // is illustrative of the fix mechanism, not a confirmed product
+      // decision — see the digest_time preference default of '09:00'.)
+      const anchorMs = Date.UTC(1970, 0, 5, 9, 0, 0);
+      const claimCalls: Date[] = [];
+      const claimRun = async (_job: string, scheduledFor: Date): Promise<boolean> => {
+        claimCalls.push(scheduledFor);
+        return true;
+      };
+      const bootNow = Date.UTC(2026, 8, 1, 12, 0, 0); // 2026-09-01T12:00:00Z (Tuesday)
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'weekly-digest',
+          intervalMs: ONE_WEEK_MS,
+          anchorMs,
+          run: async () => undefined,
+        },
+      ];
+      let now = bootNow;
+      const scheduler = startScheduler(jobs, {
+        logger: quietLogger(),
+        tickIntervalMs: 100,
+        now: () => now,
+        claimRun,
+      });
+      try {
+        now = anchorMs + Math.ceil((bootNow - anchorMs) / ONE_WEEK_MS) * ONE_WEEK_MS;
+        const fired = await scheduler.tick();
+        expect(fired).toEqual(['weekly-digest']);
+        expect(claimCalls).toHaveLength(1);
+        const firedAt = claimCalls[0];
+        expect(firedAt.getUTCDay()).toBe(1); // Monday
+        expect(firedAt.getUTCHours()).toBe(9);
+        expect(firedAt.getUTCMinutes()).toBe(0);
+      } finally {
+        await scheduler.stop();
+      }
+    }
+  );
+
   it('skips the job when the claim query errors — never risks a duplicate', async () => {
     const runs: string[] = [];
     const logger = quietLogger();
