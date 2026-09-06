@@ -59,6 +59,7 @@ x-service-common: &service-common
     - database_url
     - redis_url
     - principal_signing_key
+    - nats_auth_token
   deploy:
     resources:
       limits:
@@ -75,6 +76,10 @@ x-service-env: &service-env
   DATABASE_URL_FILE: /run/secrets/database_url
   NATS_URL: "nats://nats:4222"
   REDIS_URL_FILE: /run/secrets/redis_url
+  # ADS-1273: shared token the nats service requires via --auth. Without it
+  # any process that can reach NATS could forge *.actionTaken audit events or
+  # eavesdrop on the whole event bus.
+  NATS_AUTH_TOKEN_FILE: /run/secrets/nats_auth_token
   # ADS-800: shared HMAC key for signed principal tokens. Present → each
   # service REQUIRES a valid x-principal-token (forged x-user-* headers
   # lose); the gateway signs with the same key.
@@ -242,7 +247,16 @@ services:
     container_name: ads_prod_nats
     restart: always
     ports: []
-    command: '-js -sd /data -m 8222'
+    secrets:
+      - nats_auth_token
+    # ADS-1273: the password is read from the file-mounted secret at container
+    # start rather than interpolated into `command`, which `docker inspect`
+    # (Config.Cmd) reads back in plaintext. Mirrors the redis --requirepass
+    # pattern above. Every client must present this token (NATS_AUTH_TOKEN)
+    # to connect — closes the previously-unauthenticated event bus (forged
+    # *.actionTaken audit events, eavesdropping).
+    command: >
+      sh -c 'nats-server -js -sd /data -m 8222 --auth "$$(cat /run/secrets/nats_auth_token)"'
     volumes:
       - nats_data:/data
     healthcheck:
@@ -312,6 +326,9 @@ services:
     environment:
       NODE_ENV: production
       NATS_URL: "nats://nats:4222"
+      # ADS-1273: same shared token as the domain services — see the nats
+      # service's --auth flag.
+      NATS_AUTH_TOKEN_FILE: /run/secrets/nats_auth_token
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
       # ADS-422: the per-stack nginx serves /uploads via auth_request; disable
       # the gateway's own file streaming in production.
@@ -325,10 +342,12 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
     # Gateway has no DB; it needs the upload-signing secret plus the
-    # principal-signing key (ADS-800 — it is the token signer).
+    # principal-signing key (ADS-800 — it is the token signer) and the NATS
+    # auth token (ADS-1273).
     secrets:
       - upload_signing_secret
       - principal_signing_key
+      - nats_auth_token
     volumes:
       - uploads:/app/uploads
     expose:
@@ -366,6 +385,7 @@ services:
       - jwt_refresh_secret
       - encryption_key
       - principal_signing_key
+      - nats_auth_token
     expose:
       - "5002"
     healthcheck:
@@ -610,3 +630,5 @@ secrets:
     file: ./secrets/upload_signing_secret
   principal_signing_key:
     file: ./secrets/principal_signing_key
+  nats_auth_token:
+    file: ./secrets/nats_auth_token

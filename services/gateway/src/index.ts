@@ -1,10 +1,11 @@
 import Redis from 'ioredis';
-import { connect, type NatsConnection } from 'nats';
+import type { NatsConnection } from 'nats';
 import type { Server as IOServer } from 'socket.io';
 
 import { createLogger, initializeSentry } from '@adopt-dont-shop/observability';
 import {
   assertPrincipalVerificationConfig,
+  connectNats,
   installProcessErrorHandlers,
   withShutdownDeadline,
 } from '@adopt-dont-shop/service-bootstrap';
@@ -106,7 +107,7 @@ const main = async (): Promise<void> => {
 
     // NATS comes up BEFORE createServer so the GDPR erasure-request route
     // can publish on it. Socket.IO still attaches after server.listen.
-    nats = await connect({ servers: config.natsUrl });
+    nats = await connectNats(config.natsUrl);
     // Create-or-update the JetStream DOMAIN_EVENTS stream before anything
     // publishes or subscribes. Idempotent across every service's boot.
     {

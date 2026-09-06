@@ -28,6 +28,8 @@
 //   PrincipalTokenError       — typed verification error (malformed /
 //                               bad_signature / expired).
 //   runServiceShutdown        — SIGTERM/SIGINT teardown sequencer.
+//   connectNats               — connect() to NATS with the shared
+//                               NATS_AUTH_TOKEN credential (ADS-1273).
 
 export { createMicroserviceServer } from './server.js';
 export type { CreateServerOptions, CreateServerConfig } from './server.js';
@@ -72,6 +74,12 @@ export type {
 
 export { runServiceShutdown, withShutdownDeadline } from './shutdown.js';
 export type { ShutdownDeps, ShutdownDeadlineOptions } from './shutdown.js';
+
+export {
+  connectNats,
+  buildNatsConnectionOptions,
+  MIN_NATS_AUTH_TOKEN_BYTES,
+} from './nats-client.js';
 
 export { installProcessErrorHandlers } from './process-handlers.js';
 export type { ProcessErrorHandlerDeps } from './process-handlers.js';

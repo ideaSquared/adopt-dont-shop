@@ -16,6 +16,7 @@ const STRONG_SECRET = 'A'.repeat(40);
 const STRONG_SECRET_B = 'B'.repeat(40);
 const STRONG_SECRET_C = 'C'.repeat(40);
 const ENCRYPTION_KEY = '0123456789abcdef'.repeat(4); // 64 hex chars
+const NATS_TOKEN = 'N'.repeat(40);
 
 const validBaseEnv = {
   NODE_ENV: 'development',
@@ -27,6 +28,7 @@ const validBaseEnv = {
   JWT_REFRESH_SECRET: STRONG_SECRET_B,
   SESSION_SECRET: STRONG_SECRET_C,
   ENCRYPTION_KEY,
+  NATS_AUTH_TOKEN: NATS_TOKEN,
 };
 
 describe('envBaseSchema', () => {
@@ -81,6 +83,20 @@ describe('envBaseSchema', () => {
 
   it('rejects invalid NODE_ENV', () => {
     const result = envBaseSchema.safeParse({ ...validBaseEnv, NODE_ENV: 'staging' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a missing NATS_AUTH_TOKEN', () => {
+    const { NATS_AUTH_TOKEN: _omit, ...rest } = validBaseEnv;
+    const result = envBaseSchema.safeParse(rest);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a placeholder NATS_AUTH_TOKEN', () => {
+    const result = envBaseSchema.safeParse({
+      ...validBaseEnv,
+      NATS_AUTH_TOKEN: 'CHANGE_THIS_TO_A_STRONG_RANDOM_NATS_AUTH_TOKEN',
+    });
     expect(result.success).toBe(false);
   });
 });
@@ -152,6 +168,7 @@ const validProdEnv = (): Record<string, string | undefined> => ({
   JWT_REFRESH_SECRET: STRONG_SECRET_B,
   SESSION_SECRET: STRONG_SECRET_C,
   ENCRYPTION_KEY,
+  NATS_AUTH_TOKEN: NATS_TOKEN,
   UPLOAD_SIGNING_SECRET: UPLOAD_SECRET,
   PRINCIPAL_SIGNING_KEY: PRINCIPAL_KEY,
   CORS_ORIGIN: 'https://app.example.com',
@@ -171,6 +188,7 @@ const validDevEnv = (): Record<string, string | undefined> => ({
   JWT_REFRESH_SECRET: STRONG_SECRET_B,
   SESSION_SECRET: STRONG_SECRET_C,
   ENCRYPTION_KEY,
+  NATS_AUTH_TOKEN: NATS_TOKEN,
 });
 
 const errorPaths = (result: ReturnType<typeof validateEnv>): string[] =>
@@ -250,6 +268,22 @@ describe('validateEnv', () => {
       env.REDIS_PASSWORD = 'R'.repeat(40);
       const result = validateEnv(env);
       expect(result.ok).toBe(true);
+    });
+
+    it('flags a missing NATS_AUTH_TOKEN as an error even in development (ADS-1273)', () => {
+      const env = validDevEnv();
+      env.NATS_AUTH_TOKEN = undefined;
+      const result = validateEnv(env);
+      expect(result.ok).toBe(false);
+      expect(errorPaths(result)).toContain('NATS_AUTH_TOKEN');
+    });
+
+    it('flags a placeholder NATS_AUTH_TOKEN as an error from the schema', () => {
+      const env = validDevEnv();
+      env.NATS_AUTH_TOKEN = 'CHANGE_THIS_TO_A_STRONG_RANDOM_NATS_AUTH_TOKEN';
+      const result = validateEnv(env);
+      expect(result.ok).toBe(false);
+      expect(errorMessages(result)).toContain('must not use the default placeholder value');
     });
 
     it('flags a non-hex ENCRYPTION_KEY as an error', () => {

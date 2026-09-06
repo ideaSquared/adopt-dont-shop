@@ -19,6 +19,10 @@ x-service-env: &ms-env
   NODE_ENV: ${NODE_ENV:-development}
   DATABASE_URL: postgresql://${POSTGRES_USER:-adopt_user}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-adopt_dont_shop_dev}
   NATS_URL: nats://nats:4222
+  # ADS-1273: shared token the nats service now requires via --auth. Every
+  # publisher/subscriber must present it to connect — closes the
+  # unauthenticated-event-bus hole (audit-trail forgery, eavesdropping).
+  NATS_AUTH_TOKEN: '${NATS_AUTH_TOKEN:?Error: NATS_AUTH_TOKEN required}'
   REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
   # ADS-800: shared HMAC key for signed principal tokens. When set, the
   # gateway stamps x-principal-token on every downstream gRPC call and the
@@ -133,13 +137,20 @@ services:
   # consumers. JetStream enables durable consumers + replay; without `-js`
   # NATS is core pub/sub only (lost on disconnect). Monitoring port 8222 is
   # used by the healthcheck and by `nats-top` / curl probes for ops.
+  #
+  # ADS-1273: --auth requires every client to present NATS_AUTH_TOKEN to
+  # connect — previously any process that could reach 4222 could publish
+  # forged *.actionTaken events or eavesdrop on the whole event bus. The
+  # monitoring port (8222, healthz/nats-top) is unauthenticated by design and
+  # unaffected. `pnpm bootstrap` / `pnpm secrets:generate` generate the token
+  # into .env like every other secret.
   nats:
     image: nats:2.10-alpine
     restart: always
     ports:
       - '127.0.0.1:4222:4222'  # client protocol
       - '127.0.0.1:8222:8222'  # monitoring + healthz
-    command: '-js -sd /data -m 8222'
+    command: '-js -sd /data -m 8222 --auth ${NATS_AUTH_TOKEN:?Error: NATS_AUTH_TOKEN required}'
     volumes:
       - nats_data:/data
     healthcheck:
@@ -438,6 +449,9 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       NATS_URL: nats://nats:4222
+      # ADS-1273: same shared token as the *ms-env services — see the nats
+      # service's --auth flag below.
+      NATS_AUTH_TOKEN: '${NATS_AUTH_TOKEN:?Error: NATS_AUTH_TOKEN required}'
       # ADS-1041: logs → Loki, traces → Tempo when the observability profile is
       # up. Inert unless set in .env (see the *ms-env anchor above).
       LOKI_URL: ${LOKI_URL:-}
