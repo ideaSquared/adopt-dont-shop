@@ -1,5 +1,5 @@
 # Automatically applied labels based on changed file paths.
-# Uses actions/labeler v5 syntax.
+# Uses actions/labeler v6.1.0 syntax.
 
 'area: backend':
   - changed-files:
