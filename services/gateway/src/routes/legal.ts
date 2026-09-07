@@ -29,8 +29,12 @@ export const COOKIES_VERSION = '2026-05-10-v1';
 export type LegalRoutesOptions = {
   // Absolute path to the directory holding terms.md / privacy.md /
   // cookies.md. Tests pass a fixture path; the boot path defaults to
-  // the LEGAL_DOCS_DIR env var (set in docker-compose to mount the
-  // repo's /docs/legal directory) or `<cwd>/docs/legal` for native dev.
+  // the LEGAL_DOCS_DIR env var. Dockerfile.service bakes the repo's
+  // docs/legal into the image at /app/docs/legal, and prod/staging compose
+  // set LEGAL_DOCS_DIR=/app/docs/legal accordingly (ADS-1303) — the config
+  // default of the relative `docs/legal` only resolves correctly when the
+  // process's cwd is the repo root, which is not true for any of the
+  // compose-driven services (dev, prod, or staging).
   docsDir: string;
 };
 
