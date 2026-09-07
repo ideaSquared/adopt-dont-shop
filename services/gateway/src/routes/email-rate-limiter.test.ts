@@ -94,6 +94,29 @@ describe('createEmailRateLimiter (in-memory)', () => {
     // The victim's 4th attempt is still throttled — its bucket survived.
     expect(await limiter.consume('victim@example.com')).toBe(false);
   });
+
+  it('throttles a new email at capacity instead of evicting a tracked victim to admit it (ADS-1298)', async () => {
+    const limiter = createEmailRateLimiter({ max: 3, windowMs: 60_000 });
+
+    // The victim has an active, partially-consumed budget.
+    expect(await limiter.consume('victim@example.com')).toBe(true);
+    expect(await limiter.consume('victim@example.com')).toBe(true);
+
+    // Flood enough unique emails, all within the same window, to fill the
+    // memory limiter to capacity.
+    for (let i = 0; i < MEMORY_LIMITER_MAX_BUCKETS; i += 1) {
+      await limiter.consume(`flood-${i}@example.com`);
+    }
+
+    // One more unique (unknown) email beyond capacity must be throttled —
+    // NOT admitted by evicting the victim's live bucket to make room.
+    expect(await limiter.consume('attacker-final@example.com')).toBe(false);
+
+    // The victim's bucket survived the flood: its count (2) was never
+    // reset, so the 3rd attempt is still within cap and the 4th is not.
+    expect(await limiter.consume('victim@example.com')).toBe(true);
+    expect(await limiter.consume('victim@example.com')).toBe(false);
+  });
 });
 
 describe('createEmailRateLimiter (redis-backed)', () => {

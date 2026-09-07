@@ -110,32 +110,25 @@ const memoryLimiter = (max: number, windowMs: number, now: () => number): EmailR
     }
   };
 
-  // Map iteration is insertion-ordered, so the first key is the oldest seen.
-  // Used as a last-resort ceiling when a single-window flood leaves nothing to
-  // sweep — bounded eviction beats unbounded growth.
-  const evictOldest = (): void => {
-    const oldest = buckets.keys().next();
-    if (!oldest.done) {
-      buckets.delete(oldest.value);
-    }
-  };
-
   return {
     consume: (email: string): Promise<boolean> => {
       const ts = now();
       const existing = buckets.get(email);
       if (!existing || ts >= existing.resetAt) {
+        const isNewKey = !existing;
         insertsSinceSweep += 1;
         if (insertsSinceSweep >= SWEEP_EVERY_N_INSERTS) {
           sweepExpired(ts);
           insertsSinceSweep = 0;
         }
-        // Hard ceiling: O(1) per eviction. Don't sweep here — at capacity that
-        // would run a full O(n) scan on every insert during a single-window
-        // flood (nothing is expired to reclaim), the amortized sweep above
-        // already reclaims cross-window buckets.
-        while (buckets.size >= MEMORY_LIMITER_MAX_BUCKETS) {
-          evictOldest();
+        // Hard ceiling. Evicting a live bucket to make room for an unknown
+        // key would let an attacker reset a targeted victim's counter by
+        // flooding unique emails (ADS-1298), so at capacity throttle the
+        // new key instead — the resident set only shrinks via the expiry
+        // sweep above. An email already tracked always overwrites its own
+        // (same-size) slot, so it's never blocked by this check.
+        if (isNewKey && buckets.size >= MEMORY_LIMITER_MAX_BUCKETS) {
+          return Promise.resolve(false);
         }
         buckets.set(email, { count: 1, resetAt: ts + windowMs });
         return Promise.resolve(true);
