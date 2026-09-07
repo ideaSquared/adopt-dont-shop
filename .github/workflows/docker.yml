@@ -1,19 +1,18 @@
 name: Docker
 
-# Two-tier strategy (ADS-streamline-ci):
+# ADS-1314 (P1-8): production images used to be built and Trivy-scanned but
+# never booted, and this workflow was not a required check — the exact
+# artifact `deploy.yml` ships had never been health-checked. Two changes:
 #
-# - Pull requests trigger this workflow ONLY when Docker plumbing actually
-#   changes (Dockerfiles, compose files, .dockerignore). Source-only PRs
-#   are covered by `ci.yml`'s native `pnpm build` and by the E2E job,
-#   which does `docker compose up --build` and is the de-facto Dockerfile
-#   smoke test for the dev images.
-# - Push to main/develop keeps the broader source path set so a regression
-#   that only manifests inside a container is caught before deploy.
-# - Production-stage builds + Trivy run on both PR and push events (ADS-833).
-#   PRs are already narrowed to Dockerfile-changing changes, so the extra prod
-#   build cost is bounded. Scanning before merge prevents CRITICAL/HIGH CVEs
-#   from being tagged on main before they're detected.
-
+# - `prod-image-smoke` (below) boots the `production` target for the gateway,
+#   service-auth, service-notifications and app-client against real
+#   Postgres/Redis/NATS and asserts /health/ready + a real gateway route
+#   respond, so a crash-looping or misconfigured image is caught before main.
+# - This workflow now runs on every PR touching source (apps/, packages/,
+#   services/), not only Dockerfile-changing PRs — a source change can still
+#   break the image (e.g. a config-validation regression the dev-target E2E
+#   stack doesn't exercise the same way) — and `prod-image-smoke`'s status
+#   check is a required check (.github/rulesets/main-required-checks.json).
 on:
   push:
     branches: [main, develop]
@@ -31,9 +30,18 @@ on:
       - '.dockerignore'
   pull_request:
     branches: [main, develop]
-    # Intentionally narrower than the canonical list: source-only PRs are
-    # covered by ci.yml + E2E. See workflow-source-paths.yml comments.
+    # ADS-1314: was narrowed to Dockerfile-changing changes only ("source-only
+    # PRs are covered by ci.yml + E2E") — but ci.yml's E2E only boots
+    # *development*-target images, so a source change that only breaks the
+    # *production* target (e.g. a config-validation path exercised only under
+    # NODE_ENV=production) never got a pre-deploy signal on a source-only PR.
+    # Now identical to the push path list.
     paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'services/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
       - '**/Dockerfile*'
       - 'docker-compose*.yml'
       - '.dockerignore'
@@ -294,3 +302,182 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
+  # ============================================================================
+  # PROD IMAGE SMOKE — ADS-1314 (P1-8): production images were built and
+  # Trivy-scanned above but never booted, and this workflow was not a
+  # required check — the exact artifact `deploy.yml` ships had never been
+  # health-checked. This job boots the `production` target for the gateway,
+  # two representative domain services (auth; notifications — the ADS-1301
+  # P0 finding, config validation throwing under NODE_ENV=production) and one
+  # frontend app against real Postgres/Redis/NATS/ClamAV containers, and
+  # asserts `/health/ready` on each plus a real gateway route
+  # (`GET /api/v1/legal/terms` — the second ADS-1301 P0, legal docs missing
+  # from the image) before merge. `push: false` + `load: true`: images never
+  # leave the runner — this is a smoke test, not a publish (release.yml /
+  # deploy.yml own that).
+  #
+  # Rebuilds the same four images the build-apps/build-services matrix jobs
+  # above already build — their outputs aren't otherwise available to this
+  # job (cross-job image transfer would need a docker save/load artifact
+  # round-trip for four images with no real benefit here) — reusing the
+  # identical docker/build-push-action invocation shape. BuildKit's shared
+  # GHA cache (same `cache-from`/`cache-to: type=gha` key space as the matrix
+  # jobs above) makes the rebuild a near-total cache hit in the common case.
+  #
+  # EXPECTED RED until ADS-1301's batch-A fixes land (see the PR description):
+  # the legal-terms assertion fails today because the production image does
+  # not carry docs/legal/*.md, and the notifications /health/ready assertion
+  # may also fail if batch A's actual fix shape differs from this job's
+  # LEGAL_DOCS_DIR / EMAIL_PROVIDER / PUSH_PROVIDER guesses (see
+  # docker-compose.ci-smoke.yml). That is this job doing its job, not a bug
+  # in it — the two P0s it exists to catch were previously undetectable by
+  # any CI job.
+  # ============================================================================
+  prod-image-smoke:
+    name: Production Image Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c  # v4.2.0
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.23.0
+            network=host
+
+      - name: Build service-gateway production image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
+        with:
+          context: .
+          file: ./Dockerfile.service
+          target: production
+          load: true
+          build-args: |
+            SERVICE=@adopt-dont-shop/service.gateway
+            SERVICE_DIR=services/gateway
+            BUILDKIT_INLINE_CACHE=1
+          push: false
+          tags: ghcr.io/ideasquared/adopt-dont-shop/service-gateway:ci-smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+
+      - name: Build service-auth production image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
+        with:
+          context: .
+          file: ./Dockerfile.service
+          target: production
+          load: true
+          build-args: |
+            SERVICE=@adopt-dont-shop/service.auth
+            SERVICE_DIR=services/auth
+            BUILDKIT_INLINE_CACHE=1
+          push: false
+          tags: ghcr.io/ideasquared/adopt-dont-shop/service-auth:ci-smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+
+      - name: Build service-notifications production image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
+        with:
+          context: .
+          file: ./Dockerfile.service
+          target: production
+          load: true
+          build-args: |
+            SERVICE=@adopt-dont-shop/service.notifications
+            SERVICE_DIR=services/notifications
+            BUILDKIT_INLINE_CACHE=1
+          push: false
+          tags: ghcr.io/ideasquared/adopt-dont-shop/service-notifications:ci-smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+
+      - name: Build app-client production image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
+        with:
+          context: .
+          file: ./Dockerfile.app
+          target: production
+          load: true
+          build-args: |
+            APP_NAME=client
+            BUILDKIT_INLINE_CACHE=1
+          push: false
+          tags: ghcr.io/ideasquared/adopt-dont-shop/app-client:ci-smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+
+      # Throwaway, CI-only secrets — never used outside this job's ephemeral
+      # runner. See docker-compose.ci-smoke.yml's header comment for what
+      # each var/secret is for.
+      - name: Generate throwaway secrets and env
+        run: |
+          mkdir -p secrets
+          openssl rand -hex 16 > secrets/db_password
+          openssl rand -hex 16 > secrets/redis_password
+          openssl rand -hex 32 > secrets/jwt_secret
+          openssl rand -hex 32 > secrets/jwt_refresh_secret
+          openssl rand -hex 32 > secrets/encryption_key
+          openssl rand -hex 32 > secrets/upload_signing_secret
+          openssl rand -hex 32 > secrets/principal_signing_key
+          openssl rand -hex 32 > secrets/nats_auth_token
+          printf 'postgresql://ci_smoke:%s@database:5432/ci_smoke' "$(cat secrets/db_password)" > secrets/database_url
+          printf 'redis://:%s@redis:6379' "$(cat secrets/redis_password)" > secrets/redis_url
+
+          cat > .env <<EOF
+          POSTGRES_USER=ci_smoke
+          POSTGRES_DB=ci_smoke
+          CORS_ORIGIN=http://localhost:8080
+          DEPLOY_SHA=ci-smoke-unused
+          SERVICE_GATEWAY_TAG=ci-smoke
+          SERVICE_AUTH_TAG=ci-smoke
+          SERVICE_NOTIFICATIONS_TAG=ci-smoke
+          APP_CLIENT_TAG=ci-smoke
+          EOF
+
+      - name: Start the smoke stack
+        run: |
+          docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml \
+            up -d database redis nats clamav \
+            service-gateway service-auth service-notifications app-client
+
+      - name: Wait for /health/ready on each service
+        run: |
+          check() {
+            name=$1
+            url=$2
+            for i in $(seq 1 36); do
+              if curl -fsS "$url" >/dev/null 2>&1; then
+                echo "$name is ready ($url)"
+                return 0
+              fi
+              sleep 5
+            done
+            echo "::error::$name never became ready at $url within the start_period"
+            return 1
+          }
+          check service-gateway http://localhost:4000/health/ready
+          check service-auth http://localhost:5002/health/ready
+          check service-notifications http://localhost:5001/health/ready
+          check app-client http://localhost:8080/health
+
+      - name: Assert GET /api/v1/legal/terms returns 200
+        run: |
+          status=$(curl -s -o /tmp/legal-terms.json -w '%{http_code}' http://localhost:4000/api/v1/legal/terms)
+          cat /tmp/legal-terms.json
+          echo
+          if [ "$status" != "200" ]; then
+            echo "::error::GET /api/v1/legal/terms returned $status, expected 200 — see ADS-1301 P0 (legal docs missing from the production image)."
+            exit 1
+          fi
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml logs --tail=200
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml down -v

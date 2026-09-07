@@ -1,0 +1,70 @@
+# ============================================================================
+# CI-only override for the `prod-image-smoke` job in .github/workflows/docker.yml
+# (ADS-1314). NOT used by real deploys — deploy.yml never references this file.
+# ============================================================================
+# Layered on top of docker-compose.prod.yml:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml \
+#     up -d database redis nats clamav service-gateway service-auth \
+#     service-notifications app-client
+#
+# Only starts a minimal subset of the production stack — the gateway plus two
+# representative domain services (auth: has its own extra secrets; notifications:
+# the P0 whose config throws on the prod compose's current env — ADS-1314/1301)
+# plus one frontend app, backed by real infra containers. The workflow job
+# supplies:
+#   - throwaway file-mounted secrets under ./secrets/ (matching the paths
+#     docker-compose.prod.yml's `secrets:` block already declares — this file
+#     does not need to redeclare them)
+#   - a repo-root .env with POSTGRES_USER/POSTGRES_DB/CORS_ORIGIN/DEPLOY_SHA
+#     (required by docker-compose.prod.yml with no default) and the
+#     *_TAG vars below, so `docker compose` resolves the four images this job
+#     just built with `load: true` instead of trying to pull from GHCR.
+#
+# What this override adds on top of the base file:
+#   - EMAIL_PROVIDER / PUSH_PROVIDER (+ throwaway FCM creds) for
+#     service-notifications — the base prod compose does not set these, so
+#     NODE_ENV=production makes notifications' config validation throw at
+#     boot (ADS-1301 P0). Supplying valid-shaped throwaway values here lets
+#     the smoke job actually reach a running container instead of failing on
+#     a misconfiguration this job isn't testing for.
+#   - LEGAL_DOCS_DIR for the gateway, per the GET /api/v1/legal/terms smoke
+#     assertion below.
+#   - host-published ports for the four services under test, so the workflow
+#     can curl them directly (the prod compose intentionally only `expose`s
+#     them — internal-network-only is correct for real deploys).
+services:
+  service-notifications:
+    environment:
+      EMAIL_PROVIDER: ethereal
+      PUSH_PROVIDER: fcm
+      FCM_PROJECT_ID: ci-smoke
+      # Throwaway, syntactically-valid GCP service-account JSON shape.
+      # validateConfiguration() only checks the shape (project_id /
+      # client_email / private_key strings) at boot — firebase-admin isn't
+      # actually initialised (and no network call made) unless a push send
+      # is attempted, which this smoke job never does.
+      FCM_SERVICE_ACCOUNT_JSON: '{"project_id":"ci-smoke","client_email":"ci-smoke@example.com","private_key":"-----BEGIN PRIVATE KEY-----\nci-smoke\n-----END PRIVATE KEY-----\n"}'
+    ports:
+      - '5001:5001'
+
+  service-gateway:
+    environment:
+      # See the module comment in services/gateway/src/config.ts — defaults to
+      # `docs/legal` relative to the gateway's CWD, which the production image
+      # does not currently carry (ADS-1301 P0 / ADS-1314). Pointing at the
+      # conventional in-image location documents the contract this smoke job
+      # expects the image-build fix to satisfy; until then, the
+      # `GET /api/v1/legal/terms` assertion below is expected to fail (see the
+      # PR description).
+      LEGAL_DOCS_DIR: /app/docs/legal
+    ports:
+      - '4000:4000'
+
+  service-auth:
+    ports:
+      - '5002:5002'
+
+  app-client:
+    ports:
+      - '8080:8080'

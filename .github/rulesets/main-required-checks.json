@@ -32,7 +32,8 @@
         "required_status_checks": [
           { "context": "CI Required" },
           { "context": "Verify every lib.* package has tests" },
-          { "context": "Schema Equivalence (migrate vs sync)" }
+          { "context": "Schema Equivalence (migrate vs sync)" },
+          { "context": "Production Image Smoke" }
         ]
       }
     }
