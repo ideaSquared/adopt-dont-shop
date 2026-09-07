@@ -43,7 +43,7 @@ at privacy@adoptdontshop.app.
   pets and rescues. You can leave location fields blank; some
   distance-based search features won't work without them.
 - **Adoption applications:** household and lifestyle answers, references
-  and their contact details (see §7), uploaded supporting documents, and
+  and their contact details (see §8), uploaded supporting documents, and
   home-visit records where a rescue schedules one.
 - **Communications:** messages you send through the in-app chat with
   rescues, and support requests you raise with us.
@@ -77,9 +77,12 @@ and compliance use.
 
 You may at any time:
 
-- **Request a copy of your data.** Email privacy@adoptdontshop.app. We do
-  not yet have a self-service export button in the product; a member of our
-  team will verify your identity and provide your data.
+- **Request a copy of your data.** In-app: `Account Settings → Download my
+data`, or directly via `GET /api/v1/users/me/export` (limited to 5 requests
+  per hour per account). This downloads your profile and privacy-preference
+  data immediately. It does not yet include applications, messages, or swipe
+  history — email privacy@adoptdontshop.app for those, and a member of our
+  team will verify your identity and provide the rest.
 - **Request erasure of your account**, in-app: `Account Settings → Delete
 account`, or directly via `POST /api/v1/users/me/erasure-request`
   (re-enter your password, and your two-factor code if enabled). This
@@ -119,7 +122,29 @@ before that commitment is fully automated:
 | Home-visit records                        | 5 years (regulatory record-keeping)                                         |
 | Audit and moderation records              | 7 years                                                                     |
 
-## 6. Children's data
+## 6. Recipients, processors, and international transfers
+
+We use the processors below to run the platform. None of them may use your
+data for their own purposes; each acts on our instructions under a data
+processing agreement (DPA) where one is in place. Where we cannot confirm a
+transfer safeguard from the code and configuration this document is built
+from, we say so explicitly below rather than guess — the controller (us)
+must confirm and record it.
+
+| Recipient                                                      | Purpose                                                                                                                                     | Data categories                                                                                                                                                                       | Location / transfer basis                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Resend** (email delivery)                                    | Sending transactional email (sign-up, password reset, application updates, chat notifications)                                              | Recipient name and email address; email subject and body content                                                                                                                      | Resend, Inc. is a US-incorporated vendor. The specific processing region and transfer safeguard (UK IDTA / SCCs or adequacy) are **to be confirmed by the controller** from Resend's DPA before this is relied on.                                                                                                  |
+| **Firebase Cloud Messaging** (Google, push)                    | Delivering push notifications to your mobile device, where you have enabled them                                                            | Device push token; notification title/body (which may reference a pet or message preview)                                                                                             | Operated by Google. Transfer safeguard **to be confirmed by the controller** from the Google Cloud / Firebase DPA.                                                                                                                                                                                                  |
+| **AWS S3** (file storage and backups)                          | Storing uploaded documents and pet photos, and encrypted database/upload backups                                                            | Uploaded files (may contain any personal data you or a rescue submits); backup snapshots of the whole database                                                                        | Bucket region is an operator-configured setting, not fixed in this codebase. AWS's standard Data Processing Addendum incorporates UK/EU transfer safeguards by default for all customers; confirmation this is accepted for our account, and the actual deployed region, are **to be confirmed by the controller**. |
+| **GlitchTip** (error monitoring)                               | Diagnosing crashes and performance problems so we can keep the service reliable                                                             | Stack traces and request metadata. Your email, username, and IP address are stripped before an event is sent, wherever they would otherwise appear.                                   | Self-hosted on our own infrastructure (not a third-party SaaS) — no international transfer. (`docs/legal/cookies.md` §5 has more detail; this is the same tool that document already called GlitchTip, not Sentry.)                                                                                                 |
+| **Statsig** (feature flags, product analytics, session replay) | Deciding which features you see, and — only once you grant analytics consent — measuring how you use the platform, including session replay | An opaque account identifier and non-identifying account type on every visit; with your analytics consent only, screen recordings and interaction events (session replay/autocapture) | Statsig, Inc. is a US-incorporated vendor. Transfer safeguard **to be confirmed by the controller**.                                                                                                                                                                                                                |
+| **Google Fonts**                                               | Loading the typefaces used on our pages                                                                                                     | Your IP address and browser information, visible to Google whenever a page requests the font files                                                                                    | Served by Google's font CDN. Transfer safeguard **to be confirmed by the controller**.                                                                                                                                                                                                                              |
+| **ClamAV** (malware scanning)                                  | Scanning files you or a rescue upload before we store them                                                                                  | The file content being scanned, transiently                                                                                                                                           | Runs inside our own infrastructure — no data leaves our systems, no international transfer.                                                                                                                                                                                                                         |
+
+We do not sell personal data, and we do not share it with data brokers or
+for third-party advertising.
+
+## 7. Children's data
 
 We do not knowingly collect data from children under 13. Creating an
 account requires you to confirm you are 18 or older; this is a condition
@@ -128,14 +153,14 @@ verifies today. If a household you describe in an application includes
 minors, you may record their ages, but you must have the authority to
 share that information.
 
-## 7. Third-party reference contacts
+## 8. Third-party reference contacts
 
 When you submit references on an adoption application, you confirm you
 have informed those contacts that their details will be shared with the
 adopting rescue and that the rescue may contact them to verify your
 application.
 
-## 8. Changes
+## 9. Changes
 
 The version string at the top of this page identifies the version you
 accepted. Material changes bump that version and trigger a re-acceptance
