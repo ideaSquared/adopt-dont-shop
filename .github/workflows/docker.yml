@@ -191,6 +191,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
+      # Export the just-built image to a tar so Trivy can scan it via --input
+      # instead of pulling from the daemon, which is what lets the scan step
+      # below skip mounting /var/run/docker.sock (ADS-1299 — that mount handed
+      # a container root-equivalent control of the runner's Docker daemon).
+      - name: Save production image for scanning
+        run: |
+          docker save paragonjenko/adoptdontshop:service-${{ matrix.service }}-prod-${{ github.sha }} \
+            -o trivy-image-${{ matrix.service }}.tar
+
       # Scan once to JSON with --ignore-unfixed (gate only on CVEs that have an
       # upstream patch — un-actionable ones shouldn't block PRs). `trivy convert`
       # then renders that report to the job log (table) and to SARIF (Security
@@ -200,16 +209,15 @@ jobs:
       - name: Run Trivy vulnerability scanner
         run: |
           docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
             -v "$PWD:/workspace" -w /workspace \
             -e TRIVY_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-db:2 \
             -e TRIVY_JAVA_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-java-db:1 \
             aquasec/trivy:0.63.0 image \
+              --input trivy-image-${{ matrix.service }}.tar \
               --format json \
               --output trivy-results-${{ matrix.service }}.json \
               --severity CRITICAL,HIGH \
-              --ignore-unfixed \
-              paragonjenko/adoptdontshop:service-${{ matrix.service }}-prod-${{ github.sha }}
+              --ignore-unfixed
 
       - name: Render Trivy results (table to log + SARIF)
         if: always() && hashFiles(format('trivy-results-{0}.json', matrix.service)) != ''
