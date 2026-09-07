@@ -138,6 +138,57 @@ describe('findContractingOperations', () => {
     const text = `pgm.addColumn('things', { age: { type: 'integer' } });`;
     expect(findContractingOperations(text)).toEqual([]);
   });
+
+  it("does not flag a dropTable in `down` that reverses the same file's `up` createTable", () => {
+    // The universal shape of a table-creation migration in this repo (see
+    // docs/backend/writing-migrations.md) — `down` is never run
+    // automatically, so this must never be flagged.
+    const text = `
+      import type { MigrationBuilder } from 'node-pg-migrate';
+
+      export const up = async (pgm: MigrationBuilder): Promise<void> => {
+        pgm.createTable('things', {
+          thing_id: { type: 'uuid', primaryKey: true },
+          name: { type: 'varchar(255)', notNull: true },
+        });
+      };
+
+      export const down = async (pgm: MigrationBuilder): Promise<void> => {
+        pgm.dropTable('things');
+      };
+    `;
+    expect(findContractingOperations(text)).toEqual([]);
+  });
+
+  it('still flags a dropTable that appears inside `up` itself', () => {
+    const text = `
+      export const up = async (pgm: MigrationBuilder): Promise<void> => {
+        pgm.dropTable('legacy_things');
+      };
+
+      export const down = async (pgm: MigrationBuilder): Promise<void> => {
+        // irreversible — documented elsewhere
+      };
+    `;
+    expect(findContractingOperations(text).map(v => v.op)).toContain('dropTable');
+  });
+
+  it("does not flag a NOT NULL column added in `up`'s createTable, even though `down` drops the columns", () => {
+    const text = `
+      export const up = async (pgm: MigrationBuilder): Promise<void> => {
+        pgm.addColumns('rescues', {
+          plan: { type: 'varchar(32)', notNull: true, default: 'free' },
+        });
+      };
+
+      export const down = async (pgm: MigrationBuilder): Promise<void> => {
+        pgm.dropColumns('rescues', ['plan']);
+      };
+    `;
+    // The addColumns in up() has a default, so it's fine; the dropColumns in
+    // down() must not be flagged either (down never runs automatically).
+    expect(findContractingOperations(text)).toEqual([]);
+  });
 });
 
 describe('checkMigrationText', () => {

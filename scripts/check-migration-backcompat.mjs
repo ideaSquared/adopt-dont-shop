@@ -29,6 +29,12 @@
  * `createTable` is exempt from the NOT-NULL check — a table just created in
  * the same migration has no rows yet, so NOT NULL without a default is safe.
  *
+ * Only a migration's `up` function is scanned. `down` is never run
+ * automatically (there is no `db:migrate:undo` — see
+ * docs/backend/writing-migrations.md), so a `down` that drops the table /
+ * columns its own `up` just created — the shape of nearly every migration in
+ * this repo — is not a production risk and must not be flagged.
+ *
  * Run via `node scripts/check-migration-backcompat.mjs` or
  * `pnpm check:migration-backcompat` (wired into `ci:local` and
  * `schema-equivalence.yml`). `--list [--service <name>] [--base <ref>]`
@@ -113,6 +119,35 @@ function findPrecedingKey(text, braceStart) {
   return match ? match[2] : null;
 }
 
+// Matches the `{` that opens the `up` function's body, e.g.
+// `export const up = async (pgm: MigrationBuilder): Promise<void> => {`.
+const UP_FUNCTION_START_PATTERN = /export\s+const\s+up\s*=\s*async[^{]*\{/;
+
+// Returns just the `up` function's body text (braces included), or the
+// whole file if the pattern isn't found — fail-safe, since scanning too
+// much (down included) is a false positive, not a missed real one.
+function extractUpFunctionBody(text) {
+  const match = text.match(UP_FUNCTION_START_PATTERN);
+  if (!match) return text;
+  const braceStart = match.index + match[0].length - 1;
+  const braceEnd = findMatchingBrace(text, braceStart);
+  if (braceEnd === -1) return text;
+  return text.slice(match.index, braceEnd + 1);
+}
+
+// Index of a `{` -> index of its matching `}`, naive depth counting.
+export function findMatchingBrace(text, openBraceIndex) {
+  let depth = 0;
+  for (let i = openBraceIndex; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
 function findCallSpans(text) {
   const spans = [];
   for (const match of text.matchAll(CALL_PATTERN)) {
@@ -126,7 +161,8 @@ function findCallSpans(text) {
 
 // Returns the list of contracting-operation violations found in a migration
 // file's source text. Each violation is { op, detail }.
-export function findContractingOperations(text) {
+export function findContractingOperations(fileText) {
+  const text = extractUpFunctionBody(fileText);
   const violations = [];
   const callSpans = findCallSpans(text);
 
