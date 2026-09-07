@@ -45,7 +45,6 @@
   "dependencies": {
     "@adopt-dont-shop/lib.api": "workspace:*",
     "@adopt-dont-shop/lib.types": "workspace:*",
-    "socket.io-client": "^4.8.3",
     "zod": "^4.4.3"
   },
   "peerDependencies": {

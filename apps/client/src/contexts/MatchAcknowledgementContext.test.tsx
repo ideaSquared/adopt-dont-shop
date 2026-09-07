@@ -1,35 +1,18 @@
 /**
- * ADS C4-5: behaviour test for the real-time match-acknowledgement path.
+ * ADS-633 / ADS-1326: behaviour test for the match-acknowledgement poll.
  *
- * Previously the MatchAcknowledgementProvider only refreshed every 60s.
- * It now also subscribes to the backend's `application_status_changed`
- * socket event and re-checks immediately when one arrives, while keeping
- * the polling timer as a safety net.
+ * The provider used to also subscribe to a `useRealtimeAnalytics`
+ * `application_status_changed` socket event as a fast path (ADS C4-5), but
+ * the gateway never actually emits that event — no WS namespace for it
+ * exists — so the subscription was permanently inert. ADS-1326 removed it;
+ * the 60s poll below is the only mechanism now, and always was the one
+ * actually doing the work.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, waitFor } from '@/test-utils/render';
-import type { ApplicationStatusChangedPayload } from '@adopt-dont-shop/lib.analytics';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@/test-utils/render';
 
 const getUserApplicationsMock = vi.fn();
 const getPetByIdMock = vi.fn();
-
-// Capture the handler the context subscribes with so we can fire socket
-// events synthetically from the test.
-let lastStatusHandler: ((p: ApplicationStatusChangedPayload) => void) | null = null;
-
-vi.mock('@adopt-dont-shop/lib.analytics', async () => {
-  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.analytics')>(
-    '@adopt-dont-shop/lib.analytics'
-  );
-  return {
-    ...actual,
-    useRealtimeAnalytics: (event: string, handler: unknown) => {
-      if (event === 'application_status_changed') {
-        lastStatusHandler = handler as (p: ApplicationStatusChangedPayload) => void;
-      }
-    },
-  };
-});
 
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
   const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.auth')>(
@@ -88,32 +71,39 @@ const samplePet = () => ({
   images: [{ url: 'https://cdn.example.com/luna.jpg', is_primary: true }],
 });
 
-describe('MatchAcknowledgementProvider (C4-5)', () => {
+describe('MatchAcknowledgementProvider', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     getUserApplicationsMock.mockReset();
     getPetByIdMock.mockReset();
     __resetMatchAcknowledgementStorage();
-    lastStatusHandler = null;
-    // Defeat the navigator.webdriver short-circuit so the mount-time poll
-    // runs and we can observe the event-driven refresh as a *second* call.
     Object.defineProperty(window.navigator, 'webdriver', {
       configurable: true,
       get: () => false,
     });
   });
 
-  it('subscribes to application_status_changed at mount', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('checks for matches immediately on mount', async () => {
     getUserApplicationsMock.mockResolvedValue([]);
+
     render(
       <MatchAcknowledgementProvider>
         <div />
       </MatchAcknowledgementProvider>
     );
-    expect(lastStatusHandler).not.toBeNull();
+
+    await waitFor(() => {
+      expect(getUserApplicationsMock).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('refreshes applications when the socket fires application_status_changed', async () => {
-    getUserApplicationsMock.mockResolvedValue([sampleApp()]);
+  it('polls again after the 60s interval and shows the match modal once a status transitions', async () => {
+    getUserApplicationsMock.mockResolvedValueOnce([sampleApp({ status: 'submitted' })]);
+    getUserApplicationsMock.mockResolvedValueOnce([sampleApp({ status: 'approved' })]);
     getPetByIdMock.mockResolvedValue(samplePet());
 
     render(
@@ -125,17 +115,15 @@ describe('MatchAcknowledgementProvider (C4-5)', () => {
     await waitFor(() => {
       expect(getUserApplicationsMock).toHaveBeenCalledTimes(1);
     });
+    expect(screen.queryByTestId('its-a-match-modal')).not.toBeInTheDocument();
 
-    // Fire the socket event — this should kick another applicationService
-    // fetch without waiting for the 60s poll interval.
-    lastStatusHandler?.({
-      applicationId: 'app-1',
-      status: 'approved',
-      updatedAt: '2025-01-02T01:00:00Z',
-    });
+    await vi.advanceTimersByTimeAsync(60_000);
 
     await waitFor(() => {
       expect(getUserApplicationsMock).toHaveBeenCalledTimes(2);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('its-a-match-modal')).toBeInTheDocument();
     });
   });
 });
