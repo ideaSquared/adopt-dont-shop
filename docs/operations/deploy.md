@@ -83,6 +83,17 @@ included) is recorded in the run summary and as a GitHub issue labelled
 
 The one-time configuration of the `production` / `production-bypass` reviewer environments is covered in [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md).
 
+### Blind-deploy gate (ADS-1307, partial)
+
+A production deploy also fails — before touching any container — when
+`OBSERVABILITY_ENABLED` is not `true` in `/opt/ads/production/.env`: an
+unmonitored release can fail silently with nobody paged. To proceed anyway,
+re-dispatch with `allow_blind_deploy=true` **and** a `bypass_reason`; this is
+audited exactly like `skip_ci_check`/`skip_cosign_verify` (same
+`bypass_reason` requirement, same run-summary table, same
+`deploy-bypass-audit` issue). Staging is unaffected. The rest of ADS-1307
+(node-exporter, disk alerts, dead-man's-switch) is tracked separately.
+
 ## Release deploy
 
 The deploy is dispatched through GitHub Actions, not run by hand on the host. `deploy.yml` builds every service/app image, tags it `ghcr.io/ideasquared/adopt-dont-shop/<image>:<git-sha>` (the full 40-char commit SHA), signs it with cosign, then SSHes to the host, writes `DEPLOY_SHA=<sha>` into `/opt/ads/<env>/.env`, and runs `docker compose -f docker-compose.prod.yml up -d`. There is no `:latest` tag — every deploy, staging or production, pins to an explicit `DEPLOY_SHA`, and nothing ever pulls `:latest` (ADS-1322).

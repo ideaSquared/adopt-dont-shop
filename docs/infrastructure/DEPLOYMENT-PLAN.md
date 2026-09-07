@@ -145,6 +145,8 @@ CORS_ORIGIN=https://${PROD_HOSTNAME},https://admin.${PROD_HOSTNAME},https://resc
 PROD_HOSTNAME=example.com
 # DEPLOY_SHA is set to a specific git SHA by deploy.yml — there is NO :latest fallback.
 # Optional observability toggles (off by default): OBSERVABILITY_ENABLED, GLITCHTIP_ENABLED, LOKI_URL, OTEL_EXPORTER_OTLP_ENDPOINT, SENTRY_DSN
+# Production deploys FAIL preflight when OBSERVABILITY_ENABLED isn't `true`
+# unless the operator dispatches with allow_blind_deploy=true (ADS-1307).
 ```
 
 ## DNS & TLS
@@ -165,10 +167,11 @@ Backups are automated by `.github/workflows/backup.yml` (nightly `0 2 * * *`) �
 - [ ] GitHub environments created: `staging`, `production`, `production-bypass` (reviewers + prevent self-review on the latter two)
 - [ ] `staging-vars` / `production-vars` environments created, **no** required reviewers, each with `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` set to that target's values (ADS-1318)
 - [ ] Infra secrets added: `HETZNER_HOST`, `HETZNER_HOST_FINGERPRINT`, `HETZNER_SSH_KEY`, `GHCR_TOKEN` (**`read:packages` only**); repo variables `BACKUP_BUCKET`, `AWS_REGION`
-- [ ] Six application secrets added: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`
+- [ ] Seven application secrets added: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`, `NATS_AUTH_TOKEN`; optional build-time `SENTRY_AUTH_TOKEN` (ADS-1319)
 - [ ] Host provisioned, `deploy` user + Docker installed, `/opt/ads/*` created
 - [ ] DNS records point at the host
 - [ ] `PROD_HOSTNAME` (plain literal) set in `/opt/ads/production/.env` — `deploy.yml` substitutes it into the freshly-shipped `nginx.prod.conf` on every run (ADS-1312); certbot issuance done
 - [ ] Per-env `.env` created (non-secret config) — compose/nginx/observability files are shipped by the first deploy, not hand-copied (ADS-1312)
+- [ ] `OBSERVABILITY_ENABLED=true` set in `/opt/ads/production/.env` before the first production deploy, or the deploy will fail preflight (ADS-1307; override with `allow_blind_deploy` + a reason if truly needed)
 - [ ] Edge gateway started: `cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml up -d`
 - [ ] First deploy: `make staging` → verify end-to-end → `make prod` (approve in the Actions UI)
