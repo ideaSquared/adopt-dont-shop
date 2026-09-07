@@ -139,7 +139,11 @@ jobs:
       # ADS-1211: fail CI if a committed test file uses a focused test marker
       # (.only / fdescribe / fit) — dependency-free, so it belongs alongside
       # the other scripts/check-*.mjs guards in this job rather than gated
-      # behind a heavier test job. See scripts/check-no-test-only.mjs.
+      # behind a heavier test job. ADS-1327: also WARNS (does not fail) on a
+      # skip-shaped marker (.skip / .todo / .skipIf / .fixme) — not passing
+      # --strict here because ADS-1315's DB-gated integration suites
+      # legitimately carry `describe.skipIf(!process.env.DATABASE_URL)`. See
+      # the module comment in scripts/check-no-test-only.mjs.
       - name: Verify no committed focused tests (.only / fdescribe / fit)
         run: node scripts/check-no-test-only.mjs
 
@@ -732,11 +736,13 @@ jobs:
   # doesn't require touching the ruleset.
   #
   # Path-filtered jobs (test-frontend, test-libs, dev-auth-guard,
-  # validate-observability-config) and test-e2e
-  # (opt-in via `run-e2e`) report `skipped` rather than `success` when they
-  # don't run. Classic branch protection treats `skipped` as a failure, so
-  # this aggregator only fails on `failure`/`cancelled` — the standard
-  # "merge gate" pattern — treating `skipped` as success.
+  # validate-observability-config) and test-e2e (opt-in via `run-e2e`) report
+  # `skipped` rather than `success` when they don't run. Classic branch
+  # protection treats `skipped` as a failure, so this aggregator only fails on
+  # `failure`/`cancelled` — the standard "merge gate" pattern — treating
+  # `skipped` as success. The gate logic itself lives in
+  # scripts/ci-required-gate.sh (ADS-1327) so it's unit-testable independent
+  # of a live workflow run — see scripts/ci-required-gate.test.mjs.
   # ============================================================================
   ci-required:
     name: CI Required
@@ -765,15 +771,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Local composite actions/scripts can only load after the repo is
+      # checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Verify required jobs succeeded or skipped
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
-        run: |
-          echo "$NEEDS_JSON" | jq .
-          failed=$(echo "$NEEDS_JSON" | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')
-          if [ -n "$failed" ]; then
-            echo "::error::Required jobs failed or were cancelled:"
-            echo "$failed"
-            exit 1
-          fi
-          echo "All required jobs passed or were skipped (path filter)."
+        run: scripts/ci-required-gate.sh
