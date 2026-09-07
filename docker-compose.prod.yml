@@ -413,6 +413,28 @@ services:
     container_name: ads_prod_notifications
     environment:
       <<: *service-env
+      # ADS-1302: production refuses to boot with EMAIL_PROVIDER/PUSH_PROVIDER
+      # unset or 'console' (services/notifications/src/config.ts) — every
+      # email/push notification would otherwise land in stdout, or the
+      # process crash-loops without these.
+      EMAIL_PROVIDER: resend
+      RESEND_API_KEY_FILE: /run/secrets/resend_api_key
+      # Resend's verified sending identity. loadEmailProviderConfig requires
+      # this literal env var (not the code default) whenever
+      # EMAIL_PROVIDER=resend, so it must be set here too or boot still fails.
+      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:?Error: DEFAULT_FROM_EMAIL required}"
+      PUSH_PROVIDER: fcm
+      FCM_PROJECT_ID: "${FCM_PROJECT_ID:?Error: FCM_PROJECT_ID required}"
+      FCM_SERVICE_ACCOUNT_JSON_FILE: /run/secrets/fcm_service_account_json
+    # Notifications needs the third-party provider secrets on top of the
+    # common DB/Redis ones (ADS-1302).
+    secrets:
+      - database_url
+      - redis_url
+      - principal_signing_key
+      - nats_auth_token
+      - resend_api_key
+      - fcm_service_account_json
     expose:
       - "5001"
     healthcheck:
@@ -650,3 +672,8 @@ secrets:
     file: ./secrets/principal_signing_key
   nats_auth_token:
     file: ./secrets/nats_auth_token
+  # ADS-1302: third-party provider credentials for service-notifications.
+  resend_api_key:
+    file: ./secrets/resend_api_key
+  fcm_service_account_json:
+    file: ./secrets/fcm_service_account_json
