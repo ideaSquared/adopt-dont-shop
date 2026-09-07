@@ -31,19 +31,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      # ADS-900: the deploy host doesn't hold a full repo checkout — only the
-      # specific files it needs under /opt/ads/<env> (compose files, .env,
-      # secrets/). Copy the shared health-check script (also used by
-      # deploy.yml) alongside them, the same way backup.yml scp's its
-      # snapshot script.
-      - name: Copy wait-for-services.sh to server
+      # ADS-900/ADS-1312: the deploy host doesn't hold a full repo checkout —
+      # only the specific files it needs under /opt/ads/<env> (.env,
+      # secrets/, plus whatever this step ships). Ship the same compose/
+      # nginx/observability config deploy.yml does so a rollback runs
+      # against exactly this commit's config rather than whatever was last
+      # hand-copied or left behind by a previous deploy.
+      - name: Copy deploy config to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          source: scripts/wait-for-services.sh
+          source: 'scripts/wait-for-services.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -154,6 +155,18 @@ jobs:
               [ -n "$v" ] || { echo "ERROR: $1 missing from .env" >&2; exit 1; }
               printf '%s' "$v"
             }
+
+            # ADS-1312: nginx/nginx.prod.conf is shipped fresh from this
+            # commit on every rollback (see "Copy deploy config to server"),
+            # so re-apply the PROD_HOSTNAME substitution the same way
+            # deploy.yml does — otherwise a production rollback reverts the
+            # live nginx config to the raw __PROD_HOSTNAME__ placeholder.
+            if [ "$ENV" = "production" ] && grep -q '__PROD_HOSTNAME__' nginx/nginx.prod.conf; then
+              PROD_HOSTNAME="$(read_env PROD_HOSTNAME)"
+              sed -i "s/__PROD_HOSTNAME__/${PROD_HOSTNAME}/g" nginx/nginx.prod.conf
+              echo "Substituted PROD_HOSTNAME=$PROD_HOSTNAME into nginx/nginx.prod.conf."
+            fi
+
             PG_USER="$(read_env POSTGRES_USER)"
             PG_DB="$(read_env POSTGRES_DB)"
             REDIS_PW="$(read_env REDIS_PASSWORD)"

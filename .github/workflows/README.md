@@ -14,8 +14,8 @@ Reference for the GitHub Actions workflows in this directory: what each one does
 | `docker.yml`               | Builds the gateway / service and per-app Docker images, then tests the docker-compose stack.                                                                             |
 | `lib-test-guard.yml`       | Fails when any `lib.*` package has zero test files (ADS-186 / ADS-328 safety net).                                                                                       |
 | `schema-equivalence.yml`   | Bootstraps DB-A (migrate) and DB-B (sync), diffs normalised `pg_dump` to detect schema drift.                                                                            |
-| `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH.                                                                                                                   |
-| `rollback.yml`             | Manual rollback to a previously published GHCR image SHA.                                                                                                                |
+| `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH. Ships compose/nginx/observability config on every run (ADS-1312).                                                 |
+| `rollback.yml`             | Manual rollback to a previously published GHCR image SHA. Ships the same config as `deploy.yml` (ADS-1312).                                                              |
 | `release.yml`              | Builds and pushes production Docker images (gateway + 10 services + 3 apps) to Docker Hub on tag pushes (`v*`) and successful CI runs to `main`.                         |
 | `release-please.yml`       | Generates release PRs, version tags, and GitHub Releases with changelogs from conventional commits.                                                                      |
 | `storybook.yml`            | Builds and deploys `lib.components` Storybook to GitHub Pages.                                                                                                           |

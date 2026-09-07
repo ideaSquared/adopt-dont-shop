@@ -564,20 +564,49 @@ jobs:
             echo "OK: $KEY=$VALUE"
           done
 
-      # ADS-900: the deploy host doesn't hold a full repo checkout — only the
-      # specific files it needs under /opt/ads/<env> (compose files, .env,
-      # secrets/). Copy the shared health-check script alongside them so the
-      # remote script below can call it, the same way backup.yml scp's its
-      # snapshot script.
-      - name: Copy wait-for-services.sh to server
+      # ADS-900/ADS-1312: the deploy host doesn't hold a full repo checkout —
+      # only the specific files it needs under /opt/ads/<env> (.env,
+      # secrets/, plus whatever this step ships). Previously only the
+      # shared health-check script was shipped this way and the compose
+      # files, nginx/ config and observability/ config tree were hand-copied
+      # once at provisioning time and never touched again — a new service, a
+      # resource limit, or an nginx fix could pass CI and never reach
+      # production. Ship the lot on every deploy so the running config is
+      # exactly what's in this commit (same pattern backup.yml uses for its
+      # snapshot script). deploy/gateway/* (the shared TLS edge, not
+      # per-environment) is shipped separately below.
+      - name: Copy deploy config to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          source: scripts/wait-for-services.sh
+          source: 'scripts/wait-for-services.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
+          overwrite: true
+
+      # ADS-1312: the shared edge gateway (nginx + certbot, fronting BOTH
+      # environments — see docs/infrastructure/DEPLOYMENT-PLAN.md) is versioned
+      # here too, but intentionally NOT restarted by this workflow: it is not
+      # scoped to one environment, so recreating it on every staging-or-prod
+      # deploy would bounce the other environment's traffic and certbot's
+      # renewal timer. Apply a shipped change by hand (one-time or on the rare
+      # edge-config change):
+      #   cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml up -d
+      - name: Copy shared edge gateway config to server
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          source: deploy/gateway
+          target: /opt/ads/gateway
+          # deploy/gateway/* must land directly under /opt/ads/gateway/ (see
+          # DEPLOYMENT-PLAN.md's directory structure) — strip the "deploy/
+          # gateway/" prefix scp-action would otherwise preserve.
+          strip_components: 2
           overwrite: true
 
       # ADS-671: Verify GHCR_TOKEN is scoped to read:packages only before
@@ -767,6 +796,20 @@ jobs:
               [ -n "$v" ] || { echo "ERROR: $1 missing from .env" >&2; exit 1; }
               printf '%s' "$v"
             }
+
+            # ADS-1312: nginx/nginx.prod.conf is now shipped fresh from this
+            # commit on every deploy (see "Copy deploy config to server"),
+            # so the old one-time hand `sed` on the host (DEPLOYMENT-PLAN.md)
+            # would be silently clobbered by the next deploy. Re-apply it
+            # every deploy instead, driven by a PROD_HOSTNAME key the
+            # operator sets once in /opt/ads/production/.env — an env-driven
+            # substitution that survives the file being overwritten.
+            if [ "$ENV" = "production" ] && grep -q '__PROD_HOSTNAME__' nginx/nginx.prod.conf; then
+              PROD_HOSTNAME="$(read_env PROD_HOSTNAME)"
+              sed -i "s/__PROD_HOSTNAME__/${PROD_HOSTNAME}/g" nginx/nginx.prod.conf
+              echo "Substituted PROD_HOSTNAME=$PROD_HOSTNAME into nginx/nginx.prod.conf."
+            fi
+
             PG_USER="$(read_env POSTGRES_USER)"
             PG_DB="$(read_env POSTGRES_DB)"
             REDIS_PW="$(read_env REDIS_PASSWORD)"
