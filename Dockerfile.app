@@ -143,7 +143,7 @@ RUN --mount=type=secret,id=sentry_auth \
         --release "$DEPLOY_SHA" \
         /app/apps/${APP_NAME}/dist; \
     else \
-      echo "No SENTRY_AUTH_TOKEN or SENTRY_ORG/PROJECT — skipping sourcemap upload"; \
+      echo "WARNING: SENTRY_AUTH_TOKEN (or SENTRY_ORG/SENTRY_PROJECT) not set — skipping sourcemap upload. Production stack traces for this image will NOT be symbolicated (ADS-1319)."; \
     fi
 
 # Strip sourcemaps from the dist directory before they are copied into the

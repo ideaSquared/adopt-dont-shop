@@ -6,6 +6,7 @@ Authoritative procedure for cutting a normal production/staging release (audienc
 
 - One-time provisioning complete — see [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md): server + Docker, DNS, TLS, and the six GitHub Actions repo secrets `deploy.yml` validates (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`).
 - `GHCR_TOKEN` repository secret set to a PAT scoped **`read:packages` only** — the deploy and rollback workflows `docker pull` images with it (they FAIL fast on `write:packages`/`repo` scope). See [`docs/SECRETS-MANAGEMENT.md`](../SECRETS-MANAGEMENT.md#github-actions-repository-secrets). [ADS-671]
+- `SENTRY_AUTH_TOKEN` repository secret set (optional but recommended) — without it, frontend builds skip the sourcemap upload and log a loud warning; production stack traces in GlitchTip stay unsymbolicated (ADS-1319).
 - `staging-vars` / `production-vars` GitHub Environments created (Settings → Environments → New environment), **no** required reviewers, each carrying environment variables `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` scoped to that target — otherwise the frontend build falls back to the single repository-level value for both environments (ADS-1318). See "Environment-scoped frontend build vars" below.
 - `gh` CLI authenticated (the `make` targets dispatch workflows through it).
 

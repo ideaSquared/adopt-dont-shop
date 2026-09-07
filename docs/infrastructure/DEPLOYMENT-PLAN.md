@@ -78,6 +78,12 @@ Application secrets — `deploy.yml` validates all six are present, then materia
 
 Generate strong values with `pnpm secrets:generate` (see [SECRETS-MANAGEMENT.md](../SECRETS-MANAGEMENT.md)); do not reuse staging/dev values. Repo: `ideaSquared/adopt-dont-shop`; images under `ghcr.io/ideasquared/adopt-dont-shop/…`.
 
+Build-time-only secret (`build-and-push` in `deploy.yml`, not shipped to the host):
+
+| Secret              | Purpose                                                                                                                                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SENTRY_AUTH_TOKEN` | Optional. Uploads frontend sourcemaps to GlitchTip so production stack traces are symbolicated (ADS-1319). Without it, the build logs a loud warning and skips the upload — it never fails the build. |
+
 ## Server setup
 
 ### Directory structure

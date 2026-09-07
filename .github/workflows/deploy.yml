@@ -335,6 +335,13 @@ jobs:
           done
 
       - name: Build and push app.client
+        env:
+          # ADS-1319: the Dockerfile.app secret is sourced from this env var
+          # (--secret id=sentry_auth,env=SENTRY_AUTH_TOKEN below) — it was
+          # never wired in, so the sourcemap upload always took the "skip"
+          # branch. Empty when the repo secret isn't configured; the
+          # Dockerfile logs loudly (not fails) in that case.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
@@ -358,6 +365,9 @@ jobs:
           cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
 
       - name: Build and push app.admin
+        env:
+          # ADS-1319: see app.client for why this is needed.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
@@ -381,6 +391,9 @@ jobs:
           cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
 
       - name: Build and push app.rescue
+        env:
+          # ADS-1319: see app.client for why this is needed.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
