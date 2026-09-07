@@ -89,17 +89,39 @@ operational signal. Override via the standard
 ```
 Inbound request
   └── HTTP instrumentation creates a server span (root)
-      └── the request-id hook (packages/observability/src/request-id.ts) reads
-          the span via trace.getActiveSpan() and stores its traceparent in AsyncLocalStorage
-              └── Winston stamps `traceparent` on every log line
-                  └── Sentry's beforeSend adds trace_id to every event
-                      └── Outbound HTTP / Redis / PG spans become children
-                          via auto-instrumentation propagation
+      ├── the request-id hook (packages/observability/src/request-id.ts) stores
+      │   a separate correlation id (x-request-id) in its own AsyncLocalStorage —
+      │   unrelated to the OTel span; see "Two IDs" below
+      ├── Winston reads the active span via trace.getActiveSpan() and stamps
+      │   `trace_id` / `span_id` on every log line (ADS-1327, logger.ts)
+      ├── Sentry's beforeSend adds trace_id to every event
+      └── Outbound HTTP / Redis / PG spans become children
+          via auto-instrumentation propagation
 ```
 
 The result: every log line, Sentry event, and outbound call shares
 the same trace ID, so a single trace in the collector links logs in
-Loki, exceptions in Sentry, and downstream service spans.
+Loki, exceptions in Sentry, and downstream service spans. In the deployed
+stack this is also wired up in Grafana itself (ADS-1327): the Loki datasource
+has a `derivedFields` entry that turns a log line's `trace_id` into a link
+into Tempo, and the Tempo datasource's `tracesToLogsV2`/`tracesToMetrics`
+does the reverse from a trace view (`observability/grafana/provisioning/
+datasources/{loki,tempo}.yaml`).
+
+### Two IDs, two mechanisms
+
+This service stack actually carries two different identifiers through a
+request, and it's worth not conflating them:
+
+| ID                              | Where it lives                                                                                                 | Needs middleware?                                                     |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `x-request-id` (correlation id) | `packages/observability/src/request-id.ts`'s own `AsyncLocalStorage`, set by a Fastify hook / the gRPC adapter | Yes — each service's request pipeline seeds it                        |
+| `trace_id` / `span_id`          | OTel's own global active-span context (`trace.getActiveSpan()`)                                                | No — read directly, same mechanism `sentry.ts` already used (ADS-660) |
+
+`logger.ts`'s comment used to say correlation-id stamping was skipped because
+it needed request-context middleware coupling — true for `x-request-id`, but
+not for `trace_id`/`span_id`, which is why those are stamped unconditionally
+now.
 
 ## Sentry correlation
 
