@@ -1,6 +1,6 @@
 import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CSRF_COOKIE_NAME, registerCsrfProtection, verifyCsrfToken } from './csrf.js';
 
@@ -12,16 +12,35 @@ const quietLogger = {
   silly: () => undefined,
 } as unknown as Parameters<typeof registerCsrfProtection>[1]['logger'];
 
-async function makeApp(): Promise<FastifyInstance> {
+async function makeApp(
+  logger: Parameters<typeof registerCsrfProtection>[1]['logger'] = quietLogger
+): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await app.register(cookie);
-  registerCsrfProtection(app, { logger: quietLogger });
+  registerCsrfProtection(app, { logger });
   app.get('/api/v1/things', async () => ({ ok: true }));
   app.post('/api/v1/things', async () => ({ created: true }));
   app.put('/api/v1/things', async () => ({ updated: true }));
   app.patch('/api/v1/things', async () => ({ patched: true }));
   app.delete('/api/v1/things', async () => ({ deleted: true }));
   return app;
+}
+
+// Spy variant of quietLogger — same silent no-op behaviour, but warn calls
+// are recorded so tests can assert on the metadata that was logged.
+function makeSpyLogger(): {
+  logger: Parameters<typeof registerCsrfProtection>[1]['logger'];
+  warn: ReturnType<typeof vi.fn>;
+} {
+  const warn = vi.fn();
+  const logger = {
+    info: () => undefined,
+    error: () => undefined,
+    warn,
+    debug: () => undefined,
+    silly: () => undefined,
+  } as unknown as Parameters<typeof registerCsrfProtection>[1]['logger'];
+  return { logger, warn };
 }
 
 describe('CSRF protection — opportunistic double-submit enforcement (ADS-919 Phase 0)', () => {
@@ -204,5 +223,30 @@ describe('verifyCsrfToken', () => {
       headers: { cookie: `${CSRF_COOKIE_NAME}=exact-match`, 'x-csrf-token': 'exact-match' },
     });
     expect(res.json()).toEqual({ valid: true });
+  });
+});
+
+describe('CSRF protection — log redaction (ADS-1295)', () => {
+  it('does not log the raw query string when rejecting a CSRF failure', async () => {
+    const { logger, warn } = makeSpyLogger();
+    const app = await makeApp(logger);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/things?email=victim@example.com&token=super-secret-value',
+        headers: { cookie: `${CSRF_COOKIE_NAME}=matching-token-123` },
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const [, meta] = warn.mock.calls[0] as [string, Record<string, unknown>];
+      expect(meta.url).toBe('/api/v1/things');
+      const serialized = JSON.stringify(meta);
+      expect(serialized).not.toContain('victim@example.com');
+      expect(serialized).not.toContain('super-secret-value');
+      expect(meta.method).toBe('POST');
+    } finally {
+      await app.close();
+    }
   });
 });

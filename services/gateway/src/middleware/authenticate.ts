@@ -35,6 +35,7 @@ import { status as grpcStatus, Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Logger } from 'winston';
 
+import { redactUrl } from '@adopt-dont-shop/observability';
 import { signPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
@@ -179,8 +180,12 @@ export const registerAuthenticate = async (
       if (isPublic) {
         return;
       }
+      // ADS-1295: log only the path, not the full req.url — a query string
+      // can carry a secret (e.g. ?email=... or ?token=...), and
+      // redactSecretFields only redacts by object key, not by scanning
+      // string values for embedded tokens. See redactUrl / server.ts.
       logger.warn('rejecting request: authentication required on protected path', {
-        url: req.url,
+        url: redactUrl(req.url),
       });
       return reply.code(401).send({ error: 'authentication required' });
     }
@@ -199,7 +204,7 @@ export const registerAuthenticate = async (
         // closed instead of silently forwarding unauth as auth.
         if (!isPublic) {
           logger.warn('rejecting request: token validated but no principal returned', {
-            url: req.url,
+            url: redactUrl(req.url),
           });
           return reply.code(401).send({ error: 'invalid token' });
         }
@@ -263,11 +268,11 @@ export const registerAuthenticate = async (
         // Invalid / expired / revoked token on a protected path. Log at
         // warn so a flood of 401s (e.g. a stale SPA session) is visible in
         // the gateway logs instead of failing silently.
-        logger.warn('rejecting request: invalid token', { url: req.url });
+        logger.warn('rejecting request: invalid token', { url: redactUrl(req.url) });
       } else {
         logger.error('ValidateToken upstream error', {
           err: (err as Error)?.message ?? String(err),
-          url: req.url,
+          url: redactUrl(req.url),
         });
       }
       return reply.code(httpStatus).send({
