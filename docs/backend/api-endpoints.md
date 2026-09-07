@@ -40,6 +40,12 @@ automatically:
    header; the gateway rejects a mutating request that carries the cookie but not the header.
 4. `GET /api/v1/auth/me` — current user profile. `POST /api/v1/auth/refresh-token` renews.
 
+GDPR self-service (ADS-1320): `GET /api/v1/users/me/export` returns a JSON export of the
+signed-in user's own data (Art. 15/20 access + portability), reusing the auth service's
+`ExportUserData` RPC scoped to the caller's own userId (`services/gateway/src/routes/
+users-export.ts`); rate-limited to 5 requests/hour like `POST /api/v1/users/me/erasure-request`
+(§4 of the [privacy policy](../legal/privacy.md)).
+
 The OpenAPI document also declares a `bearerAuth` (JWT) scheme for non-browser integrators;
 public routes (login, register, health) opt out with `security: []`.
 

@@ -7,6 +7,8 @@
 // the account and stops at a published event — the hard-anonymisation job is
 // downstream (no consumer yet).
 
+import { randomUUID } from 'node:crypto';
+
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import type { Permission } from '@adopt-dont-shop/lib.types';
@@ -38,6 +40,13 @@ const USER_SELECT = `
 `;
 
 // --- ExportUserData --------------------------------------------------
+//
+// Self-service (GDPR Art. 15/20): a caller exporting their own userId is
+// always allowed, regardless of permissions — this is the same RPC the
+// admin Privacy Tools page uses (services/gateway/src/routes/privacy.ts),
+// reused by the self-service GET /api/v1/users/me/export route
+// (services/gateway/src/routes/users-export.ts) for the signed-in user.
+// Exporting someone else's data still requires admin.data.export.
 
 export async function exportUserData(
   deps: HandlerDeps,
@@ -47,26 +56,58 @@ export async function exportUserData(
   if (!req.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
   }
-  if (!hasPermission(principal, ADMIN_DATA_EXPORT)) {
+  const isSelf = req.userId === principal.userId;
+  if (!isSelf && !hasPermission(principal, ADMIN_DATA_EXPORT)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_DATA_EXPORT}' required`);
   }
 
-  const userRes = await deps.pool.query<UserRow>(
-    `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
-    [req.userId]
-  );
-  const userRow = userRes.rows[0];
+  let userRow: UserRow | undefined;
+  let prefsRow: PrivacyPrefsRow | undefined;
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    const userRes = await client.query<UserRow>(
+      `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+      [req.userId]
+    );
+    userRow = userRes.rows[0];
+    if (!userRow) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+
+    // Read-only — unlike GetPrivacyPreferences this never auto-creates a row;
+    // a user who never touched their preferences simply has none to export.
+    const prefsRes = await client.query<PrivacyPrefsRow>(
+      `SELECT * FROM user_privacy_prefs WHERE user_id = $1`,
+      [req.userId]
+    );
+    prefsRow = prefsRes.rows[0];
+
+    // Legally load-bearing sensitive-read trail (GDPR Art. 15/20 access).
+    publish({
+      type: 'auth.actionTaken',
+      id: `auth.actionTaken.export.${req.userId}.${Date.now()}`,
+      payload: {
+        eventId: randomUUID(),
+        service: 'service.auth',
+        subject: 'auth.actionTaken',
+        aggregateType: 'user',
+        aggregateId: req.userId,
+        actorUserId: principal.userId,
+        action: 'export',
+        outcome: 'success',
+        occurredAt: new Date().toISOString(),
+        payload: { self: isSelf },
+      },
+    });
+  });
+
   if (!userRow) {
+    // Unreachable in practice: withTransaction only resolves once its
+    // callback completes without throwing, and the callback throws
+    // NOT_FOUND (propagated above) before returning when the select was
+    // empty. The check narrows the type without an `as` assertion.
     throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
   }
-
-  // Read-only — unlike GetPrivacyPreferences this never auto-creates a row;
-  // a user who never touched their preferences simply has none to export.
-  const prefsRes = await deps.pool.query<PrivacyPrefsRow>(
-    `SELECT * FROM user_privacy_prefs WHERE user_id = $1`,
-    [req.userId]
-  );
-  const prefsRow = prefsRes.rows[0];
 
   return {
     user: rowToProtoUser(userRow),
