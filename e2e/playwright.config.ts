@@ -216,7 +216,7 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: CI,
-  retries: CI ? 2 : 0,
+  retries: CI ? 1 : 0,
   workers: CI ? 2 : undefined,
   timeout: 60_000,
   expect: { timeout: 10_000 },
@@ -244,6 +244,16 @@ export default defineConfig({
       name: 'gateway-smoke',
       testDir: './tests/gateway-smoke',
       use: { baseURL: URLS.api },
+    },
+    {
+      // ADS-1326: axe-core smoke coverage. Runs logged-out against
+      // app.client, which also serves the public login route.
+      name: 'a11y',
+      testDir: './tests/a11y',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: URLS.client,
+      },
     },
     // Each project runs only its UNPARKED specs (see above); the rest stay
     // parked. global-setup logs in every role via the UI and writes its
