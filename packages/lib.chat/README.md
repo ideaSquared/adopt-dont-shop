@@ -52,6 +52,15 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `TypingIndicator`, `MessageReaction`, `MessageReadReceipt`,
   `ReconnectionConfig`, `QueuedMessage`, plus response shapes.
 
+## Known gaps
+
+File attachments are descoped pending a design (ADS-1317): there is no gateway
+route or `service.chat` RPC to receive an upload. `MessageInput` has no attach
+affordance, and `ChatService.uploadAttachment` throws
+`ChatAttachmentsNotSupportedError` rather than calling a dead endpoint.
+`MessageAttachment` display (rendering a message that already carries
+attachment metadata) is unaffected — only the upload path is gone.
+
 ## Environment variables consumed
 
 None read directly — the `socketUrl` (typically `VITE_WS_BASE_URL`) is passed
@@ -75,4 +84,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 3 workspace package(s) depend on this library. See [lib.chat-consumers.md](../../docs/libraries/lib.chat-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

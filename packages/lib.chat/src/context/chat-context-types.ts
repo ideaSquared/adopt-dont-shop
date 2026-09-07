@@ -73,7 +73,7 @@ export type ChatContextValue = {
    * persists via the backend.
    */
   updateConversationStatus: (conversationId: string, status: ConversationStatus) => Promise<void>;
-  sendMessage: (content: string, attachments?: File[]) => Promise<void>;
+  sendMessage: (content: string) => Promise<void>;
   /**
    * Re-send a previously failed message by its client-side id. Reuses the
    * original optimistic bubble (same id), so a late-arriving success from

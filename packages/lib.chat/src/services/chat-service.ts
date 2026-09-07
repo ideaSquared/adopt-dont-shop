@@ -12,6 +12,18 @@ import {
 } from '../types';
 
 /**
+ * Thrown by `ChatService.uploadAttachment` — chat file attachments are
+ * descoped pending a design (ADS-1317): no gateway route or service RPC
+ * exists to receive them.
+ */
+export class ChatAttachmentsNotSupportedError extends Error {
+  constructor() {
+    super('Chat file attachments are not supported yet');
+    this.name = 'ChatAttachmentsNotSupportedError';
+  }
+}
+
+/**
  * Event payload when a reaction is added or removed
  */
 export interface ReactionUpdateEvent {
@@ -755,39 +767,21 @@ export class ChatService {
   }
 
   /**
-   * Upload file attachment
+   * Upload a file attachment for a conversation.
+   *
+   * Descoped (ADS-1317): the gateway has no `/api/v1/chats/:id/attachments`
+   * route and service.chat has no attachment-upload RPC — only a
+   * `MessageAttachment` shape a message can carry when it already has a
+   * URL. There is no design yet for where that URL would come from, so
+   * this throws instead of calling a dead endpoint. Callers should not
+   * invoke this until attachment upload ships end-to-end; the attach
+   * affordance has been removed from `MessageInput` for the same reason.
    */
-  async uploadAttachment(conversationId: string, file: File): Promise<{ url: string; id: string }> {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const headers = await this.getMutatingHeaders();
-      // Don't set Content-Type for FormData, let browser set it
-      delete headers['Content-Type'];
-
-      const response = await this.fetchWithTimeout(
-        `${this.config.apiUrl}/api/v1/chats/${conversationId}/attachments`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          body: formData,
-          headers,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data.data;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`${ChatService.name} uploadAttachment error:`, error);
-      }
-      throw error;
-    }
+  async uploadAttachment(
+    _conversationId: string,
+    _file: File
+  ): Promise<{ url: string; id: string }> {
+    throw new ChatAttachmentsNotSupportedError();
   }
 
   /**

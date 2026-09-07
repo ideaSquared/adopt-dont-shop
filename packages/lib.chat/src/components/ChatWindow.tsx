@@ -63,8 +63,8 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
     onBack?.();
   };
 
-  const handleSendMessage = async (attachments?: File[]) => {
-    if (!messageText.trim() && (!attachments || attachments.length === 0)) {
+  const handleSendMessage = async () => {
+    if (!messageText.trim()) {
       return;
     }
     if (isSending) {
@@ -78,14 +78,12 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
         logEvent('chat_message_sent', 1, {
           conversation_id: activeConversation.id.toString(),
           message_length: messageText.trim().length.toString(),
-          has_attachments: attachments && attachments.length > 0 ? 'true' : 'false',
-          attachment_count: attachments?.length.toString() || '0',
           pet_id: activeConversation.petId?.toString() || 'unknown',
           rescue_id: activeConversation.rescueId?.toString() || 'unknown',
         });
       }
 
-      await sendMessage(messageText.trim(), attachments);
+      await sendMessage(messageText.trim());
       setMessageText('');
     } catch (err) {
       // Do not log message content — let the ChatProvider's error state
