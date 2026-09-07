@@ -118,7 +118,6 @@ export const envBaseSchema = z.object({
   // well above the shared 32-char secret minimum, so optionalSecretField
   // matches real setups.
   REDIS_PASSWORD: optionalSecretField('REDIS_PASSWORD'),
-  JWT_REPORT_SHARE_SECRET: optionalSecretField('JWT_REPORT_SHARE_SECRET'),
   WORKER_ENABLED: booleanString('WORKER_ENABLED').optional(),
   BCRYPT_ROUNDS: numericString('BCRYPT_ROUNDS').optional(),
 
@@ -160,7 +159,6 @@ export const DISTINCT_SECRET_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ['UPLOAD_SIGNING_SECRET', 'JWT_REFRESH_SECRET'],
   ['UPLOAD_SIGNING_SECRET', 'SESSION_SECRET'],
   ['UPLOAD_SIGNING_SECRET', 'ENCRYPTION_KEY'],
-  ['UPLOAD_SIGNING_SECRET', 'JWT_REPORT_SHARE_SECRET'],
 ] as const;
 
 // ---------------------------------------------------------------------------

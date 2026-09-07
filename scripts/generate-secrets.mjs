@@ -20,7 +20,6 @@ export const SECRET_KEYS = [
   'ENCRYPTION_KEY',
   'UPLOAD_SIGNING_SECRET',
   'PRINCIPAL_SIGNING_KEY',
-  'JWT_REPORT_SHARE_SECRET',
   'NATS_AUTH_TOKEN',
   'POSTGRES_PASSWORD',
   'REDIS_PASSWORD',
@@ -62,7 +61,6 @@ export function generateSecretsBlock() {
     // tokens. Optional in development/test; every other environment refuses
     // to boot without it (packages/service-bootstrap/src/principal.ts).
     `PRINCIPAL_SIGNING_KEY=${generateSecret('PRINCIPAL_SIGNING_KEY')}`,
-    `JWT_REPORT_SHARE_SECRET=${generateSecret('JWT_REPORT_SHARE_SECRET')}`,
     // ADS-1273: shared token the nats service requires via --auth. Required
     // in every environment (dev included) — the event bus was previously
     // unauthenticated everywhere.

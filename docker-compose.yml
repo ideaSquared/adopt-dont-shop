@@ -510,7 +510,8 @@ services:
     stop_grace_period: 30s
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/simple']
+      # ADS-1327: /health/ready also probes DB/NATS/Redis, not just liveness.
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/ready']
 
   service-notifications:
     <<: *service-defaults
@@ -525,7 +526,7 @@ services:
       - '127.0.0.1:5001:5001'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/ready']
 
   service-auth:
     <<: *service-defaults
@@ -544,7 +545,7 @@ services:
       - '127.0.0.1:5002:5002'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/ready']
 
   service-pets:
     <<: *service-defaults
@@ -559,7 +560,7 @@ services:
       - '127.0.0.1:5003:5003'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/ready']
 
   service-rescue:
     <<: *service-defaults
@@ -574,7 +575,7 @@ services:
       - '127.0.0.1:5004:5004'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/ready']
 
   service-applications:
     <<: *service-defaults
@@ -590,7 +591,7 @@ services:
       - '127.0.0.1:5005:5005'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/ready']
 
   service-chat:
     <<: *service-defaults
@@ -605,7 +606,7 @@ services:
       - '127.0.0.1:5006:5006'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/ready']
 
   service-moderation:
     <<: *service-defaults
@@ -620,7 +621,7 @@ services:
       - '127.0.0.1:5007:5007'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/ready']
 
   service-matching:
     <<: *service-defaults
@@ -636,7 +637,7 @@ services:
       - '127.0.0.1:5008:5008'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/ready']
 
   service-audit:
     <<: *service-defaults
@@ -651,7 +652,7 @@ services:
       - '127.0.0.1:5009:5009'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/ready']
 
   # ADS-898: this block was missing entirely — service-cms existed in the
   # codebase (services/cms/), was wired into the gateway
@@ -671,7 +672,7 @@ services:
       - '127.0.0.1:5010:5010'
     healthcheck:
       <<: *hc-standard-timing
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/ready']
 
 # ============================================================================
 # VOLUMES - Simplified to only what's needed

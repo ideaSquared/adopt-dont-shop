@@ -514,11 +514,15 @@ networks:
 # ============================================================================
 # Docker Secrets (ADS-752)
 # ============================================================================
-# Mounted as in-memory tmpfs files at /run/secrets/<name>; never written to
-# disk and invisible to `docker inspect`. The database container reads
-# db_password via POSTGRES_PASSWORD_FILE; the gRPC services read every other
-# credential through the @adopt-dont-shop/config-secrets loader (NAME_FILE wins
-# over NAME). The deploy workflow (.github/workflows/deploy.yml) materialises
+# ADS-1327: this is plain `docker compose` (not Swarm mode), so these are
+# bind-mounted from the host file at /run/secrets/<name> — NOT the in-memory
+# tmpfs Swarm provides. They're still kept out of `docker inspect`
+# (Config.Env/Config.Cmd don't see file contents) and out of the image, which
+# is what the config-secrets loader's NAME_FILE convention is actually
+# protecting against. The database container reads db_password via
+# POSTGRES_PASSWORD_FILE; the gRPC services read every other credential
+# through the @adopt-dont-shop/config-secrets loader (NAME_FILE wins over
+# NAME). The deploy workflow (.github/workflows/deploy.yml) materialises
 # these files on the host before `docker compose up -d`.
 secrets:
   db_password:
