@@ -48,7 +48,7 @@ In the Docker dev stack (primary workflow) this runs as container
 pnpm docker:dev:detach                      # start the whole stack
 docker compose logs -f service-gateway      # follow just the edge
 curl localhost:4000/health/simple           # liveness probe
-# Expected: {"status":"ok","service":"@adopt-dont-shop/service.gateway","environment":"development"}
+# Expected: {"status":"ok","service":"service.gateway","environment":"development"}
 ```
 
 Bare-metal (the edge alone). It owns no schema, so it needs no `DATABASE_URL`;
@@ -83,7 +83,7 @@ documented in [`docs/api-versioning.md`](../../docs/api-versioning.md).
 
 `/api/v1/test/*` is a test-only one-time-token peek seam (ADS-871) that is
 **not registered** unless `E2E_TOKEN_PEEK=true`; `loadConfig()` throws at boot
-if that is set under `NODE_ENV=production`. See
+if that is set under `NODE_ENV=production` or `NODE_ENV=staging` (ADS-1271). See
 [`src/routes/test-token-peek.ts`](src/routes/test-token-peek.ts).
 
 **Socket.IO** terminates here; see [`src/ws/`](src/ws) for the handshake auth,
