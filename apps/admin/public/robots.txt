@@ -1,0 +1,5 @@
+# robots.txt for Adopt Don't Shop (app.admin)
+# Internal admin dashboard — never intended for search results.
+
+User-agent: *
+Disallow: /
