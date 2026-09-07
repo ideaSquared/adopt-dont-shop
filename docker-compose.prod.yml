@@ -39,6 +39,11 @@ x-logging: &default-logging
 # ----------------------------------------------------------------------------
 x-service-common: &service-common
   restart: always
+  # ADS-1309: the shutdown sequencer (packages/service-bootstrap/src/shutdown.ts)
+  # budgets 25s to drain in-flight requests/connections on SIGTERM. Docker's
+  # default stop_grace_period is 10s, which SIGKILLs the process before that
+  # drain completes and drops in-flight requests on every deploy.
+  stop_grace_period: 30s
   read_only: true
   tmpfs:
     - /tmp:size=64m,mode=1777

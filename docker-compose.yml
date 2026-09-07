@@ -44,6 +44,10 @@ x-service-deps: &ms-deps
 x-service-defaults: &service-defaults
   profiles: ['services', 'full']
   restart: unless-stopped
+  # ADS-1309: matches the prod/staging shared anchor — the shutdown sequencer
+  # (packages/service-bootstrap/src/shutdown.ts) budgets 25s to drain, and
+  # Docker's default 10s stop_grace_period would SIGKILL before that.
+  stop_grace_period: 30s
   depends_on: *ms-deps
 
 x-service-build: &service-build-defaults
@@ -500,6 +504,10 @@ services:
       clamav:
         condition: service_started
     restart: unless-stopped
+    # ADS-1309: service-gateway doesn't merge *service-defaults above (it
+    # sets restart/profiles itself), so it needs its own grace period —
+    # see the *service-defaults comment for why 30s.
+    stop_grace_period: 30s
     healthcheck:
       <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/simple']
