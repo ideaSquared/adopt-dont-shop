@@ -34,47 +34,51 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({
   actions,
   children,
   onClick,
-}) => (
-  <div
-    className={styles.frame}
-    onClick={onClick}
-    onKeyDown={
-      onClick
-        ? e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onClick();
+}) => {
+  const clickableTabIndex = onClick ? 0 : undefined;
+
+  return (
+    <div
+      className={styles.frame}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
             }
-          }
-        : undefined
-    }
-    role={onClick ? 'button' : undefined}
-    tabIndex={onClick ? 0 : undefined}
-    data-testid='chart-frame'
-  >
-    <div className={styles.header}>
-      <div>
-        <h4 className={styles.title}>{title}</h4>
-        {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
+          : undefined
+      }
+      role={onClick ? 'button' : undefined}
+      tabIndex={clickableTabIndex}
+      data-testid='chart-frame'
+    >
+      <div className={styles.header}>
+        <div>
+          <h4 className={styles.title}>{title}</h4>
+          {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
+        </div>
+        {actions ? <div>{actions}</div> : null}
       </div>
-      {actions ? <div>{actions}</div> : null}
+      <div className={styles.body}>
+        {isLoading ? (
+          <div className={styles.state} data-testid='chart-loading'>
+            Loading…
+          </div>
+        ) : error ? (
+          <div className={clsx(styles.state, styles.stateError)} data-testid='chart-error'>
+            {error.message}
+          </div>
+        ) : isEmpty ? (
+          <div className={styles.state} data-testid='chart-empty'>
+            {emptyMessage}
+          </div>
+        ) : (
+          children
+        )}
+      </div>
     </div>
-    <div className={styles.body}>
-      {isLoading ? (
-        <div className={styles.state} data-testid='chart-loading'>
-          Loading…
-        </div>
-      ) : error ? (
-        <div className={clsx(styles.state, styles.stateError)} data-testid='chart-error'>
-          {error.message}
-        </div>
-      ) : isEmpty ? (
-        <div className={styles.state} data-testid='chart-empty'>
-          {emptyMessage}
-        </div>
-      ) : (
-        children
-      )}
-    </div>
-  </div>
-);
+  );
+};
