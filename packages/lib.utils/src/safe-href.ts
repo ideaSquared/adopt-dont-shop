@@ -17,31 +17,37 @@ export const safeHref = (url: string | null | undefined): string => {
     return FALLBACK;
   }
 
-  const trimmed = url.trim();
-  if (trimmed.length === 0) {
+  // Strip URL-significant control characters (tab, LF, CR, and other C0
+  // controls) before scheme detection. Browsers strip these from an href
+  // before resolving its scheme, so `java\tscript:` still executes as
+  // javascript: even though the scheme regex below wouldn't match it —
+  // without this, that string would fall through to the "no scheme →
+  // relative, safe" branch and be returned unchanged (ADS-1292).
+  const cleaned = url.replace(/[\x00-\x1f]/g, '').trim();
+  if (cleaned.length === 0) {
     return FALLBACK;
   }
 
   // Reject protocol-relative URLs (//evil.com/path) — they inherit the
   // current page's scheme but can point to any host.
-  if (trimmed.startsWith('//')) {
+  if (cleaned.startsWith('//')) {
     return FALLBACK;
   }
 
   // Same-origin relative paths are safe.
-  if (trimmed.startsWith('/')) {
-    return trimmed;
+  if (cleaned.startsWith('/')) {
+    return cleaned;
   }
 
   // If there's no scheme separator, treat as relative — still safe.
-  const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+  const schemeMatch = cleaned.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
   if (!schemeMatch) {
-    return trimmed;
+    return cleaned;
   }
 
   const scheme = schemeMatch[1].toLowerCase() + ':';
   if (ALLOWED_SCHEMES.includes(scheme as (typeof ALLOWED_SCHEMES)[number])) {
-    return trimmed;
+    return cleaned;
   }
 
   return FALLBACK;

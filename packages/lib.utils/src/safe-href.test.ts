@@ -71,6 +71,26 @@ describe('safeHref', () => {
     it('rejects protocol-relative URLs', () => {
       expect(safeHref('//evil.com/path')).toBe('#');
     });
+
+    it('rejects javascript: URLs with an embedded tab character (ADS-1292)', () => {
+      expect(safeHref('java\tscript:alert(document.cookie)')).toBe('#');
+    });
+
+    it('rejects javascript: URLs with an embedded newline character (ADS-1292)', () => {
+      expect(safeHref('java\nscript:alert(document.cookie)')).toBe('#');
+    });
+
+    it('rejects javascript: URLs with an embedded carriage return (ADS-1292)', () => {
+      expect(safeHref('java\rscript:alert(document.cookie)')).toBe('#');
+    });
+
+    it('rejects mixed-case javascript: URLs with embedded control characters', () => {
+      expect(safeHref('Ja\tVa\nScRiPt:alert(1)')).toBe('#');
+    });
+
+    it('rejects control characters scattered throughout the scheme', () => {
+      expect(safeHref('j\ta\nv\ra\tscript:alert(1)')).toBe('#');
+    });
   });
 
   describe('handles empty / nullish input', () => {
