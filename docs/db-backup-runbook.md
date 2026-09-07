@@ -46,19 +46,21 @@ options; nothing in this repo currently archives WAL.
 - **In scope**: the application database (schema + data) — the `database`
   service in `docker-compose.prod.yml`, named by `POSTGRES_DB`.
 - **Out of scope (handled separately)**: object storage / uploads (see
-  [`scripts/snapshot-uploads.sh`](../scripts/snapshot-uploads.sh) and the
-  [snapshot policy](./operations/snapshot-policy.md)), Redis (transient
-  queues + caches), application secrets (file-mounted Docker secrets, not in
-  the DB), and `letsencrypt` TLS state (regenerable).
+  [`scripts/snapshot-uploads.sh`](../scripts/snapshot-uploads.sh)), NATS
+  JetStream (see [`scripts/snapshot-nats.sh`](../scripts/snapshot-nats.sh),
+  ADS-1325), Redis (deliberately not backed up — transient cache + rate-limit
+  state only), application secrets (file-mounted Docker secrets, not in the
+  DB), and `letsencrypt` TLS state (regenerable). Cadence and retention for
+  all of these live in the [snapshot policy](./operations/snapshot-policy.md).
 
 ## Schedule
 
-| Job                       | Cadence                     | Retention                       |
-| ------------------------- | --------------------------- | ------------------------------- |
-| Nightly automated dump    | Daily 02:00 UTC             | 30 days off-site (S3 lifecycle) |
-| Pre-migration manual dump | Before every prod migration | 30 days off-site                |
-| Automated restore drill   | Daily 03:30 UTC             | N/A — a CI job, not a snapshot  |
-| Quarterly restore drill   | Quarterly (staging)         | Drill log retained 1 year       |
+| Job                                          | Cadence                     | Retention                       |
+| -------------------------------------------- | --------------------------- | ------------------------------- |
+| Nightly automated dump                       | Daily 02:00 UTC             | 30 days off-site (S3 lifecycle) |
+| Pre-migration manual dump                    | Before every prod migration | 30 days off-site                |
+| Automated restore drill (Postgres + uploads) | Daily 03:30 UTC             | N/A — a CI job, not a snapshot  |
+| Quarterly restore drill                      | Quarterly (staging)         | Drill log retained 1 year       |
 
 Nightly dumps run via the [`backup.yml`](../.github/workflows/backup.yml)
 scheduled workflow (cron `0 2 * * *`) in the `backups` GitHub environment
@@ -213,13 +215,21 @@ exits 0. `letsencrypt` TLS state is intentionally excluded — it regenerates on
 its own. Once uploads move to S3-native storage (see the snapshot policy), the
 bucket becomes the system of record and this step is no longer needed.
 
+This manual, onto-the-volume restore is no longer the only proof the uploads
+snapshot is restorable — see "Automated nightly restore verification" below,
+which drills the mechanical restore (into a scratch directory, not the live
+volume) every night.
+
 ## Automated nightly restore verification
 
 A backup you have never restored is a backup you do not have. Restoring is no
 longer only a manual, quarterly exercise: the
 [`backup-restore-drill.yml`](../.github/workflows/backup-restore-drill.yml)
 workflow runs every night (`30 3 * * *`, shortly after the 02:00 snapshot has
-had time to upload) and, unattended:
+had time to upload), in the same `backups` GitHub environment as `backup.yml`
+(ADS-1305), and, unattended, runs two independent drills:
+
+**Postgres** (`restore-drill` job):
 
 1. Starts a disposable scratch Postgres (the same `database` service
    `docker-compose.yml` already defines).
@@ -232,16 +242,28 @@ auth.users` must return at least one row) and fails the run loudly
    (`::error::`) if it doesn't.
 5. Tears the scratch DB down.
 
+**Uploads** (`restore-drill-uploads` job, ADS-1325):
+
+1. Finds the newest day-level prefix under `s3://${BACKUP_BUCKET}/uploads/`
+   (same "sort the recursive listing, take the last object" lookup as
+   Postgres above, then take that object's `uploads/YYYY/MM/DD` prefix).
+2. `aws s3 sync`s that prefix down into a fresh temp directory — **not** onto
+   the live `uploads` volume, so the drill cannot corrupt production data.
+3. Asserts a non-trivial file count (`find … -type f | wc -l` must be ≥ 1) and
+   fails loudly (`::error::`) if it isn't.
+4. Deletes the temp directory.
+
 This replaces the old "dump is > 1 KiB" size heuristic
 (`scripts/snapshot-postgres.sh`) as the real restorability signal, and means
 every snapshot is proven to restore within hours of being taken instead of
-only once a quarter. It requires its own `AWS_ACCESS_KEY_ID` /
-`AWS_SECRET_ACCESS_KEY` repo secrets (read-only S3 access is enough) because,
-unlike `backup.yml`, it runs directly on a GitHub-hosted runner rather than
-SSHing to the prod host to borrow the host's own credentials; the job no-ops
-(skips, doesn't fail) when those secrets aren't configured, e.g. on a fork.
+only once a quarter. Both jobs require the same `AWS_ACCESS_KEY_ID` /
+`AWS_SECRET_ACCESS_KEY` `backups`-environment secrets (read-only S3 access is
+enough) because, unlike `backup.yml`, they run directly on a GitHub-hosted
+runner rather than SSHing to the prod host to borrow the host's own
+credentials; each job no-ops (skips, doesn't fail) when those secrets aren't
+configured, e.g. on a fork.
 
-What it does **not** replace: repointing a real app at the restored data,
+What none of this replaces: repointing a real app at the restored data,
 measuring RTO against the target above in a prod-like environment, and a
 recorded drill log. That remains the quarterly staging drill below.
 

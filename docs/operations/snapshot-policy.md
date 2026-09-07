@@ -2,16 +2,41 @@
 
 Policy reference for what the production stack backs up, on what cadence, and with what retention (audience: operators + planners). The **restore and drill procedures** live in the authoritative [db-backup-runbook.md](../db-backup-runbook.md); this document is policy only.
 
-The production `docker-compose.prod.yml` declares three persistent stores; each has its own RPO / RTO and backup mechanism.
+The production `docker-compose.prod.yml` declares several persistent stores; each has its own RPO / RTO and backup mechanism.
 
 ## What gets backed up
 
-| Volume / Store     | Source                                                                        | Recovery class          | Retention            |
-| ------------------ | ----------------------------------------------------------------------------- | ----------------------- | -------------------- |
-| `postgres_data`    | `database` service (Postgres 16+PostGIS)                                      | Tier-1 (full)           | 30 days              |
-| `uploads`          | Shared user-uploads volume (gateway writes, per-stack nginx serves read-only) | Tier-1 (full)           | 90 days              |
-| `letsencrypt`      | nginx TLS state                                                               | Regenerable — no backup | N/A                  |
-| Application images | GitHub Container Registry (GHCR)                                              | Immutable tags          | indefinite (per-tag) |
+| Volume / Store     | Source                                                                        | Recovery class                             | Retention            |
+| ------------------ | ----------------------------------------------------------------------------- | ------------------------------------------ | -------------------- |
+| `postgres_data`    | `database` service (Postgres 16+PostGIS)                                      | Tier-1 (full)                              | 30 days              |
+| `uploads`          | Shared user-uploads volume (gateway writes, per-stack nginx serves read-only) | Tier-1 (full)                              | 90 days              |
+| `nats_data`        | JetStream file store — the event backbone and idempotency state (ADS-1325)    | Tier-2 (operational)                       | 14 days              |
+| `redis_data`       | Redis (cache + rate-limit state only — no durable data)                       | **Deliberately not backed up** — see below | N/A                  |
+| `letsencrypt`      | nginx TLS state                                                               | Regenerable — no backup                    | N/A                  |
+| Application images | GitHub Container Registry (GHCR)                                              | Immutable tags                             | indefinite (per-tag) |
+
+### `redis_data` — deliberately not backed up
+
+Redis in this stack holds only ephemeral state: response caches, socket
+presence, and rate-limit counters (see `docker-compose.prod.yml`'s `redis`
+service). None of it is a system of record — every value is either
+regenerable from Postgres on a cache miss or safely reset to zero (a
+rate-limit counter starting over after a restart is not a data-loss event).
+Backing it up would add S3 cost and a restore path for state that is cheaper
+to simply let repopulate. If Redis ever grows a durable use case (e.g.
+session data with no other source of truth), revisit this and add a
+snapshot job following the `nats_data` pattern below.
+
+### NATS JetStream — S3-native, like uploads
+
+Like `uploads`, the `nats_data` volume is rsynced to
+`s3://${BACKUP_BUCKET}/nats/$(date -u +%Y/%m/%d)/` daily by
+`scripts/snapshot-nats.sh`, run by the `snapshot-nats` job in
+[`backup.yml`](../../.github/workflows/backup.yml) (ADS-1325). Retention is
+shorter than Postgres/uploads (14 days, Tier-2) because JetStream state is
+operational (in-flight events, idempotency keys) rather than an archival
+record — restoring it repopulates the event backbone, it does not recover
+lost application data on its own.
 
 ## Postgres — `pg_dump` to S3
 
@@ -87,7 +112,7 @@ after any retention change) now:
 1. Enables S3 bucket versioning.
 2. Applies a lifecycle rule per prefix — transition to `STANDARD_IA` then
    expire (current **and** noncurrent object versions) at the retention in
-   the table above: `postgres/` 30d, `uploads/` 90d.
+   the table above: `postgres/` 30d, `uploads/` 90d, `nats/` 14d.
 3. Optionally (`--enable-object-lock`) sets a default Object Lock retention,
    so even credentials with delete permission cannot remove a snapshot before
    the lock window expires. Object Lock can only be enabled on a bucket
@@ -134,5 +159,6 @@ tracked in `docs/operations/restore-drills.md`.
   "Verification" section; detail in db-backup-runbook.md)
 - ADS-1306 — bucket versioning, lifecycle enforcement, least-privilege IAM
   (this document's "Bucket immutability & lifecycle enforcement" section)
+- ADS-1325 — NATS JetStream snapshot + uploads restore drill
 - ADS-443 — streaming replication / PITR (out of scope here)
 - ADS-500 — volume backup automation (this document)

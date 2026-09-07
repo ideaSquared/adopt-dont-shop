@@ -7,35 +7,39 @@ name: Backup Restore Drill
 # by a manual quarterly staging drill (docs/db-backup-runbook.md). A backup
 # that has never been restored is not a proven backup.
 #
-# This job pulls the latest Postgres snapshot backup.yml uploaded, restores it
-# into a disposable scratch Postgres via scripts/restore-postgres.sh — the
-# same script the manual runbook uses, reused as-is, not reimplemented — and
-# asserts the restore actually loaded data. It runs nightly, shortly after
+# The `restore-drill` job pulls the latest Postgres snapshot backup.yml
+# uploaded, restores it into a disposable scratch Postgres via
+# scripts/restore-postgres.sh — the same script the manual runbook uses,
+# reused as-is, not reimplemented — and asserts the restore actually loaded
+# data. The `restore-drill-uploads` job (ADS-1325) does the equivalent for the
+# uploads snapshot: syncs the latest daily prefix down to a temp directory and
+# asserts a non-trivial file count. Both run nightly, shortly after
 # backup.yml's 02:00 UTC snapshot has had time to upload.
 #
-# This automates the mechanical "does the dump restore and load data?"
+# This automates the mechanical "does the snapshot restore and load data?"
 # question every night; it does not replace the quarterly staging drill
 # (docs/db-backup-runbook.md#quarterly-restore-drill-staging), which also
 # exercises repointing the app and records a measured RTO.
 #
-# Scope note: this restores Postgres only. Point-in-time recovery (continuous
-# WAL archiving, tightening the ~24h RPO) is intentionally NOT implemented
-# here — see "Point-in-time recovery (PITR)" in docs/db-backup-runbook.md and
-# ADR 0007 (docs/adr/0007-postgres-backups-pitr-restore.md) for that open
-# decision.
+# Scope note: this restores Postgres and uploads only. Point-in-time recovery
+# (continuous WAL archiving, tightening the ~24h RPO) is intentionally NOT
+# implemented here — see "Point-in-time recovery (PITR)" in
+# docs/db-backup-runbook.md and ADR 0007
+# (docs/adr/0007-postgres-backups-pitr-restore.md) for that open decision.
 #
 # No AWS keys flow through backup.yml (the Hetzner host's own credentials
-# authorise its S3 upload), but this job runs directly on a GitHub-hosted
-# runner with no host to borrow credentials from, so it needs its own
-# AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY repo secrets (read-only S3 access
-# is sufficient). The job no-ops cleanly — rather than failing — when those
-# secrets are absent (e.g. on a fork): `jobs.<job_id>.if` cannot reference the
-# `secrets` context directly (only github/needs/vars/inputs are available
-# there — referencing secrets there is a workflow parse error), so the guard
-# step below copies the secrets into job env (a context steps.*.if CAN read)
-# and every credential-dependent step is gated on its output.
+# authorise its S3 upload), but these jobs run directly on GitHub-hosted
+# runners with no host to borrow credentials from, so they need their own
+# AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY repo (or `backups` environment)
+# secrets (read-only S3 access is sufficient). Each job no-ops cleanly —
+# rather than failing — when those secrets are absent (e.g. on a fork):
+# `jobs.<job_id>.if` cannot reference the `secrets` context directly (only
+# github/needs/vars/inputs are available there — referencing secrets there is
+# a workflow parse error), so the guard step in each job copies the secrets
+# into job env (a context steps.*.if CAN read) and every credential-dependent
+# step is gated on its output.
 #
-# ADS-1305: the job runs in the `backups` GitHub environment (no required
+# ADS-1305: both jobs run in the `backups` GitHub environment (no required
 # reviewers) — the same one backup.yml's jobs use — so the drill authenticates
 # against the same AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY secrets rather
 # than a separate, possibly-stale copy. See docs/operations/deploy.md's
@@ -143,3 +147,69 @@ jobs:
       - name: Tear down scratch Postgres
         if: always() && steps.guard.outputs.ready == 'true'
         run: docker compose -f "$COMPOSE_FILE" down -v
+
+  restore-drill-uploads:
+    name: Restore latest uploads snapshot to a temp directory
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: backups
+    env:
+      BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Check AWS credentials are configured
+        id: guard
+        run: |
+          if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY repo secrets are not configured — skipping the uploads restore drill (expected on forks, or before the secrets are provisioned)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find latest uploads snapshot day in S3
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          : "${BACKUP_BUCKET:?BACKUP_BUCKET not configured (repo variable)}"
+          : "${AWS_REGION:?AWS_REGION not configured (repo variable)}"
+          # snapshot-uploads.sh writes to uploads/YYYY/MM/DD/ — same
+          # "latest object under the prefix, sorted lexically" lookup as the
+          # Postgres drill above, reusing the production_uploads day-prefix
+          # layout backup.yml's snapshot-uploads job documents (ADS-1239).
+          KEY="$(aws s3 ls "s3://${BACKUP_BUCKET}/uploads/" --recursive --region "$AWS_REGION" \
+            | sort | tail -n1 | awk '{print $4}')"
+          : "${KEY:?No uploads/ snapshot found under s3://$BACKUP_BUCKET — has backup.yml run yet?}"
+          DAY_PREFIX="uploads/$(echo "$KEY" | cut -d/ -f2-4)"
+          echo "Restoring s3://${BACKUP_BUCKET}/${DAY_PREFIX}/"
+          echo "UPLOADS_DAY_PREFIX=${DAY_PREFIX}" >> "$GITHUB_ENV"
+
+      - name: Restore latest uploads snapshot to a temp directory
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          RESTORE_DIR="$(mktemp -d -t uploads-restore-drill-XXXXXX)"
+          echo "RESTORE_DIR=${RESTORE_DIR}" >> "$GITHUB_ENV"
+          aws s3 sync "s3://${BACKUP_BUCKET}/${UPLOADS_DAY_PREFIX}/" "$RESTORE_DIR/" \
+            --region "$AWS_REGION"
+
+      - name: Assert restore produced a non-trivial file count
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          COUNT="$(find "$RESTORE_DIR" -type f | wc -l | tr -d '[:space:]')"
+          echo "restored file count: ${COUNT}"
+          if [[ ! "$COUNT" =~ ^[0-9]+$ || "$COUNT" -lt 1 ]]; then
+            echo "::error::Uploads restore drill failed the smoke check — ${COUNT} files restored, expected >= 1"
+            exit 1
+          fi
+          echo "Uploads restore drill passed — ${UPLOADS_DAY_PREFIX} restores ${COUNT} file(s) cleanly."
+
+      - name: Clean up restored files
+        if: always() && steps.guard.outputs.ready == 'true'
+        run: rm -rf "$RESTORE_DIR"
