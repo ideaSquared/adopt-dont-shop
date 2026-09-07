@@ -604,14 +604,17 @@ jobs:
       - uses: ./.github/actions/e2e-suite
 
   # ============================================================================
-  # E2E SMOKE — ADS-1242: advisory @smoke subset on PRs touching app / service /
+  # E2E SMOKE — ADS-1242: @smoke subset on PRs touching app / service /
   # gateway code, so the headline journeys (auth, adoption application, chat,
   # gateway login) get a pre-merge signal instead of being protected only
-  # AFTER merge by the opt-in full suite. ADVISORY: deliberately NOT in
-  # ci-required's needs, so a smoke failure shows red on the PR but never
-  # blocks merge — the intended ratchet is to promote this to required once it
-  # has proven stable. Skipped when the PR carries `run-e2e` (the full test-e2e
-  # job already covers those journeys) or when neither app nor backend changed.
+  # AFTER merge by the opt-in full suite. REQUIRED (ADS-1321 / P1-15): in
+  # ci-required's needs — a smoke failure now blocks merge, closing the gap
+  # where any of the 47+ journeys could regress and merge green. The full
+  # test-e2e suite stays opt-in (`run-e2e` label) as before. Skipped when the
+  # PR carries `run-e2e` (the full test-e2e job already covers those
+  # journeys), on non-PR events (push/workflow_dispatch — test-e2e already
+  # gates those), or when neither app nor backend changed — all of which
+  # ci-required's gate treats as passing.
   # ============================================================================
   test-e2e-smoke:
     name: E2E Smoke (Playwright)
@@ -693,6 +696,9 @@ jobs:
       - test-contracts
       - dev-auth-guard
       - test-e2e
+      # ADS-1321: the @smoke Playwright subset now gates merge — see
+      # test-e2e-smoke's own comment for why this closes P1-15.
+      - test-e2e-smoke
     # ADS-792 + ADS-822: test-e2e re-added (suite reworked for post-monolith
     # gateway stack in bd64b1b/#1004); test-services added so zero-test
     # services no longer merge green.
