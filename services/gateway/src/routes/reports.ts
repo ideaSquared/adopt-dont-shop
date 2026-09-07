@@ -155,6 +155,52 @@ type ReportConfigInput = {
   widgets?: ReportWidgetInput[];
 };
 
+// ADS-1296: a widget is ~40-60 bytes, so within Fastify's body-size limit a
+// config can otherwise carry tens of thousands of them, and executeConfig
+// fans every widget out to a concurrent gRPC call — an unbounded array is a
+// fan-out DoS vector. Reject outright (no silent truncation) wherever a
+// config is accepted — POST /execute's free-form body, and parseConfig's
+// output for saved/shared reports — before any gRPC call fires.
+const MAX_REPORT_WIDGETS = 50;
+
+function widgetCountError(widgets: ReportWidgetInput[] | undefined): string | undefined {
+  if (Array.isArray(widgets) && widgets.length > MAX_REPORT_WIDGETS) {
+    return `config.widgets must have at most ${MAX_REPORT_WIDGETS} items`;
+  }
+  return undefined;
+}
+
+// Defence-in-depth alongside the cap above: bound how many widget RPCs run
+// concurrently regardless of widget count, rather than firing them all via
+// Promise.allSettled(widgets.map(...)) at once. No concurrency-limiter
+// dependency exists in this workspace (p-limit shows up in pnpm-lock.yaml
+// only as a transitive devDependency of unrelated tooling, not something
+// any package here depends on directly), so this is a small hand-rolled
+// worker pool.
+export const WIDGET_CONCURRENCY_LIMIT = 5;
+
+export async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let next = 0;
+  async function worker(): Promise<void> {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        results[i] = { status: 'fulfilled', value: await fn(items[i], i) };
+      } catch (reason) {
+        results[i] = { status: 'rejected', reason };
+      }
+    }
+  }
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
+
 function parseConfig(configJson: string | undefined): ReportConfigInput {
   if (!configJson) {
     return { filters: {}, widgets: [] };
@@ -355,17 +401,15 @@ async function executeConfig(
 ): Promise<Record<string, unknown>> {
   const filters = config.filters ?? {};
   const widgets = config.widgets ?? [];
-  const settled = await Promise.allSettled(
-    widgets.map(async widget => ({
-      id: typeof widget.id === 'string' ? widget.id : '',
-      data: await computeWidgetData(widget, filters, clients, metadata, log),
-      meta: {
-        metric: typeof widget.metric === 'string' ? widget.metric : '',
-        chartType: typeof widget.chartType === 'string' ? widget.chartType : '',
-        computedAt: new Date().toISOString(),
-      },
-    }))
-  );
+  const settled = await mapWithConcurrency(widgets, WIDGET_CONCURRENCY_LIMIT, async widget => ({
+    id: typeof widget.id === 'string' ? widget.id : '',
+    data: await computeWidgetData(widget, filters, clients, metadata, log),
+    meta: {
+      metric: typeof widget.metric === 'string' ? widget.metric : '',
+      chartType: typeof widget.chartType === 'string' ? widget.chartType : '',
+      computedAt: new Date().toISOString(),
+    },
+  }));
   const widgetResults = settled.map((result, i) => {
     if (result.status === 'fulfilled') {
       return { ...result.value, status: 'ok' };
@@ -836,9 +880,16 @@ export const registerReportsRoutes = async (
       if (!config || typeof config !== 'object') {
         return reply.code(400).send({ success: false, error: 'config is required' });
       }
+      const configInput = config as ReportConfigInput;
+      const widgetsError = widgetCountError(
+        Array.isArray(configInput.widgets) ? configInput.widgets : undefined
+      );
+      if (widgetsError) {
+        return reply.code(400).send({ success: false, error: widgetsError });
+      }
       try {
         const result = await executeConfig(
-          config as ReportConfigInput,
+          configInput,
           aggregationClients,
           buildMetadata(req),
           req.log
@@ -880,6 +931,10 @@ export const registerReportsRoutes = async (
           return reply.code(404).send({ success: false, error: 'not found' });
         }
         const config = parseConfig(res.report.configJson);
+        const widgetsError = widgetCountError(config.widgets);
+        if (widgetsError) {
+          return reply.code(400).send({ success: false, error: widgetsError });
+        }
         const result = await executeConfig(config, aggregationClients, metadata, req.log);
         return reply.send({ success: true, data: result });
       } catch (err) {
@@ -1143,6 +1198,10 @@ export const registerReportsRoutes = async (
           return reply.code(404).send({ success: false, error: 'not found' });
         }
         const config = parseConfig(report.configJson);
+        const widgetsError = widgetCountError(config.widgets);
+        if (widgetsError) {
+          return reply.code(400).send({ success: false, error: widgetsError });
+        }
         const data = await executeConfig(
           config,
           aggregationClients,
