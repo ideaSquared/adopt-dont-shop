@@ -230,4 +230,119 @@ describe('scheduler', () => {
       await scheduler.stop();
     }
   });
+
+  it('seeds a non-runOnStart, cross-instance-claimed job to the next shared interval boundary', async () => {
+    const claimCalls: Date[] = [];
+    const claimRun = vi.fn(async (_job: string, scheduledFor: Date) => {
+      claimCalls.push(scheduledFor);
+      return true;
+    });
+    let now = 250;
+    const jobs: ScheduledJob[] = [
+      { name: 'daily-purge', intervalMs: 1000, run: async () => undefined },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 100,
+      now: () => now,
+      claimRun,
+    });
+    try {
+      now = 1000;
+      const fired = await scheduler.tick();
+      expect(fired).toEqual(['daily-purge']);
+      expect(claimCalls).toEqual([new Date(1000)]);
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
+  it('returns no fired jobs when tick() is called after stop()', async () => {
+    const jobs: ScheduledJob[] = [
+      { name: 'daily-purge', intervalMs: 60_000, runOnStart: true, run: async () => undefined },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 60_000,
+      now: () => 1_000_000,
+    });
+    await scheduler.stop();
+    const fired = await scheduler.tick();
+    expect(fired).toEqual([]);
+  });
+
+  it('drives the background tick loop off real timers and reschedules itself', async () => {
+    vi.useFakeTimers();
+    try {
+      const runs: string[] = [];
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'daily-purge',
+          intervalMs: 1000,
+          runOnStart: true,
+          run: async () => {
+            runs.push('daily-purge');
+          },
+        },
+      ];
+      const scheduler = startScheduler(jobs, {
+        logger: quietLogger(),
+        tickIntervalMs: 1000,
+      });
+      try {
+        // First scheduled tick fires the runOnStart job.
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(runs).toEqual(['daily-purge']);
+        // The loop reschedules itself — advancing another full interval
+        // fires again without any further manual `tick()` call.
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(runs).toEqual(['daily-purge', 'daily-purge']);
+      } finally {
+        await scheduler.stop();
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('logs and keeps rescheduling when a tick throws synchronously', async () => {
+    vi.useFakeTimers();
+    try {
+      const logger = quietLogger();
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'daily-purge',
+          intervalMs: 1000,
+          run: async () => undefined,
+        },
+      ];
+      // A `now` that throws simulates tick() itself failing outside the
+      // per-job try/catch, exercising the scheduler's own tick_error path.
+      // Call 1 is the nextRunAt seed during startScheduler() (must
+      // succeed); call 2 is tick()'s own `const ts = now()`.
+      let calls = 0;
+      const scheduler = startScheduler(jobs, {
+        logger,
+        tickIntervalMs: 1000,
+        now: () => {
+          calls += 1;
+          if (calls === 2) {
+            throw new Error('clock unavailable');
+          }
+          return 1_000_000;
+        },
+      });
+      try {
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(logger.error).toHaveBeenCalledWith(
+          'scheduler.tick_error',
+          expect.objectContaining({ err: expect.any(Error) })
+        );
+      } finally {
+        await scheduler.stop();
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
