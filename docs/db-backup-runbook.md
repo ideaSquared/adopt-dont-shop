@@ -61,10 +61,19 @@ options; nothing in this repo currently archives WAL.
 | Quarterly restore drill   | Quarterly (staging)         | Drill log retained 1 year       |
 
 Nightly dumps run via the [`backup.yml`](../.github/workflows/backup.yml)
-scheduled workflow (cron `0 2 * * *`), which SSHes to the prod host and runs
-`snapshot-postgres.sh`. The S3 bucket's lifecycle rule sets the 30-day off-site
-retention — **not** the script. A host cron entry is documented as an
-alternative in the [snapshot policy](./operations/snapshot-policy.md).
+scheduled workflow (cron `0 2 * * *`) in the `backups` GitHub environment
+(ADS-1305 — a schedule can never satisfy a required-reviewer environment, so
+scheduled backups no longer route through `production`), which SSHes to the
+prod host and runs `snapshot-postgres.sh`. The S3 bucket's lifecycle rule
+sets the 30-day off-site retention — **not** the script — once an operator
+has run [`scripts/apply-backup-bucket-policy.sh`](../scripts/apply-backup-bucket-policy.sh)
+against the bucket (ADS-1306; see
+["Bucket immutability & lifecycle enforcement"](./operations/snapshot-policy.md#bucket-immutability--lifecycle-enforcement)
+in the snapshot policy). The host's own backup-writer credentials are scoped
+to [`docs/operations/backup-writer-iam-policy.json`](./operations/backup-writer-iam-policy.json)
+— write + list only, no delete — so a host compromise cannot remove an
+existing snapshot. A host cron entry is documented as an alternative in the
+[snapshot policy](./operations/snapshot-policy.md).
 
 The automated restore drill runs via
 [`backup-restore-drill.yml`](../.github/workflows/backup-restore-drill.yml)

@@ -24,9 +24,12 @@ production stack. The script:
 3. Uploads to `s3://${BACKUP_BUCKET}/postgres/$(date -u +%Y/%m/%d/%H%M%S)/dump.sql.gz`
    (one directory per snapshot — the HHMMSS suffix lets multiple daily runs
    coexist).
-4. Sets S3 user-metadata `Class=tier1, Retention=30d` on the object. Lifecycle
-   pruning must be configured on the `postgres/` prefix — S3 lifecycle rules
-   cannot filter by user-metadata, so the metadata is descriptive only.
+4. Sets S3 user-metadata `Class=tier1, Retention=30d` on the object — a
+   human-readable label only, since S3 lifecycle rules cannot filter by
+   user-metadata. The `postgres/` prefix's actual 30-day retention is enforced
+   by the bucket lifecycle rule described in
+   ["Bucket immutability & lifecycle enforcement"](#bucket-immutability--lifecycle-enforcement)
+   below, not by this metadata.
 
 Runs automatically every night via the
 [`backup.yml`](../../.github/workflows/backup.yml) scheduled workflow (cron
@@ -70,6 +73,43 @@ workflow. The host-cron snippet below remains a documented alternative.
 30 2 * * * deploy /opt/ads/production/scripts/snapshot-uploads.sh >> /var/log/snapshot.log 2>&1
 ```
 
+## Bucket immutability & lifecycle enforcement
+
+Historically the `Retention=30d/90d` object metadata above was **descriptive
+only** — there was no lifecycle rule, no versioning, and no Object Lock
+anywhere, so the retention numbers in the table above were not actually
+enforced, and the backup-writer credentials that live on the production host
+could delete or overwrite any existing snapshot (ADS-1306).
+
+`scripts/apply-backup-bucket-policy.sh` (run once by an operator, and again
+after any retention change) now:
+
+1. Enables S3 bucket versioning.
+2. Applies a lifecycle rule per prefix — transition to `STANDARD_IA` then
+   expire (current **and** noncurrent object versions) at the retention in
+   the table above: `postgres/` 30d, `uploads/` 90d.
+3. Optionally (`--enable-object-lock`) sets a default Object Lock retention,
+   so even credentials with delete permission cannot remove a snapshot before
+   the lock window expires. Object Lock can only be enabled on a bucket
+   **created** with it — see the script's `--help` and
+   [ADR 0007](../adr/0007-postgres-backups-pitr-restore.md) for the
+   GOVERNANCE-vs-COMPLIANCE tradeoff.
+
+Separately, the host's own AWS credentials (used by `backup.yml` to run the
+snapshot scripts) are scoped to
+[`backup-writer-iam-policy.json`](./backup-writer-iam-policy.json) —
+`s3:PutObject` + `s3:ListBucket` only, no `s3:DeleteObject*` and no
+`s3:PutBucketVersioning` / `s3:PutLifecycleConfiguration`. A compromised host
+can still write junk snapshots, but cannot delete existing ones or weaken the
+bucket protection above.
+
+**What this does not do:** Object Lock is opt-in (`--enable-object-lock`) and
+requires bucket recreation if the bucket predates this change — the script
+detects and warns rather than silently no-op'ing. Point-in-time recovery
+(PITR) is **not** implemented by this or any script in this repo; see
+[ADR 0007](../adr/0007-postgres-backups-pitr-restore.md) for that separate,
+still-open decision.
+
 ## letsencrypt — regenerable, no backup
 
 certbot renews on demand; backing up the state directory adds no resilience
@@ -92,5 +132,7 @@ tracked in `docs/operations/restore-drills.md`.
 - ADS-1239 — automate the uploads snapshot (this document's `backup.yml` job)
 - ADS-1240 — automated nightly restore verification (this document's
   "Verification" section; detail in db-backup-runbook.md)
+- ADS-1306 — bucket versioning, lifecycle enforcement, least-privilege IAM
+  (this document's "Bucket immutability & lifecycle enforcement" section)
 - ADS-443 — streaming replication / PITR (out of scope here)
 - ADS-500 — volume backup automation (this document)
