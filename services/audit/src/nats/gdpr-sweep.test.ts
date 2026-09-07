@@ -215,7 +215,7 @@ describe('runGdprSweep — retry', () => {
       callCount++;
       if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
       if (callCount === 2) return { rows: [row] }; // retry candidates query
-      return { rows: [] };
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot
     });
 
     const logger = makeLogger();
@@ -240,12 +240,95 @@ describe('runGdprSweep — retry', () => {
       })
     );
 
-    // Must increment retry_count.
+    // Must increment retry_count, atomically claiming the slot BEFORE
+    // publishing (ADS-1325).
     const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls as [string, unknown[]][];
     const retryUpdate = calls.find(
       ([sql]) => sql.includes('retry_count') && sql.includes('UPDATE')
     );
     expect(retryUpdate).toBeDefined();
+    // The claim query happened before the publish, not after.
+    const claimIndex = calls.findIndex(
+      ([sql]) => sql.includes('retry_count') && sql.includes('UPDATE')
+    );
+    expect(claimIndex).toBeLessThan(calls.length); // sanity: it exists
+    expect(publishFn.mock.invocationCallOrder[0]).toBeGreaterThan(
+      (pool.query as ReturnType<typeof vi.fn>).mock.invocationCallOrder[claimIndex]
+    );
+  });
+
+  it('does not publish, and skips to the next candidate, when the claim UPDATE affects 0 rows (lost to a concurrent sweep run)', async () => {
+    const row = makeSagaRow({
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 0,
+      completions: {
+        pets: { recordsErased: 0, error: 'timeout', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
+      if (callCount === 2) return { rows: [row] }; // retry candidates query
+      return { rows: [], rowCount: 0 }; // claim UPDATE — LOST the slot
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn();
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    expect(publishFn).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(
+      'gdpr saga retry claim lost — already handled by a concurrent sweep run',
+      expect.objectContaining({ correlationId: 'corr-1' })
+    );
+  });
+
+  it('the claim UPDATE guards on the OLD retry_count value (optimistic concurrency)', async () => {
+    const row = makeSagaRow({
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 2,
+      completions: {
+        pets: { recordsErased: 0, error: 'timeout', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return { rows: [] };
+      if (callCount === 2) return { rows: [row] };
+      return { rows: [], rowCount: 1 };
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn().mockResolvedValue({ stream: 'DOMAIN_EVENTS', seq: 1 });
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls as [string, unknown[]][];
+    const claimCall = calls.find(([sql]) => sql.includes('retry_count') && sql.includes('UPDATE'));
+    expect(claimCall![0]).toContain('retry_count = $3');
+    // New value (3), correlation id, and the OLD value (2) as the guard.
+    expect(claimCall![1]).toEqual([3, 'corr-1', 2]);
   });
 
   it('uses a distinct msgID per retry attempt so JetStream does not deduplicate retries', async () => {
@@ -263,7 +346,7 @@ describe('runGdprSweep — retry', () => {
     (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
       callCount++;
       if (callCount === 2) return { rows: [row] };
-      return { rows: [] };
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot
     });
 
     const logger = makeLogger();
@@ -340,7 +423,7 @@ describe('runGdprSweep — retry', () => {
     (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
       callCount++;
       if (callCount === 2) return { rows: [row] };
-      return { rows: [] };
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot
     });
 
     const logger = makeLogger();

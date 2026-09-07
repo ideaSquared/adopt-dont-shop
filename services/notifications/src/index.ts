@@ -176,8 +176,9 @@ const main = async (): Promise<void> => {
     }
     // ADS-1245: the weekly-digest scheduled job was a send-nothing scaffold
     // (its fan-out RPCs were never wired), so it is shelved — nothing is
-    // scheduled here. The generic scheduler + claim infra under ./scheduler/
-    // is kept dormant for when the real digest is built as its own feature.
+    // scheduled here. The generic scheduler + claim infra (ADS-1325: now
+    // @adopt-dont-shop/scheduler, shared with services/audit) is kept
+    // dormant for when the real digest is built as its own feature.
     const httpServer = createServer({
       config,
       logger,

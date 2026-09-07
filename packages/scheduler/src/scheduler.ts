@@ -1,29 +1,28 @@
-// Tick-based scheduler for periodic notifications jobs. Each job is
-// registered with an interval; the scheduler walks the registered jobs
-// every tick and runs any whose `nextRunAt` has passed.
+// Tick-based scheduler for periodic backend jobs. Each job is registered
+// with an interval; the scheduler walks the registered jobs every tick and
+// runs any whose `nextRunAt` has passed.
 //
-// Why not node-cron / agenda? Both pull in a heavy dep for the small set
-// of scheduled tasks this service is designed to run. The tick loop matches
-// the CAD-style "minimal external surface" approach and is trivial to test
-// with a mocked clock.
+// Why not node-cron / agenda? Both pull in a heavy dep for the small set of
+// scheduled tasks a typical service runs. The tick loop matches the CAD-style
+// "minimal external surface" approach and is trivial to test with a mocked
+// clock.
 //
-// ADS-1245: the only registered job (the weekly digest) was a send-nothing
-// scaffold and has been shelved, so nothing is wired into this scheduler
-// today. This module + scheduler/claim.ts are kept as dormant, tested infra
-// for when the real digest (or another periodic job) is built.
+// Replicas + locking: cross-instance locking is OPTIONAL, via the `claimRun`
+// hook (see SchedulerOptions). When wired (see claim.ts's claimScheduledRun),
+// the scheduler claims each job's interval-quantised slot before running so
+// only one replica runs the job; when omitted it runs single-instance (test /
+// single-replica behaviour). The claim is an `INSERT ... ON CONFLICT DO
+// NOTHING` on a `scheduled_job_runs` table — chosen over FOR UPDATE SKIP
+// LOCKED because a single-slot claim needs no pre-seeded row to lock.
 //
-// Replicas + locking: cross-instance locking is OPTIONAL, via the
-// `claimRun` hook (see SchedulerOptions). When wired, the scheduler claims
-// each job's interval-quantised slot before running so only one replica
-// runs the job; when omitted it runs single-instance (test / single-replica
-// behaviour). The claim is an `INSERT ... ON CONFLICT DO NOTHING` on
-// `scheduled_job_runs` (scheduler/claim.ts) — chosen over FOR UPDATE SKIP
-// LOCKED because a single-slot claim needs no pre-seeded row to lock; the
-// email queue worker still uses SKIP LOCKED to drain its many-row queue.
+// ADS-1325: extracted from services/notifications/src/scheduler/ into this
+// shared package so services/audit could pick up the same claim-aware,
+// anchor-aware scheduler instead of carrying an older, unpatched fork (which
+// had the epoch-seeding bug this module's `runOnStart` handling avoids — see
+// the nextRunAt seeding comment below) that fired its jobs on every replica
+// and re-fired on every restart.
 
 import type { Logger } from 'winston';
-
-import { recordScheduledJobFailure } from '../metrics.js';
 
 export type ScheduledJob = {
   name: string;
@@ -40,10 +39,10 @@ export type ScheduledJob = {
   // weekday/time-of-day rather than whatever the epoch happens to align to,
   // while preserving the shared grid cross-instance claiming depends on —
   // shifting the anchor shifts every replica's boundary identically.
-  // Default 0 (epoch-aligned, today's behaviour) (ADS-1127).
+  // Default 0 (epoch-aligned, today's behaviour).
   anchorMs?: number;
   // The async body. Errors are caught + logged; the next run schedules
-  // normally (one bad week shouldn't stop the digest forever).
+  // normally (one bad run shouldn't stop the job forever).
   run: () => Promise<void>;
 };
 
@@ -62,12 +61,17 @@ export type SchedulerOptions = {
   // compute the same key. Returns true when this replica may run the job.
   // Omitted → no locking (single-instance / test behaviour).
   claimRun?: (job: string, scheduledFor: Date) => Promise<boolean>;
+  // Called when a job's run() throws. Optional — the caller wires its own
+  // metrics counter (each service has its own Prometheus metric name/label
+  // set); the scheduler itself carries no metrics dependency. The error is
+  // always logged regardless of whether this is provided.
+  onJobFailure?: (job: string) => void;
 };
 
 export type RunningScheduler = {
   stop: () => Promise<void>;
-  // Exposed for tests + the smoke script — runs one tick synchronously
-  // and returns the names of jobs that fired.
+  // Exposed for tests + smoke scripts — runs one tick synchronously and
+  // returns the names of jobs that fired.
   tick: () => Promise<string[]>;
 };
 
@@ -113,10 +117,10 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
   //
   // For a cross-instance-claimed job (claimRun set) with runOnStart=false,
   // seed to the next shared interval grid boundary (ceil) rather than
-  // `now() + intervalMs` (ADS-1066): otherwise two replicas' boot-derived
-  // due instants can straddle an arbitrary epoch-aligned boundary and
-  // permanently disagree on every subsequent claim. Jobs with no claimRun
-  // keep the plain boot-offset seed — there's no cross-replica agreement to
+  // `now() + intervalMs`: otherwise two replicas' boot-derived due instants
+  // can straddle an arbitrary epoch-aligned boundary and permanently
+  // disagree on every subsequent claim. Jobs with no claimRun keep the
+  // plain boot-offset seed — there's no cross-replica agreement to
   // preserve, and it avoids a thundering herd of near-immediate first runs
   // on deploy.
   const nextRunAt = new Map<string, number>();
@@ -158,7 +162,7 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
       return won;
     } catch (err) {
       // A claim error means we can't prove we're the sole runner — skip
-      // rather than risk a duplicate send; the next interval retries.
+      // rather than risk a duplicate run; the next interval retries.
       opts.logger.error('scheduler.claim_error', {
         name: job.name,
         err: err instanceof Error ? err.message : String(err),
@@ -185,7 +189,7 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
       // finishes). Anchored to `due` (the run we just fired), not the
       // observed `ts` — keeps the schedule a stable, non-drifting arithmetic
       // progression instead of walking forward by however late each tick
-      // happened to observe the job as due (ADS-1066).
+      // happened to observe the job as due.
       nextRunAt.set(job.name, due + job.intervalMs);
       // Cross-instance lock: only the replica that wins the slot runs it.
       if (!(await claimSlot(job, due))) {
@@ -200,7 +204,7 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
           name: job.name,
           err: err instanceof Error ? err.message : String(err),
         });
-        recordScheduledJobFailure(job.name);
+        opts.onJobFailure?.(job.name);
       }
     }
     return fired;

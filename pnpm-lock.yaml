@@ -1543,6 +1543,18 @@ importers:
         specifier: ^2.11.8
         version: 2.11.8
 
+  packages/scheduler:
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.15.5
+        version: 8.20.0
+      pg:
+        specifier: ^8.22.0
+        version: 8.22.0
+      winston:
+        specifier: ^3.19.0
+        version: 3.19.0
+
   packages/seed-faker:
     dependencies:
       '@faker-js/faker':
@@ -1721,6 +1733,9 @@ importers:
       '@adopt-dont-shop/proto':
         specifier: workspace:*
         version: link:../../packages/proto
+      '@adopt-dont-shop/scheduler':
+        specifier: workspace:*
+        version: link:../../packages/scheduler
       '@adopt-dont-shop/service-bootstrap':
         specifier: workspace:*
         version: link:../../packages/service-bootstrap
@@ -2160,6 +2175,9 @@ importers:
       '@adopt-dont-shop/proto':
         specifier: workspace:*
         version: link:../../packages/proto
+      '@adopt-dont-shop/scheduler':
+        specifier: workspace:*
+        version: link:../../packages/scheduler
       '@adopt-dont-shop/seed-faker':
         specifier: workspace:*
         version: link:../../packages/seed-faker
