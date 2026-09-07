@@ -333,6 +333,11 @@ services:
       # ADS-422: the per-stack nginx serves /uploads via auth_request; disable
       # the gateway's own file streaming in production.
       SERVE_LOCAL_UPLOADS: "false"
+      # ADS-1303: Dockerfile.service bakes the repo's docs/legal into the
+      # image at /app/docs/legal (turbo prune's output doesn't carry the
+      # repo-root docs/ tree) — without this the legal routes 500 and the
+      # cookie-consent banner never renders.
+      LEGAL_DOCS_DIR: /app/docs/legal
       UPLOAD_SIGNING_SECRET_FILE: /run/secrets/upload_signing_secret
       # ADS-800: the gateway signs the x-principal-token it forwards on
       # every downstream gRPC call.
