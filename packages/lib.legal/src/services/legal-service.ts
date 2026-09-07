@@ -92,3 +92,27 @@ export const fetchCookiesVersion = async (): Promise<string> => {
   const raw = await api.get<unknown>('/api/v1/legal/cookies');
   return CookiesDocumentResponseSchema.parse(raw).data.version;
 };
+
+/**
+ * ADS-1326: the full versioned legal documents (markdown), served by the
+ * gateway from docs/legal/*.md — see services/gateway/src/routes/legal.ts.
+ * `/terms` and `/privacy` used to render CMS pages that no migration seeds,
+ * so a fresh database showed "Content not found"; this endpoint has no such
+ * dependency, it's always available.
+ */
+export const LegalDocumentSlugSchema = z.enum(['terms', 'privacy', 'cookies']);
+export type LegalDocumentSlug = z.infer<typeof LegalDocumentSlugSchema>;
+
+const LegalDocumentResponseSchema = z.object({
+  data: z.object({
+    version: z.string().min(1),
+    contentType: z.literal('text/markdown'),
+    content: z.string(),
+  }),
+});
+export type LegalDocument = z.infer<typeof LegalDocumentResponseSchema>['data'];
+
+export const fetchLegalDocument = async (slug: LegalDocumentSlug): Promise<LegalDocument> => {
+  const raw = await api.get<unknown>(`/api/v1/legal/${slug}`);
+  return LegalDocumentResponseSchema.parse(raw).data;
+};
