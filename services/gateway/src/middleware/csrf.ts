@@ -28,6 +28,8 @@ import { timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Logger } from 'winston';
 
+import { redactUrl } from '@adopt-dont-shop/observability';
+
 import { ACCESS_TOKEN_COOKIE_NAME } from './auth-cookies.js';
 
 export const CSRF_COOKIE_NAME = 'csrfToken';
@@ -74,9 +76,13 @@ export const registerCsrfProtection = (app: FastifyInstance, opts: CsrfProtectio
       return;
     }
     if (!verifyCsrfToken(req)) {
+      // ADS-1295: log only the path, not the full req.url — a query string
+      // can carry a secret (e.g. ?email=... or ?token=...), and
+      // redactSecretFields only redacts by object key, not by scanning
+      // string values for embedded tokens. See redactUrl / server.ts.
       opts.logger.warn('rejecting request: missing/invalid CSRF token', {
         method: req.method,
-        url: req.url,
+        url: redactUrl(req.url),
       });
       return reply.code(403).send({ error: 'invalid csrf token' });
     }
