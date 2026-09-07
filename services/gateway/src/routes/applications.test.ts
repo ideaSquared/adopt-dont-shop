@@ -642,6 +642,20 @@ describe('applications routes', () => {
       expect(res.statusCode).toBe(400);
     });
 
+    // ADS-1323: unbounded applicationIds fanned out one gRPC call per id
+    // with no cap — commit 08dc01a capped reports/execute the same way.
+    it('rejects an applicationIds batch over the item cap with 400 (no RPC calls)', async () => {
+      const applicationIds = Array.from({ length: 101 }, (_, i) => `app-${i}`);
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: { applicationIds, updates: { status: 'approved' } },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(mocks.approve).not.toHaveBeenCalled();
+    });
+
     it('status: approved → Approve for every id, reporting an all-success summary', async () => {
       mocks.approve.mockResolvedValue({ application: SUBMITTED });
       const res = await app.inject({

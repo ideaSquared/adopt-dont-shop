@@ -315,6 +315,100 @@ describe('loadConfig — CORS fail-closed in production/staging (ADS-967)', () =
   });
 });
 
+// ADS-1323: packages/lib.validation/src/schemas/env.ts's production-only
+// refiners (CORS wildcard rejection, secret-distinctness) were never wired
+// into any running service's boot path — the gateway's own buildCorsConfig
+// only checked for an EMPTY CORS_ORIGIN, so a wildcard value sailed through.
+describe('loadConfig — CORS wildcard rejection (ADS-1323)', () => {
+  it('refuses to boot under NODE_ENV=production when CORS_ORIGIN is a bare wildcard', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production', CORS_ORIGIN: '*' })).toThrow(/wildcard/i);
+  });
+
+  it('refuses to boot under NODE_ENV=production when CORS_ORIGIN mixes a real origin with a wildcard', () => {
+    expect(() =>
+      loadConfig({ NODE_ENV: 'production', CORS_ORIGIN: 'https://adoptdontshop.com,*' })
+    ).toThrow(/wildcard/i);
+  });
+
+  it('refuses to boot under NODE_ENV=staging when CORS_ORIGIN contains a wildcard', () => {
+    expect(() => loadConfig({ NODE_ENV: 'staging', CORS_ORIGIN: '*' })).toThrow(/wildcard/i);
+  });
+
+  it('still allows a wildcard-free CORS_ORIGIN in production', () => {
+    expect(() =>
+      loadConfig({ NODE_ENV: 'production', CORS_ORIGIN: 'https://adoptdontshop.com' })
+    ).not.toThrow();
+  });
+
+  it('does not reject a wildcard outside production/staging', () => {
+    expect(() => loadConfig({ NODE_ENV: 'development', CORS_ORIGIN: '*' })).not.toThrow();
+  });
+});
+
+describe('loadConfig — secret distinctness (ADS-1323)', () => {
+  // The gateway only ever sets a couple of the paired secrets itself
+  // (UPLOAD_SIGNING_SECRET); ENCRYPTION_KEY is never one the gateway reads,
+  // but a shared secrets file could still export it into the gateway's
+  // process.env — DISTINCT_SECRET_PAIRS covers that pair, so it's the one
+  // exercised here without requiring lib.validation to gain a new pair.
+  it('refuses to boot under NODE_ENV=production when UPLOAD_SIGNING_SECRET reuses ENCRYPTION_KEY', () => {
+    const shared = 'a'.repeat(32);
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        CORS_ORIGIN: 'https://adoptdontshop.com',
+        UPLOAD_SIGNING_SECRET: shared,
+        ENCRYPTION_KEY: shared,
+      })
+    ).toThrow(/must be distinct/i);
+  });
+
+  it('boots fine under NODE_ENV=production when the two secrets are distinct', () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        CORS_ORIGIN: 'https://adoptdontshop.com',
+        UPLOAD_SIGNING_SECRET: 'a'.repeat(32),
+        ENCRYPTION_KEY: 'b'.repeat(32),
+      })
+    ).not.toThrow();
+  });
+
+  it('does not enforce distinctness outside production/staging', () => {
+    const shared = 'a'.repeat(32);
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'development',
+        UPLOAD_SIGNING_SECRET: shared,
+        ENCRYPTION_KEY: shared,
+      })
+    ).not.toThrow();
+  });
+});
+
+describe('loadConfig — metrics bearer token (ADS-1327)', () => {
+  it('is undefined when METRICS_BEARER_TOKEN is unset (metrics stays public by default)', () => {
+    const config = loadConfig({});
+    expect(config.metricsBearerToken).toBeUndefined();
+  });
+
+  it('reads METRICS_BEARER_TOKEN from the environment', () => {
+    const config = loadConfig({ METRICS_BEARER_TOKEN: 'a-metrics-token-of-16+-bytes' });
+    expect(config.metricsBearerToken).toBe('a-metrics-token-of-16+-bytes');
+  });
+
+  it('treats a blank METRICS_BEARER_TOKEN as unset', () => {
+    const config = loadConfig({ METRICS_BEARER_TOKEN: '   ' });
+    expect(config.metricsBearerToken).toBeUndefined();
+  });
+
+  it('rejects a present-but-too-short METRICS_BEARER_TOKEN', () => {
+    expect(() => loadConfig({ METRICS_BEARER_TOKEN: 'too-short' })).toThrow(
+      /METRICS_BEARER_TOKEN must be at least 16 bytes/
+    );
+  });
+});
+
 describe('loadConfig — AV scan (ADS-1241)', () => {
   it('defaults host/port to the docker-compose clamav service + clamd standard port', () => {
     const config = loadConfig({});

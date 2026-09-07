@@ -398,6 +398,21 @@ describe('POST /api/v1/rescues/bulk-update', () => {
     expect(m.verify).not.toHaveBeenCalled();
   });
 
+  // ADS-1323: unbounded rescueIds fanned out one gRPC call per id with no
+  // cap — commit 08dc01a capped reports/execute the same way.
+  it('rejects a rescueIds batch over the item cap with 400 (no RPC calls)', async () => {
+    const rescueIds = Array.from({ length: 101 }, (_, i) => `r-${i}`);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rescues/bulk-update',
+      headers: ADMIN_HEADERS,
+      payload: { rescueIds, action: 'approve' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(m.verify).not.toHaveBeenCalled();
+  });
+
   it('rejects an unknown action with 400', async () => {
     const res = await app.inject({
       method: 'POST',

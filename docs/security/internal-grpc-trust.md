@@ -185,3 +185,28 @@ current deployment scale and is tracked for remediation.
   are hardcoded strings. With the key deployed they are at least signed by a
   key-holding process, but any key holder can mint any principal — there is
   no per-service identity attestation (that needs mTLS client certs).
+
+## Accepted risk until mTLS (ADS-1323)
+
+`PRINCIPAL_SIGNING_KEY` is one shared HMAC secret, deployed identically to
+all eleven containers (the gateway signs; every service verifies with the
+same key — see `packages/service-bootstrap/src/grpc-server.ts:47`, which
+still runs plaintext gRPC with no channel-level client authentication).
+Signing proves a `x-principal-token` was minted by _some_ key holder, not
+_which_ one: any compromised service — or anything that reaches a
+container's environment and reads the key — can mint a `super_admin`
+principal and call any other service directly, bypassing that service's
+own permission gates entirely (`hasPermission`'s super_admin short-circuit
+in `packages/authz/src/has-permission.ts`).
+
+This is a known, accepted risk rather than an oversight: per-service
+identity attestation needs mTLS client certificates (a distinct key pair
+per service, verified at the TLS handshake, independent of the payload-
+level HMAC), which is out of scope for the current network posture — all
+eleven services already share one trusted docker-compose network with no
+inbound path from outside it except through the gateway. The residual
+exposure is a compromised _service container_ impersonating another
+service to a third; there is no exposure to an external, unauthenticated
+caller. Revisit this when the "Future work: mTLS" item above lands —
+per-service client certificates close this gap as a side effect of that
+work, so no separate remediation is planned ahead of it.
