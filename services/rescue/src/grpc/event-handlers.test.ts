@@ -178,6 +178,15 @@ describe('listEvents', () => {
       code: 'PERMISSION_DENIED',
     });
   });
+
+  it('escapes LIKE wildcards in the search term', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listEvents(mocks.deps, STAFF, { search: '50%_off' });
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    // A literal % or _ in the search term must not act as a wildcard —
+    // it should be escaped, not passed through raw.
+    expect(params).toContain('%50\\%\\_off%');
+  });
 });
 
 // ── GetEvent ────────────────────────────────────────────────────────────

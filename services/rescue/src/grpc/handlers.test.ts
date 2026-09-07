@@ -1072,6 +1072,19 @@ describe('listRescues — new filters', () => {
     expect(params).toContain('%happy%');
   });
 
+  it('escapes LIKE wildcards in the name search term', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescues(mocks.deps, ADOPTER, {
+      limit: 0,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+      nameSearch: '50%_off',
+    } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    // A literal % or _ in the search term must not act as a wildcard —
+    // it should be escaped, not passed through raw.
+    expect(params).toContain('%50\\%\\_off%');
+  });
+
   it('randomize switches ORDER BY to random()', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     await listRescues(mocks.deps, ADOPTER, {

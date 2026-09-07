@@ -319,7 +319,9 @@ export async function listEvents(
     conditions.push(`end_date <= $${params.length}`);
   }
   if (req.search) {
-    params.push(`%${req.search}%`);
+    // Escape LIKE wildcards so the search box can't be used for
+    // enumeration via % / _.
+    params.push(`%${req.search.replace(/[\\%_]/g, c => `\\${c}`)}%`);
     conditions.push(`name ILIKE $${params.length}`);
   }
   if (req.assignedStaff) {

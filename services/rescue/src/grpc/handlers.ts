@@ -446,10 +446,11 @@ export async function listRescues(
     pushStatus(statusToDb(req.statusFilter));
   }
 
-  // Free-text name search (case-insensitive substring).
+  // Free-text name search (case-insensitive substring). Escape LIKE
+  // wildcards so the search box can't be used for enumeration via % / _.
   if (req.nameSearch !== undefined && req.nameSearch !== '') {
     where.push(`name ILIKE $${n}`);
-    params.push(`%${req.nameSearch}%`);
+    params.push(`%${req.nameSearch.replace(/[\\%_]/g, c => `\\${c}`)}%`);
     n++;
   }
 
