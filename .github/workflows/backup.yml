@@ -17,6 +17,15 @@ name: Backup
 # POSTGRES_DB are read from the host .env (same pattern as deploy/rollback);
 # BACKUP_BUCKET / AWS_REGION come from repo variables; the host's own AWS
 # credentials authorise the S3 upload (no AWS keys flow through this workflow).
+#
+# ADS-1305: both jobs run in the dedicated `backups` environment, which has NO
+# required reviewers — a schedule-triggered job entering a required-reviewer
+# environment (e.g. `production`) waits for approval and expires, so no
+# unattended run would ever complete. See docs/operations/deploy.md's
+# environment table and .github/workflows/README.md for the one-time
+# `backups` environment setup this depends on. The maintainer copies the same
+# HETZNER_HOST / HETZNER_SSH_KEY / HETZNER_HOST_FINGERPRINT secrets that used
+# to live on `production` into `backups`.
 on:
   schedule:
     - cron: '0 2 * * *'
@@ -33,7 +42,7 @@ jobs:
   snapshot-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
+    environment: backups
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -88,7 +97,7 @@ jobs:
   snapshot-uploads:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
+    environment: backups
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0

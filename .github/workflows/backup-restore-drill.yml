@@ -34,6 +34,12 @@ name: Backup Restore Drill
 # there — referencing secrets there is a workflow parse error), so the guard
 # step below copies the secrets into job env (a context steps.*.if CAN read)
 # and every credential-dependent step is gated on its output.
+#
+# ADS-1305: the job runs in the `backups` GitHub environment (no required
+# reviewers) — the same one backup.yml's jobs use — so the drill authenticates
+# against the same AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY secrets rather
+# than a separate, possibly-stale copy. See docs/operations/deploy.md's
+# environment table and .github/workflows/README.md.
 
 on:
   schedule:
@@ -52,6 +58,7 @@ jobs:
     name: Restore latest Postgres snapshot into a scratch DB
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: backups
     env:
       BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION }}
