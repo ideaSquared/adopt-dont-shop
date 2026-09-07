@@ -219,6 +219,32 @@ const ELEVATED_ROLES: ReadonlySet<string> = new Set(['admin', 'moderator', 'supe
 // Invitation tokens are short-lived; the invitee must redeem within a week.
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+// Shared by adminResetPassword, adminUpdateUser, adminLockAccount, and
+// deactivateUser: a non-super-admin admin holds the underlying admin.*
+// permission for each of these actions, but must never be able to use it
+// against an admin/moderator/super_admin account — reset its password,
+// edit its fields, lock it, or deactivate it. Only a super_admin may act
+// on an elevated target (ADS-1291, ADS-1293).
+async function assertMayActOnTarget(
+  deps: HandlerDeps,
+  principal: Principal,
+  targetUserId: string
+): Promise<void> {
+  const { rows } = await deps.pool.query<{ user_type: string }>(
+    `SELECT user_type FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+    [targetUserId]
+  );
+  if (!rows[0]) {
+    throw new HandlerError('NOT_FOUND', `user ${targetUserId} not found`);
+  }
+  if (ELEVATED_ROLES.has(rows[0].user_type) && !principal.roles.includes('super_admin')) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      'only a super_admin may act on an admin, moderator, or super_admin account'
+    );
+  }
+}
+
 export async function adminCreateUser(
   deps: HandlerDeps,
   principal: Principal,
@@ -378,6 +404,10 @@ export async function adminUpdateUser(
     return adminGetUser(deps, principal, { userId: req.userId });
   }
 
+  // Any state-changing update to an elevated target — not just assigning
+  // one of its roles — is a non-super-admin's business (ADS-1293).
+  await assertMayActOnTarget(deps, principal, req.userId);
+
   sets.push('updated_at = now()');
   sets.push('version = version + 1');
 
@@ -442,6 +472,7 @@ export async function deactivateUser(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot deactivate your own account');
   }
+  await assertMayActOnTarget(deps, principal, req.userId);
 
   return setStatus(deps, principal, req.userId, 'deactivated', req.reason ?? null);
 }
@@ -531,6 +562,7 @@ export async function adminResetPassword(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot reset your own password via the admin path');
   }
+  await assertMayActOnTarget(deps, principal, req.userId);
 
   const temporaryPassword = generateTemporaryPassword();
   const passwordHash = await deps.passwordHasher.hash(temporaryPassword);
@@ -594,6 +626,7 @@ export async function adminLockAccount(
   if (req.userId === principal.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot lock your own account');
   }
+  await assertMayActOnTarget(deps, principal, req.userId);
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
