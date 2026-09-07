@@ -66,9 +66,9 @@ const STAFF_DELETE: Permission = 'staff.delete' as Permission;
 // admin / super_admin — NOT rescue_staff (which has staff.* + rescues.read
 // scoped to its own rescue), so it can't be used to leak across rescues.
 const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
-const FOSTER_CREATE: Permission = 'foster.create' as Permission;
-const FOSTER_READ: Permission = 'foster.read' as Permission;
-const FOSTER_UPDATE: Permission = 'foster.update' as Permission;
+const FOSTER_CREATE: Permission = 'foster.create';
+const FOSTER_READ: Permission = 'foster.read';
+const FOSTER_UPDATE: Permission = 'foster.update';
 
 // --- Row shapes ------------------------------------------------------
 

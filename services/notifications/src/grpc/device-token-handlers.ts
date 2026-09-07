@@ -35,10 +35,10 @@ import { HandlerError } from './handlers.js';
 
 // --- Permissions -----------------------------------------------------
 
-const DEVICE_TOKENS_WRITE_SELF: Permission = 'notifications.device-tokens.write' as Permission;
-const DEVICE_TOKENS_WRITE_ANY: Permission = 'notifications.device-tokens.write:any' as Permission;
-const DEVICE_TOKENS_READ_SELF: Permission = 'notifications.device-tokens.read' as Permission;
-const DEVICE_TOKENS_READ_ANY: Permission = 'notifications.device-tokens.read:any' as Permission;
+const DEVICE_TOKENS_WRITE_SELF: Permission = 'notifications.device-tokens.write';
+const DEVICE_TOKENS_WRITE_ANY: Permission = 'notifications.device-tokens.write:any';
+const DEVICE_TOKENS_READ_SELF: Permission = 'notifications.device-tokens.read';
+const DEVICE_TOKENS_READ_ANY: Permission = 'notifications.device-tokens.read:any';
 
 // --- Enum maps -------------------------------------------------------
 
