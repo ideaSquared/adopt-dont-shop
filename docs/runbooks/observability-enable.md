@@ -38,14 +38,33 @@ compose, preserving paths:
 /opt/ads/<env>/
 ├── docker-compose.observability.yml
 ├── docker-compose.glitchtip.yml          # only if enabling GlitchTip
-├── infra/prometheus/rules/               # the SLO alert rules
+├── infra/prometheus/rules/               # the SLO + host/datastore/burn-rate alert rules
 └── observability/
-    ├── prometheus/prometheus.yml
+    ├── prometheus/prometheus.yml         # edit the blackbox-public-endpoints target — see step 2a
+    ├── blackbox/blackbox.yml             # synthetic-probe module config
     ├── loki/loki-config.yaml
     ├── tempo/tempo.yaml
     ├── alertmanager/alertmanager.yml
     ├── alertmanager/secrets/             # notifier secrets (see step 4)
     └── grafana/provisioning/             # datasources + dashboards
+```
+
+`docker-compose.observability.yml` also brings up `node-exporter`, `cadvisor`,
+`postgres-exporter`, `redis-exporter` and `blackbox-exporter` (ADS-1313 /
+ADS-1307d) — no separate provisioning step for these; they start with the rest
+of the overlay and reuse the `db_password` / `redis_password` secrets the base
+compose file already provisions.
+
+### 2a. Point the synthetic probe at your real public hostname
+
+`observability/prometheus/prometheus.yml`'s `blackbox-public-endpoints` job
+ships with a placeholder target (`https://REPLACE_WITH_PUBLIC_HOSTNAME/`).
+Prometheus config has no env-var interpolation, so edit the file on the host
+before starting the stack:
+
+```bash
+sed -i 's#https://REPLACE_WITH_PUBLIC_HOSTNAME/#https://<your-prod-hostname>/#' \
+  /opt/ads/<env>/observability/prometheus/prometheus.yml
 ```
 
 (e.g. `scp -r docker-compose.observability.yml infra observability deploy@$HOST:/opt/ads/production/`)
@@ -86,45 +105,58 @@ the deploy layers the overlay(s) into `docker compose up -d` automatically.
 
 Confirm containers are healthy: `docker compose -f docker-compose.<env>.yml -f docker-compose.observability.yml ps`.
 
-## 4. Wire Alertmanager (Discord webhook secret)
+## 4. Wire Alertmanager (webhook secrets)
 
-`alertmanager.yml` ships with **active** Discord receivers — both
-`critical-pager` and `warning-chat` are configured with
-`discord_configs.webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url`.
-There is nothing to uncomment; Alertmanager just needs the secret file to
-exist, and **it must exist before the container starts** or Alertmanager fails
-to load the config.
+`alertmanager.yml` ships with **active** receivers for all three routes —
+`critical-pager`, `warning-chat`, and `deadman` — each reading its own file
+secret. There is nothing to uncomment; Alertmanager just needs **all three**
+files to exist, and **they must exist before the container starts** or
+Alertmanager fails to load the config.
 
-1. Create a Discord incoming webhook (Server Settings → Integrations →
-   Webhooks) for the alerts channel; copy its URL.
-2. Write it to the secret file on the host (git-ignored, mounted read-only at
-   `/etc/alertmanager/secrets/`):
+1. Create **two** Discord incoming webhooks (Server Settings → Integrations →
+   Webhooks) — one for a critical/escalation channel, one for a routine-chat
+   channel (the same channel for both is fine if you don't want to split them
+   yet — just point both secret files at the same URL).
+2. Create a check on a dead-man's-switch service (e.g.
+   [Healthchecks.io](https://healthchecks.io) or [Cronitor](https://cronitor.io)):
+   period matching the Watchdog route's `repeat_interval` (5m,
+   `observability/alertmanager/alertmanager.yml`), grace period covering at
+   least one missed cycle. Copy its ping URL.
+3. Write all three to the secret files on the host (git-ignored, mounted
+   read-only at `/etc/alertmanager/secrets/`):
 
    ```bash
    cd /opt/ads/<env>
-   printf '%s' '<discord-webhook-url>' \
-     > observability/alertmanager/secrets/discord_webhook_url
-   chmod 600 observability/alertmanager/secrets/discord_webhook_url
+   printf '%s' '<critical-discord-webhook-url>' \
+     > observability/alertmanager/secrets/discord_webhook_url_critical
+   printf '%s' '<warning-discord-webhook-url>' \
+     > observability/alertmanager/secrets/discord_webhook_url_warning
+   printf '%s' '<deadman-switch-ping-url>' \
+     > observability/alertmanager/secrets/deadman_webhook_url
+   chmod 600 observability/alertmanager/secrets/discord_webhook_url_critical \
+     observability/alertmanager/secrets/discord_webhook_url_warning \
+     observability/alertmanager/secrets/deadman_webhook_url
    ```
 
-3. Reload Alertmanager so it re-reads the secret:
+4. Reload Alertmanager so it re-reads the secrets:
 
    ```bash
    docker compose -f docker-compose.<env>.yml -f docker-compose.observability.yml \
      kill -s HUP alertmanager
    ```
 
-4. Validate the running config:
+5. Validate the running config:
 
    ```bash
    docker compose -f docker-compose.<env>.yml -f docker-compose.observability.yml \
      exec alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
    # Expected: "Checking '/etc/alertmanager/alertmanager.yml'  SUCCESS" and
-   # both receivers listed.
+   # all three receivers listed.
    ```
 
-Both severities currently point at the same webhook (single Discord channel).
-Split them by pointing `critical-pager` at a second `*_url` secret file later.
+Escalation path and response SLAs for each severity: see
+[`README.md`](./README.md#severity--routing) and
+[`docs/slo.md`](../slo.md#severity--on-call).
 
 ## 5. Reach Grafana
 
@@ -150,11 +182,46 @@ Tempo datasources and the three dashboards (`service-overview`,
 ## 7. Verify signals
 
 - **Metrics:** Grafana → `service-overview` populates; Prometheus → Status →
-  Targets shows all 11 `service-*` jobs `UP` (incl. `service-chat`, `service-cms`).
+  Targets shows all 11 `service-*` jobs `UP` (incl. `service-chat`, `service-cms`),
+  plus `node-exporter`, `cadvisor`, `postgres-exporter`, `redis-exporter` and
+  `blackbox-public-endpoints` `UP` (ADS-1313 / ADS-1307d).
 - **Logs:** Grafana → Explore → Loki → `{service="service.gateway"}` returns lines.
 - **Traces:** Grafana → Explore → Tempo → recent traces appear (hit an endpoint first).
-- **Alerts:** Prometheus → Alerts lists the SLO rules as `inactive`/`pending`.
+- **Alerts:** Prometheus → Alerts lists the SLO + host/datastore/burn-rate rules
+  as `inactive`/`pending`, and `Watchdog` as permanently `firing` (that's
+  correct — it always fires by design, see `infra/prometheus/rules/watchdog.yml`).
 - **Errors:** trigger a handled error and confirm it lands in GlitchTip.
+
+### End-to-end proof: does an alert actually reach someone?
+
+Every step above confirms the stack is _collecting_ signals — none of them
+prove Alertmanager can actually wake a human. Fire a synthetic alert straight
+at Alertmanager's API and confirm the message lands in Discord:
+
+```bash
+ALERTMANAGER_URL=http://localhost:9093 \  # through the SSH tunnel from step 5
+  scripts/observability-fire-test-alert.sh warning
+ALERTMANAGER_URL=http://localhost:9093 \
+  scripts/observability-fire-test-alert.sh critical
+```
+
+For each severity, confirm:
+
+1. Prometheus → Alerts (or Alertmanager's own UI) shows `ObservabilityFireTest`
+   firing within seconds of the `curl`.
+2. The severity's Discord channel receives a `[FIRING:1] ObservabilityFireTest`
+   message within its `group_wait` (10s critical / 30s warning).
+3. ~5 minutes later, a `[RESOLVED]` message arrives for the same alert
+   (`send_resolved: true` on both Discord receivers).
+
+No message after a few minutes → the receiver's webhook secret file is
+missing/wrong, or Alertmanager hasn't picked it up — re-check step 4.
+
+Separately, confirm the dead-man's-switch is wired: watch the
+Healthchecks.io/Cronitor check's dashboard for a ping within the `deadman`
+route's `repeat_interval` (5m) of the stack coming up — that ping is the
+`Watchdog` alert (always firing) reaching the `deadman` receiver, proving the
+off-host detection path works _before_ you need it.
 
 ## Disabling / rollback
 

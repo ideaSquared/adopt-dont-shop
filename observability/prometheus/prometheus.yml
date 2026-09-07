@@ -80,3 +80,43 @@ scrape_configs:
     static_configs:
       - targets: ['service-cms:5010']
     metrics_path: /metrics
+
+  # Host / datastore / container exporters (ADS-1313). Only exist when the
+  # docker-compose.observability.yml overlay is up — see that file's
+  # node-exporter/cadvisor/postgres-exporter/redis-exporter services.
+  - job_name: node-exporter
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: postgres-exporter
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  - job_name: redis-exporter
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # External synthetic probe (ADS-1307d) — blackbox_exporter's multi-target
+  # pattern: the probed URL is a label on __address__, not the scrape target
+  # itself; __address__ is relabelled to the exporter's own address after.
+  # Replace the placeholder target(s) with the real public hostname(s) before
+  # enabling this stack on a host (see docs/runbooks/observability-enable.md
+  # §7).
+  - job_name: blackbox-public-endpoints
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://REPLACE_WITH_PUBLIC_HOSTNAME/
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

@@ -25,14 +25,29 @@ before that change ships — this doc's "unauthenticated" note stops being true
 the moment either guardrail is removed. The series available **right now**
 are:
 
-| Metric                          | Type          | Labels                                                   | Source                             |
-| ------------------------------- | ------------- | -------------------------------------------------------- | ---------------------------------- |
-| `http_request_duration_seconds` | histogram     | `method`, `route`, `status_code`                         | shared — Fastify `onResponse` hook |
-| `grpc_handler_duration_seconds` | histogram     | `service`, `method`, `code`, `direction`                 | shared — gRPC adapter wrappers     |
-| `gdpr_sagas`                    | gauge         | `state` (`in_progress`/`completed`/`failed`/`timed_out`) | `services/audit` only              |
-| `gateway_rate_limit_hits_total` | counter       | `route`                                                  | `services/gateway` only            |
-| `grpc_circuit_state`            | gauge         | `service` (`0`=closed, `1`=half-open, `2`=open)          | `services/gateway` only            |
-| `nodejs_*`, `process_*`         | gauge/counter | —                                                        | `collectDefaultMetrics()`          |
+| Metric                          | Type          | Labels                                                   | Source                                                            |
+| ------------------------------- | ------------- | -------------------------------------------------------- | ----------------------------------------------------------------- |
+| `http_request_duration_seconds` | histogram     | `method`, `route`, `status_code`                         | shared — Fastify `onResponse` hook                                |
+| `grpc_handler_duration_seconds` | histogram     | `service`, `method`, `code`, `direction`                 | shared — gRPC adapter wrappers                                    |
+| `gdpr_sagas`                    | gauge         | `state` (`in_progress`/`completed`/`failed`/`timed_out`) | `services/audit` only                                             |
+| `gateway_rate_limit_hits_total` | counter       | `route`                                                  | `services/gateway` only                                           |
+| `grpc_circuit_state`            | gauge         | `service` (`0`=closed, `1`=half-open, `2`=open)          | `services/gateway` only                                           |
+| `nodejs_*`, `process_*`         | gauge/counter | —                                                        | `collectDefaultMetrics()`                                         |
+| `events_outbox_pending`         | gauge         | — (one series per scrape `job`)                          | `packages/events/src/outbox.ts`, every service that writes events |
+| `events_dead_letter_total`      | counter       | `subject`                                                | `packages/events/src/dead-letter-metrics.ts`                      |
+
+**Host / datastore / synthetic-probe metrics (ADS-1313, ADS-1307d)** — only
+present when `docker-compose.observability.yml` is enabled, since these come
+from exporter _containers_, not the app services themselves:
+
+| Metric                                               | Type  | Source (scrape job)                                   |
+| ---------------------------------------------------- | ----- | ----------------------------------------------------- |
+| `node_filesystem_avail_bytes` / `_size_bytes`        | gauge | `node-exporter` (host disk)                           |
+| `node_memory_MemAvailable_bytes` / `_MemTotal_bytes` | gauge | `node-exporter` (host memory)                         |
+| `container_start_time_seconds`                       | gauge | `cadvisor` (per-container restarts)                   |
+| `pg_stat_database_numbackends`                       | gauge | `postgres-exporter`                                   |
+| `redis_up`, `redis_memory_used_bytes`                | gauge | `redis-exporter`                                      |
+| `probe_success`, `probe_ssl_earliest_cert_expiry`    | gauge | `blackbox-exporter` (`blackbox-public-endpoints` job) |
 
 Notes that shape every rule below:
 
@@ -107,49 +122,78 @@ rate of unfulfilled erasure requests.
 The committed rules implement the objectives above. Each rule annotates the
 runbook to open on fire.
 
-| Rule (file)                                          | Watches                                                            | SLO it protects                                |
-| ---------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------- |
-| `ServiceDown` (`service-down.yml`)                   | `up == 0` per job                                                  | Availability — service is unreachable          |
-| `HighErrorRate` (`high-error-rate.yml`)              | 5xx fraction of `http_request_duration_seconds_count`              | Availability (HTTP)                            |
-| `HighGrpcErrorRate` (`high-error-rate.yml`)          | non-OK fraction of `grpc_handler_duration_seconds_count`           | Availability (gRPC)                            |
-| `HttpP95LatencyHigh` (`p95-latency.yml`)             | `histogram_quantile(0.95, …http_request_duration_seconds_bucket…)` | Latency (HTTP)                                 |
-| `GrpcP95LatencyHigh` (`p95-latency.yml`)             | `histogram_quantile(0.95, …grpc_handler_duration_seconds_bucket…)` | Latency (gRPC)                                 |
-| `GdprSagaFailed` (`gdpr-saga.yml`)                   | `gdpr_sagas{state="failed"} > 0`                                   | GDPR saga correctness                          |
-| `GdprSagaTimedOut` (`gdpr-saga.yml`)                 | `gdpr_sagas{state="timed_out"} > 0`                                | GDPR saga correctness                          |
-| `GdprErasureRequestedNotCompleted` (`gdpr-saga.yml`) | `in_progress` backlog persisting beyond the saga deadline          | GDPR saga correctness                          |
-| `GatewayCircuitOpen` (`gateway-resilience.yml`)      | `grpc_circuit_state == 2`                                          | Availability — downstream dependency unhealthy |
-| `GatewayRateLimitSpike` (`gateway-resilience.yml`)   | surge in `gateway_rate_limit_hits_total`                           | Abuse / capacity signal                        |
+| Rule (file)                                                       | Watches                                                                                  | SLO it protects                                           |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `ServiceDown` (`service-down.yml`)                                | `up == 0` per job                                                                        | Availability — service is unreachable                     |
+| `HighErrorRate` (`high-error-rate.yml`)                           | 5xx fraction of `http_request_duration_seconds_count`                                    | Availability (HTTP)                                       |
+| `HighGrpcErrorRate` (`high-error-rate.yml`)                       | non-OK fraction of `grpc_handler_duration_seconds_count`                                 | Availability (gRPC)                                       |
+| `HttpP95LatencyHigh` (`p95-latency.yml`)                          | `histogram_quantile(0.95, …http_request_duration_seconds_bucket…)`                       | Latency (HTTP)                                            |
+| `GrpcP95LatencyHigh` (`p95-latency.yml`)                          | `histogram_quantile(0.95, …grpc_handler_duration_seconds_bucket…)`                       | Latency (gRPC)                                            |
+| `GdprSagaFailed` (`gdpr-saga.yml`)                                | `gdpr_sagas{state="failed"} > 0`                                                         | GDPR saga correctness                                     |
+| `GdprSagaTimedOut` (`gdpr-saga.yml`)                              | `gdpr_sagas{state="timed_out"} > 0`                                                      | GDPR saga correctness                                     |
+| `GdprErasureRequestedNotCompleted` (`gdpr-saga.yml`)              | `in_progress` backlog persisting beyond the saga deadline                                | GDPR saga correctness                                     |
+| `GatewayCircuitOpen` (`gateway-resilience.yml`)                   | `grpc_circuit_state == 2`                                                                | Availability — downstream dependency unhealthy            |
+| `GatewayRateLimitSpike` (`gateway-resilience.yml`)                | surge in `gateway_rate_limit_hits_total`                                                 | Abuse / capacity signal                                   |
+| `SLOBurnRateFastHttp`/`SLOBurnRateSlowHttp` (`slo-burn-rate.yml`) | HTTP 5xx burn rate vs. each job's own target (recording rules), 2-window (5m/1h, 30m/6h) | Availability (HTTP) — per-service, not one flat threshold |
+| `SLOBurnRateFastGrpc`/`SLOBurnRateSlowGrpc` (`slo-burn-rate.yml`) | gRPC error burn rate vs. each service's own target, same 2-window shape                  | Availability (gRPC) — per-service                         |
+| `HostDiskSpaceLow` (`host-resources.yml`)                         | host root filesystem free % (`node_filesystem_*`)                                        | Host capacity — see `postgres-disk-full.md`               |
+| `HostMemoryPressure` (`host-resources.yml`)                       | host memory available % (`node_memory_*`)                                                | Host capacity                                             |
+| `ContainerRestarting` (`host-resources.yml`)                      | `changes(container_start_time_seconds[15m]) > 2`                                         | Crash-loop detection                                      |
+| `PostgresConnectionsNearMax` (`datastore.yml`)                    | `pg_stat_database_numbackends` vs. `max_connections=200`                                 | Datastore capacity — see `postgres-disk-full.md`          |
+| `RedisDown` / `RedisMemoryHigh` (`datastore.yml`)                 | `redis_up`, `redis_memory_used_bytes`                                                    | Datastore availability/capacity — see `redis-outage.md`   |
+| `PublicEndpointDown` (`external-probes.yml`)                      | `probe_success` from an external blackbox probe                                          | Availability — as seen from outside the app process       |
+| `TlsCertificateExpiringSoon` (`external-probes.yml`)              | `probe_ssl_earliest_cert_expiry` <14 days out                                            | Cert renewal — see `tls-cert-renewal.md`                  |
+| `OutboxBacklogGrowing` (`outbox.yml`)                             | `events_outbox_pending > 100` for 10m                                                    | Event delivery lag — see `outbox-backlog.md`              |
+| `DeadLetterIncreasing` (`outbox.yml`)                             | `rate(events_dead_letter_total[15m]) > 0`                                                | DLQ growth — see `jetstream-backlog.md`                   |
+| `Watchdog` (`watchdog.yml`)                                       | `vector(1)` — always firing                                                              | Dead-man's switch — pipeline/host itself is up            |
 
 ## Severity & on-call
 
 As of ADS-1041 the rules are **loaded** by Prometheus and routed by
 Alertmanager on their `severity` label in the deployed observability stack
-(`docker-compose.observability.yml` / dev `observability` profile). Both
-receivers deliver to **Discord** via an incoming webhook, read from a file
-secret so the URL never lands in `docker inspect`
-(`observability/alertmanager/alertmanager.yml`,
-`webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url`). There is
-**no PagerDuty and no Slack/SMTP** — Discord is the only sink.
+(`docker-compose.observability.yml` / dev `observability` profile). `critical`
+and `warning` each deliver to **Discord** via their **own** incoming webhook
+(split as of ADS-1307 — a critical escalation channel can differ from routine
+chat); a third, always-firing `severity: none` alert (`Watchdog`,
+`watchdog.yml`) goes to `deadman`, a generic webhook pointed at an external
+dead-man's-switch service (Healthchecks.io/Cronitor-style — see below). Every
+webhook URL is read from its own file secret so it never lands in
+`docker inspect` (`observability/alertmanager/alertmanager.yml`,
+`webhook_url_file:` / `url_file:`). There is **no PagerDuty and no
+Slack/SMTP** — Discord (for the two paged severities) plus one generic
+webhook (for the dead-man's switch) are the only sinks.
 
-Alertmanager will not start until that secret file exists. To wire it up
-(also in [`runbooks/observability-enable.md`](./runbooks/observability-enable.md)):
+Alertmanager will not start until **all three** secret files exist. To wire
+them up (also in
+[`runbooks/observability-enable.md`](./runbooks/observability-enable.md)):
 
-1. Create a Discord incoming webhook for the alerts channel.
-2. Drop it into the host secret file:
+1. Create two Discord incoming webhooks (one per severity — or point both
+   secret files at the same URL if you haven't split channels yet) and a
+   check on a dead-man's-switch service.
+2. Drop each into its host secret file:
    ```bash
-   printf '%s' '<discord-webhook-url>' \
-     > /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url
-   chmod 600 /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url
+   printf '%s' '<critical-discord-webhook-url>' \
+     > /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url_critical
+   printf '%s' '<warning-discord-webhook-url>' \
+     > /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url_warning
+   printf '%s' '<deadman-switch-ping-url>' \
+     > /opt/ads/<env>/observability/alertmanager/secrets/deadman_webhook_url
+   chmod 600 /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url_critical \
+     /opt/ads/<env>/observability/alertmanager/secrets/discord_webhook_url_warning \
+     /opt/ads/<env>/observability/alertmanager/secrets/deadman_webhook_url
    ```
 3. Reload: `docker compose … kill -s HUP alertmanager`.
 4. Validate: `amtool check-config observability/alertmanager/alertmanager.yml`.
+5. Prove it reaches someone: `scripts/observability-fire-test-alert.sh` (see
+   `runbooks/observability-enable.md` §7).
 
-Two severities are defined:
+Three severities are defined:
 
-| Severity   | Alertmanager receiver | Sink    | Response                                          |
-| ---------- | --------------------- | ------- | ------------------------------------------------- |
-| `critical` | `critical-pager`      | Discord | ack within 5 min; escalate by DMing the secondary |
-| `warning`  | `warning-chat`        | Discord | review within 30 min                              |
+| Severity   | Alertmanager receiver | Sink                       | Response                                                                                                                                                                                                                                                 |
+| ---------- | --------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `critical` | `critical-pager`      | Discord                    | Ack within 5 min. **Escalation path** (there is no PagerDuty/on-call rotation tool): DM the secondary on-call directly on Discord/Slack; if they don't ack within 15 min, DM the team lead. Both are named in the on-call handoff doc, not in this repo. |
+| `warning`  | `warning-chat`        | Discord                    | Review within 30 min; no escalation unless it repeats or is ignored past a shift                                                                                                                                                                         |
+| `none`     | `deadman`             | External dead-man's switch | No human response to the alert itself — the _external_ service pages if its ping stops arriving, which means the whole pipeline (or host) is down; see `runbooks/observability-stack-down.md`                                                            |
 
 A firing `critical` inhibits the same alert's `warning` (see the `inhibit_rules` in `alertmanager.yml`).
 

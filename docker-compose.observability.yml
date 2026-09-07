@@ -188,6 +188,173 @@ services:
           cpus: '0.1'
           memory: 64m
 
+  # ==========================================================================
+  # HOST / DATASTORE / SYNTHETIC-PROBE EXPORTERS (ADS-1313, ADS-1307).
+  # Prometheus previously scraped the 11 app services only — no host disk/
+  # memory, no container, no Postgres/Redis, no external-reachability signal.
+  # ==========================================================================
+
+  node-exporter:
+    <<: *obs-hardening
+    image: prom/node-exporter:v1.8.2@sha256:4032c6d5bfd752342c3e631c2f1de93ba6b86c41db6b167b9a35372c139e7706
+    # Host disk/memory/CPU visibility without `network_mode: host` / `pid:
+    # host` (which would pull this container off the compose network
+    # Prometheus scrapes it on) — mount /proc, /sys and / read-only and point
+    # the collectors at them via --path.*. Good enough for HostDiskSpaceLow /
+    # HostMemoryPressure; it won't show host-network-interface stats
+    # accurately, which this stack doesn't alert on.
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/host/root'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    read_only: true
+    expose:
+      - '9100'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9100/metrics || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128m
+        reservations:
+          cpus: '0.05'
+          memory: 32m
+
+  cadvisor:
+    <<: *obs-hardening
+    image: gcr.io/cadvisor/cadvisor:v0.49.1@sha256:3cde6faf0791ebf7b41d6f8ae7145466fed712ea6f252c935294d2608b1af388
+    # Per-container CPU/memory/restart signal (ContainerRestarting uses
+    # container_start_time_seconds). Read-only mounts of the host's cgroup /
+    # container metadata; no `privileged`, matching this stack's hardening —
+    # some accelerator/device metrics cAdvisor can expose are unavailable
+    # without it, which this stack doesn't need.
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    expose:
+      - '8080'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256m
+        reservations:
+          cpus: '0.05'
+          memory: 64m
+
+  postgres-exporter:
+    <<: *obs-hardening
+    image: prometheuscommunity/postgres-exporter:v0.15.0@sha256:386b12d19eab2a37d7cd8ca8b4c7491cc7a830d9581f49af6c98a393da9605e6
+    read_only: true
+    # Reuses the same db_password + POSTGRES_USER/POSTGRES_DB the `database`
+    # service already takes in docker-compose.prod.yml/.staging.yml — no new
+    # credential is provisioned. DATA_SOURCE_URI/_USER/_PASS_FILE (not
+    # DATA_SOURCE_NAME) keep the password out of `docker inspect` without
+    # needing a shell wrapper. pg_stat_database / pg_settings (the views the
+    # default collectors read) are selectable by any role, so the ordinary
+    # app DB user is enough — no extra GRANT.
+    environment:
+      DATA_SOURCE_URI: 'database:5432/${POSTGRES_DB:?Error: POSTGRES_DB required}?sslmode=disable'
+      DATA_SOURCE_USER: '${POSTGRES_USER:?Error: POSTGRES_USER required}'
+      DATA_SOURCE_PASS_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    expose:
+      - '9187'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9187/metrics || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128m
+        reservations:
+          cpus: '0.05'
+          memory: 32m
+
+  redis-exporter:
+    <<: *obs-hardening
+    # The bare (non-`-alpine`) tag is built FROM scratch and has no shell, so
+    # it can't read a secret file into an env var at start. The -alpine tag
+    # (same version) has /bin/sh, so the redis/nats-style
+    # `sh -c '... "$$(cat /run/secrets/...)"'` file-secret wrapper works —
+    # REDIS_PASSWORD never lands in `docker inspect`.
+    image: oliver006/redis_exporter:v1.62.0-alpine@sha256:28bbff2343589b76f3b7b171d0103e2603601b53f453e284c75b79eb438d6544
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    entrypoint: ['sh', '-c']
+    command:
+      - 'export REDIS_PASSWORD="$$(cat /run/secrets/redis_password)"; exec /redis_exporter --redis.addr=redis://redis:6379'
+    secrets:
+      - redis_password
+    expose:
+      - '9121'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9121/metrics || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128m
+        reservations:
+          cpus: '0.05'
+          memory: 32m
+
+  # External synthetic probe (ADS-1307d). Still runs on the same host as
+  # everything it probes — see docs/runbooks/observability-enable.md §7 and
+  # the Watchdog alert (infra/prometheus/rules/watchdog.yml) for the
+  # off-host signal a same-host probe can't provide (if the host itself is
+  # down, this container is down too and can't report anything).
+  blackbox-exporter:
+    <<: *obs-hardening
+    image: prom/blackbox-exporter:v0.25.0@sha256:b04a9fef4fa086a02fc7fcd8dcdbc4b7b35cc30cdee860fdc6a19dd8b208d63e
+    volumes:
+      - ./observability/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    read_only: true
+    expose:
+      - '9115'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9115/-/healthy || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128m
+        reservations:
+          cpus: '0.05'
+          memory: 32m
+
 volumes:
   prometheus_data:
     driver: local
@@ -199,3 +366,16 @@ volumes:
     driver: local
   grafana_data:
     driver: local
+
+# db_password/redis_password are declared in docker-compose.prod.yml /
+# docker-compose.staging.yml (this overlay is always deployed layered on one
+# of them — see the header comment). Redeclared here, pointing at the
+# identical host paths, only so
+# `docker compose -f docker-compose.observability.yml config` validates this
+# file on its own; compose merges identical secret definitions across -f
+# files without conflict.
+secrets:
+  db_password:
+    file: ./secrets/db_password
+  redis_password:
+    file: ./secrets/redis_password
