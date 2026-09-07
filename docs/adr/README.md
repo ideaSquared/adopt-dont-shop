@@ -36,7 +36,7 @@ index line to match.
 | [0005](./0005-pact-contract-tests.md)            | Pact consumer-driven contract tests                      | Accepted — implemented | 2026-06-18 | —                                     |
 | [0006](./0006-field-permission-enforcement.md)   | Field-level permission enforcement                       | Partially implemented  | 2026-08-04 | —                                     |
 | [0007](./0007-postgres-backups-pitr-restore.md)  | Postgres backups, PITR & restore verification            | Partially implemented  | 2026-08-05 | —                                     |
-| [0008](./0008-pre-deploy-migration-strategy.md)  | Pre-deploy migration strategy                            | Proposed               | 2026-08-05 | —                                     |
+| [0008](./0008-pre-deploy-migration-strategy.md)  | Pre-deploy migration strategy                            | Accepted               | 2026-08-05 | —                                     |
 | [0009](./0009-deployment-strategy-and-ha.md)     | Deployment strategy & high availability                  | Superseded by ADR 0011 | 2026-08-05 | Superseded by ADR 0011                |
 | [0010](./0010-frontend-quality-gates.md)         | Frontend quality gates                                   | Partially implemented  | 2026-08-05 | —                                     |
 | [0011](./0011-interim-availability-posture.md)   | Interim availability posture for the eyes-on launch      | Accepted               | 2026-08-28 | Supersedes ADR 0009                   |
