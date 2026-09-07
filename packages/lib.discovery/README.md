@@ -55,5 +55,4 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.discovery-consumers.md](../../docs/libraries/lib.discovery-consumers.md) for the auto-generated list — check it before making a breaking change.
-
 <!-- CONSUMERS:END -->

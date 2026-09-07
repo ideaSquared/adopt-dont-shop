@@ -65,5 +65,4 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 4 workspace package(s) depend on this library. See [lib.observability-consumers.md](../../docs/libraries/lib.observability-consumers.md) for the auto-generated list — check it before making a breaking change.
-
 <!-- CONSUMERS:END -->
