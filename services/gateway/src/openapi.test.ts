@@ -40,6 +40,11 @@ const baseConfig: GatewayConfig = {
   config: { publicEnabled: false },
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
   cors: { origins: ['http://localhost:3000'] },
+  maintenance: {
+    filePath: '/run/maintenance-not-created-in-tests',
+    allowlistIps: [],
+    bypassToken: undefined,
+  },
 } as GatewayConfig;
 
 // Minimal stubs — we only need the route to register so its `schema`

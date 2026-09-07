@@ -354,3 +354,34 @@ describe('loadConfig — AV scan (ADS-1241)', () => {
     expect(config.avScan.failClosed).toBe(true);
   });
 });
+
+describe('loadConfig — maintenance mode (ADS-1325)', () => {
+  it('defaults filePath to /run/maintenance with no allowlist and no bypass token', () => {
+    const config = loadConfig({});
+    expect(config.maintenance.filePath).toBe('/run/maintenance');
+    expect(config.maintenance.allowlistIps).toEqual([]);
+    expect(config.maintenance.bypassToken).toBeUndefined();
+  });
+
+  it('honours MAINTENANCE_MODE_FILE', () => {
+    expect(loadConfig({ MAINTENANCE_MODE_FILE: '/tmp/maint' }).maintenance.filePath).toBe(
+      '/tmp/maint'
+    );
+  });
+
+  it('parses a comma-separated MAINTENANCE_ALLOWLIST_IPS, trimming whitespace', () => {
+    const config = loadConfig({ MAINTENANCE_ALLOWLIST_IPS: '10.0.0.1, 10.0.0.2 ,,10.0.0.3' });
+    expect(config.maintenance.allowlistIps).toEqual(['10.0.0.1', '10.0.0.2', '10.0.0.3']);
+  });
+
+  it('reads MAINTENANCE_BYPASS_TOKEN when it clears the byte floor', () => {
+    const token = 'a-sufficiently-long-bypass-token-value';
+    expect(loadConfig({ MAINTENANCE_BYPASS_TOKEN: token }).maintenance.bypassToken).toBe(token);
+  });
+
+  it('rejects a present-but-too-short MAINTENANCE_BYPASS_TOKEN', () => {
+    expect(() => loadConfig({ MAINTENANCE_BYPASS_TOKEN: 'short' })).toThrow(
+      /MAINTENANCE_BYPASS_TOKEN must be at least 16 bytes/
+    );
+  });
+});

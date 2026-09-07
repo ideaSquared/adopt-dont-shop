@@ -53,6 +53,7 @@ import type { PetsClient } from './grpc-clients/pets-client.js';
 import type { RescueClient } from './grpc-clients/rescue-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
 import { registerCsrfProtection } from './middleware/csrf.js';
+import { registerMaintenanceMode } from './middleware/maintenance.js';
 import { createEmailRateLimiter } from './routes/email-rate-limiter.js';
 import { registerApplicationDocumentsRoutes } from './routes/application-documents.js';
 import { registerAnalyticsRoutes } from './routes/analytics.js';
@@ -459,6 +460,18 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     serviceName: 'service.gateway',
     environment: config.environment,
     deps: { nats: opts.nats },
+    logger,
+  });
+
+  // In-stack maintenance-mode switch (ADS-1325) — runs before every other
+  // hook so a maintenance-mode 503 never reaches auth/CSRF/upstream gRPC.
+  // The Statsig `application_settings.maintenance_mode` dynamic config is
+  // unchanged and still drives the frontend banner; this is the server-side
+  // backstop. See middleware/maintenance.ts and docs/runbooks/maintenance-mode.md.
+  registerMaintenanceMode(server, {
+    filePath: config.maintenance.filePath,
+    allowlistIps: config.maintenance.allowlistIps,
+    bypassToken: config.maintenance.bypassToken,
     logger,
   });
 
