@@ -5,35 +5,39 @@
   "messages": [
     {
       "contents": {
-        "expiresAt": "2026-01-01T12:00:00.000Z",
-        "principal": {
-          "permissions": ["pets.read", "applications.submit"],
-          "roles": [],
-          "userId": "user-abc-123"
+        "pet": {
+          "archived": false,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "name": "Buddy",
+          "petId": "pet-001",
+          "rescueId": "rescue-001",
+          "status": 1,
+          "type": 1,
+          "updatedAt": "2026-01-01T00:00:00.000Z"
         }
       },
-      "description": "ValidateTokenResponse with populated principal",
+      "description": "GetPetResponse with pet data",
       "metadata": {
         "contentType": "application/json"
       },
       "providerStates": [
         {
-          "name": "a valid, non-revoked access token for an active user"
+          "name": "pet pet-001 exists, is available, and is not archived"
         }
       ]
     },
     {
       "contents": {
-        "code": "UNAUTHENTICATED",
-        "message": "access token revoked"
+        "code": "NOT_FOUND",
+        "message": "pet not found"
       },
-      "description": "error descriptor with code UNAUTHENTICATED for a revoked token",
+      "description": "error descriptor with code NOT_FOUND for a missing pet",
       "metadata": {
         "contentType": "application/json"
       },
       "providerStates": [
         {
-          "name": "a revoked access token in the denylist"
+          "name": "no pet with id pet-missing exists"
         }
       ]
     }
@@ -51,6 +55,6 @@
     }
   },
   "provider": {
-    "name": "service.auth"
+    "name": "service.pets"
   }
 }

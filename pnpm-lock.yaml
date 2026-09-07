@@ -2264,6 +2264,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@pact-foundation/pact':
+        specifier: ^17.0.0
+        version: 17.0.0
       '@types/pg':
         specifier: ^8.15.5
         version: 8.20.0
@@ -2319,6 +2322,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@pact-foundation/pact':
+        specifier: ^17.0.0
+        version: 17.0.0
       '@types/pg':
         specifier: ^8.15.5
         version: 8.20.0

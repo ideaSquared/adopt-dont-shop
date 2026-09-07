@@ -5,42 +5,42 @@
   "messages": [
     {
       "contents": {
-        "application": {
-          "adopterId": "adopter-001",
-          "answersJson": "{\"q1\":\"yes\"}",
-          "applicationId": "app-001",
+        "rescue": {
+          "address": "1 Rescue Lane",
+          "city": "London",
+          "contactPerson": "Jamie Smith",
+          "country": "GB",
           "createdAt": "2026-01-01T00:00:00.000Z",
-          "petId": "pet-001",
-          "referencesJson": "[]",
+          "email": "contact@pawsrescue.dev",
+          "name": "Paws Rescue",
+          "postcode": "SW1A 1AA",
           "rescueId": "rescue-001",
-          "status": 1,
-          "updatedAt": "2026-01-01T00:00:00.000Z",
-          "version": 1
-        },
-        "timeline": []
+          "status": 2,
+          "updatedAt": "2026-01-01T00:00:00.000Z"
+        }
       },
-      "description": "GetApplicationResponse with application data",
+      "description": "GetRescueResponse with rescue data",
       "metadata": {
         "contentType": "application/json"
       },
       "providerStates": [
         {
-          "name": "application app-001 exists and is owned by adopter-001"
+          "name": "rescue rescue-001 exists and is verified"
         }
       ]
     },
     {
       "contents": {
         "code": "NOT_FOUND",
-        "message": "application not found"
+        "message": "rescue not found"
       },
-      "description": "error descriptor with code NOT_FOUND for a missing application",
+      "description": "error descriptor with code NOT_FOUND for a missing rescue",
       "metadata": {
         "contentType": "application/json"
       },
       "providerStates": [
         {
-          "name": "no application with id app-missing exists"
+          "name": "no rescue with id rescue-missing exists"
         }
       ]
     }
@@ -58,6 +58,6 @@
     }
   },
   "provider": {
-    "name": "service.applications"
+    "name": "service.rescue"
   }
 }
