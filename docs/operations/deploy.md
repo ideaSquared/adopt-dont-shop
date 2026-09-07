@@ -81,7 +81,7 @@ Every schema-owning service migrates **its own** schema on boot — the `Dockerf
 
 2. For a production run, approve it in the GitHub Actions UI when the `deploy` job pauses on the `production` environment. The build + cosign-verify jobs run first, so you approve a fully built, signature-verified release.
 
-3. The workflow runs its own per-service health gate (`wait-for-services.sh`) after `compose up`; a failed gate auto-rolls back to the last-known-good SHA (see [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md)). Wait for the run to go green.
+3. The workflow runs its own per-service health gate (`wait-for-services.sh`, polling `/health/ready` — DB pool/Redis/NATS, not just process liveness, ADS-1308) after `compose up`; a failed gate auto-rolls back to the last-known-good SHA (see [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md)). Wait for the run to go green.
 
 **Verify** (SSH to the host, `cd /opt/ads/production`, `export PROD_HOSTNAME=…`):
 
@@ -89,7 +89,9 @@ Every schema-owning service migrates **its own** schema on boot — the `Dockerf
 docker compose -f docker-compose.prod.yml ps           # all healthy
 # Each schema-owning service logs its own migration output on boot:
 docker compose -f docker-compose.prod.yml logs service-auth | grep migration
-curl -sf https://${PROD_HOSTNAME}/health/simple        # Expected: 200
+curl -sf https://${PROD_HOSTNAME}/health/simple        # Expected: 200 (liveness)
+docker compose -f docker-compose.prod.yml exec -T service-gateway \
+  curl -sf http://localhost:4000/health/ready          # Expected: 200 (readiness — DB/Redis/NATS)
 ```
 
 ## When a service's migrations fail

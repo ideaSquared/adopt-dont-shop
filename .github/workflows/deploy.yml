@@ -803,9 +803,13 @@ jobs:
               service-audit:5009 service-cms:5010 service-gateway:4000"
             chmod +x scripts/wait-for-services.sh
             run_health_gate() {
+              # ADS-1308: 60 retries * 2s = 120s, comfortably above the 90s
+              # start_period docker-compose.prod.yml sets on these services
+              # (x-healthcheck-service) so a slow migration doesn't trip a
+              # false-negative gate.
               # Intentional word-split of the target list.
               # shellcheck disable=SC2086
-              ./scripts/wait-for-services.sh "$COMPOSE_FILE" 30 2 $HEALTH_TARGETS
+              ./scripts/wait-for-services.sh "$COMPOSE_FILE" 60 2 $HEALTH_TARGETS
             }
 
             # ADS-1252: on a failed health/smoke check, revert to LAST_GOOD and

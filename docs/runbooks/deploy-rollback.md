@@ -162,7 +162,9 @@ a backup taken first.
 - Error rate drops to the pre-deploy baseline within 5 min and stays there.
   Expected: `HighErrorRate` / latency alerts resolve.
 - `curl -sf https://${PROD_HOSTNAME}/health/simple` returns 200.
-  Expected: HTTP 200 body `ok`.
+  Expected: HTTP 200 body `ok`. The rollback's own gate additionally checks
+  `/health/ready` (DB/Redis/NATS) on every service, not just liveness
+  (ADS-1308).
 - `docker compose -f docker-compose.prod.yml images` shows the rolled-back SHA
   on the affected services.
 
