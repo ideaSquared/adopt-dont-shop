@@ -263,6 +263,12 @@ runner rather than SSHing to the prod host to borrow the host's own
 credentials; each job no-ops (skips, doesn't fail) when those secrets aren't
 configured, e.g. on a fork.
 
+If either job fails (or `backup.yml` does), a `notify-failure` job posts to
+Discord (the `DISCORD_WEBHOOK_URL` secret, if configured — skipped gracefully
+otherwise) and opens or updates a `backup-failure`-labelled GitHub issue
+(ADS-1324), so a broken nightly backup or drill doesn't go unnoticed until
+someone needs the backup.
+
 What none of this replaces: repointing a real app at the restored data,
 measuring RTO against the target above in a prod-like environment, and a
 recorded drill log. That remains the quarterly staging drill below.

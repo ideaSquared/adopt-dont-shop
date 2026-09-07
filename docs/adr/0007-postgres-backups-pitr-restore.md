@@ -1,11 +1,12 @@
 # ADR 0007 — Postgres backups, PITR & restore verification (ADS-1043)
 
 - Status: Partially implemented (2026-09-07). Phase 1 restore verification
-  shipped (ADS-1240, `.github/workflows/backup-restore-drill.yml`) and Phase 1
-  retention enforcement shipped (ADS-1306): `scripts/apply-backup-bucket-policy.sh`
-  enables S3 versioning and a per-prefix lifecycle rule (transition + expire
-  current **and** noncurrent versions at the documented retention), and the
-  host's backup-writer credentials are now scoped to a least-privilege
+  shipped (ADS-1240, `.github/workflows/backup-restore-drill.yml`; extended to
+  uploads by ADS-1325) and Phase 1 retention enforcement shipped (ADS-1306):
+  `scripts/apply-backup-bucket-policy.sh` enables S3 versioning and a
+  per-prefix lifecycle rule (transition + expire current **and** noncurrent
+  versions at the documented retention), and the host's backup-writer
+  credentials are now scoped to a least-privilege
   `docs/operations/backup-writer-iam-policy.json` (PutObject + ListBucket
   only, no delete). Object Lock is delivered as an **opt-in**
   (`--enable-object-lock`) flag on that script rather than applied
@@ -13,10 +14,12 @@
   existing bucket needs an operator decision (and possibly a bucket
   migration) before it takes effect; until an operator runs it with that flag,
   immutability rests on the least-privilege IAM policy and lifecycle rule
-  alone, not on Object Lock. Outstanding: pgBackRest WAL/PITR (Phase 2,
-  ADS-443) — **there is still no point-in-time recovery of any kind**;
-  nothing in this repo archives WAL, and the ~24h RPO from Phase 1 stands
-  unchanged.
+  alone, not on Object Lock. Also shipped: scheduled backup/drill jobs no
+  longer sit behind the reviewer-gated `production` environment (ADS-1305), a
+  NATS JetStream snapshot (ADS-1325), and failure notifications on backup/drill
+  (ADS-1324). Outstanding: pgBackRest WAL/PITR (Phase 2, ADS-443) — **there is
+  still no point-in-time recovery of any kind**; nothing in this repo archives
+  WAL, and the ~24h RPO from Phase 1 stands unchanged.
 - Date: 2026-08-05
 - Scope: `scripts/snapshot-postgres.sh`, `scripts/apply-backup-bucket-policy.sh`,
   `.github/workflows/backup.yml`, `.github/workflows/backup-restore-drill.yml`,
