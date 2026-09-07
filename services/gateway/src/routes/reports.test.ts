@@ -9,7 +9,7 @@ import type { AuditClient } from '../grpc-clients/audit-client.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
-import { registerReportsRoutes } from './reports.js';
+import { mapWithConcurrency, registerReportsRoutes, WIDGET_CONCURRENCY_LIMIT } from './reports.js';
 
 function makeClient(): {
   client: AuditClient;
@@ -420,6 +420,60 @@ describe('/api/v1/reports gateway routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('POST /execute rejects a config over the widget cap (ADS-1296) before any gRPC fan-out', async () => {
+    const widgets = Array.from({ length: 51 }, (_, i) => ({
+      id: `w${i}`,
+      metric: 'adoption',
+      chartType: 'line',
+      options: {},
+    }));
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: { config: { filters: {}, widgets } },
+    });
+    expect(res.statusCode).toBe(400);
+    const body = res.json() as { success: boolean; error: string };
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('widgets');
+    expect(petsMocks.getAdoptionTrend).not.toHaveBeenCalled();
+  });
+
+  it('POST /execute still executes a normal report with a handful of widgets', async () => {
+    petsMocks.getAdoptionTrend.mockResolvedValue({
+      points: [{ date: '2026-01-01', count: 1 }],
+    });
+    applicationsMocks.getStats.mockResolvedValue({
+      total: 1,
+      draft: 0,
+      submitted: 1,
+      underReview: 0,
+      homeVisitScheduled: 0,
+      homeVisitCompleted: 0,
+      approved: 0,
+      rejected: 0,
+      withdrawn: 0,
+      adopted: 0,
+    });
+    const widgets = Array.from({ length: 3 }, (_, i) => ({
+      id: `w${i}`,
+      metric: i === 0 ? 'application' : 'adoption',
+      chartType: i === 0 ? 'bar' : 'line',
+      options: {},
+    }));
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: { config: { filters: {}, widgets } },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { widgets: Array<{ status: string }> } };
+    expect(body.data.widgets).toHaveLength(3);
+    expect(body.data.widgets.every(w => w.status === 'ok')).toBe(true);
+  });
+
   it('POST /execute returns 200 with per-widget status when one widget RPC fails', async () => {
     petsMocks.getAdoptionTrend.mockResolvedValue({
       points: [{ date: '2026-01-01', count: 5 }],
@@ -512,6 +566,30 @@ describe('/api/v1/reports gateway routes', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json() as { data: { widgets: Array<{ data: unknown[] }> } };
     expect(body.data.widgets[0].data).toEqual([{ active: 7 }]);
+  });
+
+  it('POST /:id/execute rejects a saved config over the widget cap (ADS-1296) before any gRPC fan-out', async () => {
+    mocks.getSavedReport.mockResolvedValue({
+      report: {
+        ...REPORT_FIXTURE,
+        configJson: JSON.stringify({
+          filters: {},
+          widgets: Array.from({ length: 51 }, (_, i) => ({
+            id: `w${i}`,
+            metric: 'adoption',
+            chartType: 'line',
+            options: {},
+          })),
+        }),
+      },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/rep-1/execute',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(petsMocks.getAdoptionTrend).not.toHaveBeenCalled();
   });
 
   it('POST /:id/execute returns 404 when the saved report does not exist', async () => {
@@ -728,6 +806,27 @@ describe('/api/v1/reports gateway routes', () => {
     expect(execMeta.get('x-user-roles')).toEqual(['']);
   });
 
+  it('GET /shared/:token rejects a config over the widget cap (ADS-1296) before any gRPC fan-out', async () => {
+    mocks.getReportShareByToken.mockResolvedValue({
+      report: {
+        ...SHARED_REPORT_FIXTURE,
+        configJson: JSON.stringify({
+          filters: {},
+          widgets: Array.from({ length: 51 }, (_, i) => ({
+            id: `w${i}`,
+            metric: 'adoption',
+            chartType: 'line',
+            options: {},
+          })),
+        }),
+      },
+      permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+    });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reports/shared/tok-bulk' });
+    expect(res.statusCode).toBe(400);
+    expect(petsMocks.getAdoptionTrend).not.toHaveBeenCalled();
+  });
+
   it('GET /shared/:token returns 404 when the token does not resolve to a live share', async () => {
     mocks.getReportShareByToken.mockRejectedValue({
       code: grpcStatus.NOT_FOUND,
@@ -785,5 +884,58 @@ describe('/api/v1/reports gateway routes', () => {
     expect(token).toHaveLength(1);
     expect(String(token[0]).length).toBeGreaterThan(0);
     await signedApp.close();
+  });
+});
+
+// ── executeConfig's fan-out limiter (ADS-1296) ─────────────────────────
+// Tested directly against the exported helper rather than via HTTP timing:
+// mapWithConcurrency's scheduling is deterministic (each worker's
+// synchronous prefix runs before the driving Promise.all is awaited), so
+// this asserts the limiter's actual behaviour rather than racing real
+// clocks/microtask flushes through app.inject.
+describe('mapWithConcurrency', () => {
+  it('never runs more concurrently than the configured limit', async () => {
+    const items = Array.from({ length: 12 }, (_, i) => i);
+    let inFlight = 0;
+    let maxInFlight = 0;
+
+    const results = await mapWithConcurrency(items, WIDGET_CONCURRENCY_LIMIT, async item => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await Promise.resolve();
+      inFlight -= 1;
+      return item * 2;
+    });
+
+    expect(maxInFlight).toBeLessThanOrEqual(WIDGET_CONCURRENCY_LIMIT);
+    // With 12 items and a limit below that, unbounded fan-out would have
+    // hit 12 — prove it actually throttled, not merely stayed under an
+    // untested ceiling.
+    expect(maxInFlight).toBeGreaterThan(1);
+    expect(maxInFlight).toBeLessThan(items.length);
+    expect(results.map(r => (r.status === 'fulfilled' ? r.value : undefined))).toEqual(
+      items.map(i => i * 2)
+    );
+  });
+
+  it('still runs a normal handful of widgets to completion, preserving order', async () => {
+    const items = [1, 2, 3];
+    const results = await mapWithConcurrency(items, WIDGET_CONCURRENCY_LIMIT, async i => i + 1);
+    expect(results).toEqual([
+      { status: 'fulfilled', value: 2 },
+      { status: 'fulfilled', value: 3 },
+      { status: 'fulfilled', value: 4 },
+    ]);
+  });
+
+  it('reports individual failures without failing the whole batch', async () => {
+    const items = [1, 2, 3];
+    const results = await mapWithConcurrency(items, WIDGET_CONCURRENCY_LIMIT, async i => {
+      if (i === 2) throw new Error('boom');
+      return i;
+    });
+    expect(results[0]).toEqual({ status: 'fulfilled', value: 1 });
+    expect(results[1]).toMatchObject({ status: 'rejected' });
+    expect(results[2]).toEqual({ status: 'fulfilled', value: 3 });
   });
 });
