@@ -30,7 +30,8 @@
         "$TURBO_ROOT$/vitest.shared.config.ts",
         "$TURBO_ROOT$/vite.shared.config.ts",
         "$TURBO_ROOT$/tsconfig.base.json"
-      ]
+      ],
+      "env": ["DATABASE_URL"]
     },
     "test:watch": {
       "cache": false,
@@ -50,7 +51,8 @@
         "$TURBO_ROOT$/vitest.shared.config.ts",
         "$TURBO_ROOT$/vite.shared.config.ts",
         "$TURBO_ROOT$/tsconfig.base.json"
-      ]
+      ],
+      "env": ["DATABASE_URL"]
     },
     "lint": {
       "outputs": [],
