@@ -187,8 +187,40 @@ jobs:
               body,
             });
 
-  build-and-push:
+  # ADS-1318: resolve the frontend build's VITE_* vars via a dedicated,
+  # UNPROTECTED "<env>-vars" GitHub Environment — separate from the
+  # approval-gated `staging`/`production`/`production-bypass` environments
+  # the `deploy` job pauses on. Previously build-and-push declared no
+  # `environment:` at all, so `vars.VITE_API_BASE_URL` etc. resolved to the
+  # single repository-level value for staging AND production builds alike
+  # (staging traffic/session-replays landing in prod telemetry, staging
+  # pointed at the prod API). Reading them here — instead of adding
+  # `environment:` directly to build-and-push — keeps the build job
+  # unblocked by reviewer approval; the docs promise reviewers approve a
+  # fully built, signature-verified release, not gate the build itself.
+  # Admin one-time setup: create `staging-vars` and `production-vars`
+  # environments (Settings → Environments → New environment), leave
+  # "Required reviewers" OFF, and add environment variables
+  # VITE_API_BASE_URL, VITE_WS_BASE_URL, VITE_SENTRY_DSN,
+  # VITE_STATSIG_CLIENT_KEY under each with the per-target values. Until
+  # that's done, `vars.*` falls back to the existing repository-level
+  # variable (unchanged behaviour) — see docs/operations/deploy.md.
+  resolve-frontend-vars:
     needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ github.event.inputs.environment }}-vars
+    outputs:
+      vite_api_base_url: ${{ vars.VITE_API_BASE_URL }}
+      vite_ws_base_url: ${{ vars.VITE_WS_BASE_URL }}
+      vite_sentry_dsn: ${{ vars.VITE_SENTRY_DSN }}
+      vite_statsig_client_key: ${{ vars.VITE_STATSIG_CLIENT_KEY }}
+    steps:
+      - name: Resolved
+        run: echo "Resolved frontend build vars for the '${{ github.event.inputs.environment }}' target."
+
+  build-and-push:
+    needs: [preflight, resolve-frontend-vars]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -324,10 +356,10 @@ jobs:
             -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=client \
-            --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
-            --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
-            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
-            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg VITE_API_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_api_base_url }}" \
+            --build-arg VITE_WS_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_ws_base_url }}" \
+            --build-arg VITE_SENTRY_DSN="${{ needs.resolve-frontend-vars.outputs.vite_sentry_dsn }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ needs.resolve-frontend-vars.outputs.vite_statsig_client_key }}" \
             --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_CLIENT }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
@@ -357,10 +389,10 @@ jobs:
             -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=admin \
-            --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
-            --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
-            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
-            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg VITE_API_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_api_base_url }}" \
+            --build-arg VITE_WS_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_ws_base_url }}" \
+            --build-arg VITE_SENTRY_DSN="${{ needs.resolve-frontend-vars.outputs.vite_sentry_dsn }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ needs.resolve-frontend-vars.outputs.vite_statsig_client_key }}" \
             --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_ADMIN }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
@@ -390,10 +422,10 @@ jobs:
             -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=rescue \
-            --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
-            --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
-            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
-            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg VITE_API_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_api_base_url }}" \
+            --build-arg VITE_WS_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_ws_base_url }}" \
+            --build-arg VITE_SENTRY_DSN="${{ needs.resolve-frontend-vars.outputs.vite_sentry_dsn }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ needs.resolve-frontend-vars.outputs.vite_statsig_client_key }}" \
             --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_RESCUE }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \

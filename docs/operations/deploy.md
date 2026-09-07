@@ -6,7 +6,25 @@ Authoritative procedure for cutting a normal production/staging release (audienc
 
 - One-time provisioning complete — see [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md): server + Docker, DNS, TLS, and the six GitHub Actions repo secrets `deploy.yml` validates (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`).
 - `GHCR_TOKEN` repository secret set to a PAT scoped **`read:packages` only** — the deploy and rollback workflows `docker pull` images with it (they FAIL fast on `write:packages`/`repo` scope). See [`docs/SECRETS-MANAGEMENT.md`](../SECRETS-MANAGEMENT.md#github-actions-repository-secrets). [ADS-671]
+- `staging-vars` / `production-vars` GitHub Environments created (Settings → Environments → New environment), **no** required reviewers, each carrying environment variables `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` scoped to that target — otherwise the frontend build falls back to the single repository-level value for both environments (ADS-1318). See "Environment-scoped frontend build vars" below.
 - `gh` CLI authenticated (the `make` targets dispatch workflows through it).
+
+## Environment-scoped frontend build vars (ADS-1318)
+
+The frontend build step previously read `vars.VITE_API_BASE_URL` etc. with no `environment:` on the job, so staging and production images were baked with the **same** repository-level values — staging traffic and session replays landed in production Sentry/Statsig, and staging could point at the prod API.
+
+`deploy.yml` now resolves these through a dedicated `resolve-frontend-vars` job scoped to an **unprotected** `<environment>-vars` GitHub Environment (`staging-vars` / `production-vars` — distinct from the approval-gated `staging`/`production`/`production-bypass` environments the `deploy` job itself pauses on). This lets the same variable name carry a different value per target without putting the production approval gate in front of the _build_ — reviewers still approve a fully built, signature-verified release, per the existing policy below.
+
+Admin one-time setup: create `staging-vars` and `production-vars` environments with **no** required reviewers, and add environment variables under each:
+
+| Variable                  | Purpose                                    |
+| ------------------------- | ------------------------------------------ |
+| `VITE_API_BASE_URL`       | Frontend API base URL for that environment |
+| `VITE_WS_BASE_URL`        | Frontend WebSocket base URL                |
+| `VITE_SENTRY_DSN`         | Sentry/GlitchTip DSN for that environment  |
+| `VITE_STATSIG_CLIENT_KEY` | Statsig client key for that environment    |
+
+Until both environments exist, `vars.*` falls back to the existing repository-level variable (unchanged behaviour) — nothing breaks if this is skipped, but staging and production keep sharing one value.
 
 ## Secret rotation
 
