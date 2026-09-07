@@ -671,11 +671,68 @@ jobs:
           lib-dist-cache-hit: ${{ needs.build-libs.outputs.lib-dist-cache-hit }}
 
   # ============================================================================
+  # VALIDATE OBSERVABILITY CONFIG — ADS-1324 (P2 observability fast-follows,
+  # "no promtool or amtool validation in CI" item): syntax/semantic-check the
+  # committed Prometheus rules + config and Alertmanager config with the real
+  # promtool/amtool binaries, so a broken alerting rule or route fails the PR
+  # instead of only being discovered when the container starts in prod.
+  # Path-filtered to the configs it checks. Uses the exact same digest-pinned
+  # prom/prometheus / prom/alertmanager images the observability stack itself
+  # runs (docker-compose.observability.yml, ADS-1041) — one version to keep in
+  # sync, and `pnpm check:docker-pinning`'s digest-pin requirement is already
+  # satisfied by that compose file.
+  # ============================================================================
+  validate-observability-config:
+    name: Validate Observability Config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+        id: changed
+        with:
+          filters: |
+            observability:
+              - 'infra/prometheus/rules/**'
+              - 'observability/prometheus/**'
+              - 'observability/alertmanager/**'
+
+      # sh -c so the container's own shell expands the *.yml glob — promtool
+      # itself doesn't glob its arguments, and the host shell can't expand a
+      # path that only exists inside the bind-mounted container.
+      - name: promtool check rules
+        if: steps.changed.outputs.observability == 'true' || github.event_name != 'pull_request'
+        run: |
+          docker run --rm --entrypoint sh \
+            -v "$PWD/infra/prometheus/rules:/rules:ro" \
+            prom/prometheus:v3.1.0@sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218 \
+            -c 'promtool check rules /rules/*.yml'
+
+      - name: promtool check config
+        if: steps.changed.outputs.observability == 'true' || github.event_name != 'pull_request'
+        run: |
+          docker run --rm --entrypoint promtool \
+            -v "$PWD/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v "$PWD/infra/prometheus/rules:/etc/prometheus/rules:ro" \
+            prom/prometheus:v3.1.0@sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218 \
+            check config /etc/prometheus/prometheus.yml
+
+      - name: amtool check-config
+        if: steps.changed.outputs.observability == 'true' || github.event_name != 'pull_request'
+        run: |
+          docker run --rm --entrypoint amtool \
+            -v "$PWD/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+            prom/alertmanager:v0.28.0@sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8 \
+            check-config /etc/alertmanager/alertmanager.yml
+
+  # ============================================================================
   # CI REQUIRED — single aggregator gate for branch protection. Branch
   # protection references this one job name, so adding/renaming a job below
   # doesn't require touching the ruleset.
   #
-  # Path-filtered jobs (test-frontend, test-libs, dev-auth-guard) and test-e2e
+  # Path-filtered jobs (test-frontend, test-libs, dev-auth-guard,
+  # validate-observability-config) and test-e2e
   # (opt-in via `run-e2e`) report `skipped` rather than `success` when they
   # don't run. Classic branch protection treats `skipped` as a failure, so
   # this aggregator only fails on `failure`/`cancelled` — the standard
@@ -699,6 +756,9 @@ jobs:
       # ADS-1321: the @smoke Playwright subset now gates merge — see
       # test-e2e-smoke's own comment for why this closes P1-15.
       - test-e2e-smoke
+      # ADS-1324: promtool/amtool config validation — path-filtered to the
+      # observability configs it checks.
+      - validate-observability-config
     # ADS-792 + ADS-822: test-e2e re-added (suite reworked for post-monolith
     # gateway stack in bd64b1b/#1004); test-services added so zero-test
     # services no longer merge green.
