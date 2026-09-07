@@ -87,6 +87,14 @@ describe('SettingsForm', () => {
     expect(screen.getByLabelText(/push notifications/i)).toBeChecked();
   });
 
+  it('disables the SMS toggle with an explanatory label — no SMS provider exists (ADS-1325)', async () => {
+    render(<SettingsForm user={baseUser} onSave={vi.fn()} />);
+
+    const smsCheckbox = await screen.findByLabelText(/sms notifications/i);
+    expect(smsCheckbox).toBeDisabled();
+    expect(screen.getByText(/sms notifications are not available yet/i)).toBeInTheDocument();
+  });
+
   it('renders each dropdown showing its current value', async () => {
     render(<SettingsForm user={baseUser} onSave={vi.fn()} />);
 
