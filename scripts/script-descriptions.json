@@ -69,6 +69,7 @@
   "check:overrides-docs": "Guard: fail if a CVE-style pnpm.overrides entry has no matching overridesDocumentation note (ADS-1113).",
   "check:stale-overrides": "Report (non-blocking): pnpm.overrides pins upstream has moved past, i.e. candidates for removal (ADS-1112).",
   "check:csp": "Guard: fail if any nginx config's Content-Security-Policy allows unsafe-inline/unsafe-eval, or a prod SPA vhost is missing its CSP header.",
+  "check:nginx-upload-precedence": "Guard: fail if nginx/nginx.prod.conf's /uploads/documents/ or /uploads/ location loses ^~, letting the static-asset regex override the uploads deny (ADS-1294).",
   "check:docs-freshness": "Report (non-blocking): broken internal/external doc links and docs untouched for 12+ months.",
   "check:stories": "Report Storybook stories coverage for packages/lib.components/src/components/ui/.",
   "check:readmes": "Report (non-blocking): workspace READMEs missing a section from docs/templates/README.{app,service,lib}.md.",
