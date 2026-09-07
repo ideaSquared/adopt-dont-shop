@@ -22,9 +22,9 @@ import path from 'node:path';
 
 import type { FastifyInstance } from 'fastify';
 
-export const TERMS_VERSION = '2026-05-10-v1';
-export const PRIVACY_VERSION = '2026-05-10-v1';
-export const COOKIES_VERSION = '2026-05-10-v1';
+export const TERMS_VERSION = '2026-09-03-v2';
+export const PRIVACY_VERSION = '2026-09-07-v2';
+export const COOKIES_VERSION = '2026-09-03-v2';
 
 export type LegalRoutesOptions = {
   // Absolute path to the directory holding terms.md / privacy.md /

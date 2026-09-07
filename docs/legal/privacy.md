@@ -6,14 +6,15 @@
 > `PRIVACY_VERSION` in `services/gateway/src/routes/legal.ts`. Any change to the
 > text below MUST bump that constant in the same PR — a new version triggers the
 > re-acceptance flow (`LegalReacceptanceModal`, `packages/lib.legal`) on next
-> sign-in. This revision corrects several technical inaccuracies in the prior
-> draft (wrong self-service endpoints, an overstated retention-automation claim,
-> an incomplete data inventory) — see the PR description for the list. Bumping
-> `PRIVACY_VERSION` is a product decision (it force-reprompts every user) and is
-> left to whoever merges the legal-counsel-reviewed version.
+> sign-in. The 2026-09-03 revision corrected several technical inaccuracies in
+> the prior draft (wrong self-service endpoints, an overstated retention-
+> automation claim, an incomplete data inventory) but shipped without bumping
+> `PRIVACY_VERSION` (ADS-1320) — this revision adds the missing recipients /
+> processors / international-transfers disclosure (GDPR Art. 13(1)(e)-(f)) and
+> bumps the version so existing users are re-prompted.
 
-**Version:** 2026-05-10-v1
-**Last updated:** 10 May 2026
+**Version:** 2026-09-07-v2
+**Last updated:** 7 September 2026
 
 > **Placeholder copy — must be reviewed and approved by legal counsel before
 > production launch.** Bracketed items (company legal name, registered address,
