@@ -43,3 +43,4 @@ index line to match.
 | [0012](./0012-internal-defence-in-depth.md)      | Internal defence-in-depth posture for the eyes-on launch | Accepted               | 2026-08-28 | —                                     |
 | [0013](./0013-socket-sticky-sessions.md)         | Sticky sessions for the Socket.IO connection cap         | Accepted               | 2026-06-04 | —                                     |
 | [0014](./0014-httponly-cookie-token-storage.md)  | HttpOnly cookie token storage                            | Accepted — implemented | 2026-08-28 | —                                     |
+| [0015](./0015-solo-maintainer-review-posture.md) | Solo-maintainer review posture                           | Accepted               | 2026-09-07 | —                                     |
