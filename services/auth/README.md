@@ -44,7 +44,7 @@ In the Docker dev stack (primary workflow) this runs as container
 pnpm docker:dev:detach                   # start the whole stack
 docker compose logs -f service-auth      # follow just this service
 curl localhost:5002/health/simple        # liveness probe
-# Expected: {"status":"ok","service":"@adopt-dont-shop/service.auth","environment":"development"}
+# Expected: {"status":"ok","service":"service.auth","environment":"development"}
 ```
 
 Bare-metal (this service alone, against host Postgres + NATS from

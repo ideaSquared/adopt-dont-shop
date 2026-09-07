@@ -43,7 +43,7 @@ In the Docker dev stack (primary workflow) this runs as container
 pnpm docker:dev:detach                           # start the whole stack
 docker compose logs -f service-applications      # follow just this service
 curl localhost:5005/health/simple                # liveness probe
-# Expected: {"status":"ok","service":"@adopt-dont-shop/service.applications","environment":"development"}
+# Expected: {"status":"ok","service":"service.applications","environment":"development"}
 ```
 
 Bare-metal (this service alone, against host Postgres + NATS from

@@ -40,7 +40,7 @@ In the Docker dev stack (primary workflow) this runs as container
 pnpm docker:dev:detach                         # start the whole stack
 docker compose logs -f service-moderation      # follow just this service
 curl localhost:5007/health/simple              # liveness probe
-# Expected: {"status":"ok","service":"@adopt-dont-shop/service.moderation","environment":"development"}
+# Expected: {"status":"ok","service":"service.moderation","environment":"development"}
 ```
 
 Bare-metal (this service alone, against host Postgres + NATS from
