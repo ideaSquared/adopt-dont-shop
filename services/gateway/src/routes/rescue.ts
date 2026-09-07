@@ -36,6 +36,7 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
+import { toValidationFailure, websiteSchema } from './rescue.schemas.js';
 
 export type RescueRoutesOptions = {
   client: RescueClient;
@@ -290,6 +291,12 @@ export const registerRescueRoutes = async (
     },
     async (req, reply) => {
       const body = (req.body ?? {}) as CreateRescueBody;
+      if (body.website !== undefined) {
+        const parsedWebsite = websiteSchema.safeParse(body.website);
+        if (!parsedWebsite.success) {
+          return reply.code(400).send(toValidationFailure(parsedWebsite.error));
+        }
+      }
       const grpcReq: CreateRescueRequest = {
         name: body.name ?? '',
         email: body.email ?? '',
@@ -371,6 +378,12 @@ export const registerRescueRoutes = async (
     },
     async (req, reply) => {
       const body = (req.body ?? {}) as UpdateRescueBody;
+      if (body.website !== undefined) {
+        const parsedWebsite = websiteSchema.safeParse(body.website);
+        if (!parsedWebsite.success) {
+          return reply.code(400).send(toValidationFailure(parsedWebsite.error));
+        }
+      }
       // Map only the documented editable fields (mirrors the create route
       // above). Never spread the raw body: a bare `...body` forwards
       // undeclared UpdateRescueRequest fields the route schema doesn't list

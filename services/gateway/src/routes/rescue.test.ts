@@ -257,6 +257,80 @@ describe('POST /api/v1/rescue', () => {
       await app.close();
     }
   });
+
+  it('accepts an https:// website and threads it into the gRPC request', async () => {
+    const { client, createMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      createMock.mockResolvedValueOnce({ rescue: RESCUE_FIXTURE } as CreateRescueResponse);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescue',
+        payload: {
+          name: 'Pawsome',
+          email: 'hi@p.example',
+          address: '1 High St',
+          city: 'London',
+          postcode: 'SW1A 1AA',
+          contactPerson: 'Alex',
+          website: 'https://pawsome.example.com',
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      const [req] = createMock.mock.calls[0];
+      expect(req.website).toBe('https://pawsome.example.com');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a javascript: website with 400 and does not call gRPC (ADS-1292)', async () => {
+    const { client, createMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescue',
+        payload: {
+          name: 'Pawsome',
+          email: 'hi@p.example',
+          address: '1 High St',
+          city: 'London',
+          postcode: 'SW1A 1AA',
+          contactPerson: 'Alex',
+          website: 'javascript:alert(document.cookie)',
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(createMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a plain http:// website with 400 (https only) (ADS-1292)', async () => {
+    const { client, createMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescue',
+        payload: {
+          name: 'Pawsome',
+          email: 'hi@p.example',
+          address: '1 High St',
+          city: 'London',
+          postcode: 'SW1A 1AA',
+          contactPerson: 'Alex',
+          website: 'http://pawsome.example.com',
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(createMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
 });
 
 describe('PATCH /api/v1/rescue/:id', () => {
@@ -309,6 +383,56 @@ describe('PATCH /api/v1/rescue/:id', () => {
       expect(req.settingsJson).toBeUndefined();
       expect(req.expectedVersion).toBeUndefined();
       expect(req.somethingArbitrary).toBeUndefined();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('accepts an https:// website on update', async () => {
+    const { client, updateMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      updateMock.mockResolvedValueOnce({ rescue: RESCUE_FIXTURE } as UpdateRescueResponse);
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/rescue/rsc-1',
+        payload: { website: 'https://pawsome.example.com' },
+      });
+      expect(res.statusCode).toBe(200);
+      const [req] = updateMock.mock.calls[0];
+      expect(req.website).toBe('https://pawsome.example.com');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a javascript: website on update with 400 and does not call gRPC (ADS-1292)', async () => {
+    const { client, updateMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/rescue/rsc-1',
+        payload: { website: 'javascript:alert(document.cookie)' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a control-character-obfuscated javascript: website on update with 400 (ADS-1292)', async () => {
+    const { client, updateMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/rescue/rsc-1',
+        payload: { website: 'java\tscript:alert(document.cookie)' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(updateMock).not.toHaveBeenCalled();
     } finally {
       await app.close();
     }
