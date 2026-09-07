@@ -93,4 +93,38 @@ describe('checkReadiness', () => {
       expect.objectContaining({ check: 'nats' })
     );
   });
+
+  // ADS-1327: some services (the gateway's rate-limit Redis) already
+  // degrade gracefully when Redis is unreachable (in-memory fallback) — for
+  // those, Redis should be VISIBLE in the readiness breakdown without
+  // pulling the service out of rotation over it. `redisOptional` reports
+  // the same 'redis' check name but never fails `ok`.
+  describe('redisOptional (non-critical)', () => {
+    it('reports redis: ok and stays ready when the optional Redis is reachable', async () => {
+      const ping = vi.fn(async () => 'PONG');
+      const result = await checkReadiness({ redisOptional: { ping } });
+
+      expect(ping).toHaveBeenCalled();
+      expect(result).toEqual({ ok: true, checks: { redis: 'ok' } });
+    });
+
+    it('reports redis: error but stays overall ready when the optional Redis is unreachable', async () => {
+      const ping = vi.fn(async () => {
+        throw new Error('ECONNREFUSED');
+      });
+      const result = await checkReadiness({ redisOptional: { ping } });
+
+      expect(result).toEqual({ ok: true, checks: { redis: 'error' } });
+    });
+
+    it('still fails overall when a critical dependency is also down alongside a degraded optional Redis', async () => {
+      const result = await checkReadiness({
+        pool: { query: vi.fn(async () => Promise.reject(new Error('down'))) },
+        redisOptional: { ping: vi.fn(async () => Promise.reject(new Error('down'))) },
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.checks).toEqual({ database: 'error', redis: 'error' });
+    });
+  });
 });

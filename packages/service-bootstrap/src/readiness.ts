@@ -28,8 +28,19 @@ export type ReadinessDeps = {
   pool?: { query: (text: string) => Promise<unknown> };
   // NATS connection — reported not-ready once the connection has closed.
   nats?: { isClosed: () => boolean };
-  // Redis client (ioredis / node-redis both expose this shape) — probed with PING.
+  // Redis client (ioredis / node-redis both expose this shape) — probed with
+  // PING. A failure here makes the service overall not-ready.
   redis?: { ping: () => Promise<unknown> };
+  // Like `redis`, but for a Redis instance the caller already degrades
+  // gracefully without (e.g. the gateway's rate-limit store, which falls
+  // back to in-memory on connection loss — ADS-1046). Reported under the
+  // same `redis` check name in the response breakdown so it's visible to
+  // operators, but a failure here does NOT flip the overall `ok` to false —
+  // pulling a service out of rotation over a dependency it already
+  // tolerates losing would be the wrong failure mode. Mutually exclusive
+  // with `redis` in practice — a service has one Redis readiness posture,
+  // not both.
+  redisOptional?: { ping: () => Promise<unknown> };
 };
 
 export type ReadinessResult = {
@@ -71,12 +82,15 @@ export const checkReadiness = async (
 ): Promise<ReadinessResult> => {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_CHECK_TIMEOUT_MS;
 
-  const probes: Array<{ name: string; run: () => Promise<void> }> = [];
+  // `critical: false` reports the check in `checks` for operator visibility
+  // without letting its failure flip the overall `ok` — see `redisOptional`.
+  const probes: Array<{ name: string; critical: boolean; run: () => Promise<void> }> = [];
 
   if (deps.pool) {
     const { pool } = deps;
     probes.push({
       name: 'database',
+      critical: true,
       run: () => withTimeout('database', pool.query('SELECT 1'), timeoutMs),
     });
   }
@@ -84,6 +98,7 @@ export const checkReadiness = async (
     const { nats } = deps;
     probes.push({
       name: 'nats',
+      critical: true,
       run: async () => {
         if (nats.isClosed()) {
           throw new Error('nats connection is closed');
@@ -93,23 +108,39 @@ export const checkReadiness = async (
   }
   if (deps.redis) {
     const { redis } = deps;
-    probes.push({ name: 'redis', run: () => withTimeout('redis', redis.ping(), timeoutMs) });
+    probes.push({
+      name: 'redis',
+      critical: true,
+      run: () => withTimeout('redis', redis.ping(), timeoutMs),
+    });
+  }
+  if (deps.redisOptional) {
+    const { redisOptional } = deps;
+    probes.push({
+      name: 'redis',
+      critical: false,
+      run: () => withTimeout('redis', redisOptional.ping(), timeoutMs),
+    });
   }
 
   const entries = await Promise.all(
-    probes.map(async ({ name, run }): Promise<readonly [string, 'ok' | 'error']> => {
-      try {
-        await run();
-        return [name, 'ok'] as const;
-      } catch (err) {
-        opts.logger?.warn('readiness probe failed', { check: name, err });
-        return [name, 'error'] as const;
+    probes.map(
+      async ({ name, critical, run }): Promise<readonly [string, 'ok' | 'error', boolean]> => {
+        try {
+          await run();
+          return [name, 'ok', critical] as const;
+        } catch (err) {
+          opts.logger?.warn('readiness probe failed', { check: name, err });
+          return [name, 'error', critical] as const;
+        }
       }
-    })
+    )
   );
 
-  const checks: Record<string, 'ok' | 'error'> = Object.fromEntries(entries);
-  const ok = entries.every(([, status]) => status === 'ok');
+  const checks: Record<string, 'ok' | 'error'> = Object.fromEntries(
+    entries.map(([name, status]) => [name, status])
+  );
+  const ok = entries.every(([, status, critical]) => status === 'ok' || !critical);
   return { ok, checks };
 };
 
