@@ -324,17 +324,22 @@ services:
       # ADS-800: the gateway signs the x-principal-token it forwards on
       # every downstream gRPC call.
       PRINCIPAL_SIGNING_KEY_FILE: /run/secrets/principal_signing_key
+      # ADS-1310: without this the rate limiter falls back to in-memory
+      # (breaks cross-replica limiting) and the Redis-backed WS adapter
+      # never starts.
+      REDIS_URL_FILE: /run/secrets/redis_url
       # ADS-1041: observability shipping (inert unless set in the host .env).
       LOKI_URL: ${LOKI_URL:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
-    # Gateway has no DB; it needs the upload-signing secret plus the
-    # principal-signing key (ADS-800 — it is the token signer) and the NATS
-    # auth token (ADS-1273).
+    # Gateway has no DB; it needs the upload-signing secret, the
+    # principal-signing key (ADS-800 — it is the token signer), the NATS
+    # auth token (ADS-1273) and Redis (ADS-1310 — rate limiting + WS adapter).
     secrets:
       - upload_signing_secret
       - principal_signing_key
       - nats_auth_token
+      - redis_url
     volumes:
       - uploads:/app/uploads
     expose:
