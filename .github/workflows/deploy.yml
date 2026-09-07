@@ -933,3 +933,35 @@ jobs:
             # Record deployed SHA
             echo "$SHA" > .last_sha
             echo "Deployed $SHA to $ENV successfully."
+
+  # ADS-1324: this workflow previously had no failure notification — a
+  # broken deploy was only visible to whoever happened to check the Actions
+  # tab. Reuse the Discord webhook Alertmanager already posts critical/
+  # warning alerts to (observability/alertmanager/secrets/discord_webhook_url
+  # on the host) as a repo secret here, since a GitHub Actions job can't read
+  # a host-side file. Skips gracefully — never fails the run — when the
+  # secret hasn't been configured.
+  notify-on-failure:
+    needs: [preflight, resolve-frontend-vars, build-and-push, verify-images, deploy]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post failure to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TARGET_ENV: ${{ github.event.inputs.environment }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
+            echo "DISCORD_WEBHOOK_URL secret not set — skipping failure notification."
+            exit 0
+          fi
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          PAYLOAD=$(jq -n \
+            --arg env "$TARGET_ENV" \
+            --arg url "$RUN_URL" \
+            --arg sha "$GITHUB_SHA" \
+            --arg actor "$GITHUB_ACTOR" \
+            '{content: ("🚨 Deploy to **" + $env + "** failed — " + $url + " (sha " + ($sha[0:7]) + ", dispatched by " + $actor + ")")}')
+          curl -fsS -X POST -H 'Content-Type: application/json' -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL"
