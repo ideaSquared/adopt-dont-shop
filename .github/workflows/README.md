@@ -14,8 +14,8 @@ Reference for the GitHub Actions workflows in this directory: what each one does
 | `docker.yml`               | Builds the gateway / service and per-app Docker images, then tests the docker-compose stack.                                                                             |
 | `lib-test-guard.yml`       | Fails when any `lib.*` package has zero test files (ADS-186 / ADS-328 safety net).                                                                                       |
 | `schema-equivalence.yml`   | Bootstraps DB-A (migrate) and DB-B (sync), diffs normalised `pg_dump` to detect schema drift.                                                                            |
-| `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH. Ships compose/nginx/observability config on every run (ADS-1312).                                                 |
-| `rollback.yml`             | Manual rollback to a previously published GHCR image SHA. Ships the same config as `deploy.yml` (ADS-1312).                                                              |
+| `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH. Ships compose/nginx/observability config on every run and gates on per-service `/health/ready` (ADS-1308/1312).   |
+| `rollback.yml`             | Manual rollback to a previously published GHCR image SHA. At parity with `deploy.yml` (ADS-1311): same shipped config, secrets, overlays, and full-fleet health gate.    |
 | `release.yml`              | Builds and pushes production Docker images (gateway + 10 services + 3 apps) to Docker Hub on tag pushes (`v*`) and successful CI runs to `main`.                         |
 | `release-please.yml`       | Generates release PRs, version tags, and GitHub Releases with changelogs from conventional commits.                                                                      |
 | `storybook.yml`            | Builds and deploys `lib.components` Storybook to GitHub Pages.                                                                                                           |
@@ -147,7 +147,7 @@ HETZNER_HOST_FINGERPRINT=ssh-host-key-fingerprint  # computed via `ssh-keyscan -
 GHCR_TOKEN=read-only-personal-access-token         # scope: read:packages
 ```
 
-`deploy.yml` and `rollback.yml` also pass through application secrets (`SECRET_JWT_SECRET`, `SECRET_JWT_REFRESH_SECRET`, `SECRET_SESSION_SECRET`, `SECRET_ENCRYPTION_KEY`, `SECRET_UPLOAD_SIGNING_SECRET`, `SECRET_DB_PASSWORD`, `SECRET_REDIS_PASSWORD`) — these must be configured per environment.
+`deploy.yml` and `rollback.yml` also pass through application secrets (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`, `NATS_AUTH_TOKEN` — ADS-1311 fixed `rollback.yml` never forwarding the last one) as repository secrets, materialised into `secrets/<name>` file-mounts on the host. `deploy.yml`'s frontend build steps additionally read an optional `SENTRY_AUTH_TOKEN` build secret (ADS-1319) and, for `VITE_API_BASE_URL`/`VITE_WS_BASE_URL`/`VITE_SENTRY_DSN`/`VITE_STATSIG_CLIENT_KEY`, environment-scoped `staging-vars`/`production-vars` GitHub Environment variables (ADS-1318). An optional `DISCORD_WEBHOOK_URL` secret enables deploy failure notifications (ADS-1324).
 
 ### Branch Protection
 

@@ -582,7 +582,7 @@ jobs:
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-overlay-args.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -746,49 +746,6 @@ jobs:
               COMPOSE_FILE="docker-compose.staging.yml"
             fi
 
-            # ADS-1041: optionally layer in the self-hosted observability
-            # (Prometheus/Loki/Tempo/Grafana/Alertmanager) and GlitchTip
-            # error-tracking stacks. Enabled per-host in /opt/ads/<env>/.env
-            # (OBSERVABILITY_ENABLED=true / GLITCHTIP_ENABLED=true). Off by
-            # default → this deploy is unchanged. When enabling, the overlay
-            # compose file(s) + ./observability/ config tree must already be
-            # provisioned on the host (the host holds no repo checkout — see
-            # docs/runbooks/observability-enable.md).
-            # Tolerant boolean read from the host .env: accepts KEY=true,
-            # KEY="true", surrounding quotes, trailing whitespace, or an inline
-            # `# comment` — the same coercions docker-compose applies — so the
-            # flag and the overlay can't disagree.
-            env_flag_true() {
-              local v
-              v="$(grep -E "^$1=" .env | head -n1 | cut -d= -f2-)" || true
-              v="${v%%#*}"                                        # strip inline comment
-              v="$(printf '%s' "$v" | tr -d '[:space:]')"         # strip whitespace
-              v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"   # strip quotes
-              [ "$v" = "true" ]
-            }
-            OVERLAY_ARGS=""
-            if env_flag_true OBSERVABILITY_ENABLED; then
-              OVERLAY_ARGS="$OVERLAY_ARGS -f docker-compose.observability.yml"
-              echo "Observability stack ENABLED (metrics/logs/traces/alerting)."
-            fi
-            if env_flag_true GLITCHTIP_ENABLED; then
-              OVERLAY_ARGS="$OVERLAY_ARGS -f docker-compose.glitchtip.yml"
-              echo "GlitchTip error tracking ENABLED."
-            fi
-
-            # Materialize the file-mounted Docker secrets consumed via
-            # `file: ./secrets/<name>` by BOTH docker-compose.prod.yml and
-            # docker-compose.staging.yml. The set must match the `secrets:`
-            # blocks in those files (see secrets/README.md). [ADS-675, ADS-752]
-            #
-            # database_url / redis_url are composed here from the rotating DB
-            # password plus the non-rotating identifiers already in the host
-            # .env (POSTGRES_USER / POSTGRES_DB, and the REDIS_PASSWORD the redis
-            # container itself authenticates with) so the URLs always match what
-            # the database/redis containers use. redis_password is the same
-            # value, written separately because the redis container reads its
-            # own --requirepass from this file rather than from `environment:`
-            # (ADS-878).
             read_env() {  # read a key from the host .env, quotes stripped; fails if absent
               local v
               v="$(grep -E "^$1=" .env | head -n1 | cut -d= -f2-)" || true
@@ -810,22 +767,20 @@ jobs:
               echo "Substituted PROD_HOSTNAME=$PROD_HOSTNAME into nginx/nginx.prod.conf."
             fi
 
-            PG_USER="$(read_env POSTGRES_USER)"
-            PG_DB="$(read_env POSTGRES_DB)"
-            REDIS_PW="$(read_env REDIS_PASSWORD)"
-            mkdir -p secrets
-            chmod 700 secrets
-            printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url
-            printf '%s' "redis://:${REDIS_PW}@redis:6379"      > secrets/redis_url
-            printf '%s' "$REDIS_PW"                             > secrets/redis_password
-            printf '%s' "$SECRET_JWT_SECRET"                    > secrets/jwt_secret
-            printf '%s' "$SECRET_JWT_REFRESH_SECRET"            > secrets/jwt_refresh_secret
-            printf '%s' "$SECRET_ENCRYPTION_KEY"                > secrets/encryption_key
-            printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret
-            printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
-            printf '%s' "$SECRET_NATS_AUTH_TOKEN"               > secrets/nats_auth_token
-            printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
-            chmod 600 secrets/*
+            # ADS-1041/ADS-1311: optionally layer in the self-hosted
+            # observability (Prometheus/Loki/Tempo/Grafana/Alertmanager) and
+            # GlitchTip error-tracking stacks. Enabled per-host in
+            # /opt/ads/<env>/.env (OBSERVABILITY_ENABLED=true /
+            # GLITCHTIP_ENABLED=true) — see scripts/deploy-overlay-args.sh
+            # (shared with rollback.yml) for the tolerant-boolean contract.
+            chmod +x scripts/deploy-overlay-args.sh
+            OVERLAY_ARGS="$(scripts/deploy-overlay-args.sh)"
+
+            # ADS-1311: shared file-secret materialization (also used by
+            # rollback.yml) — see scripts/deploy-secrets.sh for the set and
+            # rationale (matches secrets/README.md, ADS-675/ADS-752/ADS-878).
+            chmod +x scripts/deploy-secrets.sh
+            scripts/deploy-secrets.sh
 
             # Bring up new containers. Each service migrates its own schema on
             # start (the Dockerfile.service entrypoint runs

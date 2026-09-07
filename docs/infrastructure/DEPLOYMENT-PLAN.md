@@ -70,16 +70,17 @@ Infrastructure secrets:
 | `GHCR_TOKEN`                   | PAT scoped **`read:packages` only** — pulls images on the host. Both `deploy.yml` and `rollback.yml` FAIL the run if it carries `write:packages`, `delete:packages`, or `repo` scope (ADS-671). |
 | `BACKUP_BUCKET` / `AWS_REGION` | Repo **variables** (not secrets) for the nightly backup workflow                                                                                                                                |
 
-Application secrets — `deploy.yml` validates all six are present, then materialises them into `./secrets/<name>` file-mounts on the host (they are **not** hand-written into `.env`):
+Application secrets — `deploy.yml` validates all seven are present, then materialises them into `./secrets/<name>` file-mounts on the host (they are **not** hand-written into `.env`). `rollback.yml` requires the same set (ADS-1311) except `SENTRY_AUTH_TOKEN`, which is a build-time-only secret (see below):
 
-| Secret                  | Purpose                                               |
-| ----------------------- | ----------------------------------------------------- |
-| `JWT_SECRET`            | Signs short-lived access tokens                       |
-| `JWT_REFRESH_SECRET`    | Signs refresh tokens                                  |
-| `ENCRYPTION_KEY`        | AES-256-GCM key for encrypted PII (64 hex chars)      |
-| `UPLOAD_SIGNING_SECRET` | Signs upload URLs                                     |
-| `DB_PASSWORD`           | Postgres password (composed into `database_url`)      |
-| `PRINCIPAL_SIGNING_KEY` | HMAC key for the signed `x-principal-token` (ADS-800) |
+| Secret                  | Purpose                                                                                                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `JWT_SECRET`            | Signs short-lived access tokens                                                                                                                                         |
+| `JWT_REFRESH_SECRET`    | Signs refresh tokens                                                                                                                                                    |
+| `ENCRYPTION_KEY`        | AES-256-GCM key for encrypted PII (64 hex chars)                                                                                                                        |
+| `UPLOAD_SIGNING_SECRET` | Signs upload URLs                                                                                                                                                       |
+| `DB_PASSWORD`           | Postgres password (composed into `database_url`)                                                                                                                        |
+| `NATS_AUTH_TOKEN`       | Shared token for the `nats` container + every publisher/subscriber (materialised into `secrets/nats_auth_token`; ADS-1311 fixed `rollback.yml` never writing this file) |
+| `PRINCIPAL_SIGNING_KEY` | HMAC key for the signed `x-principal-token` (ADS-800)                                                                                                                   |
 
 Generate strong values with `pnpm secrets:generate` (see [SECRETS-MANAGEMENT.md](../SECRETS-MANAGEMENT.md)); do not reuse staging/dev values. Repo: `ideaSquared/adopt-dont-shop`; images under `ghcr.io/ideasquared/adopt-dont-shop/…`.
 

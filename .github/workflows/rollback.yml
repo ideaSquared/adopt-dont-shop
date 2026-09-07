@@ -33,10 +33,11 @@ jobs:
 
       # ADS-900/ADS-1312: the deploy host doesn't hold a full repo checkout —
       # only the specific files it needs under /opt/ads/<env> (.env,
-      # secrets/, plus whatever this step ships). Ship the same compose/
-      # nginx/observability config deploy.yml does so a rollback runs
-      # against exactly this commit's config rather than whatever was last
-      # hand-copied or left behind by a previous deploy.
+      # secrets/, plus whatever this step ships). Ship the same set
+      # deploy.yml does (compose files, nginx/ config, observability/ config
+      # tree, and the shared health-gate/secrets/overlay scripts) so a
+      # rollback runs against exactly this commit's config rather than
+      # whatever was last hand-copied or left behind by a previous deploy.
       - name: Copy deploy config to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
         with:
@@ -44,7 +45,7 @@ jobs:
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-overlay-args.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -103,13 +104,18 @@ jobs:
           SECRET_UPLOAD_SIGNING_SECRET: ${{ secrets.UPLOAD_SIGNING_SECRET }}
           SECRET_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           SECRET_PRINCIPAL_SIGNING_KEY: ${{ secrets.PRINCIPAL_SIGNING_KEY }}
+          # ADS-1311: was missing entirely — rollback only "worked" because a
+          # previous deploy's secrets/nats_auth_token file was left on disk.
+          # A rollback on a host that never ran deploy.yml (or after the file
+          # was cleaned up) would leave every NATS client unable to connect.
+          SECRET_NATS_AUTH_TOKEN: ${{ secrets.NATS_AUTH_TOKEN }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,ROLLBACK_SHA,ROLLBACK_ENV,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY
+          envs: GHCR_TOKEN,ROLLBACK_SHA,ROLLBACK_ENV,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN
           script: |
             set -euo pipefail
             # Validate SHA before use to prevent shell injection.
@@ -127,15 +133,20 @@ jobs:
 
             # Post-monolith: the gateway + 10 gRPC services replace the deleted
             # service.backend image, plus the three frontends.
-            for image in \
-              service-gateway service-auth service-notifications service-pets \
-              service-rescue service-applications service-chat service-moderation \
-              service-matching service-audit service-cms \
-              app-client app-admin app-rescue; do
+            IMAGES="service-gateway service-auth service-notifications service-pets
+              service-rescue service-applications service-chat service-moderation
+              service-matching service-audit service-cms
+              app-client app-admin app-rescue"
+            for image in $IMAGES; do
               docker pull "$IMAGE_PREFIX/$image:$SHA"
             done
 
-            # Update SHA in .env
+            # ADS-1311: clear any per-service tag overrides before rewriting
+            # DEPLOY_SHA — mirrors deploy.yml's rollback_and_fail. Without this
+            # a service pinned via SERVICE_<NAME>_TAG stays on the SHA being
+            # rolled back (or worse, the bad release) instead of following the
+            # rest of the stack to $SHA.
+            sed -i '/^SERVICE_[A-Z_]*_TAG=/d;/^APP_[A-Z_]*_TAG=/d' .env
             sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
 
             if [ "$ENV" = "production" ]; then
@@ -144,10 +155,6 @@ jobs:
               COMPOSE_FILE="docker-compose.staging.yml"
             fi
 
-            # Materialize the file-mounted Docker secrets consumed via
-            # `file: ./secrets/<name>` by BOTH docker-compose.prod.yml and
-            # docker-compose.staging.yml. The set must match the `secrets:`
-            # blocks in those files (see secrets/README.md). [ADS-675, ADS-752]
             read_env() {  # read a key from the host .env, quotes stripped; fails if absent
               local v
               v="$(grep -E "^$1=" .env | head -n1 | cut -d= -f2-)" || true
@@ -167,30 +174,36 @@ jobs:
               echo "Substituted PROD_HOSTNAME=$PROD_HOSTNAME into nginx/nginx.prod.conf."
             fi
 
-            PG_USER="$(read_env POSTGRES_USER)"
-            PG_DB="$(read_env POSTGRES_DB)"
-            REDIS_PW="$(read_env REDIS_PASSWORD)"
-            mkdir -p secrets
-            chmod 700 secrets
-            printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url
-            printf '%s' "redis://:${REDIS_PW}@redis:6379"      > secrets/redis_url
-            printf '%s' "$REDIS_PW"                             > secrets/redis_password
-            printf '%s' "$SECRET_JWT_SECRET"                    > secrets/jwt_secret
-            printf '%s' "$SECRET_JWT_REFRESH_SECRET"            > secrets/jwt_refresh_secret
-            printf '%s' "$SECRET_ENCRYPTION_KEY"                > secrets/encryption_key
-            printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret
-            printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
-            printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
-            chmod 600 secrets/*
+            # ADS-1311: layer in the observability/GlitchTip overlays the same
+            # way deploy.yml does — a rollback used to silently drop them,
+            # so a rolled-back stack would run unmonitored even though
+            # OBSERVABILITY_ENABLED=true is still set in .env. See
+            # scripts/deploy-overlay-args.sh (shared with deploy.yml).
+            chmod +x scripts/deploy-overlay-args.sh
+            OVERLAY_ARGS="$(scripts/deploy-overlay-args.sh)"
 
-            docker compose -f $COMPOSE_FILE --env-file .env up -d
+            # ADS-1311: shared file-secret materialization (also used by
+            # deploy.yml) — see scripts/deploy-secrets.sh for the full set
+            # and rationale (matches secrets/README.md).
+            chmod +x scripts/deploy-secrets.sh
+            scripts/deploy-secrets.sh
 
-            # ADS-900: shared health-check loop (also used by deploy.yml) — see
+            docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
+
+            # ADS-1311/ADS-1308: every service must report /health/ready, not
+            # just the gateway — matches deploy.yml's health gate exactly, so
+            # a rollback that leaves a dependency (DB pool, Redis, NATS) dead
+            # on a non-gateway service is caught instead of reporting success
+            # because the gateway alone came up. See
             # scripts/wait-for-services.sh for the retry/timeout contract.
-            # Only the gateway is checked here, matching this workflow's
-            # existing (narrower) scope — deploy.yml checks every service.
+            HEALTH_TARGETS="service-notifications:5001 service-auth:5002 \
+              service-pets:5003 service-rescue:5004 service-applications:5005 \
+              service-chat:5006 service-moderation:5007 service-matching:5008 \
+              service-audit:5009 service-cms:5010 service-gateway:4000"
             chmod +x scripts/wait-for-services.sh
-            ./scripts/wait-for-services.sh "$COMPOSE_FILE" 30 2 service-gateway:4000
+            # Intentional word-split of the target list.
+            # shellcheck disable=SC2086
+            ./scripts/wait-for-services.sh "$COMPOSE_FILE" 60 2 $HEALTH_TARGETS
 
             # ADS-1247: KEEP the materialized secret files — do not rm -f them
             # as ADS-675 originally did. They are docker-compose file-secrets

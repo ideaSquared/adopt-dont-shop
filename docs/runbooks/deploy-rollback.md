@@ -79,10 +79,13 @@ Match the symptom to a cause before rolling back:
 
 ### 0. Sanctioned path — roll the whole environment back (preferred)
 
-Use the workflow. It rewrites `DEPLOY_SHA` in `/opt/ads/production/.env`, runs
-`docker compose up -d`, runs the full health-check loop, and records `.last_sha`
-— so the change **persists across reboots and the next deploy** in a way that a
-hand-edit does not.
+Use the workflow. It ships the compose/nginx/observability config fresh
+(ADS-1312), clears any per-service `SERVICE_*_TAG`/`APP_*_TAG` overrides,
+rewrites `DEPLOY_SHA` in `/opt/ads/production/.env`, runs
+`docker compose up -d` (with the observability/GlitchTip overlays applied if
+enabled), gates on all 11 services' `/health/ready` — not the gateway alone
+(ADS-1308/ADS-1311) — and records `.last_sha` — so the change **persists
+across reboots and the next deploy** in a way that a hand-edit does not.
 
 ```bash
 # From your workstation. sha = the previous good 40-char SHA.

@@ -6,6 +6,7 @@ Authoritative procedure for cutting a normal production/staging release (audienc
 
 - One-time provisioning complete — see [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md): server + Docker, DNS, TLS, and the six GitHub Actions repo secrets `deploy.yml` validates (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`).
 - `GHCR_TOKEN` repository secret set to a PAT scoped **`read:packages` only** — the deploy and rollback workflows `docker pull` images with it (they FAIL fast on `write:packages`/`repo` scope). See [`docs/SECRETS-MANAGEMENT.md`](../SECRETS-MANAGEMENT.md#github-actions-repository-secrets). [ADS-671]
+- `NATS_AUTH_TOKEN` repository secret set — required by both `deploy.yml` and `rollback.yml` to materialize `secrets/nats_auth_token` (ADS-1311).
 - `SENTRY_AUTH_TOKEN` repository secret set (optional but recommended) — without it, frontend builds skip the sourcemap upload and log a loud warning; production stack traces in GlitchTip stay unsymbolicated (ADS-1319).
 - `staging-vars` / `production-vars` GitHub Environments created (Settings → Environments → New environment), **no** required reviewers, each carrying environment variables `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` scoped to that target — otherwise the frontend build falls back to the single repository-level value for both environments (ADS-1318). See "Environment-scoped frontend build vars" below.
 - `PROD_HOSTNAME` set as a plain key (not `${...}`) in `/opt/ads/production/.env`, e.g. `PROD_HOSTNAME=example.com` — `deploy.yml`/`rollback.yml` re-apply the `__PROD_HOSTNAME__` substitution into `nginx/nginx.prod.conf` from it on every run, now that the file is shipped fresh each time (ADS-1312).
@@ -167,6 +168,8 @@ make rollback env=production sha=<git-sha>   # re-deploys the whole stack at tha
 ```
 
 It must be a full 40-char (or ≥7-char hex prefix) git SHA whose images already exist in GHCR — never a `:latest` or a `sha-`/`vX.Y.Z` tag. `deploy.yml` also auto-rolls back to the last-known-good SHA on a failed health/smoke gate and persists it in `/opt/ads/<env>/.env`. The step-by-step incident procedure (single-service `SERVICE_<NAME>_TAG` overrides, break-glass on the host, auto-rollback behaviour) lives in [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md).
+
+`rollback.yml` is at parity with `deploy.yml` (ADS-1311): it ships the same compose/nginx/observability config before `up -d`, clears any `SERVICE_*_TAG`/`APP_*_TAG` overrides before rewriting `DEPLOY_SHA`, materializes `secrets/nats_auth_token` (and the rest of `secrets/*`), layers in the observability/GlitchTip overlays when enabled, and gates on all 11 services' `/health/ready` — not the gateway alone.
 
 Break-glass single-service pin, on the host (`cd /opt/ads/production`) — not persisted, the next deploy overwrites `.env`:
 
