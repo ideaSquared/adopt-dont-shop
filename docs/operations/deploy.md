@@ -82,7 +82,7 @@ The one-time configuration of the `production` / `production-bypass` reviewer en
 
 ## Release deploy
 
-The deploy is dispatched through GitHub Actions, not run by hand on the host. `deploy.yml` builds every service/app image, tags it `ghcr.io/ideasquared/adopt-dont-shop/<image>:<git-sha>` (the full 40-char commit SHA), signs it with cosign, then SSHes to the host, writes `DEPLOY_SHA=<sha>` into `/opt/ads/<env>/.env`, and runs `docker compose -f docker-compose.prod.yml up -d`. Production runs also push and re-tag `:latest`, but the compose file pins images to `DEPLOY_SHA` (a specific SHA) — `:latest` is not what a prod container runs.
+The deploy is dispatched through GitHub Actions, not run by hand on the host. `deploy.yml` builds every service/app image, tags it `ghcr.io/ideasquared/adopt-dont-shop/<image>:<git-sha>` (the full 40-char commit SHA), signs it with cosign, then SSHes to the host, writes `DEPLOY_SHA=<sha>` into `/opt/ads/<env>/.env`, and runs `docker compose -f docker-compose.prod.yml up -d`. There is no `:latest` tag — every deploy, staging or production, pins to an explicit `DEPLOY_SHA`, and nothing ever pulls `:latest` (ADS-1322).
 
 Every schema-owning service migrates **its own** schema on boot — the `Dockerfile.service` entrypoint runs `pnpm run --if-present db:migrate` before the long-running process starts (no separate migrate init container). The runner is `node-pg-migrate` wrapped by `@adopt-dont-shop/db` (`packages/db/src/migrate.ts`); applied migrations are recorded in a `pgmigrations` table in each owning schema, guarded by a database-wide advisory lock with linear backoff (12× × 250ms × attempt) so simultaneous service boots don't trample each other. [ADS-393]
 

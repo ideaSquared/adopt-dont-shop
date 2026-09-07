@@ -79,6 +79,7 @@ Builds and publishes production Docker images.
 - Builds and pushes the gateway + 10 gRPC service images (`service-gateway`, `service-auth`, …) to Docker Hub (`paragonjenko/adoptdontshop`).
 - Builds and pushes per-app frontend images (`app.client`, `app.admin`, `app.rescue`) to Docker Hub.
 - Tags images with semver (when triggered by a `v*` tag), branch name, and commit SHA.
+- Signs each pushed image by digest with cosign keyless OIDC (ADS-1322), the same signing scheme `deploy.yml` uses for its GHCR images (ADS-673) — this set was previously unsigned.
 
 This workflow **publishes images only — it does not deploy.** GitHub Releases themselves are produced by `release-please.yml` from conventional commits; deploys are driven separately by `deploy.yml` (see [Deploying](#deploying)).
 

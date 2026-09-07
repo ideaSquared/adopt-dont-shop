@@ -288,23 +288,19 @@ jobs:
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
 
       - name: Build and push gateway + services
-        env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          # ADS-rollback: :latest is only updated for production deploys.
+          # ADS-1322: no :latest tag. Every deploy — staging or production —
+          # pins docker-compose.prod.yml / .staging.yml to an explicit
+          # DEPLOY_SHA (see deploy.yml's "Deploy to server" step); nothing
+          # ever pulls :latest, so a mutable pointer only added a second,
+          # unpinned way to reference a production image with no consumer.
           # The SHA tag is always pushed so every build is individually
-          # addressable for rollback. :latest on non-production would
-          # overwrite the production pointer mid-window.
+          # addressable for rollback.
           #
           # Post-monolith: the service.backend image is gone. We build the
           # Fastify gateway + the 10 extracted gRPC services from the shared,
           # parameterised Dockerfile.service (SERVICE = workspace package,
           # SERVICE_DIR = path under the repo). Image name is service-<name>.
-          if [ "$ENVIRONMENT" = "production" ]; then
-            PUSH_LATEST=true
-          else
-            PUSH_LATEST=false
-          fi
           # "<image-name> <workspace-package> <service-dir>"
           SERVICES=(
             "service-gateway       @adopt-dont-shop/service.gateway       services/gateway"
@@ -331,12 +327,7 @@ jobs:
               -t "$ref" \
               .
             docker push "$ref"
-            if [ "$PUSH_LATEST" = "true" ]; then
-              docker tag "$ref" "$IMAGE_PREFIX/$image:latest"
-              docker push "$IMAGE_PREFIX/$image:latest"
-            fi
             # ADS-673: sign by digest (immutable) via cosign keyless OIDC.
-            # :latest resolves to the same digest so one signature covers both.
             DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$ref" | cut -d@ -f2)
             echo "Signing $IMAGE_PREFIX/$image@$DIGEST"
             cosign sign --yes "$IMAGE_PREFIX/$image@$DIGEST"
@@ -344,14 +335,8 @@ jobs:
           done
 
       - name: Build and push app.client
-        env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          if [ "$ENVIRONMENT" = "production" ]; then
-            PUSH_LATEST=true
-          else
-            PUSH_LATEST=false
-          fi
+          # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
             -f Dockerfile.app \
             --target production \
@@ -367,24 +352,14 @@ jobs:
             -t $IMAGE_PREFIX/app-client:${{ github.sha }} \
             .
           docker push $IMAGE_PREFIX/app-client:${{ github.sha }}
-          if [ "$PUSH_LATEST" = "true" ]; then
-            docker tag $IMAGE_PREFIX/app-client:${{ github.sha }} $IMAGE_PREFIX/app-client:latest
-            docker push $IMAGE_PREFIX/app-client:latest
-          fi
-          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-client@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
 
       - name: Build and push app.admin
-        env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          if [ "$ENVIRONMENT" = "production" ]; then
-            PUSH_LATEST=true
-          else
-            PUSH_LATEST=false
-          fi
+          # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
             -f Dockerfile.app \
             --target production \
@@ -400,24 +375,14 @@ jobs:
             -t $IMAGE_PREFIX/app-admin:${{ github.sha }} \
             .
           docker push $IMAGE_PREFIX/app-admin:${{ github.sha }}
-          if [ "$PUSH_LATEST" = "true" ]; then
-            docker tag $IMAGE_PREFIX/app-admin:${{ github.sha }} $IMAGE_PREFIX/app-admin:latest
-            docker push $IMAGE_PREFIX/app-admin:latest
-          fi
-          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-admin@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
 
       - name: Build and push app.rescue
-        env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          if [ "$ENVIRONMENT" = "production" ]; then
-            PUSH_LATEST=true
-          else
-            PUSH_LATEST=false
-          fi
+          # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
             -f Dockerfile.app \
             --target production \
@@ -433,11 +398,7 @@ jobs:
             -t $IMAGE_PREFIX/app-rescue:${{ github.sha }} \
             .
           docker push $IMAGE_PREFIX/app-rescue:${{ github.sha }}
-          if [ "$PUSH_LATEST" = "true" ]; then
-            docker tag $IMAGE_PREFIX/app-rescue:${{ github.sha }} $IMAGE_PREFIX/app-rescue:latest
-            docker push $IMAGE_PREFIX/app-rescue:latest
-          fi
-          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-rescue@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-rescue@$DIGEST"
