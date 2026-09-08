@@ -4,10 +4,13 @@ import { lightTheme, normalTheme } from './theme';
 
 /**
  * ADS-1326: axe-core's Playwright smoke gate (e2e/tests/a11y/axe-smoke.spec.ts)
- * caught two text/background token pairs failing WCAG AA (4.5:1) on the
- * `normal` theme's warm-cream body, despite passing on plain white — a real
- * regression these two color tokens (text.tertiary, colors.primaryActive as
- * used by PublicAuthLayout's switchLink) had no coverage against before.
+ * caught text/background token pairs failing WCAG AA (4.5:1) on the `normal`
+ * theme's warm-cream body (text.tertiary), and colors.primary failing
+ * outright on both white and cream (packages/lib.auth's LoginForm backLink)
+ * — real regressions these tokens had no coverage against before.
+ * colors.primaryActive is the fix for both that usage and apps/client's
+ * PublicAuthLayout switchLink, which had the same colors.primary /
+ * primaryHover under-contrast problem.
  *
  * These are plain WCAG 2.x relative-luminance / contrast-ratio calculations
  * (https://www.w3.org/TR/WCAG21/#dfn-relative-luminance) — small and
@@ -49,11 +52,24 @@ describe('text.tertiary contrast against each theme body (ADS-1326)', () => {
 });
 
 describe('colors.primaryActive contrast against each theme body (ADS-1326)', () => {
+  // colors.primaryActive is the same token value for every consumer, so
+  // these two assertions cover both: apps/client's PublicAuthLayout
+  // switchLink (previously colors.primaryHover) and packages/lib.auth's
+  // LoginForm backLink (previously colors.primary) — kept as separate `it`s
+  // per consumer so a future regression names the right UI element.
   it('meets AA on white (PublicAuthLayout switchLink, light theme)', () => {
     expect(contrastRatio(brand.primaryActive, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
   });
 
   it('meets AA on warm-cream (PublicAuthLayout switchLink, normal theme) — this is what axe caught failing for primaryHover', () => {
+    expect(contrastRatio(brand.primaryActive, warmCream)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on white (LoginForm backLink, light theme) — colors.primary measured ~3.67:1 here', () => {
+    expect(contrastRatio(brand.primaryActive, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on warm-cream (LoginForm backLink, normal theme) — colors.primary measured ~3.44:1 here', () => {
     expect(contrastRatio(brand.primaryActive, warmCream)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
   });
 });
