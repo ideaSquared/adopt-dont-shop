@@ -155,6 +155,23 @@ export type GatewayConfig = {
     // Override with GATEWAY_RATE_LIMIT_WINDOW env var.
     timeWindow: string;
   };
+  // In-stack maintenance-mode fallback (ADS-1325). The Statsig
+  // `application_settings.maintenance_mode` dynamic config is
+  // frontend-only — a determined client can still hit the API directly.
+  // This is a hard, server-side switch: when the file at `filePath`
+  // exists, the onRequest hook in middleware/maintenance.ts rejects every
+  // /api/* request with 503, except /health/* and the allowlisted IPs /
+  // bypass token below. See docs/runbooks/maintenance-mode.md.
+  maintenance: {
+    filePath: string;
+    // Client IPs (matched against the trust-proxy-resolved req.ip) that
+    // bypass the 503 — e.g. an on-call operator's IP. Comma-separated
+    // MAINTENANCE_ALLOWLIST_IPS.
+    allowlistIps: string[];
+    // Shared-secret bypass via the x-maintenance-bypass request header.
+    // Optional — unset disables the token bypass entirely.
+    bypassToken: string | undefined;
+  };
 };
 
 const DEFAULT_PORT = 4000;
@@ -210,8 +227,25 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     cors: buildCorsConfig(env, environment),
     trustProxy: buildTrustProxy(env, environment),
     rateLimit: buildRateLimitConfig(env),
+    maintenance: buildMaintenanceConfig(env),
   };
 };
+
+const DEFAULT_MAINTENANCE_MODE_FILE = '/run/maintenance';
+
+// Build the maintenance-mode config block (ADS-1325). See the type comment
+// above for what each field gates.
+function buildMaintenanceConfig(env: NodeJS.ProcessEnv): GatewayConfig['maintenance'] {
+  const allowlistIps = (env.MAINTENANCE_ALLOWLIST_IPS?.trim() || '')
+    .split(',')
+    .map(ip => ip.trim())
+    .filter(Boolean);
+  return {
+    filePath: env.MAINTENANCE_MODE_FILE?.trim() || DEFAULT_MAINTENANCE_MODE_FILE,
+    allowlistIps,
+    bypassToken: readOptionalSecret('MAINTENANCE_BYPASS_TOKEN', env, 16),
+  };
+}
 
 // TRUST_PROXY gates whether X-Forwarded-For is believed (ADS-1021). Explicit
 // 'true'/'false' (or '1'/'0') wins; absent, it follows the deployment posture:

@@ -6,8 +6,8 @@ import {
   type ApplicationId,
   type PetId,
 } from '@adopt-dont-shop/lib.types';
-import { boundedRecord } from './bounded-record';
-import { BulkOperationFailedIdsSchema } from './bulk-response';
+import { boundedRecord } from './bounded-record.js';
+import { BulkOperationFailedIdsSchema } from './bulk-response.js';
 
 // ----- Enums --------------------------------------------------------------
 

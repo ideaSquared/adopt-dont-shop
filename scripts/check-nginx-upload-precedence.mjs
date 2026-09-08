@@ -1,20 +1,21 @@
 #!/usr/bin/env node
 /**
- * nginx upload-location precedence guard (ADS-1294).
+ * nginx upload-location precedence guard (ADS-1294, extended ADS-1327).
  *
  * nginx evaluates the longest-matching PREFIX location, then — unless that
  * prefix is marked `^~` — also checks server-level REGEX locations, and a
  * matching regex wins over a plain prefix. `nginx/nginx.prod.conf` proxies
  * static-asset extensions (.js/.css/.png/.jpg/...) to the client SPA via a
- * server-level regex location. Without `^~` on the `/uploads/documents/` and
- * `/uploads/` prefix locations, that regex would win over both: a `deny all`
- * on `/uploads/documents/` (which holds PII — ID/proof-of-address scans)
- * would never fire for any extension the regex matches, and public
- * `/uploads/` files would be misrouted to the SPA upstream instead of served
+ * server-level regex location. Without `^~` on each `/uploads/...` prefix
+ * location below, that regex would win over all of them: a `deny all` on
+ * `/uploads/documents/` (PII — ID/proof-of-address scans) or the catch-all
+ * `/uploads/` (deny-by-default for any future private category, ADS-1327)
+ * would never fire for a matching extension, and the allowlisted public
+ * categories' files would be misrouted to the SPA upstream instead of served
  * from the mounted volume.
  *
- * This guard asserts both prefix locations keep `^~` so a future edit can't
- * silently reintroduce the regex override.
+ * This guard asserts every listed prefix location keeps `^~` so a future
+ * edit can't silently reintroduce the regex override.
  *
  * Run via `node scripts/check-nginx-upload-precedence.mjs` or
  * `pnpm check:nginx-upload-precedence` (wired into `ci:local`).
@@ -28,8 +29,15 @@ const CONF_PATH = 'nginx/nginx.prod.conf';
 
 // The upload prefix locations that must win over the server-level
 // static-asset regex location. Exported so the test can assert this list
-// stays in sync with the config.
-export const REQUIRED_PREFIXES = ['/uploads/documents/', '/uploads/'];
+// stays in sync with the config. ADS-1327: /uploads/pets/ and
+// /uploads/users/ are the explicit public-category allowlist; the bare
+// /uploads/ is the deny-by-default catch-all for everything else.
+export const REQUIRED_PREFIXES = [
+  '/uploads/documents/',
+  '/uploads/pets/',
+  '/uploads/users/',
+  '/uploads/',
+];
 
 export function findMissingCaretTilde(text, prefixes = REQUIRED_PREFIXES) {
   return prefixes.filter(prefix => {

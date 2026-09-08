@@ -169,7 +169,55 @@ CONCURRENTLY`, which cannot run inside a transaction) — those need to be
   entirely; in staging/production, check `pg_locks` /
   `pg_stat_activity` for a stale session before assuming a real deadlock.
 
-## 5. CI checks
+## 5. Expand/contract and the back-compat lint (ADR 0008, ADS-1325)
+
+A migration must leave the schema readable and writable by the code that is
+**currently deployed** — old and new replicas run against one schema during a
+rollout, and an image-only rollback (there is no DB down-migration path in
+production) only works if the schema the old image sees is still valid. In
+practice:
+
+- **Expand** first: add the new column/table/index, nullable or defaulted,
+  in one migration/deploy. Old code ignores it; new code may write it.
+- **Migrate/backfill** data if needed, then deploy the code that reads the
+  new shape.
+- **Contract** only once nothing running depends on the old shape — drop it
+  in a _later_ migration, never in the same one that introduces the new
+  shape new code needs.
+
+`scripts/check-migration-backcompat.mjs` (`pnpm check:migration-backcompat`,
+wired into `pnpm ci:local` and `schema-equivalence.yml`) enforces this on
+every migration file **newly added** on a branch relative to `origin/main`.
+It fails on:
+
+- `dropColumn` / `dropColumns`
+- `dropTable`
+- `renameColumn`
+- `renameTable`
+- a `NOT NULL` added via `addColumn`/`addColumns`/`alterColumn` with no
+  `default` (safe on a table the same migration just `createTable`'d — no
+  rows yet — so that case is exempt)
+- an `alterColumn` call that changes a column's `type` (a possible
+  narrowing; the lint can't tell widen from narrow statically)
+
+A migration that must do one of these anyway needs an explicit marker
+comment saying why it's safe:
+
+```typescript
+// backcompat: expand-phase-of ADS-1234
+// or, once nothing depends on the old shape:
+// backcompat: contract-approved ADS-1234
+```
+
+`schema-equivalence.yml` also re-runs every service's migrations a second
+time (idempotency) and, for the services with a `db:seed`
+(auth, rescue, pets, applications, chat), replays each branch's newly-added
+migrations against a database already populated by that seed — so a `NOT
+NULL` add that's invisible against CI's fresh, empty database fails there
+instead of in production. See [ADR
+0008](../adr/0008-pre-deploy-migration-strategy.md) for the full policy.
+
+## 6. CI checks
 
 [`.github/workflows/schema-equivalence.yml`](../../.github/workflows/schema-equivalence.yml)
 is the safety net for migrations specifically (see also

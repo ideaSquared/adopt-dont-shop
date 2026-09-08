@@ -3,6 +3,11 @@ import type { NatsConnection } from 'nats';
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
 import {
+  claimScheduledRun,
+  startScheduler,
+  type RunningScheduler,
+} from '@adopt-dont-shop/scheduler';
+import {
   connectNats,
   installProcessErrorHandlers,
   runServiceShutdown,
@@ -26,8 +31,6 @@ import { purgeSentEmailQueue } from './jobs/email-queue-retention.js';
 import { registerSubscribers } from './nats/subscribers.js';
 import { createPushProvider } from './push/providers/factory.js';
 import { startPushWorker, type RunningPushWorker } from './push/worker.js';
-import { claimScheduledRun } from './scheduler/claim.js';
-import { startScheduler, type RunningScheduler } from './scheduler/scheduler.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -181,8 +184,9 @@ const main = async (): Promise<void> => {
     }
     // ADS-1245: the weekly-digest scheduled job was a send-nothing scaffold
     // (its fan-out RPCs were never wired), so it stays shelved. The generic
-    // scheduler + claim infra under ./scheduler/ — dormant until now — backs
-    // the email-queue retention purge below instead (ADS-1320):
+    // scheduler + claim infra (ADS-1325: now @adopt-dont-shop/scheduler,
+    // shared with services/audit) — dormant until now — backs the
+    // email-queue retention purge below instead (ADS-1320):
     // 004_create_email_queue.ts documented a retention job that never
     // shipped, so sent rows accumulated forever.
     const emailQueueRetentionConfig = loadEmailQueueRetentionConfig();

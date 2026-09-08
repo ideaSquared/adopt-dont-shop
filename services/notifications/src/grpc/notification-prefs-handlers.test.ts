@@ -475,6 +475,26 @@ describe('updateNotificationPreferences', () => {
     });
   });
 
+  it('rejects enabling smsEnabled — SMS has no provider behind it (ADS-1325)', async () => {
+    await expect(
+      updateNotificationPreferences(mocks.deps, ADOPTER, { smsEnabled: true })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT', message: 'SMS is not available' });
+    // Rejected before any write.
+    const updateCalls = mocks.poolMock.query.mock.calls.filter(
+      ([sql]) =>
+        typeof sql === 'string' && sql.includes('UPDATE notifications.user_notification_prefs')
+    );
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('allows explicitly disabling smsEnabled', async () => {
+    mocks.poolScript.push({ rows: [prefsRow({ sms_enabled: true })] }); // findOrCreate SELECT
+    mocks.poolScript.push({ rows: [prefsRow({ sms_enabled: false })] }); // UPDATE RETURNING
+
+    const res = await updateNotificationPreferences(mocks.deps, ADOPTER, { smsEnabled: false });
+    expect(res.preferences?.smsEnabled).toBe(false);
+  });
+
   it('rejects malformed quiet_hours_start', async () => {
     mocks.poolScript.push({ rows: [prefsRow()] }); // findOrCreate SELECT
     await expect(

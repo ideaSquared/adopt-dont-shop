@@ -1,10 +1,35 @@
 # ADR 0008 — Pre-deploy migration strategy: gated runner, concurrent indexes, expand/contract (ADS-1044)
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-05
 - Scope: `Dockerfile.service` entrypoint, `.github/workflows/deploy.yml` + `rollback.yml`, every service's `src/migrations/*` and migration discipline
-- Linear: ADS-1044
+- Linear: ADS-1044, ADS-1325
 - Supersedes / Superseded by: —
+
+## Status update (ADS-1325, 2026-09-07)
+
+Option C is accepted as policy. Item 4 (expand/contract enforced by a CI
+lint, answering the open question below) is now built:
+[`scripts/check-migration-backcompat.mjs`](../../scripts/check-migration-backcompat.mjs)
+scans migration files added on a branch (relative to `origin/main`) for
+contracting operations — `dropColumn`/`dropColumns`, `dropTable`,
+`renameColumn`, `renameTable`, a `NOT NULL` added via `addColumn`/
+`addColumns`/`alterColumn` with no `default`, or an `alterColumn` type change
+— and fails unless the migration carries an explicit
+`// backcompat: expand-phase-of ADS-NNN` or `// backcompat: contract-approved
+ADS-NNN` marker. It runs in `schema-equivalence.yml` and in `pnpm ci:local`.
+`schema-equivalence.yml` additionally re-runs every service's migrations a
+second time (idempotency) and replays each branch's newly-added migrations
+against a database already populated by that service's `db:seed` (auth,
+rescue, pets, applications, chat), so a `NOT NULL` add that only breaks on a
+populated table — invisible against CI's fresh, empty DB — fails there
+instead of in production.
+
+Items 1–2 (a discrete, health-gated pre-deploy migration runner replacing
+migrate-on-boot; converting the four index migrations named below to
+`CREATE INDEX CONCURRENTLY`) are **not** built yet — this ADR's acceptance
+records the policy, not full implementation. See docs/backend/writing-migrations.md
+for the expand/contract discipline the lint enforces.
 
 ## Context
 
@@ -133,7 +158,9 @@ Concretely, the recommendation is:
 4. **Add a migration lint** to CI that flags a non-concurrent index build on a
    populated table, so the regression can't reappear silently.
 
-`Status: Proposed` — this ADR is the proposal; nothing below is applied.
+`Status: Accepted` — see "Status update (ADS-1325...)" above for what is
+built so far (item 4, the lint) versus what remains open (items 1–2, the
+gated runner and concurrent index conversions).
 
 ## Implementation sketch
 
