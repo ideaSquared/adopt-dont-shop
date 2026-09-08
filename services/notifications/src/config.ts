@@ -1,4 +1,4 @@
-import { parsePort, requireSecret } from '@adopt-dont-shop/config-secrets';
+import { parsePort, readSecret, requireSecret } from '@adopt-dont-shop/config-secrets';
 
 export type EmailProviderConfig =
   | { kind: 'console' }
@@ -120,7 +120,7 @@ const loadPushProviderConfig = (env: NodeJS.ProcessEnv): PushProviderConfig => {
       }
       return { kind: 'console' };
     case 'fcm': {
-      const serviceAccountJson = env.FCM_SERVICE_ACCOUNT_JSON?.trim();
+      const serviceAccountJson = readSecret('FCM_SERVICE_ACCOUNT_JSON', env)?.trim();
       const projectId = env.FCM_PROJECT_ID?.trim();
       if (!serviceAccountJson) {
         throw new Error("PUSH_PROVIDER='fcm' requires FCM_SERVICE_ACCOUNT_JSON");
@@ -155,7 +155,7 @@ const loadEmailProviderConfig = (env: NodeJS.ProcessEnv): EmailProviderConfig =>
     case 'ethereal':
       return { kind: 'ethereal' };
     case 'resend': {
-      const apiKey = env.RESEND_API_KEY?.trim();
+      const apiKey = readSecret('RESEND_API_KEY', env)?.trim();
       const fromEmail = env.DEFAULT_FROM_EMAIL?.trim();
       if (!apiKey) {
         throw new Error("EMAIL_PROVIDER='resend' requires RESEND_API_KEY");
