@@ -42,11 +42,11 @@ const DEFAULT_FROM_NAME = "Adopt Don't Shop";
 
 // --- Permissions -----------------------------------------------------
 
-const EMAIL_SEND: Permission = 'notifications.email.send' as Permission;
-const EMAIL_PREFS_READ_SELF: Permission = 'notifications.email-prefs.read' as Permission;
-const EMAIL_PREFS_READ_ANY: Permission = 'notifications.email-prefs.read:any' as Permission;
-const EMAIL_PREFS_WRITE_SELF: Permission = 'notifications.email-prefs.update' as Permission;
-const EMAIL_PREFS_WRITE_ANY: Permission = 'notifications.email-prefs.update:any' as Permission;
+const EMAIL_SEND: Permission = 'notifications.email.send';
+const EMAIL_PREFS_READ_SELF: Permission = 'notifications.email-prefs.read';
+const EMAIL_PREFS_READ_ANY: Permission = 'notifications.email-prefs.read:any';
+const EMAIL_PREFS_WRITE_SELF: Permission = 'notifications.email-prefs.update';
+const EMAIL_PREFS_WRITE_ANY: Permission = 'notifications.email-prefs.update:any';
 
 // --- Enum maps --------------------------------------------------------
 

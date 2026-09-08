@@ -31,6 +31,7 @@ The auto-generated block (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, 
 - `UPLOAD_SIGNING_SECRET` (ADS-542) is a dedicated HMAC key for short-lived `/uploads-signed/*` URLs — required in production (min 32 chars) by `packages/lib.validation/src/schemas/env.ts`.
 - `PRINCIPAL_SIGNING_KEY` (ADS-800) is the shared HMAC key for the signed `x-principal-token` the gateway stamps on every downstream gRPC call. Optional in development/test only; every other environment refuses to boot without it (ADS-1050 / ADS-1237). Must be the same value for the gateway and every gRPC service.
 - `BCRYPT_ROUNDS` is read only by `pnpm validate:env` (`packages/lib.validation/src/schemas/env.ts`, warns below 12 in production). `services/auth` hard-codes 12 rounds in `src/grpc/password-hasher.ts`; the variable does not change it.
+- `METRICS_BEARER_TOKEN` (ADS-1327, gateway only) optionally gates `GET /metrics` behind `Authorization: Bearer <token>`. Not in the auto-generated block and not required — unset, `/metrics` stays fully public inside the docker network (the accepted-risk posture in `docs/security/internal-grpc-trust.md`).
 
 ## Redis
 

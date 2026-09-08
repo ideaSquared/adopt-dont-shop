@@ -78,22 +78,35 @@ export const registerGdprSubscribers = (
 // bus can reorder across subjects) INSERTs a skeleton with reason = NULL
 // and requested_at = the completion timestamp, so the conflict clause
 // back-fills the real values instead of dropping them (ADS-776):
-// COALESCE keeps any already-known reason/user_id (replay safety) and
+// COALESCE keeps any already-known reason/user_id/email (replay safety) and
 // LEAST keeps the earliest requested_at (the true request time).
+//
+// email is persisted (ADS-1323) so gdpr-sweep.ts's retry pass — which
+// rebuilds the republish payload from this row alone, not from the
+// original NATS message — can still include it. Without this column, a
+// retried erasure permanently dropped email and skipped email-keyed rows
+// (e.g. rescue pending invitations for a user who never registered).
 export async function recordRequest(
   pool: Pool,
   payload: GdprErasureRequestedPayload
 ): Promise<void> {
   await pool.query(
     `INSERT INTO audit.gdpr_erasure_requests
-       (correlation_id, user_id, reason, requested_at)
-     VALUES ($1, $2, $3, $4)
+       (correlation_id, user_id, reason, requested_at, email)
+     VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (correlation_id) DO UPDATE
        SET reason = COALESCE(audit.gdpr_erasure_requests.reason, EXCLUDED.reason),
            requested_at = LEAST(audit.gdpr_erasure_requests.requested_at, EXCLUDED.requested_at),
            user_id = COALESCE(audit.gdpr_erasure_requests.user_id, EXCLUDED.user_id),
+           email = COALESCE(audit.gdpr_erasure_requests.email, EXCLUDED.email),
            updated_at = now()`,
-    [payload.correlationId, payload.userId, payload.reason ?? null, payload.requestedAt]
+    [
+      payload.correlationId,
+      payload.userId,
+      payload.reason ?? null,
+      payload.requestedAt,
+      payload.email,
+    ]
   );
 }
 

@@ -229,4 +229,13 @@ describe('listTimelineNotes', () => {
     });
     expect(res.notes).toHaveLength(1);
   });
+
+  // ADS-1323: the query ran with no LIMIT.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow()] }).mockResolvedValueOnce({ rows: [] });
+    await listTimelineNotes(deps, makePrincipal(), { applicationId: 'app-1' });
+    const [sql] = query.mock.calls[1] as [string, unknown[]];
+    expect(sql).toMatch(/LIMIT\s+\d+/i);
+  });
 });

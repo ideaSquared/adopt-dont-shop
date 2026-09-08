@@ -30,6 +30,12 @@ import {
   type PetRow,
 } from './handlers.js';
 
+// ADS-1323: the RPC has no pagination fields (ListUserFavoritesRequest is
+// empty), so this is a hard cap rather than a page size — bounds worst-case
+// memory/latency for an account with an unusually large favourites list
+// without changing the response contract.
+const LIST_USER_FAVORITES_LIMIT = 500;
+
 const requireUserId = (principal: Principal | null): string => {
   if (!principal?.userId) {
     throw new HandlerError('UNAUTHENTICATED', 'authentication required');
@@ -168,7 +174,8 @@ export async function listUserFavorites(
           SELECT pet_id FROM pets.user_favorites
            WHERE user_id = $1 AND deleted_at IS NULL
         )
-      ORDER BY created_at DESC`,
+      ORDER BY created_at DESC
+      LIMIT ${LIST_USER_FAVORITES_LIMIT}`,
     [userId]
   );
   return { pets: res.rows.map(row => rowToProto(row, false)) };

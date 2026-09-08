@@ -452,14 +452,16 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     environment: config.environment,
   }));
 
-  // ADS-1046: dependency-aware readiness. NATS is the gateway's hard
-  // dependency (WebSocket fan-out to clients + GDPR erasure publish); the
-  // rate-limit Redis is deliberately degraded-tolerant (in-memory fallback),
-  // so its loss must NOT pull the gateway out of rotation and is excluded here.
+  // ADS-1046 / ADS-1327: dependency-aware readiness. NATS is the gateway's
+  // hard dependency (WebSocket fan-out to clients + GDPR erasure publish).
+  // The rate-limit Redis is deliberately degraded-tolerant (in-memory
+  // fallback), so its loss must NOT pull the gateway out of rotation — it's
+  // wired as `redisOptional` (reported in the checks breakdown for
+  // visibility, never gates `ok`) rather than omitted entirely.
   registerReadinessRoute(server, {
     serviceName: 'service.gateway',
     environment: config.environment,
-    deps: { nats: opts.nats },
+    deps: { nats: opts.nats, ...(rateLimitRedis ? { redisOptional: rateLimitRedis } : {}) },
     logger,
   });
 
@@ -476,6 +478,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       // ADS-863: lets the auth hook resolve rescue-staff principals'
       // rescueId from the rescue service (when the rescue domain is wired).
       rescueClient: opts.rescueClient,
+      metricsBearerToken: config.metricsBearerToken,
     });
 
     // Gate /docs behind admin role. This hook runs AFTER the authenticate
@@ -561,6 +564,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       emailRateLimiter,
       loginEmailRateLimiter,
       onLoginEmailRateLimitTrip: () => loginEmailRateLimitTripsTotal.inc(),
+      environment: config.environment,
     });
     // /api/v1/sessions/* — list/revoke. Same auth client because it's the
     // same identity surface from the SPA's POV.

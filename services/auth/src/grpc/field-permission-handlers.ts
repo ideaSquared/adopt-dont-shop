@@ -197,6 +197,10 @@ export async function getFieldPermissionDefaultsForRole(
 
 // --- ListFieldPermissionOverrides ------------------------------------
 
+// ADS-1323: neither List RPC below has pagination fields, so this is a
+// hard cap rather than a page size.
+const LIST_FIELD_PERMISSION_OVERRIDES_LIMIT = 500;
+
 export async function listFieldPermissionOverrides(
   deps: HandlerDeps,
   principal: Principal,
@@ -209,7 +213,8 @@ export async function listFieldPermissionOverrides(
   const result = await deps.pool.query<FieldPermissionRow>(
     `SELECT ${ROW_COLUMNS} FROM field_permissions
        WHERE resource = $1 AND deleted_at IS NULL
-       ORDER BY field_name ASC, role ASC`,
+       ORDER BY field_name ASC, role ASC
+       LIMIT ${LIST_FIELD_PERMISSION_OVERRIDES_LIMIT}`,
     [resource]
   );
   return { overrides: result.rows.map(rowToProto) };
@@ -230,7 +235,8 @@ export async function listFieldPermissionOverridesForRole(
   const result = await deps.pool.query<FieldPermissionRow>(
     `SELECT ${ROW_COLUMNS} FROM field_permissions
        WHERE resource = $1 AND role = $2 AND deleted_at IS NULL
-       ORDER BY field_name ASC`,
+       ORDER BY field_name ASC
+       LIMIT ${LIST_FIELD_PERMISSION_OVERRIDES_LIMIT}`,
     [resource, role]
   );
   return { overrides: result.rows.map(rowToProto) };

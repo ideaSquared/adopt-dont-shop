@@ -198,6 +198,13 @@ describe('listUserSanctions', () => {
     await listUserSanctions(all.deps, makePrincipal(), { userId: 'usr-2' });
     expect(all.query.mock.calls[0][0]).not.toContain('acknowledged_at IS NULL');
   });
+
+  // ADS-1323: the query ran with no LIMIT.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listUserSanctions(deps, makePrincipal(), { userId: 'usr-2' });
+    expect(query.mock.calls[0][0]).toMatch(/LIMIT\s+\d+/i);
+  });
 });
 
 describe('acknowledgeSanction', () => {
