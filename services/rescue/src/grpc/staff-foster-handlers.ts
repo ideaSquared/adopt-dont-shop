@@ -459,6 +459,10 @@ export async function removeStaffMember(
   return { removed: true };
 }
 
+// ADS-1323: ListRescueInvitationsRequest has no pagination fields, so
+// this is a hard cap rather than a page size.
+const LIST_RESCUE_INVITATIONS_LIMIT = 500;
+
 // --- ListRescueInvitations (admin) -----------------------------------
 
 // List a rescue's PENDING invitations for the admin StaffTab. Admin-only
@@ -482,7 +486,8 @@ export async function listRescueInvitations(
             expiration, used, created_at
      FROM rescue.invitations
      WHERE rescue_id = $1 AND used = false
-     ORDER BY created_at DESC`,
+     ORDER BY created_at DESC
+     LIMIT ${LIST_RESCUE_INVITATIONS_LIMIT}`,
     [req.rescueId]
   );
   return { invitations: res.rows.map(invitationRowToProto) };

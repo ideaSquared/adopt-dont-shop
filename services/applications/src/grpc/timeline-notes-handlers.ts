@@ -131,6 +131,10 @@ export async function addTimelineNote(
 
 // --- ListTimelineNotes -----------------------------------------------------
 
+// ADS-1323: ListTimelineNotesRequest has no pagination fields, so this is
+// a hard cap rather than a page size.
+const LIST_TIMELINE_NOTES_LIMIT = 500;
+
 export async function listTimelineNotes(
   deps: HandlerDeps,
   principal: Principal,
@@ -152,7 +156,8 @@ export async function listTimelineNotes(
     `SELECT note_id, application_id, title, description, note_type, metadata, created_by, created_at
        FROM application_timeline_notes
       WHERE application_id = $1
-      ORDER BY created_at ASC`,
+      ORDER BY created_at ASC
+      LIMIT ${LIST_TIMELINE_NOTES_LIMIT}`,
     [req.applicationId]
   );
 
