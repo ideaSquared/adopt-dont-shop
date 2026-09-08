@@ -27,6 +27,11 @@ x-logging: &default-logging
 # ----------------------------------------------------------------------------
 x-service-common: &service-common
   restart: always
+  # ADS-1309: the shutdown sequencer (packages/service-bootstrap/src/shutdown.ts)
+  # budgets 25s to drain in-flight requests/connections on SIGTERM. Docker's
+  # default stop_grace_period is 10s, which SIGKILLs the process before that
+  # drain completes and drops in-flight requests on every deploy.
+  stop_grace_period: 30s
   # ADS-1228: read-only root filesystem + explicit tmpfs, mirroring the
   # x-service-common hardening in docker-compose.prod.yml so staging matches
   # the prod tier. A compromised process can't drop persistent on-disk implants.
@@ -322,10 +327,19 @@ services:
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
       # Staging has no per-stack nginx; the gateway serves /uploads itself.
       SERVE_LOCAL_UPLOADS: "true"
+      # ADS-1303: Dockerfile.service bakes the repo's docs/legal into the
+      # image at /app/docs/legal (turbo prune's output doesn't carry the
+      # repo-root docs/ tree) — without this the legal routes 500 and the
+      # cookie-consent banner never renders.
+      LEGAL_DOCS_DIR: /app/docs/legal
       UPLOAD_SIGNING_SECRET_FILE: /run/secrets/upload_signing_secret
       # ADS-800: the gateway signs the x-principal-token it forwards on
       # every downstream gRPC call.
       PRINCIPAL_SIGNING_KEY_FILE: /run/secrets/principal_signing_key
+      # ADS-1310: without this the rate limiter falls back to in-memory
+      # (breaks cross-replica limiting) and the Redis-backed WS adapter
+      # never starts.
+      REDIS_URL_FILE: /run/secrets/redis_url
       # ADS-1041: observability shipping (inert unless set in the host .env).
       LOKI_URL: ${LOKI_URL:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
@@ -333,13 +347,14 @@ services:
       # ADS-1327: the gateway doesn't inherit x-service-env, so it needs this
       # line directly — see the anchor's comment for why.
       LOG_LEVEL: ${LOG_LEVEL:-info}
-    # Gateway has no DB; it needs the upload-signing secret plus the
-    # principal-signing key (ADS-800 — it is the token signer) and the NATS
-    # auth token (ADS-1273).
+    # Gateway has no DB; it needs the upload-signing secret, the
+    # principal-signing key (ADS-800 — it is the token signer), the NATS
+    # auth token (ADS-1273) and Redis (ADS-1310 — rate limiting + WS adapter).
     secrets:
       - upload_signing_secret
       - principal_signing_key
       - nats_auth_token
+      - redis_url
     volumes:
       - uploads:/app/uploads
     expose:
@@ -390,6 +405,28 @@ services:
     container_name: ads_staging_notifications
     environment:
       <<: *service-env
+      # ADS-1302: production refuses to boot with EMAIL_PROVIDER/PUSH_PROVIDER
+      # unset or 'console' (services/notifications/src/config.ts) — every
+      # email/push notification would otherwise land in stdout, or the
+      # process crash-loops without these.
+      EMAIL_PROVIDER: resend
+      RESEND_API_KEY_FILE: /run/secrets/resend_api_key
+      # Resend's verified sending identity. loadEmailProviderConfig requires
+      # this literal env var (not the code default) whenever
+      # EMAIL_PROVIDER=resend, so it must be set here too or boot still fails.
+      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:?Error: DEFAULT_FROM_EMAIL required}"
+      PUSH_PROVIDER: fcm
+      FCM_PROJECT_ID: "${FCM_PROJECT_ID:?Error: FCM_PROJECT_ID required}"
+      FCM_SERVICE_ACCOUNT_JSON_FILE: /run/secrets/fcm_service_account_json
+    # Notifications needs the third-party provider secrets on top of the
+    # common DB/Redis ones (ADS-1302).
+    secrets:
+      - database_url
+      - redis_url
+      - principal_signing_key
+      - nats_auth_token
+      - resend_api_key
+      - fcm_service_account_json
     expose:
       - "5001"
     healthcheck:
@@ -524,11 +561,15 @@ networks:
 # ============================================================================
 # Docker Secrets (ADS-752)
 # ============================================================================
-# Mounted as in-memory tmpfs files at /run/secrets/<name>; never written to
-# disk and invisible to `docker inspect`. The database container reads
-# db_password via POSTGRES_PASSWORD_FILE; the gRPC services read every other
-# credential through the @adopt-dont-shop/config-secrets loader (NAME_FILE wins
-# over NAME). The deploy workflow (.github/workflows/deploy.yml) materialises
+# ADS-1327: this is plain `docker compose` (not Swarm mode), so these are
+# bind-mounted from the host file at /run/secrets/<name> — NOT the in-memory
+# tmpfs Swarm provides. They're still kept out of `docker inspect`
+# (Config.Env/Config.Cmd don't see file contents) and out of the image, which
+# is what the config-secrets loader's NAME_FILE convention is actually
+# protecting against. The database container reads db_password via
+# POSTGRES_PASSWORD_FILE; the gRPC services read every other credential
+# through the @adopt-dont-shop/config-secrets loader (NAME_FILE wins over
+# NAME). The deploy workflow (.github/workflows/deploy.yml) materialises
 # these files on the host before `docker compose up -d`.
 secrets:
   db_password:
@@ -551,3 +592,8 @@ secrets:
     file: ./secrets/principal_signing_key
   nats_auth_token:
     file: ./secrets/nats_auth_token
+  # ADS-1302: third-party provider credentials for service-notifications.
+  resend_api_key:
+    file: ./secrets/resend_api_key
+  fcm_service_account_json:
+    file: ./secrets/fcm_service_account_json

@@ -10,6 +10,9 @@ import {
 
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
+import { purgeExpiredApplicationDrafts } from './jobs/application-draft-retention.js';
+import { claimScheduledRun } from './scheduler/claim.js';
+import { startScheduler, type RunningScheduler } from './scheduler/scheduler.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -18,6 +21,7 @@ const main = async (): Promise<void> => {
   let nats: NatsConnection | undefined;
   let pool: ReturnType<typeof createDbClient> | undefined;
   let grpc: RunningGrpcServer | undefined;
+  let scheduler: RunningScheduler | undefined;
   let grpcReady = false;
 
   try {
@@ -58,6 +62,33 @@ const main = async (): Promise<void> => {
       onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
     });
 
+    // Application-drafts retention purge (ADS-1320) — see
+    // src/jobs/application-draft-retention.ts. Cross-instance claimed via
+    // scheduled_job_runs so N replicas don't each purge the same batch.
+    // Bound to a local const (not the outer `let pool`) so the claimRun
+    // closure below type-narrows past `| undefined`.
+    const dbPool = pool;
+    const purgeDeps = { pool: dbPool, nats };
+    scheduler = startScheduler(
+      [
+        {
+          name: 'application-draft-retention-purge',
+          intervalMs: config.applicationDraftPurge.intervalMs,
+          runOnStart: true,
+          run: async () => {
+            const { deletedCount } = await purgeExpiredApplicationDrafts(purgeDeps, {
+              batchSize: config.applicationDraftPurge.batchSize,
+            });
+            logger.info('application-draft-retention-purge complete', { deletedCount });
+          },
+        },
+      ],
+      {
+        logger,
+        claimRun: (job, scheduledFor) => claimScheduledRun(dbPool, job, scheduledFor),
+      }
+    );
+
     const httpServer = createServer({
       config,
       logger,
@@ -74,8 +105,9 @@ const main = async (): Promise<void> => {
       environment: config.environment,
     });
 
-    const teardown = (): Promise<void> => {
+    const teardown = async (): Promise<void> => {
       outboxRelay.stop();
+      await scheduler?.stop();
       return runServiceShutdown({ httpServer, grpc, nats, pool, logger });
     };
 

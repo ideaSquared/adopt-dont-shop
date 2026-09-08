@@ -69,7 +69,7 @@ Every microservice under `services/` is built from a single parameterised [`Dock
 
 **Application**
 
-- `service-gateway` — Fastify API gateway on port 4000 (dev health: `/health/simple`)
+- `service-gateway` — Fastify API gateway on port 4000 (dev health: `/health/ready`)
 - `app-client` — Public portal on 3000
 - `app-admin` — Admin dashboard on 3001
 - `app-rescue` — Rescue portal on 3002
@@ -247,7 +247,7 @@ VITE_WS_BASE_URL=wss://api.your-domain.com
 
 ### Health Checks
 
-- Gateway: `GET http://localhost:4000/health/simple` → 200
+- Gateway: `GET http://localhost:4000/health/ready` → 200 (probes DB/NATS/Redis, not just liveness; ADS-1327)
 - Frontend (nginx): `GET http://localhost/health` → 200
 - Database: `pg_isready` (Docker healthcheck)
 
