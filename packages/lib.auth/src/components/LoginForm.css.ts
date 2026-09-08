@@ -71,6 +71,17 @@ export const tokenInput = style({
   },
 });
 
+export const forgotPasswordLink = style({
+  fontSize: '0.9rem',
+  // ADS-1326: the inline style this replaces used #667eea (~3.3:1 on
+  // white) — a color-contrast violation axe-core's smoke gate caught on
+  // /login. primaryActive clears 4.5:1 on both white and the `normal`
+  // theme's warm-cream body (see backLink below and colors.contrast.test.ts).
+  color: vars.colors.primaryActive,
+  textDecoration: 'none',
+  textAlign: 'right',
+});
+
 export const backLink = style({
   background: 'none',
   border: 'none',

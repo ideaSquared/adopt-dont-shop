@@ -14,7 +14,10 @@ import { lightTheme, normalTheme } from './theme';
  * Button component's `outline` variant (same primaryHover problem, this
  * time on the client home page's "View All Pets" button) and `secondary`
  * variant (colors.secondary against white text measured ~2.49:1, fixed
- * with secondaryActive).
+ * with secondaryActive). It then caught two more on the login page itself:
+ * lib.auth's LoginForm forgotPasswordLink (an inline `#667eea`, ~3.66:1 /
+ * ~3.43:1) and apps/client's LoginPage signupPrompt link (colors.primary,
+ * the same problem as LoginForm backLink above) — both fixed the same way.
  *
  * These are plain WCAG 2.x relative-luminance / contrast-ratio calculations
  * (https://www.w3.org/TR/WCAG21/#dfn-relative-luminance) — small and
@@ -82,6 +85,22 @@ describe('colors.primaryActive contrast against each theme body (ADS-1326)', () 
   });
 
   it('meets AA on warm-cream (Button outline variant, normal theme) — this is what axe caught failing for primaryHover on the client home page', () => {
+    expect(contrastRatio(brand.primaryActive, warmCream)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on white (LoginForm forgotPasswordLink, light theme) — the inline #667eea measured ~3.66:1 here', () => {
+    expect(contrastRatio(brand.primaryActive, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on warm-cream (LoginForm forgotPasswordLink, normal theme) — this is what axe caught failing for #667eea', () => {
+    expect(contrastRatio(brand.primaryActive, warmCream)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on white (LoginPage signupPrompt link, light theme) — colors.primary measured ~3.67:1 here', () => {
+    expect(contrastRatio(brand.primaryActive, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on warm-cream (LoginPage signupPrompt link, normal theme) — this is what axe caught failing for colors.primary on /login', () => {
     expect(contrastRatio(brand.primaryActive, warmCream)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
   });
 });
