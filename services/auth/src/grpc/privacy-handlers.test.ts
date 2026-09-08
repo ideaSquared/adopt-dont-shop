@@ -120,22 +120,33 @@ describe('exportUserData', () => {
     });
   });
 
-  it('rejects callers without admin.data.export', async () => {
+  it('rejects callers without admin.data.export requesting someone else', async () => {
     await expect(exportUserData(mocks.deps, NO_PERMS, { userId: 'usr-1' })).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
   });
 
+  it('allows a caller with no admin permission to export their own data (self-service)', async () => {
+    mocks.clientScript.push({ rows: [userRow({ user_id: 'usr-nobody' })] }); // user
+    mocks.clientScript.push({ rows: [] }); // prefs absent
+
+    const res = await exportUserData(mocks.deps, NO_PERMS, { userId: 'usr-nobody' });
+
+    expect(res.user?.userId).toBe('usr-nobody');
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
+  });
+
   it('returns NOT_FOUND when the user does not exist', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // user select
+    mocks.clientScript.push({ rows: [] }); // user select
     await expect(
       exportUserData(mocks.deps, EXPORT_ADMIN, { userId: 'ghost' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
-  it('exports the profile + privacy preferences + a snapshot timestamp', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow()] }); // user
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [prefsRow()] }); // prefs
+  it('exports the profile + privacy preferences + a snapshot timestamp, and audits the export', async () => {
+    mocks.clientScript.push({ rows: [userRow()] }); // user
+    mocks.clientScript.push({ rows: [prefsRow()] }); // prefs
 
     const res = await exportUserData(mocks.deps, EXPORT_ADMIN, { userId: 'usr-1' });
 
@@ -144,14 +155,18 @@ describe('exportUserData', () => {
     expect(res.privacyPreferences?.allowDataExport).toBe(true);
     expect(res.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     // The prefs read is non-creating (a plain SELECT, no INSERT).
-    expect(String(mocks.poolMock.query.mock.calls[1][0])).toContain(
-      'SELECT * FROM user_privacy_prefs'
+    const prefsCall = mocks.clientMock.query.mock.calls.find(
+      ([sql]: [string]) =>
+        typeof sql === 'string' && sql.includes('SELECT * FROM user_privacy_prefs')
     );
+    expect(prefsCall).toBeDefined();
+    // A forensic trail is published for the export (Art. 15/20 access).
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
   });
 
   it('omits privacy preferences when the user has no prefs row', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow()] }); // user
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // prefs absent
+    mocks.clientScript.push({ rows: [userRow()] }); // user
+    mocks.clientScript.push({ rows: [] }); // prefs absent
 
     const res = await exportUserData(mocks.deps, EXPORT_ADMIN, { userId: 'usr-1' });
 

@@ -6,10 +6,11 @@
 > `TERMS_VERSION` in `services/gateway/src/routes/legal.ts`. Any change to the
 > text below MUST bump that constant in the same PR — a new version triggers the
 > re-acceptance flow (`LegalReacceptanceModal`, `packages/lib.legal`) on next
-> sign-in.
+> sign-in. The 2026-09-03 rewrite of this document shipped without bumping
+> `TERMS_VERSION`, so existing users were never re-prompted — fixed in ADS-1320.
 
-**Version:** 2026-05-10-v1
-**Last updated:** 10 May 2026
+**Version:** 2026-09-03-v2
+**Last updated:** 3 September 2026
 
 > **Placeholder copy — must be reviewed and approved by legal counsel before
 > production launch.** The version string above is the identifier recorded

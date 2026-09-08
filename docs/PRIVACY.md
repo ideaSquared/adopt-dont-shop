@@ -1,7 +1,8 @@
 # Privacy and Data Retention
 
 Internal reference for engineers and ops. Not a user-facing legal notice.
-Last updated: 2026-04-27 (plan 6.2 + 5.2).
+Last updated: 2026-09-07 (ADS-1320 / ADS-1326 — processor table and self-service rights
+corrected against the running code).
 
 ## Which privacy document?
 
@@ -219,16 +220,19 @@ Rescue staff do not see adopter data across rescues. The `rescue_id` column on `
 
 ### Third-party processors
 
-| Processor                          | Data shared                                                                    | Where configured                                                                         |
-| ---------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Email provider (SendGrid via SMTP) | `to_email`, `to_name`, `subject`, HTML/text content, attachments               | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS` in `.env`                         |
-| File storage (AWS S3)              | Uploaded documents and pet photos (via FileUpload model, stored at `file_url`) | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `AWS_S3_BUCKET` in `.env`    |
-| Push notification provider         | Device tokens (`device_token`), notification payloads                          | Not yet configured. Code stubs reference FCM/APNS as future targets; no env vars present |
-| Database host (Postgres)           | All data                                                                       | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` in `.env`                  |
-| Error monitoring (Sentry)          | Stack traces, request metadata (may include user IDs, emails if logged)        | `SENTRY_DSN` in `.env`                                                                   |
-| Feature flags (Statsig)            | No PII by default; event names only                                            | `STATSIG_SERVER_SECRET_KEY` in `.env`                                                    |
+| Processor                                             | Data shared                                                                                                                                                                                                                                                                     | Where configured                                                                                                                                 |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Email provider (Resend)                               | `to_email`, `to_name`, `subject`, HTML/text content                                                                                                                                                                                                                             | `RESEND_API_KEY`, `DEFAULT_FROM_EMAIL` (`services/notifications/src/email/providers/resend.ts`); production permits only `EMAIL_PROVIDER=resend` |
+| File storage (AWS S3)                                 | Uploaded documents and pet photos (via `@adopt-dont-shop/storage`'s `S3StorageProvider`)                                                                                                                                                                                        | `S3_BUCKET_NAME`, `S3_REGION`, `STORAGE_PROVIDER=s3` (`packages/storage`)                                                                        |
+| Push notification provider (Firebase Cloud Messaging) | Device tokens, notification payloads                                                                                                                                                                                                                                            | `FCM_SERVICE_ACCOUNT_JSON`, `FCM_PROJECT_ID` (`services/notifications/src/push/providers/fcm.ts`)                                                |
+| Database host (Postgres)                              | All data                                                                                                                                                                                                                                                                        | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` in `.env`                                                                          |
+| Error monitoring (GlitchTip, self-hosted)             | Stack traces, request metadata; `event.user.email`/`username`/`ip_address` are stripped before send (`redactSentryUser`, `packages/lib.observability/src/sentry.ts`)                                                                                                            | `SENTRY_DSN` — the `@sentry/*` SDK talks to our own self-hosted GlitchTip instance (`docker-compose.glitchtip.yml`), not the Sentry SaaS         |
+| Feature flags + product analytics (Statsig)           | Opaque `userID` + non-PII `custom` fields (`app`, `userType`, `rescueId`, `isAuthenticated`) for every session; session replay and autocapture (behavioural/session data) load **only after** the user grants analytics consent (`apps/client/src/contexts/StatsigContext.tsx`) | `VITE_STATSIG_CLIENT_KEY` (frontend), `STATSIG_SERVER_SECRET_KEY` (backend flag evaluation)                                                      |
 
-The email provider is configured as SendGrid in `.env.example` (`smtp.sendgrid.net`). Any other SMTP-compatible provider can be dropped in by changing `EMAIL_HOST`.
+Corrected 2026-09-07 (ADS-1326) — this table previously named SendGrid/SMTP, an unconfigured push
+provider, and "Sentry" with "no PII by default" for Statsig; none of that matches the running
+code (see `docs/legal/cookies.md` §5, which already had the GlitchTip / session-replay facts
+right).
 
 ---
 
@@ -236,83 +240,90 @@ The email provider is configured as SendGrid in `.env.example` (`smtp.sendgrid.n
 
 Status key: **Implemented** = automated enforcement exists in code today. **Documented, no enforcement** = policy decided, no automated job or migration yet. **Manual cleanup** = retention depends on someone running a query.
 
-| Entity                                            | Trigger                                    | Retention period                               | What happens after                                                                                                                                                 | Status                                                                                                                                                                     |
-| ------------------------------------------------- | ------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| User (active)                                     | While account active                       | Indefinite                                     | On verified deletion request: anonymise within 30 days (see section 5)                                                                                             | Documented, no enforcement                                                                                                                                                 |
-| User (deleted/soft-deleted)                       | Account deletion or `deleted_at` set       | 30 days                                        | Full anonymisation: replace name/email/phone with opaque placeholders, clear twoFactorSecret, backupCodes, resetToken                                              | Documented, no enforcement                                                                                                                                                 |
-| AuditLog                                          | Record creation                            | 7 years                                        | Hard delete rows older than 7 years                                                                                                                                | Documented, no enforcement                                                                                                                                                 |
-| Message                                           | User deletes account or chat is deleted    | Until parent chat or user is deleted           | Cascade delete via `ON DELETE CASCADE` on `chat_id` and `sender_id`                                                                                                | Implemented (cascade)                                                                                                                                                      |
-| SwipeAction                                       | Record creation (`timestamp`)              | 24 months rolling                              | Hard delete per-action rows. An aggregate `user_pet_preferences` row (pet_type x size x age_group x like/pass counts) is retained indefinitely for recommendations | Documented, no enforcement. Table comment references plan 4.2 partitioning, but no `PARTITION BY` DDL exists in any migration yet.                                         |
-| Notification (read)                               | `read_at` is set                           | 90 days from `read_at`                         | Hard delete (no soft-delete on Notification)                                                                                                                       | Documented, no enforcement                                                                                                                                                 |
-| EmailQueue (sent)                                 | `sent_at` is set                           | 1 year from `sent_at`                          | Hard delete. Model comment says "sent rows get hard-archived by the retention job" — that job does not exist yet                                                   | Documented, no enforcement                                                                                                                                                 |
-| RefreshToken (expired or revoked)                 | `expires_at` passed or `is_revoked = true` | 30 days                                        | Hard delete via cleanup job                                                                                                                                        | Documented, no enforcement                                                                                                                                                 |
-| IdempotencyKey                                    | `expires_at` (set to creation + 24h)       | 24 hours                                       | Hard delete via cleanup job. `expires_at` index exists. No job implemented                                                                                         | Documented, no enforcement                                                                                                                                                 |
-| ApplicationTimeline / ApplicationStatusTransition | Record creation                            | Indefinite                                     | These are append-only audit trails; intentionally kept forever                                                                                                     | Implemented (no TTL; by design)                                                                                                                                            |
-| HomeVisit                                         | `completed_at` date                        | 5 years post-completion                        | Hard delete                                                                                                                                                        | Documented, no enforcement                                                                                                                                                 |
-| Report / ModeratorAction                          | Record creation                            | 7 years                                        | Hard delete                                                                                                                                                        | Documented, no enforcement                                                                                                                                                 |
-| DeviceToken                                       | `last_used_at`                             | 90 days idle (last_used_at older than 90 days) | Soft-delete (`paranoid: true`), then hard delete after further grace period                                                                                        | Partially implemented: model sets `expires_at` on `beforeValidate` (iOS: 30 days, other: 90 days) and marks status as EXPIRED on `beforeSave`. No job deletes expired rows |
+| Entity                                            | Trigger                                         | Retention period                                     | What happens after                                                                                                                                                 | Status                                                                                                                                                                     |
+| ------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User (active)                                     | While account active                            | Indefinite                                           | On verified deletion request: anonymise within 30 days (see section 5)                                                                                             | Documented, no enforcement                                                                                                                                                 |
+| User (deleted/soft-deleted)                       | Account deletion or `deleted_at` set            | 30 days                                              | Full anonymisation: replace name/email/phone with opaque placeholders, clear twoFactorSecret, backupCodes, resetToken                                              | Documented, no enforcement                                                                                                                                                 |
+| AuditLog                                          | Record creation                                 | 7 years                                              | Hard delete rows older than 7 years                                                                                                                                | Documented, no enforcement                                                                                                                                                 |
+| Message                                           | User deletes account or chat is deleted         | Until parent chat or user is deleted                 | Cascade delete via `ON DELETE CASCADE` on `chat_id` and `sender_id`                                                                                                | Implemented (cascade)                                                                                                                                                      |
+| SwipeAction                                       | Record creation (`timestamp`)                   | 24 months rolling                                    | Hard delete per-action rows. An aggregate `user_pet_preferences` row (pet_type x size x age_group x like/pass counts) is retained indefinitely for recommendations | Documented, no enforcement. Table comment references plan 4.2 partitioning, but no `PARTITION BY` DDL exists in any migration yet.                                         |
+| Notification (read)                               | `read_at` is set                                | 90 days from `read_at`                               | Hard delete (no soft-delete on Notification)                                                                                                                       | Documented, no enforcement                                                                                                                                                 |
+| EmailQueue (sent)                                 | `sent_at` is set                                | 1 year from `sent_at` (`EMAIL_QUEUE_RETENTION_DAYS`) | Hard delete in bounded batches, daily                                                                                                                              | **Implemented** (ADS-1320) — `services/notifications/src/jobs/email-queue-retention.ts`, scheduled via `src/scheduler/`                                                    |
+| ApplicationDraft                                  | `expires_at` (set to creation/update + 30 days) | 30 days                                              | Hard delete in bounded batches, daily                                                                                                                              | **Implemented** (ADS-1320) — `services/applications/src/jobs/application-draft-retention.ts`, scheduled via `src/scheduler/`                                               |
+| RefreshToken (expired or revoked)                 | `expires_at` passed or `is_revoked = true`      | 30 days                                              | Hard delete via cleanup job                                                                                                                                        | Documented, no enforcement                                                                                                                                                 |
+| IdempotencyKey                                    | `expires_at` (set to creation + 24h)            | 24 hours                                             | Hard delete via cleanup job. `expires_at` index exists. No job implemented                                                                                         | Documented, no enforcement                                                                                                                                                 |
+| ApplicationTimeline / ApplicationStatusTransition | Record creation                                 | Indefinite                                           | These are append-only audit trails; intentionally kept forever                                                                                                     | Implemented (no TTL; by design)                                                                                                                                            |
+| HomeVisit                                         | `completed_at` date                             | 5 years post-completion                              | Hard delete                                                                                                                                                        | Documented, no enforcement                                                                                                                                                 |
+| Report / ModeratorAction                          | Record creation                                 | 7 years                                              | Hard delete                                                                                                                                                        | Documented, no enforcement                                                                                                                                                 |
+| DeviceToken                                       | `last_used_at`                                  | 90 days idle (last_used_at older than 90 days)       | Soft-delete (`paranoid: true`), then hard delete after further grace period                                                                                        | Partially implemented: model sets `expires_at` on `beforeValidate` (iOS: 30 days, other: 90 days) and marks status as EXPIRED on `beforeSave`. No job deletes expired rows |
 
 ### Honest state summary
 
-None of the time-based retention periods have an automated background job wired up. The `expires_at` columns exist and are indexed, which means a future cleanup job has a clear path. Until that job exists, expired rows accumulate. This is the most important gap to close before any data subject deletion request arrives.
+Updated 2026-09-07 (ADS-1320): two of the time-based retention periods (application drafts,
+sent email-queue rows) now have an automated background job wired up — see the Status column
+above. The rest still don't: their `expires_at`/equivalent columns exist and are indexed, which
+means a future cleanup job has a clear path, but until each job exists, those rows accumulate.
+Closing the remaining gaps is still important before a data subject deletion request tests them.
 
 ---
 
 ## 5. User rights
 
-Currently no self-service portal. To exercise any of these rights, users email the platform admin.
+Updated 2026-09-07 (ADS-1320): export and erasure both now have a self-service path in the
+product. Everything else in this section (correction) still goes through the admin.
 
-### Export (subject access request)
+### Export / portability (Art. 15/20)
 
-The intended flow is: admin receives request, verifies identity, runs `scripts/export-user-data.ts` for the relevant `userId`.
+Self-service: `GET /api/v1/users/me/export` (`services/gateway/src/routes/users-export.ts`),
+surfaced as "Download my data" on the client app's Profile → Settings tab
+(`apps/client/src/pages/ProfilePage.tsx`). It calls the same `AuthService.ExportUserData` RPC
+the admin Privacy Tools page uses (`services/gateway/src/routes/privacy.ts`), always scoped to
+the caller's own `userId`, rate-limited to 5 requests/hour per user. Scope today is auth-owned
+data only (profile + privacy preferences) — applications, messages, and swipe history are not
+yet included in the export bundle; that cross-service aggregation is still future work. Every
+export (self-service or admin) publishes an `auth.actionTaken` audit event.
 
-That script does not exist yet. Future work: build it to collect User, Application, ApplicationAnswer, ApplicationReference, Message, Notification, SwipeAction, AuditLog (where `user` = userId), and DeviceToken rows for the subject, zip them as JSON, and return a download link.
+Admins can still export any user's data at `GET /api/v1/privacy/admin/users/:userId/export`
+(requires `admin.data.export`).
 
-### Deletion (right to erasure)
+### Deletion (right to erasure, Art. 17)
 
-Admin receives request, verifies identity, runs `scripts/anonymize-user.ts` for the relevant `userId`.
+Self-service: in-app `Account Settings → Delete account`, or directly
+`POST /api/v1/users/me/erasure-request` (step-up re-auth; rate-limited to 5/hour) — see
+`docs/legal/privacy.md` §4/§5 for the user-facing description of the saga this publishes across
+every service that holds the subject's data.
 
-That script does not exist yet. The intended operation: replace `first_name`, `last_name`, `email`, `phone_number`, `date_of_birth`, `address_*`, `bio`, `profile_image_url` with opaque placeholders; clear `two_factor_secret`, `backup_codes`, `reset_token`, `verification_token`; set `status = deactivated`; set `deleted_at`; revoke all active refresh tokens and device tokens. AuditLog rows referencing the user are kept (legal retention) but the `user_email_snapshot` column will preserve the pre-anonymisation email for the audit trail.
+Admins can additionally schedule deletion for another account at
+`POST /api/v1/privacy/admin/users/:userId/delete-request` (requires `users.delete`) — an
+auth-scoped deactivate-then-grace-period path, distinct from the cross-service erasure saga above.
 
 ### Correction
 
-Users can update their own profile via the UI. For fields not exposed in the UI, admin applies a direct update.
-
-Both scripts are future work. As of 2026-04-27, neither `scripts/export-user-data.ts` nor `scripts/anonymize-user.ts` exists in the repository.
+Users can update their own profile via the UI. For fields not exposed in the UI, admin applies a
+direct update.
 
 ---
 
 ## 6. Third-party processors
 
-| Processor                             | Purpose                                            | Personal data involved                                                                   | Configuration                                               |
-| ------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| PostgreSQL host                       | Primary data store for all application data        | All PII                                                                                  | `DB_*` env vars                                             |
-| SendGrid (SMTP-compatible)            | Transactional and notification email delivery      | `to_email`, `to_name`, email content, tracking pixels                                    | `EMAIL_HOST=smtp.sendgrid.net`, `EMAIL_USER`, `EMAIL_PASS`  |
-| AWS S3                                | File storage for adoption documents and pet photos | File names, file content (documents may contain PII)                                     | `AWS_*` env vars                                            |
-| Push notification provider (FCM/APNS) | Deliver push notifications to mobile devices       | Device tokens, notification payloads                                                     | Not yet configured; code references FCM/APNS as placeholder |
-| Sentry                                | Error tracking and diagnostics                     | Stack traces, request context (may include user IDs or emails embedded in logged errors) | `SENTRY_DSN`                                                |
-| Statsig                               | Feature flag evaluation                            | No PII sent by default (event names only; server-side evaluation)                        | `STATSIG_SERVER_SECRET_KEY`                                 |
+| Processor                                      | Purpose                                                                                              | Personal data involved                                                                              | Configuration                                                                     |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| PostgreSQL host                                | Primary data store for all application data                                                          | All PII                                                                                             | `DB_*` env vars                                                                   |
+| Resend                                         | Transactional and notification email delivery                                                        | `to_email`, `to_name`, email content                                                                | `RESEND_API_KEY`, `DEFAULT_FROM_EMAIL`, `EMAIL_PROVIDER=resend` (production-only) |
+| AWS S3                                         | File storage for adoption documents and pet photos, plus DB/upload backups (`scripts/snapshot-*.sh`) | File names, file content (documents may contain PII)                                                | `S3_BUCKET_NAME`, `S3_REGION`, `BACKUP_BUCKET`, `AWS_REGION`                      |
+| Firebase Cloud Messaging (FCM)                 | Deliver push notifications to mobile devices                                                         | Device tokens, notification payloads                                                                | `FCM_SERVICE_ACCOUNT_JSON`, `FCM_PROJECT_ID`                                      |
+| GlitchTip (self-hosted, Sentry-compatible SDK) | Error tracking and diagnostics                                                                       | Stack traces, request context; user email/username/IP are redacted before send (`redactSentryUser`) | `SENTRY_DSN` (points at our own GlitchTip instance, not the Sentry SaaS)          |
+| Statsig                                        | Feature flags, product analytics, and — only after analytics consent — session replay/autocapture    | Opaque `userID` + non-PII `custom` fields always; behavioural/session data once consent is granted  | `VITE_STATSIG_CLIENT_KEY` (frontend), `STATSIG_SERVER_SECRET_KEY` (backend)       |
 
-For processors not listed here: if you add a new integration that receives any of the field categories from section 1, update this table before merging.
+For processors not listed here: if you add a new integration that receives any of the field categories from section 1, update this table before merging. (Corrected 2026-09-07, ADS-1326 — see `docs/legal/cookies.md` §5 for the user-facing version of the GlitchTip/Statsig facts.)
 
 ---
 
-## 7. Subject-access flow (intended, not yet implemented)
+## 7. Subject-access flow
 
-### Export flow
-
-1. User emails admin with subject access request. Admin verifies identity against `users.email`.
-2. Admin runs: `pnpm exec ts-node scripts/export-user-data.ts --userId <uuid>`
-3. Script collects all rows referencing that `userId` across: `users`, `addresses`, `applications`, `application_answers`, `application_references`, `messages`, `notifications`, `swipe_actions`, `audit_logs` (where `user = userId`), `device_tokens`, `refresh_tokens`, `email_queue`.
-4. Output: a JSON archive delivered to the user's verified email address.
-
-**Status: future work.** Script does not exist.
-
-### Deletion flow
-
-1. User submits deletion request. Admin verifies identity.
-2. Admin runs: `pnpm exec ts-node scripts/anonymize-user.ts --userId <uuid>`
-3. Script: anonymises PII fields on `users`, revokes all `refresh_tokens` and `device_tokens` for the user, cancels pending `notifications` and `email_queue` entries. Does not delete `audit_logs` (legal retention). Does not delete `application` rows (rescue needs them for their own retention obligations). Does not delete `messages` (chat participant; the other party's data is also in that thread — separate policy decision needed).
-4. Admin confirms operation completed and notifies user within 30 days of request.
-
-**Status: future work.** Script does not exist. Retention periods in section 4 are also not enforced automatically. Both gaps should be addressed before the platform reaches production scale.
+Superseded 2026-09-07 (ADS-1320) by the self-service routes described in section 5 — see there
+for the real export and erasure flows. The `scripts/export-user-data.ts` /
+`scripts/anonymize-user.ts` admin-script flow this section used to describe never shipped.
+Section 4's retention matrix still lists most entities as "Documented, no enforcement" — the
+application-drafts and email-queue rows are now "Implemented" as of ADS-1320; the rest remain
+the open gap.

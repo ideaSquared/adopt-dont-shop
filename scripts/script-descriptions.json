@@ -63,6 +63,7 @@
   "check:workflow-paths": "Guard: fail if a GitHub Actions workflow references a path that doesn't exist.",
   "check:docker-pinning": "Guard: fail if a Dockerfile/compose file uses an unpinned (non-digest) base image.",
   "check:migration-backcompat": "Guard: fail if a newly added migration contracts the schema (drop/rename, unmarked NOT NULL, type narrowing) without a backcompat marker comment (ADR 0008).",
+  "check:stop-grace-period": "Guard: fail if a service-* entry in docker-compose.prod.yml lacks stop_grace_period (ADS-1309).",
   "check:docs-index": "Guard: fail if a docs/**/*.md file isn't linked from docs/README.md.",
   "check:docs-script-refs": "Guard: fail if a doc references a `pnpm run <script>` that doesn't exist.",
   "check:proto-fresh": "Guard: fail if packages/proto committed codegen is out of sync with `buf generate` (run `pnpm generate` in packages/proto and commit).",
