@@ -58,7 +58,9 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
+| `pnpm check:commit-messages` | `commitlint --from $(git merge-base HEAD origin/main 2>/dev/null \|\| git rev-parse HEAD~1) --to HEAD --verbose` |
 | `pnpm check:csp` | `node scripts/check-csp-headers.mjs` |
+| `pnpm check:dev-auth-guard` | `node scripts/check-dev-auth-guard.mjs` |
 | `pnpm check:docker-pinning` | `node scripts/check-docker-pinning.mjs` |
 | `pnpm check:docs-freshness` | `node scripts/check-docs-freshness.mjs` |
 | `pnpm check:docs-index` | `node scripts/check-docs-index.mjs` |
@@ -113,7 +115,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:stop-grace-period && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:nginx-upload-precedence && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm check:overrides-docs && pnpm test:scripts` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:docker-pinning && pnpm check:stop-grace-period && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:nginx-upload-precedence && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm check:overrides-docs && pnpm check:commit-messages && pnpm check:dev-auth-guard && pnpm check:stories && pnpm --filter @adopt-dont-shop/e2e run lint && pnpm --filter @adopt-dont-shop/e2e run type-check && pnpm --filter @adopt-dont-shop/e2e run format:check && pnpm run tasks:write && git diff --exit-code docs/tasks.md && pnpm test:scripts` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks

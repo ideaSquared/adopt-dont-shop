@@ -54,6 +54,7 @@
     }
   },
   "devDependencies": {
+    "@adopt-dont-shop/test-utils": "workspace:*",
     "@types/pg": "^8.15.5",
     "node-pg-migrate": "^8.0.4",
     "pg": "^8.22.0"
