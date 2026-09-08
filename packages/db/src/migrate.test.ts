@@ -6,7 +6,7 @@ vi.mock('node-pg-migrate', () => ({
 
 import { runner } from 'node-pg-migrate';
 
-import { runMigrations } from './migrate.js';
+import { MIGRATION_IGNORE_PATTERN, runMigrations } from './migrate.js';
 
 const mockRunner = vi.mocked(runner);
 
@@ -16,6 +16,27 @@ const baseOpts = {
   migrationsDir: '/tmp/migrations',
   retryBackoffMs: 0,
 };
+
+describe('MIGRATION_IGNORE_PATTERN', () => {
+  const ignored = (name: string) => new RegExp(`^${MIGRATION_IGNORE_PATTERN}$`).test(name);
+
+  it('skips the .d.ts declaration siblings tsc emits next to compiled migrations', () => {
+    expect(ignored('001_create_users.d.ts')).toBe(true);
+    expect(ignored('001_create_users.d.ts.map')).toBe(true);
+  });
+
+  it('still skips maps, dotfiles and co-located tests', () => {
+    expect(ignored('001_create_users.js.map')).toBe(true);
+    expect(ignored('.gitkeep')).toBe(true);
+    expect(ignored('migrations.test.ts')).toBe(true);
+    expect(ignored('001_create_users.spec.js')).toBe(true);
+  });
+
+  it('keeps real compiled and source migrations', () => {
+    expect(ignored('001_create_users.js')).toBe(false);
+    expect(ignored('001_create_users.ts')).toBe(false);
+  });
+});
 
 describe('runMigrations', () => {
   beforeEach(() => {
@@ -43,7 +64,7 @@ describe('runMigrations', () => {
         // CAD lesson #3 — also drops *.test.[jt]s / *.spec.[jt]s so vitest
         // test files never get loaded as migrations (the import side-effect
         // crashed the schema-equivalence smoke).
-        ignorePattern: '(\\..*|.*\\.map|.*\\.test\\.[jt]s|.*\\.spec\\.[jt]s)',
+        ignorePattern: MIGRATION_IGNORE_PATTERN,
         // Set by the helper, not the caller
         migrationsTable: 'pgmigrations',
         direction: 'up',
