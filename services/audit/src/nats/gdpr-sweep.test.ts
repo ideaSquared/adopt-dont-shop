@@ -472,8 +472,9 @@ describe('runGdprSweep — retry', () => {
     let callCount = 0;
     (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
       callCount++;
-      if (callCount === 2) return { rows: [row] };
-      return { rows: [] };
+      if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
+      if (callCount === 2) return { rows: [row] }; // retry candidates query
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot (ADS-1325)
     });
 
     const logger = makeLogger();
@@ -510,8 +511,9 @@ describe('runGdprSweep — retry', () => {
     let callCount = 0;
     (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
       callCount++;
-      if (callCount === 2) return { rows: [row] };
-      return { rows: [] };
+      if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
+      if (callCount === 2) return { rows: [row] }; // retry candidates query
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot (ADS-1325)
     });
 
     const logger = makeLogger();
