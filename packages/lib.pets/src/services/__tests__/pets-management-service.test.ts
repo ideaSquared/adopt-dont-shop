@@ -363,7 +363,9 @@ describe('PetManagementService', () => {
       const result = await service.getPetStatistics('rescue-1');
 
       expect(result).toEqual(stats);
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/statistics?rescueId=rescue-1');
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/stats', {
+        rescueId: 'rescue-1',
+      });
     });
 
     it('throws when statistics cannot be fetched', async () => {
