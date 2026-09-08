@@ -452,6 +452,18 @@ describe('listDocuments', () => {
     });
     expect(res.documents).toHaveLength(1);
   });
+
+  // ADS-1323: the query ran with no LIMIT — an application with an
+  // unusually large document count could pull an unbounded result set.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] })
+      .mockResolvedValueOnce({ rows: [] });
+    await listDocuments(deps, makePrincipal({ userId: 'usr-1' }), { applicationId: 'app-1' });
+    const [sql] = query.mock.calls[1] as [string, unknown[]];
+    expect(sql).toMatch(/LIMIT\s+\d+/i);
+  });
 });
 
 describe('removeDocument', () => {

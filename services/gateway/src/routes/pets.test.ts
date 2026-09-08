@@ -1099,6 +1099,45 @@ describe('POST /api/v1/pets/bulk-update', () => {
     }
   });
 
+  // ADS-1323: unbounded petIds fanned out one gRPC call per id with no cap —
+  // commit 08dc01a capped reports/execute the same way.
+  it('rejects a petIds batch over the item cap with 400 (no RPC calls)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const petIds = Array.from({ length: 101 }, (_, i) => `pet-${i}`);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds, operation: 'archive' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('accepts a petIds batch at exactly the item cap', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.updateMock.mockResolvedValue({ pet: PET_FIXTURE });
+      const petIds = Array.from({ length: 100 }, (_, i) => `pet-${i}`);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds, operation: 'archive' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(m.updateMock).toHaveBeenCalledTimes(100);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('rejects an unknown operation with 400', async () => {
     const m = makeClient();
     const app = await makeApp(m.client);

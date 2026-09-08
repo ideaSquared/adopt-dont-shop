@@ -104,6 +104,91 @@ Shared helpers for the services, added as a devDependency
 | `testPrincipal`       | Build a `Principal` with sensible defaults (override per test)                      |
 | `metadataFor`         | Serialise a `Principal` into the `x-user-*` gRPC metadata the gateway stamps        |
 | `makeNatsDouble`      | A NATS/JetStream publish-recording double for asserting emitted events              |
+| `withTestDatabase`    | Migrate a throwaway Postgres schema, yield a real `pg.Pool`, drop it (see below)    |
+
+### Integration tests (real Postgres) — ADS-1315
+
+Everything above runs against mocks — a fake `pg.Pool`, a fake NATS connection. That's the
+right default (fast, no external dependency) but it means SQL correctness, real transaction
+semantics, and the events transactional-outbox seam were never exercised against an actual
+database. `@adopt-dont-shop/test-utils`'s `withTestDatabase` closes that gap for the small set of
+cases where it matters:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { withTestDatabase } from '@adopt-dont-shop/test-utils';
+
+describe.skipIf(!process.env.DATABASE_URL)('my real-DB behaviour', () => {
+  it('does the real thing', async () => {
+    await withTestDatabase(
+      { schemaPrefix: 'my_thing', migrationsDir: MIGRATIONS_DIR },
+      async pool => {
+        // pool is a real, migrated pg.Pool scoped to a throwaway schema.
+      }
+    );
+  });
+});
+```
+
+`withTestDatabase(options, fn)`:
+
+- Generates a throwaway schema name (`<schemaPrefix>_test_<random>`), runs the target
+  `migrationsDir`'s migrations against it via `runMigrations` (the same helper `db:migrate` and
+  container boot use), and hands `fn` a real `pg.Pool` scoped to that schema.
+- Drops the schema and closes the pool when `fn` settles (success or throw).
+- Reads `DATABASE_URL` from the environment by default (override via `options.databaseUrl` for a
+  test that needs a different target — rare).
+- `options.exactSchemaName: true` uses `schemaPrefix` verbatim instead of appending the random
+  suffix. Needed only when a service's committed migrations reference their own schema by
+  **literal name** in raw SQL (`pgm.sql('UPDATE auth.refresh_tokens ...')`, not through
+  node-pg-migrate's schema-aware helpers) — fixing that migration is not an option (never modify
+  a shipped migration), so the test uses the schema name the migration hardcodes instead. Callers
+  that set this must not run two suites against the same exact name concurrently; sequential `it`
+  blocks within one file (the common case) are safe.
+- `options.registerTsxLoader: true` registers `tsx`'s module loader (the same one `pnpm
+db:migrate` runs under) before running migrations. Needed only when a migration imports a
+  sibling module via a `.js` specifier that resolves to a `.ts` file — resolving that is a
+  loader-hook feature, not something Node's native TypeScript support does on its own (e.g.
+  `services/auth/src/migrations/027_encrypt_totp_secrets.ts` imports `./totp-crypto.js`). Leave
+  it off unless a migration actually needs it — registering it unconditionally can turn an
+  in-process-generated migration file that re-exports an already-loaded module into a
+  `require(esm)`-in-a-cycle failure (see the module comment in
+  `packages/test-utils/src/test-database.ts` and `packages/events/src/outbox.integration.test.ts`
+  for the concrete case and the workaround).
+
+**Naming and skip convention.** Real-DB tests live in `*.integration.test.ts` files (not mixed
+into the regular `*.test.ts` suite) and their top-level `describe` is always guarded with
+`describe.skipIf(!process.env.DATABASE_URL)` — the suite reports **skipped**, never silently
+passed, when no database is configured. Two suites exist today as the worked examples:
+
+- `packages/events/src/outbox.integration.test.ts` — the transactional-outbox
+  publish-after-commit semantics (`withTransaction`): commit delivers and self-cleans the outbox
+  row, a thrown business fn really rolls back (no row, no event), and a failed inline delivery
+  leaves the event durably queued for the relay. Uses `makeNatsDouble()` for NATS — the point is
+  Postgres transaction semantics, not the wire protocol.
+- `services/auth/src/grpc/handlers.integration.test.ts` — the RBAC seed → `loadPrincipal` →
+  `hasPermission` path: seeds a user with a role, runs every real migration (including the RBAC
+  grant seeds), and proves the seeded grants produce the intended allow/deny outcome. Uses
+  `exactSchemaName: true` (auth's migration 025 hardcodes `auth.refresh_tokens`) and
+  `registerTsxLoader: true` (migration 027's cross-file import).
+
+**Running locally.** Point `DATABASE_URL` at any reachable Postgres with the `citext` and
+`postgis` extensions available (the `postgis/postgis` image ci.yml and docker-compose use ships
+both) — a superuser role that can `CREATE EXTENSION` and `CREATE SCHEMA` is required:
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres \
+  pnpm --filter @adopt-dont-shop/service.auth test handlers.integration.test.ts
+```
+
+Without `DATABASE_URL` set, the same command reports the suite as skipped rather than failing.
+
+**In CI.** `ci.yml`'s `test-services` job runs a `postgis/postgis` service container (matching
+the image `docker-compose.prod.yml` runs) and sets `DATABASE_URL` for the whole job, so every
+`*.integration.test.ts` under `services/*` runs for real on every backend-touching PR. A real
+NATS container was deliberately not added — the two suites above use `makeNatsDouble()`, and
+nothing yet needs a real broker; add one to `test-services` following the same `services:` shape
+if a future suite does.
 
 ### Running backend tests
 

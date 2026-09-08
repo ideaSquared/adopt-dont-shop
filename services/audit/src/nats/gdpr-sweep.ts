@@ -53,6 +53,9 @@ export type GdprSweepOptions = {
 type SagaRow = {
   correlation_id: string;
   user_id: string;
+  // ADS-1323: persisted so a retry can still republish it — see
+  // 009_add_gdpr_erasure_email.ts.
+  email: string | null;
   reason: string | null;
   requested_at: string;
   completions: Record<string, unknown>;
@@ -85,7 +88,7 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
   // `completions` at all. Sagas where every service acked (even with errors)
   // are handled by the retry pass, not the timeout pass.
   const { rows: overdueRows } = await pool.query<SagaRow>(
-    `SELECT correlation_id, user_id, reason, requested_at,
+    `SELECT correlation_id, user_id, email, reason, requested_at,
             completions, completed_at, failed_at, timed_out_at, retry_count
        FROM audit.gdpr_erasure_requests
       WHERE completed_at IS NULL
@@ -135,7 +138,7 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
   // JetStream's duplicate window. Pattern: `${correlationId}:retry:${n}`
   // where n is the NEW retry_count (1-indexed).
   const { rows: retryRows } = await pool.query<SagaRow>(
-    `SELECT correlation_id, user_id, reason, requested_at,
+    `SELECT correlation_id, user_id, email, reason, requested_at,
             completions, completed_at, failed_at, timed_out_at, retry_count
        FROM audit.gdpr_erasure_requests
       WHERE failed_at IS NOT NULL
@@ -153,6 +156,10 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
       userId: row.user_id,
       requestedAt: row.requested_at,
       ...(row.reason !== null ? { reason: row.reason } : {}),
+      // ADS-1323: without this, a retried erasure permanently drops email
+      // and skips email-keyed rows (rescue pending invitations for a user
+      // who never registered) — see 009_add_gdpr_erasure_email.ts.
+      ...(row.email !== null ? { email: row.email } : {}),
     };
 
     const envelope = {

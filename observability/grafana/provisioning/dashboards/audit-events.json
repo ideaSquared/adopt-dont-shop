@@ -9,7 +9,10 @@
   "panels": [
     {
       "datasource": { "type": "loki", "uid": "Loki" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [] }, "overrides": [] },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [] },
+        "overrides": []
+      },
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "id": 1,
       "options": {
@@ -25,7 +28,7 @@
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"adopt-dont-shop-backend\"} |= \"audit\" | json | audit=\"true\" [1h]))",
+          "expr": "sum(count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\" [1h]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -49,7 +52,7 @@
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"adopt-dont-shop-backend\"} |= \"audit\" | json | audit=\"true\" | status=\"failure\" [1h]))",
+          "expr": "sum(count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\" | outcome=\"failure\" [1h]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -59,15 +62,33 @@
     },
     {
       "datasource": { "type": "loki", "uid": "Loki" },
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "bars", "fillOpacity": 80, "lineWidth": 1, "stacking": { "mode": "none" } } }, "overrides": [] },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": { "mode": "none" }
+          }
+        },
+        "overrides": []
+      },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "id": 3,
-      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "sum by (action) (count_over_time({service=\"adopt-dont-shop-backend\"} |= \"audit\" | json | audit=\"true\" [$__interval]))",
+          "expr": "sum by (action) (count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\" [$__interval]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -93,7 +114,7 @@
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "{service=\"adopt-dont-shop-backend\"} |= \"audit\" | json | audit=\"true\"",
+          "expr": "{service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -103,15 +124,28 @@
     },
     {
       "datasource": { "type": "loki", "uid": "Loki" },
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1 } } },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 1
+          }
+        }
+      },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
       "id": 5,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "Loki" },
           "editorMode": "code",
-          "expr": "sum by (userId) (count_over_time({service=\"adopt-dont-shop-backend\"} |= \"audit\" | json | audit=\"true\" [$__interval]))",
+          "expr": "sum by (actorUserId) (count_over_time({service=\"service.audit\"} |= \"audit event persisted\" | json | audit=\"true\" [$__interval]))",
           "queryType": "range",
           "refId": "A"
         }

@@ -73,6 +73,12 @@ export type AuthMiddlewareOptions = {
   // tenant scope check. Optional + fail-open: without it, behaviour is
   // unchanged.
   rescueClient?: RescueClient;
+  // ADS-1327: /metrics is otherwise fully unauthenticated (INFRA_PUBLIC_PREFIXES
+  // below) — fine inside a docker network reachable only by a trusted Prometheus
+  // scraper, but a defence-in-depth gap wherever that isolation doesn't hold.
+  // Optional: unset keeps the current fully-public behaviour; set, a request to
+  // /metrics must present this exact value as `Authorization: Bearer <token>`.
+  metricsBearerToken?: string;
 };
 
 // Cache of userId → resolved rescueId (or null when the user has no
@@ -159,12 +165,24 @@ export const registerAuthenticate = async (
   app: FastifyInstance,
   opts: AuthMiddlewareOptions
 ): Promise<void> => {
-  const { authClient, logger, principalSigningKey, rescueClient } = opts;
+  const { authClient, logger, principalSigningKey, rescueClient, metricsBearerToken } = opts;
 
   app.addHook('onRequest', async (req, reply) => {
     // Step 1: strip spoofable headers. ALWAYS.
     for (const key of SPOOFABLE_HEADERS) {
       delete (req.headers as Record<string, unknown>)[key];
+    }
+
+    // ADS-1327: /metrics gate. Checked before the normal principal flow —
+    // this is a static shared-secret comparison, not a user session, so it
+    // never touches ValidateToken. Only takes effect when the operator has
+    // opted in by setting METRICS_BEARER_TOKEN; otherwise /metrics keeps its
+    // existing INFRA_PUBLIC_PREFIXES pass-through below.
+    if (metricsBearerToken && req.url.startsWith('/metrics')) {
+      if (extractBearerToken(req) !== metricsBearerToken) {
+        return reply.code(401).send({ error: 'authentication required' });
+      }
+      return;
     }
 
     const token = extractBearerToken(req) ?? extractAccessTokenFromCookie(req);

@@ -47,10 +47,16 @@ import { principalToMetadata } from './principal.js';
 
 // ── Permissions ─────────────────────────────────────────────────────────
 
-const EVENTS_READ: Permission = 'events.read' as Permission;
-const EVENTS_CREATE: Permission = 'events.create' as Permission;
-const EVENTS_UPDATE: Permission = 'events.update' as Permission;
-const EVENTS_DELETE: Permission = 'events.delete' as Permission;
+// ADS-1323: ListEventsRequest has no pagination fields, so this is a hard
+// cap rather than a page size — bounds worst-case memory/latency for a
+// rescue with an unusually large event history without changing the
+// response contract.
+const LIST_EVENTS_LIMIT = 500;
+
+const EVENTS_READ: Permission = 'events.read';
+const EVENTS_CREATE: Permission = 'events.create';
+const EVENTS_UPDATE: Permission = 'events.update';
+const EVENTS_DELETE: Permission = 'events.delete';
 
 // ── Adoption attribution (ADS-941) ────────────────────────────────────────
 //
@@ -335,7 +341,7 @@ export async function listEvents(
 
   const where = conditions.join(' AND ');
   const res = await deps.pool.query<EventRow>(
-    `SELECT ${EVENT_SELECT} FROM rescue.events WHERE ${where} ORDER BY start_date ASC`,
+    `SELECT ${EVENT_SELECT} FROM rescue.events WHERE ${where} ORDER BY start_date ASC LIMIT ${LIST_EVENTS_LIMIT}`,
     params
   );
   return { events: res.rows.map(rowToEvent) };

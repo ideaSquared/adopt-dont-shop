@@ -402,6 +402,14 @@ describe('listRescueInvitations', () => {
     expect(String(sql)).not.toContain('token');
     expect(params).toEqual([RESCUE_ID]);
   });
+
+  // ADS-1323: the query ran with no LIMIT.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescueInvitations(mocks.deps, ADMIN, { rescueId: RESCUE_ID });
+    const [sql] = mocks.poolMock.query.mock.calls[0];
+    expect(String(sql)).toMatch(/LIMIT\s+\d+/i);
+  });
 });
 
 // --- CancelRescueInvitation (admin) ---------------------------------

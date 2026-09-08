@@ -1,0 +1,183 @@
+# Multi-window, multi-burn-rate SLO alerting (ADS-1324f).
+#
+# high-error-rate.yml's HighErrorRate / HighGrpcErrorRate use ONE flat
+# threshold (1% HTTP, 2% gRPC) for every job/service, even though docs/slo.md
+# sets a different availability target per service (99.0%-99.9%). Those
+# flat rules stay as-is — a fallback, and an independently-computed signal —
+# this file adds a second layer that alerts against each service's *own*
+# error budget.
+#
+# Method: the Google SRE workbook's multi-window burn-rate approach. A
+# recording rule maps job/service -> its docs/slo.md target; burn rate =
+# (observed error ratio) / (1 - target), i.e. how many multiples of the
+# sustainable rate the service is currently burning its 30-day budget at.
+# An alert only fires when BOTH a short and a long lookback window agree the
+# burn rate is high — that avoids paging on a brief blip that a single
+# 5-minute window would catch, while still catching a real incident inside
+# minutes (14.4x sustained for 1h exhausts a 30-day budget in ~2 days).
+#
+# Two metrics, two label shapes:
+#   http_request_duration_seconds_count{status_code}   — no service label;
+#     job identifies the service (gateway, cms — the two HTTP-facing jobs).
+#   grpc_handler_duration_seconds_count{service,code,direction}
+#     — `service` is the dotted `service.<name>` string each adapter.ts
+#     passes to startGrpcTimer (e.g. 'service.auth'), NOT the job name
+#     ('service-auth'). direction="in" is the server (inbound) side.
+groups:
+  - name: ads-slo-targets
+    rules:
+      # HTTP-serving jobs — docs/slo.md availability column.
+      - record: ads:slo_target:http
+        labels: { job: service-gateway }
+        expr: vector(0.999)
+      - record: ads:slo_target:http
+        labels: { job: service-cms }
+        expr: vector(0.999)
+
+      # gRPC-serving services (keyed by the grpc_handler_duration_seconds
+      # `service` label, the dotted service.<name> form).
+      - record: ads:slo_target:grpc
+        labels: { service: service.auth }
+        expr: vector(0.999)
+      - record: ads:slo_target:grpc
+        labels: { service: service.pets }
+        expr: vector(0.995)
+      - record: ads:slo_target:grpc
+        labels: { service: service.rescue }
+        expr: vector(0.995)
+      - record: ads:slo_target:grpc
+        labels: { service: service.applications }
+        expr: vector(0.995)
+      - record: ads:slo_target:grpc
+        labels: { service: service.chat }
+        expr: vector(0.995)
+      - record: ads:slo_target:grpc
+        labels: { service: service.matching }
+        expr: vector(0.99)
+      - record: ads:slo_target:grpc
+        labels: { service: service.moderation }
+        expr: vector(0.995)
+      - record: ads:slo_target:grpc
+        labels: { service: service.notifications }
+        expr: vector(0.995)
+
+  - name: ads-slo-burn-rate-http
+    interval: 30s
+    rules:
+      - record: ads:http_error_ratio:rate5m
+        expr: |
+          sum by (job) (rate(http_request_duration_seconds_count{status_code=~"5..", job=~"service-gateway|service-cms"}[5m]))
+          /
+          sum by (job) (rate(http_request_duration_seconds_count{job=~"service-gateway|service-cms"}[5m]))
+      - record: ads:http_error_ratio:rate30m
+        expr: |
+          sum by (job) (rate(http_request_duration_seconds_count{status_code=~"5..", job=~"service-gateway|service-cms"}[30m]))
+          /
+          sum by (job) (rate(http_request_duration_seconds_count{job=~"service-gateway|service-cms"}[30m]))
+      - record: ads:http_error_ratio:rate1h
+        expr: |
+          sum by (job) (rate(http_request_duration_seconds_count{status_code=~"5..", job=~"service-gateway|service-cms"}[1h]))
+          /
+          sum by (job) (rate(http_request_duration_seconds_count{job=~"service-gateway|service-cms"}[1h]))
+      - record: ads:http_error_ratio:rate6h
+        expr: |
+          sum by (job) (rate(http_request_duration_seconds_count{status_code=~"5..", job=~"service-gateway|service-cms"}[6h]))
+          /
+          sum by (job) (rate(http_request_duration_seconds_count{job=~"service-gateway|service-cms"}[6h]))
+
+      - record: ads:http_burn_rate:5m
+        expr: ads:http_error_ratio:rate5m / on (job) group_left () (1 - ads:slo_target:http)
+      - record: ads:http_burn_rate:30m
+        expr: ads:http_error_ratio:rate30m / on (job) group_left () (1 - ads:slo_target:http)
+      - record: ads:http_burn_rate:1h
+        expr: ads:http_error_ratio:rate1h / on (job) group_left () (1 - ads:slo_target:http)
+      - record: ads:http_burn_rate:6h
+        expr: ads:http_error_ratio:rate6h / on (job) group_left () (1 - ads:slo_target:http)
+
+      # Fast window: burning 14.4x the sustainable rate exhausts the 30-day
+      # budget in ~2 days. Confirmed on 5m AND 1h so a brief spike doesn't page.
+      - alert: SLOBurnRateFastHttp
+        expr: ads:http_burn_rate:5m > 14.4 and ads:http_burn_rate:1h > 14.4
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.job }} burning its error budget >14x (fast window)'
+          description: >-
+            {{ $labels.job }}'s HTTP 5xx rate is burning its per-service
+            availability budget (docs/slo.md) fast enough to exhaust the
+            30-day budget in about 2 days if sustained.
+          runbook: docs/runbooks/5xx-spike.md
+
+      # Slow window: burning 6x for 6h exhausts ~5% of the 30-day budget.
+      - alert: SLOBurnRateSlowHttp
+        expr: ads:http_burn_rate:30m > 6 and ads:http_burn_rate:6h > 6
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.job }} burning its error budget >6x (slow window)'
+          description: >-
+            {{ $labels.job }}'s HTTP 5xx rate has burned its per-service
+            availability budget at over 6x the sustainable rate for the last
+            6 hours.
+          runbook: docs/runbooks/5xx-spike.md
+
+  - name: ads-slo-burn-rate-grpc
+    interval: 30s
+    rules:
+      - record: ads:grpc_error_ratio:rate5m
+        expr: |
+          sum by (service) (rate(grpc_handler_duration_seconds_count{direction="in", code!="0"}[5m]))
+          /
+          sum by (service) (rate(grpc_handler_duration_seconds_count{direction="in"}[5m]))
+      - record: ads:grpc_error_ratio:rate30m
+        expr: |
+          sum by (service) (rate(grpc_handler_duration_seconds_count{direction="in", code!="0"}[30m]))
+          /
+          sum by (service) (rate(grpc_handler_duration_seconds_count{direction="in"}[30m]))
+      - record: ads:grpc_error_ratio:rate1h
+        expr: |
+          sum by (service) (rate(grpc_handler_duration_seconds_count{direction="in", code!="0"}[1h]))
+          /
+          sum by (service) (rate(grpc_handler_duration_seconds_count{direction="in"}[1h]))
+      - record: ads:grpc_error_ratio:rate6h
+        expr: |
+          sum by (service) (rate(grpc_handler_duration_seconds_count{direction="in", code!="0"}[6h]))
+          /
+          sum by (service) (rate(grpc_handler_duration_seconds_count{direction="in"}[6h]))
+
+      - record: ads:grpc_burn_rate:5m
+        expr: ads:grpc_error_ratio:rate5m / on (service) group_left () (1 - ads:slo_target:grpc)
+      - record: ads:grpc_burn_rate:30m
+        expr: ads:grpc_error_ratio:rate30m / on (service) group_left () (1 - ads:slo_target:grpc)
+      - record: ads:grpc_burn_rate:1h
+        expr: ads:grpc_error_ratio:rate1h / on (service) group_left () (1 - ads:slo_target:grpc)
+      - record: ads:grpc_burn_rate:6h
+        expr: ads:grpc_error_ratio:rate6h / on (service) group_left () (1 - ads:slo_target:grpc)
+
+      - alert: SLOBurnRateFastGrpc
+        expr: ads:grpc_burn_rate:5m > 14.4 and ads:grpc_burn_rate:1h > 14.4
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.service }} burning its error budget >14x (fast window)'
+          description: >-
+            {{ $labels.service }}'s gRPC error rate is burning its
+            per-service availability budget (docs/slo.md) fast enough to
+            exhaust the 30-day budget in about 2 days if sustained.
+          runbook: docs/runbooks/5xx-spike.md
+
+      - alert: SLOBurnRateSlowGrpc
+        expr: ads:grpc_burn_rate:30m > 6 and ads:grpc_burn_rate:6h > 6
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.service }} burning its error budget >6x (slow window)'
+          description: >-
+            {{ $labels.service }}'s gRPC error rate has burned its
+            per-service availability budget at over 6x the sustainable rate
+            for the last 6 hours.
+          runbook: docs/runbooks/5xx-spike.md

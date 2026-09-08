@@ -2,10 +2,14 @@
 
 > **Audience:** on-call, shell access on the prod host, no context.
 > **Last reviewed:** 2026-09-03
-> **Related alerts:** none — certbot renews on a **silent** 12h loop
-> (`--quiet`, no notification). A failing renewal is invisible until the cert
-> actually expires and browsers reject the site. Treat "cert about to expire" as
-> this runbook.
+> **Related alerts:** `TlsCertificateExpiringSoon` (warning,
+> `infra/prometheus/rules/external-probes.yml`, ADS-1324e) — fires from the
+> blackbox-exporter probe's `probe_ssl_earliest_cert_expiry` when under 14
+> days remain, which is the only thing watching certbot's **silent** 12h
+> renewal loop (`--quiet`, no notification of its own). Before this alert
+> existed, a failing renewal was invisible until the cert actually expired
+> and browsers rejected the site — treat "cert about to expire" as this
+> runbook either way.
 
 ## Symptoms
 

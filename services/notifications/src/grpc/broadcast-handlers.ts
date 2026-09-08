@@ -2,7 +2,9 @@
 // notification across a cohort of users.
 //
 // Flow:
-//   1. Permission gate (admin.notifications.broadcast).
+//   1. Permission gate (notifications.broadcast — ADS-1304: this used to be
+//      the ungranted, unseeded `admin.notifications.broadcast`; aligned to
+//      the literal 016_seed_core_rbac.ts actually grants to admin).
 //   2. Resolve the cohort by calling AuthService.ListUserIdsByCohort
 //      (cross-service gRPC; injected via deps.authClient so unit tests
 //      can mock).
@@ -35,7 +37,7 @@ import {
 
 import { HandlerError, type HandlerDeps } from './handlers.js';
 
-const NOTIFICATIONS_BROADCAST: Permission = 'admin.notifications.broadcast' as Permission;
+const NOTIFICATIONS_BROADCAST: Permission = 'notifications.broadcast';
 
 // Map cohort filter strings (admin UI sends string forms of UserRole /
 // UserStatus) onto the auth proto enum values. The gRPC ListUserIdsByCohort

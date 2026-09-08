@@ -5,8 +5,19 @@ apiVersion: 1
 datasources:
   - name: Loki
     type: loki
+    uid: loki
     access: proxy
     url: http://loki:3100
     isDefault: true
     jsonData:
       maxLines: 1000
+      # ADS-1327: log -> trace correlation. packages/observability/src/
+      # logger.ts stamps `trace_id` on every log line written inside an
+      # active OTel span; this turns that field into a clickable link to
+      # the matching trace in the Tempo datasource (uid: tempo, see
+      # tempo.yaml) when viewing a log line in Explore.
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"trace_id":"(\w+)"'
+          name: TraceID
+          url: '${__value.raw}'

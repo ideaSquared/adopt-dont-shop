@@ -914,6 +914,10 @@ export async function restoreVersion(
 
 // --- Menus ----------------------------------------------------------
 
+// ADS-1323: ListMenusRequest has no pagination fields, so this is a hard
+// cap rather than a page size.
+const LIST_MENUS_LIMIT = 500;
+
 export async function listMenus(
   deps: HandlerDeps,
   principal: Principal,
@@ -934,7 +938,8 @@ export async function listMenus(
   }
   const result = await deps.pool.query<MenuRow>(
     `SELECT ${MENU_COLUMNS} FROM cms_navigation_menus WHERE ${where.join(' AND ')}
-       ORDER BY location ASC, name ASC`,
+       ORDER BY location ASC, name ASC
+       LIMIT ${LIST_MENUS_LIMIT}`,
     params
   );
   return { menus: result.rows.map(rowToMenu) };
