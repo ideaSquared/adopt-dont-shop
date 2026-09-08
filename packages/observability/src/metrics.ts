@@ -19,7 +19,7 @@ import {
   collectDefaultMetrics,
   type LabelValues,
 } from 'prom-client';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 // Single shared registry — every service mounts this on /metrics. A
 // future multi-collector setup can swap to mergeRegistries() but this
@@ -96,12 +96,46 @@ export const recordGrpcDuration = (opts: RecordGrpcOptions): void => {
   getGrpcHistogram().observe(labels, opts.durationSeconds);
 };
 
+export type RegisterMetricsOptions = {
+  // ADS-1327: optional shared secret gating /metrics behind
+  // `Authorization: Bearer <token>`. Unset (the default) keeps /metrics
+  // fully public — the accepted-risk posture for internal gRPC trust
+  // documented in docs/security/internal-grpc-trust.md. Mirrors the
+  // gateway's own METRICS_BEARER_TOKEN gate in
+  // services/gateway/src/middleware/authenticate.ts, extended here so
+  // every service behind @adopt-dont-shop/service-bootstrap can opt in
+  // too, not just the gateway.
+  bearerToken?: string;
+};
+
+// Avoid a regex with unbounded `\s+` — a plain prefix check + slice is O(n)
+// and can't backtrack. Mirrors extractBearerToken in the gateway's
+// authenticate middleware.
+const BEARER_PREFIX = 'bearer ';
+
+const extractBearerToken = (req: FastifyRequest): string | undefined => {
+  const raw = req.headers.authorization;
+  if (typeof raw !== 'string') {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  if (trimmed.length <= BEARER_PREFIX.length) {
+    return undefined;
+  }
+  if (trimmed.slice(0, BEARER_PREFIX.length).toLowerCase() !== BEARER_PREFIX) {
+    return undefined;
+  }
+  const token = trimmed.slice(BEARER_PREFIX.length).trim();
+  return token.length > 0 ? token : undefined;
+};
+
 // Fastify plugin — registers the /metrics route + an onResponse hook
 // that records every request into http_request_duration_seconds.
 // Idempotent: callers register once at boot.
-export const registerMetrics = (app: FastifyInstance): void => {
+export const registerMetrics = (app: FastifyInstance, opts: RegisterMetricsOptions = {}): void => {
   const reg = getMetricsRegistry();
   const histogram = getHttpHistogram();
+  const { bearerToken } = opts;
 
   app.addHook('onResponse', (req, reply, done) => {
     // routeOptions.url is the templated path ("/api/v1/users/:userId"),
@@ -120,7 +154,10 @@ export const registerMetrics = (app: FastifyInstance): void => {
     done();
   });
 
-  app.get('/metrics', async (_req, reply) => {
+  app.get('/metrics', async (req, reply) => {
+    if (bearerToken && extractBearerToken(req) !== bearerToken) {
+      return reply.code(401).send({ error: 'authentication required' });
+    }
     void reply.header('Content-Type', 'text/plain; version=0.0.4');
     return reg.metrics();
   });

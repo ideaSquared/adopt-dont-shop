@@ -20,10 +20,11 @@ all; return 403; }` in both `nginx/nginx.prod.conf` and the dev
 
 If a service HTTP port is ever published directly (bypassing nginx), or a
 reverse proxy is added that doesn't carry this same deny rule, `/metrics`
-must gain its own auth (e.g. a bearer token checked in `registerMetrics`)
-before that change ships — this doc's "unauthenticated" note stops being true
-the moment either guardrail is removed. The series available **right now**
-are:
+must gain its own auth before that change ships — this doc's
+"unauthenticated" note stops being true the moment either guardrail is
+removed. `registerMetrics` already supports this (ADS-1327): set
+`METRICS_BEARER_TOKEN` to require `Authorization: Bearer <token>` — see
+`docs/env-reference.md`. The series available **right now** are:
 
 | Metric                          | Type          | Labels                                                   | Source                                                            |
 | ------------------------------- | ------------- | -------------------------------------------------------- | ----------------------------------------------------------------- |

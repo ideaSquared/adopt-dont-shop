@@ -19,7 +19,7 @@ export {
   registerMetrics,
   __resetMetricsForTest,
 } from './metrics.js';
-export type { GrpcDirection, RecordGrpcOptions } from './metrics.js';
+export type { GrpcDirection, RecordGrpcOptions, RegisterMetricsOptions } from './metrics.js';
 
 export {
   getRequestId,
