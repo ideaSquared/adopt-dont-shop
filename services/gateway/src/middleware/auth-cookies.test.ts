@@ -12,15 +12,15 @@ import {
   setAuthCookies,
 } from './auth-cookies.js';
 
-async function makeApp(): Promise<FastifyInstance> {
+async function makeApp(environment = 'test'): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await app.register(cookie);
   app.post('/set', async (req, reply) => {
-    setAuthCookies(req, reply, { accessToken: 'a.jwt', refreshToken: 'r.jwt' });
+    setAuthCookies(req, reply, { accessToken: 'a.jwt', refreshToken: 'r.jwt' }, environment);
     return reply.send({ ok: true });
   });
   app.post('/clear', async (req, reply) => {
-    clearAuthCookies(req, reply);
+    clearAuthCookies(req, reply, environment);
     return reply.send({ ok: true });
   });
   app.get('/read', async req => ({
@@ -71,10 +71,26 @@ describe('setAuthCookies', () => {
     expect(setCookie?.value).toBe('1');
   });
 
-  it('does not mark cookies Secure over plain HTTP (inject default protocol)', async () => {
+  it('does not mark cookies Secure over plain HTTP in a non-deployed environment', async () => {
     const res = await app.inject({ method: 'POST', url: '/set' });
     const setCookie = res.cookies.find(c => c.name === ACCESS_TOKEN_COOKIE_NAME);
     expect(setCookie?.secure).toBeFalsy();
+  });
+
+  it('pins cookies Secure in production even over plain HTTP (ADS-1327)', async () => {
+    const prodApp = await makeApp('production');
+    const res = await prodApp.inject({ method: 'POST', url: '/set' });
+    const setCookie = res.cookies.find(c => c.name === ACCESS_TOKEN_COOKIE_NAME);
+    expect(setCookie?.secure).toBe(true);
+    await prodApp.close();
+  });
+
+  it('pins cookies Secure in staging even over plain HTTP (ADS-1327)', async () => {
+    const stagingApp = await makeApp('staging');
+    const res = await stagingApp.inject({ method: 'POST', url: '/set' });
+    const setCookie = res.cookies.find(c => c.name === ACCESS_TOKEN_COOKIE_NAME);
+    expect(setCookie?.secure).toBe(true);
+    await stagingApp.close();
   });
 });
 

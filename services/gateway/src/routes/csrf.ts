@@ -25,6 +25,7 @@ import { randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 
 import { CSRF_COOKIE_NAME } from '../middleware/csrf.js';
+import { isSecureCookie } from '../middleware/auth-cookies.js';
 
 const CSRF_TOKEN_BYTES = 32;
 // How long the double-submit cookie stays valid before a client has to
@@ -33,7 +34,18 @@ const CSRF_TOKEN_BYTES = 32;
 // without forcing frequent re-fetches, while still rotating regularly.
 const CSRF_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 4;
 
-export const registerCsrfRoutes = async (app: FastifyInstance): Promise<void> => {
+export type CsrfRoutesOptions = {
+  // NODE_ENV, pinning the CSRF cookie's Secure flag in production/staging
+  // (ADS-1327) rather than deriving it from the request alone. Optional so
+  // existing dev/test callers keep the request-derived fallback.
+  environment?: string;
+};
+
+export const registerCsrfRoutes = async (
+  app: FastifyInstance,
+  opts: CsrfRoutesOptions = {}
+): Promise<void> => {
+  const environment = opts.environment ?? 'development';
   app.get(
     '/api/v1/csrf-token',
     {
@@ -66,7 +78,7 @@ export const registerCsrfRoutes = async (app: FastifyInstance): Promise<void> =>
         path: '/',
         httpOnly: false, // must be JS-readable for the double-submit pattern
         sameSite: 'lax',
-        secure: req.protocol === 'https',
+        secure: isSecureCookie(req, environment),
         maxAge: CSRF_COOKIE_MAX_AGE_SECONDS,
       });
 

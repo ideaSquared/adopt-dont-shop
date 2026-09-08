@@ -75,4 +75,21 @@ describe('GET /api/v1/csrf-token — issues the double-submit CSRF cookie', () =
     const res = await app.inject({ method: 'GET', url: '/api/v1/csrf-token' });
     expect(res.statusCode).toBe(200);
   });
+
+  it('does not mark the cookie Secure over plain HTTP in a non-deployed environment', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/csrf-token' });
+    const setCookie = res.cookies.find(c => c.name === 'csrfToken');
+    expect(setCookie?.secure).toBeFalsy();
+  });
+
+  it('pins the cookie Secure in production even over plain HTTP (ADS-1327)', async () => {
+    const prodApp = Fastify({ logger: false });
+    await prodApp.register(cookie);
+    await registerCsrfRoutes(prodApp, { environment: 'production' });
+
+    const res = await prodApp.inject({ method: 'GET', url: '/api/v1/csrf-token' });
+    const setCookie = res.cookies.find(c => c.name === 'csrfToken');
+    expect(setCookie?.secure).toBe(true);
+    await prodApp.close();
+  });
 });

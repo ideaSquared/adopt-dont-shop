@@ -87,6 +87,10 @@ export type AuthRoutesOptions = {
   // increment a Prometheus counter without this route module reaching into
   // the metrics registry directly.
   onLoginEmailRateLimitTrip?: () => void;
+  // NODE_ENV, pinning the auth cookies' Secure flag in production/staging
+  // (ADS-1327) rather than deriving it from the request alone. Optional so
+  // existing dev/test callers keep the request-derived fallback.
+  environment?: string;
 };
 
 // Body shapes accepted by the REST surface. Kept narrow + explicit
@@ -158,6 +162,7 @@ export const registerAuthRoutes = async (
   opts: AuthRoutesOptions
 ): Promise<void> => {
   const { client, emailRateLimiter, loginEmailRateLimiter, onLoginEmailRateLimitTrip } = opts;
+  const environment = opts.environment ?? 'development';
 
   // Build a preHandler that caps attempts per normalized email (ADS-844).
   // `extractEmail` pulls the email out of the (already-parsed) body. When no
@@ -268,7 +273,7 @@ export const registerAuthRoutes = async (
         // the JSON body — an XSS that can read the fetch response could
         // otherwise exfiltrate it even with HttpOnly cookies also set.
         if (res.tokens) {
-          setAuthCookies(req, reply, res.tokens);
+          setAuthCookies(req, reply, res.tokens, environment);
         }
         const json = AuthV1.LoginResponse.toJSON(res) as Record<string, unknown> & {
           tokens?: unknown;
@@ -324,10 +329,10 @@ export const registerAuthRoutes = async (
       // (e.g. the refresh token was already expired/revoked).
       try {
         const res = await client.logout(grpcReq, buildMetadata(req));
-        clearAuthCookies(req, reply);
+        clearAuthCookies(req, reply, environment);
         return reply.send(AuthV1.LogoutResponse.toJSON(res));
       } catch (err) {
-        clearAuthCookies(req, reply);
+        clearAuthCookies(req, reply, environment);
         return handleGrpcError(err, reply);
       }
     }
@@ -374,7 +379,7 @@ export const registerAuthRoutes = async (
         const res = await client.refreshToken(grpcReq, buildMetadata(req));
         // The rotated pair rides home as httpOnly cookies, never in the body.
         if (res.tokens) {
-          setAuthCookies(req, reply, res.tokens);
+          setAuthCookies(req, reply, res.tokens, environment);
         }
         return reply.send({ success: true });
       } catch (err) {
@@ -574,7 +579,7 @@ export const registerAuthRoutes = async (
         // body explicitly, so a response-schema change can't silently
         // reintroduce a token-in-body leak.
         if (res.tokens) {
-          setAuthCookies(req, reply, res.tokens);
+          setAuthCookies(req, reply, res.tokens, environment);
         }
         const json = AuthV1.RegisterResponse.toJSON(res) as Record<string, unknown> & {
           tokens?: unknown;

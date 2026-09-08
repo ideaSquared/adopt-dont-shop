@@ -511,7 +511,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
 
   // GET /api/v1/csrf-token — issues the double-submit cookie. Public,
   // gateway-folded (no upstream service), same shape as /api/v1/config.
-  await registerCsrfRoutes(server);
+  await registerCsrfRoutes(server, { environment: config.environment });
 
   // Service-specific routes register at /api/v1/<domain> BEFORE the
   // unmatched-route 404 handler — Fastify's first-registered-wins prefix
@@ -560,6 +560,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       emailRateLimiter,
       loginEmailRateLimiter,
       onLoginEmailRateLimitTrip: () => loginEmailRateLimitTripsTotal.inc(),
+      environment: config.environment,
     });
     // /api/v1/sessions/* — list/revoke. Same auth client because it's the
     // same identity surface from the SPA's POV.

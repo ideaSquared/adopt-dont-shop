@@ -47,18 +47,24 @@ export type AuthTokenPair = {
   refreshToken: string;
 };
 
-// Only Secure over an actual HTTPS request — dev/test run over plain HTTP,
-// and a Secure cookie is silently dropped by the browser there. Same check
-// routes/csrf.ts already uses for the CSRF cookie.
-const isSecureRequest = (req: FastifyRequest): boolean => req.protocol === 'https';
+// Pinned Secure in production/staging (ADS-1327) — req.protocol depends on
+// trustProxy correctly trusting nginx's X-Forwarded-Proto, so deriving
+// Secure from it alone means a proxy misconfig silently ships auth cookies
+// without Secure in a deployed environment. Below that, dev/test run over
+// plain HTTP and a Secure cookie is silently dropped by the browser there,
+// so fall back to the actual request protocol (also lets a local HTTPS dev
+// setup still get Secure cookies).
+export const isSecureCookie = (req: FastifyRequest, environment: string): boolean =>
+  environment === 'production' || environment === 'staging' || req.protocol === 'https';
 
 /** Sets the httpOnly access/refresh cookies + the JS-readable session marker. */
 export const setAuthCookies = (
   req: FastifyRequest,
   reply: FastifyReply,
-  tokens: AuthTokenPair
+  tokens: AuthTokenPair,
+  environment: string
 ): void => {
-  const secure = isSecureRequest(req);
+  const secure = isSecureCookie(req, environment);
 
   reply.setCookie(ACCESS_TOKEN_COOKIE_NAME, tokens.accessToken, {
     path: '/',
@@ -84,8 +90,12 @@ export const setAuthCookies = (
 };
 
 /** Clears all three auth cookies — called on logout regardless of upstream outcome. */
-export const clearAuthCookies = (req: FastifyRequest, reply: FastifyReply): void => {
-  const secure = isSecureRequest(req);
+export const clearAuthCookies = (
+  req: FastifyRequest,
+  reply: FastifyReply,
+  environment: string
+): void => {
+  const secure = isSecureCookie(req, environment);
 
   reply.clearCookie(ACCESS_TOKEN_COOKIE_NAME, { path: '/', secure, sameSite: 'lax' });
   reply.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
