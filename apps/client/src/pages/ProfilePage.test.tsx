@@ -64,6 +64,9 @@ vi.mock('@/services', async () => {
     ...actual,
     applicationService: { getUserApplications: vi.fn().mockResolvedValue([]) },
     authService: { deleteAccount: vi.fn().mockResolvedValue(undefined) },
+    apiService: {
+      get: vi.fn().mockResolvedValue({ user: {}, exportedAt: '2026-09-07T00:00:00Z' }),
+    },
   };
 });
 
@@ -75,7 +78,7 @@ vi.mock('@/services/notificationService', () => ({
 }));
 
 import { ProfilePage } from './ProfilePage';
-import { authService } from '@/services';
+import { apiService, authService } from '@/services';
 
 const renderProfilePage = () =>
   render(
@@ -287,5 +290,45 @@ describe('ProfilePage delete-account confirmation', () => {
     await user.click(getModalSubmit());
 
     expect(await screen.findByText(/service_unavailable/i)).toBeInTheDocument();
+  });
+});
+
+describe('ProfilePage self-service data export (ADS-1320)', () => {
+  const getExportMock = vi.mocked(apiService.get);
+  const createObjectURLMock = vi.fn().mockReturnValue('blob:mock-url');
+  const revokeObjectURLMock = vi.fn();
+
+  beforeEach(() => {
+    getExportMock.mockReset();
+    getExportMock.mockResolvedValue({ user: {}, exportedAt: '2026-09-07T00:00:00Z' });
+    createObjectURLMock.mockClear();
+    revokeObjectURLMock.mockClear();
+    URL.createObjectURL = createObjectURLMock;
+    URL.revokeObjectURL = revokeObjectURLMock;
+  });
+
+  it('downloads the export bundle from GET /api/v1/users/me/export', async () => {
+    const user = userEvent.setup();
+    renderProfilePage();
+
+    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+    await user.click(await screen.findByRole('button', { name: /download my data/i }));
+
+    await waitFor(() => {
+      expect(getExportMock).toHaveBeenCalledWith('/api/v1/users/me/export');
+    });
+    expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:mock-url');
+  });
+
+  it('shows an error when the export fails', async () => {
+    const user = userEvent.setup();
+    getExportMock.mockRejectedValue(new Error('boom'));
+    renderProfilePage();
+
+    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+    await user.click(await screen.findByRole('button', { name: /download my data/i }));
+
+    expect(await screen.findByText(/failed to download your data/i)).toBeInTheDocument();
   });
 });
