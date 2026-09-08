@@ -533,6 +533,10 @@ jobs:
         run: |
           set -euo pipefail
           missing=""
+          # ADS-1302: RESEND_API_KEY / FCM_SERVICE_ACCOUNT_JSON are
+          # provisioned on the host .env (like POSTGRES_USER/REDIS_PASSWORD
+          # below), not as GitHub Action secrets, so they aren't validated
+          # here — see the read_env calls in the materialisation step below.
           for var in JWT_SECRET JWT_REFRESH_SECRET ENCRYPTION_KEY \
             UPLOAD_SIGNING_SECRET DB_PASSWORD PRINCIPAL_SIGNING_KEY NATS_AUTH_TOKEN; do
             # Indirect expansion; ${!var:-} keeps `set -u` happy when unset.
@@ -819,6 +823,17 @@ jobs:
             # rationale (matches secrets/README.md, ADS-675/ADS-752/ADS-878).
             chmod +x scripts/deploy-secrets.sh
             scripts/deploy-secrets.sh
+
+            # ADS-1302: third-party provider credentials for
+            # service-notifications. These aren't rotated per-deploy like the
+            # secrets deploy-secrets.sh writes, so — like POSTGRES_USER/
+            # REDIS_PASSWORD there — they're read straight from the host
+            # .env rather than threaded through as GitHub Action secrets.
+            RESEND_KEY="$(read_env RESEND_API_KEY)"
+            FCM_JSON="$(read_env FCM_SERVICE_ACCOUNT_JSON)"
+            printf '%s' "$RESEND_KEY" > secrets/resend_api_key
+            printf '%s' "$FCM_JSON"   > secrets/fcm_service_account_json
+            chmod 600 secrets/resend_api_key secrets/fcm_service_account_json
 
             # Bring up new containers. Each service migrates its own schema on
             # start (the Dockerfile.service entrypoint runs

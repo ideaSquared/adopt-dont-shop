@@ -21,9 +21,13 @@ import {
 import { createProvider } from './email/providers/factory.js';
 import { startEmailWorker, type RunningEmailWorker } from './email/worker.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
+import { loadEmailQueueRetentionConfig } from './jobs/email-queue-retention-config.js';
+import { purgeSentEmailQueue } from './jobs/email-queue-retention.js';
 import { registerSubscribers } from './nats/subscribers.js';
 import { createPushProvider } from './push/providers/factory.js';
 import { startPushWorker, type RunningPushWorker } from './push/worker.js';
+import { claimScheduledRun } from './scheduler/claim.js';
+import { startScheduler, type RunningScheduler } from './scheduler/scheduler.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -35,6 +39,7 @@ const main = async (): Promise<void> => {
   let emailWorker: RunningEmailWorker | undefined;
   let emailChannelWorker: RunningEmailChannelWorker | undefined;
   let pushWorker: RunningPushWorker | undefined;
+  let scheduler: RunningScheduler | undefined;
   let grpcReady = false;
 
   try {
@@ -175,9 +180,37 @@ const main = async (): Promise<void> => {
       pushWorker = startPushWorker({ pool, nats, provider, logger });
     }
     // ADS-1245: the weekly-digest scheduled job was a send-nothing scaffold
-    // (its fan-out RPCs were never wired), so it is shelved — nothing is
-    // scheduled here. The generic scheduler + claim infra under ./scheduler/
-    // is kept dormant for when the real digest is built as its own feature.
+    // (its fan-out RPCs were never wired), so it stays shelved. The generic
+    // scheduler + claim infra under ./scheduler/ — dormant until now — backs
+    // the email-queue retention purge below instead (ADS-1320):
+    // 004_create_email_queue.ts documented a retention job that never
+    // shipped, so sent rows accumulated forever.
+    const emailQueueRetentionConfig = loadEmailQueueRetentionConfig();
+    // Bound to a local const (not the outer `let pool`) so the claimRun
+    // closure below type-narrows past `| undefined`.
+    const dbPool = pool;
+    const retentionDeps = { pool: dbPool, nats };
+    scheduler = startScheduler(
+      [
+        {
+          name: 'email-queue-retention-purge',
+          intervalMs: emailQueueRetentionConfig.purgeIntervalMs,
+          runOnStart: true,
+          run: async () => {
+            const { deletedCount } = await purgeSentEmailQueue(retentionDeps, {
+              retentionDays: emailQueueRetentionConfig.retentionDays,
+              batchSize: emailQueueRetentionConfig.batchSize,
+            });
+            logger.info('email-queue-retention-purge complete', { deletedCount });
+          },
+        },
+      ],
+      {
+        logger,
+        claimRun: (job, scheduledFor) => claimScheduledRun(dbPool, job, scheduledFor),
+      }
+    );
+
     const httpServer = createServer({
       config,
       logger,
@@ -216,6 +249,11 @@ const main = async (): Promise<void> => {
         await pushWorker?.stop();
       } catch (err) {
         logger.error('push worker stop error', { err });
+      }
+      try {
+        await scheduler?.stop();
+      } catch (err) {
+        logger.error('scheduler stop error', { err });
       }
       await teardown();
       process.exit(0);
