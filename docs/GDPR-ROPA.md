@@ -144,22 +144,29 @@ both companions.
 
 ## Data-subject rights — implementation map
 
-| Right (Article)          | Implementation                                                                                                                                                                                                                                                                                  |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Access (15)              | `GET /api/v1/gdpr/me/export` — JSON dump of all user-linked records                                                                                                                                                                                                                             |
-| Rectification (16)       | `PUT /api/v1/users/profile` and per-domain endpoints                                                                                                                                                                                                                                            |
-| Erasure (17)             | `POST /api/v1/gdpr/me/erase` → `gdpr.service.anonymizeUser`. Soft-deletes the User row, tombstones identifiers, drops tokens / favourites / pending notifications, scrubs message bodies. Records subject to retention (applications, audit, moderation) are kept with the user row tombstoned. |
-| Restriction (18)         | Account deactivation via `users.service.deactivateUser`                                                                                                                                                                                                                                         |
-| Portability (20)         | Same endpoint as Access — JSON output is machine-readable                                                                                                                                                                                                                                       |
-| Objection (21)           | Withdraw consent via `POST /api/v1/gdpr/me/consents` with `granted: false`                                                                                                                                                                                                                      |
-| Automated decisions (22) | Not applicable — no fully automated decisions affecting users                                                                                                                                                                                                                                   |
+Corrected 2026-09-07 (ADS-1320) — this table previously cited six monolith-era endpoints
+(`/api/v1/gdpr/me/*`) that do not exist in the current gateway + microservices architecture.
+The rows below are the real surfaces, verified against `services/gateway/src/routes/`.
+
+| Right (Article)          | Implementation                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access (15)              | `GET /api/v1/users/me/export` (`routes/users-export.ts`, ADS-1320) — self-service JSON export of the caller's own auth-owned data (profile + privacy preferences), rate-limited to 5/hour. Broader export (any user, admin-only) at `GET /api/v1/privacy/admin/users/:userId/export` (`routes/privacy.ts`) requires `admin.data.export`.                                                                                                                      |
+| Rectification (16)       | `PUT /api/v1/users/profile` and per-domain update endpoints                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Erasure (17)             | Self-service: `POST /api/v1/users/me/erasure-request` (`routes/gdpr.ts`) — step-up re-authenticated, rate-limited to 5/hour, publishes a `gdpr.erasureRequested` saga that every service holding the subject's data consumes and acks; status via `GET /api/v1/users/me/erasure-request/{correlationId}`. Admin-scheduled deletion (auth-owned data only, 30-day grace) at `POST /api/v1/privacy/admin/users/:userId/delete-request` requires `users.delete`. |
+| Restriction (18)         | Account deactivation (part of the admin deletion grace period above; no separate standalone restriction endpoint)                                                                                                                                                                                                                                                                                                                                             |
+| Portability (20)         | Same endpoint as Access — JSON output is machine-readable                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Objection (21)           | Consent routes: `POST /api/v1/privacy/consent` and `POST /api/v1/privacy/cookies-consent` (`routes/consent.ts`) — withdraw analytics consent by posting `analyticsConsent: false`                                                                                                                                                                                                                                                                             |
+| Automated decisions (22) | Not applicable — no fully automated decisions affecting users                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ## Sub-processors
 
 Required fields per processor: name, purpose, location, transfer mechanism
 (SCCs / adequacy), DPA link. Derived from the active provider wiring in
-`services/notifications/src/config.ts` and `packages/storage/src` —
-re-verify this section whenever a provider changes.
+`services/notifications/src/config.ts`, `packages/storage/src`,
+`packages/lib.observability/src/sentry.ts`, and — as of 2026-09-07 (ADS-1320)
+— the frontend wiring in `apps/client/src/contexts/StatsigContext.tsx`
+(this list previously omitted every browser-side processor). Re-verify this
+section whenever a provider changes, on either side.
 
 - **Email delivery:** Resend (transactional email API). `services/notifications`
   selects the provider via `EMAIL_PROVIDER`; production permits only `resend`
@@ -211,8 +218,35 @@ re-verify this section whenever a provider changes.
   Local disk storage (`STORAGE_PROVIDER=local`, the dev/test default)
   involves no third-party sub-processor.
 
+- **Push notifications:** Firebase Cloud Messaging (`services/notifications/src/push/providers/fcm.ts`).
+  Configured with `FCM_SERVICE_ACCOUNT_JSON` / `FCM_PROJECT_ID`. Sends device push tokens and
+  notification payloads.
+  - Location / transfer mechanism / DPA link: _To be confirmed by DPO / vendor-contracts
+    owner — [ADS-992]_. Operated by Google; the Google Cloud DPA covers Firebase, but the
+    specific processing region and accepted transfer safeguard are not derivable from this repo.
+
+- **Error monitoring:** GlitchTip, a **self-hosted**, Sentry-compatible tool
+  (`packages/lib.observability/src/sentry.ts` uses the `@sentry/*` SDKs pointed at our own
+  GlitchTip instance via `SENTRY_DSN` — see `docker-compose.glitchtip.yml`). Not a third-party
+  recipient: the deployed instance runs on our own infrastructure, so there is no international
+  transfer. Note this corrects an earlier version of this document (and of `docs/PRIVACY.md`)
+  that named the vendor "Sentry" — the SaaS Sentry.io is not used.
+  - `event.user.email` / `username` / `ip_address` are stripped before any event is sent
+    (`redactSentryUser`).
+
+- **Feature flags, product analytics, and session replay:** Statsig
+  (`apps/client/src/contexts/StatsigContext.tsx`, `STATSIG_SERVER_SECRET_KEY` server-side).
+  Every session sends an opaque `userID` plus non-PII `custom` fields (`app`, `userType`,
+  `rescueId`, `isAuthenticated`) for flag evaluation. Session replay and autocapture
+  (`@statsig/session-replay`, `@statsig/web-analytics`) — which can capture identifiable
+  behavioural/session data — are loaded **only after** the user grants analytics consent
+  (`hasAnalyticsConsent()`); until then no behavioural data leaves the browser.
+  - Location / transfer mechanism / DPA link: _To be confirmed by DPO / vendor-contracts
+    owner — [ADS-992]_. Statsig, Inc. is a US-incorporated vendor.
+
 ## Review log
 
-| Date       | Reviewer    | Notes                                             |
-| ---------- | ----------- | ------------------------------------------------- |
-| 2026-05-08 | Engineering | Initial ROPA created alongside `lib.gdpr` service |
+| Date       | Reviewer    | Notes                                                                                                                                                                                                                                                                                             |
+| ---------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-08 | Engineering | Initial ROPA created alongside `lib.gdpr` service                                                                                                                                                                                                                                                 |
+| 2026-09-07 | Engineering | ADS-1320: replaced six non-existent monolith `/api/v1/gdpr/me/*` endpoints in the data-subject rights map with the real gateway routes (including the new self-service `GET /api/v1/users/me/export`); added the two browser-side sub-processors (GlitchTip, Statsig) that were missing entirely. |

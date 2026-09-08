@@ -17,6 +17,10 @@ describe('loadConfig', () => {
     expect(config.schema).toBe('applications');
     expect(config.natsUrl).toBe('nats://nats:4222');
     expect(config.petsGrpcUrl).toBe('service-pets:6003');
+    expect(config.applicationDraftPurge).toEqual({
+      intervalMs: 24 * 60 * 60 * 1000,
+      batchSize: 500,
+    });
   });
 
   it('honours all env overrides when set', () => {
@@ -29,6 +33,8 @@ describe('loadConfig', () => {
       DATABASE_URL: 'postgres://prod:secret@db.example.com:5432/applications',
       NATS_URL: 'nats://nats.internal:4222',
       PETS_GRPC_URL: 'service-pets.internal:6003',
+      APPLICATION_DRAFT_PURGE_INTERVAL_MS: '3600000',
+      APPLICATION_DRAFT_PURGE_BATCH_SIZE: '100',
     });
 
     expect(config.port).toBe(5500);
@@ -39,6 +45,7 @@ describe('loadConfig', () => {
     expect(config.databaseUrl).toBe('postgres://prod:secret@db.example.com:5432/applications');
     expect(config.natsUrl).toBe('nats://nats.internal:4222');
     expect(config.petsGrpcUrl).toBe('service-pets.internal:6003');
+    expect(config.applicationDraftPurge).toEqual({ intervalMs: 3_600_000, batchSize: 100 });
   });
 
   it('rejects a non-numeric APPLICATIONS_PORT', () => {

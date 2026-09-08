@@ -144,6 +144,20 @@ Services that call other services read a subset of `*_GRPC_URL` too: `services/r
 # FCM_PROJECT_ID=your-firebase-project-id
 ```
 
+## Retention purge jobs (ADS-1320)
+
+Two scheduled, cross-instance-claimed purge jobs (`src/scheduler/` + `src/jobs/`) close gaps
+between what migrations documented and what actually ran. Both jobs delete in bounded batches
+inside `withTransaction` and publish one `<domain>.actionTaken` summary event per run.
+
+| Variable                              | Default    | Notes                                                                                                                                                                   |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APPLICATION_DRAFT_PURGE_INTERVAL_MS` | `86400000` | `services/applications/src/config.ts`. How often the job runs (24h). Purges `application_drafts` rows past `expires_at`.                                                |
+| `APPLICATION_DRAFT_PURGE_BATCH_SIZE`  | `500`      | `services/applications/src/config.ts`. Max rows deleted per transaction.                                                                                                |
+| `EMAIL_QUEUE_RETENTION_DAYS`          | `365`      | Read directly from `process.env` by `services/notifications/src/jobs/email-queue-retention.ts` (not `config.ts`). Age of a _sent_ `email_queue` row before it's purged. |
+| `EMAIL_QUEUE_PURGE_INTERVAL_MS`       | `86400000` | Same module. How often the job runs (24h).                                                                                                                              |
+| `EMAIL_QUEUE_PURGE_BATCH_SIZE`        | `500`      | Same module. Max rows deleted per transaction.                                                                                                                          |
+
 ## File storage (`services/gateway/src/config.ts`)
 
 `.env.example` sets `STORAGE_PROVIDER=local` and `UPLOAD_DIR=./uploads`.

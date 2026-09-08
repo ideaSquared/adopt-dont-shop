@@ -10,9 +10,12 @@
 > `services/gateway/src/middleware/auth-cookies.ts` and
 > `services/gateway/src/routes/csrf.ts` — re-check both before editing this
 > file, since a name or attribute change there makes this table wrong again.
+> The 2026-09-03 rewrite of this document shipped without bumping
+> `COOKIES_VERSION`, so existing users were never re-prompted — fixed in
+> ADS-1320.
 
-**Version:** 2026-05-10-v1
-**Last updated:** 10 May 2026
+**Version:** 2026-09-03-v2
+**Last updated:** 3 September 2026
 
 > **Placeholder copy — must be reviewed and approved by legal counsel before
 > production launch.**
