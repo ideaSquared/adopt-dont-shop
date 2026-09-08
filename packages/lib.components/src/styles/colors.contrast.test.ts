@@ -10,7 +10,11 @@ import { lightTheme, normalTheme } from './theme';
  * — real regressions these tokens had no coverage against before.
  * colors.primaryActive is the fix for both that usage and apps/client's
  * PublicAuthLayout switchLink, which had the same colors.primary /
- * primaryHover under-contrast problem.
+ * primaryHover under-contrast problem. The same gate later caught the
+ * Button component's `outline` variant (same primaryHover problem, this
+ * time on the client home page's "View All Pets" button) and `secondary`
+ * variant (colors.secondary against white text measured ~2.49:1, fixed
+ * with secondaryActive).
  *
  * These are plain WCAG 2.x relative-luminance / contrast-ratio calculations
  * (https://www.w3.org/TR/WCAG21/#dfn-relative-luminance) — small and
@@ -71,5 +75,23 @@ describe('colors.primaryActive contrast against each theme body (ADS-1326)', () 
 
   it('meets AA on warm-cream (LoginForm backLink, normal theme) — colors.primary measured ~3.44:1 here', () => {
     expect(contrastRatio(brand.primaryActive, warmCream)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on white (Button outline variant, light theme) — colors.primaryHover measured ~4.70:1 here', () => {
+    expect(contrastRatio(brand.primaryActive, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on warm-cream (Button outline variant, normal theme) — this is what axe caught failing for primaryHover on the client home page', () => {
+    expect(contrastRatio(brand.primaryActive, warmCream)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+});
+
+describe('Button secondary variant: colors.secondaryActive against white text (ADS-1326)', () => {
+  // The secondary variant's default (rest) state renders white text
+  // (text.inverse) directly on the variant's background color — unlike the
+  // text-on-page-body pairs above, so it's tested against the token itself
+  // rather than a theme body.
+  it('meets AA with white button text — colors.secondary measured ~2.49:1 here, the violation axe caught on the home page "Get Started" button', () => {
+    expect(contrastRatio(brand.secondaryActive, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
   });
 });

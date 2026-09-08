@@ -88,20 +88,23 @@ export const button = recipe({
         },
       },
       secondary: {
-        background: vars.colors.secondary,
+        // ADS-1326: colors.secondary (#14B8A6) against text.inverse (white)
+        // measures only ~2.49:1 — the color-contrast violation axe-core's
+        // smoke gate caught on the client home page's "Get Started" button
+        // (well under the 4.5:1 AA floor). secondaryActive (#0F766E) clears
+        // it at ~5.47:1. It's already the darkest step in the secondary
+        // ramp, so hover/active no longer shift the color — lift and shadow
+        // still carry the interaction feedback.
+        background: vars.colors.secondaryActive,
         color: vars.text.inverse,
-        border: `1px solid ${vars.colors.secondary}`,
+        border: `1px solid ${vars.colors.secondaryActive}`,
         boxShadow: vars.shadows.sm,
         selectors: {
           '&:hover:not(:disabled)': {
-            background: vars.colors.secondaryHover,
-            borderColor: vars.colors.secondaryHover,
             boxShadow: vars.shadows.base,
             transform: 'translateY(-1px)',
           },
           '&:active:not(:disabled)': {
-            background: vars.colors.secondaryActive,
-            borderColor: vars.colors.secondaryActive,
             transform: 'translateY(0)',
             boxShadow: vars.shadows.sm,
           },
@@ -122,14 +125,19 @@ export const button = recipe({
         },
       },
       outline: {
+        // ADS-1326: colors.primaryHover (#E11D48) measures 4.7:1 on white
+        // but only 4.4:1 on the `normal` theme's warm-cream body — the
+        // color-contrast violation axe-core's smoke gate caught on the
+        // client home page's "View All Pets" button, which sits directly
+        // on that body background. primaryActive (#BE123C) clears 4.5:1 on
+        // both (6.29:1 / 5.88:1) — the same token already used for hover.
         background: 'transparent',
-        color: vars.colors.primaryHover,
+        color: vars.colors.primaryActive,
         border: `1px solid ${vars.border.color.default}`,
         selectors: {
           '&:hover:not(:disabled)': {
             background: vars.colors.primaryBgSubtle,
             borderColor: vars.colors.primaryBorderSubtle,
-            color: vars.colors.primaryActive,
             transform: 'translateY(-1px)',
             boxShadow: vars.shadows.sm,
           },
