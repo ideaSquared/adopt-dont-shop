@@ -4,6 +4,11 @@ import { createDbClient } from '@adopt-dont-shop/db';
 import { type SubscriptionHandle } from '@adopt-dont-shop/events';
 import { createLogger } from '@adopt-dont-shop/observability';
 import {
+  claimScheduledRun,
+  startScheduler,
+  type RunningScheduler,
+} from '@adopt-dont-shop/scheduler';
+import {
   connectNats,
   installProcessErrorHandlers,
   runServiceShutdown,
@@ -15,7 +20,6 @@ import { registerGdprSubscribers } from './nats/gdpr-subscribers.js';
 import { createGdprSagaMetrics, recordGdprSagaStates } from './nats/gdpr-metrics.js';
 import { runGdprSweep, GDPR_SAGA_DEADLINE_MS, GDPR_SAGA_MAX_RETRIES } from './nats/gdpr-sweep.js';
 import { registerSubscribers } from './nats/subscribers.js';
-import { startScheduler, type RunningScheduler } from './scheduler/scheduler.js';
 import { createServer } from './server.js';
 
 const GDPR_SWEEP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -60,10 +64,14 @@ const main = async (): Promise<void> => {
       ...registerGdprSubscribers({ nats, pool, logger }),
     ];
 
-    // ADS-830 — GDPR saga sweep scheduler.
+    // ADS-830 / ADS-1325 — GDPR saga sweep scheduler.
     // Two jobs per tick:
     //   1. gdpr-sweep: marks overdue sagas timed_out, retries errored ones.
     //   2. gdpr-metrics: refreshes the gdpr_sagas gauge.
+    // claimRun (ADS-1325): without it, every replica fires both jobs on
+    // every tick — harmless for gdpr-metrics (idempotent gauge refresh) but
+    // gdpr-sweep race-retries the same sagas concurrently. The claim makes
+    // exactly one replica per scheduled slot run each job.
     const gdprMetrics = createGdprSagaMetrics();
     const deadlineMs =
       process.env.GDPR_SAGA_DEADLINE_MS !== undefined
@@ -93,7 +101,10 @@ const main = async (): Promise<void> => {
           },
         },
       ],
-      { logger }
+      {
+        logger,
+        claimRun: (job, scheduledFor) => claimScheduledRun(pool!, job, scheduledFor),
+      }
     );
 
     const httpServer = createServer({

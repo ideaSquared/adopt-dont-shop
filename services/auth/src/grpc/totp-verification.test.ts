@@ -1,5 +1,5 @@
 import { generateSecret, generateSync } from 'otplib';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { encryptTotpSecret } from './totp-crypto.js';
 import { verifyAndConsumeTotp } from './totp-verification.js';
@@ -11,7 +11,20 @@ function makeDeps() {
   return { deps: { pool: { query }, encryptionKey: KEY }, query };
 }
 
+// Pin the clock in the tests that generate a code and then verify it, so the
+// epoch generateSync() encodes and the epoch verifyAndConsumeTotp() reads
+// internally cannot drift apart across a 30s RFC 6238 step boundary (flake
+// guard — same pattern as verify-credentials.test.ts and handlers.test.ts).
+function pinClock(): void {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+}
+
 describe('verifyAndConsumeTotp', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('returns false when no secret is enrolled', async () => {
     const { deps, query } = makeDeps();
     const ok = await verifyAndConsumeTotp(
@@ -24,6 +37,7 @@ describe('verifyAndConsumeTotp', () => {
   });
 
   it('accepts a valid code and persists the matched time step', async () => {
+    pinClock();
     const { deps, query } = makeDeps();
     const secret = generateSecret();
     const token = generateSync({ secret });
@@ -58,6 +72,7 @@ describe('verifyAndConsumeTotp', () => {
   });
 
   it('rejects replay of a code already accepted at or before the last step (ADS-914c)', async () => {
+    pinClock();
     const { deps, query } = makeDeps();
     const secret = generateSecret();
     const token = generateSync({ secret });

@@ -454,6 +454,14 @@ export async function updateNotificationPreferences(
   if (!hasPermission(principal, PREFS_WRITE_SELF)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PREFS_WRITE_SELF}' required`);
   }
+  // ADS-1325: sms is a modelled channel (enum, this table's sms_enabled
+  // column, the UI toggle) with no provider or worker behind it — reject
+  // turning it on rather than silently accepting a setting that can never
+  // deliver anything. Disabling (false) is always allowed, including to
+  // let a client explicitly turn off a toggle it may still render.
+  if (req.smsEnabled === true) {
+    throw new HandlerError('INVALID_ARGUMENT', 'SMS is not available');
+  }
   const userId = resolveTargetUserId(principal, req.userId, PREFS_WRITE_ANY);
 
   // Ensure the row exists before we UPDATE so the response always

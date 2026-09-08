@@ -36,6 +36,14 @@ const baseConfig: GatewayConfig = {
   // Rate-limit: no Redis in tests, low cap so we can hit 429 quickly.
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
   cors: { origins: ['http://localhost:3000'] },
+  // ADS-1325: maintenance-mode file check defaults to "off" — no test in
+  // this suite creates the file, so fileExists() (real node:fs.existsSync)
+  // never finds it.
+  maintenance: {
+    filePath: '/run/maintenance-not-created-in-tests',
+    allowlistIps: [],
+    bypassToken: undefined,
+  },
 } as GatewayConfig;
 
 describe('createServer — health endpoint', () => {

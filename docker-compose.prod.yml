@@ -347,8 +347,9 @@ services:
       # service's --auth flag.
       NATS_AUTH_TOKEN_FILE: /run/secrets/nats_auth_token
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
-      # ADS-422: the per-stack nginx serves /uploads via auth_request; disable
-      # the gateway's own file streaming in production.
+      # ADS-1034/ADS-1327: the per-stack nginx serves /uploads directly via a
+      # per-category allowlist (deny-by-default) — there is no auth_request
+      # gate; disable the gateway's own file streaming in production.
       SERVE_LOCAL_UPLOADS: "false"
       # ADS-1303: Dockerfile.service bakes the repo's docs/legal into the
       # image at /app/docs/legal (turbo prune's output doesn't carry the

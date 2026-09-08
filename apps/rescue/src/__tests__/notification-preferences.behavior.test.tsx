@@ -147,6 +147,13 @@ describe('Notification Preferences - Behavioral Tests', () => {
       ).toBeInTheDocument();
     });
 
+    it('natively disables the SMS toggle — no provider exists behind it (ADS-1325)', async () => {
+      renderWithProviders(<NotificationPreferencesForm />);
+
+      const smsToggle = await screen.findByRole('button', { name: /toggle sms notifications/i });
+      expect(smsToggle).toBeDisabled();
+    });
+
     it('does not change SMS preference when staff clicks the disabled toggle', async () => {
       const user = userEvent.setup();
       renderWithProviders(<NotificationPreferencesForm />);

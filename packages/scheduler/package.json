@@ -1,0 +1,45 @@
+{
+  "name": "@adopt-dont-shop/scheduler",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "private": true,
+  "description": "Tick-based periodic-job scheduler for backend microservices, with an optional cross-instance run claim so a multi-replica service runs each job exactly once per interval instead of once per replica.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "production": "./dist/index.js",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "pg": "^8.22.0",
+    "winston": "^3.19.0"
+  }
+}

@@ -1,9 +1,6 @@
 import type { Logger } from 'winston';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { getMetricsRegistry, __resetMetricsForTest } from '@adopt-dont-shop/observability';
-
-import { __resetNotificationsMetricsForTest } from '../metrics.js';
 import { startScheduler, type ScheduledJob } from './scheduler.js';
 
 const quietLogger = (): Logger =>
@@ -95,6 +92,133 @@ describe('scheduler', () => {
     }
   });
 
+  it('calls onJobFailure with the job name when a job throws (caller wires its own metric)', async () => {
+    const onJobFailure = vi.fn();
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'flaky',
+        intervalMs: 60_000,
+        runOnStart: true,
+        run: async () => {
+          throw new Error('boom');
+        },
+      },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 60_000,
+      now: () => 1_000_000,
+      onJobFailure,
+    });
+    try {
+      await scheduler.tick();
+      expect(onJobFailure).toHaveBeenCalledWith('flaky');
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
+  it('does not call onJobFailure (and does not throw) when it is omitted and a job fails', async () => {
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'flaky',
+        intervalMs: 60_000,
+        runOnStart: true,
+        run: async () => {
+          throw new Error('boom');
+        },
+      },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 60_000,
+      now: () => 1_000_000,
+    });
+    try {
+      await expect(scheduler.tick()).resolves.toEqual(['flaky']);
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
+  it('does not call onJobFailure when the job succeeds', async () => {
+    const onJobFailure = vi.fn();
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'ok',
+        intervalMs: 60_000,
+        runOnStart: true,
+        run: async () => undefined,
+      },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 60_000,
+      now: () => 1_000_000,
+      onJobFailure,
+    });
+    try {
+      await scheduler.tick();
+      expect(onJobFailure).not.toHaveBeenCalled();
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
+  it('tick() is a no-op after stop()', async () => {
+    const runs: string[] = [];
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'digest',
+        intervalMs: 60_000,
+        runOnStart: true,
+        run: async () => {
+          runs.push('digest');
+        },
+      },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 60_000,
+      now: () => 1_000_000,
+    });
+    await scheduler.stop();
+    const fired = await scheduler.tick();
+    expect(fired).toEqual([]);
+    expect(runs).toEqual([]);
+  });
+
+  it('fires jobs via the internal timer loop, not just manual tick() calls', async () => {
+    vi.useFakeTimers();
+    try {
+      const runs: string[] = [];
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'x',
+          intervalMs: 100,
+          runOnStart: true,
+          run: async () => {
+            runs.push('x');
+          },
+        },
+      ];
+      const scheduler = startScheduler(jobs, {
+        logger: quietLogger(),
+        tickIntervalMs: 50,
+      });
+      // Runs the internal setTimeout -> tick() -> reschedule chain across
+      // several 50ms ticks, exercising the timer loop end to end rather
+      // than the test-only synchronous tick() escape hatch. The 100ms
+      // interval fires once immediately (runOnStart) and again once 100ms
+      // has elapsed.
+      await vi.advanceTimersByTimeAsync(120);
+      expect(runs).toEqual(['x', 'x']);
+      await scheduler.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('refires a due job on a subsequent tick once interval has elapsed', async () => {
     const runs: number[] = [];
     let now = 1_000_000;
@@ -130,39 +254,7 @@ describe('scheduler', () => {
   });
 });
 
-describe('scheduler metrics + cross-instance claim', () => {
-  beforeEach(() => {
-    // Fresh registry + counter singletons so the failure counter starts at 0
-    // and re-registers on the new registry.
-    __resetMetricsForTest();
-    __resetNotificationsMetricsForTest();
-  });
-
-  it('increments notifications_scheduled_job_failures_total when a job throws', async () => {
-    const jobs: ScheduledJob[] = [
-      {
-        name: 'flaky',
-        intervalMs: 60_000,
-        runOnStart: true,
-        run: async () => {
-          throw new Error('boom');
-        },
-      },
-    ];
-    const scheduler = startScheduler(jobs, {
-      logger: quietLogger(),
-      tickIntervalMs: 60_000,
-      now: () => 1_000_000,
-    });
-    try {
-      await scheduler.tick();
-      const text = await getMetricsRegistry().metrics();
-      expect(text).toContain('notifications_scheduled_job_failures_total{job="flaky"} 1');
-    } finally {
-      await scheduler.stop();
-    }
-  });
-
+describe('scheduler cross-instance claim', () => {
   it('skips the job (does not run, not in fired) when the claim is lost', async () => {
     const runs: string[] = [];
     const claimRun = vi.fn(async () => false);
@@ -309,9 +401,9 @@ describe('scheduler metrics + cross-instance claim', () => {
       };
 
       // Boot phases 1ms apart, straddling the interval boundary at ts=1000 —
-      // under the pre-fix wall-clock-quantised claim this alone was enough
-      // to make the two replicas disagree on the slot for every subsequent
-      // period, not just this one.
+      // under a wall-clock-quantised claim this alone is enough to make two
+      // replicas disagree on the slot for every subsequent period, not just
+      // this one.
       const replicaA = makeReplica(999);
       const replicaB = makeReplica(1000);
 
@@ -338,7 +430,8 @@ describe('scheduler metrics + cross-instance claim', () => {
     const runs: number[] = [];
     // A realistic "far from the epoch" boot time, with an interval much
     // larger than the tick spacing (proportionally like a weekly digest
-    // ticking every 60s) — this is the shape that exposes the bug: with an
+    // ticking every 60s) — this is the shape that exposes the bug this
+    // package fixes relative to an epoch-seeded fork: with an
     // epoch-anchored due (0) and due-anchored progression, due only ever
     // advances by intervalMs (1000) per fire while real time starts
     // ~100_000ms ahead, so it would stay permanently overdue and fire on
@@ -373,6 +466,100 @@ describe('scheduler metrics + cross-instance claim', () => {
       await scheduler.stop();
     }
   });
+
+  it(
+    'ADS-1127: a real 7-day job with no anchorMs grid-aligns to Thursday 00:00 UTC ' +
+      'regardless of boot time',
+    async () => {
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      const claimCalls: Date[] = [];
+      const claimRun = async (_job: string, scheduledFor: Date): Promise<boolean> => {
+        claimCalls.push(scheduledFor);
+        return true;
+      };
+      // A realistic boot time, decades from the epoch and on an arbitrary
+      // weekday — the fire day is fully determined by the epoch's weekday
+      // once anchorMs is 0.
+      const bootNow = Date.UTC(2026, 8, 1, 12, 0, 0); // 2026-09-01T12:00:00Z (Tuesday)
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'weekly-digest',
+          intervalMs: ONE_WEEK_MS,
+          // anchorMs intentionally omitted.
+          run: async () => undefined,
+        },
+      ];
+      let now = bootNow;
+      const scheduler = startScheduler(jobs, {
+        logger: quietLogger(),
+        tickIntervalMs: 100,
+        now: () => now,
+        claimRun,
+      });
+      try {
+        // Jump straight to the seeded (epoch-aligned) boundary and tick.
+        now = Math.ceil(bootNow / ONE_WEEK_MS) * ONE_WEEK_MS;
+        const fired = await scheduler.tick();
+        expect(fired).toEqual(['weekly-digest']);
+        expect(claimCalls).toHaveLength(1);
+        const firedAt = claimCalls[0];
+        // 1970-01-01T00:00:00Z (the epoch) was a Thursday — every
+        // epoch-anchored weekly boundary inherits that weekday and midnight
+        // time.
+        expect(firedAt.getUTCDay()).toBe(4); // Thursday
+        expect(firedAt.getUTCHours()).toBe(0);
+        expect(firedAt.getUTCMinutes()).toBe(0);
+      } finally {
+        await scheduler.stop();
+      }
+    }
+  );
+
+  it(
+    'ADS-1127 fix: anchoring the weekly grid to the intended weekday/time fires there ' +
+      'instead of drifting to Thursday 00:00 UTC',
+    async () => {
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      // 1970-01-05T09:00:00Z is a Monday (the epoch, 1970-01-01, was a
+      // Thursday, so +4 days lands on Monday). Anchoring the grid to this
+      // instant — rather than the epoch — makes every subsequent weekly
+      // boundary land on Monday 09:00 UTC instead of Thursday 00:00 UTC.
+      const anchorMs = Date.UTC(1970, 0, 5, 9, 0, 0);
+      const claimCalls: Date[] = [];
+      const claimRun = async (_job: string, scheduledFor: Date): Promise<boolean> => {
+        claimCalls.push(scheduledFor);
+        return true;
+      };
+      const bootNow = Date.UTC(2026, 8, 1, 12, 0, 0); // 2026-09-01T12:00:00Z (Tuesday)
+      const jobs: ScheduledJob[] = [
+        {
+          name: 'weekly-digest',
+          intervalMs: ONE_WEEK_MS,
+          anchorMs,
+          run: async () => undefined,
+        },
+      ];
+      let now = bootNow;
+      const scheduler = startScheduler(jobs, {
+        logger: quietLogger(),
+        tickIntervalMs: 100,
+        now: () => now,
+        claimRun,
+      });
+      try {
+        now = anchorMs + Math.ceil((bootNow - anchorMs) / ONE_WEEK_MS) * ONE_WEEK_MS;
+        const fired = await scheduler.tick();
+        expect(fired).toEqual(['weekly-digest']);
+        expect(claimCalls).toHaveLength(1);
+        const firedAt = claimCalls[0];
+        expect(firedAt.getUTCDay()).toBe(1); // Monday
+        expect(firedAt.getUTCHours()).toBe(9);
+        expect(firedAt.getUTCMinutes()).toBe(0);
+      } finally {
+        await scheduler.stop();
+      }
+    }
+  );
 
   it(
     'anchors the weekly grid to a configured offset instead of the epoch (ADS-1127), ' +
@@ -444,7 +631,7 @@ describe('scheduler metrics + cross-instance claim', () => {
     }
   );
 
-  it('defaults anchorMs to 0 — omitting it keeps the pre-ADS-1127 epoch-aligned grid', async () => {
+  it('defaults anchorMs to 0 — omitting it keeps the epoch-aligned grid', async () => {
     const claimCalls: Date[] = [];
     const claimRun = vi.fn(async (_job: string, scheduledFor: Date) => {
       claimCalls.push(scheduledFor);
@@ -473,107 +660,6 @@ describe('scheduler metrics + cross-instance claim', () => {
       await scheduler.stop();
     }
   });
-
-  it(
-    'ADS-1127: a real 7-day job with no anchorMs grid-aligns to Thursday 00:00 UTC ' +
-      'regardless of boot time — this is the reported drift, reproduced with real dates',
-    async () => {
-      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      const claimCalls: Date[] = [];
-      const claimRun = async (_job: string, scheduledFor: Date): Promise<boolean> => {
-        claimCalls.push(scheduledFor);
-        return true;
-      };
-      // A realistic boot time, decades from the epoch and on an arbitrary
-      // weekday — the bug is that this doesn't matter at all: the fire day
-      // is fully determined by the epoch's weekday once anchorMs is 0.
-      const bootNow = Date.UTC(2026, 8, 1, 12, 0, 0); // 2026-09-01T12:00:00Z (Tuesday)
-      const jobs: ScheduledJob[] = [
-        {
-          name: 'weekly-digest',
-          intervalMs: ONE_WEEK_MS,
-          // anchorMs intentionally omitted — the un-fixed configuration a
-          // rebuilt weekly-digest job would have if it just reused the
-          // grid-aligned scheduler without setting an anchor.
-          run: async () => undefined,
-        },
-      ];
-      let now = bootNow;
-      const scheduler = startScheduler(jobs, {
-        logger: quietLogger(),
-        tickIntervalMs: 100,
-        now: () => now,
-        claimRun,
-      });
-      try {
-        // Jump straight to the seeded (epoch-aligned) boundary and tick.
-        now = Math.ceil(bootNow / ONE_WEEK_MS) * ONE_WEEK_MS;
-        const fired = await scheduler.tick();
-        expect(fired).toEqual(['weekly-digest']);
-        expect(claimCalls).toHaveLength(1);
-        const firedAt = claimCalls[0];
-        // 1970-01-01T00:00:00Z (the epoch) was a Thursday — every
-        // epoch-anchored weekly boundary inherits that weekday and midnight
-        // time, which is exactly the silently-wrong send time this ticket
-        // reports.
-        expect(firedAt.getUTCDay()).toBe(4); // Thursday
-        expect(firedAt.getUTCHours()).toBe(0);
-        expect(firedAt.getUTCMinutes()).toBe(0);
-      } finally {
-        await scheduler.stop();
-      }
-    }
-  );
-
-  it(
-    'ADS-1127 fix: anchoring the weekly grid to the intended weekday/time fires there ' +
-      'instead of drifting to Thursday 00:00 UTC',
-    async () => {
-      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      // 1970-01-05T09:00:00Z is a Monday (the epoch, 1970-01-01, was a
-      // Thursday, so +4 days lands on Monday). Anchoring the grid to this
-      // instant — rather than the epoch — makes every subsequent weekly
-      // boundary land on Monday 09:00 UTC instead of Thursday 00:00 UTC.
-      // (No send day/time is documented anywhere in the repo for the
-      // shelved digest beyond a "weekly" cadence, so Monday 09:00 UTC here
-      // is illustrative of the fix mechanism, not a confirmed product
-      // decision — see the digest_time preference default of '09:00'.)
-      const anchorMs = Date.UTC(1970, 0, 5, 9, 0, 0);
-      const claimCalls: Date[] = [];
-      const claimRun = async (_job: string, scheduledFor: Date): Promise<boolean> => {
-        claimCalls.push(scheduledFor);
-        return true;
-      };
-      const bootNow = Date.UTC(2026, 8, 1, 12, 0, 0); // 2026-09-01T12:00:00Z (Tuesday)
-      const jobs: ScheduledJob[] = [
-        {
-          name: 'weekly-digest',
-          intervalMs: ONE_WEEK_MS,
-          anchorMs,
-          run: async () => undefined,
-        },
-      ];
-      let now = bootNow;
-      const scheduler = startScheduler(jobs, {
-        logger: quietLogger(),
-        tickIntervalMs: 100,
-        now: () => now,
-        claimRun,
-      });
-      try {
-        now = anchorMs + Math.ceil((bootNow - anchorMs) / ONE_WEEK_MS) * ONE_WEEK_MS;
-        const fired = await scheduler.tick();
-        expect(fired).toEqual(['weekly-digest']);
-        expect(claimCalls).toHaveLength(1);
-        const firedAt = claimCalls[0];
-        expect(firedAt.getUTCDay()).toBe(1); // Monday
-        expect(firedAt.getUTCHours()).toBe(9);
-        expect(firedAt.getUTCMinutes()).toBe(0);
-      } finally {
-        await scheduler.stop();
-      }
-    }
-  );
 
   it('skips the job when the claim query errors — never risks a duplicate', async () => {
     const runs: string[] = [];

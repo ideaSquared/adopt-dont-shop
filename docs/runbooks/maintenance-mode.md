@@ -1,25 +1,83 @@
 # Maintenance Mode
 
 > **Audience:** on-call, shell access on the prod host, no context.
-> **Last reviewed:** 2026-09-03
+> **Last reviewed:** 2026-09-07
 > **Related alerts:** none fires this directly — it's an action, not an alarm.
 > `GatewayRateLimitSpike` (`warning`, `infra/prometheus/rules/gateway-resilience.yml`)
 > annotates this runbook as one response to a rate-limit surge. Use it to shed
 > traffic during another incident, a planned outage, or a controlled brownout.
 
+## Two independent switches (ADS-1325)
+
+There are now **two** ways to put the site into maintenance mode, and they
+don't depend on each other — either works if the other is unavailable:
+
+| Switch                   | What it does                                                                                                 | Depends on                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| Statsig dynamic config   | Frontends render a maintenance banner. Does **not** block direct API calls.                                  | Statsig being reachable                 |
+| **In-stack file switch** | Gateway rejects every `/api/*` call with 503; nginx serves a static page for the SPAs. Enforced server-side. | Nothing — works even if Statsig is down |
+
+Use the in-stack switch when Statsig itself is unreachable, or when you need
+a real (not just UX) block on direct API traffic. Both can be on at once —
+flip the Statsig flag too so the banner text explains what's happening
+instead of visitors just seeing the generic maintenance page / 503.
+
 ## Preconditions
 
-- Access to the **Statsig console** (`console.statsig.com`) for the project —
-  this is where the flag lives. There is **no** maintenance-mode API on the
-  gateway.
-- For the hard-offline fallback: prod SSH, `cd /opt/ads/production`,
-  `docker compose -f docker-compose.prod.yml`.
+- Access to the **Statsig console** (`console.statsig.com`) for the project
+  — for the frontend-banner switch.
+- Prod SSH, `cd /opt/ads/production`, `docker compose -f docker-compose.prod.yml`
+  — for the in-stack file switch and the hard-offline fallback.
 
-## What "maintenance mode" means here
+## In-stack file switch (ADS-1325)
 
-The kill switch is the dynamic config
+Two independent file checks, one per layer — flip either or both:
+
+**Gateway (blocks the API itself).** `services/gateway/src/middleware/
+maintenance.ts` runs as the first `onRequest` hook. When the file at
+`MAINTENANCE_MODE_FILE` (default `/run/maintenance`) exists, every `/api/*`
+request gets `503` + `Retry-After: 60` + a JSON body
+(`{ success: false, error: 'maintenance_mode', ... }`). `/health/*` is always
+exempt (container healthcheck / readiness probe keep passing). An operator
+IP in `MAINTENANCE_ALLOWLIST_IPS` or a request carrying the
+`x-maintenance-bypass` header matching `MAINTENANCE_BYPASS_TOKEN` also
+bypasses it — useful for verifying the fix before lifting maintenance mode
+for everyone.
+
+```bash
+# Turn ON — any replica; MAINTENANCE_MODE_FILE is per-container, so touch it
+# on every gateway replica (or bake the check into a shared/mounted path).
+docker compose -f docker-compose.prod.yml exec service-gateway \
+  sh -c 'touch "${MAINTENANCE_MODE_FILE:-/run/maintenance}"'
+
+# Turn OFF
+docker compose -f docker-compose.prod.yml exec service-gateway \
+  sh -c 'rm -f "${MAINTENANCE_MODE_FILE:-/run/maintenance}"'
+```
+
+**nginx (serves a static page instead of the SPA).** `nginx/maintenance.conf`
+(included by every SPA vhost in `nginx/nginx.prod.conf`) checks for
+`/srv/maintenance.flag` and, when present, serves `nginx/maintenance.html`
+with a `503` instead of proxying to the app container.
+
+> **Not yet wired end-to-end**: this needs two mounts in
+> `docker-compose.prod.yml`'s `nginx` service that don't exist yet — a
+> read-only mount of `nginx/maintenance.html` at `/srv/maintenance.html`,
+> and a **writable** path for `/srv/maintenance.flag` (the existing
+> `uploads` volume is mounted `:ro`, so it can't host the flag as-is). Until
+> that compose change lands, use the gateway-side switch above — it already
+> blocks the API — and the pre-existing Statsig banner for the frontend UX;
+> this nginx layer is an additional defence for when even Statsig is down.
+
+Once wired, flipping it is the same shape as the gateway switch: `touch` /
+`rm` on `/srv/maintenance.flag` from inside the `nginx` container.
+
+## What "maintenance mode" (the Statsig flag) means here
+
+The pre-existing kill switch is the dynamic config
 `APPLICATION_SETTINGS.maintenance_mode` (boolean), declared in
-`lib.feature-flags/src/types/index.ts:69-76`:
+`lib.feature-flags/src/types/index.ts:69-76`. This is unchanged by ADS-1325 —
+it's still the only thing that drives the in-app banner:
 
 ```ts
 export interface ApplicationSettingsConfig {
@@ -51,10 +109,11 @@ also stop the container.
 | Need to register no new users for an hour          | `new_registrations_enabled = false` |
 | You want to take the site fully offline            | Stop nginx (not maintenance mode)   |
 
-Maintenance mode does **not** prevent direct API hits — it's a UX
-contract enforced by the frontend. Determined clients can still call
-the API. If you need a hard block, stop nginx (preferred) or stop
-`service-gateway` directly.
+The Statsig flag does **not** prevent direct API hits by itself — it's a
+UX contract enforced by the frontend. Determined clients can still call the
+API. For a hard block on the API without stopping the container, use the
+gateway's in-stack file switch above; for a full outage (nothing answers,
+not even a 503), stop nginx or `service-gateway` directly.
 
 ## Flipping the flag
 
