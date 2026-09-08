@@ -135,7 +135,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [ADR 0005 — Pact contract tests](./adr/0005-pact-contract-tests.md) — _Accepted — implemented_
 - [ADR 0006 — field-permission enforcement](./adr/0006-field-permission-enforcement.md) — _Partially implemented_
 - [ADR 0007 — Postgres backups, PITR & restore](./adr/0007-postgres-backups-pitr-restore.md) — _Partially implemented_
-- [ADR 0008 — pre-deploy migration strategy](./adr/0008-pre-deploy-migration-strategy.md) — _Proposed_
+- [ADR 0008 — pre-deploy migration strategy](./adr/0008-pre-deploy-migration-strategy.md) — _Accepted_
 - [ADR 0009 — deployment strategy & high availability](./adr/0009-deployment-strategy-and-ha.md) — _Superseded by ADR 0011_
 - [ADR 0010 — frontend quality gates](./adr/0010-frontend-quality-gates.md) — _Partially implemented_
 - [ADR 0011 — interim availability posture](./adr/0011-interim-availability-posture.md) — _Accepted_
