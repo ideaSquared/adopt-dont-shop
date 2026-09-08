@@ -1,15 +1,24 @@
 import type { Pool } from 'pg';
+import type { Logger } from 'winston';
 import { describe, expect, it, vi } from 'vitest';
 
 import { persistAuditEvent } from './subscribers.js';
 import type { AuditEventPayload } from './event-types.js';
 
-function makePool(): { pool: Pool; query: ReturnType<typeof vi.fn> } {
-  const query = vi.fn().mockResolvedValue({ rowCount: 1 });
+function makePool(overrides: { rowCount: number | null } = { rowCount: 1 }): {
+  pool: Pool;
+  query: ReturnType<typeof vi.fn>;
+} {
+  const query = vi.fn().mockResolvedValue(overrides);
   return {
     pool: { query } as unknown as Pool,
     query,
   };
+}
+
+function makeLogger(): { logger: Logger; info: ReturnType<typeof vi.fn> } {
+  const info = vi.fn();
+  return { logger: { info } as unknown as Logger, info };
 }
 
 function basePayload(overrides: Partial<AuditEventPayload> = {}): AuditEventPayload {
@@ -262,5 +271,41 @@ describe('persistAuditEvent', () => {
     expect(query).toHaveBeenCalledTimes(2);
     const sql = (query.mock.calls[0] as [string, unknown[]])[0];
     expect(sql).toContain('ON CONFLICT (event_id) DO NOTHING');
+  });
+
+  describe('audit log line (ADS-1324)', () => {
+    it('logs a stable audit:true field on a real insert', async () => {
+      const { pool } = makePool({ rowCount: 1 });
+      const { logger, info } = makeLogger();
+      await persistAuditEvent(pool, basePayload(), 'auth.actionTaken', logger);
+
+      expect(info).toHaveBeenCalledTimes(1);
+      expect(info).toHaveBeenCalledWith(
+        'audit event persisted',
+        expect.objectContaining({
+          audit: true,
+          action: 'login',
+          outcome: 'success',
+          actorUserId: '33333333-3333-3333-3333-333333333333',
+          aggregateType: 'user',
+          subject: 'auth.userLoggedIn',
+        })
+      );
+    });
+
+    it('does not log when ON CONFLICT DO NOTHING skipped a redelivered event', async () => {
+      const { pool } = makePool({ rowCount: 0 });
+      const { logger, info } = makeLogger();
+      await persistAuditEvent(pool, basePayload(), 'auth.actionTaken', logger);
+
+      expect(info).not.toHaveBeenCalled();
+    });
+
+    it('is a no-op when no logger is supplied', async () => {
+      const { pool } = makePool({ rowCount: 1 });
+      await expect(
+        persistAuditEvent(pool, basePayload(), 'auth.actionTaken')
+      ).resolves.not.toThrow();
+    });
   });
 });

@@ -1019,7 +1019,7 @@ function withoutInternalNotes(extra: Record<string, unknown>): Record<string, un
 
 // --- GetStats --------------------------------------------------------
 
-const PETS_READ_ANY: Permission = 'pets.read:any' as Permission;
+const PETS_READ_ANY: Permission = 'pets.read:any';
 
 type StatusCountRow = { status: PetStatusDb; count: string };
 

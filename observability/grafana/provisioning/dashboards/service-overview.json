@@ -159,6 +159,54 @@
       ],
       "title": "gRPC Circuit Breaker State (0=closed, 1=half-open, 2=open)",
       "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "description": "Rows staged in each service's event_outbox table, awaiting relay to JetStream (packages/events/src/outbox.ts). See docs/runbooks/outbox-backlog.md.",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 7,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "events_outbox_pending",
+          "legendFormat": "{{job}} pending",
+          "refId": "A"
+        }
+      ],
+      "title": "Outbox pending (events staged, not yet published)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "description": "Messages dead-lettered per subject after exhausting redelivery attempts (packages/events/src/dead-letter-metrics.ts). See docs/runbooks/jetstream-backlog.md.",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "id": 8,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "sum by (subject) (rate(events_dead_letter_total[$__rate_interval]))",
+          "legendFormat": "{{subject}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Dead-letter events (rate by subject)",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

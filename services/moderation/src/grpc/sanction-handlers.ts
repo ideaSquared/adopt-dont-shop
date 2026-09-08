@@ -135,6 +135,10 @@ export async function issueSanction(
 
 // --- ListUserSanctions -----------------------------------------------
 
+// ADS-1323: ListUserSanctionsRequest has no pagination fields, so this is
+// a hard cap rather than a page size.
+const LIST_USER_SANCTIONS_LIMIT = 500;
+
 export async function listUserSanctions(
   deps: HandlerDeps,
   principal: Principal,
@@ -163,7 +167,8 @@ export async function listUserSanctions(
     `SELECT ${SANCTION_SELECT}
      FROM user_sanctions
      WHERE user_id = $1 ${activeFilter} ${ackFilter}
-     ORDER BY start_date DESC`,
+     ORDER BY start_date DESC
+     LIMIT ${LIST_USER_SANCTIONS_LIMIT}`,
     [req.userId]
   );
 

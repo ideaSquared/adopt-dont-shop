@@ -50,15 +50,24 @@ export type AuthTokenPair = {
 // Only Secure over an actual HTTPS request — dev/test run over plain HTTP,
 // and a Secure cookie is silently dropped by the browser there. Same check
 // routes/csrf.ts already uses for the CSRF cookie.
-const isSecureRequest = (req: FastifyRequest): boolean => req.protocol === 'https';
+//
+// ADS-1327: req.protocol reading 'https' behind nginx depends on
+// trustProxy being on AND nginx correctly setting X-Forwarded-Proto on
+// every hop — a config drift or a request that reaches the gateway by some
+// other path silently downgrades a production cookie to non-Secure. When
+// `environment` is supplied and is production/staging, Secure is pinned
+// true unconditionally, independent of req.protocol/trustProxy.
+const isSecureRequest = (req: FastifyRequest, environment?: string): boolean =>
+  environment === 'production' || environment === 'staging' || req.protocol === 'https';
 
 /** Sets the httpOnly access/refresh cookies + the JS-readable session marker. */
 export const setAuthCookies = (
   req: FastifyRequest,
   reply: FastifyReply,
-  tokens: AuthTokenPair
+  tokens: AuthTokenPair,
+  environment?: string
 ): void => {
-  const secure = isSecureRequest(req);
+  const secure = isSecureRequest(req, environment);
 
   reply.setCookie(ACCESS_TOKEN_COOKIE_NAME, tokens.accessToken, {
     path: '/',
@@ -84,8 +93,12 @@ export const setAuthCookies = (
 };
 
 /** Clears all three auth cookies — called on logout regardless of upstream outcome. */
-export const clearAuthCookies = (req: FastifyRequest, reply: FastifyReply): void => {
-  const secure = isSecureRequest(req);
+export const clearAuthCookies = (
+  req: FastifyRequest,
+  reply: FastifyReply,
+  environment?: string
+): void => {
+  const secure = isSecureRequest(req, environment);
 
   reply.clearCookie(ACCESS_TOKEN_COOKIE_NAME, { path: '/', secure, sameSite: 'lax' });
   reply.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {

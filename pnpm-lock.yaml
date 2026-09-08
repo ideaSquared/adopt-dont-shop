@@ -667,7 +667,7 @@ importers:
         version: 6.0.3
 
   packages/authz:
-    devDependencies:
+    dependencies:
       '@adopt-dont-shop/lib.types':
         specifier: workspace:*
         version: link:../lib.types
@@ -763,6 +763,9 @@ importers:
         specifier: ^2.29.3
         version: 2.29.3
     devDependencies:
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@types/pg':
         specifier: ^8.15.5
         version: 8.20.0
@@ -1626,6 +1629,9 @@ importers:
       '@adopt-dont-shop/authz':
         specifier: workspace:*
         version: link:../authz
+      '@adopt-dont-shop/db':
+        specifier: workspace:*
+        version: link:../db
       '@adopt-dont-shop/lib.types':
         specifier: workspace:*
         version: link:../lib.types
@@ -1635,6 +1641,12 @@ importers:
       nats:
         specifier: ^2.29.3
         version: 2.29.3
+      pg:
+        specifier: ^8.22.0
+        version: 8.22.0
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
       vitest:
         specifier: ^4.1.9
         version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@26.1.1)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.14.6(@types/node@26.1.1)(typescript@6.0.3))(vite@8.0.16(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.49.2)(tsx@4.22.4)(yaml@2.9.0))
@@ -1645,6 +1657,9 @@ importers:
       '@types/node':
         specifier: ^26.0.0
         version: 26.1.1
+      '@types/pg':
+        specifier: ^8.15.5
+        version: 8.20.0
       typescript:
         specifier: ^6.0.0
         version: 6.0.3
@@ -1822,6 +1837,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@pact-foundation/pact':
         specifier: ^17.0.0
         version: 17.0.0
@@ -1950,6 +1968,9 @@ importers:
       '@adopt-dont-shop/lib.av-scan':
         specifier: workspace:*
         version: link:../../packages/lib.av-scan
+      '@adopt-dont-shop/lib.validation':
+        specifier: workspace:*
+        version: link:../../packages/lib.validation
       '@adopt-dont-shop/observability':
         specifier: workspace:*
         version: link:../../packages/observability

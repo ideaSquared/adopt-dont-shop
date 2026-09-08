@@ -1,4 +1,5 @@
 import { readSecret } from '@adopt-dont-shop/config-secrets';
+import { DISTINCT_SECRET_PAIRS, envCorsOriginField } from '@adopt-dont-shop/lib.validation';
 
 export type GatewayConfig = {
   // Port the gateway listens on. Nginx (already in docker-compose)
@@ -102,6 +103,11 @@ export type GatewayConfig = {
   // Optional: unset → legacy header-only propagation (phased rollout).
   // Read via config-secrets so PRINCIPAL_SIGNING_KEY_FILE works.
   principalSigningKey: string | undefined;
+  // ADS-1327: optional shared secret gating /metrics. Unset (the default)
+  // keeps /metrics fully public inside the docker network, matching the
+  // accepted-risk posture documented for internal gRPC trust; set it to
+  // require `Authorization: Bearer <token>` from the Prometheus scraper.
+  metricsBearerToken: string | undefined;
   // Test-only one-time-token peek seam (ADS-871). Lets the Playwright e2e
   // suite read password-reset / email-verification / staff-invitation tokens
   // that are normally only delivered by email, so it can drive the full
@@ -172,6 +178,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     throw new Error(`GATEWAY_PORT must be a positive integer, got "${portRaw}"`);
   }
   const environment = env.NODE_ENV?.trim() || 'development';
+  assertDistinctSecrets(env, environment);
 
   return {
     port,
@@ -198,6 +205,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
       publicEnabled: env.GATEWAY_CONFIG_ENABLED?.trim().toLowerCase() !== 'false',
     },
     principalSigningKey: readOptionalSecret('PRINCIPAL_SIGNING_KEY', env, 32),
+    metricsBearerToken: readOptionalSecret('METRICS_BEARER_TOKEN', env, 16),
     testTokenPeek: buildTestTokenPeekConfig(env),
     cors: buildCorsConfig(env, environment),
     trustProxy: buildTrustProxy(env, environment),
@@ -247,6 +255,19 @@ function buildCorsConfig(env: NodeJS.ProcessEnv, environment: string): GatewayCo
         'http://api.localhost',
       ],
     };
+  }
+  // ADS-1323: packages/lib.validation's envCorsOriginField rejects a
+  // wildcard ('*') anywhere in the comma-separated list — reused here
+  // (rather than reimplemented) so a bad prod/staging config fails gateway
+  // boot instead of silently allowing credentialed cross-origin requests
+  // from any page.
+  if (environment === 'production' || environment === 'staging') {
+    const result = envCorsOriginField.safeParse(raw);
+    if (!result.success) {
+      throw new Error(
+        `CORS_ORIGIN is invalid for NODE_ENV=${environment}: ${result.error.issues.map(i => i.message).join('; ')}`
+      );
+    }
   }
   const origins = raw
     .split(',')
@@ -366,4 +387,29 @@ function readOptionalSecret(
     throw new Error(`${name} must be at least ${minBytes} bytes`);
   }
   return value;
+}
+
+// ADS-1323: packages/lib.validation's DISTINCT_SECRET_PAIRS list (a reused
+// secret raises the blast radius of a single disclosure) was dead code —
+// nothing invoked it at runtime. The gateway only ever sets one of the
+// paired secrets itself (UPLOAD_SIGNING_SECRET); every other pair compares
+// against a var the gateway doesn't set, which `readSecret` reads as
+// undefined and the guard below skips — so reusing the full shared list
+// here is safe and future-proof (a secret this service starts reading
+// later picks up the check for free) without requiring the rest of
+// envBaseSchema (DB_HOST et al, which the gateway never sets — it owns no
+// schema).
+function assertDistinctSecrets(env: NodeJS.ProcessEnv, environment: string): void {
+  if (environment !== 'production' && environment !== 'staging') {
+    return;
+  }
+  for (const [a, b] of DISTINCT_SECRET_PAIRS) {
+    const va = readSecret(a, env)?.trim();
+    const vb = readSecret(b, env)?.trim();
+    if (va && vb && va === vb) {
+      throw new Error(
+        `${a} and ${b} must be distinct. Reusing secrets increases compromise blast radius.`
+      );
+    }
+  }
 }

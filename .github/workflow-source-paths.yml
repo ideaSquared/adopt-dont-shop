@@ -25,13 +25,15 @@ consumers:
     triggers: [push, pull_request]
     extra: []
 
-  # docker.yml extends the canonical list for `push` only with Docker
-  # plumbing (Dockerfile*, compose, .dockerignore). PR trigger uses ONLY
-  # the docker-plumbing subset (source-only PRs are covered by ci.yml /
-  # E2E), so the canonical list does not apply there — listed for
-  # documentation, the guard tolerates the explicit divergence.
+  # docker.yml (ADS-1314): extends the canonical list with Docker plumbing
+  # (Dockerfile*, compose, .dockerignore) on BOTH push and pull_request — the
+  # PR trigger used to be narrowed to the docker-plumbing subset only
+  # ("source-only PRs are covered by ci.yml / E2E"), but ci.yml's E2E only
+  # boots *development*-target images, so a source-only PR could still ship
+  # a broken *production* image with zero pre-merge signal (ADS-1301 P1-8).
+  # Now identical to push.
   - workflow: .github/workflows/docker.yml
-    triggers: [push]
+    triggers: [push, pull_request]
     extra:
       - '**/Dockerfile*'
       - 'docker-compose*.yml'

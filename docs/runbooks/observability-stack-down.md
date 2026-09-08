@@ -2,10 +2,14 @@
 
 > **Audience:** on-call, shell access on the prod host, no context.
 > **Last reviewed:** 2026-09-03
-> **Related alerts:** none can fire — `infra/prometheus/rules/` only watches the
-> `service-*` jobs, and if Prometheus/Alertmanager is the thing that's down, no
-> alert reaches you at all. Discovery is usually "Grafana is blank" or "alerts
-> went quiet during a known incident".
+> **Related alerts:** none of the ordinary Prometheus rules can fire — if
+> Prometheus/Alertmanager itself is down, no Discord alert reaches you.
+> `Watchdog` (`infra/prometheus/rules/watchdog.yml`, ADS-1307) exists
+> precisely for this gap: it always fires, and its `deadman` Alertmanager
+> receiver pings an _external_ dead-man's-switch service — if that ping
+> stops arriving, the external service pages you, which is the actual
+> "the observability stack itself is down" signal. Absent that, discovery is
+> usually "Grafana is blank" or "alerts went quiet during a known incident".
 
 ## Symptoms
 

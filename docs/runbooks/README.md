@@ -92,19 +92,30 @@ The order is always:
 
 ### Severity / routing
 
-Prometheus rules (`infra/prometheus/rules/`) carry exactly two severities.
-Alertmanager (`observability/alertmanager/alertmanager.yml`) routes both to
-**Discord** via an incoming webhook — there is no PagerDuty, no `#oncall-page`,
-and no `info` tier. See [`docs/slo.md`](../slo.md) for the authoritative table.
+Prometheus rules (`infra/prometheus/rules/`) carry three severities.
+Alertmanager (`observability/alertmanager/alertmanager.yml`) routes `critical`
+and `warning` to their **own** Discord webhook each (split as of ADS-1307);
+the always-firing `Watchdog` alert (`none`) goes to an external dead-man's
+switch instead of Discord. There is no PagerDuty, no `#oncall-page` tool, and
+no `info` tier. See [`docs/slo.md`](../slo.md#severity--on-call) for the
+authoritative table.
 
-| Severity   | Alertmanager receiver | Destination                             | Response                                                                             |
-| ---------- | --------------------- | --------------------------------------- | ------------------------------------------------------------------------------------ |
-| `critical` | `critical-pager`      | Discord webhook (fast group, 1h repeat) | Ack in 5 min, open the runbook in the alert's `runbook` annotation, start mitigating |
-| `warning`  | `warning-chat`        | Discord webhook (4h repeat)             | Review within 30 min; investigate, don't necessarily escalate                        |
+| Severity   | Alertmanager receiver | Destination                                                                                | Response                                                                                                            |
+| ---------- | --------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `critical` | `critical-pager`      | Its own Discord webhook (fast group, 1h repeat)                                            | Ack in 5 min, open the runbook in the alert's `runbook` annotation, start mitigating                                |
+| `warning`  | `warning-chat`        | Its own Discord webhook (4h repeat)                                                        | Review within 30 min; investigate, don't necessarily escalate                                                       |
+| `none`     | `deadman`             | External dead-man's-switch service (Healthchecks.io/Cronitor-style, `repeat_interval: 5m`) | Not actioned directly — the external service pages if the ping _stops_, meaning the pipeline or host itself is down |
 
-Escalation is a DM to the secondary on-call — there is no separate pager
-system. If you lack authority for a destructive action (DB restore, schema
-rollback, secret rotation), that DM is the escalation.
+**Escalation path** for a `critical` that isn't acked in 5 minutes: DM the
+secondary on-call directly (Discord/Slack — there is no separate pager
+system); if they don't ack within a further 15 minutes, DM the team lead.
+Both are named in the on-call handoff doc, not in this repo. If you lack
+authority for a destructive action (DB restore, schema rollback, secret
+rotation), that same DM is the escalation.
+
+Prove the whole pipeline (not just that the rule evaluates) actually reaches a
+human with `scripts/observability-fire-test-alert.sh` — see
+[`observability-enable.md`](./observability-enable.md) §7.
 
 ### Post-incident
 

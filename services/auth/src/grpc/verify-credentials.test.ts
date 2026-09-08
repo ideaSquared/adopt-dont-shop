@@ -152,33 +152,42 @@ describe('verifyCredentials', () => {
   });
 
   it('verifies a 2FA account with a valid TOTP and advances the replay watermark', async () => {
-    const secret = generateSecret();
-    const code = generateSync({ secret });
-    mocks.poolMock.query
-      .mockResolvedValueOnce({
-        rows: [
-          userRowFixture({
-            two_factor_enabled: true,
-            two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, secret),
-          }),
-        ],
-      })
-      // Replay-guard UPDATE (two_factor_last_step) fired by verifyAndConsumeTotp.
-      .mockResolvedValueOnce({ rows: [] });
-    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    // Pin the clock so the code generated here and the epoch verifyAndConsumeTotp
+    // reads internally can't drift apart at a 30s window boundary (flake guard —
+    // same pattern as handlers.test.ts's replayed-2FA-code test).
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    try {
+      const secret = generateSecret();
+      const code = generateSync({ secret });
+      mocks.poolMock.query
+        .mockResolvedValueOnce({
+          rows: [
+            userRowFixture({
+              two_factor_enabled: true,
+              two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, secret),
+            }),
+          ],
+        })
+        // Replay-guard UPDATE (two_factor_last_step) fired by verifyAndConsumeTotp.
+        .mockResolvedValueOnce({ rows: [] });
+      mocks.hasherMock.compare.mockResolvedValueOnce(true);
 
-    const res = await verifyCredentials(mocks.deps, PRINCIPAL, {
-      ...BASE_REQ,
-      twoFactorToken: code,
-    });
+      const res = await verifyCredentials(mocks.deps, PRINCIPAL, {
+        ...BASE_REQ,
+        twoFactorToken: code,
+      });
 
-    expect(res).toEqual({ verified: true, twoFactorRequired: false });
-    // The watermark UPDATE proves the code was consumed (not just matched).
-    const ranWatermarkUpdate = mocks.poolMock.query.mock.calls.some(c =>
-      /two_factor_last_step/i.test(String(c[0]))
-    );
-    expect(ranWatermarkUpdate).toBe(true);
-    expect(auditPayload(mocks.natsMock)).toMatchObject({ action: 'verify', outcome: 'success' });
+      expect(res).toEqual({ verified: true, twoFactorRequired: false });
+      // The watermark UPDATE proves the code was consumed (not just matched).
+      const ranWatermarkUpdate = mocks.poolMock.query.mock.calls.some(c =>
+        /two_factor_last_step/i.test(String(c[0]))
+      );
+      expect(ranWatermarkUpdate).toBe(true);
+      expect(auditPayload(mocks.natsMock)).toMatchObject({ action: 'verify', outcome: 'success' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not verify a 2FA account with a wrong TOTP and audits a denial', async () => {

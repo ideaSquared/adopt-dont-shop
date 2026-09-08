@@ -1,7 +1,11 @@
 import { ThemeProvider, Toaster, toast } from '@adopt-dont-shop/lib.components';
 import { AuthProvider } from '@adopt-dont-shop/lib.auth';
 import { attachStoredCookieConsent } from '@adopt-dont-shop/lib.legal';
-import { captureException, initSentry, reportWebVitals } from '@adopt-dont-shop/lib.observability';
+import {
+  createSentryWebVitalsReporter,
+  initSentry,
+  reportWebVitals,
+} from '@adopt-dont-shop/lib.observability';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -25,17 +29,11 @@ initSentry({
   release: import.meta.env.VITE_APP_RELEASE,
 });
 
-// ADS-507: report Core Web Vitals. For now we just forward to Sentry so the
-// metrics end up in one place; a dedicated /api/v1/web-vitals backend endpoint
-// is a follow-up.
-reportWebVitals(metric => {
-  captureException(`web-vital:${metric.name}`, {
-    name: metric.name,
-    value: metric.value,
-    rating: metric.rating,
-    id: metric.id,
-  });
-});
+// ADS-507 / ADS-1324: report Core Web Vitals to Sentry as performance
+// measurements + breadcrumbs, never as exceptions — captureException here
+// exhausted the error quota (five "errors" per page load) and buried real
+// errors.
+reportWebVitals(createSentryWebVitalsReporter());
 
 // ADS-476: explicit defaults so every component remount doesn't refetch and
 // auth/404 errors don't retry 3× before failing. Defaults copied from app.rescue;

@@ -42,6 +42,7 @@ function makeNats(): { js: ReturnType<typeof vi.fn>; nc: NatsConnection } {
 type SagaRow = {
   correlation_id: string;
   user_id: string;
+  email: string | null;
   reason: string | null;
   requested_at: string;
   completions: Record<string, unknown>;
@@ -55,6 +56,7 @@ function makeSagaRow(overrides: Partial<SagaRow> = {}): SagaRow {
   return {
     correlation_id: 'corr-1',
     user_id: 'usr-1',
+    email: null,
     reason: null,
     requested_at: '2026-06-11T10:00:00Z',
     completions: {},
@@ -364,6 +366,88 @@ describe('runGdprSweep — retry', () => {
     expect(envelope.payload.userId).toBe('usr-xyz');
     expect(envelope.payload.requestedAt).toBe('2026-06-11T10:00:00Z');
     expect(envelope.payload.reason).toBe('moving abroad');
+  });
+
+  // ADS-1323: the retry payload is rebuilt from this table's row, not the
+  // original NATS message — email must round-trip through the DB column
+  // (see 009_add_gdpr_erasure_email.ts) or a retried erasure permanently
+  // skips email-keyed rows (rescue pending invitations for a user who
+  // never registered).
+  it('the re-published payload carries the persisted email (ADS-1323)', async () => {
+    const row = makeSagaRow({
+      correlation_id: 'corr-email',
+      user_id: 'usr-email',
+      email: 'leaving-user@example.com',
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 0,
+      completions: {
+        auth: { recordsErased: 0, error: 'crash', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 2) return { rows: [row] };
+      return { rows: [] };
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn().mockResolvedValue({ stream: 'DOMAIN_EVENTS', seq: 1 });
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    expect(publishFn).toHaveBeenCalledTimes(1);
+    const [, data] = publishFn.mock.calls[0] as [string, Uint8Array, unknown];
+    const envelope = JSON.parse(new TextDecoder().decode(data)) as {
+      payload: { email?: string };
+    };
+    expect(envelope.payload.email).toBe('leaving-user@example.com');
+  });
+
+  it('omits email from the retry payload when the saga has none on file', async () => {
+    const row = makeSagaRow({
+      email: null,
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 0,
+      completions: {
+        auth: { recordsErased: 0, error: 'crash', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 2) return { rows: [row] };
+      return { rows: [] };
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn().mockResolvedValue({ stream: 'DOMAIN_EVENTS', seq: 1 });
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    const [, data] = publishFn.mock.calls[0] as [string, Uint8Array, unknown];
+    const envelope = JSON.parse(new TextDecoder().decode(data)) as {
+      payload: { email?: string };
+    };
+    expect(envelope.payload.email).toBeUndefined();
   });
 
   it('does not re-publish for a saga whose completed_at is set (already done)', async () => {

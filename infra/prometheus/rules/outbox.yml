@@ -1,0 +1,44 @@
+# Outbox / dead-letter rules (ADS-1324).
+#
+# Two metrics with no alert coverage before this file:
+#   events_outbox_pending        gauge   — packages/events/src/outbox.ts.
+#                                 No labels; one series per scrape target
+#                                 (job), one per service process.
+#   events_dead_letter_total     counter{subject} — packages/events/src/
+#                                 dead-letter-metrics.ts, incremented by
+#                                 packages/events/src/subscribe.ts after a
+#                                 message exhausts redelivery and is parked.
+groups:
+  - name: ads-outbox
+    interval: 30s
+    rules:
+      # A backlog that keeps climbing rather than draining (the relay sweeps
+      # every ~1s in the healthy case) — see docs/runbooks/outbox-backlog.md.
+      - alert: OutboxBacklogGrowing
+        expr: events_outbox_pending > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.job }} outbox backlog >100 for 10m'
+          description: >-
+            events_outbox_pending on {{ $labels.job }} has stayed above 100
+            for 10 minutes — events are staged but not reaching JetStream.
+            Business writes are still succeeding; downstream effects (audit,
+            notifications, projections) are lagging.
+          runbook: docs/runbooks/outbox-backlog.md
+
+      # A steady stream of dead-lettered messages on any subject — the
+      # consumer for that subject is failing every redelivery attempt.
+      - alert: DeadLetterIncreasing
+        expr: sum by (subject) (rate(events_dead_letter_total[15m])) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Messages on {{ $labels.subject }} are being dead-lettered'
+          description: >-
+            events_dead_letter_total{subject="{{ $labels.subject }}"} has
+            been increasing for 15 minutes — messages on this subject are
+            exhausting redelivery and landing in the DLQ stream.
+          runbook: docs/runbooks/jetstream-backlog.md

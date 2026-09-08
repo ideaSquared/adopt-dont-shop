@@ -1,0 +1,132 @@
+# ============================================================================
+# CI-only override for the `prod-image-smoke` job in .github/workflows/docker.yml
+# (ADS-1314). NOT used by real deploys — deploy.yml never references this file.
+# ============================================================================
+# Layered on top of docker-compose.prod.yml:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml \
+#     up -d database redis nats clamav service-gateway service-auth \
+#     service-notifications app-client
+#
+# Only starts a minimal subset of the production stack — the gateway plus two
+# representative domain services (auth: has its own extra secrets; notifications:
+# the P0 whose config throws on the prod compose's current env — ADS-1314/1301)
+# plus one frontend app, backed by real infra containers. The workflow job
+# supplies:
+#   - throwaway file-mounted secrets under ./secrets/ (matching the paths
+#     docker-compose.prod.yml's `secrets:` block already declares — this file
+#     does not need to redeclare them)
+#   - a repo-root .env with POSTGRES_USER/POSTGRES_DB/CORS_ORIGIN/DEPLOY_SHA
+#     (required by docker-compose.prod.yml with no default) and the
+#     *_TAG vars below, so `docker compose` resolves the four images this job
+#     just built with `load: true` instead of trying to pull from GHCR.
+#
+# What this override adds on top of the base file:
+#   - EMAIL_PROVIDER / PUSH_PROVIDER (+ throwaway FCM creds) for
+#     service-notifications. The base prod compose (ADS-1302) wires
+#     EMAIL_PROVIDER=resend with a resend_api_key secret and requires
+#     DEFAULT_FROM_EMAIL / FCM_PROJECT_ID from the host env; the workflow job
+#     supplies those and throwaway secret files, and this override pins
+#     EMAIL_PROVIDER=ethereal so no real provider credentials are needed to
+#     reach a running container.
+#   - LEGAL_DOCS_DIR for the gateway, per the GET /api/v1/legal/terms smoke
+#     assertion below.
+#   - host-published ports for the four services under test, so the workflow
+#     can curl them directly (the prod compose intentionally only `expose`s
+#     them — internal-network-only is correct for real deploys).
+#   - cap_add for database/redis, and extra tmpfs mounts for the gRPC
+#     services / app-client — see the comments on each service below. These
+#     restore exactly the capabilities/writable paths the base image's own
+#     entrypoints need on a FRESH container (CI never reuses a
+#     previously-initialised volume the way a real deploy's persistent
+#     volumes would), without touching docker-compose.prod.yml's hardening
+#     defaults themselves.
+services:
+  # cap_drop: ALL (docker-compose.prod.yml) removes root's usual DAC-bypass
+  # capabilities too, so postgres's own entrypoint can't chown/chmod a FRESH
+  # postgres_data volume before initdb, nor gosu-switch to the postgres user:
+  # `chmod: changing permissions of '/var/lib/postgresql/data': Operation not
+  # permitted` / `error: failed switching to "postgres": operation not
+  # permitted`. A real deploy's volume is already initialised and owned
+  # correctly from a prior run, so it never hits this path; a CI run always
+  # starts from an empty named volume. cap_add restores just what initdb
+  # needs; cap_drop: ALL still applies to everything else.
+  database:
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+
+  # Same root cause as `database` above, for redis's `--appendonly yes`
+  # entrypoint on a fresh redis_data volume: `Can't open or create
+  # append-only dir appendonlydir: Permission denied`.
+  redis:
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+
+  # x-service-common's `tmpfs: [/tmp:size=64m,mode=1777]` is the only
+  # writable path on these read-only-rootfs containers. But `pnpm run start`
+  # (Dockerfile.service's production CMD) execs the corepack shim, which
+  # looks for its per-user download cache under $HOME (`/home/svcuser` here)
+  # — a path that was only ever populated under `/root` during the (root-run)
+  # image build, so at runtime corepack tries to recreate it and crashes:
+  # `Error: ENOENT: no such file or directory, mkdir
+  # '/home/svcuser/.cache/node/corepack/v1'`. An extra tmpfs mount at that
+  # exact path gives it somewhere writable to redo that check every
+  # container start, mirroring the /tmp entry's mode.
+  service-notifications:
+    environment:
+      EMAIL_PROVIDER: ethereal
+      PUSH_PROVIDER: fcm
+      FCM_PROJECT_ID: ci-smoke
+      # The FCM service-account JSON comes from the fcm_service_account_json
+      # secret the base compose already mounts (FCM_SERVICE_ACCOUNT_JSON_FILE);
+      # the workflow writes a throwaway, syntactically-valid shape there.
+      # Do NOT also set FCM_SERVICE_ACCOUNT_JSON inline: readSecret() refuses
+      # to boot when both the direct and _FILE variants are present.
+    ports:
+      - '5001:5001'
+    tmpfs:
+      - /home/svcuser/.cache:mode=1777
+
+  service-gateway:
+    environment:
+      # See the module comment in services/gateway/src/config.ts — defaults to
+      # `docs/legal` relative to the gateway's CWD, which the production image
+      # does not currently carry (ADS-1301 P0 / ADS-1314). Pointing at the
+      # conventional in-image location documents the contract this smoke job
+      # expects the image-build fix to satisfy; until then, the
+      # `GET /api/v1/legal/terms` assertion below is expected to fail (see the
+      # PR description).
+      LEGAL_DOCS_DIR: /app/docs/legal
+    ports:
+      - '4000:4000'
+    tmpfs:
+      - /home/svcuser/.cache:mode=1777
+
+  service-auth:
+    ports:
+      - '5002:5002'
+    tmpfs:
+      - /home/svcuser/.cache:mode=1777
+
+  # x-app-common's bare `tmpfs: [/tmp, /var/run, /var/cache/nginx]` mounts
+  # each as root:root (no `uid`/`gid`), but the unprivileged nginx image runs
+  # as UID 101 — it can't create files inside its own tmpfs mounts:
+  # `mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)`.
+  # `!override` fully replaces the merged list (Compose errors on two tmpfs
+  # entries targeting the same path) rather than appending a conflicting
+  # second mount at the same targets.
+  app-client:
+    ports:
+      - '8080:8080'
+    tmpfs: !override
+      - /tmp:uid=101,gid=101
+      - /var/run:uid=101,gid=101
+      - /var/cache/nginx:uid=101,gid=101

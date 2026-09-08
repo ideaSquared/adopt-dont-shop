@@ -45,6 +45,7 @@ describe('audit migrations', () => {
     '006_add_aggregate_keyset_index.ts',
     '007_add_saved_reports_template_fk.ts',
     '008_create_report_schedules_and_shares.ts',
+    '009_add_gdpr_erasure_email.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

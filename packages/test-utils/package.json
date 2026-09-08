@@ -31,14 +31,18 @@
   },
   "dependencies": {
     "@adopt-dont-shop/authz": "workspace:*",
+    "@adopt-dont-shop/db": "workspace:*",
     "@adopt-dont-shop/lib.types": "workspace:*",
     "@grpc/grpc-js": "^1.14.4",
     "nats": "^2.29.3",
+    "pg": "^8.22.0",
+    "tsx": "^4.19.2",
     "vitest": "^4.1.9"
   },
   "devDependencies": {
     "@adopt-dont-shop/proto": "workspace:*",
     "@types/node": "^26.0.0",
+    "@types/pg": "^8.15.5",
     "typescript": "^6.0.0"
   },
   "peerDependencies": {

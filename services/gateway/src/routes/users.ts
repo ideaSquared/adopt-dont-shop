@@ -43,6 +43,12 @@ export type UsersRoutesOptions = {
   notificationsClient: NotificationsClient;
 };
 
+// ADS-1323: userIds had no item cap — an unbounded array is forwarded in a
+// single gRPC call into service.auth's own sequential per-id fan-out
+// (admin-handlers.ts bulkUpdateUsers), the same class of bug commit
+// 08dc01a fixed for reports/execute.
+const MAX_BULK_USER_IDS = 100;
+
 // Shared user object schema — the shape userToApiJson() returns.
 const USER_SCHEMA = {
   type: 'object',
@@ -1205,8 +1211,16 @@ export const registerUsersRoutes = async (
         body: {
           type: 'object',
           properties: {
-            userIds: { type: 'array', items: { type: 'string' } },
-            user_ids: { type: 'array', items: { type: 'string' } },
+            userIds: {
+              type: 'array',
+              items: { type: 'string' },
+              maxItems: MAX_BULK_USER_IDS,
+            },
+            user_ids: {
+              type: 'array',
+              items: { type: 'string' },
+              maxItems: MAX_BULK_USER_IDS,
+            },
             status: { type: 'string' },
             userType: { type: 'string' },
             user_type: { type: 'string' },
@@ -1242,10 +1256,19 @@ export const registerUsersRoutes = async (
         user_type?: string;
         reason?: string;
       };
+      const userIds = body.userIds ?? body.user_ids ?? [];
+      // Defence-in-depth backstop to the schema's maxItems: reject an
+      // over-cap list before it reaches service.auth's own fan-out.
+      if (userIds.length > MAX_BULK_USER_IDS) {
+        return reply.code(400).send({
+          success: false,
+          error: `userIds exceeds the maximum of ${MAX_BULK_USER_IDS}`,
+        });
+      }
       try {
         const res = await authClient.bulkUpdateUsers(
           {
-            userIds: body.userIds ?? body.user_ids ?? [],
+            userIds,
             status: statusFilterFromString(body.status),
             userType: userTypeFilterFromString(body.userType ?? body.user_type),
             reason: body.reason,

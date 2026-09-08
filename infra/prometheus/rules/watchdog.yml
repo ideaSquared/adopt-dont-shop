@@ -1,0 +1,26 @@
+# Dead-man's switch (ADS-1307).
+#
+# Every other rule in this repo fires on a *symptom* — if Prometheus,
+# Alertmanager, or the whole host dies, nothing fires at all, and a
+# self-hosted stack monitoring its own host has no way to notice that
+# silence on its own. This alert is the fix: it always fires, so an external
+# dead-man's-switch service (Healthchecks.io, Cronitor, …) can watch for the
+# *absence* of the ping Alertmanager's `deadman` receiver sends on every
+# resend interval (observability/alertmanager/alertmanager.yml). If the ping
+# stops arriving, the pipeline — or the host — is down. See
+# docs/runbooks/observability-stack-down.md.
+groups:
+  - name: ads-watchdog
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+        annotations:
+          summary: 'This is a Watchdog alert — always firing, never actioned directly'
+          description: >-
+            This alert is always firing by design. Its only purpose is to be
+            piped to a dead-man's-switch service via the `deadman`
+            Alertmanager receiver, so an operator is paged if Prometheus,
+            Alertmanager, or the host itself stops running — a failure mode
+            no ordinary alert can detect from inside the same stack.

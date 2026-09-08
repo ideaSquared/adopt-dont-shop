@@ -66,9 +66,9 @@ const STAFF_DELETE: Permission = 'staff.delete' as Permission;
 // admin / super_admin — NOT rescue_staff (which has staff.* + rescues.read
 // scoped to its own rescue), so it can't be used to leak across rescues.
 const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
-const FOSTER_CREATE: Permission = 'foster.create' as Permission;
-const FOSTER_READ: Permission = 'foster.read' as Permission;
-const FOSTER_UPDATE: Permission = 'foster.update' as Permission;
+const FOSTER_CREATE: Permission = 'foster.create';
+const FOSTER_READ: Permission = 'foster.read';
+const FOSTER_UPDATE: Permission = 'foster.update';
 
 // --- Row shapes ------------------------------------------------------
 
@@ -459,6 +459,10 @@ export async function removeStaffMember(
   return { removed: true };
 }
 
+// ADS-1323: ListRescueInvitationsRequest has no pagination fields, so
+// this is a hard cap rather than a page size.
+const LIST_RESCUE_INVITATIONS_LIMIT = 500;
+
 // --- ListRescueInvitations (admin) -----------------------------------
 
 // List a rescue's PENDING invitations for the admin StaffTab. Admin-only
@@ -482,7 +486,8 @@ export async function listRescueInvitations(
             expiration, used, created_at
      FROM rescue.invitations
      WHERE rescue_id = $1 AND used = false
-     ORDER BY created_at DESC`,
+     ORDER BY created_at DESC
+     LIMIT ${LIST_RESCUE_INVITATIONS_LIMIT}`,
     [req.rescueId]
   );
   return { invitations: res.rows.map(invitationRowToProto) };
