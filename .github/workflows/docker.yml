@@ -426,12 +426,23 @@ jobs:
           openssl rand -hex 32 > secrets/nats_auth_token
           printf 'postgresql://ci_smoke:%s@database:5432/ci_smoke' "$(cat secrets/db_password)" > secrets/database_url
           printf 'redis://:%s@redis:6379' "$(cat secrets/redis_password)" > secrets/redis_url
+          # ADS-1302: docker-compose.prod.yml mounts resend_api_key and
+          # fcm_service_account_json into service-notifications, so the files
+          # must exist for `compose up` to resolve the secrets. Throwaway values:
+          # docker-compose.ci-smoke.yml pins EMAIL_PROVIDER=ethereal, and the FCM
+          # JSON only has to be the right shape (no push is ever sent here).
+          openssl rand -hex 16 > secrets/resend_api_key
+          printf '%s' '{"project_id":"ci-smoke","client_email":"ci-smoke@example.com","private_key":"-----BEGIN PRIVATE KEY-----\nci-smoke\n-----END PRIVATE KEY-----\n"}' > secrets/fcm_service_account_json
 
           cat > .env <<EOF
           POSTGRES_USER=ci_smoke
           POSTGRES_DB=ci_smoke
           CORS_ORIGIN=http://localhost:8080
           DEPLOY_SHA=ci-smoke-unused
+          # ADS-1302: required (:?) by docker-compose.prod.yml's service-notifications
+          # block; interpolation runs before the ci-smoke override is merged.
+          DEFAULT_FROM_EMAIL=ci-smoke@example.com
+          FCM_PROJECT_ID=ci-smoke
           SERVICE_GATEWAY_TAG=ci-smoke
           SERVICE_AUTH_TAG=ci-smoke
           SERVICE_NOTIFICATIONS_TAG=ci-smoke

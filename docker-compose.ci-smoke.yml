@@ -23,11 +23,12 @@
 #
 # What this override adds on top of the base file:
 #   - EMAIL_PROVIDER / PUSH_PROVIDER (+ throwaway FCM creds) for
-#     service-notifications — the base prod compose does not set these, so
-#     NODE_ENV=production makes notifications' config validation throw at
-#     boot (ADS-1301 P0). Supplying valid-shaped throwaway values here lets
-#     the smoke job actually reach a running container instead of failing on
-#     a misconfiguration this job isn't testing for.
+#     service-notifications. The base prod compose (ADS-1302) wires
+#     EMAIL_PROVIDER=resend with a resend_api_key secret and requires
+#     DEFAULT_FROM_EMAIL / FCM_PROJECT_ID from the host env; the workflow job
+#     supplies those and throwaway secret files, and this override pins
+#     EMAIL_PROVIDER=ethereal so no real provider credentials are needed to
+#     reach a running container.
 #   - LEGAL_DOCS_DIR for the gateway, per the GET /api/v1/legal/terms smoke
 #     assertion below.
 #   - host-published ports for the four services under test, so the workflow
@@ -84,12 +85,11 @@ services:
       EMAIL_PROVIDER: ethereal
       PUSH_PROVIDER: fcm
       FCM_PROJECT_ID: ci-smoke
-      # Throwaway, syntactically-valid GCP service-account JSON shape.
-      # validateConfiguration() only checks the shape (project_id /
-      # client_email / private_key strings) at boot — firebase-admin isn't
-      # actually initialised (and no network call made) unless a push send
-      # is attempted, which this smoke job never does.
-      FCM_SERVICE_ACCOUNT_JSON: '{"project_id":"ci-smoke","client_email":"ci-smoke@example.com","private_key":"-----BEGIN PRIVATE KEY-----\nci-smoke\n-----END PRIVATE KEY-----\n"}'
+      # The FCM service-account JSON comes from the fcm_service_account_json
+      # secret the base compose already mounts (FCM_SERVICE_ACCOUNT_JSON_FILE);
+      # the workflow writes a throwaway, syntactically-valid shape there.
+      # Do NOT also set FCM_SERVICE_ACCOUNT_JSON inline: readSecret() refuses
+      # to boot when both the direct and _FILE variants are present.
     ports:
       - '5001:5001'
     tmpfs:
