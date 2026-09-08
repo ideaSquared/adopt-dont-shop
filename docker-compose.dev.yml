@@ -176,6 +176,11 @@ services:
     <<: *dev-build
     environment:
       <<: *dev-env
+      # ADS-1303: `pnpm --filter ... run dev` runs with cwd=services/gateway,
+      # so the config default `docs/legal` resolves to
+      # services/gateway/docs/legal — which doesn't exist. The .:/app bind
+      # mount puts the repo's real docs/legal at /app/docs/legal.
+      LEGAL_DOCS_DIR: /app/docs/legal
     volumes: *dev-volumes
     command: sh -c "pnpm --filter @adopt-dont-shop/service.gateway run dev"
 

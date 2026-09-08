@@ -129,7 +129,7 @@ describe('DISTINCT_SECRET_PAIRS', () => {
   it('covers every signing/encryption secret pairing', () => {
     // Pin the pairing list so a future change to the shared schema does
     // not silently drop a distinctness rule.
-    expect(DISTINCT_SECRET_PAIRS.length).toBe(8);
+    expect(DISTINCT_SECRET_PAIRS.length).toBe(7);
   });
 
   it('always involves at least one signing/encryption secret per pair', () => {
@@ -139,7 +139,6 @@ describe('DISTINCT_SECRET_PAIRS', () => {
       'SESSION_SECRET',
       'UPLOAD_SIGNING_SECRET',
       'ENCRYPTION_KEY',
-      'JWT_REPORT_SHARE_SECRET',
     ]);
     for (const [a, b] of DISTINCT_SECRET_PAIRS) {
       expect(signingNames.has(a) || signingNames.has(b)).toBe(true);
@@ -154,7 +153,6 @@ describe('DISTINCT_SECRET_PAIRS', () => {
 
 const UPLOAD_SECRET = 'U'.repeat(40);
 const PRINCIPAL_KEY = 'P'.repeat(40);
-const REPORT_SHARE_SECRET = 'R'.repeat(40);
 const SECOND_ENCRYPTION_KEY = 'fedcba9876543210'.repeat(4);
 
 const validProdEnv = (): Record<string, string | undefined> => ({
@@ -355,12 +353,12 @@ describe('validateEnv', () => {
     });
 
     it('does not flag a pair when one side is unset', () => {
-      // JWT_REPORT_SHARE_SECRET is optional; absence must not trigger a
-      // distinctness error against UPLOAD_SIGNING_SECRET.
-      const env = validProdEnv();
-      env.JWT_REPORT_SHARE_SECRET = undefined;
+      // UPLOAD_SIGNING_SECRET is optional in dev; absence must not trigger a
+      // distinctness error against JWT_SECRET.
+      const env = validDevEnv();
+      env.UPLOAD_SIGNING_SECRET = undefined;
       const result = validateEnv(env);
-      const pairPaths = errorPaths(result).filter((p) => p.includes('JWT_REPORT_SHARE_SECRET'));
+      const pairPaths = errorPaths(result).filter((p) => p.includes('UPLOAD_SIGNING_SECRET'));
       expect(pairPaths).toEqual([]);
     });
   });
@@ -476,13 +474,6 @@ describe('validateEnv', () => {
       // Regression guard: the hex regex is case-insensitive.
       const env = validDevEnv();
       env.ENCRYPTION_KEY = SECOND_ENCRYPTION_KEY.toUpperCase();
-      const result = validateEnv(env);
-      expect(result.ok).toBe(true);
-    });
-
-    it('accepts optional JWT_REPORT_SHARE_SECRET when distinct from others', () => {
-      const env = validProdEnv();
-      env.JWT_REPORT_SHARE_SECRET = REPORT_SHARE_SECRET;
       const result = validateEnv(env);
       expect(result.ok).toBe(true);
     });
