@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { RESCUE_STATUSES, type RescueId } from '@adopt-dont-shop/lib.types';
-import { boundedRecord } from './bounded-record';
-import { BulkOperationFailedIdsSchema } from './bulk-response';
-import { StrongPasswordSchema, EmailSchema as UserEmailSchema } from './user';
+import { boundedRecord } from './bounded-record.js';
+import { BulkOperationFailedIdsSchema } from './bulk-response.js';
+import { StrongPasswordSchema, EmailSchema as UserEmailSchema } from './user.js';
 
 // ----- Enums --------------------------------------------------------------
 

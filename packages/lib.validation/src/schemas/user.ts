@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { USER_STATUSES, type UserId, type UserRole } from '@adopt-dont-shop/lib.types';
-import { isSingleScriptLocalPart, normalizeEmail } from '../normalize-email';
-import { BulkOperationFailedIdsSchema } from './bulk-response';
+import { isSingleScriptLocalPart, normalizeEmail } from '../normalize-email.js';
+import { BulkOperationFailedIdsSchema } from './bulk-response.js';
 
 // ----- Enums (canonical values from lib.types) ---------------------------
 
