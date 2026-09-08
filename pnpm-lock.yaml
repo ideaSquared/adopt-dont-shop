@@ -1956,6 +1956,9 @@ importers:
       '@adopt-dont-shop/lib.av-scan':
         specifier: workspace:*
         version: link:../../packages/lib.av-scan
+      '@adopt-dont-shop/lib.validation':
+        specifier: workspace:*
+        version: link:../../packages/lib.validation
       '@adopt-dont-shop/observability':
         specifier: workspace:*
         version: link:../../packages/observability

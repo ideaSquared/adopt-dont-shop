@@ -42,7 +42,8 @@ async function makeApp(
   authClient: AuthClient,
   principalSigningKey?: string,
   rescueClient?: RescueClient,
-  logger: Parameters<typeof registerAuthenticate>[1]['logger'] = quietLogger
+  logger: Parameters<typeof registerAuthenticate>[1]['logger'] = quietLogger,
+  metricsBearerToken?: string
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   // Cookie parsing (ADS-919) — the middleware falls back to the
@@ -72,6 +73,7 @@ async function makeApp(
     logger,
     principalSigningKey,
     rescueClient,
+    metricsBearerToken,
   });
   return app;
 }
@@ -404,6 +406,73 @@ describe('registerAuthenticate — public paths', () => {
       expect(res.statusCode).toBe(200);
     }
     expect(validateMock).not.toHaveBeenCalled();
+  });
+});
+
+// ADS-1327: /metrics was unauthenticated inside the docker network with no
+// opt-in gate at all. METRICS_BEARER_TOKEN is optional — unset, the
+// endpoint stays exactly as public as before (a deployment that only
+// reaches it from a trusted internal scraper network need not set it).
+describe('registerAuthenticate — /metrics bearer token (ADS-1327)', () => {
+  let app: FastifyInstance;
+  let validateMock: ReturnType<typeof vi.fn>;
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('stays fully public when METRICS_BEARER_TOKEN is unset (unchanged default)', async () => {
+    const m = makeAuthClient();
+    validateMock = m.validateMock;
+    app = await makeApp(m.client);
+
+    const res = await app.inject({ method: 'GET', url: '/metrics' });
+    expect(res.statusCode).toBe(200);
+    expect(validateMock).not.toHaveBeenCalled();
+  });
+
+  it('401s a request with no Authorization header when METRICS_BEARER_TOKEN is set', async () => {
+    const m = makeAuthClient();
+    app = await makeApp(m.client, undefined, undefined, quietLogger, 'shhh-scrape-me');
+
+    const res = await app.inject({ method: 'GET', url: '/metrics' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('401s a request with the wrong bearer token', async () => {
+    const m = makeAuthClient();
+    app = await makeApp(m.client, undefined, undefined, quietLogger, 'shhh-scrape-me');
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/metrics',
+      headers: { authorization: 'Bearer wrong-token' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('200s and skips ValidateToken when the bearer token matches', async () => {
+    const m = makeAuthClient();
+    validateMock = m.validateMock;
+    app = await makeApp(m.client, undefined, undefined, quietLogger, 'shhh-scrape-me');
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/metrics',
+      headers: { authorization: 'Bearer shhh-scrape-me' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(validateMock).not.toHaveBeenCalled();
+  });
+
+  it('does not gate other infra endpoints (/health, /openapi.json) behind the metrics token', async () => {
+    const m = makeAuthClient();
+    app = await makeApp(m.client, undefined, undefined, quietLogger, 'shhh-scrape-me');
+
+    for (const url of ['/health/simple', '/openapi.json']) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode).toBe(200);
+    }
   });
 });
 

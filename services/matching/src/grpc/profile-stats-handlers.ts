@@ -25,7 +25,7 @@ import type {
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import { ensureSwipePermission } from './handlers.js';
 
-const SWIPES_READ_ANY: Permission = 'matching.swipes.read:any' as Permission;
+const SWIPES_READ_ANY: Permission = 'matching.swipes.read:any';
 
 // --- Row shapes ------------------------------------------------------
 

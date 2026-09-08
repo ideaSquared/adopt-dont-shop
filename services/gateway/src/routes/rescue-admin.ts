@@ -54,7 +54,14 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
+import { mapWithConcurrency } from './reports.js';
 import { rescueToView } from './rescue-view.js';
+
+// ADS-1323: rescueIds fanned out one gRPC call per id with no cap — an
+// unbounded array is a fan-out DoS vector, the same class of bug commit
+// 08dc01a fixed for reports/execute.
+const MAX_BULK_RESCUE_IDS = 100;
+const BULK_RESCUE_CONCURRENCY_LIMIT = 5;
 
 export type RescueAdminRoutesOptions = {
   client: RescueClient;
@@ -408,7 +415,11 @@ export const registerRescueAdminRoutes = async (
         body: {
           type: 'object',
           properties: {
-            rescueIds: { type: 'array', items: { type: 'string' } },
+            rescueIds: {
+              type: 'array',
+              items: { type: 'string' },
+              maxItems: MAX_BULK_RESCUE_IDS,
+            },
             action: { type: 'string' },
             reason: { type: 'string' },
           },
@@ -438,6 +449,14 @@ export const registerRescueAdminRoutes = async (
       if (ids.length === 0) {
         return reply.code(400).send({ success: false, error: 'rescueIds is required' });
       }
+      // Defence-in-depth backstop to the schema's maxItems: reject an
+      // over-cap list before any gRPC fan-out fires.
+      if (ids.length > MAX_BULK_RESCUE_IDS) {
+        return reply.code(400).send({
+          success: false,
+          error: `rescueIds exceeds the maximum of ${MAX_BULK_RESCUE_IDS}`,
+        });
+      }
       const toStatus = body.action ? BULK_ACTION_STATUS[body.action] : undefined;
       if (toStatus === undefined) {
         return reply
@@ -450,15 +469,14 @@ export const registerRescueAdminRoutes = async (
           ? RescueV1.RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_MANUAL
           : undefined;
 
-      const results = await Promise.all(
-        ids.map(rescueId =>
-          client
-            .verify({ rescueId, toStatus, verificationSource }, metadata)
-            .then(() => true)
-            .catch(() => false)
-        )
+      // Bounded concurrency (ADS-1323) — mirrors reports.ts's mapWithConcurrency
+      // fix for POST /reports/execute (commit 08dc01a): fan out at most
+      // BULK_RESCUE_CONCURRENCY_LIMIT gRPC calls at once instead of firing
+      // all of ids via Promise.all simultaneously.
+      const results = await mapWithConcurrency(ids, BULK_RESCUE_CONCURRENCY_LIMIT, rescueId =>
+        client.verify({ rescueId, toStatus, verificationSource }, metadata)
       );
-      const successCount = results.filter(Boolean).length;
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
       return reply.send({
         success: true,
         message: `Updated ${successCount} of ${ids.length} rescues`,

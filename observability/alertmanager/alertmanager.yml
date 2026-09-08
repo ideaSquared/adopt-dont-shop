@@ -1,15 +1,21 @@
-# Alertmanager routing for the deployed observability stack (ADS-1041 / ADS-1052).
+# Alertmanager routing for the deployed observability stack (ADS-1041 / ADS-1052 / ADS-1307).
 #
 # Routes the SLO alert rules (infra/prometheus/rules/, loaded by Prometheus) by
-# their `severity` label. Both receivers (critical-pager, warning-chat) deliver
-# to Discord via an incoming webhook. There is no Slack/email/PagerDuty path.
+# their `severity` label. `critical-pager` and `warning-chat` each deliver to
+# their own Discord incoming webhook (split — ADS-1307b — so a critical
+# escalation channel can differ from routine chat); `deadman` pings an
+# external dead-man's-switch service. There is no Slack/email/PagerDuty path.
 #
-# The webhook URL is a file secret: drop it into
-# observability/alertmanager/secrets/discord_webhook_url on the host (gitignored,
-# mounted read-only at /etc/alertmanager/secrets/). Alertmanager reads it via
-# webhook_url_file so it never lands in `docker inspect`, and it will NOT start
-# until that file exists. Reload after editing with
-# `docker compose kill -s HUP alertmanager` (or restart).
+# Every webhook URL is a file secret, never inline in this file:
+#   observability/alertmanager/secrets/discord_webhook_url_critical
+#   observability/alertmanager/secrets/discord_webhook_url_warning
+#   observability/alertmanager/secrets/deadman_webhook_url
+# (gitignored, mounted read-only at /etc/alertmanager/secrets/). Alertmanager
+# reads them via *_file so they never land in `docker inspect`, and it will
+# NOT start until all three files exist. Reload after editing with
+# `docker compose kill -s HUP alertmanager` (or restart). See
+# docs/runbooks/observability-enable.md §4 and docs/runbooks/README.md's
+# severity section.
 
 global:
   resolve_timeout: 5m
@@ -20,9 +26,23 @@ route:
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-  # Default sink — inert. Every alert also matches a severity child route below.
+  # Default sink — inert. Every alert also matches a child route below.
   receiver: 'warning-chat'
   routes:
+    # The Watchdog alert (infra/prometheus/rules/watchdog.yml) always fires
+    # with severity="none" — route it to the dead-man's-switch receiver
+    # only, never to Discord. `continue: false` (the default) so it doesn't
+    # also fall through to warning-chat.
+    - matchers:
+        - severity = "none"
+      receiver: 'deadman'
+      group_wait: 0s
+      group_interval: 1m
+      # Must be at most the dead-man's-switch service's configured "expected
+      # every N minutes" period, or it declares the pipeline dead between
+      # pings. Healthchecks.io/Cronitor default to a generous grace period,
+      # but set this no looser than that check's period.
+      repeat_interval: 5m
     - matchers:
         - severity = "critical"
       receiver: 'critical-pager'
@@ -41,16 +61,10 @@ inhibit_rules:
     equal: ['alertname', 'job']
 
 receivers:
-  # Delivery goes to Discord via an incoming webhook (ADS-1041). The webhook
-  # URL is a secret: it lives in observability/alertmanager/secrets/discord_webhook_url
-  # on the host (gitignored, mounted read-only at /etc/alertmanager/secrets/),
-  # NOT in this file — webhook_url_file keeps it out of `docker inspect` too.
-  # Reload after editing: `docker compose kill -s HUP alertmanager`.
-
-  # ---- CRITICAL → alerts channel -----------------------------------------
+  # ---- CRITICAL → its own Discord channel/webhook ------------------------
   - name: 'critical-pager'
     discord_configs:
-      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url
+      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url_critical
         send_resolved: true
         title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
         message: >-
@@ -59,15 +73,27 @@ receivers:
           {{ if .Annotations.runbook }}Runbook: {{ .Annotations.runbook }}{{ end }}
           {{ end }}
 
-  # ---- WARNING → alerts channel ------------------------------------------
-  # Same webhook for now (single channel). Point at a separate webhook secret
-  # if you split #alerts-critical from #alerts later.
+  # ---- WARNING → its own Discord channel/webhook -------------------------
   - name: 'warning-chat'
     discord_configs:
-      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url
+      - webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url_warning
         send_resolved: true
         title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
         message: >-
           {{ range .Alerts }}{{ .Annotations.summary }}
           {{ .Annotations.description }}
           {{ end }}
+
+  # ---- Dead-man's switch (ADS-1307a) --------------------------------------
+  # A generic webhook, not Discord: point it at a Healthchecks.io or
+  # Cronitor "ping URL" (create a check there with a period matching
+  # `repeat_interval` above and a grace period covering one missed cycle;
+  # both services accept any POST body, so Alertmanager's default JSON
+  # payload works unmodified). That external service — not this stack — is
+  # what actually pages someone when the ping stops arriving, which is the
+  # off-host signal a self-hosted, same-host monitoring stack cannot
+  # generate for its own outage.
+  - name: 'deadman'
+    webhook_configs:
+      - url_file: /etc/alertmanager/secrets/deadman_webhook_url
+        send_resolved: false

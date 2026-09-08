@@ -216,4 +216,14 @@ describe('listUserFavorites', () => {
       code: 'UNAUTHENTICATED',
     });
   });
+
+  // ADS-1323: the query ran with no LIMIT — a user with an unusually large
+  // favourites list (or a corrupted/abusive account) could pull an
+  // unbounded result set into memory on every read.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listUserFavorites(mocks.deps, ADOPTER, {});
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/LIMIT\s+\d+/i);
+  });
 });

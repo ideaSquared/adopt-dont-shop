@@ -2,9 +2,13 @@
 
 > **Audience:** on-call, shell access on the prod host, no context.
 > **Last reviewed:** 2026-09-03
-> **Related alerts:** none watches the outbox directly — watch the
-> `events_outbox_pending` gauge on the Grafana **service-overview** dashboard. A
-> climbing, non-draining value is the signal.
+> **Related alerts:** `OutboxBacklogGrowing` (warning,
+> `infra/prometheus/rules/outbox.yml`) fires on this runbook's symptom;
+> `DeadLetterIncreasing` (same file) watches the downstream DLQ half — see
+> [`jetstream-backlog.md`](./jetstream-backlog.md). Watch the **Outbox
+> pending** / **Dead-letter events** panels on the Grafana
+> **service-overview** dashboard (`events_outbox_pending` /
+> `events_dead_letter_total`). A climbing, non-draining value is the signal.
 
 ## Symptoms
 

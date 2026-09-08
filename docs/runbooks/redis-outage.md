@@ -2,9 +2,11 @@
 
 > **Audience:** on-call, shell access on the prod host, no context.
 > **Last reviewed:** 2026-09-03
-> **Related alerts:** none watches Redis directly — it surfaces through
-> `HighErrorRate` (`warning`, `infra/prometheus/rules/high-error-rate.yml`) on
-> auth / rate-limited routes. Treat as effectively `critical` once auth or
+> **Related alerts:** `RedisDown` (critical) and `RedisMemoryHigh` (warning)
+> (`infra/prometheus/rules/datastore.yml`, ADS-1313) watch Redis directly now;
+> before that it only surfaced through `HighErrorRate` (`warning`,
+> `infra/prometheus/rules/high-error-rate.yml`) on auth / rate-limited
+> routes. Treat `HighErrorRate` here as effectively `critical` once auth or
 > rate-limit-dependent flows start failing.
 
 ## Preconditions

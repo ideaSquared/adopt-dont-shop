@@ -75,6 +75,14 @@ import { buildMetadata } from '../middleware/metadata.js';
 import { GRPC_TO_HTTP, handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
+import { mapWithConcurrency } from './reports.js';
+
+// ADS-1323: applicationIds fanned out one gRPC call per id with no cap — an
+// unbounded array is a fan-out DoS vector, the same class of bug commit
+// 08dc01a fixed for reports/execute.
+const MAX_BULK_APPLICATION_IDS = 100;
+const BULK_APPLICATION_CONCURRENCY_LIMIT = 5;
+
 export type ApplicationsRoutesOptions = {
   client: ApplicationsClient;
   // ADS-1192: optional enrichment clients. The list route attaches
@@ -514,7 +522,11 @@ export const registerApplicationsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            applicationIds: { type: 'array', items: { type: 'string' } },
+            applicationIds: {
+              type: 'array',
+              items: { type: 'string' },
+              maxItems: MAX_BULK_APPLICATION_IDS,
+            },
             updates: {
               type: 'object',
               properties: {
@@ -573,16 +585,31 @@ export const registerApplicationsRoutes = async (
       if (applicationIds.length === 0) {
         return reply.code(400).send({ error: 'applicationIds must be a non-empty array' });
       }
+      // Defence-in-depth backstop to the schema's maxItems: reject an
+      // over-cap list before any gRPC fan-out fires.
+      if (applicationIds.length > MAX_BULK_APPLICATION_IDS) {
+        return reply
+          .code(400)
+          .send({ error: `applicationIds exceeds the maximum of ${MAX_BULK_APPLICATION_IDS}` });
+      }
 
       const meta = buildMetadata(req);
-      const failures: Array<{ applicationId: string; error: string }> = [];
-      for (const applicationId of applicationIds) {
-        try {
-          await applyBulkUpdate(client, applicationId, updates, meta);
-        } catch (err) {
-          failures.push({ applicationId, error: describeGrpcError(err) });
-        }
-      }
+      // Bounded concurrency (ADS-1323) — mirrors reports.ts's mapWithConcurrency
+      // fix for POST /reports/execute (commit 08dc01a): fan out at most
+      // BULK_APPLICATION_CONCURRENCY_LIMIT gRPC calls at once instead of a
+      // fully sequential loop over an unbounded id list.
+      const settled = await mapWithConcurrency(
+        applicationIds,
+        BULK_APPLICATION_CONCURRENCY_LIMIT,
+        applicationId => applyBulkUpdate(client, applicationId, updates, meta)
+      );
+      const failures = applicationIds
+        .map((applicationId, i) => ({ applicationId, result: settled[i] }))
+        .filter(
+          (r): r is { applicationId: string; result: PromiseRejectedResult } =>
+            r.result.status === 'rejected'
+        )
+        .map(r => ({ applicationId: r.applicationId, error: describeGrpcError(r.result.reason) }));
 
       return reply.send({
         data: {

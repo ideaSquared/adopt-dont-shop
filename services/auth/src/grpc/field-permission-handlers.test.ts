@@ -205,6 +205,16 @@ describe('listFieldPermissionOverrides', () => {
     expect(sql).toContain('deleted_at IS NULL');
     expect(params).toEqual(['users']);
   });
+
+  // ADS-1323: the query ran with no LIMIT.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    mocks.poolScript.push({ rows: [] });
+    await listFieldPermissionOverrides(mocks.deps, READER, {
+      resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+    });
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/LIMIT\s+\d+/i);
+  });
 });
 
 describe('listFieldPermissionOverridesForRole', () => {
@@ -217,6 +227,18 @@ describe('listFieldPermissionOverridesForRole', () => {
     });
     const [, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(params).toEqual(['users', 'admin']);
+  });
+
+  // ADS-1323: the query ran with no LIMIT.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    const mocks = makeMocks();
+    mocks.poolScript.push({ rows: [] });
+    await listFieldPermissionOverridesForRole(mocks.deps, READER, {
+      resource: AuthV1.FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS,
+      role: 'admin',
+    });
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/LIMIT\s+\d+/i);
   });
 });
 

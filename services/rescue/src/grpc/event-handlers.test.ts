@@ -187,6 +187,15 @@ describe('listEvents', () => {
     // it should be escaped, not passed through raw.
     expect(params).toContain('%50\\%\\_off%');
   });
+
+  // ADS-1323: the query ran with no LIMIT — a rescue with an unusually
+  // large event history could pull an unbounded result set on every read.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listEvents(mocks.deps, STAFF, {});
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/LIMIT\s+\d+/i);
+  });
 });
 
 // ── GetEvent ────────────────────────────────────────────────────────────

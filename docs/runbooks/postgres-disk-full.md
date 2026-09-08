@@ -2,10 +2,13 @@
 
 > **Audience:** on-call, shell access on the prod host, no context.
 > **Last reviewed:** 2026-09-03
-> **Related alerts:** none — there is **no** disk-space alert on the single host.
-> It surfaces as `ServiceDown` / `HighGrpcErrorRate` when writes start failing.
-> This is a known gap; treat any `No space left on device` in logs as this
-> runbook.
+> **Related alerts:** `HostDiskSpaceLow` (warning at <20% free, critical at
+> <10%, `infra/prometheus/rules/host-resources.yml`) and
+> `PostgresConnectionsNearMax` (`infra/prometheus/rules/datastore.yml` — a
+> full disk can also stall Postgres in ways that back up connections). Before
+> ADS-1313 there was no disk-space alert at all; it only surfaced as
+> `ServiceDown` / `HighGrpcErrorRate` once writes started failing. Treat any
+> `No space left on device` in logs as this runbook either way.
 
 ## Symptoms
 

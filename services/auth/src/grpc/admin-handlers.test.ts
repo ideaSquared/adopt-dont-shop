@@ -719,6 +719,14 @@ describe('listIpRules', () => {
       },
     ]);
   });
+
+  // ADS-1323: the query ran with no LIMIT.
+  it('caps the query with a LIMIT (ADS-1323)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listIpRules(mocks.deps, SECURITY_READER, {});
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/LIMIT\s+\d+/i);
+  });
 });
 
 describe('createIpRule', () => {
