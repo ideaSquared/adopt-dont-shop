@@ -33,6 +33,18 @@ export type ApplicationsConfig = {
   // the database can't enforce). Defaults to the same service-pets:6003
   // address the gateway uses.
   petsGrpcUrl: string;
+  // Application-drafts retention purge (ADS-1320) — see
+  // src/jobs/application-draft-retention.ts and migrations/
+  // 007_create_application_drafts.ts (the 30-day TTL this job enforces is
+  // stamped at write time in application-draft-handlers.ts; these two vars
+  // only control how the purge JOB itself runs).
+  applicationDraftPurge: {
+    // How often the purge job runs. Default: daily.
+    intervalMs: number;
+    // Max rows deleted per transaction, so a large backlog never holds one
+    // long-running transaction/lock.
+    batchSize: number;
+  };
 };
 
 const DEFAULT_PORT = 5005;
@@ -41,6 +53,8 @@ const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'applications';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
+const DEFAULT_APPLICATION_DRAFT_PURGE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_APPLICATION_DRAFT_PURGE_BATCH_SIZE = 500;
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ApplicationsConfig => {
   const port = parsePort(env.APPLICATIONS_PORT, DEFAULT_PORT, 'APPLICATIONS_PORT');
@@ -52,6 +66,17 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ApplicationsCo
 
   const databaseUrl = requireSecret('DATABASE_URL', env, 'Postgres connection string');
 
+  const applicationDraftPurgeIntervalMs = parsePort(
+    env.APPLICATION_DRAFT_PURGE_INTERVAL_MS,
+    DEFAULT_APPLICATION_DRAFT_PURGE_INTERVAL_MS,
+    'APPLICATION_DRAFT_PURGE_INTERVAL_MS'
+  );
+  const applicationDraftPurgeBatchSize = parsePort(
+    env.APPLICATION_DRAFT_PURGE_BATCH_SIZE,
+    DEFAULT_APPLICATION_DRAFT_PURGE_BATCH_SIZE,
+    'APPLICATION_DRAFT_PURGE_BATCH_SIZE'
+  );
+
   return {
     port,
     grpcPort,
@@ -61,5 +86,9 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ApplicationsCo
     schema: env.APPLICATIONS_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
+    applicationDraftPurge: {
+      intervalMs: applicationDraftPurgeIntervalMs,
+      batchSize: applicationDraftPurgeBatchSize,
+    },
   };
 };

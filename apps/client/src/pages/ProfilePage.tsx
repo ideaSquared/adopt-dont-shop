@@ -5,7 +5,7 @@ import {
   SettingsForm,
 } from '@/components/profile';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { applicationService, authService, Application, User } from '@/services';
+import { apiService, applicationService, authService, Application, User } from '@/services';
 import {
   Alert,
   Button,
@@ -22,6 +22,15 @@ import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import * as styles from './ProfilePage.css';
+
+// Shape of GET /api/v1/users/me/export (GDPR Art. 15/20 self-service
+// export, ADS-1320). Downloaded verbatim as the archive — see
+// services/gateway/src/routes/users-export.ts.
+interface UserDataExport {
+  user?: unknown;
+  privacyPreferences?: unknown;
+  exportedAt: string;
+}
 
 // Extended interface for applications with pet info
 interface ApplicationWithPetInfo extends Application {
@@ -78,6 +87,9 @@ export const ProfilePage: React.FC = () => {
   // password (and a TOTP for 2FA accounts).
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteTotp, setDeleteTotp] = useState('');
+  // GDPR Art. 15/20 self-service export (ADS-1320).
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Clear the success-message timer on unmount to prevent setState on an unmounted component.
   useEffect(() => {
@@ -302,6 +314,30 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleDownloadData = async () => {
+    try {
+      setIsExporting(true);
+      setExportError(null);
+
+      const bundle = await apiService.get<UserDataExport>('/api/v1/users/me/export');
+
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `adopt-dont-shop-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export data:', error);
+      setExportError('Failed to download your data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return formatDisplayDate(dateString);
   };
@@ -471,6 +507,21 @@ export const ProfilePage: React.FC = () => {
           isLoading={isSavingSettings}
         />
       )}
+      <div className={styles.sectionGap}>
+        <h3>Your data</h3>
+        <p>
+          Download a copy of the personal data we hold about you (GDPR Art. 15/20). The file is
+          saved to your device as JSON.
+        </p>
+        {exportError && (
+          <div className={styles.sectionGap} role='alert'>
+            <Alert variant='error'>{exportError}</Alert>
+          </div>
+        )}
+        <Button variant='secondary' onClick={handleDownloadData} isLoading={isExporting}>
+          Download my data
+        </Button>
+      </div>
     </div>
   );
 

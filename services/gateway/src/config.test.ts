@@ -354,3 +354,23 @@ describe('loadConfig — AV scan (ADS-1241)', () => {
     expect(config.avScan.failClosed).toBe(true);
   });
 });
+
+describe('loadConfig — legal docs directory (ADS-1303)', () => {
+  it('defaults docsDir to the relative docs/legal path', () => {
+    expect(loadConfig({}).legal.docsDir).toBe('docs/legal');
+  });
+
+  it(
+    'honours LEGAL_DOCS_DIR when set — Dockerfile.service bakes docs/legal into ' +
+      'the image and prod/staging compose point this at the baked-in copy',
+    () => {
+      const config = loadConfig({ LEGAL_DOCS_DIR: '/app/docs/legal' });
+      expect(config.legal.docsDir).toBe('/app/docs/legal');
+    }
+  );
+
+  it('trims surrounding whitespace from LEGAL_DOCS_DIR', () => {
+    const config = loadConfig({ LEGAL_DOCS_DIR: '  /app/docs/legal  ' });
+    expect(config.legal.docsDir).toBe('/app/docs/legal');
+  });
+});

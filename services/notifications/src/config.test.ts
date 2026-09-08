@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { loadConfig } from './config.js';
 
@@ -154,6 +158,71 @@ describe('loadConfig', () => {
   it('rejects an unset DATABASE_URL — the schema-per-service rule needs a connection string at boot', () => {
     expect(() => loadConfig({})).toThrow(/DATABASE_URL is required/);
     expect(() => loadConfig({ DATABASE_URL: '   ' })).toThrow(/DATABASE_URL is required/);
+  });
+
+  describe('file-mounted secrets (RESEND_API_KEY_FILE / FCM_SERVICE_ACCOUNT_JSON_FILE)', () => {
+    let tmp: string;
+
+    beforeEach(() => {
+      tmp = mkdtempSync(join(tmpdir(), 'notifications-config-'));
+    });
+
+    afterEach(() => {
+      rmSync(tmp, { recursive: true, force: true });
+    });
+
+    it('reads RESEND_API_KEY from RESEND_API_KEY_FILE when set', () => {
+      const file = join(tmp, 'resend_api_key');
+      writeFileSync(file, 're_from_file\n');
+
+      const config = loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        EMAIL_PROVIDER: 'resend',
+        RESEND_API_KEY_FILE: file,
+        DEFAULT_FROM_EMAIL: 'noreply@example.com',
+      });
+
+      expect(config.emailProvider).toEqual({
+        kind: 'resend',
+        apiKey: 're_from_file',
+        fromEmail: 'noreply@example.com',
+        fromName: "Adopt Don't Shop",
+        replyTo: undefined,
+      });
+    });
+
+    it('reads FCM_SERVICE_ACCOUNT_JSON from FCM_SERVICE_ACCOUNT_JSON_FILE when set', () => {
+      const file = join(tmp, 'fcm_service_account_json');
+      writeFileSync(file, '{"type":"service_account"}\n');
+
+      const config = loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        PUSH_PROVIDER: 'fcm',
+        FCM_SERVICE_ACCOUNT_JSON_FILE: file,
+        FCM_PROJECT_ID: 'gcp-project-id',
+      });
+
+      expect(config.pushProvider).toEqual({
+        kind: 'fcm',
+        serviceAccountJson: '{"type":"service_account"}',
+        projectId: 'gcp-project-id',
+      });
+    });
+
+    it('refuses to guess when both RESEND_API_KEY and RESEND_API_KEY_FILE are set', () => {
+      const file = join(tmp, 'resend_api_key');
+      writeFileSync(file, 're_from_file');
+
+      expect(() =>
+        loadConfig({
+          DATABASE_URL: VALID_DB_URL,
+          EMAIL_PROVIDER: 'resend',
+          RESEND_API_KEY: 're_env',
+          RESEND_API_KEY_FILE: file,
+          DEFAULT_FROM_EMAIL: 'noreply@example.com',
+        })
+      ).toThrow(/RESEND_API_KEY and RESEND_API_KEY_FILE are both set/);
+    });
   });
 
   it('trims surrounding whitespace from string env values', () => {

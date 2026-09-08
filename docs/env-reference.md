@@ -25,7 +25,7 @@ Beyond the essentials in `.env.example` (`POSTGRES_*`, `DB_HOST/PORT/USERNAME/PA
 
 ## Auth & secrets
 
-The auto-generated block (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `PRINCIPAL_SIGNING_KEY`, `JWT_REPORT_SHARE_SECRET`, `REDIS_PASSWORD`, `GF_SECURITY_ADMIN_PASSWORD`) is in `.env.example` and filled in by `pnpm bootstrap` / `pnpm secrets:generate`.
+The auto-generated block (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `PRINCIPAL_SIGNING_KEY`, `REDIS_PASSWORD`, `GF_SECURITY_ADMIN_PASSWORD`) is in `.env.example` and filled in by `pnpm bootstrap` / `pnpm secrets:generate`.
 
 - `ENCRYPTION_KEY` must be exactly 64 hex characters (32 bytes) for AES-256 — `pnpm secrets:generate` produces a valid one.
 - `UPLOAD_SIGNING_SECRET` (ADS-542) is a dedicated HMAC key for short-lived `/uploads-signed/*` URLs — required in production (min 32 chars) by `packages/lib.validation/src/schemas/env.ts`.
@@ -36,10 +36,10 @@ The auto-generated block (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, 
 
 Beyond `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` (in `.env.example`):
 
-| Variable          | Read in                                                                         | Default                             | Notes                                                                                                                                        |
-| ----------------- | ------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `REDIS_HOST_PORT` | `scripts/docker-dev.mjs`, `docker-compose.dev.yml`                              | `6380`                              | Host-side port the dev stack publishes Redis on. Change it if 6380 is taken; `pnpm docker:dev` detects a collision and suggests a free port. |
-| `REDIS_URL`       | `services/gateway/src/config.ts` (rate-limit store), `x-service-env` in Compose | Compose: `redis://:<pw>@redis:6379` | Shared store for cross-replica rate limiting (ADS-805). When unset the gateway uses an in-memory store.                                      |
+| Variable          | Read in                                                          | Default                                             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `REDIS_HOST_PORT` | `scripts/docker-dev.mjs`, `docker-compose.dev.yml`               | `6380`                                              | Host-side port the dev stack publishes Redis on. Change it if 6380 is taken; `pnpm docker:dev` detects a collision and suggests a free port.                                                                                                                                                                                                                                                                                                           |
+| `REDIS_URL`       | `services/gateway/src/config.ts` (rate-limit store + WS adapter) | dev: `redis://:<pw>@redis:6379`; prod/staging: none | Shared store for cross-replica rate limiting (ADS-805) and the Redis-backed WS adapter. The gateway does NOT merge the domain services' `x-service-env` anchor — dev's `docker-compose.yml` sets `REDIS_URL` directly on the gateway's own block; prod/staging set `REDIS_URL_FILE: /run/secrets/redis_url` directly on the gateway's own block (ADS-1310). When unset the gateway uses an in-memory rate-limit store and the WS adapter never starts. |
 
 ## Frontend / gateway URLs & CORS
 
@@ -96,23 +96,25 @@ Services that call other services read a subset of `*_GRPC_URL` too: `services/r
 
 ## Gateway (`services/gateway/src/config.ts` unless noted)
 
-| Variable                      | Default      | Notes                                                                                                                                                                                 |
-| ----------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GATEWAY_RATE_LIMIT_MAX`      | `100`        | Global per-IP requests per window. Compose passes it through (`${GATEWAY_RATE_LIMIT_MAX:-100}`); the e2e CI stack raises it.                                                          |
-| `GATEWAY_RATE_LIMIT_WINDOW`   | `1 minute`   | Window as ms or an `@lukeed/ms` string.                                                                                                                                               |
-| `GATEWAY_AUTH_RATE_LIMIT_MAX` | unset        | `src/routes/auth.ts`. Raises the per-route login/register caps; set only by the e2e stack.                                                                                            |
-| `GRPC_RETRY_COUNT`            | `2`          | `src/grpc-clients/resilience.ts`. Max attempts = 1 + this.                                                                                                                            |
-| `GRPC_CIRCUIT_FAILURES`       | `5`          | `src/grpc-clients/resilience.ts`. Failures within the window that open the breaker.                                                                                                   |
-| `GRPC_CIRCUIT_WINDOW_MS`      | `30000`      | `src/grpc-clients/resilience.ts`.                                                                                                                                                     |
-| `GRPC_CIRCUIT_COOLDOWN_MS`    | `10000`      | `src/grpc-clients/resilience.ts`. Time before the breaker half-opens.                                                                                                                 |
-| `E2E_TOKEN_PEEK`              | unset        | ADS-871 test seam that exposes one-time reset/verify/invitation tokens to Playwright. Only the exact string `true` enables it; the gateway refuses to boot with it set in production. |
-| `GATEWAY_LEGAL_ENABLED`       | `true`       | Set `false` to disable the legal-docs routes.                                                                                                                                         |
-| `LEGAL_DOCS_DIR`              | `docs/legal` | Directory the legal routes serve from.                                                                                                                                                |
-| `GATEWAY_CONFIG_ENABLED`      | `true`       | Set `false` to disable the public config endpoint.                                                                                                                                    |
+| Variable                      | Default      | Notes                                                                                                                                                                                                                                                                                                      |
+| ----------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GATEWAY_RATE_LIMIT_MAX`      | `100`        | Global per-IP requests per window. Compose passes it through (`${GATEWAY_RATE_LIMIT_MAX:-100}`); the e2e CI stack raises it.                                                                                                                                                                               |
+| `GATEWAY_RATE_LIMIT_WINDOW`   | `1 minute`   | Window as ms or an `@lukeed/ms` string.                                                                                                                                                                                                                                                                    |
+| `GATEWAY_AUTH_RATE_LIMIT_MAX` | unset        | `src/routes/auth.ts`. Raises the per-route login/register caps; set only by the e2e stack.                                                                                                                                                                                                                 |
+| `GRPC_RETRY_COUNT`            | `2`          | `src/grpc-clients/resilience.ts`. Max attempts = 1 + this.                                                                                                                                                                                                                                                 |
+| `GRPC_CIRCUIT_FAILURES`       | `5`          | `src/grpc-clients/resilience.ts`. Failures within the window that open the breaker.                                                                                                                                                                                                                        |
+| `GRPC_CIRCUIT_WINDOW_MS`      | `30000`      | `src/grpc-clients/resilience.ts`.                                                                                                                                                                                                                                                                          |
+| `GRPC_CIRCUIT_COOLDOWN_MS`    | `10000`      | `src/grpc-clients/resilience.ts`. Time before the breaker half-opens.                                                                                                                                                                                                                                      |
+| `E2E_TOKEN_PEEK`              | unset        | ADS-871 test seam that exposes one-time reset/verify/invitation tokens to Playwright. Only the exact string `true` enables it; the gateway refuses to boot with it set in production.                                                                                                                      |
+| `GATEWAY_LEGAL_ENABLED`       | `true`       | Set `false` to disable the legal-docs routes.                                                                                                                                                                                                                                                              |
+| `LEGAL_DOCS_DIR`              | `docs/legal` | Directory the legal routes serve from. The relative default only resolves against the repo root, which none of the compose-driven processes run from — dev, prod and staging all set this explicitly to `/app/docs/legal` (ADS-1303; `Dockerfile.service` bakes `docs/legal` into the image at that path). |
+| `GATEWAY_CONFIG_ENABLED`      | `true`       | Set `false` to disable the public config endpoint.                                                                                                                                                                                                                                                         |
 
 ## Email (`services/notifications/src/config.ts`)
 
 `.env.example` sets `EMAIL_PROVIDER=console` (prints to stdout) plus `EMAIL_FROM` / `DEFAULT_FROM_EMAIL`. Only `console`, `ethereal` and `resend` are implemented; production refuses `console`.
+
+`RESEND_API_KEY` also accepts the `RESEND_API_KEY_FILE` file-secret form via `@adopt-dont-shop/config-secrets` (ADS-1302). `docker-compose.prod.yml` / `docker-compose.staging.yml` set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY_FILE: /run/secrets/resend_api_key` (see `secrets/README.md`) and `DEFAULT_FROM_EMAIL` on `service-notifications` — without these the service crash-loops under `NODE_ENV=production`.
 
 ```env
 # EMAIL_PROVIDER=resend            # the only provider permitted in production
@@ -133,12 +135,28 @@ Services that call other services read a subset of `*_GRPC_URL` too: `services/r
 
 `PUSH_PROVIDER=console` (default) logs pushes to stdout; production refuses it. The only wired production provider is Firebase Cloud Messaging (`services/notifications/src/push/providers/fcm.ts`, ADS-1238). With `PUSH_PROVIDER=fcm` both vars below are required — boot fails if either is missing:
 
+`FCM_SERVICE_ACCOUNT_JSON` also accepts the `FCM_SERVICE_ACCOUNT_JSON_FILE` file-secret form via `@adopt-dont-shop/config-secrets` (ADS-1302). `docker-compose.prod.yml` / `docker-compose.staging.yml` set `PUSH_PROVIDER=fcm`, `FCM_SERVICE_ACCOUNT_JSON_FILE: /run/secrets/fcm_service_account_json` (see `secrets/README.md`) and `FCM_PROJECT_ID` on `service-notifications`.
+
 ```env
 # PUSH_PROVIDER=fcm
 # Raw GCP service-account JSON as downloaded from the Firebase console.
 # FCM_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"...",...}
 # FCM_PROJECT_ID=your-firebase-project-id
 ```
+
+## Retention purge jobs (ADS-1320)
+
+Two scheduled, cross-instance-claimed purge jobs (`src/scheduler/` + `src/jobs/`) close gaps
+between what migrations documented and what actually ran. Both jobs delete in bounded batches
+inside `withTransaction` and publish one `<domain>.actionTaken` summary event per run.
+
+| Variable                              | Default    | Notes                                                                                                                                                                   |
+| ------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APPLICATION_DRAFT_PURGE_INTERVAL_MS` | `86400000` | `services/applications/src/config.ts`. How often the job runs (24h). Purges `application_drafts` rows past `expires_at`.                                                |
+| `APPLICATION_DRAFT_PURGE_BATCH_SIZE`  | `500`      | `services/applications/src/config.ts`. Max rows deleted per transaction.                                                                                                |
+| `EMAIL_QUEUE_RETENTION_DAYS`          | `365`      | Read directly from `process.env` by `services/notifications/src/jobs/email-queue-retention.ts` (not `config.ts`). Age of a _sent_ `email_queue` row before it's purged. |
+| `EMAIL_QUEUE_PURGE_INTERVAL_MS`       | `86400000` | Same module. How often the job runs (24h).                                                                                                                              |
+| `EMAIL_QUEUE_PURGE_BATCH_SIZE`        | `500`      | Same module. Max rows deleted per transaction.                                                                                                                          |
 
 ## File storage (`services/gateway/src/config.ts`)
 

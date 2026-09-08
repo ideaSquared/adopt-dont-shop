@@ -125,6 +125,13 @@ ENV NODE_ENV=production
 # dist/ at runtime, so the production image needs no tsx/esbuild loader.
 ENV NODE_OPTIONS="--conditions=production"
 COPY --from=prod-deps --chown=svcuser:nodejs /app ./
+# ADS-1303: `turbo prune --docker` only carries the pruned workspace
+# subgraph, not the repo-root docs/ tree, so the gateway's legal routes
+# (terms/privacy/cookies) have nothing to read without this. Baked in for
+# every service (cheap — three small markdown files) rather than only the
+# gateway, since SERVICE_DIR varies per build and this stays simple.
+# prod/staging compose set LEGAL_DOCS_DIR=/app/docs/legal to match.
+COPY --chown=svcuser:nodejs docs/legal ./docs/legal
 # Pre-create the uploads mount point owned by svcuser so a *fresh* named
 # volume (uploads:/app/uploads in docker-compose.prod/staging.yml) is
 # initialised writable by the runtime user. [ADS-771]
