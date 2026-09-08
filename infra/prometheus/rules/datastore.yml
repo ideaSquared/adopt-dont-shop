@@ -1,0 +1,77 @@
+# Datastore rules (ADS-1313).
+#
+# postgres_exporter and redis_exporter are new scrape targets
+# (docker-compose.observability.yml) — before this file, a Postgres
+# connection exhaustion or a dead Redis had no alert of its own; both only
+# surfaced indirectly via HighErrorRate once application requests started
+# failing.
+groups:
+  - name: ads-datastore
+    interval: 30s
+    rules:
+      # docker-compose.prod.yml / .staging.yml hard-code `-c
+      # max_connections=200` (ADS-1042) — the threshold below is deliberately
+      # hard-coded to match rather than read from pg_settings_max_connections,
+      # so it stays correct even if the exporter's default collectors are
+      # ever pared down.
+      - alert: PostgresConnectionsNearMax
+        expr: sum(pg_stat_database_numbackends) / 200 > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Postgres connections >80% of max_connections=200'
+          description: >-
+            {{ $value | humanizePercentage }} of the 200 max_connections
+            budget (docs/operations/connection-budget.md) is in use. New
+            connections will start failing with "too many clients" if this
+            keeps climbing.
+          runbook: docs/runbooks/postgres-disk-full.md
+
+      - alert: PostgresConnectionsNearMax
+        expr: sum(pg_stat_database_numbackends) / 200 > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Postgres connections >90% of max_connections=200'
+          description: >-
+            {{ $value | humanizePercentage }} of the 200 max_connections
+            budget is in use — close to "FATAL: too many clients". Check for
+            a connection leak or a stuck migration holding a pool open.
+          runbook: docs/runbooks/postgres-disk-full.md
+
+      # redis_exporter exposes `redis_up` (1 when the last scrape/ping
+      # succeeded). Prometheus's own `up` also tells us the exporter itself
+      # is reachable; redis_up tells us Redis answered the exporter's PING.
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Redis is down'
+          description: >-
+            redis_exporter could not reach/authenticate to Redis for 2
+            minutes. Rate-limiting degrades to per-replica in-memory; async
+            jobs stall.
+          runbook: docs/runbooks/redis-outage.md
+
+      # docker-compose.prod.yml/.staging.yml give the redis service a 512m
+      # memory limit and no --maxmemory (so redis_memory_max_bytes is 0/
+      # unset) — alert on absolute used bytes against that container limit
+      # instead of a ratio. Update this threshold if the compose limit
+      # changes.
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes > 4.5e8 # ~450MiB of the 512MiB limit
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Redis memory usage near its 512MiB container limit'
+          description: >-
+            redis_memory_used_bytes has been above ~450MiB (of the 512MiB
+            container memory limit) for 10 minutes. Past the limit, the
+            container gets OOM-killed by the kernel, not evicted gracefully
+            by Redis.
+          runbook: docs/runbooks/redis-outage.md

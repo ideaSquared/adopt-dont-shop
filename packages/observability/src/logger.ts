@@ -8,9 +8,12 @@
 //   - PII / secret redaction (service.backend's logger has it via
 //     redactLogPayload — port that into here in a follow-up commit
 //     when the redact module moves into a shared package).
-//   - AsyncLocalStorage correlation-id stamping. That's coupled to each
-//     service's request-context middleware. Callers attach correlationId
-//     / traceparent to log payloads as fields when they have them.
+//   - A custom request-correlation-id. That would need AsyncLocalStorage
+//     coupled to each service's own request-context middleware — callers
+//     still attach a correlationId to log payloads as a field when they
+//     have one. (trace_id/span_id are different — see traceContextFormat
+//     below: those come from OTel's own global context, not a per-service
+//     correlation-id scheme, so they don't have this problem — ADS-1327.)
 //   - The loggerHelpers bundle (logRequest / logAuth / logBusiness /
 //     logSecurity / …). Those are middleware concerns and live with
 //     each service's own request pipeline.
@@ -18,6 +21,7 @@
 // The minimum here is enough to boot a service with structured logs
 // shipping to Loki. Services layer their own concerns on top.
 
+import { trace } from '@opentelemetry/api';
 import winston, { type Logger } from 'winston';
 import LokiTransport from 'winston-loki';
 
@@ -46,6 +50,26 @@ const redactingFormat = winston.format(info => {
   const record = info as Record<string, unknown>;
   for (const key of Object.keys(record)) {
     record[key] = SECRET_KEY_PATTERN.test(key) ? REDACTED : redactSecretFields(record[key]);
+  }
+  return info;
+});
+
+// ADS-1327: stamp the active OTel trace_id/span_id (when there is one) on
+// every log line, so a log in Grafana Explore can pivot to its trace in
+// Tempo and back — see the `derivedFields` / `tracesToLogs` correlation in
+// observability/grafana/provisioning/datasources/{loki,tempo}.yaml. This
+// reads OTel's own global active-span context (the same API
+// packages/observability/src/sentry.ts already uses to stamp Sentry
+// events), not a per-service correlation-id scheme, so it needs no
+// request-context middleware to plug into.
+const traceContextFormat = winston.format(info => {
+  const activeSpan = trace.getActiveSpan();
+  if (activeSpan) {
+    const spanContext = activeSpan.spanContext();
+    if (spanContext.traceId) {
+      info.trace_id = spanContext.traceId;
+      info.span_id = spanContext.spanId;
+    }
   }
   return info;
 });
@@ -109,8 +133,8 @@ export const createLogger = (opts: LoggerOptions): Logger => {
   return winston.createLogger({
     level,
     defaultMeta: { service: opts.serviceName },
-    // Redaction runs first, then each transport's own format.
-    format: redactingFormat(),
+    // Trace-context stamping, then redaction, then each transport's own format.
+    format: winston.format.combine(traceContextFormat(), redactingFormat()),
     transports,
   });
 };

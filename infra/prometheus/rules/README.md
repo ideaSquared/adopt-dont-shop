@@ -8,13 +8,19 @@ that **actually exists** in the current stack (see the metrics table in
 
 ## Files
 
-| File                     | Rules                                                                    |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `service-down.yml`       | `ServiceDown` — scrape `up == 0` per service                             |
-| `high-error-rate.yml`    | `HighErrorRate` (HTTP 5xx), `HighGrpcErrorRate` (gRPC non-OK)            |
-| `p95-latency.yml`        | `HttpP95LatencyHigh`, `GrpcP95LatencyHigh`                               |
-| `gdpr-saga.yml`          | `GdprSagaFailed`, `GdprSagaTimedOut`, `GdprErasureRequestedNotCompleted` |
-| `gateway-resilience.yml` | `GatewayCircuitOpen`, `GatewayRateLimitSpike`                            |
+| File                     | Rules                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `service-down.yml`       | `ServiceDown` — scrape `up == 0` per service                                                            |
+| `high-error-rate.yml`    | `HighErrorRate` (HTTP 5xx), `HighGrpcErrorRate` (gRPC non-OK)                                           |
+| `p95-latency.yml`        | `HttpP95LatencyHigh`, `GrpcP95LatencyHigh`                                                              |
+| `gdpr-saga.yml`          | `GdprSagaFailed`, `GdprSagaTimedOut`, `GdprErasureRequestedNotCompleted`                                |
+| `gateway-resilience.yml` | `GatewayCircuitOpen`, `GatewayRateLimitSpike`                                                           |
+| `watchdog.yml`           | `Watchdog` — always-firing dead-man's-switch source (ADS-1307)                                          |
+| `host-resources.yml`     | `HostDiskSpaceLow`, `HostMemoryPressure`, `ContainerRestarting` (ADS-1313)                              |
+| `datastore.yml`          | `PostgresConnectionsNearMax`, `RedisDown`, `RedisMemoryHigh` (ADS-1313)                                 |
+| `external-probes.yml`    | `PublicEndpointDown`, `TlsCertificateExpiringSoon` (ADS-1307/1324)                                      |
+| `outbox.yml`             | `OutboxBacklogGrowing`, `DeadLetterIncreasing` (ADS-1324)                                               |
+| `slo-burn-rate.yml`      | Per-service multi-window burn-rate alerts, e.g. `SLOBurnRateFastHttp`, `SLOBurnRateSlowGrpc` (ADS-1324) |
 
 ## Assumptions
 
@@ -71,12 +77,18 @@ These files are now **loaded** by Prometheus (`rule_files:` in
 profile and the prod/staging overlay (`docker-compose.observability.yml`).
 
 Routing keys off the `severity` label: `critical` → the `critical-pager`
-receiver, `warning` → `warning-chat`. Both receivers deliver to **Discord** via
-an incoming webhook, read from a file secret
-(`webhook_url_file: /etc/alertmanager/secrets/discord_webhook_url`) so the URL
-stays out of `docker inspect`. There is no Slack/email/PagerDuty path.
-Alertmanager will not start until that secret file exists — create the Discord
-webhook, drop it into `observability/alertmanager/secrets/discord_webhook_url`
-(chmod 600), and reload with `docker compose kill -s HUP alertmanager`. See
-`docs/runbooks/observability-enable.md`; `docs/slo.md` documents the severity →
-routing convention.
+receiver, `warning` → `warning-chat`, `none` (the always-firing `Watchdog`
+alert, `watchdog.yml`) → `deadman`. `critical-pager` and `warning-chat` each
+deliver to their **own** Discord webhook (split — ADS-1307b); `deadman` posts
+to an external dead-man's-switch service (Healthchecks.io/Cronitor-style).
+Every URL is a file secret, read via `*_file` so it stays out of
+`docker inspect`:
+
+- `observability/alertmanager/secrets/discord_webhook_url_critical`
+- `observability/alertmanager/secrets/discord_webhook_url_warning`
+- `observability/alertmanager/secrets/deadman_webhook_url`
+
+Alertmanager will not start until all three exist. See
+`docs/runbooks/observability-enable.md` §4 for how to provision them and
+`docs/runbooks/README.md`'s severity section / `docs/slo.md` for the
+severity → routing → escalation convention.

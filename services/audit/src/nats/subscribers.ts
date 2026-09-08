@@ -64,7 +64,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
       nats,
       { subject: '*.actionTaken', durable: DURABLE, onError },
       async (payload, meta) => {
-        await persistAuditEvent(pool, payload, meta.subject);
+        await persistAuditEvent(pool, payload, meta.subject, logger);
       }
     ),
   ];
@@ -75,7 +75,8 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
 export async function persistAuditEvent(
   pool: Pool,
   payload: AuditEventPayload,
-  natsSubject: string
+  natsSubject: string,
+  logger?: Logger
 ): Promise<void> {
   // The producer's payload.subject is what we trust; if it's missing,
   // fall back to the NATS-level subject (e.g. 'auth.actionTaken'). This
@@ -83,7 +84,7 @@ export async function persistAuditEvent(
   // the subject explicitly.
   const subjectForRow = payload.subject || natsSubject;
 
-  await pool.query(INSERT_SQL, [
+  const result = await pool.query(INSERT_SQL, [
     payload.eventId,
     payload.service,
     subjectForRow,
@@ -98,4 +99,22 @@ export async function persistAuditEvent(
     payload.ipAddress ?? null,
     payload.userAgent ?? null,
   ]);
+
+  // ADS-1324: a stable `audit: true` field (plus the fields the Grafana
+  // "Audit Events" dashboard groups by) on the service's own structured
+  // log line — the dashboard queries this service's real Loki stream
+  // (`service="service.audit"`), not a label no service ever emits. Only
+  // log on an actual insert: `ON CONFLICT DO NOTHING` means a redelivered
+  // event has rowCount 0, and logging it again would double-count it in
+  // the "audit volume" panels for an event already reported once.
+  if (result.rowCount && result.rowCount > 0) {
+    logger?.info('audit event persisted', {
+      audit: true,
+      action: payload.action,
+      outcome: payload.outcome,
+      actorUserId: payload.actorUserId ?? null,
+      aggregateType: payload.aggregateType,
+      subject: subjectForRow,
+    });
+  }
 }
