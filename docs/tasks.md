@@ -68,6 +68,7 @@ the repo root with `pnpm <script>`.
 | `pnpm check:env-example` | `node scripts/check-env-example.mjs` |
 | `pnpm check:forms` | `node scripts/check-form-primitives.mjs` |
 | `pnpm check:lib-tests` | `node scripts/check-lib-tests.mjs` |
+| `pnpm check:migration-backcompat` | `node scripts/check-migration-backcompat.mjs` |
 | `pnpm check:nginx-upload-precedence` | `node scripts/check-nginx-upload-precedence.mjs` |
 | `pnpm check:no-only` | `node scripts/check-no-test-only.mjs` |
 | `pnpm check:overrides-docs` | `node scripts/check-overrides-documentation.mjs` |
@@ -116,7 +117,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:scheduled-workflow-environments && pnpm check:docker-pinning && pnpm check:stop-grace-period && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:nginx-upload-precedence && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm check:overrides-docs && pnpm check:commit-messages && pnpm check:dev-auth-guard && pnpm check:stories && pnpm --filter @adopt-dont-shop/e2e run lint && pnpm --filter @adopt-dont-shop/e2e run type-check && pnpm --filter @adopt-dont-shop/e2e run format:check && pnpm run tasks:write && git diff --exit-code docs/tasks.md && pnpm test:scripts` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:scheduled-workflow-environments && pnpm check:docker-pinning && pnpm check:migration-backcompat && pnpm check:stop-grace-period && pnpm check:docs-index && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:nginx-upload-precedence && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm check:overrides-docs && pnpm check:commit-messages && pnpm check:dev-auth-guard && pnpm check:stories && pnpm --filter @adopt-dont-shop/e2e run lint && pnpm --filter @adopt-dont-shop/e2e run type-check && pnpm --filter @adopt-dont-shop/e2e run format:check && pnpm run tasks:write && git diff --exit-code docs/tasks.md && pnpm test:scripts` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks
@@ -197,6 +198,7 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/lib.validation` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/observability` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/proto` | `build`, `check:fresh`, `clean`, `dev`, `format`, `format:check`, `generate`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/scheduler` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/seed-faker` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service-bootstrap` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.applications` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |

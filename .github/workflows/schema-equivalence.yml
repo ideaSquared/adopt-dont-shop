@@ -104,7 +104,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # ADS-1325: the back-compat lint below diffs added migration files
+          # against origin/main, which needs real history, not the default
+          # single-commit checkout.
+          fetch-depth: 0
       - uses: ./.github/actions/setup-workspace
+
+      # ADS-1325 / ADR 0008: fail fast on a contracting migration (drop/rename,
+      # an unmarked NOT NULL add, a possible type narrowing) added on this
+      # branch with no explicit expand-phase-of / contract-approved marker.
+      - name: Migration back-compat lint (ADR 0008)
+        run: |
+          git fetch origin main:refs/remotes/origin/main || true
+          node scripts/check-migration-backcompat.mjs
 
       - name: Build shared libraries
         run: pnpm build:libs
@@ -137,6 +150,72 @@ jobs:
             exit 1
           fi
           echo "All microservice migrations applied cleanly against a fresh Postgres."
+
+      # ADS-1325 / ADR 0008: the fresh-DB run above can't catch a migration
+      # that's only unsafe once a table has rows (a NOT NULL add with no
+      # default is invisible against an empty table). This step (a) re-runs
+      # every service's migrations a second time to prove the runner is a true
+      # no-op on an already-migrated schema, then (b) for the services with a
+      # `db:seed`, replays this branch's newly-added migrations against a
+      # database that already has seed data in it.
+      - name: Re-run migrations (idempotency) and replay new migrations against seeded data
+        run: |
+          set -euo pipefail
+          command -v psql >/dev/null 2>&1 || sudo apt-get install -y --no-install-recommends postgresql-client
+          failed=()
+
+          echo "::group::Idempotent re-run (all services)"
+          for svc in auth notifications pets rescue applications chat moderation matching cms audit; do
+            if ! (cd "services/${svc}" && pnpm db:migrate); then
+              echo "::error::services/${svc}: migrations are not idempotent (second run failed)"
+              failed+=("${svc}-idempotent")
+            fi
+          done
+          echo "::endgroup::"
+
+          for svc in auth rescue pets applications chat; do
+            mapfile -t new_migrations < <(node scripts/check-migration-backcompat.mjs --list --service "${svc}")
+            if [ ${#new_migrations[@]} -eq 0 ]; then
+              echo "services/${svc}: no new migrations on this branch — skipping seeded-DB replay"
+              continue
+            fi
+
+            echo "::group::services/${svc} seeded-DB replay (${#new_migrations[@]} new migration(s))"
+            psql "$DATABASE_URL" -c "DROP SCHEMA IF EXISTS ${svc} CASCADE;"
+
+            holding_dir="$(mktemp -d)"
+            for f in "${new_migrations[@]}"; do
+              mv "$f" "${holding_dir}/"
+            done
+
+            baseline_ok=1
+            if ! (cd "services/${svc}" && pnpm db:migrate); then
+              echo "::error::services/${svc}: baseline migrations failed while preparing the seeded replay"
+              failed+=("${svc}-seed-baseline")
+              baseline_ok=0
+            elif ! (cd "services/${svc}" && pnpm db:seed); then
+              echo "::error::services/${svc}: db:seed failed against the baseline schema"
+              failed+=("${svc}-seed")
+              baseline_ok=0
+            fi
+
+            for f in "${new_migrations[@]}"; do
+              mv "${holding_dir}/$(basename "$f")" "$f"
+            done
+            rmdir "$holding_dir"
+
+            if [ "$baseline_ok" -eq 1 ] && ! (cd "services/${svc}" && pnpm db:migrate); then
+              echo "::error::services/${svc}: new migration(s) failed against seeded (populated) data — check for a contracting change such as a NOT NULL add with no default"
+              failed+=("${svc}-seeded-migrate")
+            fi
+            echo "::endgroup::"
+          done
+
+          if [ ${#failed[@]} -ne 0 ]; then
+            echo "::error::Failures: ${failed[*]}"
+            exit 1
+          fi
+          echo "Idempotent re-run and seeded-DB replay passed for all services."
 
   schema-equivalence-migrate-vs-sync:
     name: Schema Equivalence (migrate vs sync)

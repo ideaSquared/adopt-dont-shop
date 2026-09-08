@@ -166,12 +166,17 @@ const NotificationPreferencesForm: React.FC = () => {
             <span className={styles.toggleName}>SMS Notifications</span>
             <span className={styles.toggleHint}>SMS notifications are not currently available</span>
           </div>
+          {/* ADS-1325: SMS has no provider behind it — the backend rejects
+              enabling it. Natively disabled (not just aria-disabled) so it
+              can never be focused/activated, matching the treatment in
+              app.client's SettingsForm. */}
           <button
             className={styles.toggle({ enabled: preferences.sms, disabled: true })}
             onClick={() => undefined}
             aria-label="Toggle SMS notifications"
             aria-pressed={preferences.sms}
             aria-disabled="true"
+            disabled
           />
         </div>
       </div>
