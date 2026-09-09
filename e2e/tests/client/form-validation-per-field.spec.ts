@@ -26,18 +26,24 @@ test.describe('form validation', () => {
       // The form must NOT navigate away from /register on bad input —
       // the URL invariant alone is enough proof that validation rejected
       // the submission.  Don't pin to the exact copy of the error.
-      await page.waitForTimeout(2_000);
+      const helperLocator = page
+        .getByText(/email/i)
+        .filter({ hasNot: page.getByRole('textbox') })
+        .first();
+
+      // Wait for the validation state to actually render — either path —
+      // instead of sleeping a fixed duration.
+      await Promise.any([
+        expect(emailField).toHaveAttribute('aria-invalid', 'true', { timeout: 5_000 }),
+        expect(helperLocator).toBeVisible({ timeout: 5_000 }),
+      ]).catch(() => undefined);
+
       await expect(page).toHaveURL(/\/register/);
 
       // And the email field must surface a validation state via either
       // aria-invalid="true" OR a helper paragraph rendered after it.
       const isInvalid = await emailField.getAttribute('aria-invalid');
-      const helperVisible = await page
-        .getByText(/email/i)
-        .filter({ hasNot: page.getByRole('textbox') })
-        .first()
-        .isVisible()
-        .catch(() => false);
+      const helperVisible = await helperLocator.isVisible().catch(() => false);
       expect(isInvalid === 'true' || helperVisible).toBe(true);
     } finally {
       await context.close();

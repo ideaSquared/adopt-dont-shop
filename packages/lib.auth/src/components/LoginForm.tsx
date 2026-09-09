@@ -205,12 +205,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                     e.preventDefault();
                     onForgotPassword();
                   }}
-                  style={{
-                    fontSize: '0.9rem',
-                    color: '#667eea',
-                    textDecoration: 'none',
-                    textAlign: 'right',
-                  }}
+                  className={styles.forgotPasswordLink}
                 >
                   Forgot your password?
                 </a>

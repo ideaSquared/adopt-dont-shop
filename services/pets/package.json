@@ -29,6 +29,7 @@
     "build": "tsc",
     "clean": "rimraf dist",
     "test": "vitest run",
+    "test:contracts:provider": "vitest run --config vitest.contracts.config.ts --reporter=verbose",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
@@ -56,6 +57,7 @@
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-node": "workspace:*",
+    "@pact-foundation/pact": "^17.0.0",
     "@types/pg": "^8.15.5"
   }
 }

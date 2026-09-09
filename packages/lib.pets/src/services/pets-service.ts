@@ -228,13 +228,18 @@ export class PetsService {
 
   /**
    * Get recent pets
+   *
+   * ADS-1327: there is no dedicated /pets/recent route — this used to call
+   * one that 404s. "Recent" is just the default sort (created_at DESC) on
+   * the main list endpoint.
    */
   async getRecentPets(limit: number = 12): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<unknown[]>>(
-        PETS_ENDPOINTS.RECENT_PETS,
-        { limit }
-      );
+      const response = await this.apiService.get<ApiResponse<unknown[]>>(PETS_ENDPOINTS.PETS, {
+        limit,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+      });
       return (response.data || []).map((p) => normalisePet(p));
     } catch (error) {
       if (this.config.debug) {
@@ -295,21 +300,6 @@ export class PetsService {
     } catch (error) {
       if (this.config.debug) {
         console.error(`Failed to fetch breeds for type ${type}:`, error);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get all available pet types
-   */
-  async getPetTypes(): Promise<string[]> {
-    try {
-      const response = await this.apiService.get<ApiResponse<string[]>>(PETS_ENDPOINTS.PET_TYPES);
-      return response.data || [];
-    } catch (error) {
-      if (this.config.debug) {
-        console.error('Failed to fetch pet types:', error);
       }
       throw error;
     }

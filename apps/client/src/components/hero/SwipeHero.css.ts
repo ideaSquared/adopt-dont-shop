@@ -122,7 +122,10 @@ export const primaryButton = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.75rem',
-  background: 'linear-gradient(45deg, #ff4081, #ff6ec7)',
+  // ADS-1326: the original #ff4081 -> #ff6ec7 gradient measured ~2.5-3.3:1
+  // against white text at either stop — axe-core's smoke gate caught it
+  // failing 4.5:1 AA. This darker pink pair clears ~5.8-9.4:1 at both ends.
+  background: 'linear-gradient(45deg, #c2185b, #880e4f)',
   color: 'white',
   padding: '1rem 2rem',
   borderRadius: '50px',
@@ -187,7 +190,12 @@ export const secondaryButton = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.5rem',
-  background: 'rgba(255, 255, 255, 0.15)',
+  // ADS-1326: a rgba(255,255,255,0.15) overlay on the purple heroContainer
+  // gradient measured ~2.9-4.5:1 against white text depending on gradient
+  // position — axe-core's smoke gate caught it failing 4.5:1 AA. A dark
+  // overlay instead reliably darkens either gradient stop enough for white
+  // text to clear 4.5:1 (~7.3-10.7:1 measured).
+  background: 'rgba(0, 0, 0, 0.35)',
   backdropFilter: 'blur(10px)',
   color: 'white',
   padding: '1rem 2rem',
@@ -198,7 +206,7 @@ export const secondaryButton = style({
   border: '1px solid rgba(255, 255, 255, 0.2)',
   transition: 'all 0.3s ease',
   ':hover': {
-    background: 'rgba(255, 255, 255, 0.25)',
+    background: 'rgba(0, 0, 0, 0.45)',
     transform: 'translateY(-2px)',
   },
   '@media': {
@@ -260,7 +268,11 @@ export const swipeBadge = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.5rem',
-  background: 'rgba(255, 255, 255, 0.2)',
+  // ADS-1326: a rgba(255,255,255,0.2) overlay on the purple heroContainer
+  // gradient measured ~1.9-2.9:1 against the gold (#ffd700) text — axe-core's
+  // smoke gate caught it failing 4.5:1 AA badly. A dark overlay darkens
+  // either gradient stop enough for gold text to clear 4.5:1 (~5.2-7.7:1).
+  background: 'rgba(0, 0, 0, 0.35)',
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255, 255, 255, 0.3)',
   padding: '0.5rem 1rem',

@@ -41,8 +41,7 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `useReportTemplates`, `useExecuteSavedReport`, `useExecuteReportPreview`,
   `useSaveReport`, `useUpdateReport`, `useDeleteReport`, `useUpsertSchedule`,
   `useDeleteSchedule`, `useCreateUserShare`, `useCreateTokenShare`,
-  `useRevokeShare`, and `useRealtimeAnalytics` (live metric updates over the
-  socket).
+  `useRevokeShare`.
 - Report schemas + constants re-exported from `./schemas/reports` and
   `./constants`.
 - Types: `AnalyticsServiceConfig`, `UserEngagementEvent`, `PageViewEvent`,
@@ -75,4 +74,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 3 workspace package(s) depend on this library. See [lib.analytics-consumers.md](../../docs/libraries/lib.analytics-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

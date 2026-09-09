@@ -542,6 +542,8 @@ jobs:
         run: |
           pnpm --filter @adopt-dont-shop/service.auth test:contracts:provider
           pnpm --filter @adopt-dont-shop/service.applications test:contracts:provider
+          pnpm --filter @adopt-dont-shop/service.pets test:contracts:provider
+          pnpm --filter @adopt-dont-shop/service.rescue test:contracts:provider
           pnpm --filter @adopt-dont-shop/service.gateway test:contracts:provider
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1

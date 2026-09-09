@@ -40,10 +40,10 @@ export default defineConfig({
       ],
       // ratcheted to measured baseline (2026-06-16); buffered for CI variance
       thresholds: {
-        statements: 62.5,
-        branches: 50,
-        functions: 50,
-        lines: 65,
+        statements: 69,
+        branches: 56,
+        functions: 56,
+        lines: 71,
       },
     },
   },

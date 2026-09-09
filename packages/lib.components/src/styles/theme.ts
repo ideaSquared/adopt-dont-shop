@@ -298,7 +298,11 @@ export const lightTheme: Theme = {
   text: {
     primary: gray[900],
     secondary: gray[700],
-    tertiary: gray[600],
+    // ADS-1326: gray[600] measured ~4.76:1 on this theme's white body — just
+    // over 4.5:1 AA with no margin, and axe-core's smoke gate caught it
+    // failing outright on the `normal` theme's cream body (~4.49:1). Bumped
+    // to gray[700] (~7.6:1 on white, ~7.15:1 on cream) for a real margin.
+    tertiary: gray[700],
     muted: gray[500],
     disabled: gray[400],
     inverse: white,
@@ -347,7 +351,10 @@ export const normalTheme: Theme = {
   text: {
     primary: gray[900],
     secondary: gray[700],
-    tertiary: gray[600],
+    // ADS-1326: see lightTheme's tertiary for why this is gray[700] now,
+    // not gray[600] — this theme's warm-cream body is where axe-core's
+    // smoke gate actually caught the failure (~4.49:1, under 4.5:1 AA).
+    tertiary: gray[700],
     muted: gray[500],
     disabled: gray[400],
     inverse: white,

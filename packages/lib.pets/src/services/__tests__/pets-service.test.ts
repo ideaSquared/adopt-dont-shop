@@ -393,7 +393,11 @@ describe('PetsService', () => {
       const result = await service.getRecentPets(5);
 
       expect(result[0].pet_id).toBe('r1');
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/recent', { limit: 5 });
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets', {
+        limit: 5,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+      });
     });
 
     it('returns an empty array when the API returns no data', async () => {
@@ -435,7 +439,7 @@ describe('PetsService', () => {
     });
   });
 
-  describe('getPetBreeds and getPetTypes', () => {
+  describe('getPetBreeds', () => {
     it('fetches breeds for a specific type', async () => {
       mockApiService.get.mockResolvedValueOnce({ success: true, data: ['Lab', 'Collie'] });
 
@@ -452,15 +456,6 @@ describe('PetsService', () => {
 
       expect(result).toEqual([]);
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/breeds');
-    });
-
-    it('fetches pet types', async () => {
-      mockApiService.get.mockResolvedValueOnce({ success: true, data: ['dog', 'cat'] });
-
-      const result = await service.getPetTypes();
-
-      expect(result).toEqual(['dog', 'cat']);
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/types');
     });
 
     it('propagates errors from getPetBreeds', async () => {
@@ -595,7 +590,7 @@ describe('PetsService', () => {
       expect(result.adoptedPets).toBe(0);
       expect(result.petsByType).toEqual({});
       expect(result.monthlyAdoptions).toEqual([]);
-      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/statistics');
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/stats');
     });
 
     it('parses an empty payload into a fully-defaulted stats object', async () => {
