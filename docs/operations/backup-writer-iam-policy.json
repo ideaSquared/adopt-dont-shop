@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListBackupBucket",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::REPLACE_WITH_BACKUP_BUCKET_NAME"]
+    },
+    {
+      "Sid": "WriteSnapshotsOnly",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject"],
+      "Resource": [
+        "arn:aws:s3:::REPLACE_WITH_BACKUP_BUCKET_NAME/postgres/*",
+        "arn:aws:s3:::REPLACE_WITH_BACKUP_BUCKET_NAME/uploads/*",
+        "arn:aws:s3:::REPLACE_WITH_BACKUP_BUCKET_NAME/nats/*"
+      ]
+    }
+  ]
+}

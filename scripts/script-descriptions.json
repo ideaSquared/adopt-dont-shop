@@ -61,6 +61,7 @@
   "check:workspaces": "Guard: fail if package.json workspaces and the filesystem disagree (orphaned/missing package dirs).",
   "check:env-example": "Guard: fail if a var scripts/validate-env.ts requires is missing from .env.example's REQUIRED banner.",
   "check:workflow-paths": "Guard: fail if a GitHub Actions workflow references a path that doesn't exist.",
+  "check:scheduled-workflow-environments": "Guard: fail if a schedule-triggered workflow job uses the reviewer-gated `production` environment.",
   "check:docker-pinning": "Guard: fail if a Dockerfile/compose file uses an unpinned (non-digest) base image.",
   "check:migration-backcompat": "Guard: fail if a newly added migration contracts the schema (drop/rename, unmarked NOT NULL, type narrowing) without a backcompat marker comment (ADR 0008).",
   "check:stop-grace-period": "Guard: fail if a service-* entry in docker-compose.prod.yml lacks stop_grace_period (ADS-1309).",
