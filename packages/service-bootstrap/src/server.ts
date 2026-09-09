@@ -7,6 +7,7 @@
 //   - x-request-id   — echoed on every response.
 //   - Error handler   — logs + returns {error:'internal_error'}.
 
+import { readSecret } from '@adopt-dont-shop/config-secrets';
 import {
   createLogger,
   initializeSentry,
@@ -16,6 +17,24 @@ import {
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import { registerReadinessRoute, type ReadinessDeps } from './readiness.js';
+
+// ADS-1327: optional shared secret gating /metrics behind
+// `Authorization: Bearer <token>`, mirroring the gateway's own
+// METRICS_BEARER_TOKEN gate (services/gateway/src/config.ts) so every
+// service that boots through createMicroserviceServer can opt in too.
+// Absence is fine (returns undefined — /metrics stays public, the existing
+// accepted-risk default); a present-but-too-short value fails boot, because
+// a weak shared secret is offline-brute-forceable (ADS-845 precedent).
+const readOptionalMetricsBearerToken = (env: NodeJS.ProcessEnv): string | undefined => {
+  const value = readSecret('METRICS_BEARER_TOKEN', env)?.trim();
+  if (!value) {
+    return undefined;
+  }
+  if (Buffer.byteLength(value, 'utf8') < 16) {
+    throw new Error('METRICS_BEARER_TOKEN must be at least 16 bytes');
+  }
+  return value;
+};
 
 export type CreateServerConfig = {
   environment: string;
@@ -35,10 +54,14 @@ export type CreateServerOptions = {
   readiness?: ReadinessDeps;
 };
 
-export const createMicroserviceServer = (opts: CreateServerOptions): FastifyInstance => {
+export const createMicroserviceServer = (
+  opts: CreateServerOptions,
+  env: NodeJS.ProcessEnv = process.env
+): FastifyInstance => {
   const { serviceName, config } = opts;
   const logger = opts.logger ?? createLogger({ serviceName });
   const isReady = opts.isReady ?? (() => true);
+  const metricsBearerToken = readOptionalMetricsBearerToken(env);
 
   // ADS-1041: initialize backend error tracking (GlitchTip/Sentry SDK). No-op
   // unless SENTRY_DSN is set AND NODE_ENV is production/staging, so it's safe to
@@ -67,7 +90,7 @@ export const createMicroserviceServer = (opts: CreateServerOptions): FastifyInst
   registerRequestId(server);
 
   // Prometheus /metrics + http_request_duration_seconds onResponse hook.
-  registerMetrics(server);
+  registerMetrics(server, { bearerToken: metricsBearerToken });
 
   // Liveness — returns 503 until the gRPC server has bound (isReady probe),
   // then the normal 200 payload. Deliberately does NOT reflect downstream

@@ -193,6 +193,60 @@ describe('createMicroserviceServer — /metrics endpoint', () => {
   });
 });
 
+describe('createMicroserviceServer — /metrics bearer-token gate (ADS-1327)', () => {
+  it('stays public when METRICS_BEARER_TOKEN is unset — existing behaviour unchanged', async () => {
+    const server = createMicroserviceServer(
+      { serviceName: 'service.test', config: baseConfig, logger: quietLogger },
+      {}
+    );
+    try {
+      const res = await server.inject({ method: 'GET', url: '/metrics' });
+      expect(res.statusCode).toBe(200);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('rejects an unauthenticated request when METRICS_BEARER_TOKEN is set', async () => {
+    const server = createMicroserviceServer(
+      { serviceName: 'service.test', config: baseConfig, logger: quietLogger },
+      { METRICS_BEARER_TOKEN: 'a-strong-shared-secret' }
+    );
+    try {
+      const res = await server.inject({ method: 'GET', url: '/metrics' });
+      expect(res.statusCode).toBe(401);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('serves metrics with a matching bearer token', async () => {
+    const server = createMicroserviceServer(
+      { serviceName: 'service.test', config: baseConfig, logger: quietLogger },
+      { METRICS_BEARER_TOKEN: 'a-strong-shared-secret' }
+    );
+    try {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/metrics',
+        headers: { authorization: 'Bearer a-strong-shared-secret' },
+      });
+      expect(res.statusCode).toBe(200);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('fails boot when METRICS_BEARER_TOKEN is present but too short', () => {
+    expect(() =>
+      createMicroserviceServer(
+        { serviceName: 'service.test', config: baseConfig, logger: quietLogger },
+        { METRICS_BEARER_TOKEN: 'too-short' }
+      )
+    ).toThrow('METRICS_BEARER_TOKEN must be at least 16 bytes');
+  });
+});
+
 describe('createMicroserviceServer — x-request-id propagation', () => {
   it('echoes inbound x-request-id on response', async () => {
     const server = createMicroserviceServer({

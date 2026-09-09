@@ -62,6 +62,70 @@ describe('registerMetrics — /metrics endpoint', () => {
   });
 });
 
+describe('registerMetrics — optional bearer-token gate (ADS-1327)', () => {
+  beforeEach(() => {
+    __resetMetricsForTest();
+  });
+
+  afterEach(() => {
+    __resetMetricsForTest();
+  });
+
+  it('stays public when no bearerToken is configured', async () => {
+    const app = Fastify();
+    registerMetrics(app);
+    try {
+      const res = await app.inject({ method: 'GET', url: '/metrics' });
+      expect(res.statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a request with no Authorization header when bearerToken is set', async () => {
+    const app = Fastify();
+    registerMetrics(app, { bearerToken: 'a-strong-shared-secret' });
+    try {
+      const res = await app.inject({ method: 'GET', url: '/metrics' });
+      expect(res.statusCode).toBe(401);
+      expect(res.json()).toEqual({ error: 'authentication required' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a request with a mismatched bearer token', async () => {
+    const app = Fastify();
+    registerMetrics(app, { bearerToken: 'a-strong-shared-secret' });
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/metrics',
+        headers: { authorization: 'Bearer wrong-token' },
+      });
+      expect(res.statusCode).toBe(401);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('serves metrics when the bearer token matches', async () => {
+    const app = Fastify();
+    registerMetrics(app, { bearerToken: 'a-strong-shared-secret' });
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/metrics',
+        headers: { authorization: 'Bearer a-strong-shared-secret' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toMatch(/text\/plain/);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 describe('recordGrpcDuration', () => {
   beforeEach(() => {
     __resetMetricsForTest();
