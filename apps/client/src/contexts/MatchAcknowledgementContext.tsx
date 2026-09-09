@@ -1,10 +1,6 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import {
-  useRealtimeAnalytics,
-  type ApplicationStatusChangedPayload,
-} from '@adopt-dont-shop/lib.analytics';
-import {
   applicationService,
   petService,
   type Application,
@@ -93,10 +89,7 @@ const isAcknowledged = (status: ApplicationStatus | string): boolean => status !
 // starts from a fresh seed with no acknowledged transitions to celebrate, and
 // because ItsAMatchModal is a global overlay it would intercept pointer events
 // on unrelated pages the moment a *parallel* adopter spec changes an
-// application's status. ADS-633 guarded the 60s poll for this reason, but the
-// later realtime `application_status_changed` subscription (C4-5) called
-// checkForMatches with no such guard — so the modal still surfaced in E2E.
-// Guarding the single async entry point below keeps both paths dormant.
+// application's status. ADS-633 guards the 60s poll for this reason.
 const isAutomatedBrowser = (): boolean =>
   typeof navigator !== 'undefined' && navigator.webdriver === true;
 
@@ -179,18 +172,6 @@ export const MatchAcknowledgementProvider = ({ children }: MatchAcknowledgementP
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [isAuthenticated, user, checkForMatches]);
-
-  // ADS C4-5: subscribe to backend application_status_changed events so a
-  // status transition surfaces the match modal immediately instead of
-  // waiting up to 60s for the next poll. The polling above stays in
-  // place as a safety net for disconnected sockets / dropped events.
-  const handleStatusChanged = useCallback(
-    (_payload: ApplicationStatusChangedPayload) => {
-      void checkForMatches();
-    },
-    [checkForMatches]
-  );
-  useRealtimeAnalytics('application_status_changed', handleStatusChanged);
 
   const value = useMemo<MatchAcknowledgementContextValue>(
     () => ({

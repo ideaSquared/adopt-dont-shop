@@ -76,13 +76,14 @@ export const Avatar: React.FC<AvatarProps> = ({
   const displayInitials = initials || generateInitials(name);
   const showStatus = status !== 'none';
   const effectiveAlt = alt || `Avatar for ${name}` || 'Avatar';
+  const effectiveTabIndex = clickable ? 0 : undefined;
 
   return (
     <div
       className={clsx(styles.container({ size, shape, clickable }), className)}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      tabIndex={clickable ? 0 : undefined}
+      tabIndex={effectiveTabIndex}
       role={clickable ? 'button' : 'img'}
       aria-label={clickable ? `Avatar for ${name}` : effectiveAlt}
       data-testid={dataTestId}

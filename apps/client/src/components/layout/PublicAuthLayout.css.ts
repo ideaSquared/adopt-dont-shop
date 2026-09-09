@@ -29,7 +29,11 @@ export const logo = style({
 });
 
 export const switchLink = style({
-  color: vars.colors.primaryHover,
+  // ADS-1326: primaryHover (#E11D48) measures ~4.7:1 on white but only
+  // ~4.43:1 on the `normal` theme's warm-cream body — axe-core's smoke gate
+  // caught it failing AA there. primaryActive (#BE123C) clears 4.5:1 with a
+  // real margin (~5.9:1) on both.
+  color: vars.colors.primaryActive,
   textDecoration: 'none',
   fontWeight: 500,
   fontSize: vars.typography.size.sm,

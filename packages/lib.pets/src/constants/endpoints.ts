@@ -8,13 +8,9 @@ export const PETS_ENDPOINTS = {
   PETS: '/api/v1/pets',
   PET_BY_ID: (id: string) => `/api/v1/pets/${id}`,
 
-  // Recent pets (featured pets are served by PETS with a ?featured=true query)
-  RECENT_PETS: '/api/v1/pets/recent',
-
-  // Breed and type information
+  // Breed information
   PET_BREEDS: '/api/v1/pets/breeds',
   PET_BREEDS_BY_TYPE: (type: string) => `/api/v1/pets/breeds/${type}`,
-  PET_TYPES: '/api/v1/pets/types',
 
   // Favorites management
   ADD_TO_FAVORITES: (petId: string) => `/api/v1/pets/${petId}/favorite`,
@@ -28,18 +24,17 @@ export const PETS_ENDPOINTS = {
   // Pet reporting
   REPORT_PET: (petId: string) => `/api/v1/pets/${petId}/report`,
 
-  // Statistics and analytics
-  PET_STATISTICS: '/api/v1/pets/statistics',
+  // Statistics and analytics — services/gateway/src/routes/pets.ts registers
+  // this as /stats, not /statistics (ADS-1327: was a dead path, 404ing).
+  PET_STATISTICS: '/api/v1/pets/stats',
 } as const;
 
 // Export individual endpoint groups for easier imports
 export const {
   PETS,
   PET_BY_ID,
-  RECENT_PETS,
   PET_BREEDS,
   PET_BREEDS_BY_TYPE,
-  PET_TYPES,
   ADD_TO_FAVORITES,
   REMOVE_FROM_FAVORITES,
   FAVORITE_STATUS,

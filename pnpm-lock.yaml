@@ -650,6 +650,9 @@ importers:
       '@adopt-dont-shop/eslint-config-base':
         specifier: workspace:*
         version: link:../packages/eslint-config-base
+      '@axe-core/playwright':
+        specifier: 4.13.0
+        version: 4.13.0(playwright-core@1.61.0)
       '@playwright/test':
         specifier: ^1.61.0
         version: 1.61.0
@@ -784,9 +787,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.101.0
         version: 5.101.0(react@19.2.7)
-      socket.io-client:
-        specifier: ^4.8.3
-        version: 4.8.3
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1195,6 +1195,12 @@ importers:
       '@vanilla-extract/css':
         specifier: ^1.20.1
         version: 1.20.1
+      dompurify:
+        specifier: ^3.4.13
+        version: 3.4.13
+      marked:
+        specifier: ^18.0.12
+        version: 18.0.12
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -1208,6 +1214,9 @@ importers:
       '@adopt-dont-shop/eslint-config-react':
         specifier: workspace:*
         version: link:../eslint-config-react
+      '@tanstack/react-query':
+        specifier: ^5.101.0
+        version: 5.101.0(react@19.2.7)
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -2300,6 +2309,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@pact-foundation/pact':
+        specifier: ^17.0.0
+        version: 17.0.0
       '@types/pg':
         specifier: ^8.15.5
         version: 8.20.0
@@ -2355,6 +2367,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@pact-foundation/pact':
+        specifier: ^17.0.0
+        version: 17.0.0
       '@types/pg':
         specifier: ^8.15.5
         version: 8.20.0
@@ -2502,6 +2517,11 @@ packages:
   '@aws/lambda-invoke-store@0.2.4':
     resolution: {integrity: sha512-iY8yvjE0y651BixKNPgmv1WrQc+GZ142sb0z4gYnChDDY2YqI4P/jsSopBWrKfAt7LOJAkOXt7rC/hms+WclQQ==}
     engines: {node: '>=18.0.0'}
+
+  '@axe-core/playwright@4.13.0':
+    resolution: {integrity: sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg==}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -6308,6 +6328,10 @@ packages:
     resolution: {integrity: sha512-s7iGf5GaVMxEG0ENN9x+xTr7GFZCb1ZP/1uATUpCEK2X78nDB3RwbtFCo9pGAf9ru+VwoQ464DkaLEeRM08wJA==}
     engines: {node: '>=4'}
 
+  axe-core@4.13.0:
+    resolution: {integrity: sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A==}
+    engines: {node: '>=4'}
+
   axios@1.18.1:
     resolution: {integrity: sha512-3nTvFlvpn9Zu/RkHUqtc7/+al4UpRW5az71ap5zccp6e8RAYEzhMTecX8Dz1wWDYrPpUoB1HAQEGEAEvUr7S9g==}
 
@@ -8103,6 +8127,11 @@ packages:
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
     engines: {node: '>=10'}
+
+  marked@18.0.12:
+    resolution: {integrity: sha512-LEm4ga2YeI2T3GVHj9b0BaDPPk93LLTHMFeMyQbNIzPxc8vCI0y/scy0ZA6z6lXKyT9j9Nhl/OC6ZYKYGuFScA==}
+    engines: {node: '>= 20'}
+    hasBin: true
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -10176,6 +10205,11 @@ snapshots:
       tslib: 2.8.1
 
   '@aws/lambda-invoke-store@0.2.4': {}
+
+  '@axe-core/playwright@4.13.0(playwright-core@1.61.0)':
+    dependencies:
+      axe-core: 4.13.0
+      playwright-core: 1.61.0
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -14245,6 +14279,8 @@ snapshots:
 
   axe-core@4.12.1: {}
 
+  axe-core@4.13.0: {}
+
   axios@1.18.1:
     dependencies:
       follow-redirects: 1.16.0
@@ -16304,6 +16340,8 @@ snapshots:
   make-dir@4.0.0:
     dependencies:
       semver: 7.8.5
+
+  marked@18.0.12: {}
 
   math-intrinsics@1.1.0: {}
 

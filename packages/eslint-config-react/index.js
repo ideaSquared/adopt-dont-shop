@@ -37,6 +37,37 @@ export default [
       // Spread first so any explicit override below takes precedence.
       ...jsxA11yRecommendedAsWarn,
 
+      // ADS-1326: ratcheted to 'error' — zero violations across the codebase
+      // as of this ratchet. See docs/ACCESSIBILITY.md for the baseline and
+      // the remaining warn-level rule counts.
+      'jsx-a11y/alt-text': 'error',
+      'jsx-a11y/anchor-ambiguous-text': 'error',
+      'jsx-a11y/anchor-has-content': 'error',
+      'jsx-a11y/aria-activedescendant-has-tabindex': 'error',
+      'jsx-a11y/aria-props': 'error',
+      'jsx-a11y/aria-proptypes': 'error',
+      'jsx-a11y/aria-role': 'error',
+      'jsx-a11y/aria-unsupported-elements': 'error',
+      'jsx-a11y/autocomplete-valid': 'error',
+      'jsx-a11y/heading-has-content': 'error',
+      'jsx-a11y/html-has-lang': 'error',
+      'jsx-a11y/iframe-has-title': 'error',
+      'jsx-a11y/img-redundant-alt': 'error',
+      'jsx-a11y/interactive-supports-focus': 'error',
+      'jsx-a11y/label-has-associated-control': 'error',
+      'jsx-a11y/media-has-caption': 'error',
+      'jsx-a11y/mouse-events-have-key-events': 'error',
+      'jsx-a11y/no-access-key': 'error',
+      'jsx-a11y/no-distracting-elements': 'error',
+      'jsx-a11y/no-interactive-element-to-noninteractive-role': 'error',
+      'jsx-a11y/no-noninteractive-element-to-interactive-role': 'error',
+      'jsx-a11y/no-noninteractive-tabindex': 'error',
+      'jsx-a11y/no-redundant-roles': 'error',
+      'jsx-a11y/role-has-required-aria-props': 'error',
+      'jsx-a11y/role-supports-aria-props': 'error',
+      'jsx-a11y/scope': 'error',
+      'jsx-a11y/tabindex-no-positive': 'error',
+
       // react-hooks core rules (v7 "recommended" adds many React Compiler
       // rules that this codebase isn't ready for — only enable the classic two)
       'react-hooks/rules-of-hooks': 'error',

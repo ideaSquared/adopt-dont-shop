@@ -23,8 +23,14 @@ export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
   <div className={`${styles.cardHeader}${className ? ` ${className}` : ''}`} {...props} />
 );
 
-export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h3 className={`${styles.cardTitle}${className ? ` ${className}` : ''}`} {...props} />
+export const CardTitle = ({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) => (
+  <h3 className={`${styles.cardTitle}${className ? ` ${className}` : ''}`} {...props}>
+    {children}
+  </h3>
 );
 
 export const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

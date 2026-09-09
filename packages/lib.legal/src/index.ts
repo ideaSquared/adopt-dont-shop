@@ -9,15 +9,23 @@ export { ManageCookiesLink } from './components/ManageCookiesLink';
 export {
   fetchPendingReacceptance,
   fetchCookiesVersion,
+  fetchLegalDocument,
   recordReacceptance,
   PendingReacceptanceItemSchema,
   PendingReacceptanceResponseSchema,
+  LegalDocumentSlugSchema,
 } from './services/legal-service';
 export type {
   PendingReacceptanceItem,
   PendingReacceptanceResponse,
   RecordReacceptanceInput,
+  LegalDocument,
+  LegalDocumentSlug,
 } from './services/legal-service';
+
+// Versioned legal document rendering (ADS-1326)
+export { useLegalDocument } from './hooks/useLegalDocument';
+export { renderLegalMarkdown } from './utils/render-legal-markdown';
 
 // Cookie banner storage + sign-in attach
 export {

@@ -61,14 +61,12 @@ test.describe('adopter registration and login', () => {
 
     // Acceptable signals: a visible error alert OR still on /login (no
     // navigation away).  Some apps render the alert above the fold; some
-    // surface the failure as a banner.
+    // surface the failure as a banner.  `toHaveURL` below polls on its own,
+    // so waiting for the alert (best-effort) is enough — no fixed sleep.
     const errorAlert = page
       .getByText(/(invalid|incorrect|wrong).*(email|password|credentials)/i)
       .first();
-    await Promise.race([
-      errorAlert.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => undefined),
-      page.waitForTimeout(8_000),
-    ]);
+    await errorAlert.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => undefined);
     await expect(page).toHaveURL(/\/login/);
   });
 });

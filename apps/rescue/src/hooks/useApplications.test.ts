@@ -1,11 +1,14 @@
 /**
- * ADS C4-6: behaviour test for the rescue application list's real-time path.
+ * Behaviour test for the rescue application list hook.
  *
- * The hook still polls / refetches on filter changes, but it now ALSO
- * subscribes to backend socket events (`application_created`,
- * `application_updated`) and refetches when either fires.
+ * ADS-1326: the hook used to also subscribe to `useRealtimeAnalytics`
+ * (`application_created` / `application_updated`) as a live-update fast
+ * path (ADS C4-6), but the gateway never emits those events — no WS
+ * namespace for them exists — so the subscription was permanently inert.
+ * It's removed; a manual `refetch()` (already exposed) is the only way to
+ * force a refresh now, same as it always effectively was in production.
  */
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The module-level singleton in useApplications.ts is constructed at import
@@ -23,15 +26,6 @@ vi.mock('../services/applicationService', () => {
   };
 });
 
-// Capture each event handler the hook subscribes with so we can fire them.
-const handlers: Record<string, ((p: unknown) => void) | undefined> = {};
-
-vi.mock('@adopt-dont-shop/lib.analytics', () => ({
-  useRealtimeAnalytics: (event: string, handler: (p: unknown) => void) => {
-    handlers[event] = handler;
-  },
-}));
-
 import { useApplications } from './useApplications';
 import { RescueApplicationService } from '../services/applicationService';
 
@@ -40,45 +34,55 @@ const getApplicationsMock = (
   RescueApplicationService as unknown as { _getApplicationsMock: ReturnType<typeof vi.fn> }
 )._getApplicationsMock;
 
-describe('useApplications (C4-6)', () => {
+describe('useApplications', () => {
   beforeEach(() => {
     getApplicationsMock.mockReset();
     getApplicationsMock.mockResolvedValue({ applications: [], total: 0, totalPages: 0 });
-    handlers.application_created = undefined;
-    handlers.application_updated = undefined;
   });
 
-  it('subscribes to application_created and application_updated', () => {
-    renderHook(() => useApplications());
-    expect(handlers.application_created).toBeDefined();
-    expect(handlers.application_updated).toBeDefined();
-  });
-
-  it('refetches when application_created fires', async () => {
+  it('fetches applications on mount', async () => {
     renderHook(() => useApplications());
 
     await waitFor(() => {
       expect(getApplicationsMock).toHaveBeenCalledTimes(1);
     });
-
-    handlers.application_created?.({ applicationId: 'app-99' });
-
-    await waitFor(() => {
-      expect(getApplicationsMock).toHaveBeenCalledTimes(2);
-    });
   });
 
-  it('refetches when application_updated fires', async () => {
-    renderHook(() => useApplications());
+  it('refetches when the filter changes and resets to page 1', async () => {
+    const { result } = renderHook(() => useApplications());
 
     await waitFor(() => {
       expect(getApplicationsMock).toHaveBeenCalledTimes(1);
     });
 
-    handlers.application_updated?.({ applicationId: 'app-99' });
-
+    act(() => {
+      result.current.changePage(2);
+    });
     await waitFor(() => {
       expect(getApplicationsMock).toHaveBeenCalledTimes(2);
     });
+
+    act(() => {
+      result.current.updateFilter({ status: ['submitted'] });
+    });
+
+    await waitFor(() => {
+      expect(getApplicationsMock).toHaveBeenCalledTimes(3);
+    });
+    expect(result.current.pagination.page).toBe(1);
+  });
+
+  it('exposes a manual refetch that re-runs the last query', async () => {
+    const { result } = renderHook(() => useApplications());
+
+    await waitFor(() => {
+      expect(getApplicationsMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(getApplicationsMock).toHaveBeenCalledTimes(2);
   });
 });

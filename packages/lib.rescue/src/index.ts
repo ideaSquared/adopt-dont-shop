@@ -12,5 +12,3 @@ export type {
   RescueServiceConfig,
   RescueServiceOptions,
 } from './types';
-
-export * from './constants';
