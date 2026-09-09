@@ -8,44 +8,11 @@ description: >-
 runs:
   using: 'composite'
   steps:
-
-    # ADS-676: verify that dev-auth bypass patterns only appear inside
-    # import.meta.env.DEV guards (which Vite replaces with `false` and
-    # tree-shakes in production builds). Fail if any reference to
-    # dev_user / dev-token- appears outside lib.auth's DEV-gated
-    # AuthContext or the explicitly dev-only files below.
-    #
-    # Allowed locations (dev-only by design):
-    #   packages/lib.auth/src/contexts/AuthContext.tsx — DEV-gated
-    #   apps/*/src/components/dev/*                    — dev panels
-    #   apps/*/src/utils/devAuth.ts                     — dev utilities
-    #   apps/*/src/contexts/base/devUtils.ts            — dev utilities
-    #   **/*.test.* / **/*.spec.*                       — test files
+    # ADS-676 / ADS-1327: the actual scan lives in
+    # scripts/check-dev-auth-guard.mjs (dependency-free, mirrors the other
+    # scripts/check-*.mjs guards) so `pnpm ci:local` runs the exact same
+    # check as this composite action — see that script for the pattern and
+    # allowed-locations list.
     - name: Scan source for ungated dev auth bypass patterns
       shell: bash
-      run: |
-        # Find dev_user or dev-token- references in production source
-        # (exclude test files, dev-only directories, and the known
-        # DEV-gated AuthContext).
-        HITS=$(grep -rn 'dev_user\|dev-token-' \
-          apps/*/src/ packages/lib.*/src/ \
-          --include='*.ts' --include='*.tsx' \
-          --exclude='*.test.*' --exclude='*.spec.*' \
-          | grep -v '/components/dev/' \
-          | grep -v '/utils/devAuth' \
-          | grep -v '/contexts/base/devUtils' \
-          | grep -v 'AuthContext.tsx' \
-          || true)
-
-        if [ -n "$HITS" ]; then
-          echo "ERROR: Dev auth bypass patterns found outside allowed locations:"
-          echo "$HITS"
-          echo ""
-          echo "dev_user / dev-token- must only appear in:"
-          echo "  - packages/lib.auth/src/contexts/AuthContext.tsx (DEV-gated)"
-          echo "  - apps/*/src/components/dev/* (dev-only panels)"
-          echo "  - apps/*/src/utils/devAuth.ts (dev-only utilities)"
-          echo "  - Test files (*.test.*, *.spec.*)"
-          exit 1
-        fi
-        echo "All dev auth patterns are properly gated."
+      run: node scripts/check-dev-auth-guard.mjs

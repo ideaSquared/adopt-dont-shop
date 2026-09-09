@@ -820,6 +820,14 @@ describe('menus', () => {
     expect(params).toEqual(['header', true]);
   });
 
+  // ADS-1323: the query ran with no LIMIT.
+  it('listMenus caps the query with a LIMIT (ADS-1323)', async () => {
+    mocks.poolScript.push({ rows: [] });
+    await listMenus(mocks.deps, ADMIN, {});
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/LIMIT\s+\d+/i);
+  });
+
   it('createMenu validates items_json is an array', async () => {
     await expect(
       createMenu(mocks.deps, ADMIN, {

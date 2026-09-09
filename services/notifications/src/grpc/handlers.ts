@@ -176,9 +176,9 @@ function rowToProto(row: NotificationRow): Notification {
 
 // --- Create ----------------------------------------------------------
 
-const NOTIFICATIONS_CREATE: Permission = 'notifications.create' as Permission;
-const NOTIFICATIONS_READ: Permission = 'notifications.read' as Permission;
-const NOTIFICATIONS_UPDATE: Permission = 'notifications.update' as Permission;
+const NOTIFICATIONS_CREATE: Permission = 'notifications.create';
+const NOTIFICATIONS_READ: Permission = 'notifications.read';
+const NOTIFICATIONS_UPDATE: Permission = 'notifications.update';
 
 // Subscriber-path idempotency. When set, the create claims (consumer,
 // eventId) in processed_events inside the same transaction as the insert,

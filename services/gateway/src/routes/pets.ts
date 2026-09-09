@@ -33,6 +33,7 @@ import type { PetsClient } from '../grpc-clients/pets-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { petToView, viewToCreateRequest, viewToUpdateRequest } from './pets-view.js';
+import { mapWithConcurrency } from './reports.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { GRPC_TO_HTTP, handleGrpcError } from '../middleware/grpc-error.js';
 import {
@@ -150,6 +151,14 @@ type BulkUpdateBody = {
 };
 
 const BULK_PET_OPERATIONS = ['update_status', 'archive', 'feature', 'delete'];
+
+// ADS-1323: petIds fanned out one gRPC call per id with no cap — an
+// unbounded array is a fan-out DoS vector, the same class of bug commit
+// 08dc01a fixed for reports/execute. Both the schema's maxItems (fails
+// fast on Fastify's body validation) and this runtime constant (used for
+// the bounded-concurrency worker pool below) share the one value.
+const MAX_BULK_PET_IDS = 100;
+const BULK_PET_CONCURRENCY_LIMIT = 5;
 
 export const registerPetsRoutes = async (
   app: FastifyInstance,
@@ -968,7 +977,11 @@ export const registerPetsRoutes = async (
         body: {
           type: 'object',
           properties: {
-            petIds: { type: 'array', items: { type: 'string' } },
+            petIds: {
+              type: 'array',
+              items: { type: 'string' },
+              maxItems: MAX_BULK_PET_IDS,
+            },
             operation: {
               type: 'string',
               enum: ['update_status', 'archive', 'feature', 'delete'],
@@ -1025,6 +1038,14 @@ export const registerPetsRoutes = async (
       if (petIds.length === 0) {
         return reply.code(400).send({ success: false, error: 'petIds is required' });
       }
+      // Defence-in-depth backstop to the schema's maxItems: reject an
+      // over-cap list before any gRPC fan-out fires.
+      if (petIds.length > MAX_BULK_PET_IDS) {
+        return reply.code(400).send({
+          success: false,
+          error: `petIds exceeds the maximum of ${MAX_BULK_PET_IDS}`,
+        });
+      }
       if (!BULK_PET_OPERATIONS.includes(operation)) {
         return reply.code(400).send({
           success: false,
@@ -1056,17 +1077,19 @@ export const registerPetsRoutes = async (
         }
       };
 
-      const results = await Promise.all(
-        petIds.map(petId =>
-          runOne(petId)
-            .then(() => ({ petId, ok: true as const }))
-            .catch((err: unknown) => ({ petId, ok: false as const, error: grpcMessage(err) }))
+      // Bounded concurrency (ADS-1323) — mirrors reports.ts's mapWithConcurrency
+      // fix for POST /reports/execute (commit 08dc01a): fan out at most
+      // BULK_PET_CONCURRENCY_LIMIT gRPC calls at once instead of firing all
+      // of petIds via Promise.all simultaneously.
+      const settled = await mapWithConcurrency(petIds, BULK_PET_CONCURRENCY_LIMIT, runOne);
+      const errors = petIds
+        .map((petId, i) => ({ petId, result: settled[i] }))
+        .filter(
+          (r): r is { petId: string; result: PromiseRejectedResult } =>
+            r.result.status === 'rejected'
         )
-      );
-      const errors = results
-        .filter((r): r is { petId: string; ok: false; error: string } => !r.ok)
-        .map(r => ({ petId: r.petId, error: r.error }));
-      const successCount = results.length - errors.length;
+        .map(r => ({ petId: r.petId, error: grpcMessage(r.result.reason) }));
+      const successCount = petIds.length - errors.length;
 
       return reply.send({
         success: true,

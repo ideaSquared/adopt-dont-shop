@@ -12,15 +12,15 @@ import {
   setAuthCookies,
 } from './auth-cookies.js';
 
-async function makeApp(): Promise<FastifyInstance> {
+async function makeApp(environment?: string): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await app.register(cookie);
   app.post('/set', async (req, reply) => {
-    setAuthCookies(req, reply, { accessToken: 'a.jwt', refreshToken: 'r.jwt' });
+    setAuthCookies(req, reply, { accessToken: 'a.jwt', refreshToken: 'r.jwt' }, environment);
     return reply.send({ ok: true });
   });
   app.post('/clear', async (req, reply) => {
-    clearAuthCookies(req, reply);
+    clearAuthCookies(req, reply, environment);
     return reply.send({ ok: true });
   });
   app.get('/read', async req => ({
@@ -75,6 +75,57 @@ describe('setAuthCookies', () => {
     const res = await app.inject({ method: 'POST', url: '/set' });
     const setCookie = res.cookies.find(c => c.name === ACCESS_TOKEN_COOKIE_NAME);
     expect(setCookie?.secure).toBeFalsy();
+  });
+});
+
+// ADS-1327: Secure previously derived only from req.protocol, which needs
+// trustProxy + a correctly-forwarded X-Forwarded-Proto to read 'https'
+// behind nginx. A misconfigured/bypassed proxy hop silently downgraded a
+// production cookie to non-Secure. environment pins Secure=true for
+// production/staging unconditionally, independent of req.protocol.
+describe('setAuthCookies / clearAuthCookies — Secure pinned by environment (ADS-1327)', () => {
+  it('marks cookies Secure in production even over a plain-HTTP request', async () => {
+    const app = await makeApp('production');
+    try {
+      const res = await app.inject({ method: 'POST', url: '/set' });
+      const setCookie = res.cookies.find(c => c.name === ACCESS_TOKEN_COOKIE_NAME);
+      expect(setCookie?.secure).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('marks cookies Secure in staging even over a plain-HTTP request', async () => {
+    const app = await makeApp('staging');
+    try {
+      const res = await app.inject({ method: 'POST', url: '/set' });
+      const setCookie = res.cookies.find(c => c.name === ACCESS_TOKEN_COOKIE_NAME);
+      expect(setCookie?.secure).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not pin Secure in development (falls back to req.protocol)', async () => {
+    const app = await makeApp('development');
+    try {
+      const res = await app.inject({ method: 'POST', url: '/set' });
+      const setCookie = res.cookies.find(c => c.name === ACCESS_TOKEN_COOKIE_NAME);
+      expect(setCookie?.secure).toBeFalsy();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('pins Secure on clearAuthCookies in production too', async () => {
+    const app = await makeApp('production');
+    try {
+      const res = await app.inject({ method: 'POST', url: '/clear' });
+      const setCookie = res.cookies.find(c => c.name === ACCESS_TOKEN_COOKIE_NAME);
+      expect(setCookie?.secure).toBe(true);
+    } finally {
+      await app.close();
+    }
   });
 });
 

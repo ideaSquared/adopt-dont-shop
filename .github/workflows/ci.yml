@@ -139,7 +139,11 @@ jobs:
       # ADS-1211: fail CI if a committed test file uses a focused test marker
       # (.only / fdescribe / fit) — dependency-free, so it belongs alongside
       # the other scripts/check-*.mjs guards in this job rather than gated
-      # behind a heavier test job. See scripts/check-no-test-only.mjs.
+      # behind a heavier test job. ADS-1327: also WARNS (does not fail) on a
+      # skip-shaped marker (.skip / .todo / .skipIf / .fixme) — not passing
+      # --strict here because ADS-1315's DB-gated integration suites
+      # legitimately carry `describe.skipIf(!process.env.DATABASE_URL)`. See
+      # the module comment in scripts/check-no-test-only.mjs.
       - name: Verify no committed focused tests (.only / fdescribe / fit)
         run: node scripts/check-no-test-only.mjs
 
@@ -447,6 +451,19 @@ jobs:
   # declares its own thresholds in its own vitest.config.ts (mirrors lib.*
   # packages) and so actually gates CI.
   #
+  # ADS-1315 (P1-9): a real Postgres service container backs the DB-gated
+  # integration suites (packages/events, services/auth
+  # `*.integration.test.ts`) — SQL correctness and the events transactional-
+  # outbox seam were previously verified only against mocks. NATS is
+  # deliberately NOT added here: the integration suites use
+  # @adopt-dont-shop/test-utils' `makeNatsDouble()` (a real NATS broker adds
+  # no additional signal for what they assert — transaction/outbox durability
+  # against real Postgres — and a service container would be dead weight).
+  # postgis/postgis matches the exact image docker-compose.prod.yml runs
+  # (citext + postgis are the two extensions services/auth's migrations
+  # require); the DB-gated tests are skipped (not failed) for any package
+  # whose migrations don't need it. See docs/testing.md.
+  #
   # Gated on the `backend` path filter — ci-required treats skipped as pass.
   # ============================================================================
   test-services:
@@ -455,6 +472,24 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
     steps:
       # Local composite actions can only load after the repo is checked out.
@@ -507,6 +542,8 @@ jobs:
         run: |
           pnpm --filter @adopt-dont-shop/service.auth test:contracts:provider
           pnpm --filter @adopt-dont-shop/service.applications test:contracts:provider
+          pnpm --filter @adopt-dont-shop/service.pets test:contracts:provider
+          pnpm --filter @adopt-dont-shop/service.rescue test:contracts:provider
           pnpm --filter @adopt-dont-shop/service.gateway test:contracts:provider
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -573,14 +610,17 @@ jobs:
       - uses: ./.github/actions/e2e-suite
 
   # ============================================================================
-  # E2E SMOKE — ADS-1242: advisory @smoke subset on PRs touching app / service /
+  # E2E SMOKE — ADS-1242: @smoke subset on PRs touching app / service /
   # gateway code, so the headline journeys (auth, adoption application, chat,
   # gateway login) get a pre-merge signal instead of being protected only
-  # AFTER merge by the opt-in full suite. ADVISORY: deliberately NOT in
-  # ci-required's needs, so a smoke failure shows red on the PR but never
-  # blocks merge — the intended ratchet is to promote this to required once it
-  # has proven stable. Skipped when the PR carries `run-e2e` (the full test-e2e
-  # job already covers those journeys) or when neither app nor backend changed.
+  # AFTER merge by the opt-in full suite. REQUIRED (ADS-1321 / P1-15): in
+  # ci-required's needs — a smoke failure now blocks merge, closing the gap
+  # where any of the 47+ journeys could regress and merge green. The full
+  # test-e2e suite stays opt-in (`run-e2e` label) as before. Skipped when the
+  # PR carries `run-e2e` (the full test-e2e job already covers those
+  # journeys), on non-PR events (push/workflow_dispatch — test-e2e already
+  # gates those), or when neither app nor backend changed — all of which
+  # ci-required's gate treats as passing.
   # ============================================================================
   test-e2e-smoke:
     name: E2E Smoke (Playwright)
@@ -637,15 +677,74 @@ jobs:
           lib-dist-cache-hit: ${{ needs.build-libs.outputs.lib-dist-cache-hit }}
 
   # ============================================================================
+  # VALIDATE OBSERVABILITY CONFIG — ADS-1324 (P2 observability fast-follows,
+  # "no promtool or amtool validation in CI" item): syntax/semantic-check the
+  # committed Prometheus rules + config and Alertmanager config with the real
+  # promtool/amtool binaries, so a broken alerting rule or route fails the PR
+  # instead of only being discovered when the container starts in prod.
+  # Path-filtered to the configs it checks. Uses the exact same digest-pinned
+  # prom/prometheus / prom/alertmanager images the observability stack itself
+  # runs (docker-compose.observability.yml, ADS-1041) — one version to keep in
+  # sync, and `pnpm check:docker-pinning`'s digest-pin requirement is already
+  # satisfied by that compose file.
+  # ============================================================================
+  validate-observability-config:
+    name: Validate Observability Config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+        id: changed
+        with:
+          filters: |
+            observability:
+              - 'infra/prometheus/rules/**'
+              - 'observability/prometheus/**'
+              - 'observability/alertmanager/**'
+
+      # sh -c so the container's own shell expands the *.yml glob — promtool
+      # itself doesn't glob its arguments, and the host shell can't expand a
+      # path that only exists inside the bind-mounted container.
+      - name: promtool check rules
+        if: steps.changed.outputs.observability == 'true' || github.event_name != 'pull_request'
+        run: |
+          docker run --rm --entrypoint sh \
+            -v "$PWD/infra/prometheus/rules:/rules:ro" \
+            prom/prometheus:v3.1.0@sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218 \
+            -c 'promtool check rules /rules/*.yml'
+
+      - name: promtool check config
+        if: steps.changed.outputs.observability == 'true' || github.event_name != 'pull_request'
+        run: |
+          docker run --rm --entrypoint promtool \
+            -v "$PWD/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v "$PWD/infra/prometheus/rules:/etc/prometheus/rules:ro" \
+            prom/prometheus:v3.1.0@sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218 \
+            check config /etc/prometheus/prometheus.yml
+
+      - name: amtool check-config
+        if: steps.changed.outputs.observability == 'true' || github.event_name != 'pull_request'
+        run: |
+          docker run --rm --entrypoint amtool \
+            -v "$PWD/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+            prom/alertmanager:v0.28.0@sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8 \
+            check-config /etc/alertmanager/alertmanager.yml
+
+  # ============================================================================
   # CI REQUIRED — single aggregator gate for branch protection. Branch
   # protection references this one job name, so adding/renaming a job below
   # doesn't require touching the ruleset.
   #
-  # Path-filtered jobs (test-frontend, test-libs, dev-auth-guard) and test-e2e
-  # (opt-in via `run-e2e`) report `skipped` rather than `success` when they
-  # don't run. Classic branch protection treats `skipped` as a failure, so
-  # this aggregator only fails on `failure`/`cancelled` — the standard
-  # "merge gate" pattern — treating `skipped` as success.
+  # Path-filtered jobs (test-frontend, test-libs, dev-auth-guard,
+  # validate-observability-config) and test-e2e (opt-in via `run-e2e`) report
+  # `skipped` rather than `success` when they don't run. Classic branch
+  # protection treats `skipped` as a failure, so this aggregator only fails on
+  # `failure`/`cancelled` — the standard "merge gate" pattern — treating
+  # `skipped` as success. The gate logic itself lives in
+  # scripts/ci-required-gate.sh (ADS-1327) so it's unit-testable independent
+  # of a live workflow run — see scripts/ci-required-gate.test.mjs.
   # ============================================================================
   ci-required:
     name: CI Required
@@ -662,21 +761,22 @@ jobs:
       - test-contracts
       - dev-auth-guard
       - test-e2e
+      # ADS-1321: the @smoke Playwright subset now gates merge — see
+      # test-e2e-smoke's own comment for why this closes P1-15.
+      - test-e2e-smoke
+      # ADS-1324: promtool/amtool config validation — path-filtered to the
+      # observability configs it checks.
+      - validate-observability-config
     # ADS-792 + ADS-822: test-e2e re-added (suite reworked for post-monolith
     # gateway stack in bd64b1b/#1004); test-services added so zero-test
     # services no longer merge green.
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Local composite actions/scripts can only load after the repo is
+      # checked out.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Verify required jobs succeeded or skipped
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
-        run: |
-          echo "$NEEDS_JSON" | jq .
-          failed=$(echo "$NEEDS_JSON" | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')
-          if [ -n "$failed" ]; then
-            echo "::error::Required jobs failed or were cancelled:"
-            echo "$failed"
-            exit 1
-          fi
-          echo "All required jobs passed or were skipped (path filter)."
+        run: scripts/ci-required-gate.sh

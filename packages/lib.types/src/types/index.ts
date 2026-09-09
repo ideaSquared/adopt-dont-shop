@@ -153,7 +153,35 @@ export type Permission =
   | 'reports.update'
   | 'reports.update:any'
   | 'reports.delete'
-  | 'reports.delete:any';
+  | 'reports.delete:any'
+  // Second wave of RBAC seed/handler drift (ADS-1304). `events`/`foster`
+  // aren't in PermissionResource (adding them there would also generate
+  // unwanted combinations like `events.suspend`), so these are explicit
+  // literals — same pattern as the auth.privacy-prefs.*/chat.message.*
+  // entries above.
+  | 'events.read'
+  | 'events.create'
+  | 'events.update'
+  | 'events.delete'
+  | 'foster.create'
+  | 'foster.read'
+  | 'foster.update'
+  | 'notifications.device-tokens.read'
+  | 'notifications.device-tokens.read:any'
+  | 'notifications.device-tokens.write'
+  | 'notifications.device-tokens.write:any'
+  | 'notifications.email.send'
+  | 'notifications.email-prefs.read'
+  | 'notifications.email-prefs.read:any'
+  | 'notifications.email-prefs.update'
+  | 'notifications.email-prefs.update:any'
+  | 'notifications.prefs.read'
+  | 'notifications.prefs.read:any'
+  | 'notifications.prefs.update'
+  | 'notifications.prefs.update:any'
+  | 'notifications.cleanup'
+  | 'pets.read:any'
+  | 'matching.swipes.read:any';
 
 /**
  * User with permissions

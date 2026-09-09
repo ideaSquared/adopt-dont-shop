@@ -34,10 +34,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "type-check": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "@adopt-dont-shop/lib.types": "workspace:*"
-  },
-  "devDependencies": {
+  "dependencies": {
     "@adopt-dont-shop/lib.types": "workspace:*"
   }
 }

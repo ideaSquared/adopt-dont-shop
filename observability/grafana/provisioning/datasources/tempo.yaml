@@ -10,3 +10,28 @@ datasources:
     uid: tempo
     url: http://tempo:3200
     isDefault: false
+    jsonData:
+      # ADS-1327: trace -> log/metric correlation, the reverse direction of
+      # loki.yaml's derivedFields. Viewing a trace, "Logs for this span"
+      # queries Loki for lines carrying the same service + trace_id
+      # (packages/observability/src/logger.ts stamps trace_id on every log
+      # line written inside an active span); "Related metrics" jumps to the
+      # matching service's panel on the Prometheus datasource.
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-1m'
+        spanEndTimeShift: '1m'
+        filterByTraceID: true
+        tags:
+          - key: service.name
+            value: service
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        tags:
+          - key: service.name
+            value: job
+        queries:
+          - name: 'HTTP p95 latency for this service'
+            query: 'histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{$__tags}[5m])) by (le))'

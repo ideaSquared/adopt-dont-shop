@@ -94,6 +94,10 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
+      // ADS-1327: warn (build output, not a failure) if a chunk grows past
+      // 500 KB. pnpm check:bundle-size (scripts/check-bundle-size.mjs) is
+      // the actual CI-agnostic budget gate.
+      chunkSizeWarningLimit: 500,
       // ADS-447 / ADS-461: hidden source maps so Sentry can resolve stack traces
       // without exposing them publicly. CI uploads the maps to Sentry then the
       // .map files are stripped from the deployed artifact.

@@ -20,6 +20,11 @@ export type MigrationOptions = {
 // error class, so substring match is the only signal available.
 const ADVISORY_LOCK_MESSAGE = 'Another migration is already running';
 
+// Files in the migrations directory that must never be loaded as migrations:
+// dotfiles, source maps, co-located tests, and emitted `.d.ts` declarations.
+export const MIGRATION_IGNORE_PATTERN =
+  '(\\..*|.*\\.map|.*\\.d\\.ts|.*\\.test\\.[jt]s|.*\\.spec\\.[jt]s)';
+
 export async function runMigrations(opts: MigrationOptions): Promise<void> {
   const { databaseUrl, schema, migrationsDir, maxRetries = 12, retryBackoffMs = 250 } = opts;
 
@@ -38,7 +43,12 @@ export async function runMigrations(opts: MigrationOptions): Promise<void> {
     // migrations also get scanned otherwise — importing them at migrate
     // time runs `describe()` outside a vitest context and crashes the
     // runner with "Cannot read properties of undefined (reading 'config')".
-    ignorePattern: '(\\..*|.*\\.map|.*\\.test\\.[jt]s|.*\\.spec\\.[jt]s)',
+    // Compiled services also emit `<name>.d.ts` declaration siblings next to
+    // each `dist/migrations/<name>.js` (tsconfig.base.json `declaration`);
+    // node-pg-migrate would import those as migrations and crash on boot
+    // with "Unknown value for direction: up" — only visible in the
+    // production image, never under tsx.
+    ignorePattern: MIGRATION_IGNORE_PATTERN,
     log: () => {
       /* silent — callers wrap in their own observability layer */
     },

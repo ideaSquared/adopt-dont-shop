@@ -174,6 +174,11 @@ export async function addDocument(
 
 // --- ListDocuments ---------------------------------------------------
 
+// ADS-1323: ListDocumentsRequest has no pagination fields, so this is a
+// hard cap rather than a page size — bounds worst-case memory/latency for
+// an application with an unusually large document count.
+const LIST_DOCUMENTS_LIMIT = 500;
+
 export async function listDocuments(
   deps: HandlerDeps,
   principal: Principal,
@@ -197,7 +202,8 @@ export async function listDocuments(
     `SELECT document_id, application_id, type, filename, url, size, mime_type, created_at
        FROM application_documents
       WHERE application_id = $1 AND deleted_at IS NULL
-      ORDER BY created_at ASC`,
+      ORDER BY created_at ASC
+      LIMIT ${LIST_DOCUMENTS_LIMIT}`,
     [req.applicationId]
   );
 

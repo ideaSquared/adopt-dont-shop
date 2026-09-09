@@ -267,7 +267,7 @@ const RESCUES_SELECT = `
   settings, plan, plan_expires_at, version, created_at, updated_at
 `;
 
-const RESCUES_CREATE: Permission = 'rescues.create' as Permission;
+const RESCUES_CREATE: Permission = 'rescues.create';
 const RESCUES_READ: Permission = 'rescues.read' as Permission;
 const RESCUES_UPDATE: Permission = 'rescues.update' as Permission;
 const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;

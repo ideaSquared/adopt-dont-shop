@@ -18,6 +18,16 @@
 //   - OTEL_SERVICE_NAME env var overrides the option. Service version
 //     resolves from `npm_package_version` injected by npm at script time.
 //   - No-op contract: this module must never throw.
+//
+// ADS-1324: trace sampling. NodeSDK's default config (no `sampler` passed
+// here) resolves the sampler from OTEL_TRACES_SAMPLER / OTEL_TRACES_SAMPLER_
+// ARG itself — see @opentelemetry/sdk-trace-base's `buildSamplerFromEnv()`,
+// which NodeSDK calls when no sampler option is supplied. Verified against
+// the installed version; nothing to wire up here. The actual bug was that
+// docker-compose.prod.yml / .staging.yml never passed those two env vars
+// into any container, so every service silently fell back to the SDK's
+// default of ParentBasedAlwaysOn (100% sampling) — fixed by adding them to
+// `x-service-env` there, not by any code change in this file.
 
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';

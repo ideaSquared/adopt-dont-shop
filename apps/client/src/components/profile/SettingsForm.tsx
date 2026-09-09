@@ -245,12 +245,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
           </div>
 
           <div className={styles.settingItem}>
-            <FormField description='Receive text messages for urgent updates'>
+            {/* ADS-1325: SMS is modelled end-to-end (DB column, preference
+                gate, this toggle) but has no provider or worker behind it —
+                the backend rejects enabling it. Disabled here rather than
+                removed so the setting stays visible (and explained) instead
+                of silently disappearing. */}
+            <FormField description='SMS notifications are not available yet — check back soon'>
               <CheckboxInput
                 label='SMS Notifications'
                 checked={settings.notifications.sms}
                 onChange={() => handleToggle('notifications', 'sms')}
-                disabled={isLoading}
+                disabled
               />
             </FormField>
           </div>

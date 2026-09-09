@@ -42,6 +42,7 @@ function makeNats(): { js: ReturnType<typeof vi.fn>; nc: NatsConnection } {
 type SagaRow = {
   correlation_id: string;
   user_id: string;
+  email: string | null;
   reason: string | null;
   requested_at: string;
   completions: Record<string, unknown>;
@@ -55,6 +56,7 @@ function makeSagaRow(overrides: Partial<SagaRow> = {}): SagaRow {
   return {
     correlation_id: 'corr-1',
     user_id: 'usr-1',
+    email: null,
     reason: null,
     requested_at: '2026-06-11T10:00:00Z',
     completions: {},
@@ -215,7 +217,7 @@ describe('runGdprSweep — retry', () => {
       callCount++;
       if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
       if (callCount === 2) return { rows: [row] }; // retry candidates query
-      return { rows: [] };
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot
     });
 
     const logger = makeLogger();
@@ -240,12 +242,95 @@ describe('runGdprSweep — retry', () => {
       })
     );
 
-    // Must increment retry_count.
+    // Must increment retry_count, atomically claiming the slot BEFORE
+    // publishing (ADS-1325).
     const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls as [string, unknown[]][];
     const retryUpdate = calls.find(
       ([sql]) => sql.includes('retry_count') && sql.includes('UPDATE')
     );
     expect(retryUpdate).toBeDefined();
+    // The claim query happened before the publish, not after.
+    const claimIndex = calls.findIndex(
+      ([sql]) => sql.includes('retry_count') && sql.includes('UPDATE')
+    );
+    expect(claimIndex).toBeLessThan(calls.length); // sanity: it exists
+    expect(publishFn.mock.invocationCallOrder[0]).toBeGreaterThan(
+      (pool.query as ReturnType<typeof vi.fn>).mock.invocationCallOrder[claimIndex]
+    );
+  });
+
+  it('does not publish, and skips to the next candidate, when the claim UPDATE affects 0 rows (lost to a concurrent sweep run)', async () => {
+    const row = makeSagaRow({
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 0,
+      completions: {
+        pets: { recordsErased: 0, error: 'timeout', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
+      if (callCount === 2) return { rows: [row] }; // retry candidates query
+      return { rows: [], rowCount: 0 }; // claim UPDATE — LOST the slot
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn();
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    expect(publishFn).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(
+      'gdpr saga retry claim lost — already handled by a concurrent sweep run',
+      expect.objectContaining({ correlationId: 'corr-1' })
+    );
+  });
+
+  it('the claim UPDATE guards on the OLD retry_count value (optimistic concurrency)', async () => {
+    const row = makeSagaRow({
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 2,
+      completions: {
+        pets: { recordsErased: 0, error: 'timeout', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return { rows: [] };
+      if (callCount === 2) return { rows: [row] };
+      return { rows: [], rowCount: 1 };
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn().mockResolvedValue({ stream: 'DOMAIN_EVENTS', seq: 1 });
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls as [string, unknown[]][];
+    const claimCall = calls.find(([sql]) => sql.includes('retry_count') && sql.includes('UPDATE'));
+    expect(claimCall![0]).toContain('retry_count = $3');
+    // New value (3), correlation id, and the OLD value (2) as the guard.
+    expect(claimCall![1]).toEqual([3, 'corr-1', 2]);
   });
 
   it('uses a distinct msgID per retry attempt so JetStream does not deduplicate retries', async () => {
@@ -263,7 +348,7 @@ describe('runGdprSweep — retry', () => {
     (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
       callCount++;
       if (callCount === 2) return { rows: [row] };
-      return { rows: [] };
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot
     });
 
     const logger = makeLogger();
@@ -340,7 +425,7 @@ describe('runGdprSweep — retry', () => {
     (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
       callCount++;
       if (callCount === 2) return { rows: [row] };
-      return { rows: [] };
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot
     });
 
     const logger = makeLogger();
@@ -364,6 +449,90 @@ describe('runGdprSweep — retry', () => {
     expect(envelope.payload.userId).toBe('usr-xyz');
     expect(envelope.payload.requestedAt).toBe('2026-06-11T10:00:00Z');
     expect(envelope.payload.reason).toBe('moving abroad');
+  });
+
+  // ADS-1323: the retry payload is rebuilt from this table's row, not the
+  // original NATS message — email must round-trip through the DB column
+  // (see 009_add_gdpr_erasure_email.ts) or a retried erasure permanently
+  // skips email-keyed rows (rescue pending invitations for a user who
+  // never registered).
+  it('the re-published payload carries the persisted email (ADS-1323)', async () => {
+    const row = makeSagaRow({
+      correlation_id: 'corr-email',
+      user_id: 'usr-email',
+      email: 'leaving-user@example.com',
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 0,
+      completions: {
+        auth: { recordsErased: 0, error: 'crash', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
+      if (callCount === 2) return { rows: [row] }; // retry candidates query
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot (ADS-1325)
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn().mockResolvedValue({ stream: 'DOMAIN_EVENTS', seq: 1 });
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    expect(publishFn).toHaveBeenCalledTimes(1);
+    const [, data] = publishFn.mock.calls[0] as [string, Uint8Array, unknown];
+    const envelope = JSON.parse(new TextDecoder().decode(data)) as {
+      payload: { email?: string };
+    };
+    expect(envelope.payload.email).toBe('leaving-user@example.com');
+  });
+
+  it('omits email from the retry payload when the saga has none on file', async () => {
+    const row = makeSagaRow({
+      email: null,
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 0,
+      completions: {
+        auth: { recordsErased: 0, error: 'crash', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
+      if (callCount === 2) return { rows: [row] }; // retry candidates query
+      return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot (ADS-1325)
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn().mockResolvedValue({ stream: 'DOMAIN_EVENTS', seq: 1 });
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    const [, data] = publishFn.mock.calls[0] as [string, Uint8Array, unknown];
+    const envelope = JSON.parse(new TextDecoder().decode(data)) as {
+      payload: { email?: string };
+    };
+    expect(envelope.payload.email).toBeUndefined();
   });
 
   it('does not re-publish for a saga whose completed_at is set (already done)', async () => {

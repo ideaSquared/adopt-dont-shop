@@ -97,6 +97,18 @@ x-service-env: &service-env
   LOKI_URL: ${LOKI_URL:-}
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
   SENTRY_DSN: ${SENTRY_DSN:-}
+  # ADS-1324: trace sampling was 100% in production because these standard
+  # OTel env vars — which observability-enable.md already told operators to
+  # set — were never actually passed into any container. The
+  # `@opentelemetry/sdk-node` NodeSDK reads them itself (no repo code needed —
+  # see packages/observability/src/opentelemetry.ts); default to a 10%
+  # parent-based ratio sampler if the host .env doesn't override them.
+  OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
+  OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
+  # ADS-1327: LOG_LEVEL was settable in no compose file — createLogger()
+  # (packages/observability/src/logger.ts) already reads it, this just wires
+  # it through so an operator can turn on debug logging without a rebuild.
+  LOG_LEVEL: ${LOG_LEVEL:-info}
 
 # Healthcheck timing tiers (mirrors the dev docker-compose.yml ADS-860
 # standard): infra probes fast without a start_period (database) or with a
@@ -335,8 +347,9 @@ services:
       # service's --auth flag.
       NATS_AUTH_TOKEN_FILE: /run/secrets/nats_auth_token
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
-      # ADS-422: the per-stack nginx serves /uploads via auth_request; disable
-      # the gateway's own file streaming in production.
+      # ADS-1034/ADS-1327: the per-stack nginx serves /uploads directly via a
+      # per-category allowlist (deny-by-default) — there is no auth_request
+      # gate; disable the gateway's own file streaming in production.
       SERVE_LOCAL_UPLOADS: "false"
       # ADS-1303: Dockerfile.service bakes the repo's docs/legal into the
       # image at /app/docs/legal (turbo prune's output doesn't carry the
@@ -355,6 +368,9 @@ services:
       LOKI_URL: ${LOKI_URL:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      # ADS-1327: the gateway doesn't inherit x-service-env, so it needs this
+      # line directly — see the anchor's comment for why.
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     # Gateway has no DB; it needs the upload-signing secret, the
     # principal-signing key (ADS-800 — it is the token signer), the NATS
     # auth token (ADS-1273) and Redis (ADS-1310 — rate limiting + WS adapter).

@@ -60,7 +60,41 @@ describe('recordRequest', () => {
     );
     // Must NOT silently drop the replayed values any more.
     expect(sql).not.toContain('DO NOTHING');
-    expect(params).toEqual(['corr-1', 'usr-1', 'leaving', '2026-06-09T12:00:00Z']);
+    expect(params).toEqual(['corr-1', 'usr-1', 'leaving', '2026-06-09T12:00:00Z', undefined]);
+  });
+
+  // ADS-1323: the sweep's retry pass (gdpr-sweep.ts) rebuilds the republish
+  // payload from this table's columns alone. Without persisting email here,
+  // a retried erasure permanently drops it and skips email-keyed rows
+  // (rescue pending invitations for a user who never registered).
+  it('persists email so a later sweep retry can republish it (ADS-1323)', async () => {
+    const pool = makePool();
+    await recordRequest(pool, { ...REQUEST_PAYLOAD, email: 'leaving-user@example.com' });
+    const [[sql, params]] = capturedCalls(pool);
+    expect(sql).toContain('email');
+    expect(params).toEqual([
+      'corr-1',
+      'usr-1',
+      'leaving',
+      '2026-06-09T12:00:00Z',
+      'leaving-user@example.com',
+    ]);
+  });
+
+  it('back-fills email on conflict without clobbering an already-known value', async () => {
+    const pool = makePool();
+    await recordRequest(pool, { ...REQUEST_PAYLOAD, email: 'leaving-user@example.com' });
+    const [[sql]] = capturedCalls(pool);
+    expect(sql).toMatch(
+      /email\s*=\s*COALESCE\(audit\.gdpr_erasure_requests\.email,\s*EXCLUDED\.email\)/
+    );
+  });
+
+  it('stores NULL when the request has no resolvable email', async () => {
+    const pool = makePool();
+    await recordRequest(pool, REQUEST_PAYLOAD);
+    const [[, params]] = capturedCalls(pool);
+    expect(params[4]).toBeUndefined();
   });
 
   it('never touches completions, completed_at, or failed_at (a late request must not clobber saga progress)', async () => {

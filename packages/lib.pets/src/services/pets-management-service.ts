@@ -412,7 +412,7 @@ export class PetManagementService {
           byStatus: { [key: string]: number };
           avgTimeToAdoption: number;
         }>
-      >(`${PETS_ENDPOINTS.PETS}/statistics?rescueId=${rescueId}`);
+      >(PETS_ENDPOINTS.PET_STATISTICS, { rescueId });
 
       if (response.success && response.data) {
         return response.data;

@@ -53,13 +53,13 @@ export type HandlerDeps = WithTransactionDeps;
 
 // --- Permissions -----------------------------------------------------
 
-const NOTIFICATIONS_READ: Permission = 'notifications.read' as Permission;
-const NOTIFICATIONS_UPDATE: Permission = 'notifications.update' as Permission;
-const NOTIFICATIONS_DELETE: Permission = 'notifications.delete' as Permission;
-const PREFS_READ_SELF: Permission = 'notifications.prefs.read' as Permission;
-const PREFS_READ_ANY: Permission = 'notifications.prefs.read:any' as Permission;
-const PREFS_WRITE_SELF: Permission = 'notifications.prefs.update' as Permission;
-const PREFS_WRITE_ANY: Permission = 'notifications.prefs.update:any' as Permission;
+const NOTIFICATIONS_READ: Permission = 'notifications.read';
+const NOTIFICATIONS_UPDATE: Permission = 'notifications.update';
+const NOTIFICATIONS_DELETE: Permission = 'notifications.delete';
+const PREFS_READ_SELF: Permission = 'notifications.prefs.read';
+const PREFS_READ_ANY: Permission = 'notifications.prefs.read:any';
+const PREFS_WRITE_SELF: Permission = 'notifications.prefs.update';
+const PREFS_WRITE_ANY: Permission = 'notifications.prefs.update:any';
 
 // --- Row shapes ------------------------------------------------------
 
@@ -454,6 +454,14 @@ export async function updateNotificationPreferences(
   if (!hasPermission(principal, PREFS_WRITE_SELF)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PREFS_WRITE_SELF}' required`);
   }
+  // ADS-1325: sms is a modelled channel (enum, this table's sms_enabled
+  // column, the UI toggle) with no provider or worker behind it — reject
+  // turning it on rather than silently accepting a setting that can never
+  // deliver anything. Disabling (false) is always allowed, including to
+  // let a client explicitly turn off a toggle it may still render.
+  if (req.smsEnabled === true) {
+    throw new HandlerError('INVALID_ARGUMENT', 'SMS is not available');
+  }
   const userId = resolveTargetUserId(principal, req.userId, PREFS_WRITE_ANY);
 
   // Ensure the row exists before we UPDATE so the response always
@@ -577,7 +585,7 @@ export async function resetNotificationPreferences(
 
 // --- CleanupExpiredNotifications ------------------------------------
 
-const NOTIFICATIONS_CLEANUP: Permission = 'notifications.cleanup' as Permission;
+const NOTIFICATIONS_CLEANUP: Permission = 'notifications.cleanup';
 const DEFAULT_CLEANUP_DAYS = 30;
 const MAX_CLEANUP_DAYS = 3650; // 10 years
 

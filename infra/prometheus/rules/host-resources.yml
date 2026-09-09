@@ -1,0 +1,80 @@
+# Host + container resource rules (ADS-1313).
+#
+# node-exporter and cAdvisor are new scrape targets
+# (docker-compose.observability.yml) — before this file, nothing watched the
+# single host's own disk/memory or per-container restarts.
+groups:
+  - name: ads-host-resources
+    interval: 30s
+    rules:
+      # Root filesystem free-space ratio, from node-exporter. Two severities
+      # on the same alert name — see docs/slo.md.
+      - alert: HostDiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/", fstype!~"tmpfs|overlay"}
+            /
+            node_filesystem_size_bytes{mountpoint="/", fstype!~"tmpfs|overlay"}
+          ) < 0.20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Host root filesystem <20% free'
+          description: >-
+            Free space on the host's root filesystem has been below 20% for
+            10 minutes. This is the single host holding Postgres, Redis and
+            every container's logs — see docs/runbooks/postgres-disk-full.md.
+          runbook: docs/runbooks/postgres-disk-full.md
+
+      - alert: HostDiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/", fstype!~"tmpfs|overlay"}
+            /
+            node_filesystem_size_bytes{mountpoint="/", fstype!~"tmpfs|overlay"}
+          ) < 0.10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Host root filesystem <10% free — act now'
+          description: >-
+            Free space on the host's root filesystem has been below 10% for 5
+            minutes. Postgres writes will start failing soon if this isn't
+            reclaimed.
+          runbook: docs/runbooks/postgres-disk-full.md
+
+      # Memory pressure on the host — MemAvailable already accounts for
+      # reclaimable cache, so this tracks genuine pressure, not page-cache
+      # noise.
+      - alert: HostMemoryPressure
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Host memory >90% used for 10m'
+          description: >-
+            The host has had less than 10% memory available for 10 minutes.
+            Every container's per-service memory limit (docker-compose.prod.yml
+            `deploy.resources.limits.memory`) still applies, but host-level
+            pressure risks the OOM killer picking an unexpected victim.
+          runbook: docs/runbooks/host-reboot.md
+
+      # A container repeatedly restarting — cAdvisor's container_start_time_
+      # seconds is a gauge that changes value on every (re)start, so
+      # changes() over a window counts restarts.
+      - alert: ContainerRestarting
+        expr: changes(container_start_time_seconds{name!=""}[15m]) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Container {{ $labels.name }} restarted more than twice in 15m'
+          description: >-
+            cAdvisor recorded {{ $value }} restarts for container
+            {{ $labels.name }} in the last 15 minutes — likely crash-looping.
+            Check its logs: `docker compose logs --tail=100 {{ $labels.name }}`.
+          runbook: docs/runbooks/5xx-spike.md

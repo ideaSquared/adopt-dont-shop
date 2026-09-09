@@ -41,7 +41,8 @@ test.describe('adopter password reset', () => {
     // Acceptable outcomes: a visible "invalid/expired token" message,
     // or stuck on /reset-password (i.e. didn't navigate to "Password
     // Reset Successful").  We deliberately don't pin to specific copy.
-    await page.waitForTimeout(3_000);
+    // Wait for the submit response to settle instead of a fixed sleep.
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined);
     const hasErrorMessage = await page
       .getByText(/(invalid|expired|not found|missing|please request a new)/i)
       .first()

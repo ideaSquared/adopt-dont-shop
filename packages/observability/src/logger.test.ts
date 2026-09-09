@@ -1,7 +1,12 @@
 import { Writable } from 'node:stream';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import winston from 'winston';
+
+const { getActiveSpanMock } = vi.hoisted(() => ({ getActiveSpanMock: vi.fn() }));
+vi.mock('@opentelemetry/api', () => ({
+  trace: { getActiveSpan: getActiveSpanMock },
+}));
 
 import { createLogger } from './logger.js';
 
@@ -31,6 +36,8 @@ describe('createLogger', () => {
   beforeEach(() => {
     envSnap = snapshotEnv();
     for (const k of ENV_KEYS) delete process.env[k];
+    getActiveSpanMock.mockReset();
+    getActiveSpanMock.mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -122,5 +129,59 @@ describe('createLogger', () => {
     ).toBe('[REDACTED]');
     // A key named `tokens` matches the `token` substring → value redacted wholesale.
     expect(line.tokens).toBe('[REDACTED]');
+  });
+
+  describe('trace-context stamping (ADS-1327)', () => {
+    function captureOneLine(logger: ReturnType<typeof createLogger>): {
+      lines: Record<string, unknown>[];
+    } {
+      const lines: Record<string, unknown>[] = [];
+      const sink = new Writable({
+        write(chunk, _enc, cb) {
+          lines.push(JSON.parse(chunk.toString()) as Record<string, unknown>);
+          cb();
+        },
+      });
+      logger.add(new winston.transports.Stream({ stream: sink, format: winston.format.json() }));
+      return { lines };
+    }
+
+    it('does not add trace_id/span_id when there is no active span', async () => {
+      const logger = createLogger({ serviceName: 'svc' });
+      const { lines } = captureOneLine(logger);
+
+      logger.info('no span here');
+      await flush();
+
+      expect(lines[0]).not.toHaveProperty('trace_id');
+      expect(lines[0]).not.toHaveProperty('span_id');
+    });
+
+    it('stamps trace_id/span_id from the active OTel span, when there is one', async () => {
+      getActiveSpanMock.mockReturnValue({
+        spanContext: () => ({ traceId: 'trace-abc123', spanId: 'span-def456' }),
+      });
+      const logger = createLogger({ serviceName: 'svc' });
+      const { lines } = captureOneLine(logger);
+
+      logger.info('inside a trace');
+      await flush();
+
+      expect(lines[0]?.trace_id).toBe('trace-abc123');
+      expect(lines[0]?.span_id).toBe('span-def456');
+    });
+
+    it('does not stamp when the active span has no traceId', async () => {
+      getActiveSpanMock.mockReturnValue({
+        spanContext: () => ({ traceId: '', spanId: '' }),
+      });
+      const logger = createLogger({ serviceName: 'svc' });
+      const { lines } = captureOneLine(logger);
+
+      logger.info('degenerate span context');
+      await flush();
+
+      expect(lines[0]).not.toHaveProperty('trace_id');
+    });
   });
 });

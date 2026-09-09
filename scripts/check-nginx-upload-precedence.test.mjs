@@ -8,14 +8,22 @@ import { findMissingCaretTilde, REQUIRED_PREFIXES } from './check-nginx-upload-p
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 describe('findMissingCaretTilde', () => {
-  it('finds nothing when both upload prefixes use ^~', () => {
+  it('finds nothing when every upload prefix uses ^~', () => {
     const text = `
         location ^~ /uploads/documents/ {
             deny all;
         }
 
-        location ^~ /uploads/ {
+        location ^~ /uploads/pets/ {
             root /srv;
+        }
+
+        location ^~ /uploads/users/ {
+            root /srv;
+        }
+
+        location ^~ /uploads/ {
+            deny all;
         }
     `;
     expect(findMissingCaretTilde(text)).toEqual([]);
@@ -27,8 +35,16 @@ describe('findMissingCaretTilde', () => {
             deny all;
         }
 
-        location ^~ /uploads/ {
+        location ^~ /uploads/pets/ {
             root /srv;
+        }
+
+        location ^~ /uploads/users/ {
+            root /srv;
+        }
+
+        location ^~ /uploads/ {
+            deny all;
         }
     `;
     expect(findMissingCaretTilde(text)).toEqual(['/uploads/documents/']);

@@ -13,7 +13,7 @@ import type { AuthCohortClient, HandlerDeps } from './handlers.js';
 const BROADCASTER: Principal = {
   userId: 'svc-bcast' as UserId,
   roles: ['admin'],
-  permissions: ['admin.notifications.broadcast' as Permission],
+  permissions: ['notifications.broadcast' as Permission],
 };
 
 const NO_PERMS: Principal = {
@@ -69,7 +69,7 @@ const prefsRow = (over: Record<string, unknown> = {}) => ({
 });
 
 describe('broadcast', () => {
-  it('rejects callers without admin.notifications.broadcast', async () => {
+  it('rejects callers without notifications.broadcast', async () => {
     const mocks = makeMocks();
     await expect(
       broadcast(mocks.deps, NO_PERMS, {

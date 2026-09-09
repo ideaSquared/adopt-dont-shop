@@ -1,0 +1,38 @@
+# External synthetic-probe rules (ADS-1307d, ADS-1324e).
+#
+# blackbox_exporter (docker-compose.observability.yml) probes the public
+# https endpoint(s) over HTTP from the same host everything else runs on —
+# see that service's comment and the Watchdog alert (watchdog.yml) for the
+# off-host signal a same-host probe can't provide on its own.
+groups:
+  - name: ads-external-probes
+    interval: 30s
+    rules:
+      - alert: PublicEndpointDown
+        expr: probe_success{job="blackbox-public-endpoints"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Public endpoint {{ $labels.instance }} is unreachable'
+          description: >-
+            The blackbox probe could not reach {{ $labels.instance }} for 2
+            minutes (synthetic, external HTTP check — not derived from
+            in-process metrics).
+          runbook: docs/runbooks/5xx-spike.md
+
+      # probe_ssl_earliest_cert_expiry is a unix timestamp; the http_2xx
+      # module probes TLS automatically for an https:// target.
+      - alert: TlsCertificateExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry{job="blackbox-public-endpoints"} - time()) < 14 * 24 * 3600
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: 'TLS certificate for {{ $labels.instance }} expires within 14 days'
+          description: >-
+            The certificate blackbox_exporter observed for
+            {{ $labels.instance }} expires in less than 14 days. certbot
+            renews on a silent loop with no notification of its own — see
+            docs/runbooks/tls-cert-renewal.md.
+          runbook: docs/runbooks/tls-cert-renewal.md

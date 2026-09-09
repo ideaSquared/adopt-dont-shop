@@ -752,6 +752,10 @@ function rowToProtoIpRule(row: IpRuleRow): IpRule {
 // garbage before it lands in the table; not a full RFC validator.
 const CIDR_PATTERN = /^([0-9a-fA-F:.]+)\/(\d{1,3})$/;
 
+// ADS-1323: ListIpRulesRequest has no pagination fields, so this is a
+// hard cap rather than a page size.
+const LIST_IP_RULES_LIMIT = 500;
+
 export async function listIpRules(
   deps: HandlerDeps,
   principal: Principal,
@@ -762,7 +766,7 @@ export async function listIpRules(
   }
 
   const res = await deps.pool.query<IpRuleRow>(
-    `SELECT * FROM auth.ip_rules ORDER BY created_at DESC`
+    `SELECT * FROM auth.ip_rules ORDER BY created_at DESC LIMIT ${LIST_IP_RULES_LIMIT}`
   );
   return { rules: res.rows.map(rowToProtoIpRule) };
 }

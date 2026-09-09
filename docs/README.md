@@ -135,13 +135,14 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 - [ADR 0005 — Pact contract tests](./adr/0005-pact-contract-tests.md) — _Accepted — implemented_
 - [ADR 0006 — field-permission enforcement](./adr/0006-field-permission-enforcement.md) — _Partially implemented_
 - [ADR 0007 — Postgres backups, PITR & restore](./adr/0007-postgres-backups-pitr-restore.md) — _Partially implemented_
-- [ADR 0008 — pre-deploy migration strategy](./adr/0008-pre-deploy-migration-strategy.md) — _Proposed_
+- [ADR 0008 — pre-deploy migration strategy](./adr/0008-pre-deploy-migration-strategy.md) — _Accepted_
 - [ADR 0009 — deployment strategy & high availability](./adr/0009-deployment-strategy-and-ha.md) — _Superseded by ADR 0011_
 - [ADR 0010 — frontend quality gates](./adr/0010-frontend-quality-gates.md) — _Partially implemented_
 - [ADR 0011 — interim availability posture](./adr/0011-interim-availability-posture.md) — _Accepted_
 - [ADR 0012 — internal defence-in-depth posture](./adr/0012-internal-defence-in-depth.md) — _Accepted_
 - [ADR 0013 — sticky sessions for Socket.IO](./adr/0013-socket-sticky-sessions.md) — _Accepted_
 - [ADR 0014 — HttpOnly cookie token storage](./adr/0014-httponly-cookie-token-storage.md) — _Accepted — implemented_
+- [ADR 0015 — solo-maintainer review posture](./adr/0015-solo-maintainer-review-posture.md) — _Accepted_
 
 ### Standards & templates
 

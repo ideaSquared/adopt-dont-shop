@@ -53,6 +53,9 @@ export type GdprSweepOptions = {
 type SagaRow = {
   correlation_id: string;
   user_id: string;
+  // ADS-1323: persisted so a retry can still republish it — see
+  // 009_add_gdpr_erasure_email.ts.
+  email: string | null;
   reason: string | null;
   requested_at: string;
   completions: Record<string, unknown>;
@@ -85,7 +88,7 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
   // `completions` at all. Sagas where every service acked (even with errors)
   // are handled by the retry pass, not the timeout pass.
   const { rows: overdueRows } = await pool.query<SagaRow>(
-    `SELECT correlation_id, user_id, reason, requested_at,
+    `SELECT correlation_id, user_id, email, reason, requested_at,
             completions, completed_at, failed_at, timed_out_at, retry_count
        FROM audit.gdpr_erasure_requests
       WHERE completed_at IS NULL
@@ -135,7 +138,7 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
   // JetStream's duplicate window. Pattern: `${correlationId}:retry:${n}`
   // where n is the NEW retry_count (1-indexed).
   const { rows: retryRows } = await pool.query<SagaRow>(
-    `SELECT correlation_id, user_id, reason, requested_at,
+    `SELECT correlation_id, user_id, email, reason, requested_at,
             completions, completed_at, failed_at, timed_out_at, retry_count
        FROM audit.gdpr_erasure_requests
       WHERE failed_at IS NOT NULL
@@ -148,11 +151,49 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
     const nextRetryCount = row.retry_count + 1;
     const msgID = `${row.correlation_id}:retry:${nextRetryCount}`;
 
+    // ADS-1325: claim the retry slot with a conditional UPDATE — an
+    // optimistic-concurrency guard on retry_count — BEFORE publishing, not
+    // after. The old order (publish, then update) could publish
+    // successfully and then fail/crash before the UPDATE committed, leaving
+    // retry_count stale: the next sweep tick (or an overlapping run) would
+    // recompute the SAME nextRetryCount / msgID and could publish again,
+    // relying on JetStream's dedupe window — which is time-bounded, not a
+    // real guarantee — to avoid a duplicate downstream. Claiming first means
+    // at most one sweep run ever publishes a given retry slot: the
+    // `retry_count = $3` guard only matches the row this SELECT just read,
+    // so a concurrent sweep that already claimed it makes this UPDATE
+    // affect 0 rows and this run skips the publish entirely. A crash
+    // between claim and publish silently costs one retry attempt (the next
+    // deadline-based timeout pass or operator intervention still catches a
+    // saga that's truly stuck) instead of risking a duplicate.
+    const claim = await pool.query(
+      `UPDATE audit.gdpr_erasure_requests
+          SET retry_count = $1,
+              -- Clear failed_at so a fresh retry starts clean.
+              -- The next completion handler will re-stamp if it fails again.
+              failed_at = NULL,
+              updated_at = now()
+        WHERE correlation_id = $2
+          AND retry_count = $3`,
+      [nextRetryCount, row.correlation_id, row.retry_count]
+    );
+    if (claim.rowCount !== 1) {
+      logger.info('gdpr saga retry claim lost — already handled by a concurrent sweep run', {
+        correlationId: row.correlation_id,
+        retryCount: nextRetryCount,
+      });
+      continue;
+    }
+
     const payload: GdprErasureRequestedPayload = {
       correlationId: row.correlation_id,
       userId: row.user_id,
       requestedAt: row.requested_at,
       ...(row.reason !== null ? { reason: row.reason } : {}),
+      // ADS-1323: without this, a retried erasure permanently drops email
+      // and skips email-keyed rows (rescue pending invitations for a user
+      // who never registered) — see 009_add_gdpr_erasure_email.ts.
+      ...(row.email !== null ? { email: row.email } : {}),
     };
 
     const envelope = {
@@ -167,17 +208,6 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
         .publish(GDPR_ERASURE_REQUESTED, new TextEncoder().encode(JSON.stringify(envelope)), {
           msgID,
         });
-
-      await pool.query(
-        `UPDATE audit.gdpr_erasure_requests
-            SET retry_count = $1,
-                -- Clear failed_at so a fresh retry starts clean.
-                -- The next completion handler will re-stamp if it fails again.
-                failed_at = NULL,
-                updated_at = now()
-          WHERE correlation_id = $2`,
-        [nextRetryCount, row.correlation_id]
-      );
 
       logger.info('gdpr saga retry published', {
         correlationId: row.correlation_id,

@@ -3,6 +3,7 @@ export { initSentry, captureException, captureMessage } from './sentry';
 export type { SentryInitOptions } from './sentry';
 export { reportWebVitals } from './web-vitals';
 export type { WebVitalsReporter, WebVitalMetric } from './web-vitals';
+export { createSentryWebVitalsReporter } from './web-vitals-reporter';
 export {
   hasAnalyticsConsent,
   setAnalyticsConsent,

@@ -123,6 +123,10 @@ async function loadOwnerOrThrow(deps: HandlerDeps, applicationId: string): Promi
 
 // --- ListHomeVisits ----------------------------------------------------
 
+// ADS-1323: ListHomeVisitsRequest has no pagination fields, so this is a
+// hard cap rather than a page size.
+const LIST_HOME_VISITS_LIMIT = 500;
+
 export async function listHomeVisits(
   deps: HandlerDeps,
   principal: Principal,
@@ -145,7 +149,8 @@ export async function listHomeVisits(
             created_at, updated_at
        FROM home_visits
       WHERE application_id = $1
-      ORDER BY created_at DESC`,
+      ORDER BY created_at DESC
+      LIMIT ${LIST_HOME_VISITS_LIMIT}`,
     [applicationId]
   );
 

@@ -102,6 +102,7 @@ x-dev-volumes: &dev-volumes
   - /app/packages/lib.validation/node_modules
   - /app/packages/observability/node_modules
   - /app/packages/proto/node_modules
+  - /app/packages/scheduler/node_modules
   - /app/packages/seed-faker/node_modules
   - /app/packages/service-bootstrap/node_modules
   - /app/packages/storage/node_modules

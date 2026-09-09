@@ -71,10 +71,25 @@ export const tokenInput = style({
   },
 });
 
+export const forgotPasswordLink = style({
+  fontSize: '0.9rem',
+  // ADS-1326: the inline style this replaces used #667eea (~3.3:1 on
+  // white) — a color-contrast violation axe-core's smoke gate caught on
+  // /login. primaryActive clears 4.5:1 on both white and the `normal`
+  // theme's warm-cream body (see backLink below and colors.contrast.test.ts).
+  color: vars.colors.primaryActive,
+  textDecoration: 'none',
+  textAlign: 'right',
+});
+
 export const backLink = style({
   background: 'none',
   border: 'none',
-  color: vars.colors.primary,
+  // ADS-1326: colors.primary (#F43F5E) measures ~3.67:1 on white and ~3.44:1
+  // on the `normal` theme's warm-cream body — well under the 4.5:1 AA floor,
+  // and what axe-core's smoke gate caught on /login. primaryActive
+  // (#BE123C) clears 4.5:1 with a real margin (~6.29:1 / ~5.88:1) on both.
+  color: vars.colors.primaryActive,
   cursor: 'pointer',
   fontSize: vars.typography.size.sm,
   padding: '0',

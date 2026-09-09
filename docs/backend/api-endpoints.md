@@ -78,6 +78,16 @@ message; other 4xx forward the upstream validation text.
 | UNAVAILABLE                                    | 503  |
 | DEADLINE_EXCEEDED                              | 504  |
 
+## Known channel limitations
+
+`PATCH` on the notification-preferences route (`UpdateNotificationPreferences`,
+`services/notifications/src/grpc/notification-prefs-handlers.ts`) rejects
+`smsEnabled: true` with `400 INVALID_ARGUMENT` ("SMS is not available"). SMS
+is modelled end-to-end — the DB enum/column, the preference gate, and a UI
+toggle — but no SMS provider or worker exists behind it (ADS-1325); the field
+stays in the schema so a future provider only needs to remove this check.
+Setting `smsEnabled: false` is always accepted.
+
 ## Rate limiting
 
 One global per-IP limiter (`@fastify/rate-limit`, `global: true`), default 100 requests per

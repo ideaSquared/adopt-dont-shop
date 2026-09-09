@@ -69,11 +69,12 @@ Staging deploys stay automatic. [ADS-826]
 
 The deploy job's `environment:` is resolved by the workflow's `preflight` job:
 
-| Dispatch                                                               | Approval environment    |
-| ---------------------------------------------------------------------- | ----------------------- |
-| `environment=staging` (with or without skip flags)                     | `staging` — no approval |
-| `environment=production`, no skip flags                                | `production`            |
-| `environment=production` + `skip_ci_check` and/or `skip_cosign_verify` | `production-bypass`     |
+| Dispatch                                                                      | Approval environment                                                                                                          |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `environment=staging` (with or without skip flags)                            | `staging` — no approval                                                                                                       |
+| `environment=production`, no skip flags                                       | `production`                                                                                                                  |
+| `environment=production` + `skip_ci_check` and/or `skip_cosign_verify`        | `production-bypass`                                                                                                           |
+| `backup.yml` / `backup-restore-drill.yml` (`schedule:` + `workflow_dispatch`) | `backups` — no approval (required for a schedule to ever complete unattended; see [snapshot-policy.md](./snapshot-policy.md)) |
 
 Bypass runs route to the dedicated `production-bypass` environment so the
 reviewer list sees at a glance that safety checks are being skipped. Any run

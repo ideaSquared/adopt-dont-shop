@@ -43,6 +43,7 @@
     "@adopt-dont-shop/lib.types": "workspace:*",
     "@adopt-dont-shop/observability": "workspace:*",
     "@adopt-dont-shop/proto": "workspace:*",
+    "@adopt-dont-shop/scheduler": "workspace:*",
     "@adopt-dont-shop/service-bootstrap": "workspace:*",
     "@grpc/grpc-js": "^1.14.4",
     "fastify": "^5.12.1",
