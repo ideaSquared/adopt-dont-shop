@@ -6,7 +6,29 @@ Authoritative procedure for cutting a normal production/staging release (audienc
 
 - One-time provisioning complete — see [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md): server + Docker, DNS, TLS, and the six GitHub Actions repo secrets `deploy.yml` validates (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`).
 - `GHCR_TOKEN` repository secret set to a PAT scoped **`read:packages` only** — the deploy and rollback workflows `docker pull` images with it (they FAIL fast on `write:packages`/`repo` scope). See [`docs/SECRETS-MANAGEMENT.md`](../SECRETS-MANAGEMENT.md#github-actions-repository-secrets). [ADS-671]
+- `NATS_AUTH_TOKEN` repository secret set — required by both `deploy.yml` and `rollback.yml` to materialize `secrets/nats_auth_token` (ADS-1311).
+- `SENTRY_AUTH_TOKEN` repository secret set (optional but recommended) — without it, frontend builds skip the sourcemap upload and log a loud warning; production stack traces in GlitchTip stay unsymbolicated (ADS-1319).
+- `DISCORD_WEBHOOK_URL` repository secret set (optional) — `deploy.yml` posts to it on any job failure, reusing the same webhook Alertmanager already posts critical/warning alerts to. Skipped gracefully when unset (ADS-1324).
+- `staging-vars` / `production-vars` GitHub Environments created (Settings → Environments → New environment), **no** required reviewers, each carrying environment variables `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` scoped to that target — otherwise the frontend build falls back to the single repository-level value for both environments (ADS-1318). See "Environment-scoped frontend build vars" below.
+- `PROD_HOSTNAME` set as a plain key (not `${...}`) in `/opt/ads/production/.env`, e.g. `PROD_HOSTNAME=example.com` — `deploy.yml`/`rollback.yml` re-apply the `__PROD_HOSTNAME__` substitution into `nginx/nginx.prod.conf` from it on every run, now that the file is shipped fresh each time (ADS-1312).
 - `gh` CLI authenticated (the `make` targets dispatch workflows through it).
+
+## Environment-scoped frontend build vars (ADS-1318)
+
+The frontend build step previously read `vars.VITE_API_BASE_URL` etc. with no `environment:` on the job, so staging and production images were baked with the **same** repository-level values — staging traffic and session replays landed in production Sentry/Statsig, and staging could point at the prod API.
+
+`deploy.yml` now resolves these through a dedicated `resolve-frontend-vars` job scoped to an **unprotected** `<environment>-vars` GitHub Environment (`staging-vars` / `production-vars` — distinct from the approval-gated `staging`/`production`/`production-bypass` environments the `deploy` job itself pauses on). This lets the same variable name carry a different value per target without putting the production approval gate in front of the _build_ — reviewers still approve a fully built, signature-verified release, per the existing policy below.
+
+Admin one-time setup: create `staging-vars` and `production-vars` environments with **no** required reviewers, and add environment variables under each:
+
+| Variable                  | Purpose                                    |
+| ------------------------- | ------------------------------------------ |
+| `VITE_API_BASE_URL`       | Frontend API base URL for that environment |
+| `VITE_WS_BASE_URL`        | Frontend WebSocket base URL                |
+| `VITE_SENTRY_DSN`         | Sentry/GlitchTip DSN for that environment  |
+| `VITE_STATSIG_CLIENT_KEY` | Statsig client key for that environment    |
+
+Until both environments exist, `vars.*` falls back to the existing repository-level variable (unchanged behaviour) — nothing breaks if this is skipped, but staging and production keep sharing one value.
 
 ## Secret rotation
 
@@ -63,9 +85,22 @@ included) is recorded in the run summary and as a GitHub issue labelled
 
 The one-time configuration of the `production` / `production-bypass` reviewer environments is covered in [DEPLOYMENT-PLAN.md](../infrastructure/DEPLOYMENT-PLAN.md).
 
+### Blind-deploy gate (ADS-1307, partial)
+
+A production deploy also fails — before touching any container — when
+`OBSERVABILITY_ENABLED` is not `true` in `/opt/ads/production/.env`: an
+unmonitored release can fail silently with nobody paged. To proceed anyway,
+re-dispatch with `allow_blind_deploy=true` **and** a `bypass_reason`; this is
+audited exactly like `skip_ci_check`/`skip_cosign_verify` (same
+`bypass_reason` requirement, same run-summary table, same
+`deploy-bypass-audit` issue). Staging is unaffected. The rest of ADS-1307
+(node-exporter, disk alerts, dead-man's-switch) is tracked separately.
+
 ## Release deploy
 
-The deploy is dispatched through GitHub Actions, not run by hand on the host. `deploy.yml` builds every service/app image, tags it `ghcr.io/ideasquared/adopt-dont-shop/<image>:<git-sha>` (the full 40-char commit SHA), signs it with cosign, then SSHes to the host, writes `DEPLOY_SHA=<sha>` into `/opt/ads/<env>/.env`, and runs `docker compose -f docker-compose.prod.yml up -d`. Production runs also push and re-tag `:latest`, but the compose file pins images to `DEPLOY_SHA` (a specific SHA) — `:latest` is not what a prod container runs.
+The deploy is dispatched through GitHub Actions, not run by hand on the host. `deploy.yml` builds every service/app image, tags it `ghcr.io/ideasquared/adopt-dont-shop/<image>:<git-sha>` (the full 40-char commit SHA), signs it with cosign, then SSHes to the host, writes `DEPLOY_SHA=<sha>` into `/opt/ads/<env>/.env`, and runs `docker compose -f docker-compose.prod.yml up -d`. There is no `:latest` tag — every deploy, staging or production, pins to an explicit `DEPLOY_SHA`, and nothing ever pulls `:latest` (ADS-1322).
+
+Before `up -d`, the workflow also `scp`'s `docker-compose.prod.yml`, `docker-compose.staging.yml`, `docker-compose.observability.yml`, `docker-compose.glitchtip.yml`, the `nginx/` directory, and the `observability/` config tree to `/opt/ads/<env>/`, and the shared edge gateway's `deploy/gateway/*` to `/opt/ads/gateway/` — all previously hand-copied once at provisioning and never updated again (ADS-1312). The shared edge gateway is versioned but **not** restarted automatically (it fronts both environments); apply a shipped change with `cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml up -d`. Production also re-applies the `__PROD_HOSTNAME__` substitution into the freshly-shipped `nginx/nginx.prod.conf` on every deploy, from the `PROD_HOSTNAME` key in the host `.env` (see Prerequisites) — the file is no longer hand-edited once and left alone.
 
 Every schema-owning service migrates **its own** schema on boot — the `Dockerfile.service` entrypoint runs `pnpm run --if-present db:migrate` before the long-running process starts (no separate migrate init container). The runner is `node-pg-migrate` wrapped by `@adopt-dont-shop/db` (`packages/db/src/migrate.ts`); applied migrations are recorded in a `pgmigrations` table in each owning schema, guarded by a database-wide advisory lock with linear backoff (12× × 250ms × attempt) so simultaneous service boots don't trample each other. [ADS-393]
 
@@ -82,7 +117,7 @@ Every schema-owning service migrates **its own** schema on boot — the `Dockerf
 
 2. For a production run, approve it in the GitHub Actions UI when the `deploy` job pauses on the `production` environment. The build + cosign-verify jobs run first, so you approve a fully built, signature-verified release.
 
-3. The workflow runs its own per-service health gate (`wait-for-services.sh`) after `compose up`; a failed gate auto-rolls back to the last-known-good SHA (see [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md)). Wait for the run to go green.
+3. The workflow runs its own per-service health gate (`wait-for-services.sh`, polling `/health/ready` — DB pool/Redis/NATS, not just process liveness, ADS-1308) after `compose up`; a failed gate auto-rolls back to the last-known-good SHA (see [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md)). Wait for the run to go green.
 
 **Verify** (SSH to the host, `cd /opt/ads/production`, `export PROD_HOSTNAME=…`):
 
@@ -90,7 +125,9 @@ Every schema-owning service migrates **its own** schema on boot — the `Dockerf
 docker compose -f docker-compose.prod.yml ps           # all healthy
 # Each schema-owning service logs its own migration output on boot:
 docker compose -f docker-compose.prod.yml logs service-auth | grep migration
-curl -sf https://${PROD_HOSTNAME}/health/simple        # Expected: 200
+curl -sf https://${PROD_HOSTNAME}/health/simple        # Expected: 200 (liveness)
+docker compose -f docker-compose.prod.yml exec -T service-gateway \
+  curl -sf http://localhost:4000/health/ready          # Expected: 200 (readiness — DB/Redis/NATS)
 ```
 
 ## When a service's migrations fail
@@ -144,6 +181,8 @@ make rollback env=production sha=<git-sha>   # re-deploys the whole stack at tha
 ```
 
 It must be a full 40-char (or ≥7-char hex prefix) git SHA whose images already exist in GHCR — never a `:latest` or a `sha-`/`vX.Y.Z` tag. `deploy.yml` also auto-rolls back to the last-known-good SHA on a failed health/smoke gate and persists it in `/opt/ads/<env>/.env`. The step-by-step incident procedure (single-service `SERVICE_<NAME>_TAG` overrides, break-glass on the host, auto-rollback behaviour) lives in [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md).
+
+`rollback.yml` is at parity with `deploy.yml` (ADS-1311): it ships the same compose/nginx/observability config before `up -d`, clears any `SERVICE_*_TAG`/`APP_*_TAG` overrides before rewriting `DEPLOY_SHA`, materializes `secrets/nats_auth_token` (and the rest of `secrets/*`), layers in the observability/GlitchTip overlays when enabled, and gates on all 11 services' `/health/ready` — not the gateway alone.
 
 Break-glass single-service pin, on the host (`cd /opt/ads/production`) — not persisted, the next deploy overwrites `.env`:
 

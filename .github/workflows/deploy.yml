@@ -23,12 +23,21 @@ on:
         required: false
         type: boolean
         default: false
-      # ADS-826: free-text justification for setting either skip_* flag.
-      # The preflight job fails the run when a skip flag is set and this is
+      # ADS-1307 (partial): production deploys fail preflight when the host
+      # /opt/ads/production/.env doesn't have OBSERVABILITY_ENABLED=true,
+      # so an unmonitored release can't go out silently. This is the
+      # documented, audited override.
+      allow_blind_deploy:
+        description: 'Allow a production deploy with observability OFF on the host (requires bypass_reason)'
+        required: false
+        type: boolean
+        default: false
+      # ADS-826: free-text justification for setting a skip_*/allow_* flag.
+      # The preflight job fails the run when a bypass flag is set and this is
       # empty. The value is recorded in the run summary and in a
       # `deploy-bypass-audit` issue. Ignored for normal deploys.
       bypass_reason:
-        description: 'Justification for skip_ci_check / skip_cosign_verify (required when either is set; recorded in the audit trail)'
+        description: 'Justification for skip_ci_check / skip_cosign_verify / allow_blind_deploy (required when any is set; recorded in the audit trail)'
         required: false
         type: string
         default: ''
@@ -83,17 +92,18 @@ jobs:
       TARGET_ENV: ${{ github.event.inputs.environment }}
       SKIP_CI_CHECK: ${{ github.event.inputs.skip_ci_check }}
       SKIP_COSIGN_VERIFY: ${{ github.event.inputs.skip_cosign_verify }}
+      ALLOW_BLIND_DEPLOY: ${{ github.event.inputs.allow_blind_deploy }}
       BYPASS_REASON: ${{ github.event.inputs.bypass_reason }}
     steps:
-      - name: Require bypass_reason when a skip flag is set
+      - name: Require bypass_reason when a bypass flag is set
         run: |
           set -euo pipefail
-          if [ "$SKIP_CI_CHECK" != "true" ] && [ "$SKIP_COSIGN_VERIFY" != "true" ]; then
+          if [ "$SKIP_CI_CHECK" != "true" ] && [ "$SKIP_COSIGN_VERIFY" != "true" ] && [ "$ALLOW_BLIND_DEPLOY" != "true" ]; then
             echo "No safety bypass requested — bypass_reason not required."
             exit 0
           fi
           if [ -z "$(printf '%s' "$BYPASS_REASON" | tr -d '[:space:]')" ]; then
-            echo "ERROR: skip_ci_check/skip_cosign_verify is set but bypass_reason is empty."
+            echo "ERROR: skip_ci_check/skip_cosign_verify/allow_blind_deploy is set but bypass_reason is empty."
             echo "Re-run the dispatch with a justification — every bypass is audited."
             exit 1
           fi
@@ -112,7 +122,7 @@ jobs:
           echo "Deploy job will run in the '$DEPLOY_ENVIRONMENT' environment."
 
       - name: Record bypass in run summary
-        if: github.event.inputs.skip_ci_check == 'true' || github.event.inputs.skip_cosign_verify == 'true'
+        if: github.event.inputs.skip_ci_check == 'true' || github.event.inputs.skip_cosign_verify == 'true' || github.event.inputs.allow_blind_deploy == 'true'
         env:
           ACTOR: ${{ github.actor }}
           DEPLOY_SHA: ${{ github.sha }}
@@ -128,11 +138,12 @@ jobs:
             echo "| DEPLOY_SHA | ${DEPLOY_SHA} |"
             echo "| skip_ci_check | ${SKIP_CI_CHECK} |"
             echo "| skip_cosign_verify | ${SKIP_COSIGN_VERIFY} |"
+            echo "| allow_blind_deploy | ${ALLOW_BLIND_DEPLOY} |"
             echo "| Reason | ${BYPASS_REASON} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Open deploy-bypass-audit issue
-        if: github.event.inputs.skip_ci_check == 'true' || github.event.inputs.skip_cosign_verify == 'true'
+        if: github.event.inputs.skip_ci_check == 'true' || github.event.inputs.skip_cosign_verify == 'true' || github.event.inputs.allow_blind_deploy == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         env:
           DEPLOY_ENVIRONMENT: ${{ steps.resolve-env.outputs.deploy_environment }}
@@ -143,6 +154,7 @@ jobs:
               DEPLOY_ENVIRONMENT,
               SKIP_CI_CHECK,
               SKIP_COSIGN_VERIFY,
+              ALLOW_BLIND_DEPLOY,
               BYPASS_REASON,
             } = process.env;
             const label = 'deploy-bypass-audit';
@@ -174,6 +186,7 @@ jobs:
               `| DEPLOY_SHA | ${context.sha} |`,
               `| skip_ci_check | ${SKIP_CI_CHECK} |`,
               `| skip_cosign_verify | ${SKIP_COSIGN_VERIFY} |`,
+              `| allow_blind_deploy | ${ALLOW_BLIND_DEPLOY} |`,
               `| Reason | ${BYPASS_REASON} |`,
               `| Workflow run | ${runUrl} |`,
               '',
@@ -187,8 +200,40 @@ jobs:
               body,
             });
 
-  build-and-push:
+  # ADS-1318: resolve the frontend build's VITE_* vars via a dedicated,
+  # UNPROTECTED "<env>-vars" GitHub Environment — separate from the
+  # approval-gated `staging`/`production`/`production-bypass` environments
+  # the `deploy` job pauses on. Previously build-and-push declared no
+  # `environment:` at all, so `vars.VITE_API_BASE_URL` etc. resolved to the
+  # single repository-level value for staging AND production builds alike
+  # (staging traffic/session-replays landing in prod telemetry, staging
+  # pointed at the prod API). Reading them here — instead of adding
+  # `environment:` directly to build-and-push — keeps the build job
+  # unblocked by reviewer approval; the docs promise reviewers approve a
+  # fully built, signature-verified release, not gate the build itself.
+  # Admin one-time setup: create `staging-vars` and `production-vars`
+  # environments (Settings → Environments → New environment), leave
+  # "Required reviewers" OFF, and add environment variables
+  # VITE_API_BASE_URL, VITE_WS_BASE_URL, VITE_SENTRY_DSN,
+  # VITE_STATSIG_CLIENT_KEY under each with the per-target values. Until
+  # that's done, `vars.*` falls back to the existing repository-level
+  # variable (unchanged behaviour) — see docs/operations/deploy.md.
+  resolve-frontend-vars:
     needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ github.event.inputs.environment }}-vars
+    outputs:
+      vite_api_base_url: ${{ vars.VITE_API_BASE_URL }}
+      vite_ws_base_url: ${{ vars.VITE_WS_BASE_URL }}
+      vite_sentry_dsn: ${{ vars.VITE_SENTRY_DSN }}
+      vite_statsig_client_key: ${{ vars.VITE_STATSIG_CLIENT_KEY }}
+    steps:
+      - name: Resolved
+        run: echo "Resolved frontend build vars for the '${{ github.event.inputs.environment }}' target."
+
+  build-and-push:
+    needs: [preflight, resolve-frontend-vars]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -256,23 +301,19 @@ jobs:
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
 
       - name: Build and push gateway + services
-        env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          # ADS-rollback: :latest is only updated for production deploys.
+          # ADS-1322: no :latest tag. Every deploy — staging or production —
+          # pins docker-compose.prod.yml / .staging.yml to an explicit
+          # DEPLOY_SHA (see deploy.yml's "Deploy to server" step); nothing
+          # ever pulls :latest, so a mutable pointer only added a second,
+          # unpinned way to reference a production image with no consumer.
           # The SHA tag is always pushed so every build is individually
-          # addressable for rollback. :latest on non-production would
-          # overwrite the production pointer mid-window.
+          # addressable for rollback.
           #
           # Post-monolith: the service.backend image is gone. We build the
           # Fastify gateway + the 10 extracted gRPC services from the shared,
           # parameterised Dockerfile.service (SERVICE = workspace package,
           # SERVICE_DIR = path under the repo). Image name is service-<name>.
-          if [ "$ENVIRONMENT" = "production" ]; then
-            PUSH_LATEST=true
-          else
-            PUSH_LATEST=false
-          fi
           # "<image-name> <workspace-package> <service-dir>"
           SERVICES=(
             "service-gateway       @adopt-dont-shop/service.gateway       services/gateway"
@@ -299,12 +340,7 @@ jobs:
               -t "$ref" \
               .
             docker push "$ref"
-            if [ "$PUSH_LATEST" = "true" ]; then
-              docker tag "$ref" "$IMAGE_PREFIX/$image:latest"
-              docker push "$IMAGE_PREFIX/$image:latest"
-            fi
             # ADS-673: sign by digest (immutable) via cosign keyless OIDC.
-            # :latest resolves to the same digest so one signature covers both.
             DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$ref" | cut -d@ -f2)
             echo "Signing $IMAGE_PREFIX/$image@$DIGEST"
             cosign sign --yes "$IMAGE_PREFIX/$image@$DIGEST"
@@ -313,21 +349,22 @@ jobs:
 
       - name: Build and push app.client
         env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          # ADS-1319: the Dockerfile.app secret is sourced from this env var
+          # (--secret id=sentry_auth,env=SENTRY_AUTH_TOKEN below) — it was
+          # never wired in, so the sourcemap upload always took the "skip"
+          # branch. Empty when the repo secret isn't configured; the
+          # Dockerfile logs loudly (not fails) in that case.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          if [ "$ENVIRONMENT" = "production" ]; then
-            PUSH_LATEST=true
-          else
-            PUSH_LATEST=false
-          fi
+          # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
             -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=client \
-            --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
-            --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
-            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
-            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg VITE_API_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_api_base_url }}" \
+            --build-arg VITE_WS_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_ws_base_url }}" \
+            --build-arg VITE_SENTRY_DSN="${{ needs.resolve-frontend-vars.outputs.vite_sentry_dsn }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ needs.resolve-frontend-vars.outputs.vite_statsig_client_key }}" \
             --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_CLIENT }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
@@ -335,32 +372,25 @@ jobs:
             -t $IMAGE_PREFIX/app-client:${{ github.sha }} \
             .
           docker push $IMAGE_PREFIX/app-client:${{ github.sha }}
-          if [ "$PUSH_LATEST" = "true" ]; then
-            docker tag $IMAGE_PREFIX/app-client:${{ github.sha }} $IMAGE_PREFIX/app-client:latest
-            docker push $IMAGE_PREFIX/app-client:latest
-          fi
-          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-client@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
 
       - name: Build and push app.admin
         env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          # ADS-1319: see app.client for why this is needed.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          if [ "$ENVIRONMENT" = "production" ]; then
-            PUSH_LATEST=true
-          else
-            PUSH_LATEST=false
-          fi
+          # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
             -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=admin \
-            --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
-            --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
-            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
-            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg VITE_API_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_api_base_url }}" \
+            --build-arg VITE_WS_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_ws_base_url }}" \
+            --build-arg VITE_SENTRY_DSN="${{ needs.resolve-frontend-vars.outputs.vite_sentry_dsn }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ needs.resolve-frontend-vars.outputs.vite_statsig_client_key }}" \
             --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_ADMIN }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
@@ -368,32 +398,25 @@ jobs:
             -t $IMAGE_PREFIX/app-admin:${{ github.sha }} \
             .
           docker push $IMAGE_PREFIX/app-admin:${{ github.sha }}
-          if [ "$PUSH_LATEST" = "true" ]; then
-            docker tag $IMAGE_PREFIX/app-admin:${{ github.sha }} $IMAGE_PREFIX/app-admin:latest
-            docker push $IMAGE_PREFIX/app-admin:latest
-          fi
-          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-admin@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
 
       - name: Build and push app.rescue
         env:
-          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          # ADS-1319: see app.client for why this is needed.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          if [ "$ENVIRONMENT" = "production" ]; then
-            PUSH_LATEST=true
-          else
-            PUSH_LATEST=false
-          fi
+          # ADS-1322: no :latest tag — see the backend build step above.
           docker build \
             -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=rescue \
-            --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
-            --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
-            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
-            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg VITE_API_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_api_base_url }}" \
+            --build-arg VITE_WS_BASE_URL="${{ needs.resolve-frontend-vars.outputs.vite_ws_base_url }}" \
+            --build-arg VITE_SENTRY_DSN="${{ needs.resolve-frontend-vars.outputs.vite_sentry_dsn }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ needs.resolve-frontend-vars.outputs.vite_statsig_client_key }}" \
             --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
             --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_RESCUE }}" \
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
@@ -401,11 +424,7 @@ jobs:
             -t $IMAGE_PREFIX/app-rescue:${{ github.sha }} \
             .
           docker push $IMAGE_PREFIX/app-rescue:${{ github.sha }}
-          if [ "$PUSH_LATEST" = "true" ]; then
-            docker tag $IMAGE_PREFIX/app-rescue:${{ github.sha }} $IMAGE_PREFIX/app-rescue:latest
-            docker push $IMAGE_PREFIX/app-rescue:latest
-          fi
-          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          # ADS-673: cosign keyless sign by digest.
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}" | cut -d@ -f2)
           echo "Signing $IMAGE_PREFIX/app-rescue@$DIGEST"
           cosign sign --yes "$IMAGE_PREFIX/app-rescue@$DIGEST"
@@ -562,20 +581,49 @@ jobs:
             echo "OK: $KEY=$VALUE"
           done
 
-      # ADS-900: the deploy host doesn't hold a full repo checkout — only the
-      # specific files it needs under /opt/ads/<env> (compose files, .env,
-      # secrets/). Copy the shared health-check script alongside them so the
-      # remote script below can call it, the same way backup.yml scp's its
-      # snapshot script.
-      - name: Copy wait-for-services.sh to server
+      # ADS-900/ADS-1312: the deploy host doesn't hold a full repo checkout —
+      # only the specific files it needs under /opt/ads/<env> (.env,
+      # secrets/, plus whatever this step ships). Previously only the
+      # shared health-check script was shipped this way and the compose
+      # files, nginx/ config and observability/ config tree were hand-copied
+      # once at provisioning time and never touched again — a new service, a
+      # resource limit, or an nginx fix could pass CI and never reach
+      # production. Ship the lot on every deploy so the running config is
+      # exactly what's in this commit (same pattern backup.yml uses for its
+      # snapshot script). deploy/gateway/* (the shared TLS edge, not
+      # per-environment) is shipped separately below.
+      - name: Copy deploy config to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          source: scripts/wait-for-services.sh
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-overlay-args.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
+          overwrite: true
+
+      # ADS-1312: the shared edge gateway (nginx + certbot, fronting BOTH
+      # environments — see docs/infrastructure/DEPLOYMENT-PLAN.md) is versioned
+      # here too, but intentionally NOT restarted by this workflow: it is not
+      # scoped to one environment, so recreating it on every staging-or-prod
+      # deploy would bounce the other environment's traffic and certbot's
+      # renewal timer. Apply a shipped change by hand (one-time or on the rare
+      # edge-config change):
+      #   cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml up -d
+      - name: Copy shared edge gateway config to server
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          source: deploy/gateway
+          target: /opt/ads/gateway
+          # deploy/gateway/* must land directly under /opt/ads/gateway/ (see
+          # DEPLOYMENT-PLAN.md's directory structure) — strip the "deploy/
+          # gateway/" prefix scp-action would otherwise preserve.
+          strip_components: 2
           overwrite: true
 
       # ADS-671: Verify GHCR_TOKEN is scoped to read:packages only before
@@ -644,13 +692,16 @@ jobs:
           # variable — never interpolated into the script text (injection-safe).
           TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
           ENVIRONMENT: ${{ github.event.inputs.environment }}
+          # ADS-1307 (partial): forwarded so the observability gate below can
+          # tell an audited bypass from an unset flag.
+          ALLOW_BLIND_DEPLOY: ${{ github.event.inputs.allow_blind_deploy }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,TAG_OVERRIDES,ENVIRONMENT
+          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,TAG_OVERRIDES,ENVIRONMENT,ALLOW_BLIND_DEPLOY
           script: |
             set -euo pipefail
             ENV="$ENVIRONMENT"
@@ -658,6 +709,37 @@ jobs:
             IMAGE_PREFIX="ghcr.io/ideasquared/adopt-dont-shop"
 
             cd /opt/ads/$ENV
+
+            # ADS-1041/ADS-1311: optionally layer in the self-hosted
+            # observability (Prometheus/Loki/Tempo/Grafana/Alertmanager) and
+            # GlitchTip error-tracking stacks. Enabled per-host in
+            # /opt/ads/<env>/.env (OBSERVABILITY_ENABLED=true /
+            # GLITCHTIP_ENABLED=true) — see scripts/deploy-overlay-args.sh
+            # (shared with rollback.yml) for the tolerant-boolean contract.
+            # Computed up front so the ADS-1307 gate below can fail before
+            # anything else in this deploy touches the host.
+            chmod +x scripts/deploy-overlay-args.sh
+            OVERLAY_ARGS="$(scripts/deploy-overlay-args.sh)"
+
+            # ADS-1307 (partial): a production deploy with the observability
+            # stack off can fail silently — nothing pages anyone. Fail here,
+            # before pulling a single image or touching a container, unless
+            # the operator explicitly accepted that risk via
+            # allow_blind_deploy (bypass_reason is required and audited by
+            # the preflight job — see docs/operations/deploy.md).
+            if [ "$ENV" = "production" ]; then
+              case "$OVERLAY_ARGS" in
+                *docker-compose.observability.yml*) OBSERVABILITY_ON=true ;;
+                *) OBSERVABILITY_ON=false ;;
+              esac
+              if [ "$OBSERVABILITY_ON" != "true" ] && [ "${ALLOW_BLIND_DEPLOY:-}" != "true" ]; then
+                echo "::error::OBSERVABILITY_ENABLED is not 'true' in /opt/ads/production/.env (ADS-1307). A production deploy with no monitoring can fail silently. Enable it on the host, or re-dispatch with allow_blind_deploy=true and a bypass_reason to proceed anyway."
+                exit 1
+              fi
+              if [ "$OBSERVABILITY_ON" != "true" ]; then
+                echo "::warning::Deploying to production with OBSERVABILITY_ENABLED off (allow_blind_deploy=true) — this release will not be monitored."
+              fi
+            fi
 
             # Login to GHCR (uses a PAT stored on the server, not the job-scoped GITHUB_TOKEN)
             printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u ideasquared --password-stdin
@@ -715,49 +797,6 @@ jobs:
               COMPOSE_FILE="docker-compose.staging.yml"
             fi
 
-            # ADS-1041: optionally layer in the self-hosted observability
-            # (Prometheus/Loki/Tempo/Grafana/Alertmanager) and GlitchTip
-            # error-tracking stacks. Enabled per-host in /opt/ads/<env>/.env
-            # (OBSERVABILITY_ENABLED=true / GLITCHTIP_ENABLED=true). Off by
-            # default → this deploy is unchanged. When enabling, the overlay
-            # compose file(s) + ./observability/ config tree must already be
-            # provisioned on the host (the host holds no repo checkout — see
-            # docs/runbooks/observability-enable.md).
-            # Tolerant boolean read from the host .env: accepts KEY=true,
-            # KEY="true", surrounding quotes, trailing whitespace, or an inline
-            # `# comment` — the same coercions docker-compose applies — so the
-            # flag and the overlay can't disagree.
-            env_flag_true() {
-              local v
-              v="$(grep -E "^$1=" .env | head -n1 | cut -d= -f2-)" || true
-              v="${v%%#*}"                                        # strip inline comment
-              v="$(printf '%s' "$v" | tr -d '[:space:]')"         # strip whitespace
-              v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"   # strip quotes
-              [ "$v" = "true" ]
-            }
-            OVERLAY_ARGS=""
-            if env_flag_true OBSERVABILITY_ENABLED; then
-              OVERLAY_ARGS="$OVERLAY_ARGS -f docker-compose.observability.yml"
-              echo "Observability stack ENABLED (metrics/logs/traces/alerting)."
-            fi
-            if env_flag_true GLITCHTIP_ENABLED; then
-              OVERLAY_ARGS="$OVERLAY_ARGS -f docker-compose.glitchtip.yml"
-              echo "GlitchTip error tracking ENABLED."
-            fi
-
-            # Materialize the file-mounted Docker secrets consumed via
-            # `file: ./secrets/<name>` by BOTH docker-compose.prod.yml and
-            # docker-compose.staging.yml. The set must match the `secrets:`
-            # blocks in those files (see secrets/README.md). [ADS-675, ADS-752]
-            #
-            # database_url / redis_url are composed here from the rotating DB
-            # password plus the non-rotating identifiers already in the host
-            # .env (POSTGRES_USER / POSTGRES_DB, and the REDIS_PASSWORD the redis
-            # container itself authenticates with) so the URLs always match what
-            # the database/redis containers use. redis_password is the same
-            # value, written separately because the redis container reads its
-            # own --requirepass from this file rather than from `environment:`
-            # (ADS-878).
             read_env() {  # read a key from the host .env, quotes stripped; fails if absent
               local v
               v="$(grep -E "^$1=" .env | head -n1 | cut -d= -f2-)" || true
@@ -765,31 +804,36 @@ jobs:
               [ -n "$v" ] || { echo "ERROR: $1 missing from .env" >&2; exit 1; }
               printf '%s' "$v"
             }
-            PG_USER="$(read_env POSTGRES_USER)"
-            PG_DB="$(read_env POSTGRES_DB)"
-            REDIS_PW="$(read_env REDIS_PASSWORD)"
+
+            # ADS-1312: nginx/nginx.prod.conf is now shipped fresh from this
+            # commit on every deploy (see "Copy deploy config to server"),
+            # so the old one-time hand `sed` on the host (DEPLOYMENT-PLAN.md)
+            # would be silently clobbered by the next deploy. Re-apply it
+            # every deploy instead, driven by a PROD_HOSTNAME key the
+            # operator sets once in /opt/ads/production/.env — an env-driven
+            # substitution that survives the file being overwritten.
+            if [ "$ENV" = "production" ] && grep -q '__PROD_HOSTNAME__' nginx/nginx.prod.conf; then
+              PROD_HOSTNAME="$(read_env PROD_HOSTNAME)"
+              sed -i "s/__PROD_HOSTNAME__/${PROD_HOSTNAME}/g" nginx/nginx.prod.conf
+              echo "Substituted PROD_HOSTNAME=$PROD_HOSTNAME into nginx/nginx.prod.conf."
+            fi
+
+            # ADS-1311: shared file-secret materialization (also used by
+            # rollback.yml) — see scripts/deploy-secrets.sh for the set and
+            # rationale (matches secrets/README.md, ADS-675/ADS-752/ADS-878).
+            chmod +x scripts/deploy-secrets.sh
+            scripts/deploy-secrets.sh
+
             # ADS-1302: third-party provider credentials for
             # service-notifications. These aren't rotated per-deploy like the
-            # secrets above, so — like POSTGRES_USER/REDIS_PASSWORD — they're
-            # read straight from the host .env rather than threaded through
-            # as GitHub Action secrets.
+            # secrets deploy-secrets.sh writes, so — like POSTGRES_USER/
+            # REDIS_PASSWORD there — they're read straight from the host
+            # .env rather than threaded through as GitHub Action secrets.
             RESEND_KEY="$(read_env RESEND_API_KEY)"
             FCM_JSON="$(read_env FCM_SERVICE_ACCOUNT_JSON)"
-            mkdir -p secrets
-            chmod 700 secrets
-            printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url
-            printf '%s' "redis://:${REDIS_PW}@redis:6379"      > secrets/redis_url
-            printf '%s' "$REDIS_PW"                             > secrets/redis_password
-            printf '%s' "$SECRET_JWT_SECRET"                    > secrets/jwt_secret
-            printf '%s' "$SECRET_JWT_REFRESH_SECRET"            > secrets/jwt_refresh_secret
-            printf '%s' "$SECRET_ENCRYPTION_KEY"                > secrets/encryption_key
-            printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret
-            printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
-            printf '%s' "$SECRET_NATS_AUTH_TOKEN"               > secrets/nats_auth_token
-            printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
-            printf '%s' "$RESEND_KEY"                           > secrets/resend_api_key
-            printf '%s' "$FCM_JSON"                             > secrets/fcm_service_account_json
-            chmod 600 secrets/*
+            printf '%s' "$RESEND_KEY" > secrets/resend_api_key
+            printf '%s' "$FCM_JSON"   > secrets/fcm_service_account_json
+            chmod 600 secrets/resend_api_key secrets/fcm_service_account_json
 
             # Bring up new containers. Each service migrates its own schema on
             # start (the Dockerfile.service entrypoint runs
@@ -816,9 +860,13 @@ jobs:
               service-audit:5009 service-cms:5010 service-gateway:4000"
             chmod +x scripts/wait-for-services.sh
             run_health_gate() {
+              # ADS-1308: 60 retries * 2s = 120s, comfortably above the 90s
+              # start_period docker-compose.prod.yml sets on these services
+              # (x-healthcheck-service) so a slow migration doesn't trip a
+              # false-negative gate.
               # Intentional word-split of the target list.
               # shellcheck disable=SC2086
-              ./scripts/wait-for-services.sh "$COMPOSE_FILE" 30 2 $HEALTH_TARGETS
+              ./scripts/wait-for-services.sh "$COMPOSE_FILE" 60 2 $HEALTH_TARGETS
             }
 
             # ADS-1252: on a failed health/smoke check, revert to LAST_GOOD and
@@ -900,3 +948,35 @@ jobs:
             # Record deployed SHA
             echo "$SHA" > .last_sha
             echo "Deployed $SHA to $ENV successfully."
+
+  # ADS-1324: this workflow previously had no failure notification — a
+  # broken deploy was only visible to whoever happened to check the Actions
+  # tab. Reuse the Discord webhook Alertmanager already posts critical/
+  # warning alerts to (observability/alertmanager/secrets/discord_webhook_url
+  # on the host) as a repo secret here, since a GitHub Actions job can't read
+  # a host-side file. Skips gracefully — never fails the run — when the
+  # secret hasn't been configured.
+  notify-on-failure:
+    needs: [preflight, resolve-frontend-vars, build-and-push, verify-images, deploy]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post failure to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TARGET_ENV: ${{ github.event.inputs.environment }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
+            echo "DISCORD_WEBHOOK_URL secret not set — skipping failure notification."
+            exit 0
+          fi
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          PAYLOAD=$(jq -n \
+            --arg env "$TARGET_ENV" \
+            --arg url "$RUN_URL" \
+            --arg sha "$GITHUB_SHA" \
+            --arg actor "$GITHUB_ACTOR" \
+            '{content: ("🚨 Deploy to **" + $env + "** failed — " + $url + " (sha " + ($sha[0:7]) + ", dispatched by " + $actor + ")")}')
+          curl -fsS -X POST -H 'Content-Type: application/json' -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL"

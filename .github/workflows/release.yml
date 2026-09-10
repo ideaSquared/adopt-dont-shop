@@ -84,6 +84,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: guard
+    permissions:
+      contents: read
+      # ADS-1322: id-token required for cosign keyless signing via the GitHub
+      # Actions OIDC token, mirroring deploy.yml (ADS-673). No private key
+      # is provisioned.
+      id-token: write
 
     strategy:
       fail-fast: false
@@ -114,6 +120,12 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # ADS-1322: sign the pushed image by digest via cosign keyless OIDC —
+      # mirrors deploy.yml's GHCR images (ADS-673) so the Docker Hub set
+      # isn't the one unsigned artifact in the pipeline.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
@@ -132,6 +144,7 @@ jobs:
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc') }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
         with:
           context: .
@@ -147,6 +160,9 @@ jobs:
             SERVICE_DIR=${{ matrix.dir }}
             BUILDKIT_INLINE_CACHE=1
 
+      - name: Sign image
+        run: cosign sign --yes "paragonjenko/adoptdontshop@${{ steps.build.outputs.digest }}"
+
   # ============================================================================
   # BUILD & PUSH FRONTEND APPS — production images to Docker Hub
   # ============================================================================
@@ -155,6 +171,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: guard
+    permissions:
+      contents: read
+      # ADS-1322: id-token required for cosign keyless signing — see
+      # build-services above.
+      id-token: write
 
     strategy:
       fail-fast: false
@@ -173,6 +194,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # ADS-1322: see build-services above.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
@@ -188,6 +213,7 @@ jobs:
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc') }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
         with:
           context: .
@@ -201,3 +227,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Sign image
+        run: cosign sign --yes "paragonjenko/adoptdontshop@${{ steps.build.outputs.digest }}"
