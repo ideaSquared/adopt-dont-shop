@@ -661,6 +661,54 @@ describe('scheduler cross-instance claim', () => {
     }
   });
 
+  it('runs a skipClaim job on every interval even when claimRun would lose, while a claimed job in the same tick is skipped', async () => {
+    const runs: string[] = [];
+    const claimRun = vi.fn(async () => false);
+    let now = 1_000_000;
+    const jobs: ScheduledJob[] = [
+      {
+        name: 'gdpr-metrics-like',
+        intervalMs: 60_000,
+        runOnStart: true,
+        skipClaim: true,
+        run: async () => {
+          runs.push('skip-claim');
+        },
+      },
+      {
+        name: 'gdpr-sweep-like',
+        intervalMs: 60_000,
+        runOnStart: true,
+        run: async () => {
+          runs.push('claimed');
+        },
+      },
+    ];
+    const scheduler = startScheduler(jobs, {
+      logger: quietLogger(),
+      tickIntervalMs: 60_000,
+      now: () => now,
+      claimRun,
+    });
+    try {
+      const first = await scheduler.tick();
+      // The skipClaim job runs despite the losing claimRun; the claimed job
+      // does not.
+      expect(first).toEqual(['gdpr-metrics-like']);
+      expect(runs).toEqual(['skip-claim']);
+      // claimRun is only ever consulted for the claimed job.
+      expect(claimRun).toHaveBeenCalledTimes(1);
+      expect(claimRun).toHaveBeenCalledWith('gdpr-sweep-like', expect.any(Date));
+
+      now += 60_000;
+      const second = await scheduler.tick();
+      expect(second).toEqual(['gdpr-metrics-like']);
+      expect(runs).toEqual(['skip-claim', 'skip-claim']);
+    } finally {
+      await scheduler.stop();
+    }
+  });
+
   it('skips the job when the claim query errors — never risks a duplicate', async () => {
     const runs: string[] = [];
     const logger = quietLogger();

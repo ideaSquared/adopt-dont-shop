@@ -41,6 +41,13 @@ export type ScheduledJob = {
   // shifting the anchor shifts every replica's boundary identically.
   // Default 0 (epoch-aligned, today's behaviour).
   anchorMs?: number;
+  // Run on every replica every interval, bypassing the cross-instance claim
+  // — for per-replica state like local gauges (e.g. a prom-client metric
+  // scraped per-process: claiming it would only refresh the winning
+  // replica's value, leaving every other replica's scrape stale). Ignored
+  // when no claimRun is wired (the scheduler already runs unclaimed).
+  // Default false.
+  skipClaim?: boolean;
   // The async body. Errors are caught + logged; the next run schedules
   // normally (one bad run shouldn't stop the job forever).
   run: () => Promise<void>;
@@ -142,7 +149,7 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
   // rather than the tick's observed `now()`, which drifts with tick
   // granularity and jitters the boundary independently per replica.
   const claimSlot = async (job: ScheduledJob, due: number): Promise<boolean> => {
-    if (!opts.claimRun) {
+    if (!opts.claimRun || job.skipClaim) {
       return true;
     }
     // Defensive floor — `due` is already interval-aligned by construction

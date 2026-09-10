@@ -69,9 +69,14 @@ const main = async (): Promise<void> => {
     //   1. gdpr-sweep: marks overdue sagas timed_out, retries errored ones.
     //   2. gdpr-metrics: refreshes the gdpr_sagas gauge.
     // claimRun (ADS-1325): without it, every replica fires both jobs on
-    // every tick — harmless for gdpr-metrics (idempotent gauge refresh) but
-    // gdpr-sweep race-retries the same sagas concurrently. The claim makes
-    // exactly one replica per scheduled slot run each job.
+    // every tick — gdpr-sweep would race-retry the same sagas concurrently,
+    // so it stays claimed (exactly one replica per scheduled slot runs it).
+    // gdpr-metrics (ADS-1333) opts OUT of the claim via skipClaim: the
+    // gdpr_sagas gauge is a per-process prom-client metric in this
+    // replica's own registry, scraped per-replica — claiming it would only
+    // refresh the slot-winning replica's gauge and leave every other
+    // replica exporting stale values, so it must run on every replica every
+    // interval instead.
     const gdprMetrics = createGdprSagaMetrics();
     const deadlineMs =
       process.env.GDPR_SAGA_DEADLINE_MS !== undefined
@@ -96,6 +101,7 @@ const main = async (): Promise<void> => {
           name: 'gdpr-metrics',
           intervalMs: GDPR_SWEEP_INTERVAL_MS,
           runOnStart: true,
+          skipClaim: true,
           run: async () => {
             await recordGdprSagaStates({ pool: pool!, metrics: gdprMetrics });
           },
