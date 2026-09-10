@@ -535,6 +535,54 @@ describe('runGdprSweep — retry', () => {
     expect(envelope.payload.email).toBeUndefined();
   });
 
+  it('re-stamps failed_at when jetstream().publish rejects, so the next sweep still selects the row (ADS-1332)', async () => {
+    const row = makeSagaRow({
+      failed_at: '2026-06-11T10:05:00Z',
+      retry_count: 0,
+      completions: {
+        pets: { recordsErased: 0, error: 'timeout', completedAt: '2026-06-11T10:05:00Z' },
+      },
+    });
+
+    const pool = { query: vi.fn() };
+    let callCount = 0;
+    (pool.query as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return { rows: [] }; // overdue / timeout sweep
+      if (callCount === 2) return { rows: [row] }; // retry candidates query
+      if (callCount === 3) return { rows: [], rowCount: 1 }; // claim UPDATE — wins the slot
+      return { rows: [], rowCount: 1 }; // recovery UPDATE after the failed publish
+    });
+
+    const logger = makeLogger();
+    const publishFn = vi.fn().mockRejectedValue(new Error('jetstream unavailable'));
+    const nc = { jetstream: () => ({ publish: publishFn }) } as unknown as NatsConnection;
+
+    await runGdprSweep({
+      pool: pool as unknown as Pool,
+      nats: nc,
+      logger,
+      deadlineMs: 30 * 60 * 1000,
+      maxRetries: 3,
+    });
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'gdpr saga retry publish failed',
+      expect.objectContaining({ correlationId: 'corr-1', retryCount: 1 })
+    );
+
+    // A recovery UPDATE must re-stamp failed_at, guarded on the retry_count
+    // the claim just set — so a subsequent sweep's retry-candidates query
+    // (`failed_at IS NOT NULL AND completed_at IS NULL AND retry_count < $1`)
+    // selects this row again instead of orphaning it.
+    const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls as [string, unknown[]][];
+    const recoveryUpdate = calls.find(
+      ([sql]) => sql.includes('failed_at = now()') && sql.includes('UPDATE')
+    );
+    expect(recoveryUpdate).toBeDefined();
+    expect(recoveryUpdate![1]).toEqual(['corr-1', 1]);
+  });
+
   it('does not re-publish for a saga whose completed_at is set (already done)', async () => {
     // completed sagas should not be returned by the retry query.
     // Verify the WHERE clause excludes them.

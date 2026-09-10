@@ -162,10 +162,13 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
     // at most one sweep run ever publishes a given retry slot: the
     // `retry_count = $3` guard only matches the row this SELECT just read,
     // so a concurrent sweep that already claimed it makes this UPDATE
-    // affect 0 rows and this run skips the publish entirely. A crash
-    // between claim and publish silently costs one retry attempt (the next
-    // deadline-based timeout pass or operator intervention still catches a
-    // saga that's truly stuck) instead of risking a duplicate.
+    // affect 0 rows and this run skips the publish entirely. A hard process
+    // crash between claim and publish silently costs one retry attempt (the
+    // next deadline-based timeout pass or operator intervention still
+    // catches a saga that's truly stuck) instead of risking a duplicate. A
+    // *catchable* publish failure is handled explicitly below: it re-stamps
+    // failed_at so the retry pass itself re-selects the row next tick — the
+    // timeout pass never would, since every EXPECTED_SERVICE already acked.
     const claim = await pool.query(
       `UPDATE audit.gdpr_erasure_requests
           SET retry_count = $1,
@@ -220,6 +223,20 @@ export const runGdprSweep = async (opts: GdprSweepOptions): Promise<void> => {
         retryCount: nextRetryCount,
         err: err instanceof Error ? err.message : String(err),
       });
+
+      // The claim above already cleared failed_at and bumped retry_count.
+      // If publish never went out, nothing will ever re-stamp failed_at, so
+      // this saga becomes invisible to both the retry pass (failed_at IS
+      // NULL) and the timeout pass (all services already acked). Re-stamp
+      // failed_at so the next sweep tick re-selects this row and tries
+      // again with a fresh (and therefore dedupe-safe) msgID.
+      await pool.query(
+        `UPDATE audit.gdpr_erasure_requests
+            SET failed_at = now(), updated_at = now()
+          WHERE correlation_id = $1
+            AND retry_count = $2`,
+        [row.correlation_id, nextRetryCount]
+      );
     }
   }
 };
