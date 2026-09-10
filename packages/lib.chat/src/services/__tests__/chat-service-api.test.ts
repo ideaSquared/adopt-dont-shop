@@ -1,4 +1,4 @@
-import { ChatService } from '../chat-service';
+import { ChatAttachmentsNotSupportedError, ChatService } from '../chat-service';
 
 vi.mock('socket.io-client', () => {
   const mockSocket = {
@@ -191,30 +191,15 @@ describe('ChatService REST API methods', () => {
   });
 
   describe('uploadAttachment', () => {
-    it('uploads a file as multipart form data without a Content-Type header', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
-        okJson({ data: { url: 'https://cdn/x.png', id: 'att-1' } })
-      );
-
+    // Descoped (ADS-1317): no gateway route or service RPC exists to
+    // receive an attachment upload, so the method throws a typed error
+    // instead of making a dead network call.
+    it('throws ChatAttachmentsNotSupportedError without calling fetch', async () => {
       const file = new File(['x'], 'x.png', { type: 'image/png' });
-      const result = await service.uploadAttachment('c-1', file);
-
-      expect(result).toEqual({ url: 'https://cdn/x.png', id: 'att-1' });
-      const init = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1] as RequestInit & {
-        headers: Record<string, string>;
-      };
-      expect(init.body).toBeInstanceOf(FormData);
-      expect(init.headers['Content-Type']).toBeUndefined();
-    });
-
-    it('throws when the upload is rejected', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
-        failure(413, 'Payload Too Large')
+      await expect(service.uploadAttachment('c-1', file)).rejects.toBeInstanceOf(
+        ChatAttachmentsNotSupportedError
       );
-      const file = new File(['x'], 'x.png', { type: 'image/png' });
-      await expect(service.uploadAttachment('c-1', file)).rejects.toThrow(
-        'HTTP 413: Payload Too Large'
-      );
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 

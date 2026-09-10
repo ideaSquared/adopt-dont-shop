@@ -30,7 +30,6 @@ type PendingSend = {
   clientId: string;
   conversationId: string;
   content: string;
-  attachments?: File[];
 };
 
 const generateClientId = (): string => {
@@ -369,11 +368,6 @@ export function ChatProvider({
     async (pending: PendingSend, attempt: number): Promise<void> => {
       try {
         setError(null);
-        if (pending.attachments && pending.attachments.length > 0) {
-          for (const file of pending.attachments) {
-            await chatService.uploadAttachment(pending.conversationId, file);
-          }
-        }
         const sent = await chatService.sendMessage(pending.conversationId, pending.content);
         // Dedupe by clientId: replace the optimistic bubble. If a late
         // success from an earlier attempt arrives after a manual retry
@@ -415,7 +409,7 @@ export function ChatProvider({
   );
 
   const sendMessage = useCallback(
-    async (content: string, attachments?: File[]) => {
+    async (content: string) => {
       if (!activeConversation || !user) {
         return;
       }
@@ -450,15 +444,12 @@ export function ChatProvider({
       if (connectionStatus !== 'connected') {
         reconnectQueueRef.current = [
           ...reconnectQueueRef.current,
-          { clientId, conversationId: activeConversation.id, content, attachments },
+          { clientId, conversationId: activeConversation.id, content },
         ];
         return;
       }
 
-      await attemptSendWithRetry(
-        { clientId, conversationId: activeConversation.id, content, attachments },
-        1
-      );
+      await attemptSendWithRetry({ clientId, conversationId: activeConversation.id, content }, 1);
     },
     [
       activeConversation,

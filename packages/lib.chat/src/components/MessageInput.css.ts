@@ -18,97 +18,6 @@ export const messageTextAreaWrapper = style({
   minWidth: '0',
 });
 
-export const attachmentPreview = style({
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '0.5rem',
-  marginBottom: '0.75rem',
-});
-
-export const attachmentItem = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.5rem 0.75rem',
-  background: vars.colors.primaryBgSubtle,
-  border: `1px solid ${vars.colors.primary}`,
-  borderRadius: '18px',
-  fontSize: '0.875rem',
-});
-
-export const attachmentName = style({
-  color: vars.text.primary,
-  maxWidth: '150px',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-  fontWeight: '500',
-});
-
-export const removeButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '18px',
-  height: '18px',
-  border: 'none',
-  background: vars.colors.danger,
-  color: 'white',
-  borderRadius: '50%',
-  cursor: 'pointer',
-  fontSize: '0.75rem',
-  transition: 'all 0.15s ease',
-  selectors: {
-    '&:hover': {
-      background: vars.colors.dangerHover,
-      transform: 'scale(1.1)',
-    },
-    '&:focus': {
-      outline: `2px solid ${vars.colors.dangerBorderSubtle}`,
-      outlineOffset: '2px',
-    },
-  },
-});
-
-export const attachButton = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '44px',
-  height: '44px',
-  border: 'none',
-  background: vars.background.surface,
-  borderRadius: '50%',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease',
-  color: vars.text.secondary,
-  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-  position: 'relative',
-  selectors: {
-    '&:hover': {
-      background: vars.colors.primaryBgSubtle,
-      color: vars.colors.primary,
-      transform: 'scale(1.05)',
-    },
-    '&:focus-within': {
-      outline: `2px solid ${vars.colors.primary}`,
-      outlineOffset: '2px',
-    },
-  },
-});
-
-export const hiddenFileInput = style({
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  padding: '0',
-  margin: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: '0',
-});
-
 export const sendButton = style({
   minWidth: '44px',
   height: '44px',
@@ -135,18 +44,6 @@ export const sendButton = style({
       cursor: 'not-allowed',
     },
   },
-});
-
-export const visuallyHidden = style({
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  padding: '0',
-  margin: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: '0',
 });
 
 export const inputFooter = style({

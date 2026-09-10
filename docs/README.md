@@ -39,6 +39,7 @@ Documentation for the adopt-don't-shop monorepo, organised by audience: **Start 
 
 - [Implementation guide](./backend/implementation-guide.md) — gateway routes → gRPC handlers → services, incl. view adapters
 - [API endpoints](./backend/api-endpoints.md) — REST surface, auth, pagination, error envelope
+- [API route audit](./backend/api-route-audit.md) — frontend→gateway route pairs verified or descoped per audit ticket
 - [API versioning & deprecation](./api-versioning.md) — `/api/v<N>/` scheme, breaking-change definition, deprecation lifecycle
 - [Database schema](./backend/database-schema.md) — service-owned schemas and relationships
 - [Writing migrations](./backend/writing-migrations.md) — numbering, up/down, testing, failure recovery
