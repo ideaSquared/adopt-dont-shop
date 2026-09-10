@@ -24,6 +24,7 @@ import { randomBytes } from 'node:crypto';
 
 import type { FastifyInstance } from 'fastify';
 
+import { isSecureRequest } from '../middleware/auth-cookies.js';
 import { CSRF_COOKIE_NAME } from '../middleware/csrf.js';
 
 const CSRF_TOKEN_BYTES = 32;
@@ -33,7 +34,23 @@ const CSRF_TOKEN_BYTES = 32;
 // without forcing frequent re-fetches, while still rotating regularly.
 const CSRF_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 4;
 
-export const registerCsrfRoutes = async (app: FastifyInstance): Promise<void> => {
+export type CsrfRoutesConfig = {
+  // ADS-1334: threaded through to isSecureRequest so the Secure flag on the
+  // csrfToken cookie is pinned by environment, same as the auth cookies —
+  // not derived from req.protocol alone (see isSecureRequest's ADS-1327
+  // comment). Falls back to NODE_ENV directly (mirroring config.ts's own
+  // default) when the caller doesn't supply one, so this route stays
+  // correct even where its registration isn't (yet) passed the gateway's
+  // loaded config.
+  environment?: string;
+};
+
+export const registerCsrfRoutes = async (
+  app: FastifyInstance,
+  config: CsrfRoutesConfig = {}
+): Promise<void> => {
+  const environment = config.environment || process.env.NODE_ENV?.trim() || 'development';
+
   app.get(
     '/api/v1/csrf-token',
     {
@@ -66,7 +83,7 @@ export const registerCsrfRoutes = async (app: FastifyInstance): Promise<void> =>
         path: '/',
         httpOnly: false, // must be JS-readable for the double-submit pattern
         sameSite: 'lax',
-        secure: req.protocol === 'https',
+        secure: isSecureRequest(req, environment),
         maxAge: CSRF_COOKIE_MAX_AGE_SECONDS,
       });
 
