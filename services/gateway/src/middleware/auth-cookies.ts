@@ -48,8 +48,9 @@ export type AuthTokenPair = {
 };
 
 // Only Secure over an actual HTTPS request — dev/test run over plain HTTP,
-// and a Secure cookie is silently dropped by the browser there. Same check
-// routes/csrf.ts already uses for the CSRF cookie.
+// and a Secure cookie is silently dropped by the browser there. Exported so
+// routes/csrf.ts can share this exact check for the CSRF cookie instead of
+// re-deriving it (ADS-1334 — the two had drifted apart before this).
 //
 // ADS-1327: req.protocol reading 'https' behind nginx depends on
 // trustProxy being on AND nginx correctly setting X-Forwarded-Proto on
@@ -57,7 +58,7 @@ export type AuthTokenPair = {
 // other path silently downgrades a production cookie to non-Secure. When
 // `environment` is supplied and is production/staging, Secure is pinned
 // true unconditionally, independent of req.protocol/trustProxy.
-const isSecureRequest = (req: FastifyRequest, environment?: string): boolean =>
+export const isSecureRequest = (req: FastifyRequest, environment?: string): boolean =>
   environment === 'production' || environment === 'staging' || req.protocol === 'https';
 
 /** Sets the httpOnly access/refresh cookies + the JS-readable session marker. */

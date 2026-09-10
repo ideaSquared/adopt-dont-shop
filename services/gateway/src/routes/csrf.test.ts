@@ -76,3 +76,49 @@ describe('GET /api/v1/csrf-token — issues the double-submit CSRF cookie', () =
     expect(res.statusCode).toBe(200);
   });
 });
+
+// ADS-1334: the csrfToken cookie's Secure flag used to be derived only from
+// req.protocol === 'https' — the same trustProxy/nginx drift ADS-1327 fixed
+// for the auth cookies could silently downgrade this cookie to non-Secure in
+// production too. Now it shares auth-cookies.ts's isSecureRequest, which
+// pins Secure=true for production/staging regardless of req.protocol.
+describe('GET /api/v1/csrf-token — Secure pinned by environment (ADS-1334)', () => {
+  it('marks the csrfToken cookie Secure in production even over a plain-HTTP request', async () => {
+    const app = Fastify({ logger: false });
+    await app.register(cookie);
+    await registerCsrfRoutes(app, { environment: 'production' });
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/csrf-token' });
+      const setCookie = res.cookies.find(c => c.name === 'csrfToken');
+      expect(setCookie?.secure).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('marks the csrfToken cookie Secure in staging even over a plain-HTTP request', async () => {
+    const app = Fastify({ logger: false });
+    await app.register(cookie);
+    await registerCsrfRoutes(app, { environment: 'staging' });
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/csrf-token' });
+      const setCookie = res.cookies.find(c => c.name === 'csrfToken');
+      expect(setCookie?.secure).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not pin Secure in development (falls back to req.protocol)', async () => {
+    const app = Fastify({ logger: false });
+    await app.register(cookie);
+    await registerCsrfRoutes(app, { environment: 'development' });
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/csrf-token' });
+      const setCookie = res.cookies.find(c => c.name === 'csrfToken');
+      expect(setCookie?.secure).toBeFalsy();
+    } finally {
+      await app.close();
+    }
+  });
+});
