@@ -133,6 +133,14 @@ jobs:
       - name: Verify every docs/*.md is linked from docs/README.md
         run: node scripts/check-docs-index.mjs
 
+      # ADS-1336: check-docs-freshness.mjs's broken-internal-link scan is run
+      # nightly (docs-freshness.yml) but only as an informational report, so a
+      # broken link lands and stays. --strict makes the internal-link portion
+      # fail here; --check-external stays out of this required check since it
+      # needs network access and would make ci-required flaky.
+      - name: Verify docs internal links resolve
+        run: pnpm check:docs-links
+
       - name: Verify docs reference only real pnpm scripts
         run: node scripts/check-docs-script-references.mjs
 
