@@ -2,10 +2,11 @@
 // is registered with an interval; the scheduler walks the registered jobs
 // every tick and runs any whose `nextRunAt` has passed.
 //
-// Ported from services/notifications/src/scheduler/scheduler.ts (this
-// service had no scheduler of its own before the application-drafts
-// retention purge). Keep the two in sync if either gains a fix — there is
-// no shared package for this yet because only two services need it.
+// Ported (ADS-1320) from the notifications service's scheduler, which was
+// later extracted into the shared @adopt-dont-shop/scheduler package
+// (ADS-1325). Audit and notifications now consume that package; this service
+// still carries its own copy, so keep it in sync with the shared package if
+// either gains a fix.
 //
 // Why not node-cron / agenda? Both pull in a heavy dep for the small set
 // of scheduled tasks this service is designed to run. The tick loop matches

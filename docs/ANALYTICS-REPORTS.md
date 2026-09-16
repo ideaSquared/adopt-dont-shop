@@ -21,14 +21,14 @@ no BullMQ, no ioredis, no Sequelize, and no PDF/CSV renderer in the codebase tod
 
 ### Backend layout (service.audit)
 
-| Path                                                                      | Purpose                                                                                                                                       |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `services/audit/src/grpc/reports-handlers.ts`                             | All report RPCs: list/get/create/update/delete saved reports, list templates, upsert/delete schedule, create/revoke share, token-share lookup |
-| `services/audit/src/migrations/003_create_reports.ts`                     | Tables `report_templates`, `saved_reports`                                                                                                    |
-| `services/audit/src/migrations/008_create_report_schedules_and_shares.ts` | Tables `saved_report_schedules`, `saved_report_shares`                                                                                        |
-| `services/audit/src/db/`                                                  | Query helpers                                                                                                                                 |
-| `services/audit/src/scheduler/scheduler.ts`                               | Generic in-process tick scheduler (60 s default). Currently registers only the GDPR saga sweep jobs — not report delivery                     |
-| `services/gateway/src/routes/reports.ts`                                  | REST edge; `executeConfig` aggregation fan-out                                                                                                |
+| Path                                                                      | Purpose                                                                                                                                                         |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/audit/src/grpc/reports-handlers.ts`                             | All report RPCs: list/get/create/update/delete saved reports, list templates, upsert/delete schedule, create/revoke share, token-share lookup                   |
+| `services/audit/src/migrations/003_create_reports.ts`                     | Tables `report_templates`, `saved_reports`                                                                                                                      |
+| `services/audit/src/migrations/008_create_report_schedules_and_shares.ts` | Tables `saved_report_schedules`, `saved_report_shares`                                                                                                          |
+| `services/audit/src/db/`                                                  | Query helpers                                                                                                                                                   |
+| `services/audit/src/index.ts` (via `@adopt-dont-shop/scheduler`)          | Registers the service's periodic jobs on the shared tick scheduler (60 s default tick). Currently only the GDPR saga sweep + metrics jobs — not report delivery |
+| `services/gateway/src/routes/reports.ts`                                  | REST edge; `executeConfig` aggregation fan-out                                                                                                                  |
 
 Frontend consumers live in `lib.analytics` (schemas, `report-service`, `useReports` hooks) and
 `lib.components` (chart primitives, report-builder components); admin/rescue pages under
@@ -92,12 +92,13 @@ Two share types in the same `saved_report_shares` table:
 These appear in the frontend or schema but have no server-side implementation:
 
 - **Scheduled delivery.** `POST /:id/schedule` persists a `saved_report_schedules` row, but the
-  audit scheduler currently registers only the GDPR saga sweep jobs — nothing reads due schedules
-  to render and email a report. Creating a schedule has no automated effect yet.
-- **Real-time push.** The events `analytics:invalidate`, `analytics:metric-update`, and
-  `reports:scheduled-run-complete` are defined on the client
-  (`lib.analytics/src/hooks/useRealtimeAnalytics.ts`) but no service emits them — grep finds no
-  server-side emitter. Treat the real-time section as a client-side contract awaiting a producer.
+  audit service currently registers only the GDPR saga sweep + metrics jobs on its scheduler —
+  nothing reads due schedules to render and email a report. Creating a schedule has no automated
+  effect yet.
+- **Real-time push.** There is no real-time analytics push on either side. A client hook
+  (`lib.analytics/src/hooks/useRealtimeAnalytics.ts`) once defined the events `analytics:invalidate`,
+  `analytics:metric-update`, and `reports:scheduled-run-complete`, but it was removed in ADS-1326
+  and no service ever emitted them.
 
 ## Operational notes
 
