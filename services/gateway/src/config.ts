@@ -388,13 +388,16 @@ const DEFAULT_CLAMAV_PORT = 3310;
 // default to the docker-compose service name + clamd's standard TCP port,
 // so no env override is needed in the dev/prod/staging compose files
 // (mirrors the *_GRPC_URL defaults above). failClosed governs what
-// scanBytes() does when clamd can't be reached: production HARD-enforces
-// true regardless of CLAMAV_FAIL_OPEN — an unreachable scanner must never
-// silently let a file through in prod. Other environments read
-// CLAMAV_FAIL_OPEN so a local/dev box without clamd running doesn't have
-// every upload rejected.
+// scanBytes() does when clamd can't be reached: production and staging
+// HARD-enforce true regardless of CLAMAV_FAIL_OPEN — staging is a deployed,
+// tester-reachable environment (treated the same way by buildTrustProxy /
+// buildCorsConfig / buildTestTokenPeekConfig / assertDistinctSecrets in this
+// file), so an unreachable scanner must never silently let a file through
+// there either (ADS-1339). Other environments read CLAMAV_FAIL_OPEN so a
+// local/dev box without clamd running doesn't have every upload rejected.
 function buildAvScanConfig(env: NodeJS.ProcessEnv, environment: string): GatewayConfig['avScan'] {
-  const failOpen = isEnabled(env.CLAMAV_FAIL_OPEN) && environment !== 'production';
+  const failOpen =
+    isEnabled(env.CLAMAV_FAIL_OPEN) && environment !== 'production' && environment !== 'staging';
   const portRaw = env.CLAMAV_PORT?.trim();
   const port = portRaw ? Number.parseInt(portRaw, 10) : DEFAULT_CLAMAV_PORT;
   return {

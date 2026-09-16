@@ -447,6 +447,20 @@ describe('loadConfig — AV scan (ADS-1241)', () => {
     });
     expect(config.avScan.failClosed).toBe(true);
   });
+
+  // ADS-1339: staging is a deployed, tester-reachable environment — treated
+  // as such by every other guard in this file (buildTrustProxy,
+  // buildCorsConfig, buildTestTokenPeekConfig, assertDistinctSecrets) — so
+  // an unreachable clamd must never silently let a file through there
+  // either, the same as production.
+  it('HARD-enforces failClosed=true in staging regardless of CLAMAV_FAIL_OPEN', () => {
+    const config = loadConfig({
+      NODE_ENV: 'staging',
+      CORS_ORIGIN: 'https://app.example.com',
+      CLAMAV_FAIL_OPEN: 'true',
+    });
+    expect(config.avScan.failClosed).toBe(true);
+  });
 });
 
 describe('loadConfig — maintenance mode (ADS-1325)', () => {
