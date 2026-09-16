@@ -66,6 +66,7 @@
   "check:migration-backcompat": "Guard: fail if a newly added migration contracts the schema (drop/rename, unmarked NOT NULL, type narrowing) without a backcompat marker comment (ADR 0008).",
   "check:stop-grace-period": "Guard: fail if a service-* entry in docker-compose.prod.yml lacks stop_grace_period (ADS-1309).",
   "check:docs-index": "Guard: fail if a docs/**/*.md file isn't linked from docs/README.md.",
+  "check:docs-links": "Guard: fail if a docs/**/*.md or root markdown file has a broken internal link or anchor (ADS-1336).",
   "check:docs-script-refs": "Guard: fail if a doc references a `pnpm run <script>` that doesn't exist.",
   "check:proto-fresh": "Guard: fail if packages/proto committed codegen is out of sync with `buf generate` (run `pnpm generate` in packages/proto and commit).",
   "check:renovate": "Guard: fail if renovate.json has invalid keys or deprecated matchers (runs the official renovate-config-validator).",
