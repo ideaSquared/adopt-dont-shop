@@ -1212,7 +1212,7 @@ describe('getRescueStatistics', () => {
   it('NOT_FOUND when the rescue is gone', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     await expect(
-      getRescueStatistics(mocks.deps, ADOPTER, { rescueId: 'ghost' } as never)
+      getRescueStatistics(mocks.deps, ADMIN, { rescueId: 'ghost' } as never)
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
@@ -1221,12 +1221,30 @@ describe('getRescueStatistics', () => {
       .mockResolvedValueOnce({ rows: [rescueRow()] })
       .mockResolvedValueOnce({ rows: [{ count: '4' }] });
 
-    const res = await getRescueStatistics(mocks.deps, ADOPTER, { rescueId: 'rsc-1' } as never);
+    const res = await getRescueStatistics(mocks.deps, STAFF, { rescueId: 'rsc-1' } as never);
 
     expect(res.statistics.staffCount).toBe(4);
     expect(res.statistics.totalPets).toBe(0);
     expect(res.statistics.totalApplications).toBe(0);
     expect(res.statistics.averageTimeToAdoption).toBe(0);
+  });
+
+  it('PERMISSION_DENIED (cross-tenant IDOR) for staff at a different rescue (ADS-1338)', async () => {
+    await expect(
+      getRescueStatistics(mocks.deps, OTHER_STAFF, { rescueId: 'rsc-1' } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // No row lookup should even happen — denied before the query.
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('an admin can read any rescue statistics (ADS-1338)', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [rescueRow()] })
+      .mockResolvedValueOnce({ rows: [{ count: '4' }] });
+
+    const res = await getRescueStatistics(mocks.deps, ADMIN, { rescueId: 'rsc-1' } as never);
+
+    expect(res.statistics.staffCount).toBe(4);
   });
 });
 
@@ -1241,7 +1259,7 @@ describe('countRescues', () => {
     vi.resetAllMocks();
   });
 
-  it('PERMISSION_DENIED without rescues.read', async () => {
+  it('PERMISSION_DENIED without admin.security.manage', async () => {
     const noRead: Principal = {
       userId: 'usr-x' as UserId,
       roles: ['adopter'],
@@ -1250,6 +1268,13 @@ describe('countRescues', () => {
     await expect(countRescues(mocks.deps, noRead, {})).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+  });
+
+  it('PERMISSION_DENIED for rescue_staff (platform-wide, admin-only) (ADS-1338)', async () => {
+    await expect(countRescues(mocks.deps, STAFF, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
   });
 
   it('maps the grouped count into per-status fields and a summed total', async () => {
@@ -1261,7 +1286,7 @@ describe('countRescues', () => {
       ],
     });
 
-    const res = await countRescues(mocks.deps, ADOPTER, {});
+    const res = await countRescues(mocks.deps, ADMIN, {});
 
     expect(res.verified).toBe(150);
     expect(res.pending).toBe(12);
@@ -1274,7 +1299,7 @@ describe('countRescues', () => {
   it('runs a single grouped count (no per-status fan-out, uncapped)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ status: 'verified', count: '0' }] });
 
-    await countRescues(mocks.deps, ADOPTER, {});
+    await countRescues(mocks.deps, ADMIN, {});
 
     expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
     const [sql] = mocks.poolMock.query.mock.calls[0] as [string];
@@ -1284,7 +1309,7 @@ describe('countRescues', () => {
   it('returns all-zero counts when there are no rescues', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
 
-    const res = await countRescues(mocks.deps, ADOPTER, {});
+    const res = await countRescues(mocks.deps, ADMIN, {});
 
     expect(res).toEqual({
       pending: 0,

@@ -1011,8 +1011,14 @@ export async function getRescueStatistics(
   if (!req.rescueId) {
     throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
   }
-  if (!hasPermission(principal, RESCUES_READ)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required`);
+  // Rescue-portal staff with `rescues.read` scoped to this rescue, OR a
+  // platform admin with `admin.security.manage` (cross-rescue reads — see
+  // InviteStaffRequest for the same admin gate).
+  if (
+    !requirePermission(principal, RESCUES_READ, { rescueId: req.rescueId as RescueId }) &&
+    !hasPermission(principal, ADMIN_SECURITY_MANAGE)
+  ) {
+    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required for this rescue`);
   }
 
   const existing = await fetchRescue(deps, req.rescueId);
@@ -1052,8 +1058,12 @@ export async function countRescues(
   principal: Principal,
   _req: CountRescuesRequest
 ): Promise<CountRescuesResponse> {
-  if (!hasPermission(principal, RESCUES_READ)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required`);
+  // Platform-wide (status-grouped totals across every rescue, not a single
+  // tenant's rows), so this is an admin capability, not `rescues.read` —
+  // rescue_staff holding `rescues.read` for their own rescue should not see
+  // every other rescue's counts (ADS-1338).
+  if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
   }
 
   const result = await deps.pool.query<{ status: RescueStatusDb; count: string }>(
