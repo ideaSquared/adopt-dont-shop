@@ -111,9 +111,9 @@ the repo root with `pnpm <script>`.
 | `pnpm docker:logs:gateway` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-gateway` |
 | `pnpm docker:logs:infra` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f database redis nats` |
 | `pnpm docker:logs:services` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit` |
-| `pnpm docker:ps` | `docker compose ps` |
+| `pnpm docker:ps` | `node scripts/docker-ps.mjs` |
 | `pnpm docker:reset` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v` |
-| `pnpm docker:shell:db` | `docker compose exec database sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'` |
+| `pnpm docker:shell:db` | `node scripts/docker-shell-db.mjs` |
 
 ### CI
 

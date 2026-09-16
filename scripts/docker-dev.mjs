@@ -70,7 +70,21 @@ const BUILD = hasFlag('--build');
 const ASSUME_YES = hasFlag('--yes');
 const PROFILE = flagValue('--profile') ?? 'dev';
 
-const COMPOSE = ['-f', 'docker-compose.yml', '-f', 'docker-compose.dev.yml'];
+// Passing explicit `-f` files to `docker compose` disables its automatic
+// loading of `docker-compose.override.yml` — so without this, every override
+// documented in DOCKER.md (debug ports, memory limits, HMR polling) is
+// silently ignored by `pnpm docker:dev` (ADS-1335). Append it last, only when
+// it exists, so precedence stays base -> dev -> override and nothing changes
+// for developers without one.
+export function resolveComposeFiles(root = ROOT) {
+  const files = ['docker-compose.yml', 'docker-compose.dev.yml'];
+  if (existsSync(join(root, 'docker-compose.override.yml'))) {
+    files.push('docker-compose.override.yml');
+  }
+  return files.flatMap(f => ['-f', f]);
+}
+
+const COMPOSE = resolveComposeFiles();
 const STATE_FILE = join(ROOT, '.turbo', '.docker-dev-state.json'); // gitignored .turbo
 
 function run(cmd, opts = {}) {

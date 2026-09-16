@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolveProfiles } from './docker-dev.mjs';
+import { resolveComposeFiles, resolveProfiles } from './docker-dev.mjs';
 
 // resolveProfiles maps the requested `--profile` onto the real compose profiles
 // `pnpm docker:dev` enables. The behaviour that matters to a developer booting
@@ -29,5 +32,41 @@ describe('resolveProfiles', () => {
 
   it('passes any other profile through unchanged', () => {
     expect(resolveProfiles('observability')).toEqual(['observability']);
+  });
+});
+
+// resolveComposeFiles decides which `-f` flags `pnpm docker:dev` (and the
+// other docker:* commands) pass to `docker compose`. Passing explicit `-f`
+// files disables Compose's automatic loading of docker-compose.override.yml,
+// so this must append it — last, to preserve base -> dev -> override
+// precedence — only when the file actually exists (ADS-1335).
+describe('resolveComposeFiles', () => {
+  let dir;
+
+  afterEach(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('uses only the base + dev compose files when no override exists', () => {
+    dir = mkdtempSync(join(tmpdir(), 'docker-dev-compose-'));
+    expect(resolveComposeFiles(dir)).toEqual([
+      '-f',
+      'docker-compose.yml',
+      '-f',
+      'docker-compose.dev.yml',
+    ]);
+  });
+
+  it('appends the override file last when it exists', () => {
+    dir = mkdtempSync(join(tmpdir(), 'docker-dev-compose-'));
+    writeFileSync(join(dir, 'docker-compose.override.yml'), 'services: {}\n');
+    expect(resolveComposeFiles(dir)).toEqual([
+      '-f',
+      'docker-compose.yml',
+      '-f',
+      'docker-compose.dev.yml',
+      '-f',
+      'docker-compose.override.yml',
+    ]);
   });
 });
