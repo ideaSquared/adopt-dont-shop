@@ -32,6 +32,7 @@ import {
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
+import { isSafeImageUrl } from './events.schemas.js';
 import { petToView, viewToCreateRequest, viewToUpdateRequest } from './pets-view.js';
 import { mapWithConcurrency } from './reports.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -874,6 +875,12 @@ export const registerPetsRoutes = async (
         return reply
           .code(400)
           .send({ success: false, error: 'at least one image url is required' });
+      }
+      if (incoming.some(u => !isSafeImageUrl(u))) {
+        return reply.code(400).send({
+          success: false,
+          error: 'each image url must be a same-origin path or https platform URL',
+        });
       }
       const metadata = buildMetadata(req);
       try {

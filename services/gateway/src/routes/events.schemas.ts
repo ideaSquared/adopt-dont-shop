@@ -48,7 +48,7 @@ function allowedImageHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
   return hosts;
 }
 
-const isSafeImageUrl = (value: string): boolean => {
+export const isSafeImageUrl = (value: string): boolean => {
   if (value === '') {
     return true;
   }
