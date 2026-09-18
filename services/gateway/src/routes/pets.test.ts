@@ -859,20 +859,20 @@ describe('POST /api/v1/pets/:id/images', () => {
         pet: petWithExtra({ image_urls: ['a.jpg'], color: 'brown' }),
       });
       m.updateMock.mockResolvedValueOnce({
-        pet: petWithExtra({ image_urls: ['a.jpg', 'b.jpg'], color: 'brown' }),
+        pet: petWithExtra({ image_urls: ['a.jpg', '/b.jpg'], color: 'brown' }),
       });
 
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/pets/pet-1/images',
         headers: { 'x-user-id': 'usr-staff', 'x-user-roles': 'rescue_staff' },
-        payload: { images: ['b.jpg'] },
+        payload: { images: ['/b.jpg'] },
       });
 
       expect(res.statusCode).toBe(200);
       const body = res.json() as { success: boolean; data: { image_urls: string[] } };
       expect(body.success).toBe(true);
-      expect(body.data.image_urls).toEqual(['a.jpg', 'b.jpg']);
+      expect(body.data.image_urls).toEqual(['a.jpg', '/b.jpg']);
 
       const [getReq, metadata] = m.getMock.mock.calls[0];
       expect(getReq.petId).toBe('pet-1');
@@ -881,7 +881,7 @@ describe('POST /api/v1/pets/:id/images', () => {
       const [updateReq] = m.updateMock.mock.calls[0];
       expect(updateReq.petId).toBe('pet-1');
       const sentExtra = JSON.parse(updateReq.extraJson) as Record<string, unknown>;
-      expect(sentExtra.image_urls).toEqual(['a.jpg', 'b.jpg']);
+      expect(sentExtra.image_urls).toEqual(['a.jpg', '/b.jpg']);
       // Untouched long-tail extra fields survive the merge.
       expect(sentExtra.color).toBe('brown');
     } finally {
@@ -893,18 +893,18 @@ describe('POST /api/v1/pets/:id/images', () => {
     const m = makeClient();
     const app = await makeApp(m.client);
     try {
-      m.getMock.mockResolvedValueOnce({ pet: petWithExtra({ image_urls: ['a.jpg'] }) });
+      m.getMock.mockResolvedValueOnce({ pet: petWithExtra({ image_urls: ['/a.jpg'] }) });
       m.updateMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
 
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/pets/pet-1/images',
-        payload: { images: ['a.jpg', 'c.jpg'] },
+        payload: { images: ['/a.jpg', '/c.jpg'] },
       });
 
       expect(res.statusCode).toBe(200);
       const [updateReq] = m.updateMock.mock.calls[0];
-      expect(JSON.parse(updateReq.extraJson).image_urls).toEqual(['a.jpg', 'c.jpg']);
+      expect(JSON.parse(updateReq.extraJson).image_urls).toEqual(['/a.jpg', '/c.jpg']);
     } finally {
       await app.close();
     }
@@ -920,12 +920,12 @@ describe('POST /api/v1/pets/:id/images', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/pets/pet-1/images',
-        payload: { urls: ['q.jpg'], url: 'z.jpg' },
+        payload: { urls: ['/q.jpg'], url: '/z.jpg' },
       });
 
       expect(res.statusCode).toBe(200);
       const [updateReq] = m.updateMock.mock.calls[0];
-      expect(JSON.parse(updateReq.extraJson).image_urls).toEqual(['q.jpg', 'z.jpg']);
+      expect(JSON.parse(updateReq.extraJson).image_urls).toEqual(['/q.jpg', '/z.jpg']);
     } finally {
       await app.close();
     }
@@ -948,6 +948,40 @@ describe('POST /api/v1/pets/:id/images', () => {
     }
   });
 
+  it('400s on a javascript: url and never calls the service', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/images',
+        payload: { images: ['javascript:alert(1)'] },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.getMock).not.toHaveBeenCalled();
+      expect(m.updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('400s on an https url with a disallowed host and never calls the service', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/images',
+        payload: { images: ['https://evil.example.com/a.jpg'] },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.getMock).not.toHaveBeenCalled();
+      expect(m.updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
   it('404s when the pet does not exist and does not attempt an update', async () => {
     const m = makeClient();
     const app = await makeApp(m.client);
@@ -956,7 +990,7 @@ describe('POST /api/v1/pets/:id/images', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/pets/ghost/images',
-        payload: { images: ['a.jpg'] },
+        payload: { images: ['/a.jpg'] },
       });
       expect(res.statusCode).toBe(404);
       expect(m.updateMock).not.toHaveBeenCalled();
@@ -979,7 +1013,7 @@ describe('POST /api/v1/pets/:id/images', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/pets/pet-1/images',
-        payload: { images: ['a.jpg'] },
+        payload: { images: ['/a.jpg'] },
       });
       expect(res.statusCode).toBe(403);
     } finally {

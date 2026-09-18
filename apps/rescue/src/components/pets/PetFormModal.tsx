@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button, Card, FormField, Input } from '@adopt-dont-shop/lib.components';
 import { apiService, type ImageUploadResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
+import { resolveFileUrl } from '../../utils/fileUtils';
 import * as styles from './PetFormModal.css';
 
 // ADS-574: image uploader configuration.
@@ -589,7 +590,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                 <ul className={styles.imageList} aria-label="Attached pet photos">
                   {images.map((img, index) => {
                     const isPrimary = index === 0;
-                    const previewSrc = img.thumbnailUrl ?? img.url;
+                    // ADS-1343: same http(s)-only / same-origin guard as PetCard —
+                    // a stored image URL is untrusted until it clears this check.
+                    const previewSrc = resolveFileUrl(img.thumbnailUrl ?? img.url);
                     return (
                       <li
                         key={img.localId}

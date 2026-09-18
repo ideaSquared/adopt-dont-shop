@@ -422,4 +422,9 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     dismiss: vi.fn(),
   }),
   Toaster: () => null,
+  // ADS-1343: PetCard renders pet photos through ProgressiveImage. The real
+  // component lazy-loads via IntersectionObserver, which isn't useful in
+  // jsdom; render a plain <img> so tests can assert on src/alt directly.
+  ProgressiveImage: ({ src, alt, className }: { src: string; alt: string; className?: string }) =>
+    React.createElement('img', { src, alt, className }),
 }));
