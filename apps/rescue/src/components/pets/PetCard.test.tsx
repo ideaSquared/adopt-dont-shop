@@ -102,6 +102,51 @@ describe('PetCard inline status edit (ADS-646)', () => {
   });
 });
 
+describe('PetCard image URL validation (ADS-1343)', () => {
+  it('falls back to the placeholder instead of passing an unsafe stored URL to <img>', () => {
+    renderWithProviders(
+      <PetCard
+        pet={buildPet({
+          // PetCard only reads url/is_primary/order_index; the cast avoids
+          // filling in the other required PetImageSchema fields the render
+          // path never touches (image_id, uploaded_at).
+          images: [
+            { url: 'javascript:alert(1)', is_primary: true, order_index: 0 },
+          ] as unknown as Pet['images'],
+        })}
+        onStatusChange={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    // Same behaviour as having no image at all: the emoji placeholder shows,
+    // never a real <img> pointed at the javascript: URL.
+    expect(screen.getByText('🐾')).toBeInTheDocument();
+  });
+
+  it('does not fall back to the placeholder for a safe https stored URL', () => {
+    renderWithProviders(
+      <PetCard
+        pet={buildPet({
+          images: [
+            {
+              url: 'https://cdn.example.com/buddy.jpg',
+              is_primary: true,
+              order_index: 0,
+            },
+          ] as unknown as Pet['images'],
+        })}
+        onStatusChange={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText('🐾')).toBeNull();
+  });
+});
+
 describe('PetCard bulk selection (ADS-646)', () => {
   it('shows a selection checkbox only when onToggleSelect is provided', () => {
     const { rerender } = renderWithProviders(
