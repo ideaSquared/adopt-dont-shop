@@ -127,6 +127,34 @@ describe('MatchAcknowledgementProvider', () => {
     expect(photo).toHaveAttribute('src', 'https://cdn.example.com/biscuit.jpg');
   });
 
+  it('falls back to the placeholder instead of rendering an unsafe stored image URL', async () => {
+    getUserApplicationsMock
+      .mockResolvedValueOnce([buildApp({ status: 'submitted' })])
+      .mockResolvedValueOnce([buildApp({ status: 'approved' })]);
+    getPetByIdMock.mockResolvedValue(
+      buildPet({ images: [{ url: 'javascript:alert(1)', is_primary: true }] })
+    );
+
+    const { rerender } = renderProvider();
+
+    await waitFor(() => {
+      expect(getUserApplicationsMock).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <MemoryRouter>
+        <MatchAcknowledgementProvider key='remount'>
+          <div>app</div>
+        </MatchAcknowledgementProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('its-a-match-modal')).toBeInTheDocument();
+    });
+    expect(screen.queryByAltText('Biscuit')).toBeNull();
+  });
+
   it('treats a first observation in a non-submitted state as a match (no prior memory)', async () => {
     // Adopter just opened the app; the application is already in `approved`
     // and we've never recorded a status for it. Bias toward celebrating.
