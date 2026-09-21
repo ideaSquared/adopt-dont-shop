@@ -87,7 +87,7 @@ owns the invariant).
 
 **NATS** — emits (publish-after-commit): `chat.created`, `chat.messageCreated`,
 `chat.messageRead`, `chat.reactionAdded`, `chat.reactionRemoved`,
-`chat.messageDeleted`, `chat.deleted`; participates in the
+`chat.messageDeleted`, `chat.statusChanged`, `chat.deleted`; participates in the
 `gdpr.erasureCompleted` saga. Consumes `gdpr.erasureRequested` (durable
 `gdpr-chat`).
 
