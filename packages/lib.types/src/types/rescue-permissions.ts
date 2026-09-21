@@ -13,6 +13,14 @@ export const PETS_UPDATE = 'pets.update' satisfies Permission;
 export const PETS_DELETE = 'pets.delete' satisfies Permission;
 export const PETS_LIST = 'pets.list' satisfies Permission;
 export const PETS_ARCHIVE = 'pets.archive' satisfies Permission;
+// Platform-wide pet permissions (ADS-1340) — scoped across every rescue, not
+// just the caller's own. PETS_MANAGE_ANY is the write-side counterpart of
+// PETS_READ_ANY ('pets.read:any'), granted to admin/super_admin (migration
+// 022). PETS_FAVORITERS_LIST_ANY is registry-only — granted to no role;
+// only the notifications service's signed system principal carries it
+// (migration 026, services/notifications/src/grpc/pets-client.ts).
+export const PETS_MANAGE_ANY = 'pets.manage:any' satisfies Permission;
+export const PETS_FAVORITERS_LIST_ANY = 'pets.favoriters.list:any' satisfies Permission;
 
 /**
  * Application Management Permissions
@@ -86,6 +94,18 @@ export const ADMIN_DASHBOARD = 'admin.dashboard' satisfies Permission;
 export const ADMIN_AUDIT_LOGS = 'admin.audit_logs' satisfies Permission;
 export const ADMIN_FEATURE_FLAGS = 'admin.feature_flags' satisfies Permission;
 export const ADMIN_SYSTEM_SETTINGS = 'admin.system_settings' satisfies Permission;
+export const ADMIN_SECURITY_READ = 'admin.security.read' satisfies Permission;
+export const ADMIN_SECURITY_MANAGE = 'admin.security.manage' satisfies Permission;
+
+/**
+ * Admin Privacy Tools Permissions (ADS-1340)
+ *
+ * GDPR Art. 20 / 17 admin surface (services/auth/src/grpc/
+ * privacy-handlers.ts): ExportUserData + RequestAccountDeletion. Both are
+ * seeded to the admin role by the core RBAC migration (016_seed_core_rbac.ts).
+ */
+export const ADMIN_DATA_EXPORT = 'admin.data.export' satisfies Permission;
+export const USERS_DELETE = 'users.delete' satisfies Permission;
 
 /**
  * Admin User Management Permissions (ADS-1235)
@@ -177,6 +197,8 @@ export const RescuePermissions = {
   PETS_DELETE,
   PETS_LIST,
   PETS_ARCHIVE,
+  PETS_MANAGE_ANY,
+  PETS_FAVORITERS_LIST_ANY,
 
   // Application Management
   APPLICATIONS_VIEW,
@@ -230,6 +252,12 @@ export const RescuePermissions = {
   ADMIN_AUDIT_LOGS,
   ADMIN_FEATURE_FLAGS,
   ADMIN_SYSTEM_SETTINGS,
+  ADMIN_SECURITY_READ,
+  ADMIN_SECURITY_MANAGE,
+
+  // Admin Privacy Tools
+  ADMIN_DATA_EXPORT,
+  USERS_DELETE,
 
   // Admin User Management
   ADMIN_USERS_SEARCH,

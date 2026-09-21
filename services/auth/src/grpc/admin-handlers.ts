@@ -12,6 +12,8 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import {
+  ADMIN_SECURITY_MANAGE,
+  ADMIN_SECURITY_READ,
   ADMIN_USERS_BROADCAST,
   ADMIN_USERS_BULK_UPDATE,
   ADMIN_USERS_CREATE,
@@ -20,7 +22,6 @@ import {
   ADMIN_USERS_REACTIVATE,
   ADMIN_USERS_SEARCH,
   ADMIN_USERS_UPDATE,
-  type Permission,
 } from '@adopt-dont-shop/lib.types';
 
 import {
@@ -68,11 +69,6 @@ import {
   type HandlerDeps,
   type UserRow,
 } from './handlers.js';
-
-// --- Permissions -----------------------------------------------------
-
-const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
-const ADMIN_SECURITY_READ: Permission = 'admin.security.read' as Permission;
 
 // Columns the admin view selects — same set rowToProtoUser reads.
 const USER_SELECT = `

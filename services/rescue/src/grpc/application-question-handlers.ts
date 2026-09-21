@@ -15,7 +15,11 @@ import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
+import {
+  APPLICATIONS_UPDATE,
+  APPLICATIONS_VIEW as APPLICATIONS_READ,
+  type RescueId,
+} from '@adopt-dont-shop/lib.types';
 import {
   RescueV1,
   type ApplicationQuestion,
@@ -32,11 +36,6 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './handlers.js';
-
-// --- Permissions -----------------------------------------------------
-
-const APPLICATIONS_READ: Permission = 'applications.read' as Permission;
-const APPLICATIONS_UPDATE: Permission = 'applications.update' as Permission;
 
 // --- Row shape -------------------------------------------------------
 

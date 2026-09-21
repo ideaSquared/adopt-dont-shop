@@ -181,6 +181,14 @@ export type Permission =
   | 'notifications.prefs.update:any'
   | 'notifications.cleanup'
   | 'pets.read:any'
+  // Platform-wide pet permissions (ADS-1340) the handler always gated on via
+  // an `as Permission` cast, because the literal wasn't a member of this
+  // union yet — see rescue-permissions.ts for the named constants.
+  // pets.manage:any is granted to admin/super_admin (migration 022);
+  // pets.favoriters.list:any is registry-only — no role holds it, only the
+  // notifications service's signed system principal (migration 026).
+  | 'pets.manage:any'
+  | 'pets.favoriters.list:any'
   | 'matching.swipes.read:any';
 
 /**

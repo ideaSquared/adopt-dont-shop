@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import type { Permission } from '@adopt-dont-shop/lib.types';
+import { ADMIN_DATA_EXPORT, USERS_DELETE } from '@adopt-dont-shop/lib.types';
 
 import {
   type ExportUserDataRequest,
@@ -22,11 +22,6 @@ import {
 
 import { HandlerError, rowToProtoUser, type HandlerDeps, type UserRow } from './handlers.js';
 import { privacyPrefsRowToProto, type PrivacyPrefsRow } from './privacy-prefs-handlers.js';
-
-// --- Permissions -----------------------------------------------------
-
-const ADMIN_DATA_EXPORT: Permission = 'admin.data.export' as Permission;
-const USERS_DELETE: Permission = 'users.delete' as Permission;
 
 // Grace window before a scheduled account is hard-anonymised (GDPR Art. 17).
 const DELETION_GRACE_DAYS = 30;

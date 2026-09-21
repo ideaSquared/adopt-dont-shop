@@ -26,7 +26,20 @@ import { randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
-import { CHAT_MESSAGE_DELETE_ANY, type Permission } from '@adopt-dont-shop/lib.types';
+// Canonical permission names from lib.types (rescue-permissions.ts): the RBAC
+// matrix (auth migration 016) grants adopters + rescue staff `chats.*` /
+// `messages.*`, so the chat service MUST gate on those same strings. It
+// previously used ad-hoc `chat.read` / `chat.create` / `chat.send` consts
+// re-declared via `as Permission`, which no role was ever granted — so every
+// non-super_admin chat op 403'd. CHAT_READ / CHAT_SEND below alias lib.types'
+// CHAT_VIEW / MESSAGES_SEND — same permission, names that read more
+// naturally for this file's call sites.
+import {
+  CHAT_CREATE,
+  CHAT_MESSAGE_DELETE_ANY,
+  CHAT_VIEW as CHAT_READ,
+  MESSAGES_SEND as CHAT_SEND,
+} from '@adopt-dont-shop/lib.types';
 import { principalToMetadata } from '@adopt-dont-shop/service-bootstrap';
 import type { ApplicationsClient } from './applications-client.js';
 import type { RescueClient } from './rescue-client.js';
@@ -87,17 +100,6 @@ export class HandlerError extends Error {
     this.name = 'HandlerError';
   }
 }
-
-// --- Permissions -----------------------------------------------------
-
-// Canonical permission names from lib.types (rescue-permissions.ts): the RBAC
-// matrix (auth migration 016) grants adopters + rescue staff `chats.*` /
-// `messages.*`, so the chat service MUST gate on those same strings. It
-// previously used ad-hoc `chat.read` / `chat.create` / `chat.send`, which no
-// role was ever granted — so every non-super_admin chat op 403'd.
-const CHAT_CREATE: Permission = 'chats.create' as Permission;
-const CHAT_READ: Permission = 'chats.read' as Permission;
-const CHAT_SEND: Permission = 'messages.create' as Permission;
 
 // --- Row shapes ------------------------------------------------------
 

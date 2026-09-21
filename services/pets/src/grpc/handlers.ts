@@ -23,7 +23,16 @@ import { randomUUID } from 'node:crypto';
 
 import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
-import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
+import {
+  PETS_CREATE,
+  PETS_DELETE,
+  PETS_FAVORITERS_LIST_ANY,
+  PETS_MANAGE_ANY,
+  PETS_UPDATE,
+  PETS_VIEW as PETS_READ,
+  type Permission,
+  type RescueId,
+} from '@adopt-dont-shop/lib.types';
 import {
   PetsV1,
   type CreatePetRequest,
@@ -215,14 +224,6 @@ export const PETS_SELECT = `
   view_count, favorite_count, application_count, available_since,
   adopted_date, created_at, updated_at, version
 `;
-
-const PETS_CREATE: Permission = 'pets.create' as Permission;
-const PETS_READ: Permission = 'pets.read' as Permission;
-const PETS_UPDATE: Permission = 'pets.update' as Permission;
-const PETS_DELETE: Permission = 'pets.delete' as Permission;
-// Platform-wide pet mutation (admin bulk surface) — bypasses the rescue
-// scope on update / status / delete, mirroring `pets.read:any` on reads.
-const PETS_MANAGE_ANY: Permission = 'pets.manage:any' as Permission;
 
 // Statuses a pet can hold that a public / adopter browse must NOT surface.
 // Terminal or off-market states — archived pets are hidden separately.
@@ -1464,8 +1465,6 @@ export async function getTopBreedsByAdoptions(
 // pets.statusChanged event platform-wide. A missing/soft-deleted pet
 // just yields an empty list (no NOT_FOUND): the caller only cares about
 // recipients.
-const PETS_FAVORITERS_LIST_ANY: Permission = 'pets.favoriters.list:any' as Permission;
-
 export async function listFavoriters(
   deps: HandlerDeps,
   principal: Principal,
