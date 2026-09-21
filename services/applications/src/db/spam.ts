@@ -155,7 +155,7 @@ export const runSpam = async (deps: {
   });
 };
 
-const main = async (): Promise<void> => {
+export const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.applications.spam' });
   assertSpamAllowed();
   const config = loadConfig();
