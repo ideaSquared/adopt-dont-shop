@@ -141,6 +141,55 @@ export const isEmailTypeOptedOut = (
     e => e !== null && typeof e === 'object' && e.type === type && e.optedOut === true
   );
 
+// --- Weekly-digest consent (ADS-1270) ---------------------------------
+//
+// The digest's hard consent requirement: exclude anyone globally
+// unsubscribed, blacklisted, or not on the weekly cadence. Mirrors
+// isEmailChannelOpen's checks plus digest_frequency. A user with no
+// email_preferences row yet (findOrCreatePreferences only vivifies one on
+// first read) is treated as the column defaults — is_email_enabled=true,
+// global_unsubscribe=false, is_blacklisted=false, digest_frequency='weekly'
+// (migration 006) — same "missing row = defaults = allow" convention
+// isEmailChannelOpen already uses above.
+export type DigestConsentRow = {
+  is_email_enabled: boolean;
+  global_unsubscribe: boolean;
+  is_blacklisted: boolean;
+  digest_frequency: EmailPreferencesRow['digest_frequency'];
+};
+
+export const isWeeklyDigestConsented = (row: DigestConsentRow | undefined): boolean => {
+  if (!row) {
+    return true;
+  }
+  return (
+    row.is_email_enabled &&
+    !row.global_unsubscribe &&
+    !row.is_blacklisted &&
+    row.digest_frequency === 'weekly'
+  );
+};
+
+// Bulk consent filter for a cohort of candidate user ids — one query
+// instead of one round-trip per user. Returns the subset that's
+// consented, in no particular order.
+export const loadWeeklyDigestConsentedUserIds = async (
+  conn: DbConn,
+  userIds: readonly string[]
+): Promise<string[]> => {
+  if (userIds.length === 0) {
+    return [];
+  }
+  const { rows } = await conn.query<DigestConsentRow & { user_id: string }>(
+    `SELECT user_id, is_email_enabled, global_unsubscribe, is_blacklisted, digest_frequency
+       FROM email_preferences
+      WHERE user_id = ANY($1::uuid[])`,
+    [userIds]
+  );
+  const byUserId = new Map(rows.map(row => [row.user_id, row]));
+  return userIds.filter(userId => isWeeklyDigestConsented(byUserId.get(userId)));
+};
+
 export const isEmailChannelOpen = async (
   conn: DbConn,
   userId: string,

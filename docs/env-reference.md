@@ -93,7 +93,7 @@ The gateway reads `GATEWAY_PORT` (default `4000`) and `GATEWAY_HOST` (default `0
 | `NATS_URL`       | every `services/<name>/src/config.ts`               | `nats://nats:4222`                                     | JetStream bus for `withTransaction` publish-after-commit events. |
 | `<SVC>_GRPC_URL` | `services/gateway/src/config.ts` (all ten services) | `service-<name>:<grpcPort>` (e.g. `service-pets:6003`) | Override only when a service runs on a different host/port.      |
 
-Services that call other services read a subset of `*_GRPC_URL` too: `services/rescue` (`PETS_GRPC_URL`, `APPLICATIONS_GRPC_URL`), `services/applications` (`PETS_GRPC_URL`), `services/chat` (`APPLICATIONS_GRPC_URL`, `RESCUE_GRPC_URL`), `services/matching` (`PETS_GRPC_URL`, `RESCUE_GRPC_URL`). `services/notifications` reads `AUTH_GRPC_URL` / `PETS_GRPC_URL` / `RESCUE_GRPC_URL` as optional — unset, the fan-outs that need them no-op.
+Services that call other services read a subset of `*_GRPC_URL` too: `services/rescue` (`PETS_GRPC_URL`, `APPLICATIONS_GRPC_URL`), `services/applications` (`PETS_GRPC_URL`), `services/chat` (`APPLICATIONS_GRPC_URL`, `RESCUE_GRPC_URL`), `services/matching` (`PETS_GRPC_URL`, `RESCUE_GRPC_URL`). `services/notifications` reads `AUTH_GRPC_URL` / `PETS_GRPC_URL` / `RESCUE_GRPC_URL` / `APPLICATIONS_GRPC_URL` as optional — unset, the fan-outs that need them no-op (the weekly-digest job specifically needs the first three; see below).
 
 ## Gateway (`services/gateway/src/config.ts` unless noted)
 
@@ -160,6 +160,16 @@ inside `withTransaction` and publish one `<domain>.actionTaken` summary event pe
 | `EMAIL_QUEUE_RETENTION_DAYS`          | `365`      | Read directly from `process.env` by `services/notifications/src/jobs/email-queue-retention.ts` (not `config.ts`). Age of a _sent_ `email_queue` row before it's purged. |
 | `EMAIL_QUEUE_PURGE_INTERVAL_MS`       | `86400000` | Same module. How often the job runs (24h).                                                                                                                              |
 | `EMAIL_QUEUE_PURGE_BATCH_SIZE`        | `500`      | Same module. Max rows deleted per transaction.                                                                                                                          |
+
+## Weekly digest email (ADS-1270, `services/notifications/src/config.ts`)
+
+A scheduled, cross-instance-claimed job (`services/notifications/src/jobs/weekly-digest.ts`, registered on the shared `@adopt-dont-shop/scheduler` in `index.ts`) emails each consented user a summary of their still-available favourited pets and in-progress applications. Cadence and consent are product decisions, not env knobs — only the on/off switch is configurable:
+
+| Variable                | Default | Notes                                                                                                                                                                                                                                                                                                         |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WEEKLY_DIGEST_ENABLED` | `false` | Opt-in (unlike the `*_ENABLED` toggles above, which default to `true`) — a scheduled email send must be deliberately turned on. Requires `AUTH_GRPC_URL`, `PETS_GRPC_URL` and `APPLICATIONS_GRPC_URL` all set, or boot logs a warning and the job never starts. Fires Monday 09:00 UTC, weekly, once enabled. |
+
+Recipients: the `auth` active-user cohort (`AuthService.ListUserIdsByCohort`), intersected with `services/notifications`' own `email_preferences` consent (not globally unsubscribed, not blacklisted, `digest_frequency = 'weekly'`). A user with no content (no available favourites, no in-progress applications) is never sent an empty digest.
 
 ## File storage (`services/gateway/src/config.ts`)
 

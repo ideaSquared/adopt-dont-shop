@@ -1,6 +1,7 @@
-// Promise-wrapped client for service.pets — just the favouriter-discovery
-// RPC the pets.statusChanged fan-out needs. Mirrors auth-client.ts:
-// signed system-principal metadata (ADS-800), retry on UNAVAILABLE /
+// Promise-wrapped client for service.pets — the favouriter-discovery RPC
+// the pets.statusChanged fan-out needs, plus the per-user favourites read
+// the weekly-digest job needs (ADS-1270). Mirrors auth-client.ts: signed
+// system-principal metadata (ADS-800), retry on UNAVAILABLE /
 // DEADLINE_EXCEEDED, a per-call deadline. Defining the slice locally keeps
 // the notifications service decoupled from the gateway's full PetsClient.
 
@@ -8,8 +9,11 @@ import { credentials, status, type CallOptions, Metadata } from '@grpc/grpc-js';
 
 import {
   PetsV1,
+  type ListFavoritesForUserRequest,
+  type ListFavoritesForUserResponse,
   type ListPetFavoritersRequest,
   type ListPetFavoritersResponse,
+  type Pet,
 } from '@adopt-dont-shop/proto';
 import {
   getDefaultPrincipalSigningKey,
@@ -57,9 +61,11 @@ const jitteredBackoff = (attempt: number, baseMs: number): number => {
   return base * (0.75 + Math.random() * 0.5);
 };
 
-// The slice of the pets stub the fan-out handler consumes.
+// The slice of the pets stub the fan-out handler + weekly-digest job
+// (ADS-1270) consume.
 export type PetsFavoritersClient = {
   listFavoriters: (petId: string) => Promise<string[]>;
+  listFavoritesForUser: (userId: string) => Promise<Pet[]>;
   close(): void;
 };
 
@@ -75,7 +81,13 @@ export function createPetsClient(opts: CreatePetsClientOptions): PetsFavoritersC
     // the pets.statusChanged fan-out). ADS-922: this permission is
     // deliberately not granted to any user-facing role, so only this
     // signed system principal can call ListFavoriters.
-    permissions: splitList(opts.systemPermissions ?? 'pets.favoriters.list:any'),
+    // pets.favorites.list:any → ListFavoritesForUser (ADS-1270: the
+    // weekly-digest job's "new matches near you" section reads one user's
+    // current shortlist). Same ADS-922 rationale — held by no user-facing
+    // role.
+    permissions: splitList(
+      opts.systemPermissions ?? 'pets.favoriters.list:any,pets.favorites.list:any'
+    ),
   };
 
   // Built per attempt — the signed x-principal-token (ADS-800) carries a
@@ -132,6 +144,13 @@ export function createPetsClient(opts: CreatePetsClientOptions): PetsFavoritersC
         { petId }
       );
       return res.userIds;
+    },
+    listFavoritesForUser: async (userId: string): Promise<Pet[]> => {
+      const res = await callWithRetry<ListFavoritesForUserRequest, ListFavoritesForUserResponse>(
+        stub.listFavoritesForUser,
+        { userId }
+      );
+      return res.pets;
     },
     close: () => stub.close(),
   };
