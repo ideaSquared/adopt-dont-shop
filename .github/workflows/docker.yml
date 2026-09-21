@@ -220,7 +220,7 @@ jobs:
             -v "$PWD:/workspace" -w /workspace \
             -e TRIVY_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-db:2 \
             -e TRIVY_JAVA_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-java-db:1 \
-            aquasec/trivy:0.63.0 image \
+            aquasec/trivy:0.63.0@sha256:6fb0646988fcd2fdf7bf123f7174945ebc2c9c72d1fa1567c8d7daeeb70f8037 image \
               --input trivy-image-${{ matrix.service }}.tar \
               --format json \
               --output trivy-results-${{ matrix.service }}.json \
@@ -231,10 +231,10 @@ jobs:
         if: always() && hashFiles(format('trivy-results-{0}.json', matrix.service)) != ''
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
-            aquasec/trivy:0.63.0 convert --format table \
+            aquasec/trivy:0.63.0@sha256:6fb0646988fcd2fdf7bf123f7174945ebc2c9c72d1fa1567c8d7daeeb70f8037 convert --format table \
               trivy-results-${{ matrix.service }}.json
           docker run --rm -v "$PWD:/workspace" -w /workspace \
-            aquasec/trivy:0.63.0 convert --format sarif \
+            aquasec/trivy:0.63.0@sha256:6fb0646988fcd2fdf7bf123f7174945ebc2c9c72d1fa1567c8d7daeeb70f8037 convert --format sarif \
               --output trivy-results-${{ matrix.service }}.sarif \
               trivy-results-${{ matrix.service }}.json
 
@@ -248,7 +248,7 @@ jobs:
       - name: Fail on fixable CRITICAL/HIGH vulnerabilities
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
-            aquasec/trivy:0.63.0 convert --exit-code 1 \
+            aquasec/trivy:0.63.0@sha256:6fb0646988fcd2fdf7bf123f7174945ebc2c9c72d1fa1567c8d7daeeb70f8037 convert --exit-code 1 \
               --severity CRITICAL,HIGH \
               trivy-results-${{ matrix.service }}.json
 
