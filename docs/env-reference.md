@@ -148,8 +148,8 @@ Services that call other services read a subset of `*_GRPC_URL` too: `services/r
 ## Retention purge jobs (ADS-1320)
 
 Two scheduled, cross-instance-claimed purge jobs (job bodies in each service's `src/jobs/`, driven
-by a tick scheduler — applications runs its own `src/scheduler/`; notifications uses the shared
-`@adopt-dont-shop/scheduler` package since ADS-1325) close gaps between what migrations documented
+by the shared `@adopt-dont-shop/scheduler` package — notifications since ADS-1325, applications
+since ADS-1330) close gaps between what migrations documented
 and what actually ran. Both jobs delete in bounded batches
 inside `withTransaction` and publish one `<domain>.actionTaken` summary event per run.
 

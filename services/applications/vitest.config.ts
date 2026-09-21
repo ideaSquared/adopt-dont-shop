@@ -8,10 +8,10 @@ export default defineServiceConfig({
       // vitest.shared.config.
       // Measured: statements=83.46 branches=88.19 functions=84.11 lines=83.05
       thresholds: {
-        statements: 82,
+        statements: 83,
         branches: 87,
         functions: 83,
-        lines: 82,
+        lines: 83,
       },
     },
   },
