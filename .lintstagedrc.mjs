@@ -2,13 +2,14 @@
 // can use the function form (not expressible in package.json's plain JSON).
 //
 // Previously `eslint --fix --quiet` ran once from the repo root against the
-// staged files directly. The root eslint.config.js is a deliberately lean,
-// shared config (see its own comment) used only so pre-commit doesn't error
-// on plugin-namespaced directives — it does NOT carry each package's own
-// rule severities the way CI does. Routing through `turbo run lint` instead
-// scopes ESLint to each touched package's *own* config (matching CI) and,
-// via turbo's package graph + cache, only re-lints packages that actually
-// changed rather than evaluating every package's config up front.
+// staged files directly, using the root eslint.config.js — which doesn't
+// carry each package's own rule severities the way each package's own config
+// (and CI) does. Routing through `turbo run lint` instead scopes ESLint to
+// each touched package's *own* config (matching CI) and, via turbo's package
+// graph + cache, only re-lints packages that actually changed rather than
+// evaluating every package's config up front. The root eslint.config.js (see
+// its own comment) is no longer part of this pre-commit path at all — it's
+// kept only for editor tooling and standalone root-level `eslint .` runs.
 export default {
   '**/*.{ts,tsx}': files => [
     `prettier --write ${files.map(f => JSON.stringify(f)).join(' ')}`,
