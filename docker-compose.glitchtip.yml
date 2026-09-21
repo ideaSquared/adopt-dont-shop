@@ -18,7 +18,18 @@
 # glitchtip app image is tag-pinned — VERIFY/pin the tag before enabling.
 #
 # Config MUST be provisioned onto the host at /opt/ads/<env>/ (the host holds no
-# repo checkout). Required host .env vars: GLITCHTIP_SECRET_KEY, GLITCHTIP_DB_PASSWORD.
+# repo checkout). Required host .env vars: GLITCHTIP_SECRET_KEY,
+# GLITCHTIP_DB_PASSWORD, GLITCHTIP_REDIS_PASSWORD.
+#
+# ADS-1342: those three values reach the containers as file-mounted Docker
+# secrets, never plaintext env — `docker inspect` reads back `environment:`
+# and `command:` verbatim (Config.Env / Config.Cmd), same reasoning as the
+# base stack's db_password/redis_password. deploy.yml's
+# scripts/deploy-glitchtip-secrets.sh materialises secrets/glitchtip_* from
+# the host .env when GLITCHTIP_ENABLED=true (see secrets/README.md). The
+# glitchtip image has no *_FILE convention of its own, so DATABASE_URL/
+# SECRET_KEY/REDIS_URL are assembled at container start by the gt-entrypoint
+# wrapper below instead — same idea as glitchtip-redis's --requirepass.
 # ============================================================================
 
 x-glitchtip-logging: &gt-logging
@@ -28,9 +39,6 @@ x-glitchtip-logging: &gt-logging
     max-file: "5"
 
 x-glitchtip-env: &gt-env
-  DATABASE_URL: "postgres://glitchtip:${GLITCHTIP_DB_PASSWORD:?Error: GLITCHTIP_DB_PASSWORD required to enable GlitchTip}@glitchtip-postgres:5432/glitchtip"
-  SECRET_KEY: "${GLITCHTIP_SECRET_KEY:?Error: GLITCHTIP_SECRET_KEY required to enable GlitchTip}"
-  REDIS_URL: "redis://glitchtip-redis:6379/0"
   PORT: "8080"
   # Base URL used to build links in emails / the UI. Reached via SSH tunnel by
   # default; set to your reverse-proxy URL if you front it.
@@ -41,6 +49,25 @@ x-glitchtip-env: &gt-env
   ENABLE_OPEN_USER_REGISTRATION: "false"
   CELERY_WORKER_AUTOSCALE: "1,3"
   CELERY_WORKER_MAX_TASKS_PER_CHILD: "10000"
+  # DATABASE_URL / SECRET_KEY / REDIS_URL are deliberately NOT here — see
+  # gt-entrypoint below (ADS-1342).
+
+# ADS-1342: exports DATABASE_URL/SECRET_KEY/REDIS_URL by reading the three
+# file-mounted secrets, then execs the container's real command — whatever
+# `command:` the service sets, or the image's own default CMD when it
+# doesn't (glitchtip-web). Generalises the redis/nats "$$(cat secret-file)"
+# pattern instead of hardcoding glitchtip-web's start command, which this
+# compose file never has (and the image's Dockerfile sets no ENTRYPOINT of
+# its own to preserve).
+x-glitchtip-entrypoint: &gt-entrypoint
+  - /bin/sh
+  - -c
+  - |-
+    export DATABASE_URL="postgres://glitchtip:$$(cat /run/secrets/glitchtip_db_password)@glitchtip-postgres:5432/glitchtip"
+    export SECRET_KEY="$$(cat /run/secrets/glitchtip_secret_key)"
+    export REDIS_URL="redis://:$$(cat /run/secrets/glitchtip_redis_password)@glitchtip-redis:6379/0"
+    exec "$$@"
+  - --
 
 x-glitchtip-hardening: &gt-hardening
   restart: always
@@ -58,8 +85,13 @@ services:
     image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
     environment:
       POSTGRES_USER: glitchtip
-      POSTGRES_PASSWORD: "${GLITCHTIP_DB_PASSWORD:?Error: GLITCHTIP_DB_PASSWORD required to enable GlitchTip}"
+      # ADS-1342: read from the file-mounted secret, not the env var — mirrors
+      # the base `database` container. POSTGRES_PASSWORD_FILE is honoured by
+      # the postgres image's own entrypoint.
+      POSTGRES_PASSWORD_FILE: /run/secrets/glitchtip_db_password
       POSTGRES_DB: glitchtip
+    secrets:
+      - glitchtip_db_password
     volumes:
       - glitchtip_pg_data:/var/lib/postgresql/data
     expose:
@@ -82,11 +114,17 @@ services:
   glitchtip-redis:
     <<: *gt-hardening
     image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
-    command: redis-server --save "" --appendonly no
+    secrets:
+      - glitchtip_redis_password
+    # ADS-1342: --requirepass read from the file-mounted secret at container
+    # start, not interpolated into `command:` — `docker inspect` (Config.Cmd)
+    # reads that back in plaintext. Mirrors the base `redis` container.
+    command: >
+      sh -c 'redis-server --save "" --appendonly no --requirepass "$$(cat /run/secrets/glitchtip_redis_password)"'
     expose:
       - "6379"
     healthcheck:
-      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+      test: ['CMD-SHELL', 'redis-cli -a "$$(cat /run/secrets/glitchtip_redis_password)" ping | grep -q PONG']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -103,9 +141,14 @@ services:
   glitchtip-migrate:
     <<: *gt-hardening
     image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
+    entrypoint: *gt-entrypoint
     command: ./manage.py migrate
     environment:
       <<: *gt-env
+    secrets:
+      - glitchtip_db_password
+      - glitchtip_secret_key
+      - glitchtip_redis_password
     restart: "no"
     depends_on:
       glitchtip-postgres:
@@ -114,8 +157,16 @@ services:
   glitchtip-web:
     <<: *gt-hardening
     image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
+    # No `command:` override — the entrypoint wrapper execs whatever the
+    # image's own default CMD is (its Dockerfile sets no ENTRYPOINT, so this
+    # is equivalent to running it directly, just with the env exported first).
+    entrypoint: *gt-entrypoint
     environment:
       <<: *gt-env
+    secrets:
+      - glitchtip_db_password
+      - glitchtip_secret_key
+      - glitchtip_redis_password
     ports:
       # Loopback-only (host :8000 → container :8080) — not publicly reachable;
       # reach the UI via an SSH tunnel. Matches GLITCHTIP_DOMAIN's default.
@@ -145,9 +196,14 @@ services:
   glitchtip-worker:
     <<: *gt-hardening
     image: glitchtip/glitchtip:v4.1@sha256:0803e1820215905c305cd0e7c497e5bbdbb2c2c65fcbe6bdc131f4538b8ed048
+    entrypoint: *gt-entrypoint
     command: ./bin/run-celery-with-beat.sh
     environment:
       <<: *gt-env
+    secrets:
+      - glitchtip_db_password
+      - glitchtip_secret_key
+      - glitchtip_redis_password
     depends_on:
       glitchtip-postgres:
         condition: service_healthy
@@ -167,3 +223,19 @@ services:
 volumes:
   glitchtip_pg_data:
     driver: local
+
+# ADS-1342: file-mounted Docker secrets for the overlay — bind-mounted from
+# the host file at /run/secrets/<name> (plain `docker compose`, not Swarm
+# mode, so this is a bind mount, not the in-memory tmpfs Swarm provides), same
+# as the base stack's top-level `secrets:` block in docker-compose.prod.yml /
+# docker-compose.staging.yml. scripts/deploy-glitchtip-secrets.sh materialises
+# ./secrets/glitchtip_* from the host .env's GLITCHTIP_DB_PASSWORD /
+# GLITCHTIP_SECRET_KEY / GLITCHTIP_REDIS_PASSWORD (deploy.yml, when
+# GLITCHTIP_ENABLED=true) — see secrets/README.md.
+secrets:
+  glitchtip_db_password:
+    file: ./secrets/glitchtip_db_password
+  glitchtip_secret_key:
+    file: ./secrets/glitchtip_secret_key
+  glitchtip_redis_password:
+    file: ./secrets/glitchtip_redis_password

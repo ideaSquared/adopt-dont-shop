@@ -35,6 +35,30 @@ not as `./secrets/*` files): `FCM_PROJECT_ID` (your Firebase project ID) and
 Each file must contain only the secret value (trailing whitespace is
 trimmed by the loader). No quoting, no `KEY=value` framing — just the value.
 
+## GlitchTip overlay (opt-in)
+
+`docker-compose.glitchtip.yml` (layered in via `-f` only when the host `.env`
+sets `GLITCHTIP_ENABLED=true`) brings its own three file-mounted secrets,
+materialised by `scripts/deploy-glitchtip-secrets.sh` from the host `.env`
+(`GLITCHTIP_DB_PASSWORD` / `GLITCHTIP_SECRET_KEY` / `GLITCHTIP_REDIS_PASSWORD`
+— see `docs/env-reference.md`) — not by `deploy-secrets.sh`, since the
+overlay is optional and these vars won't exist on a host that doesn't enable
+it (ADS-1342).
+
+| File                       | Consumed by                                                                                                                                        | Contents                          |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `glitchtip_db_password`    | `glitchtip-postgres` (via `POSTGRES_PASSWORD_FILE`) + the gt-entrypoint wrapper on `glitchtip-migrate`/`-web`/`-worker` (assembles `DATABASE_URL`) | GlitchTip's own Postgres password |
+| `glitchtip_secret_key`     | `glitchtip-migrate`/`-web`/`-worker` (gt-entrypoint wrapper → `SECRET_KEY`)                                                                        | Django signing key                |
+| `glitchtip_redis_password` | `glitchtip-redis` (`--requirepass`) + `glitchtip-migrate`/`-web`/`-worker` (gt-entrypoint wrapper → `REDIS_URL`)                                   | GlitchTip's own Redis password    |
+
+The GlitchTip image has no `*_FILE` convention of its own (it isn't one of
+our services and doesn't use `@adopt-dont-shop/config-secrets`), so
+`docker-compose.glitchtip.yml`'s `gt-entrypoint` anchor reads these files and
+exports `DATABASE_URL`/`SECRET_KEY`/`REDIS_URL` at container start instead —
+the same "assemble from a file secret at start" idea as `redis`'s
+`--requirepass` above, just generalised so it doesn't have to hardcode
+`glitchtip-web`'s start command.
+
 ## Dev / escape hatch
 
 The dev compose (`docker-compose.yml`) does **not** use these files for the

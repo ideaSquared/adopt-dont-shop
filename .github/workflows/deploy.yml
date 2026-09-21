@@ -599,7 +599,7 @@ jobs:
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-overlay-args.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -834,6 +834,18 @@ jobs:
             printf '%s' "$RESEND_KEY" > secrets/resend_api_key
             printf '%s' "$FCM_JSON"   > secrets/fcm_service_account_json
             chmod 600 secrets/resend_api_key secrets/fcm_service_account_json
+
+            # ADS-1342: GlitchTip's DB password / Django SECRET_KEY / Redis
+            # password are file-mounted secrets too, but — like RESEND_KEY/
+            # FCM_JSON above — only materialise them when the overlay is
+            # actually enabled, so a deploy with GlitchTip off never fails on
+            # a host .env var the operator never set.
+            case "$OVERLAY_ARGS" in
+              *docker-compose.glitchtip.yml*)
+                chmod +x scripts/deploy-glitchtip-secrets.sh
+                scripts/deploy-glitchtip-secrets.sh
+                ;;
+            esac
 
             # Bring up new containers. Each service migrates its own schema on
             # start (the Dockerfile.service entrypoint runs
