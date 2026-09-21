@@ -9,6 +9,7 @@ import type { HandlerDeps } from './handlers.js';
 import {
   addFavorite,
   getFavoriteStatus,
+  listFavoritesForUser,
   listUserFavorites,
   removeFavorite,
 } from './favorite-handlers.js';
@@ -17,6 +18,15 @@ const ADOPTER: Principal = {
   userId: 'usr-adopter' as UserId,
   roles: ['adopter'],
   permissions: ['pets.read' as Permission],
+};
+
+// Mirrors the notifications service's signed system principal
+// (services/notifications/src/grpc/pets-client.ts) — the only caller
+// that legitimately holds pets.favorites.list:any.
+const SYSTEM_PRINCIPAL: Principal = {
+  userId: 'svc-notifications' as UserId,
+  roles: ['admin'],
+  permissions: ['pets.favorites.list:any' as Permission],
 };
 
 function makeMocks() {
@@ -225,5 +235,40 @@ describe('listUserFavorites', () => {
     await listUserFavorites(mocks.deps, ADOPTER, {});
     const [sql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(sql).toMatch(/LIMIT\s+\d+/i);
+  });
+});
+
+describe('listFavoritesForUser', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('returns the target user favourites for a caller with pets.favorites.list:any', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    const res = await listFavoritesForUser(mocks.deps, SYSTEM_PRINCIPAL, { userId: 'usr-2' });
+    expect(res.pets).toHaveLength(1);
+    expect(res.pets[0].petId).toBe('pet-1');
+    const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/pets.user_favorites/);
+    expect(params[0]).toBe('usr-2');
+  });
+
+  it('returns an empty list (not NOT_FOUND) for a user with no favourites', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    const res = await listFavoritesForUser(mocks.deps, SYSTEM_PRINCIPAL, { userId: 'usr-2' });
+    expect(res.pets).toEqual([]);
+  });
+
+  it('rejects a caller without pets.favorites.list:any (ADS-922-style cross-tenant guard)', async () => {
+    await expect(
+      listFavoritesForUser(mocks.deps, ADOPTER, { userId: 'usr-2' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('requires user_id', async () => {
+    await expect(
+      listFavoritesForUser(mocks.deps, SYSTEM_PRINCIPAL, { userId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });

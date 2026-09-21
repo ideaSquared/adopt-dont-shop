@@ -6,6 +6,7 @@ import {
   claimScheduledRun,
   startScheduler,
   type RunningScheduler,
+  type ScheduledJob,
 } from '@adopt-dont-shop/scheduler';
 import {
   connectNats,
@@ -14,6 +15,7 @@ import {
 } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
+import { createApplicationsClient } from './grpc/applications-client.js';
 import { createAuthCohortClient } from './grpc/auth-client.js';
 import { createPetsClient } from './grpc/pets-client.js';
 import { createRescueClient } from './grpc/rescue-client.js';
@@ -28,6 +30,11 @@ import { startEmailWorker, type RunningEmailWorker } from './email/worker.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { loadEmailQueueRetentionConfig } from './jobs/email-queue-retention-config.js';
 import { purgeSentEmailQueue } from './jobs/email-queue-retention.js';
+import {
+  runWeeklyDigest,
+  WEEKLY_DIGEST_ANCHOR_MS,
+  WEEKLY_DIGEST_INTERVAL_MS,
+} from './jobs/weekly-digest.js';
 import { registerSubscribers } from './nats/subscribers.js';
 import { createPushProvider } from './push/providers/factory.js';
 import { startPushWorker, type RunningPushWorker } from './push/worker.js';
@@ -94,6 +101,12 @@ const main = async (): Promise<void> => {
       : undefined;
     const rescueClient = config.rescueGrpcUrl
       ? createRescueClient({ address: config.rescueGrpcUrl })
+      : undefined;
+    // service.applications client for the weekly-digest job's
+    // "still waiting on your shortlist" section (ADS-1270). Same
+    // optional/no-op-gracefully treatment as petsClient/rescueClient above.
+    const applicationsClient = config.applicationsGrpcUrl
+      ? createApplicationsClient({ address: config.applicationsGrpcUrl })
       : undefined;
 
     grpc = await startGrpcServer({ config, pool, nats, logger, authClient });
@@ -182,11 +195,8 @@ const main = async (): Promise<void> => {
       }
       pushWorker = startPushWorker({ pool, nats, provider, logger });
     }
-    // ADS-1245: the weekly-digest scheduled job was a send-nothing scaffold
-    // (its fan-out RPCs were never wired), so it stays shelved. The generic
-    // scheduler + claim infra (ADS-1325: now @adopt-dont-shop/scheduler,
-    // shared with services/audit) — dormant until now — backs the
-    // email-queue retention purge below instead (ADS-1320):
+    // Scheduler + claim infra (ADS-1325: @adopt-dont-shop/scheduler, shared
+    // with services/audit) backs the email-queue retention purge (ADS-1320):
     // 004_create_email_queue.ts documented a retention job that never
     // shipped, so sent rows accumulated forever.
     const emailQueueRetentionConfig = loadEmailQueueRetentionConfig();
@@ -194,26 +204,64 @@ const main = async (): Promise<void> => {
     // closure below type-narrows past `| undefined`.
     const dbPool = pool;
     const retentionDeps = { pool: dbPool, nats };
-    scheduler = startScheduler(
-      [
-        {
-          name: 'email-queue-retention-purge',
-          intervalMs: emailQueueRetentionConfig.purgeIntervalMs,
-          runOnStart: true,
-          run: async () => {
-            const { deletedCount } = await purgeSentEmailQueue(retentionDeps, {
-              retentionDays: emailQueueRetentionConfig.retentionDays,
-              batchSize: emailQueueRetentionConfig.batchSize,
-            });
-            logger.info('email-queue-retention-purge complete', { deletedCount });
-          },
-        },
-      ],
+    const scheduledJobs: ScheduledJob[] = [
       {
-        logger,
-        claimRun: (job, scheduledFor) => claimScheduledRun(dbPool, job, scheduledFor),
+        name: 'email-queue-retention-purge',
+        intervalMs: emailQueueRetentionConfig.purgeIntervalMs,
+        runOnStart: true,
+        run: async () => {
+          const { deletedCount } = await purgeSentEmailQueue(retentionDeps, {
+            retentionDays: emailQueueRetentionConfig.retentionDays,
+            batchSize: emailQueueRetentionConfig.batchSize,
+          });
+          logger.info('email-queue-retention-purge complete', { deletedCount });
+        },
+      },
+    ];
+    // ADS-1270: rebuild of the ADS-1245 weekly-digest scaffold, which was
+    // shelved as send-nothing (its fan-out RPCs were never wired). Gated
+    // OFF by default (WEEKLY_DIGEST_ENABLED) — a scheduled email send stays
+    // dormant until explicitly enabled — and only registered when every
+    // fan-out client it needs is actually configured; otherwise boot logs
+    // why it didn't start rather than silently no-op forever.
+    if (config.weeklyDigestEnabled) {
+      if (authClient && petsClient && applicationsClient) {
+        const digestDeps = {
+          pool: dbPool,
+          nats,
+          authClient,
+          petsClient,
+          applicationsClient,
+          logger,
+        };
+        scheduledJobs.push({
+          name: 'weekly-digest',
+          intervalMs: WEEKLY_DIGEST_INTERVAL_MS,
+          anchorMs: WEEKLY_DIGEST_ANCHOR_MS,
+          // Wait for the next Monday 09:00 UTC boundary rather than firing
+          // on every boot/restart — unlike the retention purge, a false
+          // start here sends real email.
+          runOnStart: false,
+          run: async () => {
+            const result = await runWeeklyDigest(digestDeps);
+            logger.info('weekly-digest complete', result);
+          },
+        });
+      } else {
+        logger.warn(
+          'weekly-digest enabled but not started — requires AUTH_GRPC_URL, PETS_GRPC_URL and APPLICATIONS_GRPC_URL all set',
+          {
+            hasAuthClient: Boolean(authClient),
+            hasPetsClient: Boolean(petsClient),
+            hasApplicationsClient: Boolean(applicationsClient),
+          }
+        );
       }
-    );
+    }
+    scheduler = startScheduler(scheduledJobs, {
+      logger,
+      claimRun: (job, scheduledFor) => claimScheduledRun(dbPool, job, scheduledFor),
+    });
 
     const httpServer = createServer({
       config,

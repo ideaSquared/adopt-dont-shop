@@ -181,6 +181,7 @@ export type Permission =
   | 'notifications.prefs.update:any'
   | 'notifications.cleanup'
   | 'pets.read:any'
+  | 'pets.favorites.list:any'
   | 'matching.swipes.read:any';
 
 /**

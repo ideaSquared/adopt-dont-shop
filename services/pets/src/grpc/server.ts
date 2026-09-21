@@ -38,6 +38,7 @@ import {
 import {
   addFavorite,
   getFavoriteStatus,
+  listFavoritesForUser,
   listUserFavorites,
   removeFavorite,
 } from './favorite-handlers.js';
@@ -76,6 +77,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     removeFavorite: adapt(removeFavorite, { deps, logger }),
     getFavoriteStatus: adapt(getFavoriteStatus, { deps, logger }),
     listUserFavorites: adapt(listUserFavorites, { deps, logger }),
+    listFavoritesForUser: adapt(listFavoritesForUser, { deps, logger }),
     getSearchSuggestions: adapt(getSearchSuggestions, { deps, logger }),
     getPetFacets: adapt(getPetFacets, { deps, logger }),
   });
@@ -98,6 +100,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'removeFavorite',
       'getFavoriteStatus',
       'listUserFavorites',
+      'listFavoritesForUser',
       'getSearchSuggestions',
       'getPetFacets',
     ],

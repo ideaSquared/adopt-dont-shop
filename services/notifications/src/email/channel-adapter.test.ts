@@ -148,6 +148,20 @@ describe('email channel adapter', () => {
     expect(params).toContain('notif-email:n-1');
   });
 
+  it('enqueues for the weekly-digest notification type (reminder, ADS-1270)', async () => {
+    const { asPool, query } = makePool({
+      notifRow: { title: 'Your weekly digest', message: 'New matches near you' },
+    });
+    const { fn, mock } = resolverTo({ email: 'adopter@example.com' });
+    const nats = makeNats([{ payload: event({ type: 'reminder', channel: 'email' }) }]);
+
+    start(asPool, nats, fn);
+    await flush();
+
+    expect(mock).toHaveBeenCalledWith('usr-1');
+    expect(includesSql(query, 'email_queue')).toBe(true);
+  });
+
   it('ignores non-email-worthy types without loading prefs or resolving a recipient', async () => {
     const { asPool, query } = makePool();
     const { fn, mock } = resolverTo({ email: 'adopter@example.com' });
