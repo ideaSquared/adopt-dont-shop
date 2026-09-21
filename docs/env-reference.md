@@ -215,6 +215,7 @@ Backend error tracking uses the Sentry SDK (`packages/observability/src/sentry.t
 # GLITCHTIP_ENABLED=true     # deploy.yml adds the overlay when this is true
 # GLITCHTIP_SECRET_KEY=<random 50+ chars>   # required when enabled (Compose refuses to start without it)
 # GLITCHTIP_DB_PASSWORD=<random>            # required when enabled
+# GLITCHTIP_REDIS_PASSWORD=<random>         # required when enabled — glitchtip-redis --requirepass
 # GLITCHTIP_DOMAIN=https://errors.example.com   # default http://localhost:8000
 # GLITCHTIP_EMAIL_URL=smtp://user:pass@smtp.example.com:587   # default consolemail://
 # GLITCHTIP_FROM_EMAIL=alerts@adoptdontshop.com
