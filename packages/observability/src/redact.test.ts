@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { redactSecretFields, redactUrl, REDACTED } from './redact.js';
+import { maskPiiFields, maskPiiValue, redactSecretFields, redactUrl, REDACTED } from './redact.js';
 
 describe('redactSecretFields', () => {
   it('redacts secret-shaped top-level keys regardless of casing or affixes', () => {
@@ -56,6 +56,94 @@ describe('redactSecretFields', () => {
     expect(redactSecretFields(42)).toBe(42);
     expect(redactSecretFields(null)).toBeNull();
     expect(redactSecretFields(undefined)).toBeUndefined();
+  });
+});
+
+describe('maskPiiValue', () => {
+  it('keeps the first local-part character and the domain for an email', () => {
+    expect(maskPiiValue('adopter@example.com')).toBe('a***@example.com');
+  });
+
+  it('keeps only the first character for a non-email string', () => {
+    expect(maskPiiValue('Jane')).toBe('J***');
+    expect(maskPiiValue('07700 900123')).toBe('0***');
+  });
+
+  it('does not reveal the original length', () => {
+    expect(maskPiiValue('verylongname@domain.tld')).not.toContain('verylongname');
+    expect(maskPiiValue('a very long address, second line')).toBe('a***');
+  });
+
+  it('redacts a non-string value wholesale (cannot be partially masked)', () => {
+    expect(maskPiiValue(42)).toBe(REDACTED);
+    expect(maskPiiValue(true)).toBe(REDACTED);
+    expect(maskPiiValue({ line1: '10 Downing St' })).toBe(REDACTED);
+    expect(maskPiiValue(['a@b.com'])).toBe(REDACTED);
+  });
+
+  it('passes null/undefined/empty string through unchanged', () => {
+    expect(maskPiiValue(null)).toBeNull();
+    expect(maskPiiValue(undefined)).toBeUndefined();
+    expect(maskPiiValue('')).toBe('');
+  });
+});
+
+describe('maskPiiFields', () => {
+  it('masks PII-shaped top-level keys regardless of casing or affixes', () => {
+    const out = maskPiiFields({
+      email: 'adopter@example.com',
+      phone: '07700900123',
+      mobile: '07700900124',
+      address: '10 Downing Street',
+      postcode: 'SW1A 2AA',
+      postalCode: 'SW1A 2AA',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      dateOfBirth: '2000-01-01',
+      userId: 'u1',
+    });
+    expect(out).toEqual({
+      email: 'a***@example.com',
+      phone: '0***',
+      mobile: '0***',
+      address: '1***',
+      postcode: 'S***',
+      postalCode: 'S***',
+      firstName: 'J***',
+      lastName: 'D***',
+      dateOfBirth: '2***',
+      userId: 'u1',
+    });
+  });
+
+  it('leaves non-PII keys intact', () => {
+    const out = maskPiiFields({ userId: 'u1', password: 'hunter2', count: 3 });
+    expect(out).toEqual({ userId: 'u1', password: 'hunter2', count: 3 });
+  });
+
+  it('recurses through nested objects and arrays', () => {
+    const out = maskPiiFields({
+      user: { id: 'u1', profile: { email: 'a@b.com' } },
+      contacts: [{ phone: '07700900123' }, { ok: true }],
+    });
+    expect(out).toEqual({
+      user: { id: 'u1', profile: { email: 'a***@b.com' } },
+      contacts: [{ phone: '0***' }, { ok: true }],
+    });
+  });
+
+  it('does not mutate the input', () => {
+    const input = { email: 'a@b.com', nested: { firstName: 'Jane' } };
+    const out = maskPiiFields(input);
+    expect(input).toEqual({ email: 'a@b.com', nested: { firstName: 'Jane' } });
+    expect(out).not.toBe(input);
+  });
+
+  it('passes primitives and null/undefined through unchanged', () => {
+    expect(maskPiiFields('plain')).toBe('plain');
+    expect(maskPiiFields(42)).toBe(42);
+    expect(maskPiiFields(null)).toBeNull();
+    expect(maskPiiFields(undefined)).toBeUndefined();
   });
 });
 

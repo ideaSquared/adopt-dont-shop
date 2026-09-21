@@ -176,7 +176,7 @@ const main = async (): Promise<void> => {
       hash: password => bcrypt.hash(password, BCRYPT_ROUNDS),
       log: (message, meta) => logger.info(message, meta),
     });
-    logger.info('auth spam complete', { ...result, password: SPAM_PASSWORD });
+    logger.info('auth spam complete', result);
   } catch (err) {
     logger.error('auth spam failed', {
       message: (err as Error)?.message,

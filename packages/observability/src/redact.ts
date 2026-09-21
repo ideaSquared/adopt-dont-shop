@@ -10,6 +10,13 @@
 // `Set-Cookie` and `otp` all match. Values are walked recursively through
 // nested objects and arrays. The input is never mutated — a new structure
 // is returned.
+//
+// PII-shaped keys (ADS-1344) are a separate pattern/pass: a PII value is
+// MASKED (see maskPiiValue) rather than dropped wholesale, because a
+// partial value (e.g. `j***@example.com`) is still useful for debugging —
+// mirrors services/notifications' maskRecipient (ADS-1257). This does not
+// change redactSecretFields' own behaviour; the logger composes both
+// passes (see logger.ts's redactingFormat).
 
 export const REDACTED = '[REDACTED]';
 
@@ -31,6 +38,60 @@ export const redactSecretFields = (value: unknown): unknown => {
         SECRET_KEY_PATTERN.test(k)
           ? ([k, REDACTED] as const)
           : ([k, redactSecretFields(v)] as const)
+      )
+    );
+  }
+  return value;
+};
+
+// Broad on purpose, same strategy as SECRET_KEY_PATTERN: `name` alone
+// already matches `firstName`, `lastName`, `fullName`, `userName`, etc. as
+// a substring, so those aren't listed separately. `postcode`/`postalcode`
+// are both listed because neither is a substring of the other (rescues use
+// `postcode`, users use `postalCode`).
+export const PII_KEY_PATTERN =
+  /email|phone|mobile|address|postcode|postalcode|name|date[_-]?of[_-]?birth/i;
+
+// Partially mask a single PII-shaped value so a log line stays useful for
+// debugging — mirrors services/notifications' maskRecipient (ADS-1257): an
+// email keeps its first local-part character plus the domain; any other
+// string keeps only its first character. The mask is a fixed-length run of
+// asterisks, so it never reveals the original value's length. A value that
+// isn't a string (a nested object, an array, a number) can't be partially
+// masked usefully, so it's dropped wholesale, like a secret.
+export const maskPiiValue = (value: unknown): unknown => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (typeof value !== 'string') {
+    return REDACTED;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return value;
+  }
+  const at = trimmed.lastIndexOf('@');
+  if (at > 0) {
+    return `${trimmed.slice(0, 1)}***@${trimmed.slice(at + 1)}`;
+  }
+  return `${trimmed.slice(0, 1)}***`;
+};
+
+// Same recursive shape as redactSecretFields, but for PII: a matched key's
+// value is masked (see maskPiiValue) instead of replaced outright, and
+// non-matching values are walked recursively. Does not itself consider
+// SECRET_KEY_PATTERN — the logger composes this with redactSecretFields.
+export const maskPiiFields = (value: unknown): unknown => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(maskPiiFields);
+  }
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) =>
+        PII_KEY_PATTERN.test(k) ? ([k, maskPiiValue(v)] as const) : ([k, maskPiiFields(v)] as const)
       )
     );
   }

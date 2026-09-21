@@ -25,7 +25,14 @@ import { trace } from '@opentelemetry/api';
 import winston, { type Logger } from 'winston';
 import LokiTransport from 'winston-loki';
 
-import { redactSecretFields, REDACTED, SECRET_KEY_PATTERN } from './redact.js';
+import {
+  maskPiiFields,
+  maskPiiValue,
+  redactSecretFields,
+  PII_KEY_PATTERN,
+  REDACTED,
+  SECRET_KEY_PATTERN,
+} from './redact.js';
 
 const VALID_LOG_LEVELS = ['error', 'warn', 'info', 'http', 'debug', 'silly'] as const;
 type LogLevel = (typeof VALID_LOG_LEVELS)[number];
@@ -45,11 +52,19 @@ export type LoggerOptions = {
 // applies ahead of the per-transport json/printf formats. Mutates the
 // info object's own string keys in place to preserve Winston's Symbol
 // properties (level/message), recursing into nested meta via
-// redactSecretFields.
+// redactSecretFields / maskPiiFields. Secret-shaped keys take priority
+// over PII-shaped ones (ADS-1344 adds the PII pass alongside the
+// pre-existing secret pass without changing it).
 const redactingFormat = winston.format(info => {
   const record = info as Record<string, unknown>;
   for (const key of Object.keys(record)) {
-    record[key] = SECRET_KEY_PATTERN.test(key) ? REDACTED : redactSecretFields(record[key]);
+    if (SECRET_KEY_PATTERN.test(key)) {
+      record[key] = REDACTED;
+    } else if (PII_KEY_PATTERN.test(key)) {
+      record[key] = maskPiiValue(record[key]);
+    } else {
+      record[key] = maskPiiFields(redactSecretFields(record[key]));
+    }
   }
   return info;
 });
