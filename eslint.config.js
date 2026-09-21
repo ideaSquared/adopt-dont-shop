@@ -1,14 +1,16 @@
 import baseConfig from '@adopt-dont-shop/eslint-config-base';
 import reactHooks from 'eslint-plugin-react-hooks';
 
-// TODO: re-add eslint-plugin-jsx-a11y once it supports eslint 10
-// Root config used by the pre-commit hook (lint-staged runs from the
-// monorepo root and so picks up THIS file rather than per-app configs).
-// Register the plugins that per-app configs use so that plugin-namespaced
-// `eslint-disable-next-line` directives in `.tsx` files don't error with
-// "rule not found" when staged. CI still runs each package's own config
-// (which owns rule severities); this just keeps the namespaces known at
-// the root.
+// Root-level config for editor tooling and standalone `eslint .` runs from
+// the repo root — NOT what pre-commit or CI use. Both pre-commit (lint-staged,
+// see .lintstagedrc.mjs) and CI lint via `turbo run lint`, which runs each
+// touched package's own eslint.config.js (which owns rule severities). This
+// file only exists so plugin-namespaced `eslint-disable-next-line` directives
+// in `.tsx`/`.jsx` files don't error with "rule not found" when linted from
+// the root. Registers `react-hooks` because it's the one such plugin already
+// a root devDependency; `jsx-a11y` / `react-refresh` (see
+// packages/eslint-config-react) aren't, so wiring those in here is a
+// follow-up.
 export default [
   ...baseConfig,
   {

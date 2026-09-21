@@ -90,9 +90,18 @@ GF_SECURITY_ADMIN_PASSWORD=<random>
 # GlitchTip (required when GLITCHTIP_ENABLED=true)
 GLITCHTIP_SECRET_KEY=<random 50+ chars>
 GLITCHTIP_DB_PASSWORD=<random>
+GLITCHTIP_REDIS_PASSWORD=<random>
 GLITCHTIP_DOMAIN=http://localhost:8000   # the URL GlitchTip serves itself on
                                           # (docker-compose.glitchtip.yml)
 ```
+
+These three secrets never reach the containers as plaintext env — `deploy.yml`
+(via `scripts/deploy-glitchtip-secrets.sh`, only when `GLITCHTIP_ENABLED=true`)
+materialises them into the file-mounted Docker secrets
+`docker-compose.glitchtip.yml` mounts (`secrets/glitchtip_db_password`,
+`secrets/glitchtip_secret_key`, `secrets/glitchtip_redis_password`), the same
+pattern as the base stack's `db_password`/`redis_password` (see
+`secrets/README.md`).
 
 Leave `SENTRY_DSN` unset for now — you mint it from GlitchTip in step 6.
 

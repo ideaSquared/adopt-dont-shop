@@ -107,6 +107,15 @@ service PetService {
   rpc GetFavoriteStatus(GetFavoriteStatusRequest) returns (GetFavoriteStatusResponse);
   rpc ListUserFavorites(ListUserFavoritesRequest) returns (ListUserFavoritesResponse);
 
+  // Service-to-service read for the weekly-digest email fan-out (ADS-1270):
+  // service.notifications composes "new matches near you" from a specific
+  // user's current shortlist. Cross-tenant PII read — same rationale as
+  // ListFavoriters (ADS-922) — gated on pets.favorites.list:any, held by no
+  // user-facing role; only the notifications service's signed system
+  // principal carries it. Returns an empty list (not NOT_FOUND) when the
+  // user has no favourites.
+  rpc ListFavoritesForUser(ListFavoritesForUserRequest) returns (ListFavoritesForUserResponse);
+
   // Typeahead suggestions for the pet search box — prefix matches
   // against pet names and breed names, ranked by how many currently
   // listed pets each suggestion resolves to. `pets.read`.
@@ -464,6 +473,16 @@ message GetFavoriteStatusResponse {
 message ListUserFavoritesRequest {}
 
 message ListUserFavoritesResponse {
+  repeated Pet pets = 1;
+}
+
+// --- ListFavoritesForUser ---------------------------------------------
+
+message ListFavoritesForUserRequest {
+  string user_id = 1;
+}
+
+message ListFavoritesForUserResponse {
   repeated Pet pets = 1;
 }
 

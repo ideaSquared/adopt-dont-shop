@@ -307,7 +307,11 @@ export const registerAuthenticate = async (
 // can't backtrack.
 const BEARER_PREFIX = 'bearer ';
 
-function extractBearerToken(req: FastifyRequest): string | undefined {
+// Exported so middleware/csrf.ts can share this exact check (ADS-1327) —
+// same rationale as extractAccessTokenFromCookie in auth-cookies.ts
+// (ADS-1334): one definition of "this request is Bearer-authenticated"
+// instead of two that can drift apart.
+export function extractBearerToken(req: FastifyRequest): string | undefined {
   const raw = req.headers.authorization;
   if (typeof raw !== 'string') {
     return undefined;

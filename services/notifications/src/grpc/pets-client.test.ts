@@ -14,6 +14,8 @@ import {
 
 import {
   PetsV1,
+  type ListFavoritesForUserRequest,
+  type ListFavoritesForUserResponse,
   type ListPetFavoritersRequest,
   type ListPetFavoritersResponse,
 } from '@adopt-dont-shop/proto';
@@ -143,7 +145,7 @@ describe('createPetsClient — signed system principal (ADS-800)', () => {
     return { port, captured };
   };
 
-  it('stamps a verifiable x-principal-token carrying pets.favoriters.list:any', async () => {
+  it('stamps a verifiable x-principal-token carrying pets.favoriters.list:any + pets.favorites.list:any', async () => {
     process.env.PRINCIPAL_SIGNING_KEY = SIGNING_KEY;
     resetDefaultPrincipalSigningKeyForTests();
 
@@ -155,7 +157,75 @@ describe('createPetsClient — signed system principal (ADS-800)', () => {
       const token = String(captured[0].get(PRINCIPAL_TOKEN_HEADER)[0]);
       const principal = verifyPrincipalToken(token, SIGNING_KEY);
       expect(principal.userId).toBe('svc-notifications');
-      expect(principal.permissions).toEqual(['pets.favoriters.list:any']);
+      expect(principal.permissions).toEqual([
+        'pets.favoriters.list:any',
+        'pets.favorites.list:any',
+      ]);
+    } finally {
+      client.close();
+    }
+  });
+});
+
+describe('createPetsClient — listFavoritesForUser (ADS-1270)', () => {
+  let server: Server;
+  let port: number;
+
+  beforeEach(() => {
+    server = new Server();
+  });
+
+  afterEach(async () => {
+    await new Promise<void>(resolve => server.tryShutdown(() => resolve()));
+  });
+
+  const minimalPet = {
+    petId: 'pet-1',
+    name: 'Rex',
+    type: PetsV1.PetType.PET_TYPE_DOG,
+    status: PetsV1.PetStatus.PET_STATUS_AVAILABLE,
+    gender: PetsV1.PetGender.PET_GENDER_MALE,
+    size: PetsV1.PetSize.PET_SIZE_MEDIUM,
+    ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
+    archived: false,
+    featured: false,
+    priorityListing: false,
+    specialNeeds: false,
+    houseTrained: true,
+    temperamentJson: '',
+    tagsJson: '',
+    extraJson: '',
+    viewCount: 0,
+    favoriteCount: 0,
+    applicationCount: 0,
+    createdAt: '2026-06-01T00:00:00.000Z',
+    updatedAt: '2026-06-01T00:00:00.000Z',
+  };
+
+  it('sends user_id and resolves with the returned pets', async () => {
+    let received: ListFavoritesForUserRequest | undefined;
+    server.addService(PetsV1.PetServiceService, {
+      listFavoritesForUser: (
+        call: ServerUnaryCall<ListFavoritesForUserRequest, ListFavoritesForUserResponse>,
+        cb: sendUnaryData<ListFavoritesForUserResponse>
+      ) => {
+        received = call.request;
+        cb(null, { pets: [minimalPet] });
+      },
+    });
+    port = await new Promise<number>((resolve, reject) => {
+      server.bindAsync('127.0.0.1:0', ServerCredentials.createInsecure(), (err, boundPort) =>
+        err ? reject(err) : resolve(boundPort)
+      );
+    });
+
+    const client = createPetsClient({ address: `127.0.0.1:${port}` });
+    try {
+      const pets = await client.listFavoritesForUser('usr-1');
+      expect(received?.userId).toBe('usr-1');
+      expect(pets).toHaveLength(1);
+      expect(pets[0].petId).toBe('pet-1');
+      expect(pets[0].name).toBe('Rex');
     } finally {
       client.close();
     }

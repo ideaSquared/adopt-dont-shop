@@ -134,6 +134,27 @@ describe('loadConfig', () => {
     expect(config.emailWorkerEnabled).toBe(false);
   });
 
+  it('defaults weeklyDigestEnabled and applicationsGrpcUrl to off/unset (ADS-1270)', () => {
+    const config = loadConfig({ DATABASE_URL: VALID_DB_URL });
+    expect(config.weeklyDigestEnabled).toBe(false);
+    expect(config.applicationsGrpcUrl).toBeUndefined();
+  });
+
+  it('honours WEEKLY_DIGEST_ENABLED=true and APPLICATIONS_GRPC_URL (ADS-1270)', () => {
+    const config = loadConfig({
+      DATABASE_URL: VALID_DB_URL,
+      WEEKLY_DIGEST_ENABLED: 'true',
+      APPLICATIONS_GRPC_URL: 'localhost:6004',
+    });
+    expect(config.weeklyDigestEnabled).toBe(true);
+    expect(config.applicationsGrpcUrl).toBe('localhost:6004');
+  });
+
+  it('treats any value other than the literal "true" as WEEKLY_DIGEST_ENABLED=false', () => {
+    const config = loadConfig({ DATABASE_URL: VALID_DB_URL, WEEKLY_DIGEST_ENABLED: 'yes' });
+    expect(config.weeklyDigestEnabled).toBe(false);
+  });
+
   it('rejects a non-numeric NOTIFICATIONS_PORT', () => {
     expect(() =>
       loadConfig({ NOTIFICATIONS_PORT: 'five-thousand', DATABASE_URL: VALID_DB_URL })

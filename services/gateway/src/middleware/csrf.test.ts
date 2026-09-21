@@ -189,6 +189,136 @@ describe('CSRF protection — enforced when an accessToken session cookie is pre
   });
 });
 
+// ADS-1327: a Bearer-authenticated request is not a cookie-CSRF vector (a
+// cross-site attacker can't get the browser to attach a custom
+// Authorization header without a CORS preflight, and the gateway's CORS
+// allow-list rejects untrusted origins there — see the module comment in
+// csrf.ts and server.test.ts's preflight coverage). These tests prove the
+// skip fires whenever the header is present — including alongside a
+// session cookie, which used to be enforced — while every cookie-only path
+// stays exactly as it was.
+describe('CSRF protection — Bearer-authenticated requests are exempt (ADS-1327)', () => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    app = await makeApp();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('accepts a pure-Bearer mutation with no cookies at all (unchanged)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: { authorization: 'Bearer some.jwt.token' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ created: true });
+  });
+
+  it('accepts a Bearer-authenticated mutation with an accessToken session cookie and no CSRF header — previously 403', async () => {
+    // This is the bug this ticket fixes: a session cookie riding alongside
+    // a Bearer header used to trigger cookie-CSRF enforcement even though
+    // the request is authenticated via the header, not the cookie.
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: {
+        authorization: 'Bearer some.jwt.token',
+        cookie: 'accessToken=session.jwt',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('accepts a Bearer-authenticated mutation with a csrfToken cookie present and no/mismatched x-csrf-token header', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: {
+        authorization: 'Bearer some.jwt.token',
+        cookie: 'accessToken=session.jwt; csrfToken=matching-token-123',
+        // deliberately no x-csrf-token header — would 403 without the skip
+      },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('matches the Authorization header case-insensitively ("bearer" prefix)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: {
+        authorization: 'BEARER some.jwt.token',
+        cookie: 'accessToken=session.jwt',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it.each(['PUT', 'PATCH', 'DELETE'] as const)(
+    'exempts %s the same way as POST when Bearer-authenticated',
+    async method => {
+      const res = await app.inject({
+        method,
+        url: '/api/v1/things',
+        headers: {
+          authorization: 'Bearer some.jwt.token',
+          cookie: 'accessToken=session.jwt',
+        },
+      });
+      expect(res.statusCode).toBe(200);
+    }
+  );
+
+  it('does not exempt a non-Bearer Authorization scheme — cookie enforcement still applies', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: {
+        authorization: 'Basic dXNlcjpwYXNz',
+        cookie: 'accessToken=session.jwt',
+      },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('does not exempt a bare "Bearer" header with no token — cookie enforcement still applies', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: {
+        authorization: 'Bearer',
+        cookie: 'accessToken=session.jwt',
+      },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('still rejects a cookie-only mutation with no Authorization header and no CSRF header (unchanged)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: { cookie: 'accessToken=session.jwt; csrfToken=matching-token-123' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('still accepts the cookie-only double-submit flow when the x-csrf-token header matches (unchanged)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: {
+        cookie: 'accessToken=session.jwt; csrfToken=matching-token-123',
+        'x-csrf-token': 'matching-token-123',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+});
+
 describe('verifyCsrfToken', () => {
   let app: FastifyInstance;
 

@@ -1699,6 +1699,9 @@ importers:
       '@adopt-dont-shop/proto':
         specifier: workspace:*
         version: link:../../packages/proto
+      '@adopt-dont-shop/scheduler':
+        specifier: workspace:*
+        version: link:../../packages/scheduler
       '@adopt-dont-shop/seed-faker':
         specifier: workspace:*
         version: link:../../packages/seed-faker

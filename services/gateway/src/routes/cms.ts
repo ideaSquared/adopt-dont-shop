@@ -15,6 +15,8 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { CmsClient } from '../grpc-clients/cms-client.js';
+
+import { isSafeImageUrl } from './events.schemas.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
@@ -190,6 +192,7 @@ const CONTENT_RESPONSE = {
     type: 'object',
     properties: { success: { type: 'boolean' }, content: CONTENT_VIEW_SCHEMA },
   },
+  400: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'string' } } },
   404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'string' } } },
 } as const;
 
@@ -462,6 +465,10 @@ export const registerCmsRoutes = async (
             type: 'object',
             properties: { success: { type: 'boolean' }, content: CONTENT_VIEW_SCHEMA },
           },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
           500: {
             type: 'object',
             properties: { success: { type: 'boolean' }, error: { type: 'string' } },
@@ -505,6 +512,12 @@ export const registerCmsRoutes = async (
         scheduledUnpublishAt:
           typeof body.scheduledUnpublishAt === 'string' ? body.scheduledUnpublishAt : undefined,
       };
+      if (grpcReq.featuredImageUrl !== undefined && !isSafeImageUrl(grpcReq.featuredImageUrl)) {
+        return reply.code(400).send({
+          success: false,
+          error: 'featuredImageUrl must be a same-origin path or https platform URL',
+        });
+      }
       try {
         const res = await client.createContent(grpcReq, buildMetadata(req));
         if (!res.content) {
@@ -567,6 +580,12 @@ export const registerCmsRoutes = async (
               ? body.change_note
               : undefined,
       };
+      if (grpcReq.featuredImageUrl !== undefined && !isSafeImageUrl(grpcReq.featuredImageUrl)) {
+        return reply.code(400).send({
+          success: false,
+          error: 'featuredImageUrl must be a same-origin path or https platform URL',
+        });
+      }
       try {
         const res = await client.updateContent(grpcReq, buildMetadata(req));
         if (!res.content) {

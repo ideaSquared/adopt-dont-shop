@@ -456,6 +456,45 @@ describe('createContent', () => {
     ).rejects.toMatchObject({ code: 'ALREADY_EXISTS' });
   });
 
+  it('rejects an unsafe featured_image_url (ADS-1350)', async () => {
+    await expect(
+      createContent(mocks.deps, ADMIN, {
+        title: 'Hello',
+        slug: 'hello',
+        contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+        content: 'body',
+        metaKeywords: [],
+        featuredImageUrl: 'javascript:alert(1)',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    await expect(
+      createContent(mocks.deps, ADMIN, {
+        title: 'Hello',
+        slug: 'hello',
+        contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+        content: 'body',
+        metaKeywords: [],
+        featuredImageUrl: 'https://evil.example.com/a.jpg',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('accepts a safe featured_image_url (ADS-1350)', async () => {
+    mocks.clientScript.push({
+      rows: [contentRow({ featured_image_url: '/images/hero.jpg' })],
+    });
+    const res = await createContent(mocks.deps, ADMIN, {
+      title: 'Hello',
+      slug: 'hello',
+      contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+      content: 'body',
+      metaKeywords: [],
+      featuredImageUrl: '/images/hero.jpg',
+    });
+    expect(res.content?.featuredImageUrl).toBe('/images/hero.jpg');
+  });
+
   it('recreates a slug whose only prior row was soft-deleted (ADS-1182)', async () => {
     // create → soft-delete → recreate the same slug. After migration 005 the
     // slug UNIQUE constraint is partial (WHERE deleted_at IS NULL), so a slug
@@ -565,6 +604,39 @@ describe('updateContent', () => {
         setMetaKeywords: false,
       })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an unsafe featured_image_url on update (ADS-1350)', async () => {
+    mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
+    await expect(
+      updateContent(mocks.deps, ADMIN, {
+        contentId: 'c-1',
+        featuredImageUrl: 'javascript:alert(1)',
+        setMetaKeywords: false,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
+    await expect(
+      updateContent(mocks.deps, ADMIN, {
+        contentId: 'c-1',
+        featuredImageUrl: 'https://evil.example.com/a.jpg',
+        setMetaKeywords: false,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('accepts a safe featured_image_url on update (ADS-1350)', async () => {
+    mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
+    mocks.clientScript.push({
+      rows: [contentRow({ featured_image_url: '/images/hero.jpg' })],
+    });
+    const res = await updateContent(mocks.deps, ADMIN, {
+      contentId: 'c-1',
+      featuredImageUrl: '/images/hero.jpg',
+      setMetaKeywords: false,
+    });
+    expect(res.content?.featuredImageUrl).toBe('/images/hero.jpg');
   });
 });
 

@@ -484,6 +484,24 @@ describe('listPets', () => {
     expect(countParams).toContain('%labr%');
   });
 
+  it('escapes a literal "%" in the breed filter instead of matching every breed (ADS-1349)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, ADOPTER, { limit: 0, breed: '%' } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    // Unescaped, '%' is a wildcard that matches every breed name — the
+    // filter would silently broaden to "no filter at all" and enable
+    // catalogue enumeration. It must be bound as a literal character.
+    expect(params).toContain('%\\%%');
+    expect(params).not.toContain('%%%');
+  });
+
+  it('escapes LIKE wildcards (% and _) anywhere in the breed filter (ADS-1349)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, ADOPTER, { limit: 0, breed: 'la%b_rador' } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('%la\\%b\\_rador%');
+  });
+
   it('rejects an unknown sort column (falls back to created_at, no injection)', async () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [{ count: '0' }] })
@@ -1586,6 +1604,24 @@ describe('getSearchSuggestions', () => {
     // query is trimmed and turned into a prefix ILIKE pattern; limit
     // defaults to 8 when the request passes 0.
     expect(params).toEqual(['bu%', 8]);
+  });
+
+  it('escapes a literal "%" in the query instead of matching every name (ADS-1349)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getSearchSuggestions(mocks.deps, ADOPTER, { query: '%', limit: 0 });
+    const [, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    // Unescaped, '%' turns the prefix pattern into "match every pet name
+    // / breed" — a full-catalogue enumeration. It must be bound as a
+    // literal character, not a wildcard.
+    expect(params).toEqual(['\\%%', 8]);
+    expect(params[0]).not.toBe('%%');
+  });
+
+  it('escapes LIKE wildcards (% and _) anywhere in the query (ADS-1349)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getSearchSuggestions(mocks.deps, ADOPTER, { query: 'la%b_rador', limit: 0 });
+    const [, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(params).toEqual(['la\\%b\\_rador%', 8]);
   });
 
   it('rejects a limit above the max', async () => {

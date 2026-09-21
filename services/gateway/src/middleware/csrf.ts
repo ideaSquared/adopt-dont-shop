@@ -17,11 +17,23 @@
 //     every authenticated mutation must be protected, not just the ones
 //     that happen to have called GET /api/v1/csrf-token first.
 // A request with NEITHER cookie (no session, hasn't opted into CSRF) is
-// unauthenticated by definition — login, register, forgot-password, and
-// any request that carries a Bearer token instead of relying on cookies —
-// and is left unenforced here, same as Phase 0. The SPA always fetches the
+// unauthenticated by definition — login, register, forgot-password — and
+// is left unenforced here, same as Phase 0. The SPA always fetches the
 // CSRF cookie before its first mutation (see the interceptor above), so in
 // practice every real browser request is covered either way.
+//
+// ADS-1327: Bearer-authenticated requests are EXPLICITLY exempt, checked
+// before either cookie above — even one that also happens to carry a
+// session cookie (e.g. a browser-based API client that attaches its own
+// Authorization header). CSRF exploits cookies being attached to a request
+// automatically by the browser; it cannot make the browser attach a custom
+// `Authorization` header to a cross-origin request without JS that sets it
+// explicitly, which forces a CORS preflight. This gateway's CORS policy
+// (see the `cors` registration in server.ts) is an explicit allow-list —
+// never a reflected or wildcard origin — so a cross-site attacker's
+// preflight fails against it and the browser never issues the real
+// request at all. A Bearer-authenticated request is therefore not a
+// cookie-CSRF vector and needs no double-submit check.
 
 import { timingSafeEqual } from 'node:crypto';
 
@@ -31,6 +43,7 @@ import type { Logger } from 'winston';
 import { redactUrl } from '@adopt-dont-shop/observability';
 
 import { ACCESS_TOKEN_COOKIE_NAME } from './auth-cookies.js';
+import { extractBearerToken } from './authenticate.js';
 
 export const CSRF_COOKIE_NAME = 'csrfToken';
 export const CSRF_HEADER_NAME = 'x-csrf-token';
@@ -65,6 +78,12 @@ export type CsrfProtectionOptions = {
 export const registerCsrfProtection = (app: FastifyInstance, opts: CsrfProtectionOptions): void => {
   app.addHook('onRequest', async (req, reply) => {
     if (!STATE_CHANGING_METHODS.has(req.method)) {
+      return;
+    }
+    if (extractBearerToken(req)) {
+      // ADS-1327: Bearer-authenticated — see module comment above for why
+      // this needs no double-submit check, regardless of which cookies
+      // (if any) also ride along on this request.
       return;
     }
     const hasCsrfCookie = Boolean(req.cookies?.[CSRF_COOKIE_NAME]);

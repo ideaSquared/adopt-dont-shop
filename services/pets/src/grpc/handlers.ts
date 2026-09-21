@@ -89,6 +89,7 @@ import {
   type PetSizeDb,
   type PetAgeGroupDb,
 } from './enum-map.js';
+import { escapeLikePattern } from './escape-like.js';
 import { isLegalTransition } from './status-machine.js';
 
 export type HandlerDeps = WithTransactionDeps;
@@ -465,8 +466,10 @@ export async function listPets(
   }
   if (req.breed) {
     // Breed is a free-text field; match the breeds catalogue by name.
+    // Escape LIKE wildcards so a literal % or _ can't be used to
+    // enumerate the catalogue or broaden the match (ADS-1349).
     where.push(`breed_id IN (SELECT breed_id FROM pets.breeds WHERE name ILIKE $${n})`);
-    params.push(`%${req.breed}%`);
+    params.push(`%${escapeLikePattern(req.breed)}%`);
     n++;
   }
   if (
@@ -1513,7 +1516,9 @@ export async function getSearchSuggestions(
     return { suggestions: [] };
   }
   const limit = clampSuggestionsLimit(req.limit);
-  const prefix = `${query}%`;
+  // Escape LIKE wildcards so a literal % or _ in the query can't be used
+  // to broaden the prefix match into "everything" (ADS-1349).
+  const prefix = `${escapeLikePattern(query)}%`;
 
   // Prefix-match against pet names and breed names, ranked by how many
   // currently-listed (non-archived, non-deleted) pets each suggestion

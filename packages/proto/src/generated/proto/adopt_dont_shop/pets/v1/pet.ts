@@ -645,6 +645,14 @@ export interface ListUserFavoritesResponse {
   pets: Pet[];
 }
 
+export interface ListFavoritesForUserRequest {
+  userId: string;
+}
+
+export interface ListFavoritesForUserResponse {
+  pets: Pet[];
+}
+
 export interface GetSearchSuggestionsRequest {
   /** Partial query text. Empty / whitespace-only returns no results. */
   query: string;
@@ -4630,6 +4638,128 @@ export const ListUserFavoritesResponse: MessageFns<ListUserFavoritesResponse> = 
   },
 };
 
+function createBaseListFavoritesForUserRequest(): ListFavoritesForUserRequest {
+  return { userId: "" };
+}
+
+export const ListFavoritesForUserRequest: MessageFns<ListFavoritesForUserRequest> = {
+  encode(message: ListFavoritesForUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFavoritesForUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFavoritesForUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListFavoritesForUserRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+    };
+  },
+
+  toJSON(message: ListFavoritesForUserRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFavoritesForUserRequest>, I>>(base?: I): ListFavoritesForUserRequest {
+    return ListFavoritesForUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFavoritesForUserRequest>, I>>(object: I): ListFavoritesForUserRequest {
+    const message = createBaseListFavoritesForUserRequest();
+    message.userId = object.userId ?? "";
+    return message;
+  },
+};
+
+function createBaseListFavoritesForUserResponse(): ListFavoritesForUserResponse {
+  return { pets: [] };
+}
+
+export const ListFavoritesForUserResponse: MessageFns<ListFavoritesForUserResponse> = {
+  encode(message: ListFavoritesForUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.pets) {
+      Pet.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFavoritesForUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFavoritesForUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.pets.push(Pet.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListFavoritesForUserResponse {
+    return { pets: globalThis.Array.isArray(object?.pets) ? object.pets.map((e: any) => Pet.fromJSON(e)) : [] };
+  },
+
+  toJSON(message: ListFavoritesForUserResponse): unknown {
+    const obj: any = {};
+    if (message.pets?.length) {
+      obj.pets = message.pets.map((e) => Pet.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFavoritesForUserResponse>, I>>(base?: I): ListFavoritesForUserResponse {
+    return ListFavoritesForUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFavoritesForUserResponse>, I>>(object: I): ListFavoritesForUserResponse {
+    const message = createBaseListFavoritesForUserResponse();
+    message.pets = object.pets?.map((e) => Pet.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 function createBaseGetSearchSuggestionsRequest(): GetSearchSuggestionsRequest {
   return { query: "", limit: 0 };
 }
@@ -6510,6 +6640,26 @@ export const PetServiceService = {
     responseDeserialize: (value: Buffer): ListUserFavoritesResponse => ListUserFavoritesResponse.decode(value),
   },
   /**
+   * Service-to-service read for the weekly-digest email fan-out (ADS-1270):
+   * service.notifications composes "new matches near you" from a specific
+   * user's current shortlist. Cross-tenant PII read — same rationale as
+   * ListFavoriters (ADS-922) — gated on pets.favorites.list:any, held by no
+   * user-facing role; only the notifications service's signed system
+   * principal carries it. Returns an empty list (not NOT_FOUND) when the
+   * user has no favourites.
+   */
+  listFavoritesForUser: {
+    path: "/adopt_dont_shop.pets.v1.PetService/ListFavoritesForUser" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListFavoritesForUserRequest): Buffer =>
+      Buffer.from(ListFavoritesForUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListFavoritesForUserRequest => ListFavoritesForUserRequest.decode(value),
+    responseSerialize: (value: ListFavoritesForUserResponse): Buffer =>
+      Buffer.from(ListFavoritesForUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListFavoritesForUserResponse => ListFavoritesForUserResponse.decode(value),
+  },
+  /**
    * Typeahead suggestions for the pet search box — prefix matches
    * against pet names and breed names, ranked by how many currently
    * listed pets each suggestion resolves to. `pets.read`.
@@ -6640,6 +6790,16 @@ export interface PetServiceServer extends UntypedServiceImplementation {
   removeFavorite: handleUnaryCall<RemoveFavoriteRequest, RemoveFavoriteResponse>;
   getFavoriteStatus: handleUnaryCall<GetFavoriteStatusRequest, GetFavoriteStatusResponse>;
   listUserFavorites: handleUnaryCall<ListUserFavoritesRequest, ListUserFavoritesResponse>;
+  /**
+   * Service-to-service read for the weekly-digest email fan-out (ADS-1270):
+   * service.notifications composes "new matches near you" from a specific
+   * user's current shortlist. Cross-tenant PII read — same rationale as
+   * ListFavoriters (ADS-922) — gated on pets.favorites.list:any, held by no
+   * user-facing role; only the notifications service's signed system
+   * principal carries it. Returns an empty list (not NOT_FOUND) when the
+   * user has no favourites.
+   */
+  listFavoritesForUser: handleUnaryCall<ListFavoritesForUserRequest, ListFavoritesForUserResponse>;
   /**
    * Typeahead suggestions for the pet search box — prefix matches
    * against pet names and breed names, ranked by how many currently
@@ -7003,6 +7163,30 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListUserFavoritesResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Service-to-service read for the weekly-digest email fan-out (ADS-1270):
+   * service.notifications composes "new matches near you" from a specific
+   * user's current shortlist. Cross-tenant PII read — same rationale as
+   * ListFavoriters (ADS-922) — gated on pets.favorites.list:any, held by no
+   * user-facing role; only the notifications service's signed system
+   * principal carries it. Returns an empty list (not NOT_FOUND) when the
+   * user has no favourites.
+   */
+  listFavoritesForUser(
+    request: ListFavoritesForUserRequest,
+    callback: (error: ServiceError | null, response: ListFavoritesForUserResponse) => void,
+  ): ClientUnaryCall;
+  listFavoritesForUser(
+    request: ListFavoritesForUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListFavoritesForUserResponse) => void,
+  ): ClientUnaryCall;
+  listFavoritesForUser(
+    request: ListFavoritesForUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListFavoritesForUserResponse) => void,
   ): ClientUnaryCall;
   /**
    * Typeahead suggestions for the pet search box — prefix matches

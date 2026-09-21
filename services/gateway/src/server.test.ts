@@ -1,4 +1,5 @@
 import { type FastifyInstance } from 'fastify';
+import Redis from 'ioredis';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { GatewayConfig } from './config.js';
@@ -114,6 +115,72 @@ describe('createServer — /health/ready readiness probe', () => {
       expect(res.json()).toMatchObject({ status: 'degraded', checks: { nats: 'error' } });
     } finally {
       await server.close();
+    }
+  });
+
+  // ADS-1327: the rate-limit Redis client doubles as a readiness dependency
+  // (see the comment above registerReadinessRoute in server.ts). It's wired
+  // as `redisOptional` — reported under the `redis` check name but never
+  // gates `ok` — so a PING failure must be visible without pulling the
+  // gateway out of rotation, matching the rate-limiter's own fail-open
+  // (skipOnError) posture and the WS-adapter Redis health precedent
+  // (index.ts's socket-adapter gauge, also non-gating).
+  //
+  // Both tests fake ioredis's connect()/ping() on the real `Redis` class
+  // instead of pointing at a live Redis, matching this suite's existing
+  // preference for not depending on a running Redis in unit tests (see
+  // 'Redis-down degraded mode' below). connect() is faked so the client
+  // is wired in as a readiness dependency without ever dialing the (bogus)
+  // URL; every other Redis command a real request touches — e.g. the
+  // global rate-limit plugin's own store — fails fast against the
+  // never-really-connected client and is absorbed by skipOnError, exactly
+  // as the 'Redis-down degraded mode' test below already proves.
+  it('reports the rate-limit redis check as ok when PING succeeds', async () => {
+    const connectSpy = vi.spyOn(Redis.prototype, 'connect').mockResolvedValue(undefined);
+    const pingSpy = vi.spyOn(Redis.prototype, 'ping').mockResolvedValue('PONG');
+    try {
+      const server = await createServer({
+        config: {
+          ...baseConfig,
+          rateLimit: { redisUrl: 'redis://127.0.0.1:19999', max: 100, timeWindow: '1 minute' },
+        },
+        logger: quietLogger,
+      });
+      try {
+        const res = await server.inject({ method: 'GET', url: '/health/ready' });
+        expect(res.statusCode).toBe(200);
+        expect(res.json()).toMatchObject({ status: 'ok', checks: { redis: 'ok' } });
+      } finally {
+        await server.close();
+      }
+    } finally {
+      connectSpy.mockRestore();
+      pingSpy.mockRestore();
+    }
+  });
+
+  it('reports the redis check as an error but stays ready (200) when PING fails', async () => {
+    const connectSpy = vi.spyOn(Redis.prototype, 'connect').mockResolvedValue(undefined);
+    const pingSpy = vi.spyOn(Redis.prototype, 'ping').mockRejectedValue(new Error('ECONNREFUSED'));
+    try {
+      const server = await createServer({
+        config: {
+          ...baseConfig,
+          rateLimit: { redisUrl: 'redis://127.0.0.1:19999', max: 100, timeWindow: '1 minute' },
+        },
+        logger: quietLogger,
+      });
+      try {
+        const res = await server.inject({ method: 'GET', url: '/health/ready' });
+        // Non-gating: a Redis blip must not pull the gateway out of rotation.
+        expect(res.statusCode).toBe(200);
+        expect(res.json()).toMatchObject({ status: 'ok', checks: { redis: 'error' } });
+      } finally {
+        await server.close();
+      }
+    } finally {
+      connectSpy.mockRestore();
+      pingSpy.mockRestore();
     }
   });
 });

@@ -3,6 +3,11 @@ import type { NatsConnection } from 'nats';
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
 import {
+  claimScheduledRun,
+  startScheduler,
+  type RunningScheduler,
+} from '@adopt-dont-shop/scheduler';
+import {
   connectNats,
   installProcessErrorHandlers,
   runServiceShutdown,
@@ -11,8 +16,6 @@ import {
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { purgeExpiredApplicationDrafts } from './jobs/application-draft-retention.js';
-import { claimScheduledRun } from './scheduler/claim.js';
-import { startScheduler, type RunningScheduler } from './scheduler/scheduler.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {

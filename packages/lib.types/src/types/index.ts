@@ -189,6 +189,10 @@ export type Permission =
   // notifications service's signed system principal (migration 026).
   | 'pets.manage:any'
   | 'pets.favoriters.list:any'
+  // ADS-1270: cross-tenant read for ListFavoritesForUser (a DIFFERENT
+  // permission from pets.favoriters.list:any above — "favorites" is a
+  // user's own favourited pets; "favoriters" is who favourited a pet).
+  | 'pets.favorites.list:any'
   | 'matching.swipes.read:any';
 
 /**

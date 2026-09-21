@@ -10,12 +10,15 @@
 
 import { randomUUID } from 'node:crypto';
 
-import type { Principal } from '@adopt-dont-shop/authz';
+import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
+import type { Permission } from '@adopt-dont-shop/lib.types';
 import {
   type AddFavoriteRequest,
   type AddFavoriteResponse,
   type GetFavoriteStatusRequest,
   type GetFavoriteStatusResponse,
+  type ListFavoritesForUserRequest,
+  type ListFavoritesForUserResponse,
   type ListUserFavoritesRequest,
   type ListUserFavoritesResponse,
   type RemoveFavoriteRequest,
@@ -35,6 +38,10 @@ import {
 // memory/latency for an account with an unusually large favourites list
 // without changing the response contract.
 const LIST_USER_FAVORITES_LIMIT = 500;
+
+// ADS-1270: cross-tenant read (ListFavoritesForUser below) — same cap,
+// same rationale.
+const PETS_FAVORITES_LIST_ANY: Permission = 'pets.favorites.list:any';
 
 const requireUserId = (principal: Principal | null): string => {
   if (!principal?.userId) {
@@ -177,6 +184,40 @@ export async function listUserFavorites(
       ORDER BY created_at DESC
       LIMIT ${LIST_USER_FAVORITES_LIMIT}`,
     [userId]
+  );
+  return { pets: res.rows.map(row => rowToProto(row, false)) };
+}
+
+// Service-to-service equivalent of listUserFavorites, parameterised by an
+// explicit user_id instead of the calling principal (ADS-1270). This
+// enumerates ONE user's favourite activity for a system caller — a
+// cross-tenant PII read (ADS-922 precedent: ListFavoriters) — so it does
+// NOT reuse plain pets.read; gated on pets.favorites.list:any, a
+// permission no user-facing role is ever granted. A missing/unknown user
+// just yields an empty list (no NOT_FOUND): the caller only cares about
+// favourites, not the user's existence.
+export async function listFavoritesForUser(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListFavoritesForUserRequest
+): Promise<ListFavoritesForUserResponse> {
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!hasPermission(principal, PETS_FAVORITES_LIST_ANY)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_FAVORITES_LIST_ANY}' required`);
+  }
+
+  const res = await deps.pool.query<PetRow>(
+    `SELECT ${PETS_SELECT} FROM pets.pets
+      WHERE deleted_at IS NULL
+        AND pet_id IN (
+          SELECT pet_id FROM pets.user_favorites
+           WHERE user_id = $1 AND deleted_at IS NULL
+        )
+      ORDER BY created_at DESC
+      LIMIT ${LIST_USER_FAVORITES_LIMIT}`,
+    [req.userId]
   );
   return { pets: res.rows.map(row => rowToProto(row, false)) };
 }

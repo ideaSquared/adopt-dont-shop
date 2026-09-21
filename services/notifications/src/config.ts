@@ -32,6 +32,12 @@ export type NotificationsConfig = {
   // fan-out (RescueService.ListStaffMembers + Get discover the rescue's
   // staff). Optional; when unset the fan-out no-ops gracefully.
   rescueGrpcUrl?: string;
+  // service.applications gRPC URL — needed by the weekly-digest job's
+  // "still waiting on your shortlist" section (ADS-1270:
+  // ApplicationService.List via adopter_id_filter). Optional; the digest
+  // job is only registered on the scheduler when this AND weeklyDigestEnabled
+  // are both set.
+  applicationsGrpcUrl?: string;
   // Environment label, surfaced in health responses and on log lines.
   environment: string;
   // Postgres connection string. Required for migrations + the runtime
@@ -64,6 +70,11 @@ export type NotificationsConfig = {
   pushProvider: PushProviderConfig;
   // Toggle the push worker (the NATS subscriber). Defaults to true.
   pushWorkerEnabled: boolean;
+  // ADS-1270: gates the weekly-digest scheduled job. Unlike the other
+  // *_ENABLED toggles above (true by default — they stop something already
+  // running), this one is OPT-IN and defaults to false: a scheduled email
+  // send must be deliberately turned on, not merely not turned off.
+  weeklyDigestEnabled: boolean;
 };
 
 // Defaults match the wider stack:
@@ -92,6 +103,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     authGrpcUrl: env.AUTH_GRPC_URL?.trim() || undefined,
     petsGrpcUrl: env.PETS_GRPC_URL?.trim() || undefined,
     rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || undefined,
+    applicationsGrpcUrl: env.APPLICATIONS_GRPC_URL?.trim() || undefined,
     host: env.NOTIFICATIONS_HOST?.trim() || DEFAULT_HOST,
     environment: env.NODE_ENV?.trim() || 'development',
     databaseUrl,
@@ -104,6 +116,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     defaultFromName: env.DEFAULT_FROM_NAME?.trim() || "Adopt Don't Shop",
     pushProvider: loadPushProviderConfig(env),
     pushWorkerEnabled: env.PUSH_WORKER_ENABLED?.trim() !== 'false',
+    weeklyDigestEnabled: env.WEEKLY_DIGEST_ENABLED?.trim() === 'true',
   };
 };
 

@@ -253,6 +253,8 @@ export type {
   GetFavoriteStatusResponse,
   ListUserFavoritesRequest,
   ListUserFavoritesResponse,
+  ListFavoritesForUserRequest,
+  ListFavoritesForUserResponse,
   GetSearchSuggestionsRequest,
   SearchSuggestion,
   GetSearchSuggestionsResponse,

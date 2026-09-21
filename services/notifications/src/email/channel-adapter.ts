@@ -42,6 +42,11 @@ const EMAIL_WORTHY_TYPES = new Set<string>([
   'reference_request',
   'account_security',
   'rescue_invitation',
+  // ADS-1270: the weekly-digest job creates its notification with type
+  // 'reminder' (uncategorised — see preferences-gate.ts's categoryEnabled
+  // default — so only the channel-level emailEnabled toggle gates it, on
+  // top of the job's own email_preferences.digest_frequency consent check).
+  'reminder',
 ]);
 
 export type Recipient = { email: string; name?: string };
