@@ -4,6 +4,7 @@ import {
   checkAppsArePrivate,
   checkLibsDeclareFiles,
   checkLintFormatScripts,
+  checkMaximumConfigsDrift,
   checkNoEmitTaskOutputs,
   checkTemplateDepDrift,
   checkTestingLibraryReactNeedsReactDom,
@@ -22,6 +23,7 @@ import {
   isRunByCiLocal,
   listCoverageGatedPackages,
   parseDevVolumesAnchor,
+  parseMaximumConfigs,
   parseSetupWorkspaceCachePaths,
   parseWorkspaceGlobs,
   rootAuthoritativeRange,
@@ -728,5 +730,46 @@ describe('CI node_modules cache path guard (ADS-1135)', () => {
 
   it('returns null when the node-modules-cache step is absent', () => {
     expect(parseSetupWorkspaceCachePaths('runs:\n  steps:\n    - run: echo hi\n')).toBeNull();
+  });
+});
+
+describe('.vscode/settings.json vitest.maximumConfigs guard (ADS-1348)', () => {
+  describe('parseMaximumConfigs', () => {
+    it('extracts the numeric value alongside JSONC comments', () => {
+      const settings = [
+        '{',
+        '  // ADS-986: raised so the Vitest extension does not drop projects.',
+        '  "vitest.maximumConfigs": 64,',
+        '  "eslint.workingDirectories": [{ "pattern": "apps/*" }]',
+        '}',
+      ].join('\n');
+      expect(parseMaximumConfigs(settings)).toBe(64);
+    });
+
+    it('returns null when the setting is absent', () => {
+      expect(parseMaximumConfigs('{\n  "editor.formatOnSave": true\n}\n')).toBeNull();
+    });
+  });
+
+  describe('checkMaximumConfigsDrift', () => {
+    it('passes when maximumConfigs is at or above the real project count', () => {
+      expect(checkMaximumConfigsDrift(64, 50)).toEqual([]);
+      expect(checkMaximumConfigsDrift(50, 50)).toEqual([]);
+    });
+
+    it('fails when maximumConfigs is below the real project count', () => {
+      // Regression case: this is exactly the drift ADS-1348 found — packages/*
+      // grew from 34 to 36 (a real total of 50) while maximumConfigs stayed at 48.
+      const failures = checkMaximumConfigsDrift(48, 50);
+      expect(failures).toHaveLength(1);
+      expect(failures[0]).toContain("'vitest.maximumConfigs' is 48");
+      expect(failures[0]).toContain('below the real Vitest project count of 50');
+    });
+
+    it('fails with a clear message when the setting cannot be found at all', () => {
+      expect(checkMaximumConfigsDrift(null, 50)).toEqual([
+        "[.vscode/settings.json] could not find a numeric 'vitest.maximumConfigs' setting (ADS-1348).",
+      ]);
+    });
   });
 });
