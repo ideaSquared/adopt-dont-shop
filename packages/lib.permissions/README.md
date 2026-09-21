@@ -40,11 +40,11 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `FieldAccessMap`, `FieldPermissionRule`, `FieldPermissionCheckResult`, …).
 - **Services**: `PermissionsService` (RBAC: `hasPermission` /
   `hasAnyPermission` / `hasAllPermissions` / `hasRole` / `getUserPermissions` +
-  admin `assignRole` / `grantPermissions` / `revokePermissions`, 5-minute
+  admin `assignRole`, 5-minute
   cache) and `FieldPermissionsService` (`getFieldAccess`,
   `getEffectiveFieldAccessMap`, `maskFields` / `maskFieldsArray`,
   `getWriteBlockedFields`, admin `updateFieldPermission` /
-  `deleteFieldPermission`, 2-minute cache).
+  `deleteFieldPermission`, 1-minute cache).
 - **Defaults**: `defaultFieldPermissions`, `getDefaultFieldAccess`,
   `getFieldAccessMap`.
 - **Rescue constants**: `RescuePermissions`, `RescuePermissionGroups`.
@@ -81,4 +81,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 4 workspace package(s) depend on this library. See [lib.permissions-consumers.md](../../docs/libraries/lib.permissions-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->
