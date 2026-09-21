@@ -62,6 +62,10 @@
  *     declares react-dom (ADS-1222) — RTL's render() needs react-dom at
  *     runtime, and pnpm's strict node_modules won't transitively resolve it
  *     from a sibling's dependency tree.
+ *  19. .vscode/settings.json's `vitest.maximumConfigs` must be ≥ the real,
+ *     currently discovered Vitest project count (packages/* + apps/* +
+ *     services/* with a vitest.config.ts) — below it, the VS Code Vitest
+ *     extension silently drops projects from its panel (ADS-1348).
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -692,6 +696,49 @@ function checkCiCachePathsDrift(workspaceGlobs) {
   }
 
   return failures;
+}
+
+// ADS-1348: .vscode/settings.json's `vitest.maximumConfigs` caps how many
+// Vitest projects the VS Code extension will load — past it, the extension
+// silently drops projects from its panel with no error. Nothing kept this
+// hand-maintained number in sync with the filesystem (it drifted to 48 while
+// packages/* grew the real, discovered total to 50), the same "stop a
+// hand-maintained number from drifting" bug class as the dev-volumes (#9)
+// and CI cache-path (#9b) guards above.
+
+// Extract the numeric value with a small regex rather than a JSON5/JSONC
+// parser dependency — settings.json carries `//` comments, so plain
+// JSON.parse can't read it. Mirrors the hand-rolled parsers above
+// (parseDevVolumesAnchor, parseWorkspaceGlobs, parseSetupWorkspaceCachePaths).
+export function parseMaximumConfigs(settingsJsonc) {
+  const match = settingsJsonc.match(/"vitest\.maximumConfigs"\s*:\s*(\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
+// Pure comparison of the configured cap against the real, currently
+// discovered project count — split from parsing so each half is
+// independently testable, mirroring checkToolVersionsDrift above.
+export function checkMaximumConfigsDrift(maximumConfigs, actualProjectCount) {
+  if (maximumConfigs === null) {
+    return [
+      "[.vscode/settings.json] could not find a numeric 'vitest.maximumConfigs' setting (ADS-1348).",
+    ];
+  }
+  if (maximumConfigs < actualProjectCount) {
+    return [
+      `[.vscode/settings.json] 'vitest.maximumConfigs' is ${maximumConfigs}, below the real Vitest ` +
+        `project count of ${actualProjectCount} (packages/* + apps/* + services/* with a ` +
+        `vitest.config.ts). The VS Code Vitest extension silently drops projects past this cap — ` +
+        `raise 'vitest.maximumConfigs' to comfortably exceed ${actualProjectCount} (ADS-1348).`,
+    ];
+  }
+  return [];
+}
+
+function checkVscodeMaximumConfigs(actualProjectCount) {
+  const settingsPath = join(ROOT, '.vscode', 'settings.json');
+  const contents = readFileSync(settingsPath, 'utf8');
+  return checkMaximumConfigsDrift(parseMaximumConfigs(contents), actualProjectCount);
 }
 
 // ADS-980: cross-cutting dependencies that scripts/templates/**/package.json
@@ -1348,6 +1395,17 @@ function main() {
     ...services.map(name => ({ dir: `services/${name}`, pkg: readPkgAt(`services/${name}`) })),
   ];
   failures.push(...checkTestingLibraryReactNeedsReactDom(allPkgEntries));
+
+  // 19. ADS-1348: .vscode/settings.json's `vitest.maximumConfigs` must stay
+  //     at or above the real number of Vitest projects vitest.workspace.ts
+  //     aggregates (packages/* + apps/* + services/* with a
+  //     vitest.config.ts) — reuses the same discoverVitestProjectDirs() call
+  //     vitest.workspace.ts itself makes, so the two can't drift apart.
+  const discoveredVitestProjectCount =
+    discoverVitestProjectDirs(ROOT, 'packages').length +
+    discoverVitestProjectDirs(ROOT, 'apps').length +
+    discoverVitestProjectDirs(ROOT, 'services').length;
+  failures.push(...checkVscodeMaximumConfigs(discoveredVitestProjectCount));
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');

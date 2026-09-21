@@ -11,11 +11,12 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "vitest.workspaceConfig": "./vitest.workspace.ts",
-  // ADS-986 / ADS-1029: workspace now globs every packages/* with a
-  // vitest.config.ts + app.* + services/* (34 + 3 + 11 = 48 configs) — raised
-  // so the Vitest extension doesn't silently drop packages past its default
-  // cap. ADS-1029 widened packages/* from lib.* only to every shared package.
-  "vitest.maximumConfigs": 48,
+  // ADS-986 / ADS-1029 / ADS-1348: one project per packages/*, apps/*, and
+  // services/* with a vitest.config.ts (36 + 3 + 11 = 50 as of ADS-1348) —
+  // set well above that so the Vitest extension doesn't silently drop
+  // projects past its default cap. `pnpm check:workspaces` (ADS-1348) fails
+  // if the real count ever reaches this number, so it can't go stale again.
+  "vitest.maximumConfigs": 64,
   "eslint.workingDirectories": [
     { "pattern": "apps/*" },
     { "pattern": "packages/*" },
