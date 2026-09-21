@@ -131,6 +131,45 @@ describe('createLogger', () => {
     expect(line.tokens).toBe('[REDACTED]');
   });
 
+  it('masks PII-shaped fields before they reach a transport (ADS-1344)', async () => {
+    const chunks: string[] = [];
+    const sink = new Writable({
+      write(chunk, _enc, cb) {
+        chunks.push(chunk.toString());
+        cb();
+      },
+    });
+    const logger = createLogger({ serviceName: 'svc' });
+    logger.add(new winston.transports.Stream({ stream: sink, format: winston.format.json() }));
+
+    logger.info('user updated', {
+      userId: 'u1',
+      password: 'hunter2',
+      email: 'user@example.com',
+      phone: '07700900123',
+      address: '10 Downing St',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      profile: { name: 'Jane Doe', postcode: 'SW1A 2AA' },
+    });
+    await flush();
+
+    const line = JSON.parse(chunks.join('')) as Record<string, unknown>;
+    // Non-PII fields survive.
+    expect(line.userId).toBe('u1');
+    // Secret-shaped keys are still fully redacted, unaffected by PII masking.
+    expect(line.password).toBe('[REDACTED]');
+    // PII-shaped keys are partially masked, not dropped.
+    expect(line.email).toBe('u***@example.com');
+    expect(line.phone).toBe('0***');
+    expect(line.address).toBe('1***');
+    expect(line.firstName).toBe('J***');
+    expect(line.lastName).toBe('D***');
+    const profile = line.profile as Record<string, unknown>;
+    expect(profile.name).toBe('J***');
+    expect(profile.postcode).toBe('S***');
+  });
+
   describe('trace-context stamping (ADS-1327)', () => {
     function captureOneLine(logger: ReturnType<typeof createLogger>): {
       lines: Record<string, unknown>[];

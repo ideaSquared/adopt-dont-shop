@@ -48,8 +48,11 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   Loki when `LOKI_URL` is set), with `serviceName` stamped on every line.
 - `getMetricsRegistry` / `registerMetrics` — the shared Prometheus registry +
   `/metrics` wiring.
-- `redactSecretFields`, `REDACTED`, `SECRET_KEY_PATTERN`, `redactUrl`,
-  `registerRequestId` — redaction + request-id helpers.
+- `redactSecretFields`, `REDACTED`, `SECRET_KEY_PATTERN`, `maskPiiFields`,
+  `maskPiiValue`, `PII_KEY_PATTERN`, `redactUrl`, `registerRequestId` —
+  redaction + request-id helpers. Secret-shaped keys (password, token, …)
+  are dropped wholesale; PII-shaped keys (email, phone, address, name, …)
+  are partially masked instead, so a log line stays useful for debugging.
 
 ## Environment variables consumed
 
@@ -61,9 +64,9 @@ All optional — the bootstraps silently no-op when unset:
 
 ## Testing notes
 
-Vitest. The redaction logic (`redactSentryEvent`, `redactSecretFields`) is
-exported separately so it's unit-tested in isolation; the bootstraps are tested
-for their no-op / no-throw contracts. See
+Vitest. The redaction logic (`redactSentryEvent`, `redactSecretFields`,
+`maskPiiFields`) is exported separately so it's unit-tested in isolation; the
+bootstraps are tested for their no-op / no-throw contracts. See
 [`docs/testing.md`](../../docs/testing.md#backend-specifics) for shared
 conventions.
 
