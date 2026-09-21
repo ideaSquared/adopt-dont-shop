@@ -77,7 +77,8 @@ bypass scope.
 | `List`                                                                                                                  | `rescues.read` (defaults to verified-only; `admin.security.manage` sees all statuses) |
 | `Update`                                                                                                                | `rescues.update` (scoped; does not change status)                                     |
 | `Verify` / `Delete` / `UpdateRescuePlan` / `SendRescueEmail`                                                            | `admin.security.manage` (admin-only)                                                  |
-| `GetRescueStatistics` / `CountRescues`                                                                                  | `rescues.read`                                                                        |
+| `GetRescueStatistics`                                                                                                   | `rescues.read` (scoped to `rescue_id`; `admin.security.manage` reads any rescue)      |
+| `CountRescues`                                                                                                          | `admin.security.manage` (platform-wide status totals, admin-only)                     |
 | `InviteStaff`                                                                                                           | `staff.create` (scoped) or `admin.security.manage`; mints token, returned once        |
 | `GetMyStaffMembership`                                                                                                  | authenticated (self-scoped)                                                           |
 | `ListStaffMembers`                                                                                                      | `staff.read` (or `admin.security.manage`)                                             |

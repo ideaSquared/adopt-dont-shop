@@ -87,7 +87,7 @@ source of truth), `applications` (read-model projection),
 `application_reference_checks`, `application_timeline_notes`, and `event_outbox`
 (the transactional publish-after-commit outbox — see
 [`packages/events`](../../packages/events/README.md)).
-Migrations: `src/migrations/001`–`014`.
+Migrations: `src/migrations/001`–`015`.
 
 **NATS** — emits (publish-after-commit): `applications.draftCreated`,
 `applications.draftUpdated`, `applications.submitted`,

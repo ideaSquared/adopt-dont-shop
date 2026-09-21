@@ -107,7 +107,7 @@ Schema (`auth`): `users`, `roles` / `permissions`, `role_permissions` /
 `field_permissions`, `ip_rules`, `user_invitations`, `consent_events`,
 `permission_grants`, and `event_outbox` (the transactional publish-after-commit
 outbox — see [`packages/events`](../../packages/events/README.md)). Migrations:
-`src/migrations/001`–`033`.
+`src/migrations/001`–`034`.
 
 **NATS** — emits (publish-after-commit): `auth.userLoggedIn`,
 `auth.tokenRevoked`, `auth.tokenRefreshed`, `auth.roleAssigned`,

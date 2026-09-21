@@ -82,7 +82,7 @@ admin surfaces require an explicit permission. `super_admin` bypasses.
 | `List/Get/PreviewEmailTemplate`                                                                  | `email.templates.read`                             |
 | `Create/Update/DeleteEmailTemplate`                                                              | `email.templates.{create,update,delete}`           |
 | `Register/UnregisterDeviceToken` / `ListDeviceTokens`                                            | self-scoped (`device-tokens:list:any` for others)  |
-| `Broadcast`                                                                                      | `admin.notifications.broadcast`                    |
+| `Broadcast`                                                                                      | `notifications.broadcast`                          |
 
 Schema (`notifications`): `notifications`, `device_tokens`,
 `user_notification_prefs`, `email_queue`, `email_templates`,
@@ -93,8 +93,9 @@ Schema (`notifications`): `notifications`, `device_tokens`,
 Migrations: `src/migrations/001`–`011`.
 
 **NATS** — emits (publish-after-commit): `notifications.created`,
-`notifications.dismissed`, `notifications.deleted`, `notifications.allRead`,
-`notifications.prefsReset`, `notifications.broadcastSent`; participates in the
+`notifications.bulkCreated`, `notifications.read`, `notifications.dismissed`,
+`notifications.deleted`, `notifications.allRead`, `notifications.prefsReset`,
+`notifications.email.queued`, `notifications.broadcastSent`; participates in the
 `gdpr.erasureCompleted` saga. Consumes a broad set of `applications.*`,
 `auth.*`, `chat.messageCreated`, `pets.*`, and `rescue.*` subjects to translate
 into notifications, plus `gdpr.erasureRequested` (durable
