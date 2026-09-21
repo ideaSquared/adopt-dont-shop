@@ -206,6 +206,62 @@ describe('cms gateway routes', () => {
     expect(res.statusCode).toBe(409);
   });
 
+  it('POST /content 400s on a javascript: featuredImageUrl and never calls the service (ADS-1350)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/cms/content',
+      headers: ADMIN_HEADERS,
+      payload: {
+        title: 'Hello',
+        slug: 'hello',
+        contentType: 'page',
+        content: 'body',
+        featuredImageUrl: 'javascript:alert(1)',
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.createContent).not.toHaveBeenCalled();
+  });
+
+  it('POST /content 400s on an off-allowlist https featuredImageUrl (ADS-1350)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/cms/content',
+      headers: ADMIN_HEADERS,
+      payload: {
+        title: 'Hello',
+        slug: 'hello',
+        contentType: 'page',
+        content: 'body',
+        featuredImageUrl: 'https://evil.example.com/a.jpg',
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.createContent).not.toHaveBeenCalled();
+  });
+
+  it('POST /content accepts a safe relative featuredImageUrl (ADS-1350)', async () => {
+    mocks.createContent.mockResolvedValue({
+      content: { ...CONTENT_FIXTURE, featuredImageUrl: '/images/hero.jpg' },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/cms/content',
+      headers: ADMIN_HEADERS,
+      payload: {
+        title: 'Hello',
+        slug: 'hello',
+        contentType: 'page',
+        content: 'body',
+        featuredImageUrl: '/images/hero.jpg',
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(mocks.createContent.mock.calls[0][0]).toMatchObject({
+      featuredImageUrl: '/images/hero.jpg',
+    });
+  });
+
   it('PUT /content/:contentId sets setMetaKeywords only when keywords were sent', async () => {
     mocks.updateContent.mockResolvedValue({ content: CONTENT_FIXTURE });
     await app.inject({
@@ -227,6 +283,44 @@ describe('cms gateway routes', () => {
     expect(mocks.updateContent.mock.calls[0][0]).toMatchObject({
       setMetaKeywords: true,
       metaKeywords: ['adopt', 'rescue'],
+    });
+  });
+
+  it('PUT /content/:contentId 400s on a javascript: featuredImageUrl and never calls the service (ADS-1350)', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/cms/content/c-1',
+      headers: ADMIN_HEADERS,
+      payload: { featuredImageUrl: 'javascript:alert(1)' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.updateContent).not.toHaveBeenCalled();
+  });
+
+  it('PUT /content/:contentId 400s on an off-allowlist https featuredImageUrl (ADS-1350)', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/cms/content/c-1',
+      headers: ADMIN_HEADERS,
+      payload: { featuredImageUrl: 'https://evil.example.com/a.jpg' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.updateContent).not.toHaveBeenCalled();
+  });
+
+  it('PUT /content/:contentId accepts a safe relative featuredImageUrl (ADS-1350)', async () => {
+    mocks.updateContent.mockResolvedValue({
+      content: { ...CONTENT_FIXTURE, featuredImageUrl: '/images/hero.jpg' },
+    });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/cms/content/c-1',
+      headers: ADMIN_HEADERS,
+      payload: { featuredImageUrl: '/images/hero.jpg' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.updateContent.mock.calls[0][0]).toMatchObject({
+      featuredImageUrl: '/images/hero.jpg',
     });
   });
 
