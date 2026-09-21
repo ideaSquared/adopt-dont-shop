@@ -83,6 +83,7 @@ the repo root with `pnpm <script>`.
 | `pnpm check:stop-grace-period` | `node scripts/check-stop-grace-period.mjs` |
 | `pnpm check:stories` | `node scripts/check-storybook-coverage.mjs` |
 | `pnpm check:workflow-paths` | `node scripts/check-workflow-paths.mjs` |
+| `pnpm check:workflow-pinning` | `node scripts/check-workflow-image-pinning.mjs` |
 | `pnpm check:workspaces` | `node scripts/check-workspace-consistency.mjs` |
 | `pnpm format` | `turbo run format && pnpm format:root` |
 | `pnpm format:check` | `turbo run format:check && pnpm format:root:check` |
@@ -120,7 +121,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
-| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:scheduled-workflow-environments && pnpm check:docker-pinning && pnpm check:migration-backcompat && pnpm check:stop-grace-period && pnpm check:docs-index && pnpm check:docs-links && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:nginx-upload-precedence && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm check:overrides-docs && pnpm check:commit-messages && pnpm check:dev-auth-guard && pnpm check:stories && pnpm --filter @adopt-dont-shop/e2e run lint && pnpm --filter @adopt-dont-shop/e2e run type-check && pnpm --filter @adopt-dont-shop/e2e run format:check && pnpm run tasks:write && git diff --exit-code docs/tasks.md && pnpm test:scripts && pnpm build:apps && pnpm check:bundle-size` |
+| `pnpm ci:local` | `pnpm format:check && turbo run lint type-check test:coverage && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths && pnpm check:scheduled-workflow-environments && pnpm check:docker-pinning && pnpm check:workflow-pinning && pnpm check:migration-backcompat && pnpm check:stop-grace-period && pnpm check:docs-index && pnpm check:docs-links && pnpm check:docs-script-refs && pnpm check:proto-fresh && pnpm check:csp && pnpm check:nginx-upload-precedence && pnpm check:readmes && pnpm check:no-only && pnpm check:forms && pnpm check:renovate && pnpm check:overrides-docs && pnpm check:commit-messages && pnpm check:dev-auth-guard && pnpm check:stories && pnpm --filter @adopt-dont-shop/e2e run lint && pnpm --filter @adopt-dont-shop/e2e run type-check && pnpm --filter @adopt-dont-shop/e2e run format:check && pnpm run tasks:write && git diff --exit-code docs/tasks.md && pnpm test:scripts && pnpm build:apps && pnpm check:bundle-size` |
 | `pnpm ci:local:quick` | `pnpm format:check && turbo run lint type-check` |
 
 ### Hooks
