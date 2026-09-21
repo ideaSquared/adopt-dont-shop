@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
+import { resolveFileUrl } from '../../utils/fileUtils';
 import * as styles from './PetCard.css';
 
 // Pet schema fields are optional because different API responses return
@@ -128,6 +129,9 @@ const PetCard: React.FC<PetCardProps> = ({
   };
 
   const primaryImage = pet.images?.find(img => img.is_primary) || pet.images?.[0];
+  // ADS-1343: resolve through the same http(s)-only / same-origin guard the
+  // client app uses, rather than passing a stored URL straight to <img src>.
+  const primaryImageUrl = resolveFileUrl(primaryImage?.url);
 
   return (
     <>
@@ -145,9 +149,9 @@ const PetCard: React.FC<PetCardProps> = ({
           </label>
         )}
         <div className={styles.petImageContainer}>
-          {primaryImage ? (
+          {primaryImageUrl ? (
             <ProgressiveImage
-              src={primaryImage.url}
+              src={primaryImageUrl}
               alt={pet.name}
               errorFallback={<div className={styles.placeholderImage}>🐾</div>}
             />

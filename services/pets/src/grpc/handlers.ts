@@ -268,6 +268,9 @@ export async function createPet(
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_CREATE}' required for this rescue`);
   }
 
+  const extra = parseExtraObject(req.extraJson);
+  assertSafeImageUrls(extra);
+
   const petId = randomUUID();
   let inserted: PetRow | undefined;
 
@@ -313,7 +316,7 @@ export async function createPet(
         parseJsonArray(req.temperamentJson),
         parseJsonArray(req.tagsJson),
         principal.userId,
-        JSON.stringify(parseExtraObject(req.extraJson)),
+        JSON.stringify(extra),
       ]
     );
     inserted = result.rows[0];
@@ -711,8 +714,10 @@ export async function updatePet(
     // The gateway sends the whole (read-merged) blob, so replace wholesale
     // — mirroring the proto's "JSON blobs replace wholesale when present".
     // ::jsonb keeps the text param out of pg's array-literal path (ADS-1155).
+    const extra = parseExtraObject(req.extraJson);
+    assertSafeImageUrls(extra);
     sets.push(`extra_json = $${n}::jsonb`);
-    params.push(JSON.stringify(parseExtraObject(req.extraJson)));
+    params.push(JSON.stringify(extra));
     n++;
   }
 
@@ -1004,6 +1009,57 @@ function parseExtraObject(raw: string | undefined): Record<string, unknown> {
     return isRecord(parsed) ? parsed : {};
   } catch {
     return {};
+  }
+}
+
+// ADS-1343: extra_json.image_urls is where the gateway's pet-images route
+// (services/gateway/src/routes/pets.ts) stores the URLs it validates with
+// isSafeImageUrl at the write boundary. That gateway check is the only
+// guard today — CreatePet/UpdatePet forward req.extraJson to this handler
+// unchecked, so any other caller of this gRPC method (present or future)
+// could smuggle in a javascript:/data:/arbitrary-host URL. This mirrors
+// isSafeImageUrl (services/gateway/src/routes/events.schemas.ts) and
+// assertValidDocumentUrl (services/applications/src/grpc/document-handlers.ts)
+// as defense-in-depth at this handler's own write boundary.
+function allowedImageHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
+  const hosts = new Set<string>();
+  const cloudFrontDomain = env.CLOUDFRONT_DOMAIN?.trim();
+  if (cloudFrontDomain) {
+    hosts.add(cloudFrontDomain);
+  }
+  const bucket = env.S3_BUCKET_NAME?.trim();
+  if (bucket) {
+    const region = env.S3_REGION?.trim() || 'us-east-1';
+    hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
+  }
+  return hosts;
+}
+
+function isSafeImageUrl(value: string): boolean {
+  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
+  // it's excluded from the same-origin relative-path allowance below.
+  if (value.startsWith('/') && !value.startsWith('//')) {
+    return true;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  return parsed.protocol === 'https:' && allowedImageHosts().has(parsed.host);
+}
+
+function assertSafeImageUrls(extra: Record<string, unknown>): void {
+  const urls = extra.image_urls;
+  if (!Array.isArray(urls)) {
+    return;
+  }
+  if (urls.some(url => typeof url !== 'string' || !isSafeImageUrl(url))) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'extra_json.image_urls must be same-origin paths or https platform URLs'
+    );
   }
 }
 

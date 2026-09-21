@@ -8,6 +8,7 @@ import {
   type Pet,
 } from '@/services';
 import { ItsAMatchModal } from '@/components/ItsAMatchModal';
+import { resolveFileUrl } from '@/utils/fileUtils';
 import { createAppContext } from './base/BaseContext';
 
 // ADS-633: detects rescue acknowledgement of an application (status moves
@@ -72,7 +73,7 @@ const pickPrimaryImage = (pet: Pet | undefined): string | undefined => {
     return undefined;
   }
   const primary = pet.images.find(img => img.is_primary);
-  return (primary ?? pet.images[0]).url;
+  return resolveFileUrl((primary ?? pet.images[0]).url);
 };
 
 // A status counts as "acknowledged" if the rescue moved it away from the

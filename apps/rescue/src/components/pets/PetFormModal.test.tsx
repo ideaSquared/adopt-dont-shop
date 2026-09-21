@@ -11,7 +11,7 @@
  */
 
 import type { ImageUploadResponse } from '@adopt-dont-shop/lib.api';
-import type { PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
+import type { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, renderWithProviders, screen, waitFor } from '../../test-utils/render';
@@ -548,5 +548,40 @@ describe('PetFormModal — image upload field (ADS-574)', () => {
     await waitFor(() => {
       expect(uploadImage).toHaveBeenCalledTimes(10);
     });
+  });
+
+  it('does not render a seeded existing-photo thumbnail whose stored URL is unsafe (ADS-1343)', () => {
+    const pet = {
+      pet_id: 'pet-1',
+      name: 'Rex',
+      images: [
+        // Seeded from the pet record, not this session's upload — the
+        // stored URL is untrusted until it clears resolveFileUrl.
+        { url: 'javascript:alert(1)', is_primary: true, order_index: 0 },
+      ],
+    } as unknown as Pet;
+
+    renderWithProviders(
+      <PetFormModal isOpen={true} onClose={() => {}} onSubmit={() => Promise.resolve()} pet={pet} />
+    );
+
+    expect(screen.queryByAltText('javascript:alert(1)')).toBeNull();
+  });
+
+  it('renders a seeded existing-photo thumbnail when the stored URL is a safe https URL (ADS-1343)', () => {
+    const pet = {
+      pet_id: 'pet-1',
+      name: 'Rex',
+      images: [{ url: 'https://cdn.example.com/rex.jpg', is_primary: true, order_index: 0 }],
+    } as unknown as Pet;
+
+    renderWithProviders(
+      <PetFormModal isOpen={true} onClose={() => {}} onSubmit={() => Promise.resolve()} pet={pet} />
+    );
+
+    expect(screen.getByAltText('rex.jpg')).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/rex.jpg'
+    );
   });
 });

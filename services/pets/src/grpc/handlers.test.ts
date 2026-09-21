@@ -221,15 +221,13 @@ describe('createPet', () => {
         insertParams = params;
       }
       return {
-        rows: [
-          petRow({ extra_json: { image_urls: ['https://cdn/x.jpg'], good_with_children: true } }),
-        ],
+        rows: [petRow({ extra_json: { image_urls: ['/x.jpg'], good_with_children: true } })],
       };
     });
 
     const res = await createPet(mocks.deps, STAFF, {
       ...BASE_CREATE,
-      extraJson: JSON.stringify({ image_urls: ['https://cdn/x.jpg'], good_with_children: true }),
+      extraJson: JSON.stringify({ image_urls: ['/x.jpg'], good_with_children: true }),
     });
 
     // The blob is written into the extra_json column, not dropped.
@@ -237,8 +235,24 @@ describe('createPet', () => {
     expect(insertParams.some(p => typeof p === 'string' && p.includes('image_urls'))).toBe(true);
     // …and it round-trips back through the response.
     const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
-    expect(extra.image_urls).toEqual(['https://cdn/x.jpg']);
+    expect(extra.image_urls).toEqual(['/x.jpg']);
     expect(extra.good_with_children).toBe(true);
+  });
+
+  it('rejects an unsafe image url in extra_json.image_urls (ADS-1343)', async () => {
+    await expect(
+      createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        extraJson: JSON.stringify({ image_urls: ['javascript:alert(1)'] }),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    await expect(
+      createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        extraJson: JSON.stringify({ image_urls: ['https://evil.example.com/a.jpg'] }),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });
 
@@ -836,13 +850,13 @@ describe('updatePet', () => {
       if (!sql.includes('event_outbox')) {
         order.push(sql.trim().split(/\s+/)[0]);
       }
-      return { rows: [petRow({ extra_json: { image_urls: ['https://cdn/a.jpg'] } })] };
+      return { rows: [petRow({ extra_json: { image_urls: ['/a.jpg'] } })] };
     });
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
 
     const res = await updatePet(mocks.deps, STAFF, {
       petId: 'pet-1',
-      extraJson: JSON.stringify({ image_urls: ['https://cdn/a.jpg'] }),
+      extraJson: JSON.stringify({ image_urls: ['/a.jpg'] }),
     } as never);
 
     // An extra_json-only update is a real state change — it must write + emit.
@@ -850,7 +864,18 @@ describe('updatePet', () => {
     const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(updateSql).toMatch(/extra_json = \$1::jsonb/);
     const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
-    expect(extra.image_urls).toEqual(['https://cdn/a.jpg']);
+    expect(extra.image_urls).toEqual(['/a.jpg']);
+  });
+
+  it('rejects an unsafe image url in extra_json.image_urls (ADS-1343)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] }); // fetchPet
+
+    await expect(
+      updatePet(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        extraJson: JSON.stringify({ image_urls: ['javascript:alert(1)'] }),
+      } as never)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });
 

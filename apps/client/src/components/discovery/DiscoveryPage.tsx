@@ -9,6 +9,7 @@ import { Container } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadDiscoveryState, recordViewedPet } from '@/utils/discoverySession';
+import { resolveFileUrl } from '@/utils/fileUtils';
 import {
   hasReachedAnonSwipeLimit,
   incrementAnonSwipeCount,
@@ -302,7 +303,7 @@ export const DiscoveryPage: React.FC = () => {
         <AnonymousFirstLikeModal
           petId={anonLikeModalPet.petId}
           petName={anonLikeModalPet.name}
-          petImage={anonLikeModalPet.images?.[0]}
+          petImage={resolveFileUrl(anonLikeModalPet.images?.[0])}
           onDismiss={handleAnonModalDismiss}
           onCtaClick={handleAnonModalCta}
         />
