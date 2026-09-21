@@ -61,7 +61,7 @@ export const assertNotProduction = (): void => {
   }
 };
 
-const main = async (): Promise<void> => {
+export const main = async (): Promise<void> => {
   assertNotProduction();
   const logger = createLogger({ serviceName: 'service.applications.seed' });
   const config = loadConfig();

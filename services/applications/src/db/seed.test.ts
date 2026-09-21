@@ -1,7 +1,57 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { assertNotProduction, seedApplications, type QueryFn } from './seed.js';
+import type { ApplicationsConfig } from '../config.js';
+
+import { assertNotProduction, main, seedApplications, type QueryFn } from './seed.js';
 import { SEED_APPLICATIONS } from './seed-data.js';
+
+// main() is the `pnpm db:seed` CLI entry point: it builds a real pool via
+// @adopt-dont-shop/db and reads config via loadConfig(), so both are mocked
+// here (ADS-1330) to exercise main()'s own wiring — building the pool from
+// config, passing a `query` callback through to seedApplications, and
+// closing the pool in its `finally` — without touching a real database.
+// seedApplications itself is NOT mocked: letting it run for real against the
+// fake pool proves main() wires the pieces together correctly, not just that
+// it calls them.
+const { createDbClientMock, poolQueryMock, poolEndMock, loadConfigMock, loggerErrorMock } =
+  vi.hoisted(() => ({
+    createDbClientMock: vi.fn(),
+    poolQueryMock: vi.fn(),
+    poolEndMock: vi.fn(),
+    loadConfigMock: vi.fn(),
+    loggerErrorMock: vi.fn(),
+  }));
+createDbClientMock.mockImplementation(() => ({ query: poolQueryMock, end: poolEndMock }));
+
+vi.mock('@adopt-dont-shop/db', () => ({
+  createDbClient: createDbClientMock,
+}));
+
+vi.mock('../config.js', () => ({
+  loadConfig: loadConfigMock,
+}));
+
+vi.mock('@adopt-dont-shop/observability', () => ({
+  createLogger: vi.fn(() => ({
+    info: vi.fn(),
+    error: loggerErrorMock,
+    warn: vi.fn(),
+    debug: vi.fn(),
+    silly: vi.fn(),
+  })),
+}));
+
+const TEST_CONFIG: ApplicationsConfig = {
+  port: 5005,
+  grpcPort: 6005,
+  host: '127.0.0.1',
+  environment: 'test',
+  databaseUrl: 'postgres://test-seed-db',
+  schema: 'applications_seed_test',
+  natsUrl: 'nats://localhost:4222',
+  petsGrpcUrl: 'service-pets:6003',
+  applicationDraftPurge: { intervalMs: 86_400_000, batchSize: 500 },
+};
 
 describe('production guard', () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -82,5 +132,68 @@ describe('applications seed', () => {
     const second = recordingQuery();
     await seedApplications({ query: second.query });
     expect(second.calls).toHaveLength(calls.length);
+  });
+});
+
+describe('main (the `pnpm db:seed` CLI entry point)', () => {
+  const originalExitCode = process.exitCode;
+
+  beforeEach(() => {
+    vi.stubEnv('NODE_ENV', 'development');
+    loadConfigMock.mockReturnValue(TEST_CONFIG);
+    createDbClientMock.mockClear();
+    poolQueryMock.mockReset().mockResolvedValue(undefined);
+    poolEndMock.mockReset().mockResolvedValue(undefined);
+    loggerErrorMock.mockClear();
+    process.exitCode = undefined;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    process.exitCode = originalExitCode;
+  });
+
+  it('builds the pool from loadConfig, seeds every application through it, and closes the pool afterwards', async () => {
+    await main();
+
+    // The pool is built from loadConfig()'s own databaseUrl/schema, not
+    // hardcoded — proves the config → pool wiring, not just that a pool
+    // exists.
+    expect(createDbClientMock).toHaveBeenCalledWith({
+      connectionString: TEST_CONFIG.databaseUrl,
+      schema: TEST_CONFIG.schema,
+    });
+    // seedApplications ran for real against the wired `query` callback: one
+    // UPSERT per seed fixture, landing on the fake pool.
+    expect(poolQueryMock).toHaveBeenCalledTimes(SEED_APPLICATIONS.length);
+    const [sql, params] = poolQueryMock.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/ON CONFLICT \(application_id\) DO UPDATE/);
+    expect(params[0]).toBe(SEED_APPLICATIONS[0].applicationId);
+    // The pool is closed exactly once, and only after every insert has been
+    // issued — not before, not skipped.
+    expect(poolEndMock).toHaveBeenCalledTimes(1);
+    const lastQueryOrder = Math.max(...poolQueryMock.mock.invocationCallOrder);
+    expect(poolEndMock.mock.invocationCallOrder[0]).toBeGreaterThan(lastQueryOrder);
+  });
+
+  it('still closes the pool and marks the process exit code when a seed insert fails', async () => {
+    poolQueryMock.mockReset().mockRejectedValueOnce(new Error('connection reset'));
+
+    await expect(main()).resolves.toBeUndefined(); // caught internally, never rejects
+
+    expect(poolEndMock).toHaveBeenCalledTimes(1);
+    expect(process.exitCode).toBe(1);
+    expect(loggerErrorMock).toHaveBeenCalledWith(
+      'applications seed failed',
+      expect.objectContaining({ message: 'connection reset' })
+    );
+  });
+
+  it('honours the not-production guard before ever building a pool', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('ALLOW_PROD_SEED', '');
+
+    await expect(main()).rejects.toThrow(/Refusing to run db:seed in production/);
+    expect(createDbClientMock).not.toHaveBeenCalled();
   });
 });
