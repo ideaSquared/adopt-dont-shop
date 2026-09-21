@@ -306,7 +306,7 @@ describe('updateContent optional field setters', () => {
     await updateContent(mocks.deps, ADMIN, {
       contentId: 'c-1',
       metaDescription: 'desc',
-      featuredImageUrl: 'https://img/x.png',
+      featuredImageUrl: '/images/x.png',
       setMetaKeywords: true,
       metaKeywords: ['a', 'b'],
     });

@@ -283,6 +283,55 @@ function parseTs(raw: string | undefined): Date | null {
   return Number.isFinite(d.getTime()) ? d : null;
 }
 
+// ADS-1350: featured_image_url is rendered as an <img src> and isn't
+// covered by the content body sanitiser, so CreateContent/UpdateContent
+// need the same scheme/host allowlist as the other stored-URL write
+// boundaries. Forked from isSafeImageUrl
+// (services/gateway/src/routes/events.schemas.ts) the same way ADS-1343
+// forked it into services/pets/src/grpc/handlers.ts — defense-in-depth at
+// this handler's own write boundary, for any caller of the gRPC method,
+// not just the gateway.
+function allowedImageHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
+  const hosts = new Set<string>();
+  const cloudFrontDomain = env.CLOUDFRONT_DOMAIN?.trim();
+  if (cloudFrontDomain) {
+    hosts.add(cloudFrontDomain);
+  }
+  const bucket = env.S3_BUCKET_NAME?.trim();
+  if (bucket) {
+    const region = env.S3_REGION?.trim() || 'us-east-1';
+    hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
+  }
+  return hosts;
+}
+
+function isSafeImageUrl(value: string): boolean {
+  if (value === '') {
+    return true;
+  }
+  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
+  // it's excluded from the same-origin relative-path allowance below.
+  if (value.startsWith('/') && !value.startsWith('//')) {
+    return true;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  return parsed.protocol === 'https:' && allowedImageHosts().has(parsed.host);
+}
+
+function assertSafeFeaturedImageUrl(url: string): void {
+  if (!isSafeImageUrl(url)) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'featured_image_url must be a same-origin path or https platform URL'
+    );
+  }
+}
+
 // --- Public reads ---------------------------------------------------
 
 export async function listPublicContent(
@@ -503,6 +552,9 @@ export async function createContent(
     throw new HandlerError('INVALID_ARGUMENT', 'content_type is required');
   }
   const body = req.content ?? '';
+  if (req.featuredImageUrl !== undefined) {
+    assertSafeFeaturedImageUrl(req.featuredImageUrl);
+  }
 
   const row = await withTransaction(deps, async ({ client, publish }) => {
     const initialVersion: ContentVersionDb = {
@@ -636,6 +688,7 @@ export async function updateContent(
       pushSet('meta_keywords', req.metaKeywords ?? []);
     }
     if (req.featuredImageUrl !== undefined) {
+      assertSafeFeaturedImageUrl(req.featuredImageUrl);
       pushSet('featured_image_url', req.featuredImageUrl);
     }
     if (contentChanged) {
