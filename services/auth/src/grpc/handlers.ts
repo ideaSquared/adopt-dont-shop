@@ -24,7 +24,12 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
-import type { Permission, UserId, UserRole } from '@adopt-dont-shop/lib.types';
+import {
+  ADMIN_SECURITY_MANAGE,
+  type Permission,
+  type UserId,
+  type UserRole,
+} from '@adopt-dont-shop/lib.types';
 import {
   AuthV1,
   type AssignRoleRequest,
@@ -1024,8 +1029,6 @@ export async function getMe(
 }
 
 // --- AssignRole ------------------------------------------------------
-
-const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
 
 export async function assignRole(
   deps: HandlerDeps,

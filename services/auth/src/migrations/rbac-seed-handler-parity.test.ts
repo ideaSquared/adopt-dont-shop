@@ -74,15 +74,25 @@ async function listTsFilesRecursively(dir: string): Promise<string[]> {
   return nested.flat();
 }
 
+// Pure so the sanity probe in the test below can exercise the exact same
+// regex + filter pipeline without touching the filesystem.
+function collectAsPermissionCastsFromText(text: string): Set<string> {
+  const literals = new Set<string>();
+  for (const match of text.matchAll(PERMISSION_CAST_PATTERN)) {
+    if (PERMISSION_LIKE_PATTERN.test(match[2])) {
+      literals.add(match[2]);
+    }
+  }
+  return literals;
+}
+
 async function collectAsPermissionCasts(): Promise<Set<string>> {
   const files = await listTsFilesRecursively(SERVICES_DIR);
   const literals = new Set<string>();
   for (const file of files) {
     const text = await readFile(file, 'utf8');
-    for (const match of text.matchAll(PERMISSION_CAST_PATTERN)) {
-      if (PERMISSION_LIKE_PATTERN.test(match[2])) {
-        literals.add(match[2]);
-      }
+    for (const literal of collectAsPermissionCastsFromText(text)) {
+      literals.add(literal);
     }
   }
   return literals;
@@ -162,10 +172,22 @@ describe('RBAC seed/handler permission parity (ADS-1304)', () => {
       collectGrantedPermissions(),
     ]);
 
-    // Sanity check on the scan itself — if this trips, the file-walk or the
-    // cast regex broke, not the RBAC seed.
-    expect(castLiterals.size).toBeGreaterThan(0);
+    // Sanity check on the migration scan — if this trips, the migration
+    // file-walk broke, not the RBAC seed.
     expect(grantedPermissions.size).toBeGreaterThan(0);
+
+    // Sanity check on the cast regex + PERMISSION_LIKE_PATTERN filter
+    // themselves, decoupled from how many real casts currently exist in
+    // services/*/src: ADS-1340 dropped every `'...' as Permission` cast
+    // this test could find (the class of bug it guards against), so
+    // castLiterals is now legitimately empty — asserting it stays > 0 would
+    // fail for the right reason (the drift is fixed) instead of the wrong
+    // one (the scan broke). A synthetic probe string exercises the exact
+    // same pipeline collectAsPermissionCasts() runs per file.
+    const probe = collectAsPermissionCastsFromText(
+      `const X: Permission = 'probe.permission:any' as Permission;`
+    );
+    expect(probe).toEqual(new Set(['probe.permission:any']));
 
     const undocumented = [...castLiterals]
       .filter(

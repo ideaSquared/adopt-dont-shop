@@ -15,7 +15,18 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
-import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
+// ADMIN_SECURITY_MANAGE gates the admin StaffTab (cross-rescue). Held only
+// by admin / super_admin — NOT rescue_staff (which has staff.* + rescues.read
+// scoped to its own rescue), so it can't be used to leak across rescues.
+import {
+  ADMIN_SECURITY_MANAGE,
+  STAFF_CREATE,
+  STAFF_DELETE,
+  STAFF_UPDATE,
+  STAFF_VIEW as STAFF_READ,
+  type Permission,
+  type RescueId,
+} from '@adopt-dont-shop/lib.types';
 import {
   RescueV1,
   type AcceptInvitationRequest,
@@ -58,14 +69,6 @@ const PETS_GRPC_PERMISSION_DENIED = 7;
 
 // --- Permissions -----------------------------------------------------
 
-const STAFF_READ: Permission = 'staff.read' as Permission;
-const STAFF_CREATE: Permission = 'staff.create' as Permission;
-const STAFF_UPDATE: Permission = 'staff.update' as Permission;
-const STAFF_DELETE: Permission = 'staff.delete' as Permission;
-// Platform-admin gate for the admin StaffTab (cross-rescue). Held only by
-// admin / super_admin — NOT rescue_staff (which has staff.* + rescues.read
-// scoped to its own rescue), so it can't be used to leak across rescues.
-const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
 const FOSTER_CREATE: Permission = 'foster.create';
 const FOSTER_READ: Permission = 'foster.read';
 const FOSTER_UPDATE: Permission = 'foster.update';

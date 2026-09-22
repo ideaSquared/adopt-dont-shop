@@ -31,7 +31,14 @@ import {
   type Principal,
 } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
-import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
+import {
+  ADMIN_SECURITY_MANAGE,
+  RESCUE_SETTINGS_UPDATE as RESCUES_UPDATE,
+  RESCUE_SETTINGS_VIEW as RESCUES_READ,
+  STAFF_CREATE,
+  type Permission,
+  type RescueId,
+} from '@adopt-dont-shop/lib.types';
 import {
   RescueV1,
   type CountRescuesRequest,
@@ -268,10 +275,6 @@ const RESCUES_SELECT = `
 `;
 
 const RESCUES_CREATE: Permission = 'rescues.create';
-const RESCUES_READ: Permission = 'rescues.read' as Permission;
-const RESCUES_UPDATE: Permission = 'rescues.update' as Permission;
-const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
-const STAFF_CREATE: Permission = 'staff.create' as Permission;
 
 const DEFAULT_INVITATION_TTL_SECONDS = 7 * 24 * 60 * 60;
 

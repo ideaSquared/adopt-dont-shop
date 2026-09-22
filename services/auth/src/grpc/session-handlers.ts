@@ -29,14 +29,11 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
-import type { Permission } from '@adopt-dont-shop/lib.types';
+import { ADMIN_SECURITY_MANAGE, ADMIN_SECURITY_READ } from '@adopt-dont-shop/lib.types';
 
 import { HandlerError } from './handlers.js';
 
 export type SessionHandlerDeps = WithTransactionDeps;
-
-const ADMIN_SECURITY_READ: Permission = 'admin.security.read' as Permission;
-const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;

@@ -82,6 +82,7 @@
   "check:forms": "Ratchet: fail if the apps add raw <input>/<select>/<textarea> or TextInput beyond the persisted ceiling (prefer FormField + Input).",
   "check:bundle-size": "Guard: fail if any app's built dist/ (.js + .css, excluding sourcemaps) exceeds its persisted budget in scripts/check-bundle-size.mjs. Run `pnpm build:apps` first.",
   "check:dev-auth-guard": "Guard: fail if a dev-auth bypass pattern (dev_user / dev-token-) appears in production source outside its allowed DEV-gated locations.",
+  "check:permission-casts": "Guard: fail if any services/**/grpc handler reintroduces a quoted-literal `as Permission` cast instead of importing the permission constant from lib.types.",
   "check:commit-messages": "Lint every commit since origin/main with commitlint (mirrors ci.yml's commit-lint job) — the local commit-msg hook only checks the message you're currently writing.",
   "ratchet:coverage": "Raise a package's declared coverage-threshold floor (in its own vitest.config.ts) towards current measured coverage (never lowers it); usage: -- --package <path>.",
   "ratchet:stories-coverage": "Raise the persisted Storybook stories-coverage floor towards current measured coverage (never lowers it).",
