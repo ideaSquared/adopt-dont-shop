@@ -117,6 +117,17 @@ jobs:
       - name: Verify scheduled workflows don't require an approval environment
         run: pnpm check:scheduled-workflow-environments
 
+      # ADS-1341/ADS-1353: every GitHub Actions `services:`/job-container
+      # `image:` and `docker run` invocation in .github/workflows/*.yml must be
+      # digest-pinned, the same supply-chain requirement check-docker-pinning.mjs
+      # already enforces for the prod/staging compose files. Was ci:local-only,
+      # so a mutable-tag image in a workflow merged with no CI guard. Scans
+      # .github/workflows/*.yml, which isn't in the `code` filter above (mirrors
+      # "Verify workflow path filters" running unconditionally for the same
+      # reason).
+      - name: Verify workflow container images are digest-pinned
+        run: pnpm check:workflow-pinning
+
       # ADS-846: every third-party base image in the prod/staging compose
       # files must be pinned to an immutable digest (`tag@sha256:...`), not a
       # bare tag, so a deploy can't silently pull swapped bytes.
@@ -137,6 +148,15 @@ jobs:
       - name: Verify CSP headers
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: pnpm check:csp
+
+      # ADS-1340/ADS-1353: a `'literal' as Permission` cast in services/**/grpc/**
+      # silences the `Permission` union check, so a misspelled or unregistered
+      # permission compiles clean and requirePermission silently 403s every
+      # non-super_admin caller (the ADS-1235/1304/1340 fallout). Was ci:local-only,
+      # so this security/correctness regression had no CI guard.
+      - name: Verify no permission-string casts
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
+        run: pnpm check:permission-casts
 
       # ADS-1294/ADS-1327/ADS-1347: every /uploads/... prefix location in
       # nginx/nginx.prod.conf must keep `^~` so a server-level regex can't
