@@ -49,8 +49,9 @@ See the [README Project Structure](./README.md#project-structure) for the full t
 Every new `apps/*`, `services/*`, or `packages/*` package needs a README
 following the canonical template for its family:
 [app](./docs/templates/README.app.md), [service](./docs/templates/README.service.md),
-[lib](./docs/templates/README.lib.md). `pnpm check:readmes` reports (warn-only
-today) any workspace README missing one of the template's required sections.
+[lib](./docs/templates/README.lib.md). `pnpm check:readmes` fails CI (the
+workspace-drift job) if any workspace README is missing one of the template's
+required sections.
 
 ## Development workflow
 
