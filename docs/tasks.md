@@ -49,7 +49,7 @@ the repo root with `pnpm <script>`.
 | `pnpm test:e2e:headed` | `pnpm --filter @adopt-dont-shop/e2e test:headed` |
 | `pnpm test:e2e:install` | `pnpm --filter @adopt-dont-shop/e2e install:browsers` |
 | `pnpm test:e2e:report` | `pnpm --filter @adopt-dont-shop/e2e report` |
-| `pnpm test:e2e:single` | `pnpm --filter @adopt-dont-shop/e2e test` |
+| `pnpm test:e2e:single` | `pnpm --filter @adopt-dont-shop/e2e exec playwright test` |
 | `pnpm test:e2e:smoke` | `pnpm --filter @adopt-dont-shop/e2e test:smoke` |
 | `pnpm test:e2e:ui` | `pnpm --filter @adopt-dont-shop/e2e test:ui` |
 | `pnpm test:scripts` | `vitest run --config vitest.scripts.config.ts` |

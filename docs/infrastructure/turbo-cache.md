@@ -66,6 +66,19 @@ scopes), and never reuse a token across environments. Rotating a token only
 invalidates authentication — it does **not** invalidate cached artifacts, so
 builds keep working after a rotation as long as the new token is in place.
 
+## Task inputs and shared config
+
+A task's cache key hashes its declared `inputs` plus `globalDependencies` — not
+every file a task happens to read. `type-check` lists the shared
+`$TURBO_ROOT$/tsconfig.*.base.json` files as inputs so an edit to one busts the
+cache for every consumer instead of a stale hit. `lint`'s `inputs` likewise list
+the `index.js` of each `packages/eslint-config-*` package, since every
+package's `eslint.config.js` imports one of those shared rulesets; without
+that, editing a shared ESLint rule would hit a stale `lint` cache everywhere it
+applies. These are scoped to the `lint` task's own `inputs` rather than
+`globalDependencies` (the way `.prettierrc` is listed) so an ESLint rule change
+only busts `lint`, not `build` or `test` too.
+
 ## Troubleshooting
 
 - `pnpm cache:status` says "NOT linked" but you ran `turbo link` — check that
