@@ -21,7 +21,7 @@ Beyond the essentials in `.env.example` (`POSTGRES_*`, `DB_HOST/PORT/USERNAME/PA
 | `DB_POOL_MAX`  | `packages/db/src/client.ts`                                                           | `8`             | Per-service pool ceiling. Non-integer or `<= 0` is ignored. Budget maths in `docs/operations/connection-budget.md`.                                                                                                                                                             |
 | `DB_LOGGING`   | `packages/lib.validation/src/schemas/env.ts`                                          | unset           | Only `pnpm validate:env` reads it (warns when `true` in production). No service consults it.                                                                                                                                                                                    |
 
-`.env.example` ships `DB_HOST=database` / `REDIS_HOST=redis` — the Compose hostnames. For native `pnpm dev` set `DB_HOST=localhost`, `REDIS_HOST=localhost` and `REDIS_PORT=6380` (the port `pnpm dev:services` publishes Redis on).
+`.env.example` ships `DB_HOST=database` / `REDIS_HOST=redis` — the Compose hostnames. For native `pnpm dev` set `DB_HOST=localhost`, `REDIS_HOST=localhost` and `REDIS_PORT=6379` (the port `pnpm dev:services` publishes Redis on — the `6380` remap in the table below is only for the `pnpm docker:dev` overlay).
 
 ## Auth & secrets
 
