@@ -114,8 +114,14 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
 
   # ============================================================================
-  # BUILD SERVICES — dev image on all triggers, prod image + Trivy scan on
-  # all triggers (ADS-833: scan PRs so CVEs are caught before merge, not after)
+  # BUILD SERVICES — dev image on all triggers; prod image + Trivy scan on
+  # all triggers (ADS-833: scan PRs so CVEs are caught before merge, not
+  # after), EXCEPT that on a PR, each service's prod build+scan only runs
+  # if that service's own image could actually have changed (ADS-1357): the
+  # trigger's `paths:` (ADS-1314) is deliberately broad — any source change
+  # under apps/**, packages/**, services/** runs this workflow — so without
+  # this in-job filter, a frontend-only PR would rebuild and Trivy-scan all
+  # 11 service images for no reason. See the per-service filter step below.
   #
   # Replaces the CVE-scan coverage lost when the service.backend monolith
   # was deleted in #995 (the old `build-backend` job ran a single Trivy
@@ -152,6 +158,51 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # ADS-1357: on a PR, only this service's prod build + Trivy scan need
+      # to run if something that can actually affect its image changed —
+      # its own service dir, a shared backend package it (or any service)
+      # depends on, the service Dockerfile/dockerignore, the root build
+      # config Dockerfile.service consumes (lockfile, workspace, turbo,
+      # tsconfig bases, docs/legal), or this workflow file. Push/schedule/workflow_dispatch
+      # always build+scan every service (see the `if:` on the gated steps
+      # below). The `packages/*` list below is every shared package at least
+      # one service's package.json depends on (checked against
+      # services/*/package.json) — deliberately excludes the frontend-only
+      # `lib.*` packages (lib.components, lib.api, …) that no service uses,
+      # but the frontend-shared libs services DO use (lib.types,
+      # lib.av-scan, lib.validation) are included.
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706  # v4.0.2
+        id: service-filter
+        with:
+          filters: |
+            rebuild:
+              - 'services/${{ matrix.service }}/**'
+              - 'packages/authz/**'
+              - 'packages/config-secrets/**'
+              - 'packages/db/**'
+              - 'packages/events/**'
+              - 'packages/lib.av-scan/**'
+              - 'packages/lib.types/**'
+              - 'packages/lib.validation/**'
+              - 'packages/observability/**'
+              - 'packages/proto/**'
+              - 'packages/scheduler/**'
+              - 'packages/seed-faker/**'
+              - 'packages/service-bootstrap/**'
+              - 'packages/storage/**'
+              - 'packages/test-utils/**'
+              - 'packages/eslint-config-node/**'
+              - 'Dockerfile.service'
+              - '.dockerignore'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.npmrc'
+              - 'turbo.json'
+              - 'tsconfig*.json'
+              - 'docs/legal/**'
+              - '.github/workflows/docker.yml'
+
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c  # v4.2.0
         with:
           driver-opts: |
@@ -180,10 +231,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
-      # Build the prod image on all triggers so Trivy can scan it (ADS-833).
-      # On PRs this workflow is already narrowed to Dockerfile-changing changes,
-      # so the extra build cost is bounded to the cases where scanning matters.
+      # Build the prod image so Trivy can scan it (ADS-833). ADS-1314 widened
+      # the PR trigger to match any source change (apps/**, packages/**,
+      # services/**, …), not just Dockerfile-changing ones, so on a PR this
+      # step (and the scan steps below) only run when `service-filter` found
+      # a change that can affect THIS service's image (ADS-1357); push and
+      # other non-PR triggers always build+scan every service.
       - name: Build production image
+        if: github.event_name != 'pull_request' || steps.service-filter.outputs.rebuild == 'true'
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
         with:
           context: .
@@ -204,6 +259,7 @@ jobs:
       # below skip mounting /var/run/docker.sock (ADS-1299 — that mount handed
       # a container root-equivalent control of the runner's Docker daemon).
       - name: Save production image for scanning
+        if: github.event_name != 'pull_request' || steps.service-filter.outputs.rebuild == 'true'
         run: |
           docker save paragonjenko/adoptdontshop:service-${{ matrix.service }}-prod-${{ github.sha }} \
             -o trivy-image-${{ matrix.service }}.tar
@@ -215,6 +271,7 @@ jobs:
       # contains any CRITICAL/HIGH. (--ignore-unfixed is a scan flag; `convert`
       # rejects it, so it must live on the `image` command.)
       - name: Run Trivy vulnerability scanner
+        if: github.event_name != 'pull_request' || steps.service-filter.outputs.rebuild == 'true'
         run: |
           docker run --rm \
             -v "$PWD:/workspace" -w /workspace \
@@ -246,6 +303,7 @@ jobs:
           category: 'trivy-service-${{ matrix.service }}'
 
       - name: Fail on fixable CRITICAL/HIGH vulnerabilities
+        if: github.event_name != 'pull_request' || steps.service-filter.outputs.rebuild == 'true'
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             aquasec/trivy:0.63.0@sha256:6fb0646988fcd2fdf7bf123f7174945ebc2c9c72d1fa1567c8d7daeeb70f8037 convert --exit-code 1 \
