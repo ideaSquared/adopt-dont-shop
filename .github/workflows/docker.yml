@@ -323,15 +323,6 @@ jobs:
   # identical docker/build-push-action invocation shape. BuildKit's shared
   # GHA cache (same `cache-from`/`cache-to: type=gha` key space as the matrix
   # jobs above) makes the rebuild a near-total cache hit in the common case.
-  #
-  # EXPECTED RED until ADS-1301's batch-A fixes land (see the PR description):
-  # the legal-terms assertion fails today because the production image does
-  # not carry docs/legal/*.md, and the notifications /health/ready assertion
-  # may also fail if batch A's actual fix shape differs from this job's
-  # LEGAL_DOCS_DIR / EMAIL_PROVIDER / PUSH_PROVIDER guesses (see
-  # docker-compose.ci-smoke.yml). That is this job doing its job, not a bug
-  # in it — the two P0s it exists to catch were previously undetectable by
-  # any CI job.
   # ============================================================================
   prod-image-smoke:
     name: Production Image Smoke
