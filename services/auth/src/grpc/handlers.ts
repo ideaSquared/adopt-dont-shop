@@ -59,6 +59,7 @@ import {
 import { findMatchingBackupCodeHash } from './backup-codes.js';
 import { createAuthMetrics } from './auth-metrics.js';
 import { verifyAndConsumeTotp } from './totp-verification.js';
+import { ELEVATED_ROLES } from './admin-handlers.js';
 
 // --- Errors ----------------------------------------------------------
 
@@ -1050,6 +1051,26 @@ export async function assignRole(
   }
 
   const roleName = roleToDb(req.role);
+
+  // Privilege-escalation guard (ADS-1361): mirrors ELEVATED_ROLES enforcement
+  // in admin-handlers.ts (adminCreateUser/adminUpdateUser/bulkUpdateUsers) —
+  // a non-super_admin holding admin.security.manage must never be able to
+  // mint an admin/moderator/super_admin account, and self-assignment is
+  // rejected outright as defense-in-depth.
+  if (ELEVATED_ROLES.has(roleName)) {
+    if (!principal.roles.includes('super_admin')) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        'only a super_admin may assign admin, moderator, or super_admin roles'
+      );
+    }
+    if (req.targetUserId === principal.userId) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        'cannot assign an elevated role to your own account'
+      );
+    }
+  }
 
   // Verify the target user exists (NOT_FOUND surfaces cleanly).
   const userRes = await deps.pool.query<{ user_id: string }>(
