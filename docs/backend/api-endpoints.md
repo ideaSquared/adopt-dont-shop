@@ -116,4 +116,11 @@ There is no server-side typing indicator.
 
 ## Health
 
-`GET /health/simple` returns `{ status, service, environment }`. There is no `/health/ready`.
+`GET /health/simple` is the liveness probe: it returns `{ status, service, environment }`.
+`GET /health/ready` is the dependency-aware readiness probe (ADS-1327): it actively probes the
+gateway's backing dependencies and returns `200 { status: 'ok', service, environment, checks }`
+when all are reachable, or `503 { status: 'degraded', … }` with a per-dependency breakdown when
+one is down. NATS is a hard dependency; the rate-limit Redis is degraded-tolerant and never gates
+`ok`. Both routes are registered in `services/gateway/src/server.ts`; every backing service
+exposes the same pair on its own container port. There is no aggregated `/health` or
+`/api/v1/health` route.

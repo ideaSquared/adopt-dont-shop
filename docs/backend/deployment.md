@@ -132,9 +132,14 @@ For destructive or long migrations see [`docs/migrations/schema-equivalence-runb
 
 ## Health and observability
 
-- `GET /health/simple` — the sole health endpoint the gateway exposes
-  (liveness only, no DB touch). Every backing service exposes the same
-  path on its own container port.
+- `GET /health/simple` — liveness probe (no dependency touch). Every
+  backing service exposes the same path on its own container port.
+- `GET /health/ready` — dependency-aware readiness probe (ADS-1327):
+  actively probes the service's backing dependencies (DB/NATS/Redis as
+  configured) and returns `503 {status:'degraded'}` with a per-dependency
+  breakdown when any hard dependency is unreachable. The gateway and every
+  backing service expose it; deploy health gates should target this, not
+  liveness alone.
 - Swagger UI at `/docs` (served by `@fastify/swagger-ui` on the gateway,
   with the raw OpenAPI JSON at `/openapi.json`).
 - `/metrics` — Prometheus text exposition on the gateway and each service.
