@@ -545,6 +545,21 @@ describe('adminResetPassword', () => {
     const res = await adminResetPassword(mocks.deps, SUPER_ADMIN, { userId: 'usr-target' });
     expect(res.temporaryPassword).toBeTruthy();
   });
+
+  // --- ADS-1363: stamp the revocation watermark -------------------------
+
+  it('ADS-1363: stamps tokens_valid_from so a live access token is rejected immediately, not just refresh', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] }); // UPDATE auth.users
+    mocks.clientScript.push({ rows: [] }); // UPDATE auth.refresh_tokens
+
+    await adminResetPassword(mocks.deps, ADMIN, { userId: 'usr-1' });
+
+    const updateCall = mocks.clientMock.query.mock.calls.find(
+      call => typeof call[0] === 'string' && call[0].includes('UPDATE auth.users')
+    );
+    expect(String(updateCall?.[0])).toContain('tokens_valid_from = now()');
+  });
 });
 
 // --- adminLockAccount / adminUnlockAccount ----------------------------
