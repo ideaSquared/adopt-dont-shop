@@ -568,7 +568,7 @@ export async function adminResetPassword(
       `
       UPDATE auth.users
       SET password = $1, login_attempts = 0, locked_until = NULL,
-          updated_at = now(), version = version + 1
+          tokens_valid_from = now(), updated_at = now(), version = version + 1
       WHERE user_id = $2 AND deleted_at IS NULL
       RETURNING user_id
       `,
