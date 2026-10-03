@@ -49,10 +49,12 @@
     "nats": "^2.29.3",
     "node-pg-migrate": "^8.0.4",
     "pg": "^8.22.0",
+    "sanitize-html": "^2.18.0",
     "winston": "^3.19.0"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-node": "workspace:*",
-    "@types/pg": "^8.15.5"
+    "@types/pg": "^8.15.5",
+    "@types/sanitize-html": "^2.16.2"
   }
 }
