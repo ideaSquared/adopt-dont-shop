@@ -1689,6 +1689,75 @@ describe('assignRole', () => {
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
+  it.each([
+    AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+    AuthV1.UserRole.USER_ROLE_ADMIN,
+    AuthV1.UserRole.USER_ROLE_MODERATOR,
+  ])(
+    'PERMISSION_DENIED when a non-super_admin assigns elevated role %s to another user',
+    async role => {
+      await expect(
+        assignRole(mocks.deps, ADMIN_PRINCIPAL, {
+          targetUserId: 'usr-1',
+          role,
+        })
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+      expect(mocks.poolMock.query).not.toHaveBeenCalled();
+    }
+  );
+
+  it('PERMISSION_DENIED when a non-super_admin self-assigns super_admin', async () => {
+    await expect(
+      assignRole(mocks.deps, ADMIN_PRINCIPAL, {
+        targetUserId: ADMIN_PRINCIPAL.userId,
+        role: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('PERMISSION_DENIED when a super_admin self-assigns an elevated role', async () => {
+    await expect(
+      assignRole(mocks.deps, SUPER_ADMIN_PRINCIPAL, {
+        targetUserId: SUPER_ADMIN_PRINCIPAL.userId,
+        role: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('a super_admin can still assign an elevated role to another user', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })
+      .mockResolvedValueOnce({ rows: [{ role_id: 'role-1' }] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] })
+      .mockResolvedValueOnce({ rows: [{ name: 'admin' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const res = await assignRole(mocks.deps, SUPER_ADMIN_PRINCIPAL, {
+      targetUserId: 'usr-1',
+      role: AuthV1.UserRole.USER_ROLE_ADMIN,
+    });
+    expect(res.roles).toContain(AuthV1.UserRole.USER_ROLE_ADMIN);
+  });
+
+  it('an admin can still assign a non-elevated role', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })
+      .mockResolvedValueOnce({ rows: [{ role_id: 'role-1' }] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [{ name: 'rescue_staff' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const res = await assignRole(mocks.deps, ADMIN_PRINCIPAL, {
+      targetUserId: 'usr-1',
+      role: AuthV1.UserRole.USER_ROLE_RESCUE_STAFF,
+    });
+    expect(res.roles).toContain(AuthV1.UserRole.USER_ROLE_RESCUE_STAFF);
+  });
+
   it('upserts user_roles and publishes auth.roleAssigned after commit', async () => {
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })

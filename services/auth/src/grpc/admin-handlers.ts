@@ -210,7 +210,7 @@ export async function adminGetUser(
 
 // user_type values an ordinary admin may NOT mint — only a super_admin
 // can create another elevated account (privilege-escalation guard).
-const ELEVATED_ROLES: ReadonlySet<string> = new Set(['admin', 'moderator', 'super_admin']);
+export const ELEVATED_ROLES: ReadonlySet<string> = new Set(['admin', 'moderator', 'super_admin']);
 
 // Invitation tokens are short-lived; the invitee must redeem within a week.
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
