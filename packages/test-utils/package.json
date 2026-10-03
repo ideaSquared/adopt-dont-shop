@@ -33,7 +33,7 @@
     "@adopt-dont-shop/authz": "workspace:*",
     "@adopt-dont-shop/db": "workspace:*",
     "@adopt-dont-shop/lib.types": "workspace:*",
-    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/grpc-js": "^1.14.5",
     "nats": "^2.29.3",
     "pg": "^8.22.0",
     "tsx": "^4.19.2",
