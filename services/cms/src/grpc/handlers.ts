@@ -18,6 +18,7 @@
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
+import sanitizeHtml from 'sanitize-html';
 import {
   CMS_CONTENT_CREATE as CONTENT_CREATE,
   CMS_CONTENT_DELETE as CONTENT_DELETE,
@@ -332,6 +333,57 @@ function assertSafeFeaturedImageUrl(url: string): void {
   }
 }
 
+// ADS-1362: `content` is persisted as raw HTML with no write-boundary
+// defense; stored-XSS safety rested entirely on every render site
+// remembering to go through client-side DOMPurify (SafeHtml). Sanitize at
+// the write boundary so persisted content is safe regardless of render
+// path — render-time SafeHtml stays on as defense-in-depth.
+const CONTENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'p',
+    'br',
+    'hr',
+    'strong',
+    'b',
+    'em',
+    'i',
+    'u',
+    's',
+    'blockquote',
+    'pre',
+    'code',
+    'ul',
+    'ol',
+    'li',
+    'a',
+    'img',
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
+    'span',
+    'div',
+  ],
+  allowedAttributes: {
+    a: ['href', 'title', 'target', 'rel'],
+    img: ['src', 'alt', 'title', 'width', 'height'],
+  },
+  allowedSchemes: ['https', 'mailto'],
+  allowProtocolRelative: false,
+};
+
+function sanitizeContentHtml(html: string): string {
+  return sanitizeHtml(html, CONTENT_SANITIZE_OPTIONS);
+}
+
 // --- Public reads ---------------------------------------------------
 
 export async function listPublicContent(
@@ -551,7 +603,7 @@ export async function createContent(
   if (contentType === null) {
     throw new HandlerError('INVALID_ARGUMENT', 'content_type is required');
   }
-  const body = req.content ?? '';
+  const body = sanitizeContentHtml(req.content ?? '');
   if (req.featuredImageUrl !== undefined) {
     assertSafeFeaturedImageUrl(req.featuredImageUrl);
   }
@@ -638,7 +690,8 @@ export async function updateContent(
       throw new HandlerError('INVALID_ARGUMENT', 'slug must be lowercase alphanumerics + hyphens');
     }
     const newTitle = req.title?.trim() || current.title;
-    const newContent = req.content ?? current.content;
+    const newContent =
+      req.content !== undefined ? sanitizeContentHtml(req.content) : current.content;
     const newExcerpt = req.excerpt ?? current.excerpt;
 
     // Append a new version if title/content/excerpt actually changed.

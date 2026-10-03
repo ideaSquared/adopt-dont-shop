@@ -495,6 +495,44 @@ describe('createContent', () => {
     expect(res.content?.featuredImageUrl).toBe('/images/hero.jpg');
   });
 
+  it('sanitizes a malicious content payload before persisting (ADS-1362)', async () => {
+    mocks.clientScript.push({ rows: [contentRow()] });
+    await createContent(mocks.deps, ADMIN, {
+      title: 'Hello',
+      slug: 'hello',
+      contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+      content: '<p>Safe text</p><script>alert(1)</script><img src="x" onerror="alert(1)">',
+      metaKeywords: [],
+    });
+    const insertCall = mocks.clientMock.query.mock.calls.find(c => /^INSERT/i.test(String(c[0])));
+    const persisted = (insertCall![1] as unknown[])[3] as string;
+    expect(persisted).not.toContain('<script');
+    expect(persisted).not.toContain('onerror');
+    expect(persisted).toContain('<p>Safe text</p>');
+  });
+
+  it('preserves benign formatting HTML (ADS-1362)', async () => {
+    mocks.clientScript.push({ rows: [contentRow()] });
+    const benign =
+      '<h2>Title</h2><p>Some <strong>bold</strong> text with a <a href="https://example.com">link</a>.</p><ul><li>one</li><li>two</li></ul><img src="/images/hero.jpg" alt="hero">';
+    await createContent(mocks.deps, ADMIN, {
+      title: 'Hello',
+      slug: 'hello',
+      contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+      content: benign,
+      metaKeywords: [],
+    });
+    const insertCall = mocks.clientMock.query.mock.calls.find(c => /^INSERT/i.test(String(c[0])));
+    const persisted = (insertCall![1] as unknown[])[3] as string;
+    expect(persisted).toContain('<h2>Title</h2>');
+    expect(persisted).toContain('<strong>bold</strong>');
+    expect(persisted).toContain('<a href="https://example.com">link</a>');
+    expect(persisted).toContain('<li>one</li>');
+    expect(persisted).toContain('<li>two</li>');
+    expect(persisted).toContain('src="/images/hero.jpg"');
+    expect(persisted).toContain('alt="hero"');
+  });
+
   it('recreates a slug whose only prior row was soft-deleted (ADS-1182)', async () => {
     // create → soft-delete → recreate the same slug. After migration 005 the
     // slug UNIQUE constraint is partial (WHERE deleted_at IS NULL), so a slug
@@ -637,6 +675,21 @@ describe('updateContent', () => {
       setMetaKeywords: false,
     });
     expect(res.content?.featuredImageUrl).toBe('/images/hero.jpg');
+  });
+
+  it('sanitizes a malicious content payload on update (ADS-1362)', async () => {
+    mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
+    mocks.clientScript.push({ rows: [contentRow({ current_version: 2 })] });
+    await updateContent(mocks.deps, ADMIN, {
+      contentId: 'c-1',
+      content: '<p>Safe</p><script>alert(1)</script><img src="x" onerror="alert(1)">',
+      setMetaKeywords: false,
+    });
+    const updateCall = mocks.clientMock.query.mock.calls.find(c => /^UPDATE/i.test(String(c[0])));
+    const persisted = (updateCall![1] as unknown[])[1] as string;
+    expect(persisted).not.toContain('<script');
+    expect(persisted).not.toContain('onerror');
+    expect(persisted).toContain('<p>Safe</p>');
   });
 });
 
