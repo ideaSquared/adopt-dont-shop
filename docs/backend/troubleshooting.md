@@ -30,7 +30,9 @@ route.
 curl http://localhost:4000/health/simple
 # Expected: {"status":"ok","service":"service.gateway","environment":"development"}
 curl http://localhost:4000/health/ready
-# 200 {"status":"ok",...,"checks":{...}} when deps are reachable; 503 {"status":"degraded",...} otherwise
+# 200 {"status":"ok",...,"checks":{...}} while hard dependencies (NATS) are reachable;
+# 503 {"status":"degraded",...} when one is down. The optional rate-limit Redis reports
+# "redis":"error" in checks but does not change the status.
 ```
 
 Each backing service exposes the same `/health/simple` and `/health/ready` pair on its container

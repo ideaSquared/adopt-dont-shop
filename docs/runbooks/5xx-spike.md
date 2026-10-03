@@ -63,7 +63,8 @@ Match the symptom to a cause:
 
 The gateway exposes `/health/simple` (liveness — `200 ok`) and
 `/health/ready` (readiness — `200 ok` with a per-dependency `checks`
-block, or `503 degraded` when a backing dependency is down). There is no
+block, or `503 degraded` when a hard dependency is down; the optional
+rate-limit Redis shows as `redis: error` in `checks` but stays `200`). There is no
 aggregated `/api/v1/health` route; for the full per-dependency picture hit
 `/health/ready` or inspect the containers directly:
 
