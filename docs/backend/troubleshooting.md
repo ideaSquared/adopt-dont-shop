@@ -22,16 +22,21 @@ docker compose logs -f service-auth
 
 ## Health diagnostics
 
-The gateway exposes one liveness probe, `/health/simple`, on port 4000. There is no aggregated
-`/health` or `/health/ready` route.
+The gateway exposes a liveness probe, `/health/simple`, and a dependency-aware readiness probe,
+`/health/ready` (ADS-1327), on port 4000. There is no aggregated `/health` or `/api/v1/health`
+route.
 
 ```bash
 curl http://localhost:4000/health/simple
 # Expected: {"status":"ok","service":"service.gateway","environment":"development"}
+curl http://localhost:4000/health/ready
+# 200 {"status":"ok",...,"checks":{...}} while hard dependencies (NATS) are reachable;
+# 503 {"status":"degraded",...} when one is down. The optional rate-limit Redis reports
+# "redis":"error" in checks but does not change the status.
 ```
 
-Each backing service exposes its own `/health/simple` on its container port (5001–5010, bound to
-127.0.0.1). Check one service, or the whole fleet's container state:
+Each backing service exposes the same `/health/simple` and `/health/ready` pair on its container
+port (5001–5010, bound to 127.0.0.1). Check one service, or the whole fleet's container state:
 
 ```bash
 docker compose exec service-pets curl -fsS http://localhost:5002/health/simple
