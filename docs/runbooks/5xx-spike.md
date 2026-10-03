@@ -61,9 +61,12 @@ Match the symptom to a cause:
 | Whole domain 404s, `unmatched API route` warns in gateway logs   | Backing service unreachable at its `*_GRPC_URL` | `docker compose -f docker-compose.prod.yml ps` + gateway logs |
 | Errors confined to one route, no other signal                    | Application bug on a code path                  | continue below                                                |
 
-The gateway only exposes `/health/simple` (liveness — `200 ok`). There
-is no aggregated `/api/v1/health` route; check per-dependency state by
-inspecting the containers directly:
+The gateway exposes `/health/simple` (liveness — `200 ok`) and
+`/health/ready` (readiness — `200 ok` with a per-dependency `checks`
+block, or `503 degraded` when a hard dependency is down; the optional
+rate-limit Redis shows as `redis: error` in `checks` but stays `200`). There is no
+aggregated `/api/v1/health` route; for the full per-dependency picture hit
+`/health/ready` or inspect the containers directly:
 
 ```bash
 # Backing services + infrastructure
