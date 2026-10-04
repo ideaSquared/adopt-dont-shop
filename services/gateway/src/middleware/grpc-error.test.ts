@@ -226,6 +226,29 @@ describe('handleGrpcError', () => {
     expect(reply.send).toHaveBeenCalledWith({ error: 'email already registered' });
   });
 
+  // ── ADS-1364: the allowlist above only forwards INVALID_ARGUMENT,
+  // NOT_FOUND, ALREADY_EXISTS. Every other 4xx — including codes not yet
+  // anticipated — must fail closed to a generic message, not fall through
+  // to forwarding upstream text by default.
+
+  it('sends a generic message for ABORTED, not the upstream details', () => {
+    handleGrpcError(
+      { code: status.ABORTED, details: 'row version 4 held by lock owner usr-123' },
+      reply
+    );
+    expect(reply.code).toHaveBeenCalledWith(409);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'conflict' });
+  });
+
+  it('sends a generic message for RESOURCE_EXHAUSTED, not the upstream details', () => {
+    handleGrpcError(
+      { code: status.RESOURCE_EXHAUSTED, details: 'quota bucket tenant-7 exhausted' },
+      reply
+    );
+    expect(reply.code).toHaveBeenCalledWith(429);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'rate_limited' });
+  });
+
   // ── Return value ───────────────────────────────────────────────────────────
 
   it('returns the FastifyReply instance', () => {
