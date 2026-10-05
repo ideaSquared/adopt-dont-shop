@@ -48,20 +48,30 @@ const GENERIC_5XX_MESSAGE: Record<number, string> = {
   504: 'gateway_timeout',
 };
 
-// ADS-973: forwarding upstream `details`/`message` verbatim for every 4xx
-// assumed every downstream service is disciplined about what it puts in a
-// 4xx message — no test enforced that, and some services echo untrusted
-// input into error strings. Per-code allowlist instead:
+// ADS-973, inverted by ADS-1364: forwarding upstream `details`/`message`
+// verbatim for every 4xx not on a deny-list assumed every downstream service
+// is disciplined about what it puts in a 4xx message — no test enforced
+// that, some services echo untrusted input into error strings, and any code
+// absent from the deny-list (e.g. ABORTED, RESOURCE_EXHAUSTED) fell through
+// to forwarding by default. Explicit forward-ALLOWLIST instead, so an
+// unlisted code fails closed to a generic message:
 //   INVALID_ARGUMENT, NOT_FOUND, ALREADY_EXISTS — validation / business-logic
 //   errors that are meant for the caller, so the upstream text is forwarded.
-//   PERMISSION_DENIED, FAILED_PRECONDITION, UNAUTHENTICATED — may echo
-//   internal identifiers or policy detail, so a generic message is sent
-//   instead; the upstream text is still available server-side (whatever
-//   logged the original error), never in the HTTP response.
+//   Every other 4xx gets a generic per-code message; the upstream text is
+//   still available server-side (whatever logged the original error), never
+//   in the HTTP response.
+const FORWARD_4XX_CODES = new Set<number>([
+  status.INVALID_ARGUMENT,
+  status.NOT_FOUND,
+  status.ALREADY_EXISTS,
+]);
+
 const GENERIC_4XX_MESSAGE: Record<number, string> = {
   [status.PERMISSION_DENIED]: 'forbidden',
   [status.FAILED_PRECONDITION]: 'precondition failed',
   [status.UNAUTHENTICATED]: 'unauthenticated',
+  [status.ABORTED]: 'conflict',
+  [status.RESOURCE_EXHAUSTED]: 'rate_limited',
 };
 
 export const handleGrpcError = (err: unknown, reply: FastifyReply): FastifyReply => {
@@ -72,12 +82,12 @@ export const handleGrpcError = (err: unknown, reply: FastifyReply): FastifyReply
       .code(httpStatus)
       .send({ error: GENERIC_5XX_MESSAGE[httpStatus] ?? 'internal_error' });
   }
+  if (grpcErr?.code !== undefined && FORWARD_4XX_CODES.has(grpcErr.code)) {
+    return reply.code(httpStatus).send({
+      error: grpcErr.details ?? grpcErr.message ?? 'internal_error',
+    });
+  }
   const genericMessage =
     grpcErr?.code !== undefined ? GENERIC_4XX_MESSAGE[grpcErr.code] : undefined;
-  if (genericMessage) {
-    return reply.code(httpStatus).send({ error: genericMessage });
-  }
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
+  return reply.code(httpStatus).send({ error: genericMessage ?? 'request_failed' });
 };
