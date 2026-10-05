@@ -176,9 +176,9 @@ export type CreateServerOptions = {
   logger?: ReturnType<typeof createLogger>;
   // gRPC client to service.notifications. Optional so smoke tests
   // that only exercise /health/simple don't have to wire the gRPC
-  // transport — when omitted, /api/notifications/* falls through to
-  // the catch-all proxy (i.e. still hits the monolith). Real boot
-  // always supplies it from index.ts.
+  // transport — when omitted, /api/notifications/* routes aren't
+  // registered and fall to the 404 handler. Real boot always
+  // supplies it from index.ts.
   notificationsClient?: NotificationsClient;
   // gRPC client to service.auth — wires the authenticate middleware
   // (Phase 2.5). Optional for the same reason as notificationsClient:
@@ -210,12 +210,11 @@ export type CreateServerOptions = {
   // optional shape.
   chatClient?: ChatClient;
   // gRPC client to service.cms. Same optional shape — when omitted,
-  // /api/v1/cms/* falls through to the catch-all proxy.
+  // /api/v1/cms/* routes aren't registered and fall to the 404 handler.
   cmsClient?: CmsClient;
   // NATS connection used by the GDPR erasure-request route to publish
   // `gdpr.erasureRequested`. Optional in tests; when omitted the route
-  // is skipped (falls through to the catch-all proxy, which means
-  // erasure is monolith-owned).
+  // is skipped, so the path falls to the 404 handler.
   nats?: import('nats').NatsConnection;
 };
 
@@ -479,10 +478,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   });
 
   // Authentication middleware runs as an onRequest hook on EVERY
-  // request, BEFORE any route or the catch-all proxy. The order
-  // matters: spoofable identity headers get stripped here, so even a
-  // request that ends up at the catch-all proxy can't carry forged
-  // x-user-* headers to the monolith.
+  // request, BEFORE any route. The order matters: spoofable identity
+  // headers get stripped here, so no request can carry forged
+  // x-user-* headers through to a downstream service.
   if (opts.authClient) {
     await registerAuthenticate(server, {
       authClient: opts.authClient,
@@ -835,9 +833,8 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
 
   // GDPR erasure-request route — only enabled when NATS is wired (real
   // boot always wires it; smoke tests that mount only /health/simple
-  // skip). When unwired the route doesn't register, which means
-  // /api/v1/users/me/erasure-request falls through to the catch-all
-  // proxy → monolith, preserving today's behaviour.
+  // skip). When unwired the route doesn't register, so
+  // /api/v1/users/me/erasure-request falls to the 404 handler.
   if (opts.nats) {
     await registerGdprRoutes(server, {
       nats: opts.nats,

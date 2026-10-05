@@ -100,7 +100,7 @@ RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --frozen-lockfile --store-dir=/pnpm/store
 
 RUN --mount=type=cache,target=/app/.turbo \
-    pnpm exec turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
+    pnpm exec turbo run build --filter=...@adopt-dont-shop/app.${APP_NAME}
 ```
 
 Result: 40-60% faster builds on warm cache, smaller layer graph.
@@ -222,9 +222,9 @@ pnpm secrets:generate >> .env.production
 docker build --build-arg SERVICE=@adopt-dont-shop/service.gateway --build-arg SERVICE_DIR=services/gateway \
   --target production -f Dockerfile.service -t adopt-dont-shop/service-gateway:latest .
 
-# Frontend (any app)
+# Frontend (any app — APP_NAME is the bare app name; Dockerfile.app adds the `app.` prefix)
 docker build \
-  --build-arg APP_NAME=app.client \
+  --build-arg APP_NAME=client \
   --target production \
   -f Dockerfile.app \
   -t adopt-dont-shop/app-client:latest .

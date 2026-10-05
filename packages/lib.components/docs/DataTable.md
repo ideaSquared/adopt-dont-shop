@@ -27,7 +27,7 @@ const columns: DataTableColumn[] = [
 | `columns`                                   | `DataTableColumn[]`                            | Yes      | —                 | Column defs (`key`, `label`, optional `render`, `sortable`, `width`, `align`). |
 | `rows`                                      | `Record<string, unknown>[]`                    | Yes      | —                 | Row data.                                                                      |
 | `title`                                     | `string`                                       | No       | —                 | `ChartFrame` heading; optional in frameless mode.                              |
-| `pageSize`                                  | `number`                                       | No       | —                 | Client-side page size.                                                         |
+| `pageSize`                                  | `number`                                       | No       | `25`              | Client-side page size.                                                         |
 | `loading`                                   | `boolean`                                      | No       | `false`           | Render skeleton rows instead of data.                                          |
 | `onRowClick`                                | `(row) => void`                                | No       | —                 | Row click handler (drill-down).                                                |
 | `responsive`                                | `'scroll' \| 'cards'`                          | No       | `'scroll'`        | Small-screen behaviour.                                                        |

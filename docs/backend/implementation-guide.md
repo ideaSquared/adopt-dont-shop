@@ -357,7 +357,7 @@ curl -X POST http://localhost:4000/api/v1/email/templates/<templateId>/preview \
   -d '{ "variables": { "firstName": "Ada" } }'
 ```
 
-To add a brand-new template, `POST /api/v1/email/templates` with the template body + subject + variables, or insert a seed row in `services/notifications/src/db/seed.ts` for it to land on every fresh stack.
+To add a brand-new template, `POST /api/v1/email/templates` with the template body + subject + variables — the notifications service treats `email_templates` as a read surface (it ships no template seeder), so this admin CRUD route is the only way to add one.
 
 ## Gateway view adapters (response shape)
 

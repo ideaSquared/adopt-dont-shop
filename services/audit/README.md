@@ -77,8 +77,9 @@ gated on the `view Audit` ability (admin+). `super_admin` bypasses.
 
 Schema (`audit`): `audit_events` (append-only, PK `event_id`),
 `gdpr_erasure_requests` (saga state per `correlation_id`), `saved_reports`,
-`report_templates`, `saved_report_schedules`, and `saved_report_shares`.
-Migrations: `src/migrations/001`–`008`. (This service consumes events rather
+`report_templates`, `saved_report_schedules`, `saved_report_shares`, and
+`scheduled_job_runs` (per-replica scheduled-job claims, PK `(job_name, scheduled_for)`).
+Migrations: `src/migrations/001`–`010`. (This service consumes events rather
 than publishing them, so it owns no `event_outbox` table.)
 
 **NATS** — consumes `*.actionTaken` (persist an immutable event, idempotent on
