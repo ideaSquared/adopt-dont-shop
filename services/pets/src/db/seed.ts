@@ -107,9 +107,15 @@ const petParams = (p: SeedPet): readonly unknown[] => [
   PAWS_MANAGER_ID,
 ];
 
+// Staging is a deployed, often internet-reachable environment — treated the
+// same as production by every other staging-aware guard in this codebase
+// (ADS-1339, ADS-1271). Seeding it provisions elevated-role accounts with a
+// shared default password, so it must fail closed unless explicitly
+// overridden, the same as production (ADS-1375).
 export const assertNotProduction = (): void => {
-  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PROD_SEED !== 'true') {
-    throw new Error('Refusing to run db:seed in production. Set ALLOW_PROD_SEED=true to override.');
+  const env = process.env.NODE_ENV;
+  if ((env === 'production' || env === 'staging') && process.env.ALLOW_PROD_SEED !== 'true') {
+    throw new Error(`Refusing to run db:seed in ${env}. Set ALLOW_PROD_SEED=true to override.`);
   }
 };
 
