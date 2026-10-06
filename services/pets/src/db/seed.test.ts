@@ -23,6 +23,26 @@ describe('production guard', () => {
     expect(() => assertNotProduction()).not.toThrow();
   });
 
+  // ADS-1375: staging is a deployed, often internet-reachable environment —
+  // treated the same way as production by every other staging-aware guard
+  // in this codebase (ADS-1339, ADS-1271), so seeding it must fail closed
+  // too, the same as production.
+  it('throws when NODE_ENV is staging and ALLOW_PROD_SEED is not set', () => {
+    vi.stubEnv('NODE_ENV', 'staging');
+    vi.stubEnv('ALLOW_PROD_SEED', '');
+
+    expect(() => assertNotProduction()).toThrowError(
+      'Refusing to run db:seed in staging. Set ALLOW_PROD_SEED=true to override.'
+    );
+  });
+
+  it('permits seeding when NODE_ENV is staging and ALLOW_PROD_SEED=true', () => {
+    vi.stubEnv('NODE_ENV', 'staging');
+    vi.stubEnv('ALLOW_PROD_SEED', 'true');
+
+    expect(() => assertNotProduction()).not.toThrow();
+  });
+
   it('permits seeding in non-production environments', () => {
     vi.stubEnv('NODE_ENV', 'development');
 
