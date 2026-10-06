@@ -238,9 +238,13 @@ services:
     # container metadata; no `privileged`, matching this stack's hardening —
     # some accelerator/device metrics cAdvisor can expose are unavailable
     # without it, which this stack doesn't need.
+    # ADS-1376: no /var/run (or docker.sock) mount — cAdvisor doesn't need
+    # the Docker API for the cgroup/sysfs/var-lib-docker metrics above, and
+    # mounting it would let a compromised cAdvisor process issue full Docker
+    # API calls (launch a privileged container, bind-mount host /, etc.),
+    # a host-root-equivalent escape that `:ro` on the bind does not prevent.
     volumes:
       - /:/rootfs:ro
-      - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
     expose:
