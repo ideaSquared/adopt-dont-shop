@@ -212,6 +212,18 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/host/root:ro
+    # ADS-1376: the deploy host materialises production secrets as plaintext
+    # files under /opt/ads/<env>/secrets/ (scripts/deploy-secrets.sh), which
+    # the /:/host/root:ro mount above would otherwise expose. Shadow that
+    # subtree with an empty, unreadable tmpfs — it mounts inside this
+    # container's own namespace only, so it doesn't appear in the host's
+    # /proc/mounts and has no effect on the "/" filesystem stats the
+    # HostDiskSpaceLow alert reads (statfs on a mountpoint is unaffected by
+    # mounts nested deeper in its tree). mode=000 plus this stack's
+    # `cap_drop: ALL` means not even a root process in the container can
+    # bypass it.
+    tmpfs:
+      - /host/root/opt/ads:size=1k,mode=000
     read_only: true
     expose:
       - '9100'
@@ -247,6 +259,13 @@ services:
       - /:/rootfs:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
+    # ADS-1376: shadow /opt/ads/<env>/secrets/* the same way node-exporter
+    # does above — /:/rootfs:ro would otherwise expose the plaintext
+    # production secrets deploy-secrets.sh writes there. cAdvisor's
+    # container_fs_*/machine metrics come from /var/lib/docker and cgroups,
+    # not /opt/ads, so this has no effect on what it reports.
+    tmpfs:
+      - /rootfs/opt/ads:size=1k,mode=000
     expose:
       - '8080'
     healthcheck:
