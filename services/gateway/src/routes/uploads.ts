@@ -375,6 +375,8 @@ async function tryRedirectToProvider(
 }
 
 async function streamFile(resolved: string, reply: FastifyReply): Promise<FastifyReply> {
+  // Serve the declared type only — never let a browser sniff upload bytes into another type.
+  void reply.header('X-Content-Type-Options', 'nosniff');
   let stats: fs.Stats;
   try {
     stats = await fs.promises.stat(resolved);
@@ -396,7 +398,6 @@ async function streamFile(resolved: string, reply: FastifyReply): Promise<Fastif
   // Defence-in-depth against historical SVG uploads — block inline render.
   if (ext === '.svg' || ext === '.svgz') {
     void reply.header('Content-Disposition', 'attachment');
-    void reply.header('X-Content-Type-Options', 'nosniff');
   }
   void reply.header('Cache-Control', 'private, max-age=300');
 

@@ -393,6 +393,52 @@ describe('GET /uploads-signed/:expiresAt/:signature/*', () => {
     expect(res.rawPayload.length).toBeGreaterThan(0);
   });
 
+  it('forbids MIME sniffing on served image bytes (ADS-1379)', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60;
+    const filePath = 'pets/kitten.jpg';
+    const signature = computeUploadSignature(filePath, expiresAt, SECRET);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/${signature}/${filePath}`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+  });
+
+  it('forbids MIME sniffing on served PDFs while keeping them inline (ADS-1379)', async () => {
+    writeFileSync(join(tmp, 'pets', 'adoption-form.pdf'), Buffer.from('%PDF-1.4 test'));
+    const expiresAt = Math.floor(Date.now() / 1000) + 60;
+    const filePath = 'pets/adoption-form.pdf';
+    const signature = computeUploadSignature(filePath, expiresAt, SECRET);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/${signature}/${filePath}`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['content-disposition']).toBe('inline');
+  });
+
+  it('serves legacy SVG uploads as a nosniff attachment (ADS-1379)', async () => {
+    writeFileSync(join(tmp, 'pets', 'legacy.svg'), Buffer.from('<svg xmlns="x"/>'));
+    const expiresAt = Math.floor(Date.now() / 1000) + 60;
+    const filePath = 'pets/legacy.svg';
+    const signature = computeUploadSignature(filePath, expiresAt, SECRET);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/${signature}/${filePath}`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-disposition']).toBe('attachment');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+  });
+
   it('returns 410 when expiresAt has passed', async () => {
     const expiresAt = Math.floor(Date.now() / 1000) - 1;
     const signature = computeUploadSignature('pets/kitten.jpg', expiresAt, SECRET);
@@ -453,6 +499,7 @@ describe('GET /uploads-signed/:expiresAt/:signature/*', () => {
       url: `/uploads-signed/${expiresAt}/${signature}/${filePath}`,
     });
     expect(res.statusCode).toBe(404);
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
   });
 
   it('returns 404 when the resolved path is a directory, not a file', async () => {
