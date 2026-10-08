@@ -983,6 +983,94 @@ describe('createServer — security headers (Helmet)', () => {
   });
 });
 
+// ADS-1378: the gateway used to disable CSP entirely and rely on nginx, so any
+// path that bypasses nginx (the default `pnpm docker:dev` profile, an internal
+// LB, a debug run) had no CSP at all. The policy mirrors the API-host policy in
+// deploy/gateway/nginx.conf, so a browser behind nginx sees two agreeing values.
+describe('createServer — Content-Security-Policy (ADS-1378)', () => {
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  const directivesOf = (header: unknown): Map<string, string[]> => {
+    expect(typeof header).toBe('string');
+    return new Map(
+      String(header)
+        .split(';')
+        .map(part => part.trim().split(/\s+/))
+        .filter(([name]) => name)
+        .map(([name, ...values]) => [name, values])
+    );
+  };
+
+  it('sends a strict CSP on JSON API responses', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    const csp = directivesOf(res.headers['content-security-policy']);
+
+    expect(csp.get('default-src')).toEqual(["'self'"]);
+    expect(csp.get('script-src')).toEqual(["'self'"]);
+    expect(csp.get('style-src')).toEqual(["'self'"]);
+    expect(csp.get('frame-ancestors')).toEqual(["'none'"]);
+    expect(csp.get('object-src')).toEqual(["'none'"]);
+    expect(csp.get('base-uri')).toEqual(["'self'"]);
+    expect(csp.get('form-action')).toEqual(["'self'"]);
+  });
+
+  it('never allows unsafe-eval or unsafe-inline anywhere in the policy', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+
+    expect(res.headers['content-security-policy']).not.toMatch(/unsafe-(eval|inline)/);
+  });
+
+  it('does not force https upgrades, which would break the plain-http dev profile', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+
+    expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
+  });
+
+  it('serves Swagger UI at /docs under the same policy, with nothing inline to relax', async () => {
+    const page = await server.inject({ method: 'GET', url: '/docs' });
+
+    expect(page.statusCode).toBe(200);
+    expect(page.headers['content-type']).toContain('text/html');
+    expect(page.headers['content-security-policy']).not.toMatch(/unsafe-(eval|inline)/);
+
+    // script-src 'self' / style-src 'self' only render the page if every script
+    // is an external same-origin file and there is no inline <style> or style="".
+    const html = page.body;
+    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)];
+    expect(scripts.length).toBeGreaterThan(0);
+    for (const [, attrs, body] of scripts) {
+      expect(attrs).toMatch(/\bsrc="[^"]+"/);
+      expect(body?.trim()).toBe('');
+    }
+    expect(html).not.toMatch(/<style\b/i);
+    expect(html).not.toMatch(/\sstyle=/i);
+
+    // Every script and stylesheet the page loads is a same-origin gateway
+    // asset, and is served under the policy too.
+    const origin = 'http://gateway.test';
+    const assetUrls = [...html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)="([^"]+)"/g)].map(
+      match => new URL(match[1] ?? '', `${origin}/docs`)
+    );
+    expect(assetUrls.length).toBeGreaterThan(0);
+    for (const assetUrl of assetUrls) {
+      expect(assetUrl.origin).toBe(origin);
+      const asset = await server.inject({ method: 'GET', url: assetUrl.pathname });
+      expect(asset.statusCode).toBe(200);
+      expect(asset.headers['content-security-policy']).toBe(
+        page.headers['content-security-policy']
+      );
+    }
+  });
+});
+
 // ---------------------------------------------------------------------------
 // CORS headers
 // ---------------------------------------------------------------------------
