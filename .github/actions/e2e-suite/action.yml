@@ -181,7 +181,7 @@ runs:
       # layer caching. Design notes:
       #
       # PER-TARGET scopes (scope=e2e-<service>): GHA cache writes are
-      # last-write-wins per scope, so a single shared scope with 12 targets
+      # last-write-wins per scope, so a single shared scope with 14 targets
       # exporting concurrently thrashes — each save evicts the previous
       # target's layers and the hit rate collapses.
       #
@@ -194,8 +194,8 @@ runs:
       #   - mode=max would additionally export intermediates like the
       #     `pruner` stage, whose COPY-the-whole-repo layer changes every
       #     commit — pure churn, several GB per scope, guaranteed eviction
-      #     pressure across 12 scopes;
-      #   - estimated mode=min footprint: ~0.3-0.6GB x 12 scopes. Layers
+      #     pressure across 14 scopes;
+      #   - estimated mode=min footprint: ~0.3-0.6GB x 14 scopes. Layers
       #     shared between images are still stored once per scope — the
       #     price of not thrashing;
       #   - ignore-error=true: a cache-backend outage degrades to an
