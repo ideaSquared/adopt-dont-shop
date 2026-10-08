@@ -57,7 +57,7 @@ rate-limit store (falls back to in-memory with a `warn` if Redis is
 unreachable):
 
 ```bash
-NATS_URL=nats://localhost:4222 REDIS_URL=redis://localhost:6380 \
+NATS_URL=nats://localhost:4222 REDIS_URL=redis://localhost:6379 \
 AUTH_GRPC_URL=localhost:6002 PETS_GRPC_URL=localhost:6003 …other *_GRPC_URL \
 pnpm --filter @adopt-dont-shop/service.gateway dev
 ```
