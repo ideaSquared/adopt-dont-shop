@@ -159,6 +159,40 @@ describe('findCadvisorUnsafeMounts', () => {
     ]);
   });
 
+  it('flags a quoted short-syntax /var/run bind-mount on cadvisor', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      ['services:', '  cadvisor:', '    volumes:', '      - "/var/run:/var/run:ro"'].join('\n') +
+        '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    expect(failures).toEqual([
+      { file: 'docker-compose.observability.yml', line: 4, mount: '/var/run' },
+    ]);
+  });
+
+  it('flags a quoted long-syntax source on cadvisor', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  cadvisor:',
+        '    volumes:',
+        '      - type: bind',
+        "        source: '/var/run'",
+        '        target: /var/run',
+      ].join('\n') + '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    expect(failures).toEqual([
+      { file: 'docker-compose.observability.yml', line: 5, mount: '/var/run' },
+    ]);
+  });
+
   it('accepts cadvisor mounts that omit /var/run and docker.sock', () => {
     writeFileSync(
       join(root, 'docker-compose.observability.yml'),
@@ -388,7 +422,34 @@ describe('findUnsafeSocketProxyConfig', () => {
     );
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason:
+          'unexpected location `^(/v[0-9][0-9.]*)?/containers/[^/]+/archive$` — only the 5 documented endpoints may reach docker_socket',
+      },
       { file: 'server.conf', reason: 'must not reference "archive"' },
+    ]);
+  });
+
+  it('flags a broad /containers/ prefix location added alongside the 5 exact ones', () => {
+    writeFileSync(
+      join(root, 'server.conf'),
+      [
+        ...ALLOWED_LOCATIONS,
+        // No forbidden keyword appears here at all — "containers" is
+        // required by the legitimate locations too — so only the
+        // exact-selector check catches this one.
+        'location ~ ^/containers/ { proxy_pass http://docker_socket; }',
+        DENY_BY_DEFAULT,
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason:
+          'unexpected location `^/containers/` — only the 5 documented endpoints may reach docker_socket',
+      },
     ]);
   });
 
@@ -416,10 +477,33 @@ describe('findUnsafeSocketProxyConfig', () => {
       ].join('\n') + '\n'
     );
 
+    const failures = findUnsafeSocketProxyConfig('server.conf', root);
+
+    // Every one of the 5 locations lost its method restriction, and this
+    // check verifies it per location, not "at least one exists somewhere".
+    expect(failures).toHaveLength(5);
+    expect(
+      failures.every(f => f.reason.includes('must restrict itself to GET with limit_except'))
+    ).toBe(true);
+  });
+
+  it('flags a config where only one location is missing limit_except GET', () => {
+    writeFileSync(
+      join(root, 'server.conf'),
+      [
+        ...ALLOWED_LOCATIONS.slice(0, 4),
+        // Allowed selector, but no method restriction — distinguishable
+        // from an *unexpected* location, which this isn't.
+        'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/json$ { proxy_pass http://docker_socket; }',
+        DENY_BY_DEFAULT,
+      ].join('\n') + '\n'
+    );
+
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
       {
         file: 'server.conf',
-        reason: 'every location must restrict itself to GET with limit_except',
+        reason:
+          'location `^(/v[0-9][0-9.]*)?/containers/[^/]+/json$` must restrict itself to GET with limit_except',
       },
     ]);
   });
@@ -438,7 +522,15 @@ describe('findUnsafeSocketProxyConfig', () => {
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([]);
   });
 
-  it('returns nothing when the file is absent', () => {
-    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([]);
+  it('flags a missing file as a failure, not an exemption', () => {
+    // Compose requires server.conf to configure the only container with
+    // access to the real docker.sock — deleting it entirely must fail this
+    // guard, since the proxy would otherwise have no allow-list at all.
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason: 'file is missing — docker-socket-proxy has no allow-list configured at all',
+      },
+    ]);
   });
 });

@@ -46,23 +46,31 @@ const SECRETS_MASKS = [
   { service: 'cadvisor', tmpfsPath: '/rootfs/opt/ads' },
 ];
 
-// cAdvisor's only legitimate reasons to talk to the Docker API at all (see
-// server.conf for the exact nginx `location` blocks these correspond to).
-const PROXY_REQUIRED_ENDPOINTS = [
-  { label: 'GET /containers/json (container list)', pattern: /\/containers\/json\$/ },
+// cAdvisor's only legitimate reasons to talk to the Docker API at all. These
+// are matched as exact nginx `location` *selectors* (see
+// parseNginxLocationBlocks below) — not substrings — so a `location` added
+// for anything else, however it's phrased, is an "unexpected location"
+// failure regardless of whether it happens to contain one of the forbidden
+// keywords below.
+const EXPECTED_PROXY_LOCATIONS = [
+  { label: "GET /_ping (this proxy's own healthcheck)", selector: '^(/v[0-9][0-9.]*)?/_ping$' },
+  { label: 'GET /version (API version negotiation)', selector: '^(/v[0-9][0-9.]*)?/version$' },
+  { label: 'GET /info (cAdvisor startup handshake)', selector: '^(/v[0-9][0-9.]*)?/info$' },
+  {
+    label: 'GET /containers/json (container list)',
+    selector: '^(/v[0-9][0-9.]*)?/containers/json$',
+  },
   {
     label: 'GET /containers/{id}/json (inspect -> name label)',
-    pattern: /\/containers\/\[\^\/\]\+\/json\$/,
+    selector: '^(/v[0-9][0-9.]*)?/containers/[^/]+/json$',
   },
-  { label: 'GET /info (cAdvisor startup handshake)', pattern: /\/info\$/ },
-  { label: 'GET /version (API version negotiation)', pattern: /\/version\$/ },
-  { label: "GET /_ping (this proxy's own healthcheck)", pattern: /\/_ping\$/ },
 ];
-// Anything beyond the 5 endpoints above — archive/export/logs/attach/exec
-// (file or stream access to *any* container), and every other API section
-// (images, volumes, networks, secrets, auth, swarm, …) — must never appear
-// in this file. This is deliberately broader than "just block archive";
-// a `location` block added for any of these would also need to be caught.
+const DENY_ALL_SELECTOR = '/';
+const LIMIT_TO_GET_PATTERN = /limit_except\s+GET\s*\{\s*deny\s+all;?\s*\}/;
+
+// Defense in depth alongside the exact-selector check above: catches a
+// dangerous directive added somewhere that isn't a `location` block at all
+// (e.g. a stray `proxy_pass`/`allow all` in the `server` block itself).
 const PROXY_FORBIDDEN_KEYWORDS = [
   'archive',
   'export',
@@ -89,6 +97,41 @@ const PROXY_FORBIDDEN_KEYWORDS = [
 
 function leadingSpaces(line) {
   return line.match(/^(\s*)/)[1].length;
+}
+
+// Strips one matching pair of surrounding quotes, if present — a quoted
+// Compose scalar's `:` characters are literal, not syntax, so the quotes
+// must come off before splitting a short-syntax mount on `:`.
+function stripQuotes(token) {
+  const first = token[0];
+  const last = token[token.length - 1];
+  if (token.length >= 2 && (first === '"' || first === "'") && first === last) {
+    return token.slice(1, -1);
+  }
+  return token;
+}
+
+// Parses nginx `location [~] <selector> { ... }` blocks, tracking brace
+// depth so a block's `body` is everything up to its own matching `}` (not
+// the next literal `}`, which could belong to a nested block like
+// `limit_except`). Good enough for our own fixed, simple file — not a
+// general nginx-config parser.
+function parseNginxLocationBlocks(content) {
+  const blocks = [];
+  const header = /location\s+(~\s*)?([^{]+?)\s*\{/g;
+  let match;
+  while ((match = header.exec(content)) !== null) {
+    const braceIndex = match.index + match[0].length - 1;
+    let depth = 1;
+    let i = braceIndex + 1;
+    while (i < content.length && depth > 0) {
+      if (content[i] === '{') depth++;
+      else if (content[i] === '}') depth--;
+      i++;
+    }
+    blocks.push({ selector: match[2].trim(), body: content.slice(braceIndex + 1, i - 1) });
+  }
+  return blocks;
 }
 
 function getServiceLines(lines, service) {
@@ -134,18 +177,21 @@ export function findCadvisorUnsafeMounts(file, root = ROOT) {
   service.serviceLines.forEach((line, offset) => {
     const sources = [];
 
-    // Compose short syntax: `- /var/run:/var/run:ro` (source is the first
-    // colon-delimited segment — paths never contain a literal `:` on
-    // Linux, so splitting on it is safe).
+    // Compose short syntax: `- /var/run:/var/run:ro`, optionally quoted as
+    // a single YAML scalar (`- "/var/run:/var/run:ro"`), whose `:` are then
+    // literal, not syntax — strip matching quotes before splitting. Source
+    // is the first colon-delimited segment (paths never contain a literal
+    // `:` on Linux, so splitting on it is safe once quotes are gone).
     const shortMatch = line.match(/^\s*-\s*(\S+)\s*$/);
-    if (shortMatch) sources.push(shortMatch[1].split(':')[0]);
+    if (shortMatch) sources.push(stripQuotes(shortMatch[1]).split(':')[0]);
 
-    // Compose long syntax (`source: /var/run` on its own line) *and*
-    // inline-mapping syntax (`- { type: bind, source: /var/run, target:
-    // /var/run }`) — both contain the substring `source: <value>`
-    // somewhere on the line, so one unanchored regex catches both.
-    const sourceMatch = line.match(/\bsource:\s*([^\s,}'"]+)/);
-    if (sourceMatch) sources.push(sourceMatch[1]);
+    // Compose long syntax (`source: /var/run` or `source: '/var/run'` on
+    // its own line) *and* inline-mapping syntax (`- { type: bind, source:
+    // /var/run, target: /var/run }`) — both contain the substring
+    // `source: <value>` somewhere on the line, optionally quoted, so one
+    // unanchored regex catches both.
+    const sourceMatch = line.match(/\bsource:\s*(['"]?)([^\s,}'"]+)\1/);
+    if (sourceMatch) sources.push(sourceMatch[2]);
 
     for (const source of sources) {
       if (UNSAFE_SOURCE_PATTERN.test(source)) {
@@ -182,7 +228,13 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
   try {
     rawContent = readFileSync(join(root, file), 'utf8');
   } catch {
-    return []; // file absent — nothing to guard
+    // Missing, not "nothing to guard": Compose requires this file to
+    // configure the only container with access to the real docker.sock, so
+    // its absence is itself the security failure, not an exemption from
+    // checking for one.
+    return [
+      { file, reason: 'file is missing — docker-socket-proxy has no allow-list configured at all' },
+    ];
   }
 
   // Strip comment lines before scanning — this file's own explanatory
@@ -195,25 +247,48 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
     .join('\n');
 
   const failures = [];
-  for (const { label, pattern } of PROXY_REQUIRED_ENDPOINTS) {
-    if (!pattern.test(content)) {
+  const blocks = parseNginxLocationBlocks(content);
+  const denyBlock = blocks.find(block => block.selector === DENY_ALL_SELECTOR);
+  const proxyingBlocks = blocks.filter(block => block.selector !== DENY_ALL_SELECTOR);
+
+  const seenSelectors = new Set();
+  for (const { selector, body } of proxyingBlocks) {
+    const expected = EXPECTED_PROXY_LOCATIONS.find(location => location.selector === selector);
+    if (!expected) {
+      failures.push({
+        file,
+        reason: `unexpected location \`${selector}\` — only the 5 documented endpoints may reach docker_socket`,
+      });
+      continue;
+    }
+    seenSelectors.add(selector);
+    if (!LIMIT_TO_GET_PATTERN.test(body)) {
+      failures.push({
+        file,
+        reason: `location \`${selector}\` must restrict itself to GET with limit_except`,
+      });
+    }
+  }
+
+  for (const { label, selector } of EXPECTED_PROXY_LOCATIONS) {
+    if (!seenSelectors.has(selector)) {
       failures.push({ file, reason: `missing required endpoint: ${label}` });
     }
   }
-  for (const word of PROXY_FORBIDDEN_KEYWORDS) {
-    if (new RegExp(`\\b${word}\\b`, 'i').test(content)) {
-      failures.push({ file, reason: `must not reference "${word}"` });
-    }
-  }
-  if (!/limit_except\s+GET/.test(content)) {
-    failures.push({ file, reason: 'every location must restrict itself to GET with limit_except' });
-  }
-  if (!/location\s*\/\s*\{\s*return 403/.test(content)) {
+
+  if (!denyBlock || !/return\s+403/.test(denyBlock.body)) {
     failures.push({
       file,
       reason: 'must deny by default for any unmatched path (`location / { return 403; }`)',
     });
   }
+
+  for (const word of PROXY_FORBIDDEN_KEYWORDS) {
+    if (new RegExp(`\\b${word}\\b`, 'i').test(content)) {
+      failures.push({ file, reason: `must not reference "${word}"` });
+    }
+  }
+
   return failures;
 }
 
