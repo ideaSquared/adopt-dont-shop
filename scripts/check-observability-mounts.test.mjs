@@ -9,6 +9,7 @@ import {
   findCadvisorUnsafeMounts,
   findMissingSecretsMasks,
   findUnsafeSocketProxyConfig,
+  PROXY_CONF_FILE,
 } from './check-observability-mounts.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -22,8 +23,8 @@ describe('the real docker-compose.observability.yml (ADS-1376)', () => {
     expect(findMissingSecretsMasks(COMPOSE_FILE, REPO_ROOT)).toEqual([]);
   });
 
-  it('keeps docker-socket-proxy scoped to read-only /containers + /info', () => {
-    expect(findUnsafeSocketProxyConfig(COMPOSE_FILE, REPO_ROOT)).toEqual([]);
+  it('keeps the real docker-socket-proxy nginx config to an exact-path allow-list', () => {
+    expect(findUnsafeSocketProxyConfig(PROXY_CONF_FILE, REPO_ROOT)).toEqual([]);
   });
 });
 
@@ -57,7 +58,7 @@ describe('findCadvisorUnsafeMounts', () => {
     const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
 
     expect(failures).toEqual([
-      { file: 'docker-compose.observability.yml', line: 5, mount: '/var/run:/var/run:ro' },
+      { file: 'docker-compose.observability.yml', line: 5, mount: '/var/run' },
     ]);
   });
 
@@ -76,6 +77,42 @@ describe('findCadvisorUnsafeMounts', () => {
     );
 
     expect(findCadvisorUnsafeMounts('docker-compose.observability.yml', root)).toHaveLength(1);
+  });
+
+  it('flags a /var/run mount with a trailing slash on the source', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      ['services:', '  cadvisor:', '    volumes:', '      - /var/run/:/var/run:ro'].join('\n') +
+        '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    expect(failures).toEqual([
+      { file: 'docker-compose.observability.yml', line: 4, mount: '/var/run/' },
+    ]);
+  });
+
+  it('flags a non-docker host socket nested under /var/run', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  cadvisor:',
+        '    volumes:',
+        '      - /var/run/podman/podman.sock:/run/podman.sock:ro',
+      ].join('\n') + '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    expect(failures).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        line: 4,
+        mount: '/var/run/podman/podman.sock',
+      },
+    ]);
   });
 
   it('flags a long-syntax /var/run bind-mount on cadvisor', () => {
@@ -100,6 +137,25 @@ describe('findCadvisorUnsafeMounts', () => {
 
     expect(failures).toEqual([
       { file: 'docker-compose.observability.yml', line: 6, mount: '/var/run' },
+    ]);
+  });
+
+  it('flags an inline-mapping-syntax /var/run bind-mount on cadvisor', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  cadvisor:',
+        '    volumes:',
+        '      - /:/rootfs:ro',
+        '      - { type: bind, source: /var/run, target: /var/run }',
+      ].join('\n') + '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    expect(failures).toEqual([
+      { file: 'docker-compose.observability.yml', line: 5, mount: '/var/run' },
     ]);
   });
 
@@ -172,7 +228,7 @@ describe('findMissingSecretsMasks', () => {
     ]);
   });
 
-  it('accepts masks present via tmpfs', () => {
+  it('accepts masks present via tmpfs with mode=000', () => {
     writeFileSync(
       join(root, 'docker-compose.observability.yml'),
       [
@@ -191,6 +247,30 @@ describe('findMissingSecretsMasks', () => {
     );
 
     expect(findMissingSecretsMasks('docker-compose.observability.yml', root)).toEqual([]);
+  });
+
+  it('flags a mask whose tmpfs options omit mode=000', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  cadvisor:',
+        '    volumes:',
+        '      - /:/rootfs:ro',
+        '    tmpfs:',
+        // Readable by anyone — leaves the production secrets exposed,
+        // contrary to the whole point of this mask.
+        '      - /rootfs/opt/ads:size=1k,mode=755',
+      ].join('\n') + '\n'
+    );
+
+    expect(findMissingSecretsMasks('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        service: 'cadvisor',
+        tmpfsPath: '/rootfs/opt/ads',
+      },
+    ]);
   });
 
   it('flags only the service missing its mask', () => {
@@ -263,74 +343,102 @@ describe('findUnsafeSocketProxyConfig', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('accepts a proxy scoped to CONTAINERS + INFO with POST/AUTH/SECRETS unset', () => {
+  const ALLOWED_LOCATIONS = [
+    'location ~ ^(/v[0-9][0-9.]*)?/_ping$ { limit_except GET { deny all; } proxy_pass http://docker_socket; }',
+    'location ~ ^(/v[0-9][0-9.]*)?/version$ { limit_except GET { deny all; } proxy_pass http://docker_socket; }',
+    'location ~ ^(/v[0-9][0-9.]*)?/info$ { limit_except GET { deny all; } proxy_pass http://docker_socket; }',
+    'location ~ ^(/v[0-9][0-9.]*)?/containers/json$ { limit_except GET { deny all; } proxy_pass http://docker_socket; }',
+    'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/json$ { limit_except GET { deny all; } proxy_pass http://docker_socket; }',
+  ];
+  const DENY_BY_DEFAULT = 'location / { return 403; }';
+
+  it('accepts an exact-path allow-list with no forbidden endpoints', () => {
     writeFileSync(
-      join(root, 'docker-compose.observability.yml'),
-      [
-        'services:',
-        '  docker-socket-proxy:',
-        '    environment:',
-        '      CONTAINERS: 1',
-        '      INFO: 1',
-        '      POST: 0',
-        '  cadvisor:',
-        '    volumes:',
-        '      - /:/rootfs:ro',
-      ].join('\n') + '\n'
+      join(root, 'server.conf'),
+      [...ALLOWED_LOCATIONS, DENY_BY_DEFAULT].join('\n') + '\n'
     );
 
-    expect(findUnsafeSocketProxyConfig('docker-compose.observability.yml', root)).toEqual([]);
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([]);
   });
 
-  it('flags a proxy missing CONTAINERS or INFO', () => {
+  it('flags a config missing one of the required endpoints', () => {
     writeFileSync(
-      join(root, 'docker-compose.observability.yml'),
-      ['services:', '  docker-socket-proxy:', '    environment:', '      INFO: 1'].join('\n') + '\n'
+      join(root, 'server.conf'),
+      [...ALLOWED_LOCATIONS.slice(0, 4), DENY_BY_DEFAULT].join('\n') + '\n'
     );
 
-    expect(findUnsafeSocketProxyConfig('docker-compose.observability.yml', root)).toEqual([
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
       {
-        file: 'docker-compose.observability.yml',
-        service: 'docker-socket-proxy',
-        reason: 'CONTAINERS must be set to 1',
+        file: 'server.conf',
+        reason: 'missing required endpoint: GET /containers/{id}/json (inspect -> name label)',
       },
     ]);
   });
 
-  it('flags a proxy with POST, AUTH or SECRETS enabled', () => {
+  it('flags a config that also allows the archive endpoint (arbitrary file download)', () => {
     writeFileSync(
-      join(root, 'docker-compose.observability.yml'),
+      join(root, 'server.conf'),
       [
-        'services:',
-        '  docker-socket-proxy:',
-        '    environment:',
-        '      CONTAINERS: 1',
-        '      INFO: 1',
-        '      POST: 1',
-        '      SECRETS: 1',
+        ...ALLOWED_LOCATIONS,
+        // This is exactly the finding this check exists to catch: granting
+        // read access wide enough to also cover GET /containers/{id}/archive.
+        'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/archive$ { limit_except GET { deny all; } proxy_pass http://docker_socket; }',
+        DENY_BY_DEFAULT,
       ].join('\n') + '\n'
     );
 
-    expect(findUnsafeSocketProxyConfig('docker-compose.observability.yml', root)).toEqual([
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      { file: 'server.conf', reason: 'must not reference "archive"' },
+    ]);
+  });
+
+  it('flags a config missing the deny-by-default catch-all', () => {
+    writeFileSync(join(root, 'server.conf'), ALLOWED_LOCATIONS.join('\n') + '\n');
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
       {
-        file: 'docker-compose.observability.yml',
-        service: 'docker-socket-proxy',
-        reason: 'POST must not be set to 1',
-      },
-      {
-        file: 'docker-compose.observability.yml',
-        service: 'docker-socket-proxy',
-        reason: 'SECRETS must not be set to 1',
+        file: 'server.conf',
+        reason: 'must deny by default for any unmatched path (`location / { return 403; }`)',
       },
     ]);
   });
 
-  it('returns nothing when the service is absent', () => {
+  it('flags a config missing limit_except GET on its allowed locations', () => {
     writeFileSync(
-      join(root, 'docker-compose.observability.yml'),
-      ['services:', '  grafana:'].join('\n') + '\n'
+      join(root, 'server.conf'),
+      [
+        'location ~ ^(/v[0-9][0-9.]*)?/_ping$ { proxy_pass http://docker_socket; }',
+        'location ~ ^(/v[0-9][0-9.]*)?/version$ { proxy_pass http://docker_socket; }',
+        'location ~ ^(/v[0-9][0-9.]*)?/info$ { proxy_pass http://docker_socket; }',
+        'location ~ ^(/v[0-9][0-9.]*)?/containers/json$ { proxy_pass http://docker_socket; }',
+        'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/json$ { proxy_pass http://docker_socket; }',
+        DENY_BY_DEFAULT,
+      ].join('\n') + '\n'
     );
 
-    expect(findUnsafeSocketProxyConfig('docker-compose.observability.yml', root)).toEqual([]);
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason: 'every location must restrict itself to GET with limit_except',
+      },
+    ]);
+  });
+
+  it('does not false-positive on explanatory comments naming the forbidden endpoints', () => {
+    writeFileSync(
+      join(root, 'server.conf'),
+      [
+        '# Unlike a prefix-based ACL, this never allows GET /containers/{id}/archive,',
+        '# /exec, /secrets, /images, /volumes, /networks, /auth, /build or /swarm.',
+        ...ALLOWED_LOCATIONS,
+        DENY_BY_DEFAULT,
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([]);
+  });
+
+  it('returns nothing when the file is absent', () => {
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([]);
   });
 });

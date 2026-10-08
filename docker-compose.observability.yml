@@ -244,31 +244,32 @@ services:
 
   # ADS-1376: the only container with access to the real docker.sock.
   # cAdvisor talks to this proxy instead of the raw socket (see its `command`
-  # below), so a compromised cAdvisor process gets this proxy's narrow
-  # read-only allow-list — launching a privileged container or bind-mounting
-  # host / is a 403 here — instead of the full Docker API a direct, even
-  # `:ro`, socket bind-mount would hand it (`:ro` on a bind-mounted unix
-  # socket blocks writing *files* into the mount, not connecting to the
-  # socket itself). CONTAINERS is the only API section granted — cAdvisor
-  # needs GET /containers/{list,json} for the Docker-assigned container name
-  # the ContainerRestarting alert filters on (infra/prometheus/rules/
-  # host-resources.yml:70; cAdvisor's own cgroup/sysfs discovery never
-  # populates that name). INFO is also required — cAdvisor's Docker
-  # integration calls GET /info once at startup to validate the daemon
-  # before it enables itself at all (container/docker/factory.go's
-  # `Register` → `ValidateInfo`), so without it cAdvisor silently never
-  # attaches the name label, from a mask that *looks* like it's working.
-  # POST (and everything else, incl. AUTH/SECRETS) stays off by default —
-  # this proxy is strictly GET-only.
+  # below), so a compromised cAdvisor process gets this proxy's exact-path
+  # allow-list — launching a privileged container, bind-mounting host /, or
+  # reading another container's files via GET /containers/{id}/archive (see
+  # observability/docker-socket-proxy/server.conf for why a prefix-based ACL
+  # — e.g. tecnativa/docker-socket-proxy's CONTAINERS=1 — isn't tight enough
+  # to rule that last one out) is a 403 here, instead of the full Docker API
+  # a direct, even `:ro`, socket bind-mount would hand it. Also on its own
+  # `docker-proxy-internal` network (below), not the shared `default`
+  # network every app service sits on, so no *other* compromised container
+  # can reach it either. See server.conf for exactly which 5 endpoints are
+  # allowed and why cAdvisor needs each one, and nginx.conf (mounted as the
+  # main config, not a conf.d fragment) for why its worker process has to
+  # run as root.
   docker-socket-proxy:
     <<: *obs-hardening
-    image: tecnativa/docker-socket-proxy:0.5.0@sha256:753044cb0851ce53ab44c2504872ff02ae37be9c294fa8abea3754074e61eab4
+    image: nginx:1.27-alpine@sha256:62223d644fa234c3a1cc785ee14242ec47a77364226f1c811d2f669f96dc2ac8
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    environment:
-      CONTAINERS: 1
-      INFO: 1
-      POST: 0
+      - ./observability/docker-socket-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./observability/docker-socket-proxy/server.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - docker-proxy-internal
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=8m,mode=1777
+      - /var/run:size=1m,mode=1777
     expose:
       - '2375'
     healthcheck:
@@ -296,12 +297,17 @@ services:
     # without it, which this stack doesn't need.
     # ADS-1376: no /var/run (or docker.sock) mount on cAdvisor itself — see
     # docker-socket-proxy above for why cAdvisor still needs *some* Docker
-    # API access, and why it's routed through that proxy instead.
+    # API access, and why it's routed through that proxy instead. Needs
+    # both networks: `default` so Prometheus can still scrape it, and
+    # `docker-proxy-internal` to reach the proxy, which isn't on `default`.
     depends_on:
       docker-socket-proxy:
         condition: service_healthy
     command:
       - '--docker=tcp://docker-socket-proxy:2375'
+    networks:
+      - default
+      - docker-proxy-internal
     volumes:
       - /:/rootfs:ro
       - /sys:/sys:ro
@@ -424,6 +430,17 @@ services:
         reservations:
           cpus: '0.05'
           memory: 32m
+
+# ADS-1376: docker-socket-proxy is the only container with access to the
+# real docker.sock, so it must not be reachable from the base file's shared
+# `default` network every app service also sits on — otherwise any
+# compromised app container (not just a compromised cAdvisor) could reach
+# it directly. Internal-only: no gateway to the outside, and nothing in the
+# base files attaches to it, so only services that explicitly list it below
+# (docker-socket-proxy, cadvisor) can reach each other on it.
+networks:
+  docker-proxy-internal:
+    internal: true
 
 volumes:
   prometheus_data:
