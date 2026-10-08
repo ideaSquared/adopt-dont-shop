@@ -121,11 +121,11 @@ On top of everything in the table above:
 
 #### Optional (Third-Party Services)
 
-| Secret              | Purpose        | Where to Get            |
-| ------------------- | -------------- | ----------------------- |
-| `SENDGRID_API_KEY`  | Email sending  | SendGrid Dashboard      |
-| `AWS_ACCESS_KEY_ID` | File storage   | AWS IAM                 |
-| `SENTRY_DSN`        | Error tracking | Sentry Project Settings |
+| Secret              | Purpose                    | Where to Get            |
+| ------------------- | -------------------------- | ----------------------- |
+| `RESEND_API_KEY`    | Email sending (production) | Resend Dashboard        |
+| `AWS_ACCESS_KEY_ID` | File storage               | AWS IAM                 |
+| `SENTRY_DSN`        | Error tracking             | Sentry Project Settings |
 
 ## Docker Secrets
 
