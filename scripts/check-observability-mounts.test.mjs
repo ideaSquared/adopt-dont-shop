@@ -115,6 +115,19 @@ describe('findCadvisorUnsafeMounts', () => {
     ]);
   });
 
+  it('flags a /run bind-mount (the symlink target /var/run resolves to)', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      ['services:', '  cadvisor:', '    volumes:', '      - /run:/run:ro'].join('\n') + '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    expect(failures).toEqual([
+      { file: 'docker-compose.observability.yml', line: 4, mount: '/run' },
+    ]);
+  });
+
   it('flags a long-syntax /var/run bind-mount on cadvisor', () => {
     writeFileSync(
       join(root, 'docker-compose.observability.yml'),

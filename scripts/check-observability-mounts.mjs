@@ -35,11 +35,14 @@ export const COMPOSE_FILE = 'docker-compose.observability.yml';
 export const PROXY_CONF_FILE = 'observability/docker-socket-proxy/server.conf';
 
 // Matches on the mount SOURCE only (never the target or options) — a `/`
-// or end-of-string boundary after `/var/run` so `/var/run/anything` is
-// caught, not just `/var/run` exactly, and any source ending in `.sock`
-// (podman, containerd, cri-dockerd, docker — any host-control socket, not
-// just docker.sock specifically, and wherever it's bind-mounted from).
-const UNSAFE_SOURCE_PATTERN = /^\/var\/run(\/|$)|\.sock$/i;
+// or end-of-string boundary after `/var/run` *or* `/run` (on a standard
+// Linux host `/var/run` is a symlink to `/run`, so `- /run:/run:ro` exposes
+// exactly the same docker.sock without ever mentioning `/var/run`) so
+// `/(var/)?run/anything` is caught, not just `/var/run` exactly — plus any
+// source ending in `.sock` (podman, containerd, cri-dockerd, docker — any
+// host-control socket, not just docker.sock specifically, and wherever
+// it's bind-mounted from).
+const UNSAFE_SOURCE_PATTERN = /^\/(var\/)?run(\/|$)|\.sock$/i;
 
 const SECRETS_MASKS = [
   { service: 'node-exporter', tmpfsPath: '/host/root/opt/ads' },
