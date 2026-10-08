@@ -72,6 +72,16 @@ jobs:
               - '**/Dockerfile*'
               - 'docker-compose*.yml'
               - '.dockerignore'
+              # Root build inputs the Dockerfiles consume (workspace/turbo/
+              # tsconfig bases) and docs/legal, which Dockerfile.service bakes
+              # in and the smoke job checks via /api/v1/legal/terms. Without
+              # these, a change to them alone would skip every image job and
+              # the gate would report the required check green untested.
+              - 'pnpm-workspace.yaml'
+              - '.npmrc'
+              - 'turbo.json'
+              - 'tsconfig*.json'
+              - 'docs/legal/**'
               - '.github/workflows/docker.yml'
 
   # ============================================================================
