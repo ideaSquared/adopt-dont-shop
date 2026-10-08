@@ -32,3 +32,18 @@
 - name: "run-e2e"
   color: "16a34a"
   description: "Run the full Playwright E2E suite on this PR"
+
+# Applied by Renovate (renovate.json `labels` / `vulnerabilityAlerts.labels`).
+# `dependencies` keeps the colour and description GitHub already gives it, so
+# the sync is a no-op for that label.
+- name: "dependencies"
+  color: "0366d6"
+  description: "Pull requests that update a dependency file"
+
+- name: "DevEx"
+  color: "14b8a6"
+  description: "Developer experience: tooling, CI and local workflow"
+
+- name: "security"
+  color: "b91c1c"
+  description: "Security fixes and vulnerability alerts"

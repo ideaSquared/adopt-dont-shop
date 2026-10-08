@@ -11,8 +11,8 @@ inputs:
     description: >-
       Which Playwright subset to run: "full" (default — the complete suite, for
       the opt-in test-e2e job) or "smoke" (the @smoke-tagged headline journeys:
-      auth, adoption application, chat, gateway login — for the advisory
-      test-e2e-smoke PR job, ADS-1242).
+      auth, adoption application, chat, gateway login — for the required
+      test-e2e-smoke PR job, ADS-1242 / ADS-1321).
     required: false
     default: 'full'
 runs:
@@ -181,7 +181,7 @@ runs:
       # layer caching. Design notes:
       #
       # PER-TARGET scopes (scope=e2e-<service>): GHA cache writes are
-      # last-write-wins per scope, so a single shared scope with 12 targets
+      # last-write-wins per scope, so a single shared scope with 14 targets
       # exporting concurrently thrashes — each save evicts the previous
       # target's layers and the hit rate collapses.
       #
@@ -194,8 +194,8 @@ runs:
       #   - mode=max would additionally export intermediates like the
       #     `pruner` stage, whose COPY-the-whole-repo layer changes every
       #     commit — pure churn, several GB per scope, guaranteed eviction
-      #     pressure across 12 scopes;
-      #   - estimated mode=min footprint: ~0.3-0.6GB x 12 scopes. Layers
+      #     pressure across 14 scopes;
+      #   - estimated mode=min footprint: ~0.3-0.6GB x 14 scopes. Layers
       #     shared between images are still stored once per scope — the
       #     price of not thrashing;
       #   - ignore-error=true: a cache-backend outage degrades to an
@@ -331,7 +331,7 @@ runs:
       # Two callers (ADS-1242):
       #   - the opt-in test-e2e job (main push / `run-e2e` label / dispatch)
       #     wants complete integration coverage → mode: full (default).
-      #   - the advisory test-e2e-smoke PR job runs only the @smoke-tagged
+      #   - the required test-e2e-smoke PR job runs only the @smoke-tagged
       #     headline journeys for a fast pre-merge signal → mode: smoke.
       #
       # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
