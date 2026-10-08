@@ -376,3 +376,260 @@ describe('cms gateway routes', () => {
     expect(res.statusCode).toBe(404);
   });
 });
+
+// ADS-1366 — content create/update bodies are closed (unknown keys → 400),
+// bounded (maxLength) and require the fields the CMS service itself requires.
+// Caps mirror cms_content's varchar columns (title/slug/meta_title 500,
+// featured_image_url 2000); TEXT columns have no DB limit, so content sits just
+// under the gateway's 1 MiB default body limit and excerpt / meta description /
+// change note get generous-but-finite caps.
+describe('cms content body validation (ADS-1366)', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof makeClient>['mocks'];
+
+  beforeEach(async () => {
+    app = Fastify({ logger: false });
+    const { client, mocks: m } = makeClient();
+    mocks = m;
+    mocks.createContent.mockResolvedValue({ content: CONTENT_FIXTURE });
+    mocks.updateContent.mockResolvedValue({ content: CONTENT_FIXTURE });
+    await registerCmsRoutes(app, { client });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  const VALID_CREATE = { title: 'Hello', slug: 'hello', contentType: 'page', content: 'body' };
+
+  // One character over the cap. featuredImageUrl uses a same-origin path so the
+  // cap, not the URL safety check (ADS-1350), is what rejects it.
+  const overlong = (field: string, max: number): string =>
+    field === 'featuredImageUrl' ? `/${'a'.repeat(max)}` : 'a'.repeat(max + 1);
+
+  const create = (payload: Record<string, unknown>) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/v1/cms/content',
+      headers: ADMIN_HEADERS,
+      payload,
+    });
+  const update = (payload: Record<string, unknown>) =>
+    app.inject({
+      method: 'PUT',
+      url: '/api/v1/cms/content/c-1',
+      headers: ADMIN_HEADERS,
+      payload,
+    });
+
+  describe('POST /content', () => {
+    it('rejects an unexpected extra field with 400 and never calls the service', async () => {
+      const res = await create({ ...VALID_CREATE, isAdmin: true });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({
+        success: false,
+        error: expect.stringContaining('isAdmin'),
+      });
+      expect(mocks.createContent).not.toHaveBeenCalled();
+    });
+
+    it('rejects content above the 1,000,000 character cap and accepts content at it', async () => {
+      const tooBig = await create({ ...VALID_CREATE, content: 'a'.repeat(1_000_001) });
+      expect(tooBig.statusCode).toBe(400);
+      expect(tooBig.json()).toMatchObject({
+        success: false,
+        error: expect.stringContaining('content'),
+      });
+      expect(mocks.createContent).not.toHaveBeenCalled();
+
+      const atCap = await create({ ...VALID_CREATE, content: 'a'.repeat(1_000_000) });
+      expect(atCap.statusCode).toBe(201);
+    });
+
+    it.each([
+      ['title', 500],
+      ['slug', 500],
+      ['metaTitle', 500],
+      ['featuredImageUrl', 2000],
+      ['excerpt', 10_000],
+      ['metaDescription', 10_000],
+    ])('rejects a %s longer than %i characters', async (field, max) => {
+      const res = await create({ ...VALID_CREATE, [field]: overlong(field, max) });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ success: false, error: expect.stringContaining(field) });
+      expect(mocks.createContent).not.toHaveBeenCalled();
+    });
+
+    it.each(['title', 'slug', 'contentType'])(
+      'rejects a body without %s instead of coercing it to an empty string',
+      async field => {
+        const body: Record<string, unknown> = { ...VALID_CREATE };
+        delete body[field];
+        const res = await create(body);
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toMatchObject({
+          success: false,
+          error: expect.stringContaining(field),
+        });
+        expect(mocks.createContent).not.toHaveBeenCalled();
+      }
+    );
+
+    it('rejects a request with no body', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/cms/content',
+        headers: ADMIN_HEADERS,
+      });
+      expect(res.statusCode).toBe(400);
+      expect(mocks.createContent).not.toHaveBeenCalled();
+    });
+
+    it('rejects a field of the wrong type instead of stringifying it', async () => {
+      const res = await create({ ...VALID_CREATE, title: { $ne: null } });
+      expect(res.statusCode).toBe(400);
+      expect(mocks.createContent).not.toHaveBeenCalled();
+    });
+
+    it('forwards the exact payload the admin editor sends', async () => {
+      const res = await create({
+        title: 'Adoption guide',
+        slug: 'adoption-guide',
+        contentType: 'help_article',
+        content: '<p>Hello</p>',
+        excerpt: 'Short',
+        metaTitle: 'Guide',
+        metaDescription: 'A guide',
+        metaKeywords: ['adopt', 'guide'],
+        featuredImageUrl: '/images/hero.jpg',
+        scheduledPublishAt: '2026-12-01T09:00',
+        scheduledUnpublishAt: '2026-12-31T09:00',
+      });
+      expect(res.statusCode).toBe(201);
+      expect(mocks.createContent.mock.calls[0][0]).toMatchObject({
+        title: 'Adoption guide',
+        slug: 'adoption-guide',
+        contentType: CmsV1.ContentType.CONTENT_TYPE_HELP_ARTICLE,
+        content: '<p>Hello</p>',
+        excerpt: 'Short',
+        metaTitle: 'Guide',
+        metaDescription: 'A guide',
+        metaKeywords: ['adopt', 'guide'],
+        featuredImageUrl: '/images/hero.jpg',
+        scheduledPublishAt: '2026-12-01T09:00',
+        scheduledUnpublishAt: '2026-12-31T09:00',
+      });
+    });
+
+    it('still accepts the snake_case aliases the route has always honoured', async () => {
+      const res = await create({
+        title: 'Hello',
+        slug: 'hello',
+        content_type: 'blog_post',
+        meta_title: 'T',
+        meta_description: 'D',
+        meta_keywords: ['k'],
+        featured_image_url: '/images/hero.jpg',
+      });
+      expect(res.statusCode).toBe(201);
+      expect(mocks.createContent.mock.calls[0][0]).toMatchObject({
+        contentType: CmsV1.ContentType.CONTENT_TYPE_BLOG_POST,
+        content: '',
+        metaTitle: 'T',
+        metaDescription: 'D',
+        metaKeywords: ['k'],
+        featuredImageUrl: '/images/hero.jpg',
+      });
+    });
+  });
+
+  describe('PUT /content/:contentId', () => {
+    it('rejects an unexpected extra field with 400 and never calls the service', async () => {
+      const res = await update({ title: 'New title', authorId: 'usr-other' });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({
+        success: false,
+        error: expect.stringContaining('authorId'),
+      });
+      expect(mocks.updateContent).not.toHaveBeenCalled();
+    });
+
+    it('rejects content above the 1,000,000 character cap and accepts content at it', async () => {
+      const tooBig = await update({ content: 'a'.repeat(1_000_001) });
+      expect(tooBig.statusCode).toBe(400);
+      expect(tooBig.json()).toMatchObject({
+        success: false,
+        error: expect.stringContaining('content'),
+      });
+      expect(mocks.updateContent).not.toHaveBeenCalled();
+
+      const atCap = await update({ content: 'a'.repeat(1_000_000) });
+      expect(atCap.statusCode).toBe(200);
+    });
+
+    it.each([
+      ['title', 500],
+      ['slug', 500],
+      ['metaTitle', 500],
+      ['featuredImageUrl', 2000],
+      ['excerpt', 10_000],
+      ['metaDescription', 10_000],
+      ['changeNote', 1000],
+    ])('rejects a %s longer than %i characters', async (field, max) => {
+      const res = await update({ [field]: overlong(field, max) });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ success: false, error: expect.stringContaining(field) });
+      expect(mocks.updateContent).not.toHaveBeenCalled();
+    });
+
+    it('accepts the exact payload the admin editor sends and ignores the scheduling fields', async () => {
+      const res = await update({
+        title: 'Adoption guide',
+        content: '<p>Hello</p>',
+        excerpt: 'Short',
+        metaTitle: 'Guide',
+        metaDescription: 'A guide',
+        metaKeywords: ['adopt'],
+        featuredImageUrl: '/images/hero.jpg',
+        scheduledPublishAt: '2026-12-01T09:00',
+        scheduledUnpublishAt: '2026-12-31T09:00',
+        changeNote: 'Fixed a typo',
+      });
+      expect(res.statusCode).toBe(200);
+      const forwarded = mocks.updateContent.mock.calls[0][0];
+      expect(forwarded).toMatchObject({
+        contentId: 'c-1',
+        title: 'Adoption guide',
+        content: '<p>Hello</p>',
+        excerpt: 'Short',
+        metaTitle: 'Guide',
+        metaDescription: 'A guide',
+        setMetaKeywords: true,
+        metaKeywords: ['adopt'],
+        featuredImageUrl: '/images/hero.jpg',
+        changeNote: 'Fixed a typo',
+      });
+      expect(forwarded).not.toHaveProperty('scheduledPublishAt');
+      expect(forwarded).not.toHaveProperty('scheduledUnpublishAt');
+    });
+
+    it('still accepts the snake_case aliases the route has always honoured', async () => {
+      const res = await update({ meta_keywords: ['k'], change_note: 'typo' });
+      expect(res.statusCode).toBe(200);
+      expect(mocks.updateContent.mock.calls[0][0]).toMatchObject({
+        setMetaKeywords: true,
+        metaKeywords: ['k'],
+        changeNote: 'typo',
+      });
+    });
+
+    it('treats an empty body as a no-op update rather than an error', async () => {
+      const res = await update({});
+      expect(res.statusCode).toBe(200);
+      expect(mocks.updateContent.mock.calls[0][0]).toMatchObject({
+        contentId: 'c-1',
+        setMetaKeywords: false,
+      });
+    });
+  });
+});
