@@ -709,7 +709,7 @@ jobs:
   # ============================================================================
   coverage-report:
     name: Coverage & Timing Report
-    needs: [build-libs, test-frontend, test-libs, test-services]
+    needs: [build-libs, test-frontend, test-libs, test-packages, test-services]
     if: |
       always() &&
       (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
