@@ -16,6 +16,11 @@ import {
 
 import type { CmsClient } from '../grpc-clients/cms-client.js';
 
+import {
+  CreateContentBodySchema,
+  toCmsValidationFailure,
+  UpdateContentBodySchema,
+} from './cms.schemas.js';
 import { isSafeImageUrl } from './events.schemas.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
@@ -441,8 +446,13 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Create a CMS content item',
+        // additionalProperties: true on purpose: Fastify's ajv strips unknown
+        // keys instead of rejecting them, so extras must reach
+        // CreateContentBodySchema (cms.schemas.ts), which is the strict,
+        // bounded contract. The property map is for the OpenAPI document.
         body: {
           type: 'object',
+          additionalProperties: true,
           properties: {
             title: { type: 'string' },
             slug: { type: 'string' },
@@ -455,7 +465,9 @@ export const registerCmsRoutes = async (
             metaDescription: { type: 'string' },
             meta_description: { type: 'string' },
             metaKeywords: { type: 'array', items: { type: 'string' } },
+            meta_keywords: { type: 'array', items: { type: 'string' } },
             featuredImageUrl: { type: 'string' },
+            featured_image_url: { type: 'string' },
             scheduledPublishAt: { type: 'string' },
             scheduledUnpublishAt: { type: 'string' },
           },
@@ -477,40 +489,23 @@ export const registerCmsRoutes = async (
       },
     },
     async (req, reply) => {
-      const body = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = CreateContentBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return reply.code(400).send(toCmsValidationFailure(parsed.error));
+      }
+      const body = parsed.data;
       const grpcReq: CmsCreateContentRequest = {
-        title: String(body.title ?? ''),
-        slug: String(body.slug ?? ''),
-        contentType: contentTypeFromString(String(body.contentType ?? body.content_type ?? '')),
-        content: String(body.content ?? ''),
-        excerpt: typeof body.excerpt === 'string' ? body.excerpt : undefined,
-        metaTitle:
-          typeof body.metaTitle === 'string'
-            ? body.metaTitle
-            : typeof body.meta_title === 'string'
-              ? body.meta_title
-              : undefined,
-        metaDescription:
-          typeof body.metaDescription === 'string'
-            ? body.metaDescription
-            : typeof body.meta_description === 'string'
-              ? body.meta_description
-              : undefined,
-        metaKeywords: Array.isArray(body.metaKeywords)
-          ? (body.metaKeywords as string[])
-          : Array.isArray(body.meta_keywords)
-            ? (body.meta_keywords as string[])
-            : [],
-        featuredImageUrl:
-          typeof body.featuredImageUrl === 'string'
-            ? body.featuredImageUrl
-            : typeof body.featured_image_url === 'string'
-              ? body.featured_image_url
-              : undefined,
-        scheduledPublishAt:
-          typeof body.scheduledPublishAt === 'string' ? body.scheduledPublishAt : undefined,
-        scheduledUnpublishAt:
-          typeof body.scheduledUnpublishAt === 'string' ? body.scheduledUnpublishAt : undefined,
+        title: body.title,
+        slug: body.slug,
+        contentType: contentTypeFromString(body.contentType ?? body.content_type),
+        content: body.content ?? '',
+        excerpt: body.excerpt,
+        metaTitle: body.metaTitle ?? body.meta_title,
+        metaDescription: body.metaDescription ?? body.meta_description,
+        metaKeywords: body.metaKeywords ?? body.meta_keywords ?? [],
+        featuredImageUrl: body.featuredImageUrl ?? body.featured_image_url,
+        scheduledPublishAt: body.scheduledPublishAt,
+        scheduledUnpublishAt: body.scheduledUnpublishAt,
       };
       if (grpcReq.featuredImageUrl !== undefined && !isSafeImageUrl(grpcReq.featuredImageUrl)) {
         return reply.code(400).send({
@@ -537,8 +532,11 @@ export const registerCmsRoutes = async (
         tags: ['cms'],
         summary: 'Update a CMS content item',
         params: CONTENT_ID_PARAMS,
+        // additionalProperties: true on purpose — see the create route.
+        // UpdateContentBodySchema (cms.schemas.ts) is the contract.
         body: {
           type: 'object',
+          additionalProperties: true,
           properties: {
             title: { type: 'string' },
             slug: { type: 'string' },
@@ -547,6 +545,7 @@ export const registerCmsRoutes = async (
             metaTitle: { type: 'string' },
             metaDescription: { type: 'string' },
             metaKeywords: { type: 'array', items: { type: 'string' } },
+            meta_keywords: { type: 'array', items: { type: 'string' } },
             featuredImageUrl: { type: 'string' },
             changeNote: { type: 'string' },
             change_note: { type: 'string' },
@@ -556,29 +555,24 @@ export const registerCmsRoutes = async (
       },
     },
     async (req, reply) => {
-      const body = (req.body ?? {}) as Record<string, unknown>;
-      const hasMetaKeywords = Array.isArray(body.metaKeywords) || Array.isArray(body.meta_keywords);
+      const parsed = UpdateContentBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return reply.code(400).send(toCmsValidationFailure(parsed.error));
+      }
+      const body = parsed.data;
+      const metaKeywords = body.metaKeywords ?? body.meta_keywords;
       const grpcReq: CmsUpdateContentRequest = {
         contentId: req.params.contentId,
-        title: typeof body.title === 'string' ? body.title : undefined,
-        slug: typeof body.slug === 'string' ? body.slug : undefined,
-        content: typeof body.content === 'string' ? body.content : undefined,
-        excerpt: typeof body.excerpt === 'string' ? body.excerpt : undefined,
-        metaTitle: typeof body.metaTitle === 'string' ? body.metaTitle : undefined,
-        metaDescription:
-          typeof body.metaDescription === 'string' ? body.metaDescription : undefined,
-        setMetaKeywords: hasMetaKeywords,
-        metaKeywords: hasMetaKeywords
-          ? ((body.metaKeywords as string[]) ?? (body.meta_keywords as string[]))
-          : [],
-        featuredImageUrl:
-          typeof body.featuredImageUrl === 'string' ? body.featuredImageUrl : undefined,
-        changeNote:
-          typeof body.changeNote === 'string'
-            ? body.changeNote
-            : typeof body.change_note === 'string'
-              ? body.change_note
-              : undefined,
+        title: body.title,
+        slug: body.slug,
+        content: body.content,
+        excerpt: body.excerpt,
+        metaTitle: body.metaTitle,
+        metaDescription: body.metaDescription,
+        setMetaKeywords: metaKeywords !== undefined,
+        metaKeywords: metaKeywords ?? [],
+        featuredImageUrl: body.featuredImageUrl,
+        changeNote: body.changeNote ?? body.change_note,
       };
       if (grpcReq.featuredImageUrl !== undefined && !isSafeImageUrl(grpcReq.featuredImageUrl)) {
         return reply.code(400).send({

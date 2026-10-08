@@ -250,3 +250,46 @@ describe('GET /api/v1/invitations/details/:token', () => {
     expect(res.statusCode).toBe(404);
   });
 });
+
+// ADS-1380 — the token-in-URL lookup is unauthenticated, so it carries its own
+// per-IP cap, matching the sibling invitation routes (accept / redeem: 10/min).
+describe('GET /api/v1/invitations/details/:token rate limiting (ADS-1380)', () => {
+  const makeRateLimitedApp = async (client: RescueClient): Promise<FastifyInstance> => {
+    const app = Fastify({ logger: false, trustProxy: true });
+    const { default: rateLimit } = await import('@fastify/rate-limit');
+    // Global cap well above the route cap, so a 429 can only come from the
+    // route's own config.rateLimit.
+    await app.register(rateLimit, {
+      global: true,
+      max: 100,
+      timeWindow: '1 minute',
+      keyGenerator: req => req.ip,
+    });
+    await registerStaffFosterRoutes(app, { client });
+    return app;
+  };
+
+  it('throttles a per-IP flood (more than 10/min/IP returns 429)', async () => {
+    const m = makeClient();
+    m.getInvitationByTokenMock.mockResolvedValue({
+      invitation: { invitationId: 'inv-1', email: 'invitee@example.com', rescueId: 'rsc-1' },
+    });
+    const app = await makeRateLimitedApp(m.client);
+    try {
+      const statuses: number[] = [];
+      // Vary the token each call so it's unambiguously the per-IP cap firing.
+      for (let i = 0; i < 11; i += 1) {
+        const res = await app.inject({
+          method: 'GET',
+          url: `/api/v1/invitations/details/tok-${i}`,
+          headers: { 'x-forwarded-for': '9.9.9.9' },
+        });
+        statuses.push(res.statusCode);
+      }
+      expect(statuses.slice(0, 10)).toEqual(new Array(10).fill(200));
+      expect(statuses[10]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+});

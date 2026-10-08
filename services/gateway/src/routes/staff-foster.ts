@@ -22,6 +22,11 @@ export type StaffFosterRoutesOptions = {
   client: RescueClient;
 };
 
+// Per-IP cap on the unauthenticated invitation lookup (ADS-1380) — mirrors the
+// sibling invitation routes (invitation-accept.ts IP_RATE_LIMIT and
+// AUTH_RATE_LIMITS.redeemInvitation in auth.ts).
+const INVITATION_DETAILS_RATE_LIMIT = { max: 10, timeWindow: '1 minute' } as const;
+
 const fosterStatusFromString = (raw: string | undefined): RescueV1.FosterPlacementStatus => {
   switch (raw?.toLowerCase()) {
     case 'active':
@@ -291,7 +296,7 @@ export const registerStaffFosterRoutes = async (
   app.get<{ Params: { token: string } }>(
     '/api/v1/invitations/details/:token',
     {
-      config: { public: true },
+      config: { public: true, rateLimit: INVITATION_DETAILS_RATE_LIMIT },
       schema: {
         tags: ['staff'],
         summary: 'Get invitation details by token',
