@@ -64,7 +64,7 @@
     "@typescript-eslint/parser": "^8.61.1",
     "@vanilla-extract/vite-plugin": "^5.2.2",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/ui": "^4.1.9",
+    "@vitest/ui": "^4.1.11",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.0.0",
