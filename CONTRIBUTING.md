@@ -116,7 +116,7 @@ pnpm exec turbo run test:coverage                 # every package, with threshol
 pnpm exec turbo run test:coverage --filter='@adopt-dont-shop/lib.api'   # scope to what you changed
 ```
 
-**Coverage & timing PR comment (ADS-947).** Once `test-frontend`, `test-libs`, and `test-services` finish, `ci.yml`'s `coverage-report` job posts a sticky comment on the PR showing per-package coverage delta vs `main` (only packages whose coverage changed) and this run's job timings. It updates the same comment in place on every push rather than posting a new one, and it's purely informational — it never blocks merge.
+**Coverage & timing PR comment (ADS-947).** Once `test-frontend`, `test-libs`, `test-packages`, and `test-services` finish, `ci.yml`'s `coverage-report` job posts a sticky comment on the PR showing per-package coverage delta vs `main` (only packages whose coverage changed) and this run's job timings. It updates the same comment in place on every push rather than posting a new one, and it's purely informational — it never blocks merge.
 
 #### Pre-commit hook (lint-staged)
 
