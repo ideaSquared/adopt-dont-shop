@@ -62,7 +62,8 @@ docs(backend): correct stale command and migration-naming examples
 | `build`    | Build system / external deps (Webpack, npm scripts)   | no bump           |
 
 `docs`, `test`, `ci`, `chore`, `build` and `style` are hidden from the generated
-changelog (`release-please-config.json`). There is **no `revert` changelog
+changelog (`release-please-config.json`). commitlint accepts `revert:` (so the
+subject `git revert` generates passes), but there is **no `revert` changelog
 section** — a revert is not a recognised release type here; write the reversal as
 the appropriate `fix`/`chore` instead.
 
