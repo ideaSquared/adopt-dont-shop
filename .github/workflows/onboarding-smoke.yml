@@ -106,9 +106,20 @@ jobs:
         # bootstrap.mjs manages should now hold a generated value, not the
         # CHANGE_ME / your-* / change-me / replace-me placeholder text
         # .env.example ships with.
+        #
+        # ADS-1401: the key list is read from SECRET_KEYS in
+        # scripts/generate-secrets.mjs (the same export bootstrap.mjs iterates)
+        # instead of a hand-kept copy here, so this guard cannot drift from the
+        # secrets bootstrap actually manages.
         run: |
-          if grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET|JWT_REPORT_SHARE_SECRET|POSTGRES_PASSWORD|REDIS_PASSWORD|GF_SECURITY_ADMIN_PASSWORD)=(CHANGE|your-|change-me|replace-me)' .env; then
-            echo "::error::bootstrap.mjs left a placeholder secret value in .env — see scripts/bootstrap.mjs SECRET_KEYS"
+          keys=$(node --input-type=module -e "import { SECRET_KEYS } from './scripts/generate-secrets.mjs'; console.log(SECRET_KEYS.join('|'))")
+          if [ -z "$keys" ]; then
+            echo "::error::could not read SECRET_KEYS from scripts/generate-secrets.mjs"
+            exit 1
+          fi
+          echo "Guarding: ${keys//|/ }"
+          if grep -E "^(${keys})=(CHANGE|your-|change-me|replace-me)" .env; then
+            echo "::error::bootstrap.mjs left a placeholder secret value in .env — see SECRET_KEYS in scripts/generate-secrets.mjs"
             exit 1
           fi
           echo "OK — no placeholder secret values remain in .env"
