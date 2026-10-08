@@ -68,7 +68,7 @@
  *     extension silently drops projects from its panel (ADS-1348).
  *  20. `vite`, and the `vitest` / `@vitest/coverage-v8` / `@vitest/ui` trio, must
  *     be declared with a single identical range across every workspace
- *     package.json (ADS-1373). Vitest expects coverage-v8 and ui to track its
+ *     package.json and every scripts/templates scaffold (ADS-1373). Vitest expects coverage-v8 and ui to track its
  *     own version, and a vite floor that differs between packages can resolve
  *     to two physical copies on the next lockfile refresh.
  *
@@ -1427,8 +1427,16 @@ function main() {
   failures.push(...checkTestingLibraryReactNeedsReactDom(allPkgEntries));
 
   // 20. ADS-1373: vite and the vitest/coverage-v8/ui trio must use one range
-  //     workspace-wide, root package.json included.
-  failures.push(...checkBuildToolVersionSkew([{ dir: '.', pkg: rootPkg }, ...allPkgEntries]));
+  //     workspace-wide, root package.json and the scripts/templates scaffolds
+  //     included — a template on another range would make `pnpm new-app`
+  //     generate a package that fails this same check.
+  const templateEntries = findTemplatePackageJsonFiles().map(file => ({
+    dir: relative(ROOT, dirname(file)),
+    pkg: JSON.parse(readFileSync(file, 'utf8')),
+  }));
+  failures.push(
+    ...checkBuildToolVersionSkew([{ dir: '.', pkg: rootPkg }, ...allPkgEntries, ...templateEntries])
+  );
 
   // 19. ADS-1348: .vscode/settings.json's `vitest.maximumConfigs` must stay
   //     at or above the real number of Vitest projects vitest.workspace.ts
