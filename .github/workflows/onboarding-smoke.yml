@@ -30,6 +30,7 @@ on:
     branches: [main, develop]
     paths:
       - 'scripts/bootstrap.mjs'
+      - 'scripts/generate-secrets.mjs'
       - '.env.example'
       - 'scripts/validate-env.ts'
       - 'pnpm-workspace.yaml'
@@ -38,6 +39,7 @@ on:
     branches: [main, develop]
     paths:
       - 'scripts/bootstrap.mjs'
+      - 'scripts/generate-secrets.mjs'
       - '.env.example'
       - 'scripts/validate-env.ts'
       - 'pnpm-workspace.yaml'
