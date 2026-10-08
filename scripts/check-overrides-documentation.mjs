@@ -12,6 +12,12 @@
  * no CVE rationale, or are covered collectively by a sibling note) are exempt
  * via STRUCTURAL_OVERRIDE_BASES.
  *
+ * It also fails when a `pnpm.onlyBuiltDependencies` entry names a package that
+ * no longer resolves in pnpm-lock.yaml (ADS-1387). pnpm 10 blocks dependency
+ * install scripts unless the package is allowlisted, so a renamed or removed
+ * entry is a silent no-op that leaves the real package's build step skipped.
+ * Dependency-free on purpose: CI runs this guard without node_modules.
+ *
  * Mirrors the pattern of the other scripts/check-*.mjs guards.
  */
 import { readFileSync } from 'fs';
@@ -87,6 +93,29 @@ export function findOrphanedDocumentation(
     .sort();
 }
 
+// Package names resolved in pnpm-lock.yaml's `packages:` section, whose keys
+// look like `'@scope/name@1.2.3':` or `name@1.2.3:`. Peer-dependency suffixes
+// only appear in the `snapshots:` section, which this deliberately ignores.
+export function lockfilePackageNames(lockfileText) {
+  const lines = lockfileText.split('\n');
+  const start = lines.indexOf('packages:');
+  if (start === -1) return new Set();
+  const section = lines.slice(start + 1);
+  const end = section.findIndex(line => /^\S/.test(line));
+  return new Set(
+    (end === -1 ? section : section.slice(0, end))
+      .map(line => line.match(/^ {2}(?=\S)'?(.+?)'?:$/)?.[1])
+      .filter(key => key !== undefined && key.lastIndexOf('@') > 0)
+      .map(key => key.slice(0, key.lastIndexOf('@')))
+  );
+}
+
+// `pnpm.onlyBuiltDependencies` entries that resolve to no package in the
+// lockfile — dead allowlist lines left behind after an upstream rename/removal.
+export function findStaleBuildAllowlistEntries(allowlist, resolvedNames) {
+  return allowlist.filter(name => !resolvedNames.has(name)).sort();
+}
+
 function main() {
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
   const overrides = pkg.pnpm?.overrides ?? {};
@@ -94,6 +123,10 @@ function main() {
 
   const missing = findUndocumentedOverrides(overrides, documentation);
   const orphaned = findOrphanedDocumentation(overrides, documentation);
+  const stale = findStaleBuildAllowlistEntries(
+    pkg.pnpm?.onlyBuiltDependencies ?? [],
+    lockfilePackageNames(readFileSync(join(ROOT, 'pnpm-lock.yaml'), 'utf8'))
+  );
 
   if (orphaned.length > 0) {
     console.warn(
@@ -102,28 +135,47 @@ function main() {
     console.warn('');
   }
 
-  if (missing.length === 0) {
-    console.log('OK — every pnpm.overrides entry has an overridesDocumentation note.');
+  if (stale.length > 0) {
+    console.error('onlyBuiltDependencies allowlist check failed (ADS-1387):');
+    for (const name of stale) {
+      console.error(
+        `  - pnpm.onlyBuiltDependencies lists '${name}' but it resolves to no package in pnpm-lock.yaml.`
+      );
+    }
+    console.error('');
+    console.error(
+      'The package was likely renamed or removed upstream: replace the entry with the current'
+    );
+    console.error('package name, or drop it if the package no longer needs its install script.');
+    console.error('');
+  }
+
+  if (missing.length === 0 && stale.length === 0) {
+    console.log(
+      'OK — every pnpm.overrides entry has an overridesDocumentation note and every onlyBuiltDependencies entry resolves.'
+    );
     return;
   }
 
-  console.error('overridesDocumentation parity check failed (ADS-1113):');
-  for (const base of missing) {
+  if (missing.length > 0) {
+    console.error('overridesDocumentation parity check failed (ADS-1113):');
+    for (const base of missing) {
+      console.error(
+        `  - pnpm.overrides pins '${base}' but overridesDocumentation has no entry for it.`
+      );
+    }
+    console.error('');
     console.error(
-      `  - pnpm.overrides pins '${base}' but overridesDocumentation has no entry for it.`
+      'Add a note to the "overridesDocumentation" block in package.json explaining why the'
     );
+    console.error(
+      'override exists (advisory / dedup rationale + the floor version), or add the package'
+    );
+    console.error(
+      'to STRUCTURAL_OVERRIDE_BASES in scripts/check-overrides-documentation.mjs if it is a'
+    );
+    console.error('pure structural/dedup pin covered by a sibling note.');
   }
-  console.error('');
-  console.error(
-    'Add a note to the "overridesDocumentation" block in package.json explaining why the'
-  );
-  console.error(
-    'override exists (advisory / dedup rationale + the floor version), or add the package'
-  );
-  console.error(
-    'to STRUCTURAL_OVERRIDE_BASES in scripts/check-overrides-documentation.mjs if it is a'
-  );
-  console.error('pure structural/dedup pin covered by a sibling note.');
   process.exit(1);
 }
 
