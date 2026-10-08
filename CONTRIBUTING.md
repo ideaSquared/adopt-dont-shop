@@ -94,7 +94,7 @@ fail CI if it reappears.
 
 ## Before opening a PR
 
-CI spans `.github/workflows/ci.yml` (whose `ci-required` aggregator fans in thirteen jobs — see the [Full CI matrix](#full-ci-matrix-for-reference) below), plus the standalone required checks in `lib-test-guard.yml`, `schema-equivalence.yml`, and `docker.yml`'s `prod-image-smoke`, plus the advisory `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
+CI spans `.github/workflows/ci.yml` (whose `ci-required` aggregator fans in thirteen jobs — see the [Full CI matrix](#full-ci-matrix-for-reference) below), plus the standalone required checks in `lib-test-guard.yml`, `schema-equivalence.yml`, and `docker.yml`'s `prod-image-smoke-gate`, plus the advisory `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
 
 The PR description includes a short "Before requesting review" checklist (see [`.github/pull_request_template.md`](./.github/pull_request_template.md)) that mirrors the most-failed CI checks — tick it off before requesting review.
 
@@ -116,7 +116,7 @@ pnpm exec turbo run test:coverage                 # every package, with threshol
 pnpm exec turbo run test:coverage --filter='@adopt-dont-shop/lib.api'   # scope to what you changed
 ```
 
-**Coverage & timing PR comment (ADS-947).** Once `test-frontend`, `test-libs`, and `test-services` finish, `ci.yml`'s `coverage-report` job posts a sticky comment on the PR showing per-package coverage delta vs `main` (only packages whose coverage changed) and this run's job timings. It updates the same comment in place on every push rather than posting a new one, and it's purely informational — it never blocks merge.
+**Coverage & timing PR comment (ADS-947).** Once `test-frontend`, `test-libs`, `test-packages`, and `test-services` finish, `ci.yml`'s `coverage-report` job posts a sticky comment on the PR showing per-package coverage delta vs `main` (only packages whose coverage changed) and this run's job timings. It updates the same comment in place on every push rather than posting a new one, and it's purely informational — it never blocks merge.
 
 #### Pre-commit hook (lint-staged)
 
@@ -198,7 +198,7 @@ Checks that run but are **not** part of `ci-required`:
 
 - **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`. A separate required check in branch protection.
 - **Schema Equivalence** (`schema-equivalence.yml`) — pg_dump diff of migrated vs synced schemas. A separate required check in branch protection, path-filtered to migrations.
-- **Production Image Smoke** (`docker.yml` → `prod-image-smoke`) — a separate required check in branch protection (ADS-1314), not part of `ci-required` because it lives in a different workflow file — see [`.github/workflows/README.md`](./.github/workflows/README.md#docker-workflow-dockeryml).
+- **Production Image Smoke** (`docker.yml` → `prod-image-smoke-gate`, which always reports and wraps the `prod-image-smoke` boot job, ADS-1400) — a separate required check in branch protection (ADS-1314), not part of `ci-required` because it lives in a different workflow file — see [`.github/workflows/README.md`](./.github/workflows/README.md#docker-workflow-dockeryml).
 - **Dependency Audit** (`security.yml`) — one `dependency-audit` job running `node scripts/audit-bulk.mjs`; advisory.
 - **Dependency Check** (`quality.yml`) — one `dependency-check` job: `pnpm outdated -r` and `pnpm list -r --depth 0`, both advisory (`continue-on-error`).
 

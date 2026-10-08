@@ -8,6 +8,8 @@ import {
   overrideBaseName,
   findUndocumentedOverrides,
   findOrphanedDocumentation,
+  findStaleBuildAllowlistEntries,
+  lockfilePackageNames,
 } from './check-overrides-documentation.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -86,6 +88,73 @@ describe('root package.json parity (ADS-1113)', () => {
   it('documents every CVE-style pnpm.overrides entry', () => {
     expect(
       findUndocumentedOverrides(pkg.pnpm?.overrides ?? {}, pkg.overridesDocumentation ?? {})
+    ).toEqual([]);
+  });
+});
+
+describe('lockfilePackageNames', () => {
+  const lockfile = [
+    "lockfileVersion: '9.0'",
+    '',
+    'importers:',
+    '  .:',
+    '    dependencies:',
+    '      sharp:',
+    '        specifier: ^0.35.5',
+    '',
+    'packages:',
+    '',
+    "  '@sentry/node-cpu-profiler@2.4.2':",
+    '    resolution: {integrity: sha512-abc}',
+    '',
+    '  sharp@0.35.5:',
+    '    resolution: {integrity: sha512-def}',
+    '    peerDependencies:',
+    "      '@types/node': '*'",
+    '',
+    'snapshots:',
+    '',
+    '  left-pad@1.3.0: {}',
+    '',
+  ].join('\n');
+
+  it('collects scoped and unscoped package names from the packages section only', () => {
+    expect(lockfilePackageNames(lockfile)).toEqual(new Set(['@sentry/node-cpu-profiler', 'sharp']));
+  });
+
+  it('returns an empty set when the lockfile has no packages section', () => {
+    expect(lockfilePackageNames("lockfileVersion: '9.0'\n")).toEqual(new Set());
+  });
+});
+
+describe('findStaleBuildAllowlistEntries (ADS-1387)', () => {
+  const resolved = new Set(['sharp', '@sentry/node-cpu-profiler']);
+
+  it('flags an allowlisted package that no longer resolves in the lockfile', () => {
+    const allowlist = ['@sentry-internal/node-cpu-profiler', 'sharp'];
+    expect(findStaleBuildAllowlistEntries(allowlist, resolved)).toEqual([
+      '@sentry-internal/node-cpu-profiler',
+    ]);
+  });
+
+  it('passes when every allowlisted package resolves', () => {
+    const allowlist = ['sharp', '@sentry/node-cpu-profiler'];
+    expect(findStaleBuildAllowlistEntries(allowlist, resolved)).toEqual([]);
+  });
+});
+
+// Live parity against the real root package.json and pnpm-lock.yaml — keeps a
+// renamed or removed package from lingering as a dead allowlist entry.
+describe('root package.json onlyBuiltDependencies (ADS-1387)', () => {
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const lockfile = readFileSync(join(ROOT, 'pnpm-lock.yaml'), 'utf8');
+
+  it('allowlists only packages that resolve in pnpm-lock.yaml', () => {
+    expect(
+      findStaleBuildAllowlistEntries(
+        pkg.pnpm?.onlyBuiltDependencies ?? [],
+        lockfilePackageNames(lockfile)
+      )
     ).toEqual([]);
   });
 });
