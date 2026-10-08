@@ -1,0 +1,14 @@
+{
+  // Program behind `pnpm type-check`: the service source plus the Pact contract
+  // tests in test/contracts (ADS-1386). Kept apart from tsconfig.json because
+  // that file drives the build, whose rootDir/outDir must stay src -> dist.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "incremental": false,
+    "tsBuildInfoFile": null
+  },
+  "include": ["src/**/*", "test/contracts/**/*"],
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.spec.ts"]
+}

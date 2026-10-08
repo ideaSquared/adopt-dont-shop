@@ -5,15 +5,17 @@
 Dev-only bulk-data ("spam") seeding toolkit: an env guard, a seeded UK-locale
 Faker, and a batched bulk-insert helper. Shared by each service's `db:spam`
 script to flood a development database with prod-shaped volume. It is **never**
-imported by runtime code — it exists purely for local load/shape testing.
+imported by service runtime code — it exists purely for local load/shape
+testing. It also hosts the single `assertNotProduction()` guard that every
+service's demo-data `db:seed` calls.
 
 This is a service-only shared package (not a `lib.*`). See the decision tree
 in [`CONTRIBUTING.md`](../../CONTRIBUTING.md#where-does-my-code-go).
 
 ## Location in the architecture
 
-Consumed only by the `db:spam` scripts in `services/*` that own a schema — see
-[`docs/README.md`](../../docs/README.md#libraries) for where the shared
+Consumed only by the `db:seed` and `db:spam` scripts in `services/*` that own a
+schema — see [`docs/README.md`](../../docs/README.md#libraries) for where the shared
 packages sit. Pairs with [`@adopt-dont-shop/db`](../db/README.md) (the
 Postgres client the bulk inserts run through).
 
@@ -33,6 +35,9 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 
 - `assertSpamAllowed()` — throws unless the spam env guard is satisfied (see
   below), so `db:spam` can never run against a non-dev database.
+- `assertNotProduction()` — the one `db:seed` guard shared by `auth`,
+  `applications`, `chat`, `pets` and `rescue`: throws in `production` or
+  `staging` unless `ALLOW_PROD_SEED=true`.
 - `createSpamFaker()` / `DEFAULT_FAKER_SEED` — a UK-locale Faker seeded for
   reproducible runs.
 - `bulkInsert(...)` (`BulkInsertDeps`, `QueryFn`) — batched multi-row insert.

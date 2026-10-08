@@ -13,7 +13,7 @@
 
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { MessageProviderPact, providerWithMetadata } from '@pact-foundation/pact';
+import { MessageProviderPact } from '@pact-foundation/pact';
 import type { GdprErasureRequestedPayload } from '@adopt-dont-shop/events';
 
 // Repo-root pacts/ directory: test/contracts/ → test/ → gateway/ → services/ → root/ → pacts/

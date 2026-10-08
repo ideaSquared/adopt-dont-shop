@@ -89,7 +89,7 @@ function assertValidateTokenResponse(body: unknown): void {
 describe('gateway → auth contract: ValidateToken', () => {
   // 1. Happy path — valid token → principal returned
   it('returns a ValidateTokenResponse with a non-empty principal when the token is valid', () => {
-    const request: ValidateTokenRequest = {
+    const _request: ValidateTokenRequest = {
       accessToken: 'eyJhbGciOiJIUzI1NiJ9.stub-claims.stub-sig',
     };
     const expectedResponse: ValidateTokenResponse = {
