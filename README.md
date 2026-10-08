@@ -71,13 +71,13 @@ pnpm docker:down         # stop
 
 ### Seed dev data
 
-Once the stack is running, load seed data so you can log in and browse:
+A fresh `pnpm docker:dev` stack seeds itself on boot: each seeded service's container runs `db:migrate` then `db:seed` as it starts (auth, pets and rescue also run `db:spam`, only into an empty database), so there is no manual step. Run `pnpm db:seed` only to re-seed a running Docker stack on demand:
 
 ```bash
 pnpm db:seed             # host-side orchestrator: runs each service's db:seed in dependency order
 ```
 
-Only `auth`, `rescue`, `pets`, `applications` and `chat` have seeders, and they run in that order. The generated accounts share the `SEED_PASSWORD` from `.env` (default `DevPassword123!`). See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset.
+Only `auth`, `rescue`, `pets`, `applications` and `chat` have seeders, and they run in that order. The generated accounts share the `SEED_PASSWORD` from `.env` (default `DevPassword123!`). See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset. The orchestrator works by `docker compose exec`-ing into the service containers, so for native dev (no service containers) run `pnpm db:seed` inside each seeded service package, in that order, instead.
 
 ### Run (native — no Docker)
 
