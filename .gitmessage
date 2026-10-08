@@ -1,6 +1,6 @@
 # <type>(<scope>): <subject> (ADS-NNN)
 #
-# Types: feat | fix | refactor | test | docs | chore | ci | perf | style | build
+# Types: feat | fix | refactor | test | docs | chore | ci | perf | style | build | revert
 #
 # Scope (optional, advisory — not enforced by commitlint):
 #   the area affected. Scopes seen on main include:
@@ -9,7 +9,8 @@
 #   Skip it if the change spans many areas.
 #
 # Subject: imperative, <= 72 chars, no trailing period.
-#   Put the Linear ticket at the end in parentheses: (ADS-NNN).
+#   Put the Linear ticket at the end in parentheses: (ADS-NNN). This is a team
+#   convention, not checked by commitlint; omit it if the change has no ticket.
 #
 # Examples:
 #   feat(gateway): auth backstop — 401 tokenless requests on non-public routes (ADS-1255)

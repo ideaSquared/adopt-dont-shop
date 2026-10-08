@@ -18,7 +18,7 @@ tsconfig.base.json              # root — strict mode, module/moduleResolution,
 │
 └── tsconfig.service.base.json  # services/* + the Node-only shared packages
     │                           # (authz, config-secrets, db, events,
-    │                           # observability, proto, seed-faker,
+    │                           # observability, proto, scheduler, seed-faker,
     │                           # service-bootstrap, storage, test-utils) —
     │                           # target stays ES2022 (inherited, no override
     │                           # needed), sets noEmit:false

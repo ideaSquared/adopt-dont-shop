@@ -22,6 +22,7 @@ import { fileURLToPath } from 'url';
 import { createInterface } from 'readline';
 import { platform } from 'os';
 import { SECRET_KEYS, generateSecret } from './generate-secrets.mjs';
+import { satisfiesNodeRange } from './lib/node-engines.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -258,13 +259,18 @@ async function setup() {
       process.exit(1);
     }
 
-    const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0], 10);
-    if (majorVersion < 22) {
+    // Compare against the real range, not just the major, so bootstrap accepts
+    // exactly what `pnpm install` accepts (ADS-1369).
+    const { engines } = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'));
+    if (!satisfiesNodeRange(nodeVersion, engines.node)) {
       logError(
-        `Node.js v${majorVersion} detected, but v22+ is required (see package.json engines)`
+        `Node.js ${nodeVersion} detected, but package.json engines requires ${engines.node}`
       );
       log(`Current version: ${nodeVersion}`, YELLOW);
-      log('Please upgrade Node.js from https://nodejs.org/', YELLOW);
+      log(
+        'Please install the version pinned in .nvmrc (`nvm use`) or from https://nodejs.org/',
+        YELLOW
+      );
       process.exit(1);
     }
 

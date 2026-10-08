@@ -16,7 +16,7 @@ For full local control (faster HMR, native Docker performance) follow the prereq
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22 <23`
+- [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22.22.0 <23.0.0`
 - [pnpm](https://pnpm.io/) — provided via Corepack. `pnpm bootstrap` enables Corepack for you (ADS-894); if you'd rather do it yourself first, run `corepack enable` and the pinned version (`package.json` `"packageManager"`) is used automatically
 - Prefer [asdf](https://asdf-vm.com/) or [mise](https://mise.jdx.dev/) instead of nvm/Corepack? The repo also ships a root [`.tool-versions`](./.tool-versions) pinning the same Node and pnpm versions as `.nvmrc` / `package.json` — run `asdf install` or `mise install` and both tools are provisioned automatically
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
@@ -71,13 +71,13 @@ pnpm docker:down         # stop
 
 ### Seed dev data
 
-Once the stack is running, load seed data so you can log in and browse:
+A fresh `pnpm docker:dev` stack seeds itself on boot: each seeded service's container runs `db:migrate` then `db:seed` as it starts (auth, pets and rescue also run `db:spam`, only into an empty database), so there is no manual step. Run `pnpm db:seed` only to re-seed a running Docker stack on demand:
 
 ```bash
 pnpm db:seed             # host-side orchestrator: runs each service's db:seed in dependency order
 ```
 
-Only `auth`, `pets`, `rescue`, `applications` and `chat` have seeders, and they run in that order. The generated accounts share the `SEED_PASSWORD` from `.env` (default `DevPassword123!`). See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset.
+Only `auth`, `rescue`, `pets`, `applications` and `chat` have seeders, and they run in that order. The generated accounts share the `SEED_PASSWORD` from `.env` (default `DevPassword123!`). See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset. The orchestrator works by `docker compose exec`-ing into the service containers, so for native dev (no service containers) run `pnpm db:seed` inside each seeded service package, in that order, instead.
 
 ### Run (native — no Docker)
 
@@ -115,7 +115,7 @@ adopt-dont-shop/
 ├── packages/                   # All shared workspace packages
 │   ├── proto/ events/ authz/   #   service-only shared packages
 │   ├── db/ observability/ storage/ config-secrets/
-│   ├── seed-faker/ service-bootstrap/ test-utils/
+│   ├── scheduler/ seed-faker/ service-bootstrap/ test-utils/
 │   ├── eslint-config-{base,node,react}/
 │   └── lib.*                   #   the lib.* packages (see docs/libraries/README.md)
 ├── docker-compose.yml          # Dev stack (gateway + services + apps under the `full` profile)

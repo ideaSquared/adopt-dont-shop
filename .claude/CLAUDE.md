@@ -36,7 +36,7 @@ adopt-dont-shop/
 │   ├── lib.*/               #   frontend-shared libs (lib.api, lib.components, lib.types, …)
 │   │                        #   see docs/libraries/README.md; lib.av-scan is service-only
 │   ├── authz/ config-secrets/ db/ events/ observability/ proto/
-│   ├── seed-faker/ service-bootstrap/ storage/ test-utils/
+│   ├── scheduler/ seed-faker/ service-bootstrap/ storage/ test-utils/
 │   └── eslint-config-{base,node,react}/
 ├── e2e/                     # Playwright cross-app suite
 ├── docs/                    # descriptive docs, ADRs, runbooks
@@ -130,7 +130,10 @@ Backend
 Commits
 
 - Conventional Commits, checked by commitlint: `type(scope): imperative summary (ADS-NNN)`.
-  The Linear ticket goes in the subject, as in `fix(gateway): reject blank tokens (ADS-1255)`.
+  Put the Linear ticket at the end of the subject when the change has one, as in
+  `fix(gateway): reject blank tokens (ADS-1255)`. The ticket is a team convention, not a gate:
+  commitlint (`config-conventional`) checks only the type and format, so a ticket-less subject
+  still passes the hook and CI.
 - Every commit is a complete, working change with its tests. One feature or fix per PR.
 
 ## 5. Architecture in one screen
@@ -229,5 +232,5 @@ invoked by a person (`/name`), not auto-loaded. Load a skill before writing code
 - `apiService.get(url, params)` takes the query object as the second argument, not `{ params }`.
 - `TextInput` is deprecated; use `Input` from `@adopt-dont-shop/lib.components`. `pnpm check:forms`
   ratchets the remaining raw-control and `TextInput` count downward and fails on any increase.
-- Only `auth`, `pets`, `rescue`, `applications` and `chat` have a `db:seed`; `pnpm db:seed` runs
+- Only `auth`, `rescue`, `pets`, `applications` and `chat` have a `db:seed`; `pnpm db:seed` runs
   them in that dependency order via `docker compose exec`.

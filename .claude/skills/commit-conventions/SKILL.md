@@ -31,7 +31,10 @@ to reviewers.
 ```
 
 The Linear ticket goes in the **subject**, in parentheses at the end — this is
-the repo's actual practice (see `git log`), not in a footer.
+the repo's actual practice (see `git log`), not in a footer. Include it whenever
+the change has a ticket. It is a team convention, not a gate: commitlint checks
+only the type and format, so a ticket-less subject (like the last example below)
+still passes the hook and CI.
 
 Examples from recent `main` history:
 
@@ -59,7 +62,8 @@ docs(backend): correct stale command and migration-naming examples
 | `build`    | Build system / external deps (Webpack, npm scripts)   | no bump           |
 
 `docs`, `test`, `ci`, `chore`, `build` and `style` are hidden from the generated
-changelog (`release-please-config.json`). There is **no `revert` changelog
+changelog (`release-please-config.json`). commitlint accepts `revert:` (so the
+subject `git revert` generates passes), but there is **no `revert` changelog
 section** — a revert is not a recognised release type here; write the reversal as
 the appropriate `fix`/`chore` instead.
 
