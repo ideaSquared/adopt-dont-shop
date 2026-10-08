@@ -184,7 +184,7 @@ RUN find / -xdev -perm -4000 -exec chmod -s {} + 2>/dev/null || true && \
 # silently drops the server-level CSP/HSTS/etc. on those responses. [ADS-693]
 RUN echo 'add_header X-Frame-Options "SAMEORIGIN" always; \
 add_header X-Content-Type-Options "nosniff" always; \
-add_header X-XSS-Protection "1; mode=block" always; \
+add_header X-XSS-Protection "0" always; \
 add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always; \
 add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always; \
