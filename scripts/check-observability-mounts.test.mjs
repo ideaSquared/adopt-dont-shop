@@ -8,6 +8,7 @@ import {
   COMPOSE_FILE,
   findCadvisorUnsafeMounts,
   findMissingSecretsMasks,
+  findUnsafeSocketProxyConfig,
 } from './check-observability-mounts.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -19,6 +20,10 @@ describe('the real docker-compose.observability.yml (ADS-1376)', () => {
 
   it('masks /opt/ads in both node-exporter and cadvisor', () => {
     expect(findMissingSecretsMasks(COMPOSE_FILE, REPO_ROOT)).toEqual([]);
+  });
+
+  it('keeps docker-socket-proxy scoped to read-only /containers + /info', () => {
+    expect(findUnsafeSocketProxyConfig(COMPOSE_FILE, REPO_ROOT)).toEqual([]);
   });
 });
 
@@ -71,6 +76,31 @@ describe('findCadvisorUnsafeMounts', () => {
     );
 
     expect(findCadvisorUnsafeMounts('docker-compose.observability.yml', root)).toHaveLength(1);
+  });
+
+  it('flags a long-syntax /var/run bind-mount on cadvisor', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  cadvisor:',
+        '    volumes:',
+        '      - /:/rootfs:ro',
+        '      - type: bind',
+        '        source: /var/run',
+        '        target: /var/run',
+        '        read_only: true',
+        '  node-exporter:',
+        '    volumes:',
+        '      - /:/host/root:ro',
+      ].join('\n') + '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    expect(failures).toEqual([
+      { file: 'docker-compose.observability.yml', line: 6, mount: '/var/run' },
+    ]);
   });
 
   it('accepts cadvisor mounts that omit /var/run and docker.sock', () => {
@@ -195,5 +225,112 @@ describe('findMissingSecretsMasks', () => {
     );
 
     expect(findMissingSecretsMasks('docker-compose.observability.yml', root)).toEqual([]);
+  });
+
+  it('still flags a missing mask when an unrelated list entry mentions the same path', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  cadvisor:',
+        '    volumes:',
+        '      - /:/rootfs:ro',
+        // Not a real mask — this is a `command:` entry that happens to
+        // contain the masked path as a substring, not a `tmpfs:` entry.
+        '    command:',
+        '      - --whitelisted-path=/rootfs/opt/ads:ro',
+      ].join('\n') + '\n'
+    );
+
+    expect(findMissingSecretsMasks('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        service: 'cadvisor',
+        tmpfsPath: '/rootfs/opt/ads',
+      },
+    ]);
+  });
+});
+
+describe('findUnsafeSocketProxyConfig', () => {
+  let root;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'observability-mounts-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('accepts a proxy scoped to CONTAINERS + INFO with POST/AUTH/SECRETS unset', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  docker-socket-proxy:',
+        '    environment:',
+        '      CONTAINERS: 1',
+        '      INFO: 1',
+        '      POST: 0',
+        '  cadvisor:',
+        '    volumes:',
+        '      - /:/rootfs:ro',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('docker-compose.observability.yml', root)).toEqual([]);
+  });
+
+  it('flags a proxy missing CONTAINERS or INFO', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      ['services:', '  docker-socket-proxy:', '    environment:', '      INFO: 1'].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        service: 'docker-socket-proxy',
+        reason: 'CONTAINERS must be set to 1',
+      },
+    ]);
+  });
+
+  it('flags a proxy with POST, AUTH or SECRETS enabled', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  docker-socket-proxy:',
+        '    environment:',
+        '      CONTAINERS: 1',
+        '      INFO: 1',
+        '      POST: 1',
+        '      SECRETS: 1',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        service: 'docker-socket-proxy',
+        reason: 'POST must not be set to 1',
+      },
+      {
+        file: 'docker-compose.observability.yml',
+        service: 'docker-socket-proxy',
+        reason: 'SECRETS must not be set to 1',
+      },
+    ]);
+  });
+
+  it('returns nothing when the service is absent', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      ['services:', '  grafana:'].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('docker-compose.observability.yml', root)).toEqual([]);
   });
 });

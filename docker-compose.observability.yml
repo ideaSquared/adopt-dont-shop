@@ -242,6 +242,50 @@ services:
           cpus: '0.05'
           memory: 32m
 
+  # ADS-1376: the only container with access to the real docker.sock.
+  # cAdvisor talks to this proxy instead of the raw socket (see its `command`
+  # below), so a compromised cAdvisor process gets this proxy's narrow
+  # read-only allow-list — launching a privileged container or bind-mounting
+  # host / is a 403 here — instead of the full Docker API a direct, even
+  # `:ro`, socket bind-mount would hand it (`:ro` on a bind-mounted unix
+  # socket blocks writing *files* into the mount, not connecting to the
+  # socket itself). CONTAINERS is the only API section granted — cAdvisor
+  # needs GET /containers/{list,json} for the Docker-assigned container name
+  # the ContainerRestarting alert filters on (infra/prometheus/rules/
+  # host-resources.yml:70; cAdvisor's own cgroup/sysfs discovery never
+  # populates that name). INFO is also required — cAdvisor's Docker
+  # integration calls GET /info once at startup to validate the daemon
+  # before it enables itself at all (container/docker/factory.go's
+  # `Register` → `ValidateInfo`), so without it cAdvisor silently never
+  # attaches the name label, from a mask that *looks* like it's working.
+  # POST (and everything else, incl. AUTH/SECRETS) stays off by default —
+  # this proxy is strictly GET-only.
+  docker-socket-proxy:
+    <<: *obs-hardening
+    image: tecnativa/docker-socket-proxy:0.5.0@sha256:753044cb0851ce53ab44c2504872ff02ae37be9c294fa8abea3754074e61eab4
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      CONTAINERS: 1
+      INFO: 1
+      POST: 0
+    expose:
+      - '2375'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:2375/_ping || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 64m
+        reservations:
+          cpus: '0.02'
+          memory: 16m
+
   cadvisor:
     <<: *obs-hardening
     image: gcr.io/cadvisor/cadvisor:v0.49.1@sha256:3cde6faf0791ebf7b41d6f8ae7145466fed712ea6f252c935294d2608b1af388
@@ -250,11 +294,14 @@ services:
     # container metadata; no `privileged`, matching this stack's hardening —
     # some accelerator/device metrics cAdvisor can expose are unavailable
     # without it, which this stack doesn't need.
-    # ADS-1376: no /var/run (or docker.sock) mount — cAdvisor doesn't need
-    # the Docker API for the cgroup/sysfs/var-lib-docker metrics above, and
-    # mounting it would let a compromised cAdvisor process issue full Docker
-    # API calls (launch a privileged container, bind-mount host /, etc.),
-    # a host-root-equivalent escape that `:ro` on the bind does not prevent.
+    # ADS-1376: no /var/run (or docker.sock) mount on cAdvisor itself — see
+    # docker-socket-proxy above for why cAdvisor still needs *some* Docker
+    # API access, and why it's routed through that proxy instead.
+    depends_on:
+      docker-socket-proxy:
+        condition: service_healthy
+    command:
+      - '--docker=tcp://docker-socket-proxy:2375'
     volumes:
       - /:/rootfs:ro
       - /sys:/sys:ro
