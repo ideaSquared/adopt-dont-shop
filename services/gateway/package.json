@@ -30,11 +30,11 @@
     "test:contracts:provider": "vitest run --config vitest.contracts.config.ts --reporter=verbose test/contracts/*.provider.test.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit"
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
+    "format": "prettier --write \"{src,test}/**/*.ts\"",
+    "format:check": "prettier --check \"{src,test}/**/*.ts\"",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
     "@adopt-dont-shop/config-secrets": "workspace:*",

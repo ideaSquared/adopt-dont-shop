@@ -56,6 +56,7 @@
       "outputs": [],
       "inputs": [
         "src/**",
+        "test/**",
         "tests/**",
         "fixtures/**",
         "helpers/**",
@@ -67,11 +68,11 @@
     },
     "format": {
       "outputs": [],
-      "inputs": ["src/**", "package.json"]
+      "inputs": ["src/**", "test/**", "package.json"]
     },
     "format:check": {
       "outputs": [],
-      "inputs": ["src/**", "package.json"]
+      "inputs": ["src/**", "test/**", "package.json"]
     },
     "type-check": {
       "dependsOn": ["^build"],
