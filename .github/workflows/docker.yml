@@ -11,40 +11,22 @@ name: Docker
 # - This workflow now runs on every PR touching source (apps/, packages/,
 #   services/), not only Dockerfile-changing PRs — a source change can still
 #   break the image (e.g. a config-validation regression the dev-target E2E
-#   stack doesn't exercise the same way) — and `prod-image-smoke`'s status
-#   check is a required check (.github/rulesets/main-required-checks.json).
+#   stack doesn't exercise the same way) — and the "Production Image Smoke"
+#   status check is a required check (.github/rulesets/main-required-checks.json).
+#
+# ADS-1400: the workflow triggers on EVERY push/PR (no trigger-level `paths:`)
+# so that required check always reports. A required check whose workflow is
+# filtered out at the trigger level never reports — it sits at "Expected —
+# waiting for status" forever and blocks every PR that touches no Docker path
+# (docs/, scripts/, .github/, e2e/, …). The path scoping lives in the `changes`
+# job below instead: the image build/scan/boot jobs are gated on it, and the
+# always-running `prod-image-smoke-gate` job reports "Production Image Smoke"
+# (passing when the boot job was skipped). Same pattern as schema-equivalence.yml.
 on:
   push:
     branches: [main, develop]
-    # Source-path block below mirrors .github/workflow-source-paths.yml plus
-    # the Docker-specific `extra:` entries (ADS-767). Drift fails
-    # scripts/check-workflow-paths.mjs.
-    paths:
-      - 'apps/**'
-      - 'packages/**'
-      - 'services/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '**/Dockerfile*'
-      - 'docker-compose*.yml'
-      - '.dockerignore'
   pull_request:
     branches: [main, develop]
-    # ADS-1314: was narrowed to Dockerfile-changing changes only ("source-only
-    # PRs are covered by ci.yml + E2E") — but ci.yml's E2E only boots
-    # *development*-target images, so a source change that only breaks the
-    # *production* target (e.g. a config-validation path exercised only under
-    # NODE_ENV=production) never got a pre-deploy signal on a source-only PR.
-    # Now identical to the push path list.
-    paths:
-      - 'apps/**'
-      - 'packages/**'
-      - 'services/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '**/Dockerfile*'
-      - 'docker-compose*.yml'
-      - '.dockerignore'
   workflow_dispatch:
 
 permissions:
@@ -60,10 +42,47 @@ env:
 
 jobs:
   # ============================================================================
+  # DETECT CHANGES — ADS-1400: decides whether the image jobs below need to
+  # run. These are the paths that used to be the workflow's trigger-level
+  # `paths:` (ADS-1314: the canonical source list in
+  # .github/workflow-source-paths.yml plus the Docker plumbing), plus this
+  # workflow file so an edit to it validates itself. Anything else — docs,
+  # scripts, .github/ (other than this file), e2e, nginx, … — cannot change an
+  # image, so those jobs are skipped and the gate job below reports success.
+  # ============================================================================
+  changes:
+    name: Detect Docker image changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706  # v4.0.2
+        id: filter
+        with:
+          filters: |
+            docker:
+              - 'apps/**'
+              - 'packages/**'
+              - 'services/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - '**/Dockerfile*'
+              - 'docker-compose*.yml'
+              - '.dockerignore'
+              - '.github/workflows/docker.yml'
+
+  # ============================================================================
   # BUILD FRONTEND APPS — dev + production images for each app
   # ============================================================================
   build-apps:
     name: Build ${{ matrix.app }} Image
+    needs: changes
+    # Run when image-affecting paths changed, or on a manual run (an explicit
+    # request to build, which change detection must not skip).
+    if: ${{ needs.changes.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -118,10 +137,11 @@ jobs:
   # all triggers (ADS-833: scan PRs so CVEs are caught before merge, not
   # after), EXCEPT that on a PR, each service's prod build+scan only runs
   # if that service's own image could actually have changed (ADS-1357): the
-  # trigger's `paths:` (ADS-1314) is deliberately broad — any source change
-  # under apps/**, packages/**, services/** runs this workflow — so without
-  # this in-job filter, a frontend-only PR would rebuild and Trivy-scan all
-  # 11 service images for no reason. See the per-service filter step below.
+  # `changes` job's filter (ADS-1314/ADS-1400) is deliberately broad — any
+  # source change under apps/**, packages/**, services/** runs this job — so
+  # without this in-job filter, a frontend-only PR would rebuild and
+  # Trivy-scan all 11 service images for no reason. See the per-service
+  # filter step below.
   #
   # Replaces the CVE-scan coverage lost when the service.backend monolith
   # was deleted in #995 (the old `build-backend` job ran a single Trivy
@@ -132,6 +152,8 @@ jobs:
   # ============================================================================
   build-services:
     name: Build ${{ matrix.service }} Image
+    needs: changes
+    if: ${{ needs.changes.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -232,7 +254,7 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
 
       # Build the prod image so Trivy can scan it (ADS-833). ADS-1314 widened
-      # the PR trigger to match any source change (apps/**, packages/**,
+      # the PR scope to match any source change (apps/**, packages/**,
       # services/**, …), not just Dockerfile-changing ones, so on a PR this
       # step (and the scan steps below) only run when `service-filter` found
       # a change that can affect THIS service's image (ADS-1357); push and
@@ -317,11 +339,14 @@ jobs:
   # uses one shared image that bakes a full workspace install. Publishing it to
   # GHCR means scripts/docker-dev.mjs can PULL it instead of building locally,
   # so most developers never run a build at all (the original network-flakiness
-  # source). Built on every trigger to catch breakage; pushed only on main/
-  # develop pushes (PRs can't push to the shared :latest tag).
+  # source). Built on every trigger whose `changes` filter matches, to catch
+  # breakage; pushed only on main/develop pushes (PRs can't push to the shared
+  # :latest tag).
   # ============================================================================
   build-dev-image:
     name: Build + Publish Dev Image
+    needs: changes
+    if: ${{ needs.changes.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -383,7 +408,9 @@ jobs:
   # jobs above) makes the rebuild a near-total cache hit in the common case.
   # ============================================================================
   prod-image-smoke:
-    name: Production Image Smoke
+    name: Production Image Smoke (boot)
+    needs: changes
+    if: ${{ needs.changes.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -541,3 +568,43 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml down -v
+
+  # ============================================================================
+  # PRODUCTION IMAGE SMOKE GATE — ADS-1400: the job that reports the required
+  # "Production Image Smoke" context (.github/rulesets/main-required-checks.json).
+  # It always runs, so the check reports on every PR — passing when the boot job
+  # above was skipped because no image-affecting path changed — instead of the
+  # PR sitting at "Expected — waiting for status". The boot job is deliberately
+  # named "Production Image Smoke (boot)" so this is the only check run with the
+  # required name. Keep the name below byte-identical to the ruleset's context.
+  # ============================================================================
+  prod-image-smoke-gate:
+    name: Production Image Smoke
+    needs: [changes, prod-image-smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Summarise boot result
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          RESULT: ${{ needs.prod-image-smoke.result }}
+        run: |
+          # A failed change-detection job is a real CI-infra failure — surface
+          # it rather than silently passing as "nothing to verify".
+          if [ "$CHANGES" != "success" ]; then
+            echo "::error::Docker change-detection job result: $CHANGES"
+            exit 1
+          fi
+          case "$RESULT" in
+            success)
+              echo "Production image smoke passed."
+              ;;
+            skipped)
+              echo "Boot job skipped — no image-affecting changes to verify."
+              ;;
+            *)
+              echo "::error::Production image smoke boot job result: $RESULT"
+              exit 1
+              ;;
+          esac
