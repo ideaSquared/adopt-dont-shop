@@ -67,6 +67,12 @@ const EXPECTED_PROXY_LOCATIONS = [
 ];
 const DENY_ALL_SELECTOR = '/';
 const LIMIT_TO_GET_PATTERN = /limit_except\s+GET\s*\{\s*deny\s+all;?\s*\}/;
+const PROXY_PASS_PATTERN = /proxy_pass\s+http:\/\/docker_socket;?/;
+// The catch-all's body must be *only* this — not merely contain it — or a
+// conditional (`if ($request_method = POST) { return 403; } proxy_pass
+// ...;`) would still forward every unmatched GET while passing a looser
+// "contains return 403 somewhere" check.
+const UNCONDITIONAL_DENY_PATTERN = /^\s*return\s+403;?\s*$/;
 
 // Defense in depth alongside the exact-selector check above: catches a
 // dangerous directive added somewhere that isn't a `location` block at all
@@ -134,8 +140,14 @@ function parseNginxLocationBlocks(content) {
   return blocks;
 }
 
+// A direct child of the top-level `services:` map — exactly two leading
+// spaces — not merely a line that happens to trim down to `${service}:`,
+// which a nested key (e.g. another service's `depends_on: cadvisor:`)
+// could also do, misidentifying that nested line as the real service start.
 function getServiceLines(lines, service) {
-  const serviceIndex = lines.findIndex(line => line.trim() === `${service}:`);
+  const serviceIndex = lines.findIndex(
+    line => /^ {2}\S/.test(line) && line.trim() === `${service}:`
+  );
   if (serviceIndex === -1) return null;
 
   const nextServiceIndex = lines.findIndex(
@@ -268,6 +280,12 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
         reason: `location \`${selector}\` must restrict itself to GET with limit_except`,
       });
     }
+    if (!PROXY_PASS_PATTERN.test(body)) {
+      failures.push({
+        file,
+        reason: `location \`${selector}\` must proxy_pass to docker_socket — cAdvisor gets no response otherwise`,
+      });
+    }
   }
 
   for (const { label, selector } of EXPECTED_PROXY_LOCATIONS) {
@@ -276,10 +294,11 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
     }
   }
 
-  if (!denyBlock || !/return\s+403/.test(denyBlock.body)) {
+  if (!denyBlock || !UNCONDITIONAL_DENY_PATTERN.test(denyBlock.body.trim())) {
     failures.push({
       file,
-      reason: 'must deny by default for any unmatched path (`location / { return 403; }`)',
+      reason:
+        'the catch-all `location / { ... }` must be an unconditional `return 403;` and nothing else',
     });
   }
 

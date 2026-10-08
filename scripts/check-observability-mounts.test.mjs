@@ -221,6 +221,29 @@ describe('findCadvisorUnsafeMounts', () => {
 
     expect(findCadvisorUnsafeMounts('docker-compose.observability.yml', root)).toEqual([]);
   });
+
+  it('is not fooled by an earlier service nesting a same-named key (e.g. depends_on: cadvisor:)', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  grafana:',
+        '    depends_on:',
+        '      cadvisor:',
+        '        condition: service_healthy',
+        '  cadvisor:',
+        '    volumes:',
+        '      - /:/rootfs:ro',
+        '      - /var/run:/var/run:ro',
+      ].join('\n') + '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    expect(failures).toEqual([
+      { file: 'docker-compose.observability.yml', line: 9, mount: '/var/run' },
+    ]);
+  });
 });
 
 describe('findMissingSecretsMasks', () => {
@@ -459,7 +482,52 @@ describe('findUnsafeSocketProxyConfig', () => {
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
       {
         file: 'server.conf',
-        reason: 'must deny by default for any unmatched path (`location / { return 403; }`)',
+        reason:
+          'the catch-all `location / { ... }` must be an unconditional `return 403;` and nothing else',
+      },
+    ]);
+  });
+
+  it('flags a catch-all that conditionally forwards unmatched GETs instead of always denying', () => {
+    writeFileSync(
+      join(root, 'server.conf'),
+      [
+        ...ALLOWED_LOCATIONS,
+        // Technically "contains return 403", but only for POST — every
+        // unmatched GET (including /containers/{id}/archive) still reaches
+        // docker_socket. The guard must reject this, not just look for the
+        // substring "return 403" anywhere in the catch-all's body.
+        'location / { if ($request_method = POST) { return 403; } proxy_pass http://docker_socket; }',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason:
+          'the catch-all `location / { ... }` must be an unconditional `return 403;` and nothing else',
+      },
+    ]);
+  });
+
+  it('flags an allowed-selector block that drops its proxy_pass', () => {
+    writeFileSync(
+      join(root, 'server.conf'),
+      [
+        ...ALLOWED_LOCATIONS.slice(0, 4),
+        // Right selector, right method restriction — but cAdvisor gets no
+        // response at all without proxy_pass, silently breaking the name
+        // label this endpoint exists for.
+        'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/json$ { limit_except GET { deny all; } }',
+        DENY_BY_DEFAULT,
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason:
+          'location `^(/v[0-9][0-9.]*)?/containers/[^/]+/json$` must proxy_pass to docker_socket — cAdvisor gets no response otherwise',
       },
     ]);
   });

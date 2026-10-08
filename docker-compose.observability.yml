@@ -149,9 +149,18 @@ services:
   grafana:
     <<: *obs-hardening
     image: grafana/grafana:11.3.0@sha256:a0f881232a6fb71a0554a47d0fe2203b6888fe77f4cefb7ea62bed7eb54e13c3
+    # ADS-1376: GF_SECURITY_ADMIN_PASSWORD used to be passed as a plain env
+    # var — visible verbatim in this container's `docker inspect` output
+    # (Config.Env), which is exactly what cAdvisor's GET /containers/{id}/json
+    # access (via docker-socket-proxy, above) can read for *any* container.
+    # Routed through a Compose secret instead (file-mounted at
+    # /run/secrets/..., which inspect never shows) via Grafana's own
+    # `_FILE`-suffix convention for reading a secret from a file
+    # (packaging/docker/run.sh in grafana/grafana). The `x-require-...`
+    # extension field below preserves the original fail-fast check — it's
+    # compose-file metadata only, never part of any container's config.
     environment:
-      # Real admin password required — no anonymous access, no default creds.
-      GF_SECURITY_ADMIN_PASSWORD: '${GF_SECURITY_ADMIN_PASSWORD:?Error: GF_SECURITY_ADMIN_PASSWORD required to enable observability}'
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
       GF_AUTH_ANONYMOUS_ENABLED: 'false'
       GF_AUTH_DISABLE_LOGIN_FORM: 'false'
       GF_USERS_ALLOW_SIGN_UP: 'false'
@@ -161,6 +170,8 @@ services:
       # Stay on our own infra — no update checks / usage phone-home.
       GF_ANALYTICS_REPORTING_ENABLED: 'false'
       GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    secrets:
+      - grafana_admin_password
     volumes:
       - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -466,3 +477,20 @@ secrets:
     file: ./secrets/db_password
   redis_password:
     file: ./secrets/redis_password
+  # ADS-1376: an `environment`-sourced secret, not `file`-sourced like the
+  # two above — Grafana's admin password only ever lived in the host .env
+  # (GF_SECURITY_ADMIN_PASSWORD), never a materialised file, so this reads
+  # it from there and mounts it at /run/secrets/grafana_admin_password
+  # without ever passing the value itself into the grafana container's
+  # environment (see that service's comment for why that matters).
+  grafana_admin_password:
+    environment: GF_SECURITY_ADMIN_PASSWORD
+
+# Compose interpolates `x-*` extension fields the same as anything else but
+# never attaches them to a container, so this reproduces the fail-fast
+# `${VAR:?err}` check GF_SECURITY_ADMIN_PASSWORD used to get directly in the
+# grafana service's `environment:` (before routing it through the
+# `grafana_admin_password` secret above, whose own `environment:` source
+# doesn't fail on a missing var — it would just silently materialise an
+# empty secret) without it ever reaching a container's `docker inspect`.
+x-require-grafana-admin-password: '${GF_SECURITY_ADMIN_PASSWORD:?Error: GF_SECURITY_ADMIN_PASSWORD required to enable observability}'
