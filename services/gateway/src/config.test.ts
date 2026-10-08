@@ -513,3 +513,31 @@ describe('loadConfig — legal docs directory (ADS-1303)', () => {
     expect(config.legal.docsDir).toBe('/app/docs/legal');
   });
 });
+
+// ADS-1365: config.trustProxy now drives req.ip on the HTTP path as well as the
+// WebSocket handshake, so the deployed-environment default is load-bearing for
+// per-IP rate limiting.
+describe('loadConfig — trustProxy (ADS-1021, ADS-1365)', () => {
+  const deployed = { CORS_ORIGIN: 'https://app.example.com' };
+
+  it('defaults off outside production/staging', () => {
+    expect(loadConfig({}).trustProxy).toBe(false);
+  });
+
+  it('defaults on in production, behind nginx', () => {
+    expect(loadConfig({ ...deployed, NODE_ENV: 'production' }).trustProxy).toBe(true);
+  });
+
+  it('defaults on in staging, behind nginx', () => {
+    expect(loadConfig({ ...deployed, NODE_ENV: 'staging' }).trustProxy).toBe(true);
+  });
+
+  it('lets TRUST_PROXY=false turn it off in production', () => {
+    const config = loadConfig({ ...deployed, NODE_ENV: 'production', TRUST_PROXY: 'false' });
+    expect(config.trustProxy).toBe(false);
+  });
+
+  it('lets TRUST_PROXY=true turn it on in development', () => {
+    expect(loadConfig({ TRUST_PROXY: 'true' }).trustProxy).toBe(true);
+  });
+});

@@ -524,6 +524,7 @@ describe('createServer — X-Forwarded-For trust boundary (ADS-915)', () => {
     server = await createServer({
       config: {
         ...baseConfig,
+        trustProxy: true,
         rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
       },
       logger: quietLogger,
@@ -550,6 +551,51 @@ describe('createServer — X-Forwarded-For trust boundary (ADS-915)', () => {
       lastStatus = r.statusCode;
     }
     expect(lastStatus).toBe(429);
+  });
+
+  // ADS-1365: the HTTP path now follows the same config.trustProxy flag as the
+  // WebSocket handshake. A gateway that is reachable without nginx in front
+  // (internal LB, debug run) must not believe a client-supplied header.
+  const postLoginsWithRotatingXff = async (trustProxy: boolean): Promise<number[]> => {
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        trustProxy,
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient: makeLoginAuthClient(),
+    });
+
+    const statuses: number[] = [];
+    for (let i = 0; i < 11; i++) {
+      const res = await server.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        headers: { 'x-forwarded-for': `10.0.0.${i}` },
+        // A distinct email per request keeps the per-email cap (5/5min) out of
+        // the way so only the per-IP cap (10/min) can produce a 429 here.
+        payload: { email: `user${i}@example.com`, password: 'pw' },
+      });
+      statuses.push(res.statusCode);
+    }
+    return statuses;
+  };
+
+  it('ignores X-Forwarded-For and limits on the socket address when trustProxy is off (ADS-1365)', async () => {
+    const statuses = await postLoginsWithRotatingXff(false);
+
+    // Every request shares the one socket peer, so the 11th trips the login cap
+    // even though each request claims a different client IP.
+    expect(statuses[10]).toBe(429);
+  });
+
+  it('buckets per proxy-reported client when trustProxy is on (ADS-1365)', async () => {
+    const statuses = await postLoginsWithRotatingXff(true);
+
+    // Behind nginx each distinct X-Forwarded-For is a distinct client, so no
+    // single bucket reaches the cap — real users must not share one limiter.
+    expect(statuses).not.toContain(429);
   });
 });
 
@@ -605,6 +651,7 @@ describe('createServer — Prometheus rate-limit counter', () => {
     const server = await createServer({
       config: {
         ...baseConfig,
+        trustProxy: true,
         rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
       },
       logger: quietLogger,
@@ -639,6 +686,7 @@ describe('createServer — Prometheus rate-limit counter', () => {
     const server = await createServer({
       config: {
         ...baseConfig,
+        trustProxy: true,
         rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
       },
       logger: quietLogger,

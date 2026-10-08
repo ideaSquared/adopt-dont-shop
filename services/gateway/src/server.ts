@@ -245,7 +245,14 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // only the immediate hop" logic the old `trustProxy: 1` used — safe here
     // because it's network isolation (gateway:4000 unreachable directly), not
     // this predicate, that guarantees the immediate hop is always nginx.
-    trustProxy: (_address, hop) => hop === 0,
+    //
+    // ADS-1365: that single-hop trust is only applied when config.trustProxy
+    // is on — the same env-derived flag the WebSocket handshake uses
+    // (ws/socket-server.ts handshakeClientIp). Off (any environment that is
+    // not behind nginx: dev, a direct LB, a debug run) req.ip is the raw socket
+    // peer, so a client-supplied X-Forwarded-For cannot rotate the per-IP rate
+    // limiters.
+    trustProxy: config.trustProxy ? (_address, hop) => hop === 0 : false,
   });
 
   // Tag every error that escapes a route — the only winston call site

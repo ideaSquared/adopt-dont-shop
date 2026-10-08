@@ -320,6 +320,14 @@ services:
     container_name: ads_staging_gateway
     environment:
       NODE_ENV: production
+      # ADS-1365: the HTTP trust-proxy predicate (one hop of X-Forwarded-For)
+      # only applies when this is on — it is also what the WebSocket handshake
+      # reads. The gateway is `expose`d only and always sits behind the
+      # deploy/gateway nginx edge, which overwrites XFF with $remote_addr
+      # (ADS-915). Left unset it would still default to on under
+      # NODE_ENV=production; stated explicitly so per-IP rate limiting can't
+      # silently collapse to the nginx address if that default ever changes.
+      TRUST_PROXY: "true"
       NATS_URL: nats://nats:4222
       # ADS-1273: same shared token as the domain services — see the nats
       # service's --auth flag.
