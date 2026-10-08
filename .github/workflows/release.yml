@@ -1,11 +1,15 @@
 name: Release
 
-# Triggered in two ways:
+# Builds, publishes and signs production Docker images. It does NOT deploy —
+# deploys are driven separately by deploy.yml.
+#
+# Triggered in three ways:
 #   1. workflow_run — fires only after CI passes on main (prevents pushing broken
 #      images). The docker push happens against the same SHA that CI validated.
 #   2. push tags (v*) — allows tagged releases regardless of CI state so
 #      hotfix tags can always be cut manually.
-#   3. workflow_dispatch — manual trigger for staging/production deploys.
+#   3. workflow_dispatch — manual image publish of the selected ref (takes no
+#      inputs; there is no staging/production choice because nothing deploys).
 #
 # Branch protection must require the CI workflow to pass before merging to main
 # so that by the time workflow_run fires, tests have already passed.
@@ -26,15 +30,6 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
 
 # Only proceed if CI passed (or if triggered directly by a tag / manual dispatch)
 

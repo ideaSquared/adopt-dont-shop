@@ -4,9 +4,10 @@
 # `scripts/check-workflow-paths.mjs` will fail any workflow whose `paths:`
 # filter has drifted.
 #
-# Three workflows consume this list with the modifier described in the
+# Two workflows consume this list with the modifier described in the
 # `consumers` block: any workflow whose `paths:` block diverges from the
-# resolved list will fail the guard.
+# resolved list will fail the guard. Workflows that deliberately do not
+# consume it are documented at the end of the `consumers` block.
 
 paths:
   - 'apps/**'
@@ -25,20 +26,6 @@ consumers:
     triggers: [push, pull_request]
     extra: []
 
-  # docker.yml (ADS-1314): extends the canonical list with Docker plumbing
-  # (Dockerfile*, compose, .dockerignore) on BOTH push and pull_request — the
-  # PR trigger used to be narrowed to the docker-plumbing subset only
-  # ("source-only PRs are covered by ci.yml / E2E"), but ci.yml's E2E only
-  # boots *development*-target images, so a source-only PR could still ship
-  # a broken *production* image with zero pre-merge signal (ADS-1301 P1-8).
-  # Now identical to push.
-  - workflow: .github/workflows/docker.yml
-    triggers: [push, pull_request]
-    extra:
-      - '**/Dockerfile*'
-      - 'docker-compose*.yml'
-      - '.dockerignore'
-
   # schema-equivalence.yml (ADS-1065) intentionally does NOT consume the
   # canonical list, and it no longer carries a trigger-level `paths:` filter at
   # all: a required check filtered out at the trigger level never reports and
@@ -52,3 +39,15 @@ consumers:
   # drift check does not apply, only the literal-path-exists check (which also
   # scans that in-job `filters:` block). Recorded here so the single source of
   # truth documents the deliberate divergence.
+  #
+  # docker.yml (ADS-1400) likewise stopped being a consumer. It was one
+  # (ADS-1314: the canonical list plus the Docker plumbing — `**/Dockerfile*`,
+  # `docker-compose*.yml`, `.dockerignore` — on both push and pull_request),
+  # but its "Production Image Smoke" job is a required check, and a required
+  # check filtered out at the trigger level never reports, so every PR that
+  # touched none of those paths (docs, scripts, .github, e2e, …) sat at
+  # "Expected — waiting for status". It now triggers on every push/PR and a
+  # `dorny/paths-filter` `changes` job applies those same paths (plus the
+  # workflow file itself) internally; the always-on `prod-image-smoke-gate`
+  # job reports the required check. Not a canonical consumer — only the
+  # literal-path-exists check applies to that in-job `filters:` block.
