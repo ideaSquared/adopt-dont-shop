@@ -229,5 +229,5 @@ invoked by a person (`/name`), not auto-loaded. Load a skill before writing code
 - `apiService.get(url, params)` takes the query object as the second argument, not `{ params }`.
 - `TextInput` is deprecated; use `Input` from `@adopt-dont-shop/lib.components`. `pnpm check:forms`
   ratchets the remaining raw-control and `TextInput` count downward and fails on any increase.
-- Only `auth`, `pets`, `rescue`, `applications` and `chat` have a `db:seed`; `pnpm db:seed` runs
+- Only `auth`, `rescue`, `pets`, `applications` and `chat` have a `db:seed`; `pnpm db:seed` runs
   them in that dependency order via `docker compose exec`.

@@ -77,7 +77,7 @@ Once the stack is running, load seed data so you can log in and browse:
 pnpm db:seed             # host-side orchestrator: runs each service's db:seed in dependency order
 ```
 
-Only `auth`, `pets`, `rescue`, `applications` and `chat` have seeders, and they run in that order. The generated accounts share the `SEED_PASSWORD` from `.env` (default `DevPassword123!`). See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset.
+Only `auth`, `rescue`, `pets`, `applications` and `chat` have seeders, and they run in that order. The generated accounts share the `SEED_PASSWORD` from `.env` (default `DevPassword123!`). See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset.
 
 ### Run (native — no Docker)
 
