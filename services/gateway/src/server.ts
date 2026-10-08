@@ -99,6 +99,21 @@ import { registerTestTokenPeekRoutes } from './routes/test-token-peek.js';
 import { registerUploadsRoutes } from './routes/uploads.js';
 import { registerUsersRoutes } from './routes/users.js';
 
+// ADS-1378: Content-Security-Policy directives, in Helmet's camelCase form.
+// Mirrors the API-host policy in deploy/gateway/nginx.conf — see the helmet
+// registration in createServer for why.
+const CONTENT_SECURITY_POLICY_DIRECTIVES = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'"],
+  styleSrc: ["'self'"],
+  imgSrc: ["'self'", 'data:'],
+  connectSrc: ["'self'"],
+  frameAncestors: ["'none'"],
+  objectSrc: ["'none'"],
+  baseUri: ["'self'"],
+  formAction: ["'self'"],
+};
+
 // ---------------------------------------------------------------------------
 // Rate-limit Prometheus counter — lazily created and registered into the
 // same local registry that getMetricsRegistry()/registerMetrics() uses.
@@ -245,7 +260,14 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // only the immediate hop" logic the old `trustProxy: 1` used — safe here
     // because it's network isolation (gateway:4000 unreachable directly), not
     // this predicate, that guarantees the immediate hop is always nginx.
-    trustProxy: (_address, hop) => hop === 0,
+    //
+    // ADS-1365: that single-hop trust is only applied when config.trustProxy
+    // is on — the same env-derived flag the WebSocket handshake uses
+    // (ws/socket-server.ts handshakeClientIp). Off (any environment that is
+    // not behind nginx: dev, a direct LB, a debug run) req.ip is the raw socket
+    // peer, so a client-supplied X-Forwarded-For cannot rotate the per-IP rate
+    // limiters.
+    trustProxy: config.trustProxy ? (_address, hop) => hop === 0 : false,
   });
 
   // Tag every error that escapes a route — the only winston call site
@@ -264,10 +286,20 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     void reply.status(err.statusCode ?? 500).send({ error: 'internal_error' });
   });
 
-  // Security headers (defence-in-depth alongside nginx). CSP is omitted
-  // here because nginx enforces a strict policy at the edge and Swagger
-  // UI requires 'unsafe-inline' relaxation that would weaken that policy
-  // for gateway-direct callers. All other Helmet defaults are applied.
+  // Security headers (defence-in-depth alongside nginx). All Helmet defaults
+  // are applied except where overridden below.
+  //
+  // ADS-1378: CSP used to be switched off here on the assumption that nginx
+  // supplies it, but the default `pnpm docker:dev` profile starts no nginx and
+  // internal-LB / debug runs bypass it too — leaving CSP as the one header
+  // asymmetric with the HSTS/X-Frame-Options handling below. The policy is a
+  // mirror of the API-host policy in deploy/gateway/nginx.conf (no
+  // unsafe-inline, no unsafe-eval), so a browser behind nginx sees two
+  // agreeing values; keep the two in step when either changes. Swagger UI at
+  // /docs needs no relaxation: @fastify/swagger-ui 6 loads every script and
+  // stylesheet as an external same-origin file (its csp.json lists no inline
+  // hashes), which the server tests assert. `upgrade-insecure-requests` is
+  // deliberately omitted — it would break the plain-http dev profile.
   //
   // ADS-974: Helmet's HSTS default is max-age=15552000 (180 days), but
   // prod nginx (deploy/gateway/nginx.conf) sends max-age=63072000 (2y)
@@ -279,7 +311,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // debug runs), and a browser hitting nginx sees a single, consistent
   // value either way (both headers now agree).
   await server.register(helmet, {
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: { useDefaults: false, directives: CONTENT_SECURITY_POLICY_DIRECTIVES },
     strictTransportSecurity: { maxAge: 63072000, includeSubDomains: true, preload: true },
     // ADS-1260: Helmet's default X-Frame-Options is SAMEORIGIN, but prod nginx
     // sends `X-Frame-Options: DENY always` on every vhost. As with HSTS above,

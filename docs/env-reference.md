@@ -49,7 +49,7 @@ Beyond `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` (in `.env.example`):
 
 - `*_FRONTEND_URL` are required in production by `packages/lib.validation/src/schemas/env.ts` ("used to build email links").
 - `CORS_ORIGIN` is read by `services/gateway/src/config.ts` (comma-separated list for `@fastify/cors`). It must include every SPA origin that calls the gateway directly.
-- `TRUST_PROXY` (`services/gateway/src/config.ts`, ADS-1021): `true`/`1` or `false`/`0`. Unset defaults to on in `production`/`staging` (behind nginx) and off everywhere else.
+- `TRUST_PROXY` (`services/gateway/src/config.ts`, ADS-1021, ADS-1365): `true`/`1` or `false`/`0`. Gates whether `X-Forwarded-For` is believed, for both the HTTP server (`req.ip`, which feeds the per-IP rate limiters) and the WebSocket handshake. When on, exactly one proxy hop is trusted; when off, the raw socket address is used. Unset defaults to on in `production`/`staging` (behind nginx) and off everywhere else. `docker-compose.prod.yml` and `docker-compose.staging.yml` set it to `true` explicitly.
 
 Alternative nginx-proxied dev URLs (only when the stack runs with `--profile full`):
 

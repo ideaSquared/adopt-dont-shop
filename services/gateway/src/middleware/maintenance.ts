@@ -20,6 +20,8 @@ import type { Logger } from 'winston';
 
 import { redactUrl } from '@adopt-dont-shop/observability';
 
+import { constantTimeEquals } from '../utils/constant-time.js';
+
 export const MAINTENANCE_BYPASS_HEADER = 'x-maintenance-bypass';
 
 export type MaintenanceOptions = {
@@ -46,7 +48,11 @@ function isExempt(req: FastifyRequest, opts: MaintenanceOptions): boolean {
     return true;
   }
   const bypassHeader = req.headers[MAINTENANCE_BYPASS_HEADER];
-  if (opts.bypassToken && typeof bypassHeader === 'string' && bypassHeader === opts.bypassToken) {
+  if (
+    opts.bypassToken &&
+    typeof bypassHeader === 'string' &&
+    constantTimeEquals(bypassHeader, opts.bypassToken)
+  ) {
     return true;
   }
   return false;

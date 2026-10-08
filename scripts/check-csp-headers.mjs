@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * CSP regression guard (ADS-847, extended by ADS-958).
+ * CSP regression guard (ADS-847, extended by ADS-958 and ADS-1382).
  *
- * Three checks:
+ * Four checks:
  *  1. The nginx security-headers.conf baked into Dockerfile.app does not
  *     contain `unsafe-inline` in style-src. The codebase migrated from
  *     styled-components (which required unsafe-inline) to vanilla-extract;
@@ -14,6 +14,10 @@
  *  3. Every production SPA vhost in deploy/gateway/nginx.conf (the main
  *     client, admin, and rescue server blocks) declares a
  *     Content-Security-Policy header.
+ *  4. Every X-XSS-Protection header in the repo's nginx configs (the four
+ *     above plus nginx/security-headers.conf) is "0". The legacy
+ *     "1; mode=block" is deprecated, can itself introduce XSS on some
+ *     engines, and would conflict with the edge's "0".
  *
  * Run via `node scripts/check-csp-headers.mjs` or wired into ci.yml.
  */
@@ -113,13 +117,32 @@ for (const hostname of PROD_SPA_HOSTNAMES) {
   }
 }
 
+// Check 4 (ADS-1382): X-XSS-Protection must be "0" everywhere. Dockerfile.app
+// once baked "1; mode=block" while the edge sent "0", so a response could carry
+// two conflicting values. nginx/security-headers.conf is the canonical set.
+const xssSources = [
+  ...cspSources,
+  {
+    label: 'nginx/security-headers.conf',
+    text: readFileSync(join(ROOT, 'nginx/security-headers.conf'), 'utf8'),
+  },
+];
+for (const source of xssSources) {
+  for (const [, value] of source.text.matchAll(/add_header X-XSS-Protection "([^"]*)"/g)) {
+    if (value !== '0') {
+      failures.push(`${source.label}: X-XSS-Protection is "${value}", expected "0"`);
+    }
+  }
+}
+
 if (failures.length > 0) {
   console.error('CSP regression detected:');
   for (const f of failures) console.error(`  ${f}`);
   console.error(
     '\nThe codebase uses vanilla-extract for styling and ships no inline <script> tags —',
     "\n'unsafe-inline'/'unsafe-eval' are not needed in style-src or script-src, and every",
-    '\nprod SPA vhost at the edge must declare its own CSP. [ADS-847, ADS-958]'
+    '\nprod SPA vhost at the edge must declare its own CSP. X-XSS-Protection must be "0"',
+    '\neverywhere. [ADS-847, ADS-958, ADS-1382]'
   );
   process.exit(1);
 }

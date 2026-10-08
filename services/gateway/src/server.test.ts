@@ -524,6 +524,7 @@ describe('createServer — X-Forwarded-For trust boundary (ADS-915)', () => {
     server = await createServer({
       config: {
         ...baseConfig,
+        trustProxy: true,
         rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
       },
       logger: quietLogger,
@@ -550,6 +551,51 @@ describe('createServer — X-Forwarded-For trust boundary (ADS-915)', () => {
       lastStatus = r.statusCode;
     }
     expect(lastStatus).toBe(429);
+  });
+
+  // ADS-1365: the HTTP path now follows the same config.trustProxy flag as the
+  // WebSocket handshake. A gateway that is reachable without nginx in front
+  // (internal LB, debug run) must not believe a client-supplied header.
+  const postLoginsWithRotatingXff = async (trustProxy: boolean): Promise<number[]> => {
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        trustProxy,
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient: makeLoginAuthClient(),
+    });
+
+    const statuses: number[] = [];
+    for (let i = 0; i < 11; i++) {
+      const res = await server.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        headers: { 'x-forwarded-for': `10.0.0.${i}` },
+        // A distinct email per request keeps the per-email cap (5/5min) out of
+        // the way so only the per-IP cap (10/min) can produce a 429 here.
+        payload: { email: `user${i}@example.com`, password: 'pw' },
+      });
+      statuses.push(res.statusCode);
+    }
+    return statuses;
+  };
+
+  it('ignores X-Forwarded-For and limits on the socket address when trustProxy is off (ADS-1365)', async () => {
+    const statuses = await postLoginsWithRotatingXff(false);
+
+    // Every request shares the one socket peer, so the 11th trips the login cap
+    // even though each request claims a different client IP.
+    expect(statuses[10]).toBe(429);
+  });
+
+  it('buckets per proxy-reported client when trustProxy is on (ADS-1365)', async () => {
+    const statuses = await postLoginsWithRotatingXff(true);
+
+    // Behind nginx each distinct X-Forwarded-For is a distinct client, so no
+    // single bucket reaches the cap — real users must not share one limiter.
+    expect(statuses).not.toContain(429);
   });
 });
 
@@ -605,6 +651,7 @@ describe('createServer — Prometheus rate-limit counter', () => {
     const server = await createServer({
       config: {
         ...baseConfig,
+        trustProxy: true,
         rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
       },
       logger: quietLogger,
@@ -639,6 +686,7 @@ describe('createServer — Prometheus rate-limit counter', () => {
     const server = await createServer({
       config: {
         ...baseConfig,
+        trustProxy: true,
         rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
       },
       logger: quietLogger,
@@ -932,6 +980,94 @@ describe('createServer — security headers (Helmet)', () => {
     expect(res.headers['strict-transport-security']).toBe(
       'max-age=63072000; includeSubDomains; preload'
     );
+  });
+});
+
+// ADS-1378: the gateway used to disable CSP entirely and rely on nginx, so any
+// path that bypasses nginx (the default `pnpm docker:dev` profile, an internal
+// LB, a debug run) had no CSP at all. The policy mirrors the API-host policy in
+// deploy/gateway/nginx.conf, so a browser behind nginx sees two agreeing values.
+describe('createServer — Content-Security-Policy (ADS-1378)', () => {
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  const directivesOf = (header: unknown): Map<string, string[]> => {
+    expect(typeof header).toBe('string');
+    return new Map(
+      String(header)
+        .split(';')
+        .map(part => part.trim().split(/\s+/))
+        .filter(([name]) => name)
+        .map(([name, ...values]) => [name, values])
+    );
+  };
+
+  it('sends a strict CSP on JSON API responses', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    const csp = directivesOf(res.headers['content-security-policy']);
+
+    expect(csp.get('default-src')).toEqual(["'self'"]);
+    expect(csp.get('script-src')).toEqual(["'self'"]);
+    expect(csp.get('style-src')).toEqual(["'self'"]);
+    expect(csp.get('frame-ancestors')).toEqual(["'none'"]);
+    expect(csp.get('object-src')).toEqual(["'none'"]);
+    expect(csp.get('base-uri')).toEqual(["'self'"]);
+    expect(csp.get('form-action')).toEqual(["'self'"]);
+  });
+
+  it('never allows unsafe-eval or unsafe-inline anywhere in the policy', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+
+    expect(res.headers['content-security-policy']).not.toMatch(/unsafe-(eval|inline)/);
+  });
+
+  it('does not force https upgrades, which would break the plain-http dev profile', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+
+    expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
+  });
+
+  it('serves Swagger UI at /docs under the same policy, with nothing inline to relax', async () => {
+    const page = await server.inject({ method: 'GET', url: '/docs' });
+
+    expect(page.statusCode).toBe(200);
+    expect(page.headers['content-type']).toContain('text/html');
+    expect(page.headers['content-security-policy']).not.toMatch(/unsafe-(eval|inline)/);
+
+    // script-src 'self' / style-src 'self' only render the page if every script
+    // is an external same-origin file and there is no inline <style> or style="".
+    const html = page.body;
+    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)];
+    expect(scripts.length).toBeGreaterThan(0);
+    for (const [, attrs, body] of scripts) {
+      expect(attrs).toMatch(/\bsrc="[^"]+"/);
+      expect(body?.trim()).toBe('');
+    }
+    expect(html).not.toMatch(/<style\b/i);
+    expect(html).not.toMatch(/\sstyle=/i);
+
+    // Every script and stylesheet the page loads is a same-origin gateway
+    // asset, and is served under the policy too.
+    const origin = 'http://gateway.test';
+    const assetUrls = [...html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)="([^"]+)"/g)].map(
+      match => new URL(match[1] ?? '', `${origin}/docs`)
+    );
+    expect(assetUrls.length).toBeGreaterThan(0);
+    for (const assetUrl of assetUrls) {
+      expect(assetUrl.origin).toBe(origin);
+      const asset = await server.inject({ method: 'GET', url: assetUrl.pathname });
+      expect(asset.statusCode).toBe(200);
+      expect(asset.headers['content-security-policy']).toBe(
+        page.headers['content-security-policy']
+      );
+    }
   });
 });
 
