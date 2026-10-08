@@ -11,6 +11,7 @@
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
+import { assertNotProduction } from '@adopt-dont-shop/seed-faker';
 
 import { loadConfig } from '../config.js';
 import { SEED_CHATS, type SeedChat } from './seed-data.js';
@@ -56,18 +57,6 @@ export const seedChats = async (deps: SeedDeps): Promise<string[]> => {
     seeded.push(chat.chatId);
   }
   return seeded;
-};
-
-// Staging is a deployed, often internet-reachable environment — treated the
-// same as production by every other staging-aware guard in this codebase
-// (ADS-1339, ADS-1271). Seeding it provisions elevated-role accounts with a
-// shared default password, so it must fail closed unless explicitly
-// overridden, the same as production (ADS-1375).
-export const assertNotProduction = (): void => {
-  const env = process.env.NODE_ENV;
-  if ((env === 'production' || env === 'staging') && process.env.ALLOW_PROD_SEED !== 'true') {
-    throw new Error(`Refusing to run db:seed in ${env}. Set ALLOW_PROD_SEED=true to override.`);
-  }
 };
 
 const main = async (): Promise<void> => {

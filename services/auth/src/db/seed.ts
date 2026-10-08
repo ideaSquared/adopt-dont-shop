@@ -12,6 +12,7 @@ import bcrypt from 'bcryptjs';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
+import { assertNotProduction } from '@adopt-dont-shop/seed-faker';
 
 import { loadConfig } from '../config.js';
 import { SEED_PASSWORD, SEED_USERS, type SeedUser } from './seed-data.js';
@@ -73,18 +74,6 @@ const paramsFor = (user: SeedUser, passwordHash: string): readonly unknown[] => 
   user.phoneNumber ?? null,
   user.userType,
 ];
-
-// Staging is a deployed, often internet-reachable environment — treated the
-// same as production by every other staging-aware guard in this codebase
-// (ADS-1339, ADS-1271). Seeding it provisions elevated-role accounts with a
-// shared default password, so it must fail closed unless explicitly
-// overridden, the same as production (ADS-1375).
-export const assertNotProduction = (): void => {
-  const env = process.env.NODE_ENV;
-  if ((env === 'production' || env === 'staging') && process.env.ALLOW_PROD_SEED !== 'true') {
-    throw new Error(`Refusing to run db:seed in ${env}. Set ALLOW_PROD_SEED=true to override.`);
-  }
-};
 
 const main = async (): Promise<void> => {
   assertNotProduction();

@@ -41,3 +41,26 @@ export const assertSpamAllowed = (): void => {
     );
   }
 };
+
+/**
+ * Safety gate for each service's demo-data `db:seed` (auth, applications, chat,
+ * pets, rescue). Unlike `assertSpamAllowed` this is a single-condition,
+ * fail-closed denylist: seeding is refused in production and staging unless
+ * ALLOW_PROD_SEED is exactly "true".
+ *
+ * Staging is a deployed, often internet-reachable environment — treated the
+ * same as production by every other staging-aware guard in this codebase
+ * (ADS-1339, ADS-1271). Seeding it provisions elevated-role accounts with a
+ * shared default password, so it must fail closed unless explicitly
+ * overridden, the same as production (ADS-1375).
+ *
+ * Kept as ONE implementation shared by every seeding service so a policy change
+ * (another protected NODE_ENV, a tighter override) cannot be applied to four
+ * services and silently missed on the fifth (ADS-1383).
+ */
+export const assertNotProduction = (): void => {
+  const env = process.env.NODE_ENV;
+  if ((env === 'production' || env === 'staging') && process.env.ALLOW_PROD_SEED !== 'true') {
+    throw new Error(`Refusing to run db:seed in ${env}. Set ALLOW_PROD_SEED=true to override.`);
+  }
+};
