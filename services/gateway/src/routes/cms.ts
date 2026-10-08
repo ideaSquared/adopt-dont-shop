@@ -446,10 +446,32 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Create a CMS content item',
-        // Left open on purpose: Fastify's ajv strips unknown keys instead of
-        // rejecting them. CreateContentBodySchema (cms.schemas.ts) is the
-        // contract — it is strict, bounded and enforces the required fields.
-        body: { type: 'object', additionalProperties: true },
+        // additionalProperties: true on purpose: Fastify's ajv strips unknown
+        // keys instead of rejecting them, so extras must reach
+        // CreateContentBodySchema (cms.schemas.ts), which is the strict,
+        // bounded contract. The property map is for the OpenAPI document.
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            title: { type: 'string' },
+            slug: { type: 'string' },
+            contentType: { type: 'string' },
+            content_type: { type: 'string' },
+            content: { type: 'string' },
+            excerpt: { type: 'string' },
+            metaTitle: { type: 'string' },
+            meta_title: { type: 'string' },
+            metaDescription: { type: 'string' },
+            meta_description: { type: 'string' },
+            metaKeywords: { type: 'array', items: { type: 'string' } },
+            meta_keywords: { type: 'array', items: { type: 'string' } },
+            featuredImageUrl: { type: 'string' },
+            featured_image_url: { type: 'string' },
+            scheduledPublishAt: { type: 'string' },
+            scheduledUnpublishAt: { type: 'string' },
+          },
+        },
         response: {
           201: {
             type: 'object',
@@ -510,9 +532,25 @@ export const registerCmsRoutes = async (
         tags: ['cms'],
         summary: 'Update a CMS content item',
         params: CONTENT_ID_PARAMS,
-        // Left open on purpose — see the create route. UpdateContentBodySchema
-        // (cms.schemas.ts) is the contract.
-        body: { type: 'object', additionalProperties: true },
+        // additionalProperties: true on purpose — see the create route.
+        // UpdateContentBodySchema (cms.schemas.ts) is the contract.
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            title: { type: 'string' },
+            slug: { type: 'string' },
+            content: { type: 'string' },
+            excerpt: { type: 'string' },
+            metaTitle: { type: 'string' },
+            metaDescription: { type: 'string' },
+            metaKeywords: { type: 'array', items: { type: 'string' } },
+            meta_keywords: { type: 'array', items: { type: 'string' } },
+            featuredImageUrl: { type: 'string' },
+            changeNote: { type: 'string' },
+            change_note: { type: 'string' },
+          },
+        },
         response: CONTENT_RESPONSE,
       },
     },

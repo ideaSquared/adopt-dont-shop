@@ -475,6 +475,20 @@ describe('cms content body validation (ADS-1366)', () => {
       }
     );
 
+    it.each(['title', 'slug'])('rejects a whitespace-only %s', async field => {
+      const res = await create({ ...VALID_CREATE, [field]: '   ' });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ success: false, error: expect.stringContaining(field) });
+      expect(mocks.createContent).not.toHaveBeenCalled();
+    });
+
+    it.each(['contentType', 'content_type'])('rejects an empty %s', async field => {
+      const res = await create({ title: 'Hello', slug: 'hello', [field]: '' });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ success: false, error: expect.stringContaining(field) });
+      expect(mocks.createContent).not.toHaveBeenCalled();
+    });
+
     it('rejects a request with no body', async () => {
       const res = await app.inject({
         method: 'POST',
@@ -631,5 +645,46 @@ describe('cms content body validation (ADS-1366)', () => {
         setMetaKeywords: false,
       });
     });
+  });
+});
+
+describe('cms content OpenAPI body schema (ADS-1366)', () => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    app = Fastify({ logger: false });
+    const { default: swagger } = await import('@fastify/swagger');
+    await app.register(swagger, { openapi: { info: { title: 'test', version: '0' } } });
+    await registerCmsRoutes(app, { client: makeClient().client });
+    await app.ready();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  const documentedFields = (path: string, method: 'post' | 'put'): string[] => {
+    const spec = app.swagger() as {
+      paths: Record<
+        string,
+        Record<string, { requestBody?: { content: Record<string, { schema: unknown }> } }>
+      >;
+    };
+    const schema = spec.paths[path]?.[method]?.requestBody?.content['application/json']?.schema as
+      | { properties?: Record<string, unknown> }
+      | undefined;
+    return Object.keys(schema?.properties ?? {});
+  };
+
+  it('documents the create body fields', () => {
+    expect(documentedFields('/api/v1/cms/content', 'post')).toEqual(
+      expect.arrayContaining(['title', 'slug', 'contentType', 'content', 'metaKeywords'])
+    );
+  });
+
+  it('documents the update body fields', () => {
+    expect(documentedFields('/api/v1/cms/content/{contentId}', 'put')).toEqual(
+      expect.arrayContaining(['title', 'slug', 'content', 'changeNote'])
+    );
   });
 });

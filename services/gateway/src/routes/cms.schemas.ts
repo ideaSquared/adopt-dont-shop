@@ -23,9 +23,14 @@ const META_DESCRIPTION_MAX = 10_000;
 const CHANGE_NOTE_MAX = 1000;
 
 // Issue paths are prefixed to the message by toCmsValidationFailure, so the
-// message itself stays field-free ("title: is required").
+// message itself stays field-free ("title: is required"). Trimmed first so a
+// whitespace-only value is rejected here, as the cms service would.
 const requiredText = (max: number) =>
-  z.string({ error: 'is required' }).min(1, 'is required').max(max);
+  z.string({ error: 'is required' }).trim().min(1, 'is required').max(max);
+
+// contentType / content_type are each optional (either key may carry it), but
+// whichever is sent must be non-empty, or it maps to CONTENT_TYPE_UNSPECIFIED.
+const contentTypeKey = z.string().min(1, 'is required').optional();
 
 const text = (max: number) => z.string().max(max);
 
@@ -37,8 +42,8 @@ export const CreateContentBodySchema = z
   .strictObject({
     title: requiredText(TITLE_MAX),
     slug: requiredText(SLUG_MAX),
-    contentType: z.string().optional(),
-    content_type: z.string().optional(),
+    contentType: contentTypeKey,
+    content_type: contentTypeKey,
     content: text(CONTENT_MAX).optional(),
     excerpt: text(EXCERPT_MAX).optional(),
     metaTitle: text(META_TITLE_MAX).optional(),
