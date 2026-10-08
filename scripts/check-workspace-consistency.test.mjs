@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   checkAppsArePrivate,
+  checkBuildToolVersionSkew,
   checkLibsDeclareFiles,
   checkLintFormatScripts,
   checkMaximumConfigsDrift,
@@ -678,6 +679,73 @@ describe('checkTestingLibraryReactNeedsReactDom (ADS-1222)', () => {
       },
     ];
     expect(checkTestingLibraryReactNeedsReactDom(entries)).toEqual([]);
+  });
+});
+
+describe('checkBuildToolVersionSkew (ADS-1373)', () => {
+  const root = {
+    dir: '.',
+    pkg: { devDependencies: { vitest: '^4.1.11', '@vitest/coverage-v8': '^4.1.11' } },
+  };
+
+  it('passes when vite and the vitest trio each use a single range workspace-wide', () => {
+    const entries = [
+      root,
+      {
+        dir: 'apps/admin',
+        pkg: { devDependencies: { vite: '^8.0.16', vitest: '^4.1.11', '@vitest/ui': '^4.1.11' } },
+      },
+      { dir: 'packages/lib.components', pkg: { devDependencies: { vite: '^8.0.16' } } },
+    ];
+    expect(checkBuildToolVersionSkew(entries)).toEqual([]);
+  });
+
+  it('flags a vite range that differs between packages and names both sides', () => {
+    const entries = [
+      { dir: 'apps/admin', pkg: { devDependencies: { vite: '^8.0.16' } } },
+      { dir: 'apps/client', pkg: { devDependencies: { vite: '^8.0.16' } } },
+      { dir: 'packages/lib.components', pkg: { devDependencies: { vite: '^8.0.14' } } },
+    ];
+    const failures = checkBuildToolVersionSkew(entries);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('vite declared with 2 different ranges');
+    expect(failures[0]).toContain('^8.0.14 in packages/lib.components (vite)');
+    expect(failures[0]).toContain('^8.0.16 in apps/admin (vite), apps/client (vite)');
+  });
+
+  it('flags @vitest/ui trailing the vitest floor, even inside one package', () => {
+    const entries = [
+      {
+        dir: 'apps/client',
+        pkg: { devDependencies: { vitest: '^4.1.11', '@vitest/ui': '^4.1.9' } },
+      },
+    ];
+    const failures = checkBuildToolVersionSkew(entries);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain('vitest / @vitest/coverage-v8 / @vitest/ui');
+    expect(failures[0]).toContain('^4.1.9 in apps/client (@vitest/ui)');
+    expect(failures[0]).toContain('^4.1.11 in apps/client (vitest)');
+  });
+
+  it('flags vitest drifting between the root and a package', () => {
+    const entries = [
+      root,
+      { dir: 'packages/test-utils', pkg: { dependencies: { vitest: '^4.1.9' } } },
+    ];
+    expect(checkBuildToolVersionSkew(entries)).toHaveLength(1);
+  });
+
+  it('reports vite and vitest skew as separate findings', () => {
+    const entries = [
+      { dir: 'apps/admin', pkg: { devDependencies: { vite: '^8.0.16', vitest: '^4.1.11' } } },
+      { dir: 'apps/rescue', pkg: { devDependencies: { vite: '^8.0.14', vitest: '^4.1.9' } } },
+    ];
+    expect(checkBuildToolVersionSkew(entries)).toHaveLength(2);
+  });
+
+  it('ignores packages that declare none of the tracked tools', () => {
+    const entries = [{ dir: 'services/auth', pkg: { dependencies: { pg: '^8.22.0' } } }];
+    expect(checkBuildToolVersionSkew(entries)).toEqual([]);
   });
 });
 
