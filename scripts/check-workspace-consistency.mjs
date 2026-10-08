@@ -66,6 +66,11 @@
  *     currently discovered Vitest project count (packages/* + apps/* +
  *     services/* with a vitest.config.ts) — below it, the VS Code Vitest
  *     extension silently drops projects from its panel (ADS-1348).
+ *  20. `vite`, and the `vitest` / `@vitest/coverage-v8` / `@vitest/ui` trio, must
+ *     be declared with a single identical range across every workspace
+ *     package.json and every scripts/templates scaffold (ADS-1373). Vitest expects coverage-v8 and ui to track its
+ *     own version, and a vite floor that differs between packages can resolve
+ *     to two physical copies on the next lockfile refresh.
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -185,6 +190,31 @@ export function checkTestingLibraryReactNeedsReactDom(entries) {
       ({ dir }) =>
         `[${dir}/package.json] depends on '@testing-library/react' but does not declare 'react-dom' (ADS-1222).`
     );
+}
+
+// ADS-1373: shared build tools whose declared range must be identical across
+// every workspace package.json. `vitest` and its coverage/ui companions form
+// one group because Vitest expects them to track the same version; `vite` is
+// its own group so the libs and apps can't drift onto two physical copies.
+const SHARED_BUILD_TOOL_GROUPS = [['vite'], ['vitest', '@vitest/coverage-v8', '@vitest/ui']];
+
+export function checkBuildToolVersionSkew(entries) {
+  return SHARED_BUILD_TOOL_GROUPS.flatMap(group => {
+    const declarations = entries.flatMap(({ dir, pkg }) => {
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+      return group.filter(name => name in deps).map(name => ({ dir, name, range: deps[name] }));
+    });
+    const byRange = Object.groupBy(declarations, ({ range }) => range);
+    const ranges = Object.keys(byRange);
+    if (ranges.length <= 1) return [];
+    const where = ranges
+      .map(range => `${range} in ${byRange[range].map(d => `${d.dir} (${d.name})`).join(', ')}`)
+      .join('; ');
+    return [
+      `${group.join(' / ')} declared with ${ranges.length} different ranges (ADS-1373): ${where} — ` +
+        `align them to a single range so the lockfile resolves one copy.`,
+    ];
+  });
 }
 
 // After the Phase 0 restructure (apps/ + packages/lib.* + services/), libs
@@ -1395,6 +1425,18 @@ function main() {
     ...services.map(name => ({ dir: `services/${name}`, pkg: readPkgAt(`services/${name}`) })),
   ];
   failures.push(...checkTestingLibraryReactNeedsReactDom(allPkgEntries));
+
+  // 20. ADS-1373: vite and the vitest/coverage-v8/ui trio must use one range
+  //     workspace-wide, root package.json and the scripts/templates scaffolds
+  //     included — a template on another range would make `pnpm new-app`
+  //     generate a package that fails this same check.
+  const templateEntries = findTemplatePackageJsonFiles().map(file => ({
+    dir: relative(ROOT, dirname(file)),
+    pkg: JSON.parse(readFileSync(file, 'utf8')),
+  }));
+  failures.push(
+    ...checkBuildToolVersionSkew([{ dir: '.', pkg: rootPkg }, ...allPkgEntries, ...templateEntries])
+  );
 
   // 19. ADS-1348: .vscode/settings.json's `vitest.maximumConfigs` must stay
   //     at or above the real number of Vitest projects vitest.workspace.ts
