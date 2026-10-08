@@ -1,6 +1,6 @@
 # Environment variable reference
 
-Reference for every environment variable the stack reads, grouped by domain, with the file that reads it and its default. It is not the onboarding path — the essentials a new contributor has to look at live in [`.env.example`](../.env.example), and `pnpm bootstrap` generates every secret.
+Reference for the environment variables the stack reads, grouped by domain, with the file that reads it and its default. It is not the onboarding path — the essentials a new contributor has to look at live in [`.env.example`](../.env.example), and `pnpm bootstrap` generates every secret.
 
 > **Required vs optional.** "Required" below means the process throws or refuses to boot without it — almost always in production only. Dev and test have a working fallback unless stated otherwise.
 
@@ -9,11 +9,11 @@ Reference for every environment variable the stack reads, grouped by domain, wit
 - Setting up for the first time? Follow `.env.example`'s `REQUIRED` banner instead of this file.
 - Want to override a default? Copy the line from here into your `.env`.
 - Added a new env var to the code? Add it here (with the file that reads it and the default) and, if development cannot run without it, to `.env.example`'s `REQUIRED` banner — `scripts/check-env-example.mjs` keeps that banner in sync with `scripts/validate-env.ts`.
-- Every variable below was checked against the code (`grep -rIF NAME apps packages services scripts e2e infra observability nginx deploy .github docker-compose*.yml`). A variable that is not listed is not read anywhere in the repo.
+- Every variable below was checked against the code (`grep -rIF NAME apps packages services scripts e2e infra observability nginx deploy .github docker-compose*.yml`), and every key of the shared env schema (`packages/lib.validation/src/schemas/env.ts`) is listed. The page is not an exhaustive index of the repo, though: a variable that is not listed may still be read (for example by a test harness or a script), so run that grep before assuming an unlisted name is inert.
 
 ## Database (Postgres)
 
-Beyond the essentials in `.env.example` (`POSTGRES_*`, `DB_HOST/PORT/USERNAME/PASSWORD`, `{DEV,TEST,PROD}_DB_NAME`):
+Beyond the essentials in `.env.example` (`POSTGRES_*`, `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DEV_DB_NAME`, `TEST_DB_NAME`, `PROD_DB_NAME`):
 
 | Variable       | Read in                                                                               | Default         | Notes                                                                                                                                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,11 +25,12 @@ Beyond the essentials in `.env.example` (`POSTGRES_*`, `DB_HOST/PORT/USERNAME/PA
 
 ## Auth & secrets
 
-The auto-generated block (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `PRINCIPAL_SIGNING_KEY`, `REDIS_PASSWORD`, `GF_SECURITY_ADMIN_PASSWORD`) is in `.env.example` and filled in by `pnpm bootstrap` / `pnpm secrets:generate`.
+The auto-generated block (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `PRINCIPAL_SIGNING_KEY`, `NATS_AUTH_TOKEN`, `REDIS_PASSWORD`, `GF_SECURITY_ADMIN_PASSWORD`) is in `.env.example` and filled in by `pnpm bootstrap` / `pnpm secrets:generate`.
 
 - `ENCRYPTION_KEY` must be exactly 64 hex characters (32 bytes) for AES-256 — `pnpm secrets:generate` produces a valid one.
 - `UPLOAD_SIGNING_SECRET` (ADS-542) is a dedicated HMAC key for short-lived `/uploads-signed/*` URLs — required in production (min 32 chars) by `packages/lib.validation/src/schemas/env.ts`.
 - `PRINCIPAL_SIGNING_KEY` (ADS-800) is the shared HMAC key for the signed `x-principal-token` the gateway stamps on every downstream gRPC call. Optional in development/test only; every other environment refuses to boot without it (ADS-1050 / ADS-1237). Must be the same value for the gateway and every gRPC service.
+- `NATS_AUTH_TOKEN` (ADS-1273) is the shared token the `nats` service requires via `--auth` and every service's NATS client presents to connect (`packages/service-bootstrap/src/nats-client.ts`; also accepted as `NATS_AUTH_TOKEN_FILE`). Required in every environment (min 32 characters); Compose refuses to start `nats`, or any service that talks to it, without it.
 - `BCRYPT_ROUNDS` is read only by `pnpm validate:env` (`packages/lib.validation/src/schemas/env.ts`, warns below 12 in production). `services/auth` hard-codes 12 rounds in `src/grpc/password-hasher.ts`; the variable does not change it.
 - `METRICS_BEARER_TOKEN` (ADS-1327) optionally gates `GET /metrics` behind `Authorization: Bearer <token>` — on the gateway (`services/gateway/src/middleware/authenticate.ts`) and, when the same variable is set on a service's own process, on every microservice booted through `@adopt-dont-shop/service-bootstrap`'s `createMicroserviceServer` (`packages/service-bootstrap/src/server.ts`). Not in the auto-generated block and not required — unset, `/metrics` stays fully public inside the docker network (the accepted-risk posture in `docs/security/internal-grpc-trust.md`).
 
@@ -68,6 +69,8 @@ Read at build time by all three apps unless noted.
 | `VITE_APP_RELEASE`        | `apps/*/src/main.tsx`                      | unset   | Release tag reported with each Sentry event.                                                 |
 | `VITE_ROUTER_BASENAME`    | `apps/*/src/main.tsx`                      | `/`     | `BrowserRouter` basename when an app is served under a sub-path.                             |
 | `VITE_ANON_SWIPE_LIMIT`   | `apps/client/src/utils/anonSwipeBudget.ts` | `7`     | Anonymous swipe budget before the client prompts to sign up (ADS-625).                       |
+
+`ANON_SWIPE_LIMIT` (no `VITE_` prefix) is only checked to be numeric by `pnpm validate:env` (`packages/lib.validation/src/schemas/env.ts`); the client reads `VITE_ANON_SWIPE_LIMIT` above.
 
 ## Microservices (ports, schemas, gRPC URLs)
 
@@ -131,6 +134,7 @@ Services that call other services read a subset of `*_GRPC_URL` too: `services/r
 | `EMAIL_WORKER_ENABLED`  | `true`  | Set `false` to stop the email queue worker (tests and the migrations-only smoke do this).                                      |
 | `EMAIL_CHANNEL_ENABLED` | `true`  | Set `false` to stop the `notifications.created` subscriber that enqueues transactional emails. Needs `AUTH_GRPC_URL` to start. |
 | `PUSH_WORKER_ENABLED`   | `true`  | Set `false` to stop the push NATS subscriber.                                                                                  |
+| `WORKER_ENABLED`        | unset   | Only `pnpm validate:env` checks it (`true`/`false`); no service reads it — use the per-worker toggles above.                   |
 
 ## Push notifications (`services/notifications/src/config.ts`)
 
@@ -144,6 +148,8 @@ Services that call other services read a subset of `*_GRPC_URL` too: `services/r
 # FCM_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"...",...}
 # FCM_PROJECT_ID=your-firebase-project-id
 ```
+
+`SMS_PROVIDER` (`console` or `twilio`) is only validated by `pnpm validate:env` (`packages/lib.validation/src/schemas/env.ts`); no SMS channel is implemented, so no service reads it (see [`GDPR-ROPA.md`](./GDPR-ROPA.md)).
 
 ## Retention purge jobs (ADS-1320)
 
