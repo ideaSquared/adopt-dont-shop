@@ -164,7 +164,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@bufbuild/buf",
-      "@sentry-internal/node-cpu-profiler",
+      "@sentry/node-cpu-profiler",
       "core-js",
       "esbuild",
       "msw",
