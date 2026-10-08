@@ -33,6 +33,12 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 export const COMPOSE_FILE = 'docker-compose.observability.yml';
 export const PROXY_CONF_FILE = 'observability/docker-socket-proxy/server.conf';
+// Compose mounts this as the *main* nginx config (not a conf.d fragment —
+// see docker-compose.observability.yml's docker-socket-proxy volumes). It's
+// the file whose `include` is what actually pulls server.conf's allow-list
+// in at all, so a `server {}`/`location`/`proxy_pass` added here directly
+// would run with none of the checks above and bypass every one of them.
+export const PROXY_MAIN_CONF_FILE = 'observability/docker-socket-proxy/nginx.conf';
 
 // Matches on the mount SOURCE only (never the target or options) — a `/`
 // or end-of-string boundary after `/var/run` *or* `/run` (on a standard
@@ -102,6 +108,26 @@ const PROXY_FORBIDDEN_KEYWORDS = [
   'swarm',
   'tasks',
   'volumes',
+];
+
+const REQUIRED_CONF_D_INCLUDE_PATTERN = /include\s+\/etc\/nginx\/conf\.d\/\*\.conf;/;
+// The main config's only job is to set `user root;` (see its own comment
+// for why) and include conf.d/*.conf — it must never define a server,
+// location or proxy_pass of its own, which would run completely outside
+// every check findUnsafeSocketProxyConfig does on server.conf.
+const DISALLOWED_IN_MAIN_CONF = [
+  {
+    pattern: /\bserver\s*\{/,
+    reason: 'must not define a `server {}` block directly — only include conf.d/*.conf',
+  },
+  {
+    pattern: /\blocation\b/,
+    reason: 'must not define a `location` directive directly — only include conf.d/*.conf',
+  },
+  {
+    pattern: /\bproxy_pass\b/,
+    reason: 'must not define a `proxy_pass` directive directly — only include conf.d/*.conf',
+  },
 ];
 
 function leadingSpaces(line) {
@@ -314,10 +340,39 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
   return failures;
 }
 
+export function findUnsafeMainNginxConfig(file = PROXY_MAIN_CONF_FILE, root = ROOT) {
+  let rawContent;
+  try {
+    rawContent = readFileSync(join(root, file), 'utf8');
+  } catch {
+    return [
+      { file, reason: 'file is missing — docker-socket-proxy has no main nginx config at all' },
+    ];
+  }
+
+  const content = rawContent
+    .split('\n')
+    .filter(line => !line.trim().startsWith('#'))
+    .join('\n');
+
+  const failures = [];
+  for (const { pattern, reason } of DISALLOWED_IN_MAIN_CONF) {
+    if (pattern.test(content)) failures.push({ file, reason });
+  }
+  if (!REQUIRED_CONF_D_INCLUDE_PATTERN.test(content)) {
+    failures.push({
+      file,
+      reason:
+        "must `include /etc/nginx/conf.d/*.conf;` — otherwise server.conf's allow-list never loads at all",
+    });
+  }
+  return failures;
+}
+
 function main() {
   const unsafeMounts = findCadvisorUnsafeMounts(COMPOSE_FILE);
   const missingMasks = findMissingSecretsMasks(COMPOSE_FILE);
-  const unsafeProxyConfig = findUnsafeSocketProxyConfig();
+  const unsafeProxyConfig = [...findUnsafeSocketProxyConfig(), ...findUnsafeMainNginxConfig()];
 
   if (unsafeMounts.length === 0 && missingMasks.length === 0 && unsafeProxyConfig.length === 0) {
     console.log('OK — observability host mounts are hardened (ADS-1376).');

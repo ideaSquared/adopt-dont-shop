@@ -8,8 +8,10 @@ import {
   COMPOSE_FILE,
   findCadvisorUnsafeMounts,
   findMissingSecretsMasks,
+  findUnsafeMainNginxConfig,
   findUnsafeSocketProxyConfig,
   PROXY_CONF_FILE,
+  PROXY_MAIN_CONF_FILE,
 } from './check-observability-mounts.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,6 +27,10 @@ describe('the real docker-compose.observability.yml (ADS-1376)', () => {
 
   it('keeps the real docker-socket-proxy nginx config to an exact-path allow-list', () => {
     expect(findUnsafeSocketProxyConfig(PROXY_CONF_FILE, REPO_ROOT)).toEqual([]);
+  });
+
+  it('keeps the real main nginx.conf limited to `user root;` + the conf.d include', () => {
+    expect(findUnsafeMainNginxConfig(PROXY_MAIN_CONF_FILE, REPO_ROOT)).toEqual([]);
   });
 });
 
@@ -611,6 +617,95 @@ describe('findUnsafeSocketProxyConfig', () => {
       {
         file: 'server.conf',
         reason: 'file is missing — docker-socket-proxy has no allow-list configured at all',
+      },
+    ]);
+  });
+});
+
+describe('findUnsafeMainNginxConfig', () => {
+  let root;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'observability-mounts-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  const MINIMAL_MAIN_CONF = [
+    'user root;',
+    'worker_processes 1;',
+    'events { worker_connections 128; }',
+    'http {',
+    '  include /etc/nginx/conf.d/*.conf;',
+    '}',
+  ].join('\n');
+
+  it('accepts a main config limited to `user root;` + the conf.d include', () => {
+    writeFileSync(join(root, 'nginx.conf'), MINIMAL_MAIN_CONF + '\n');
+
+    expect(findUnsafeMainNginxConfig('nginx.conf', root)).toEqual([]);
+  });
+
+  it('flags a server block defined directly in the main config, bypassing server.conf entirely', () => {
+    writeFileSync(
+      join(root, 'nginx.conf'),
+      [
+        'user root;',
+        'events { worker_connections 128; }',
+        'http {',
+        '  include /etc/nginx/conf.d/*.conf;',
+        // An unrestricted second server — none of the checks on server.conf
+        // ever see this, since they only ever read that one file.
+        '  server {',
+        '    listen 2376;',
+        '    location / { proxy_pass http://docker_socket; }',
+        '  }',
+        '}',
+      ].join('\n') + '\n'
+    );
+
+    const failures = findUnsafeMainNginxConfig('nginx.conf', root);
+
+    expect(failures).toEqual(
+      expect.arrayContaining([
+        {
+          file: 'nginx.conf',
+          reason: 'must not define a `server {}` block directly — only include conf.d/*.conf',
+        },
+        {
+          file: 'nginx.conf',
+          reason: 'must not define a `location` directive directly — only include conf.d/*.conf',
+        },
+        {
+          file: 'nginx.conf',
+          reason: 'must not define a `proxy_pass` directive directly — only include conf.d/*.conf',
+        },
+      ])
+    );
+  });
+
+  it('flags a main config that never includes conf.d/*.conf (server.conf would never load)', () => {
+    writeFileSync(
+      join(root, 'nginx.conf'),
+      ['user root;', 'events { worker_connections 128; }', 'http {', '}'].join('\n') + '\n'
+    );
+
+    expect(findUnsafeMainNginxConfig('nginx.conf', root)).toEqual([
+      {
+        file: 'nginx.conf',
+        reason:
+          "must `include /etc/nginx/conf.d/*.conf;` — otherwise server.conf's allow-list never loads at all",
+      },
+    ]);
+  });
+
+  it('flags a missing file as a failure, not an exemption', () => {
+    expect(findUnsafeMainNginxConfig('nginx.conf', root)).toEqual([
+      {
+        file: 'nginx.conf',
+        reason: 'file is missing — docker-socket-proxy has no main nginx config at all',
       },
     ]);
   });
