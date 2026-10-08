@@ -240,10 +240,16 @@ POSTGRES_DB=...                      # required
 JWT_SECRET=...                       # required
 JWT_REFRESH_SECRET=...               # required
 SESSION_SECRET=...                   # required
+ENCRYPTION_KEY=...                   # required (exactly 64 hex chars)
+NATS_AUTH_TOKEN=...                  # required
 REDIS_PASSWORD=...                   # required in prod
+UPLOAD_SIGNING_SECRET=...            # required in prod
+PRINCIPAL_SIGNING_KEY=...            # required in prod
 VITE_API_BASE_URL=https://api.your-domain.com
 VITE_WS_BASE_URL=wss://api.your-domain.com
 ```
+
+`pnpm secrets:generate` emits every secret in this list. `pnpm validate:env` also requires `CORS_ORIGIN`, `FRONTEND_URL`, `RESCUE_FRONTEND_URL`, `STATSIG_SERVER_SECRET_KEY` and `PROD_DB_NAME` in production; see [`env-reference.md`](./env-reference.md) for the full variable reference.
 
 ### Health Checks
 
