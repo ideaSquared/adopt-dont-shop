@@ -427,11 +427,16 @@ describe('findUnsafeSocketProxyConfig', () => {
     'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/json$ { limit_except GET { deny all; } proxy_pass http://docker_socket; }',
   ];
   const DENY_BY_DEFAULT = 'location / { return 403; }';
+  // Every fixture needs its locations inside an actual `server {}` block —
+  // findUnsafeSocketProxyConfig requires exactly one, so bare top-level
+  // `location` lines (no wrapper) would fail every test on "found 0" before
+  // ever reaching the behaviour each test means to exercise.
+  const wrapInServer = lines => ['server {', 'listen 2375;', ...lines, '}'].join('\n');
 
   it('accepts an exact-path allow-list with no forbidden endpoints', () => {
     writeFileSync(
       join(root, 'server.conf'),
-      [...ALLOWED_LOCATIONS, DENY_BY_DEFAULT].join('\n') + '\n'
+      wrapInServer([...ALLOWED_LOCATIONS, DENY_BY_DEFAULT]) + '\n'
     );
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([]);
@@ -440,7 +445,7 @@ describe('findUnsafeSocketProxyConfig', () => {
   it('flags a config missing one of the required endpoints', () => {
     writeFileSync(
       join(root, 'server.conf'),
-      [...ALLOWED_LOCATIONS.slice(0, 4), DENY_BY_DEFAULT].join('\n') + '\n'
+      wrapInServer([...ALLOWED_LOCATIONS.slice(0, 4), DENY_BY_DEFAULT]) + '\n'
     );
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
@@ -454,13 +459,13 @@ describe('findUnsafeSocketProxyConfig', () => {
   it('flags a config that also allows the archive endpoint (arbitrary file download)', () => {
     writeFileSync(
       join(root, 'server.conf'),
-      [
+      wrapInServer([
         ...ALLOWED_LOCATIONS,
         // This is exactly the finding this check exists to catch: granting
         // read access wide enough to also cover GET /containers/{id}/archive.
         'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/archive$ { limit_except GET { deny all; } proxy_pass http://docker_socket; }',
         DENY_BY_DEFAULT,
-      ].join('\n') + '\n'
+      ]) + '\n'
     );
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
@@ -476,14 +481,14 @@ describe('findUnsafeSocketProxyConfig', () => {
   it('flags a broad /containers/ prefix location added alongside the 5 exact ones', () => {
     writeFileSync(
       join(root, 'server.conf'),
-      [
+      wrapInServer([
         ...ALLOWED_LOCATIONS,
         // No forbidden keyword appears here at all — "containers" is
         // required by the legitimate locations too — so only the
         // exact-selector check catches this one.
         'location ~ ^/containers/ { proxy_pass http://docker_socket; }',
         DENY_BY_DEFAULT,
-      ].join('\n') + '\n'
+      ]) + '\n'
     );
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
@@ -495,8 +500,34 @@ describe('findUnsafeSocketProxyConfig', () => {
     ]);
   });
 
+  it('flags a second server block adding its own, unchecked catch-all', () => {
+    // Copilot's exact scenario: `expose` is not a firewall, so a second
+    // `server` listening on a different port is still reachable, and its
+    // `location /` would otherwise get silently merged into "the" deny
+    // block by a parser that doesn't track which server each location
+    // belongs to.
+    writeFileSync(
+      join(root, 'server.conf'),
+      [
+        wrapInServer([...ALLOWED_LOCATIONS, DENY_BY_DEFAULT]),
+        'server {',
+        'listen 2376;',
+        'location / { proxy_pass http://docker_socket; }',
+        '}',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason:
+          'must define exactly one `server {}` block (found 2) — an extra one would add its own, unchecked catch-all',
+      },
+    ]);
+  });
+
   it('flags a config missing the deny-by-default catch-all', () => {
-    writeFileSync(join(root, 'server.conf'), ALLOWED_LOCATIONS.join('\n') + '\n');
+    writeFileSync(join(root, 'server.conf'), wrapInServer(ALLOWED_LOCATIONS) + '\n');
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
       {
@@ -510,14 +541,14 @@ describe('findUnsafeSocketProxyConfig', () => {
   it('flags a catch-all that conditionally forwards unmatched GETs instead of always denying', () => {
     writeFileSync(
       join(root, 'server.conf'),
-      [
+      wrapInServer([
         ...ALLOWED_LOCATIONS,
         // Technically "contains return 403", but only for POST — every
         // unmatched GET (including /containers/{id}/archive) still reaches
         // docker_socket. The guard must reject this, not just look for the
         // substring "return 403" anywhere in the catch-all's body.
         'location / { if ($request_method = POST) { return 403; } proxy_pass http://docker_socket; }',
-      ].join('\n') + '\n'
+      ]) + '\n'
     );
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
@@ -532,14 +563,14 @@ describe('findUnsafeSocketProxyConfig', () => {
   it('flags an allowed-selector block that drops its proxy_pass', () => {
     writeFileSync(
       join(root, 'server.conf'),
-      [
+      wrapInServer([
         ...ALLOWED_LOCATIONS.slice(0, 4),
         // Right selector, right method restriction — but cAdvisor gets no
         // response at all without proxy_pass, silently breaking the name
         // label this endpoint exists for.
         'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/json$ { limit_except GET { deny all; } }',
         DENY_BY_DEFAULT,
-      ].join('\n') + '\n'
+      ]) + '\n'
     );
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
@@ -554,14 +585,14 @@ describe('findUnsafeSocketProxyConfig', () => {
   it('flags a config missing limit_except GET on its allowed locations', () => {
     writeFileSync(
       join(root, 'server.conf'),
-      [
+      wrapInServer([
         'location ~ ^(/v[0-9][0-9.]*)?/_ping$ { proxy_pass http://docker_socket; }',
         'location ~ ^(/v[0-9][0-9.]*)?/version$ { proxy_pass http://docker_socket; }',
         'location ~ ^(/v[0-9][0-9.]*)?/info$ { proxy_pass http://docker_socket; }',
         'location ~ ^(/v[0-9][0-9.]*)?/containers/json$ { proxy_pass http://docker_socket; }',
         'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/json$ { proxy_pass http://docker_socket; }',
         DENY_BY_DEFAULT,
-      ].join('\n') + '\n'
+      ]) + '\n'
     );
 
     const failures = findUnsafeSocketProxyConfig('server.conf', root);
@@ -577,13 +608,13 @@ describe('findUnsafeSocketProxyConfig', () => {
   it('flags a config where only one location is missing limit_except GET', () => {
     writeFileSync(
       join(root, 'server.conf'),
-      [
+      wrapInServer([
         ...ALLOWED_LOCATIONS.slice(0, 4),
         // Allowed selector, but no method restriction — distinguishable
         // from an *unexpected* location, which this isn't.
         'location ~ ^(/v[0-9][0-9.]*)?/containers/[^/]+/json$ { proxy_pass http://docker_socket; }',
         DENY_BY_DEFAULT,
-      ].join('\n') + '\n'
+      ]) + '\n'
     );
 
     expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
@@ -601,8 +632,7 @@ describe('findUnsafeSocketProxyConfig', () => {
       [
         '# Unlike a prefix-based ACL, this never allows GET /containers/{id}/archive,',
         '# /exec, /secrets, /images, /volumes, /networks, /auth, /build or /swarm.',
-        ...ALLOWED_LOCATIONS,
-        DENY_BY_DEFAULT,
+        wrapInServer([...ALLOWED_LOCATIONS, DENY_BY_DEFAULT]),
       ].join('\n') + '\n'
     );
 
@@ -638,7 +668,7 @@ describe('findUnsafeMainNginxConfig', () => {
     'worker_processes 1;',
     'events { worker_connections 128; }',
     'http {',
-    '  include /etc/nginx/conf.d/*.conf;',
+    '  include /etc/nginx/conf.d/default.conf;',
     '}',
   ].join('\n');
 
@@ -655,7 +685,7 @@ describe('findUnsafeMainNginxConfig', () => {
         'user root;',
         'events { worker_connections 128; }',
         'http {',
-        '  include /etc/nginx/conf.d/*.conf;',
+        '  include /etc/nginx/conf.d/default.conf;',
         // An unrestricted second server — none of the checks on server.conf
         // ever see this, since they only ever read that one file.
         '  server {',
@@ -672,21 +702,48 @@ describe('findUnsafeMainNginxConfig', () => {
       expect.arrayContaining([
         {
           file: 'nginx.conf',
-          reason: 'must not define a `server {}` block directly — only include conf.d/*.conf',
+          reason: 'must not define a `server {}` block directly — only include conf.d/default.conf',
         },
         {
           file: 'nginx.conf',
-          reason: 'must not define a `location` directive directly — only include conf.d/*.conf',
+          reason:
+            'must not define a `location` directive directly — only include conf.d/default.conf',
         },
         {
           file: 'nginx.conf',
-          reason: 'must not define a `proxy_pass` directive directly — only include conf.d/*.conf',
+          reason:
+            'must not define a `proxy_pass` directive directly — only include conf.d/default.conf',
         },
       ])
     );
   });
 
-  it('flags a main config that never includes conf.d/*.conf (server.conf would never load)', () => {
+  it('flags a main config that wildcard-includes conf.d instead of naming default.conf', () => {
+    // A `*.conf` glob would load *any* file a future Compose change mounts
+    // into conf.d/, none of which either check-observability-mounts
+    // function would ever see — the explicit filename is what closes that
+    // off, so the glob form must be rejected, not merely "a wrong path".
+    writeFileSync(
+      join(root, 'nginx.conf'),
+      [
+        'user root;',
+        'events { worker_connections 128; }',
+        'http {',
+        '  include /etc/nginx/conf.d/*.conf;',
+        '}',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeMainNginxConfig('nginx.conf', root)).toEqual([
+      {
+        file: 'nginx.conf',
+        reason:
+          "must `include /etc/nginx/conf.d/default.conf;` — otherwise server.conf's allow-list never loads at all",
+      },
+    ]);
+  });
+
+  it('flags a main config that never includes conf.d/default.conf (server.conf would never load)', () => {
     writeFileSync(
       join(root, 'nginx.conf'),
       ['user root;', 'events { worker_connections 128; }', 'http {', '}'].join('\n') + '\n'
@@ -696,7 +753,28 @@ describe('findUnsafeMainNginxConfig', () => {
       {
         file: 'nginx.conf',
         reason:
-          "must `include /etc/nginx/conf.d/*.conf;` — otherwise server.conf's allow-list never loads at all",
+          "must `include /etc/nginx/conf.d/default.conf;` — otherwise server.conf's allow-list never loads at all",
+      },
+    ]);
+  });
+
+  it('flags a main config missing `user root;` (the worker could never open docker.sock)', () => {
+    writeFileSync(
+      join(root, 'nginx.conf'),
+      [
+        'worker_processes 1;',
+        'events { worker_connections 128; }',
+        'http {',
+        '  include /etc/nginx/conf.d/default.conf;',
+        '}',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeMainNginxConfig('nginx.conf', root)).toEqual([
+      {
+        file: 'nginx.conf',
+        reason:
+          "must set `user root;` — the worker process can't open the root-owned docker.sock without it, silently disabling the proxy (and the name label it exists for)",
       },
     ]);
   });

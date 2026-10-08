@@ -110,23 +110,29 @@ const PROXY_FORBIDDEN_KEYWORDS = [
   'volumes',
 ];
 
-const REQUIRED_CONF_D_INCLUDE_PATTERN = /include\s+\/etc\/nginx\/conf\.d\/\*\.conf;/;
+// An exact filename, not a `*.conf` glob — a glob would load *any* file a
+// future Compose change mounts into conf.d/, none of which
+// findUnsafeSocketProxyConfig would ever see (it only ever reads
+// server.conf by name). Naming the one file this stack ships means nothing
+// else mounted there has any effect, closing that off at the source.
+const REQUIRED_CONF_D_INCLUDE_PATTERN = /include\s+\/etc\/nginx\/conf\.d\/default\.conf;/;
+const REQUIRED_USER_ROOT_PATTERN = /\buser\s+root;/;
 // The main config's only job is to set `user root;` (see its own comment
-// for why) and include conf.d/*.conf — it must never define a server,
-// location or proxy_pass of its own, which would run completely outside
-// every check findUnsafeSocketProxyConfig does on server.conf.
+// for why) and include conf.d/default.conf — it must never define a
+// server, location or proxy_pass of its own, which would run completely
+// outside every check findUnsafeSocketProxyConfig does on server.conf.
 const DISALLOWED_IN_MAIN_CONF = [
   {
     pattern: /\bserver\s*\{/,
-    reason: 'must not define a `server {}` block directly — only include conf.d/*.conf',
+    reason: 'must not define a `server {}` block directly — only include conf.d/default.conf',
   },
   {
     pattern: /\blocation\b/,
-    reason: 'must not define a `location` directive directly — only include conf.d/*.conf',
+    reason: 'must not define a `location` directive directly — only include conf.d/default.conf',
   },
   {
     pattern: /\bproxy_pass\b/,
-    reason: 'must not define a `proxy_pass` directive directly — only include conf.d/*.conf',
+    reason: 'must not define a `proxy_pass` directive directly — only include conf.d/default.conf',
   },
 ];
 
@@ -165,6 +171,32 @@ function parseNginxLocationBlocks(content) {
       i++;
     }
     blocks.push({ selector: match[2].trim(), body: content.slice(braceIndex + 1, i - 1) });
+  }
+  return blocks;
+}
+
+// Parses top-level `server { ... }` blocks the same way (brace-depth
+// tracked). findUnsafeSocketProxyConfig requires exactly one of these —
+// without that, a second `server { listen 2376; location / { proxy_pass
+// http://docker_socket; } }` block would add its own catch-all, and since
+// parseNginxLocationBlocks flattens every `location` across the whole
+// file, `.find()`-ing "the" deny block would silently keep validating only
+// the first one found while a second, actually-permissive one went
+// unchecked.
+function parseNginxServerBlocks(content) {
+  const blocks = [];
+  const header = /\bserver\s*\{/g;
+  let match;
+  while ((match = header.exec(content)) !== null) {
+    const braceIndex = match.index + match[0].length - 1;
+    let depth = 1;
+    let i = braceIndex + 1;
+    while (i < content.length && depth > 0) {
+      if (content[i] === '{') depth++;
+      else if (content[i] === '}') depth--;
+      i++;
+    }
+    blocks.push({ body: content.slice(braceIndex + 1, i - 1) });
   }
   return blocks;
 }
@@ -288,7 +320,15 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
     .join('\n');
 
   const failures = [];
-  const blocks = parseNginxLocationBlocks(content);
+  const serverBlocks = parseNginxServerBlocks(content);
+  if (serverBlocks.length !== 1) {
+    failures.push({
+      file,
+      reason: `must define exactly one \`server {}\` block (found ${serverBlocks.length}) — an extra one would add its own, unchecked catch-all`,
+    });
+  }
+
+  const blocks = serverBlocks.length > 0 ? parseNginxLocationBlocks(serverBlocks[0].body) : [];
   const denyBlock = blocks.find(block => block.selector === DENY_ALL_SELECTOR);
   const proxyingBlocks = blocks.filter(block => block.selector !== DENY_ALL_SELECTOR);
 
@@ -363,7 +403,14 @@ export function findUnsafeMainNginxConfig(file = PROXY_MAIN_CONF_FILE, root = RO
     failures.push({
       file,
       reason:
-        "must `include /etc/nginx/conf.d/*.conf;` — otherwise server.conf's allow-list never loads at all",
+        "must `include /etc/nginx/conf.d/default.conf;` — otherwise server.conf's allow-list never loads at all",
+    });
+  }
+  if (!REQUIRED_USER_ROOT_PATTERN.test(content)) {
+    failures.push({
+      file,
+      reason:
+        "must set `user root;` — the worker process can't open the root-owned docker.sock without it, silently disabling the proxy (and the name label it exists for)",
     });
   }
   return failures;
