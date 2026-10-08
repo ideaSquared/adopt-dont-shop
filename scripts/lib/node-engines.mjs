@@ -7,7 +7,9 @@
  * Anything else throws rather than silently accepting an unsupported Node.
  */
 
-const VERSION = /^v?(\d+)\.(\d+)\.(\d+)/;
+// End-anchored so trailing data can't pass as a stable release; the optional
+// group captures a prerelease tag (e.g. `-rc.1`, `-nightly…`).
+const VERSION = /^v?(\d+)\.(\d+)\.(\d+)(-[0-9A-Za-z.-]+)?$/;
 const COMPARATOR = /^(>=|<=|>|<|=)?v?(\d+)\.(\d+)\.(\d+)$/;
 
 const OPERATORS = {
@@ -23,7 +25,7 @@ const parseVersion = text => {
   if (!match) {
     throw new Error(`Unrecognised Node.js version: ${text}`);
   }
-  return match.slice(1).map(Number);
+  return { version: match.slice(1, 4).map(Number), prerelease: Boolean(match[4]) };
 };
 
 // Negative, zero or positive, comparing major then minor then patch.
@@ -44,7 +46,12 @@ const satisfiesComparator = (version, comparator) => {
  * @returns {boolean} whether the version satisfies every comparator in the range
  */
 export const satisfiesNodeRange = (versionText, range) => {
-  const version = parseVersion(versionText);
+  const { version, prerelease } = parseVersion(versionText);
+  // semver (and so the engines check on install) excludes prereleases from a
+  // range unless a comparator names one, which this parser doesn't support.
+  if (prerelease) {
+    return false;
+  }
   return range
     .trim()
     .split(/\s+/)

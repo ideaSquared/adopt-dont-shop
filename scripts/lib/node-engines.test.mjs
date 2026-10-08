@@ -53,6 +53,15 @@ describe('satisfiesNodeRange (ADS-1369)', () => {
     expect(() => satisfiesNodeRange('not-a-version', ENGINES_RANGE)).toThrow(/version/i);
   });
 
+  it('throws on trailing data after the patch instead of reading it as a stable release', () => {
+    expect(() => satisfiesNodeRange('v22.22.0.1', ENGINES_RANGE)).toThrow(/version/i);
+  });
+
+  it('rejects a prerelease of an in-range version, as the engines semver check does', () => {
+    expect(satisfiesNodeRange('v22.22.0-rc.1', ENGINES_RANGE)).toBe(false);
+    expect(satisfiesNodeRange('v22.23.0-nightly20261001abcdef', ENGINES_RANGE)).toBe(false);
+  });
+
   it("understands the repo's own engines.node and accepts the .nvmrc-pinned version", () => {
     const { engines } = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'));
     const pinned = readFileSync(join(ROOT, '.nvmrc'), 'utf-8').trim();
