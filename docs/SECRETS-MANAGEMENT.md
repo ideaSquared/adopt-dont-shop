@@ -65,9 +65,20 @@ POSTGRES_USER=adopt_user
 POSTGRES_PASSWORD=dev_password_change_me
 POSTGRES_DB=adopt_dont_shop_dev
 
+# Backend DB connection. DB_HOST=database is the Docker Compose hostname; use localhost for native `pnpm dev`.
+DB_HOST=database
+DB_PORT=5432
+DB_USERNAME=${POSTGRES_USER}
+DB_PASSWORD=${POSTGRES_PASSWORD}
+DEV_DB_NAME=${POSTGRES_DB}
+
 JWT_SECRET=dev_jwt_secret_minimum_32_characters_long
 JWT_REFRESH_SECRET=dev_refresh_secret_different_from_jwt
 SESSION_SECRET=dev_session_secret_also_32_plus_chars
+# ENCRYPTION_KEY must be exactly 64 hex characters (placeholder below — use `pnpm secrets:generate`)
+ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+NATS_AUTH_TOKEN=dev_nats_auth_token_minimum_32_characters
+REDIS_PASSWORD=dev_redis_password_minimum_32_characters
 ```
 
 ### Production Setup
@@ -89,19 +100,23 @@ ENCRYPTION_KEY=64_CHAR_HEX_STRING_FOR_ENCRYPTION
 
 #### Required for All Environments
 
-| Secret              | Purpose         | How to Generate           |
-| ------------------- | --------------- | ------------------------- |
-| `POSTGRES_PASSWORD` | Database access | `openssl rand -base64 32` |
-| `JWT_SECRET`        | Sign JWT tokens | `openssl rand -base64 32` |
+| Secret               | Purpose                                             | How to Generate           |
+| -------------------- | --------------------------------------------------- | ------------------------- |
+| `POSTGRES_PASSWORD`  | Database access                                     | `openssl rand -base64 32` |
+| `JWT_SECRET`         | Sign JWT tokens                                     | `openssl rand -base64 32` |
+| `JWT_REFRESH_SECRET` | Sign refresh tokens                                 | `openssl rand -base64 32` |
+| `SESSION_SECRET`     | Encrypt sessions                                    | `openssl rand -base64 32` |
+| `ENCRYPTION_KEY`     | Encrypt sensitive data (exactly 64 hex characters)  | `openssl rand -hex 32`    |
+| `NATS_AUTH_TOKEN`    | Authenticate every service's NATS client (ADS-1273) | `openssl rand -base64 32` |
+| `REDIS_PASSWORD`     | Redis authentication (required by Docker Compose)   | `openssl rand -base64 32` |
 
 #### Required for Production
 
+On top of everything in the table above:
+
 | Secret                  | Purpose                                       | How to Generate           |
 | ----------------------- | --------------------------------------------- | ------------------------- |
-| `JWT_REFRESH_SECRET`    | Sign refresh tokens                           | `openssl rand -base64 32` |
-| `SESSION_SECRET`        | Encrypt sessions                              | `openssl rand -base64 32` |
-| `ENCRYPTION_KEY`        | Encrypt sensitive data                        | `openssl rand -hex 32`    |
-| `REDIS_PASSWORD`        | Redis authentication                          | `openssl rand -base64 32` |
+| `UPLOAD_SIGNING_SECRET` | Sign short-lived `/uploads-signed/*` URLs     | `openssl rand -base64 32` |
 | `PRINCIPAL_SIGNING_KEY` | Sign internal gRPC principal tokens (ADS-800) | `openssl rand -base64 32` |
 
 #### Optional (Third-Party Services)
