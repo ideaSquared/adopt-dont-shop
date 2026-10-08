@@ -115,7 +115,7 @@ adopt-dont-shop/
 ├── packages/                   # All shared workspace packages
 │   ├── proto/ events/ authz/   #   service-only shared packages
 │   ├── db/ observability/ storage/ config-secrets/
-│   ├── seed-faker/ service-bootstrap/ test-utils/
+│   ├── scheduler/ seed-faker/ service-bootstrap/ test-utils/
 │   ├── eslint-config-{base,node,react}/
 │   └── lib.*                   #   the lib.* packages (see docs/libraries/README.md)
 ├── docker-compose.yml          # Dev stack (gateway + services + apps under the `full` profile)

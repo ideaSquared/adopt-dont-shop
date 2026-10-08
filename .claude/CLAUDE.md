@@ -36,7 +36,7 @@ adopt-dont-shop/
 │   ├── lib.*/               #   frontend-shared libs (lib.api, lib.components, lib.types, …)
 │   │                        #   see docs/libraries/README.md; lib.av-scan is service-only
 │   ├── authz/ config-secrets/ db/ events/ observability/ proto/
-│   ├── seed-faker/ service-bootstrap/ storage/ test-utils/
+│   ├── scheduler/ seed-faker/ service-bootstrap/ storage/ test-utils/
 │   └── eslint-config-{base,node,react}/
 ├── e2e/                     # Playwright cross-app suite
 ├── docs/                    # descriptive docs, ADRs, runbooks
