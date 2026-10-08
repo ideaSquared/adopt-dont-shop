@@ -130,7 +130,10 @@ Backend
 Commits
 
 - Conventional Commits, checked by commitlint: `type(scope): imperative summary (ADS-NNN)`.
-  The Linear ticket goes in the subject, as in `fix(gateway): reject blank tokens (ADS-1255)`.
+  Put the Linear ticket at the end of the subject when the change has one, as in
+  `fix(gateway): reject blank tokens (ADS-1255)`. The ticket is a team convention, not a gate:
+  commitlint (`config-conventional`) checks only the type and format, so a ticket-less subject
+  still passes the hook and CI.
 - Every commit is a complete, working change with its tests. One feature or fix per PR.
 
 ## 5. Architecture in one screen

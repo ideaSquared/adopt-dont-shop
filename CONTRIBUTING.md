@@ -67,14 +67,16 @@ required sections.
 All commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-feat: add rescue search endpoint
-fix: correct date format in profile
-refactor: extract validation logic
-test: add edge cases for registration
-docs: update API reference
+feat: add rescue search endpoint (ADS-123)
+fix: correct date format in profile (ADS-124)
+refactor: extract validation logic (ADS-125)
+test: add edge cases for registration (ADS-126)
+docs: update API reference (ADS-127)
 ```
 
-A Husky `commit-msg` hook runs [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional` to enforce this locally — non-conforming messages will be rejected before the commit is created. In an emergency you can bypass the hook with `git commit --no-verify`, but the CI commit-message check will still fail the PR.
+Put the Linear ticket at the end of the subject, in parentheses, when the change has one. That is a team convention, not a gate: commitlint checks only the type and format, so a ticket-less subject still passes the hook and CI.
+
+A Husky `commit-msg` hook runs [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional` to enforce the Conventional Commits format locally — non-conforming messages will be rejected before the commit is created. In an emergency you can bypass the hook with `git commit --no-verify`, but the CI commit-message check will still fail the PR.
 
 A `.gitmessage` template at the repo root prefills `git commit` with the conventional-commit format and a list of allowed types/scopes. `pnpm bootstrap` wires it in automatically via `git config commit.template .gitmessage`; if you skipped setup, run that command yourself to enable it.
 
