@@ -40,6 +40,7 @@ import { signPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
+import { constantTimeEquals } from '../utils/constant-time.js';
 
 import { extractAccessTokenFromCookie } from './auth-cookies.js';
 
@@ -179,7 +180,8 @@ export const registerAuthenticate = async (
     // opted in by setting METRICS_BEARER_TOKEN; otherwise /metrics keeps its
     // existing INFRA_PUBLIC_PREFIXES pass-through below.
     if (metricsBearerToken && req.url.startsWith('/metrics')) {
-      if (extractBearerToken(req) !== metricsBearerToken) {
+      const presented = extractBearerToken(req);
+      if (presented === undefined || !constantTimeEquals(presented, metricsBearerToken)) {
         return reply.code(401).send({ error: 'authentication required' });
       }
       return;

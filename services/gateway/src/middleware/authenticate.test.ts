@@ -451,6 +451,22 @@ describe('registerAuthenticate — /metrics bearer token (ADS-1327)', () => {
     expect(res.statusCode).toBe(401);
   });
 
+  it.each([
+    ['same length, last byte differs', 'Bearer shhh-scrape-mf'],
+    ['longer than the secret', 'Bearer shhh-scrape-me-and-more'],
+    ['equal char count but different byte length', 'Bearer shhh-scrape-é'],
+  ])('401s without throwing when the bearer token is %s (ADS-1377)', async (_label, header) => {
+    const m = makeAuthClient();
+    app = await makeApp(m.client, undefined, undefined, quietLogger, 'shhh-scrape-me');
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/metrics',
+      headers: { authorization: header },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
   it('200s and skips ValidateToken when the bearer token matches', async () => {
     const m = makeAuthClient();
     validateMock = m.validateMock;

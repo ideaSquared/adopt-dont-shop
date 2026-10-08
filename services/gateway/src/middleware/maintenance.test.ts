@@ -96,6 +96,21 @@ describe('maintenance mode (ADS-1325)', () => {
     await app.close();
   });
 
+  it.each([
+    ['same length, last byte differs', 'super-secret-tokem'],
+    ['longer than the secret', 'super-secret-token-and-more'],
+    ['equal char count but different byte length', 'super-secret-tokén'],
+  ])('rejects a bypass token that is %s without throwing (ADS-1377)', async (_label, header) => {
+    const app = await makeApp({ maintenanceOn: true, bypassToken: 'super-secret-token' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/things',
+      headers: { [MAINTENANCE_BYPASS_HEADER]: header },
+    });
+    expect(res.statusCode).toBe(503);
+    await app.close();
+  });
+
   it('does not gate non-/api/* routes at all', async () => {
     const app = Fastify({ logger: false });
     registerMaintenanceMode(app, {
