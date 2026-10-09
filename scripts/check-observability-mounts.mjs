@@ -50,6 +50,13 @@ const EXPECTED_PROXY_MOUNTS = [
   { file: PROXY_MAIN_CONF_FILE, target: '/etc/nginx/nginx.conf' },
   { file: PROXY_CONF_FILE, target: '/etc/nginx/conf.d/default.conf' },
 ];
+// The actual security boundary: docker-socket-proxy must be reachable only
+// from cadvisor, never from the shared `default` network every app service
+// also sits on. None of the nginx-config checks above can see this —
+// they only ever read the two config files, never the compose networking
+// that decides who can even reach the proxy to send those configs' allowed
+// requests in the first place.
+const PROXY_NETWORK = 'docker-proxy-internal';
 
 // Matches on the mount SOURCE only (never the target or options) — a `/`
 // or end-of-string boundary after `/var/run` *or* `/run` (on a standard
@@ -263,6 +270,40 @@ function getKeyBlockLines(lines, key) {
   return blockLines;
 }
 
+// Like getKeyBlockLines, but anchored to a zero-indent `key:` line — every
+// service also has its own same-named nested key (e.g. `networks:` under
+// cadvisor or docker-socket-proxy), which getKeyBlockLines' unanchored
+// search would match first and mistake for the real top-level block.
+function getTopLevelKeyBlockLines(lines, key) {
+  const keyIndex = lines.findIndex(line => line.trim() === `${key}:` && leadingSpaces(line) === 0);
+  if (keyIndex === -1) return [];
+
+  const blockLines = [];
+  for (let i = keyIndex + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === '') continue;
+    if (leadingSpaces(line) === 0) break;
+    blockLines.push(line);
+  }
+  return blockLines;
+}
+
+// True when `networkName:` appears in `topLevelNetworksLines` (the
+// top-level `networks:` block) with `internal: true` as a direct child.
+function isNetworkInternal(topLevelNetworksLines, networkName) {
+  const networkIndex = topLevelNetworksLines.findIndex(line => line.trim() === `${networkName}:`);
+  if (networkIndex === -1) return false;
+
+  const networkIndent = leadingSpaces(topLevelNetworksLines[networkIndex]);
+  for (let i = networkIndex + 1; i < topLevelNetworksLines.length; i++) {
+    const line = topLevelNetworksLines[i];
+    if (line.trim() === '') continue;
+    if (leadingSpaces(line) <= networkIndent) break;
+    if (line.trim() === 'internal: true') return true;
+  }
+  return false;
+}
+
 export function findCadvisorUnsafeMounts(file, root = ROOT) {
   const lines = readFileSync(join(root, file), 'utf8').split('\n');
   const service = getServiceLines(lines, 'cadvisor');
@@ -342,6 +383,21 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
     .join('\n');
 
   const failures = [];
+  // nginx expands `include` wherever it appears, including inside a
+  // `server` block — a location added by an included file would be
+  // completely invisible to the parsing below (which only ever sees
+  // server.conf's own literal text) while still being live in the real
+  // proxy. The Compose-mount check only pins down nginx.conf/server.conf
+  // themselves, not whatever else server.conf might pull in, so the only
+  // thing that actually closes this off is banning `include` here outright.
+  if (/\binclude\s+\S+;/.test(content)) {
+    failures.push({
+      file,
+      reason:
+        'must not contain an `include` directive — nginx would expand it to a file this guard never reads',
+    });
+  }
+
   let serverBlocks;
   try {
     serverBlocks = parseNginxServerBlocks(content);
@@ -510,6 +566,59 @@ export function findUnverifiedProxyConfigMounts(file = COMPOSE_FILE, root = ROOT
   return failures;
 }
 
+// None of the nginx-config checks above can see Compose networking — they
+// only ever read server.conf/nginx.conf's text. The allow-list in those
+// files is meaningless if docker-socket-proxy is *also* reachable from the
+// shared `default` network (every app service could then reach it, not
+// just cAdvisor), or if the dedicated network it's on isn't actually
+// `internal: true` (which is what keeps it from having a gateway out, or
+// in, at all).
+export function findUnsafeProxyNetworkConfig(file = COMPOSE_FILE, root = ROOT) {
+  const lines = readFileSync(join(root, file), 'utf8').split('\n');
+  const failures = [];
+
+  const proxyService = getServiceLines(lines, PROXY_SERVICE);
+  if (!proxyService) {
+    failures.push({
+      file,
+      reason: `service \`${PROXY_SERVICE}\` not found — cannot verify its network attachment`,
+    });
+  } else {
+    const networks = getKeyBlockLines(proxyService.serviceLines, 'networks')
+      .map(line => line.trim().replace(/^-\s*/, ''))
+      .filter(Boolean);
+    if (networks.length !== 1 || networks[0] !== PROXY_NETWORK) {
+      failures.push({
+        file,
+        reason: `\`${PROXY_SERVICE}\` must attach only to \`${PROXY_NETWORK}\` (found: ${networks.join(', ') || 'none'}) — any other network, including \`default\`, would let every app service reach the real docker.sock through it`,
+      });
+    }
+  }
+
+  const cadvisorService = getServiceLines(lines, 'cadvisor');
+  if (cadvisorService) {
+    const networks = getKeyBlockLines(cadvisorService.serviceLines, 'networks')
+      .map(line => line.trim().replace(/^-\s*/, ''))
+      .filter(Boolean);
+    if (!networks.includes(PROXY_NETWORK)) {
+      failures.push({
+        file,
+        reason: `cadvisor must attach to \`${PROXY_NETWORK}\` — otherwise it can't reach docker-socket-proxy at all`,
+      });
+    }
+  }
+
+  const topLevelNetworks = getTopLevelKeyBlockLines(lines, 'networks');
+  if (!isNetworkInternal(topLevelNetworks, PROXY_NETWORK)) {
+    failures.push({
+      file,
+      reason: `top-level network \`${PROXY_NETWORK}\` must be declared \`internal: true\` — without it, the network has a gateway to the outside and isn't actually isolated`,
+    });
+  }
+
+  return failures;
+}
+
 function main() {
   const unsafeMounts = findCadvisorUnsafeMounts(COMPOSE_FILE);
   const missingMasks = findMissingSecretsMasks(COMPOSE_FILE);
@@ -517,6 +626,7 @@ function main() {
     ...findUnsafeSocketProxyConfig(),
     ...findUnsafeMainNginxConfig(),
     ...findUnverifiedProxyConfigMounts(COMPOSE_FILE),
+    ...findUnsafeProxyNetworkConfig(COMPOSE_FILE),
   ];
 
   if (unsafeMounts.length === 0 && missingMasks.length === 0 && unsafeProxyConfig.length === 0) {

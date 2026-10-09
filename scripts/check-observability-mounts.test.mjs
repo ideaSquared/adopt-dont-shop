@@ -9,6 +9,7 @@ import {
   findCadvisorUnsafeMounts,
   findMissingSecretsMasks,
   findUnsafeMainNginxConfig,
+  findUnsafeProxyNetworkConfig,
   findUnsafeSocketProxyConfig,
   findUnverifiedProxyConfigMounts,
   PROXY_CONF_FILE,
@@ -36,6 +37,10 @@ describe('the real docker-compose.observability.yml (ADS-1376)', () => {
 
   it('mounts nginx.conf and server.conf at the exact paths the guard reads', () => {
     expect(findUnverifiedProxyConfigMounts(COMPOSE_FILE, REPO_ROOT)).toEqual([]);
+  });
+
+  it('keeps docker-socket-proxy off the shared network and the internal one isolated', () => {
+    expect(findUnsafeProxyNetworkConfig(COMPOSE_FILE, REPO_ROOT)).toEqual([]);
   });
 });
 
@@ -656,6 +661,29 @@ describe('findUnsafeSocketProxyConfig', () => {
     ]);
   });
 
+  it('flags an `include` directive, which nginx would expand to an unchecked file', () => {
+    // Every location in this file is otherwise perfectly valid — the
+    // include is the only problem, and nginx would still pull in whatever
+    // the included file adds (e.g. its own permissive location) at runtime
+    // even though this parser never reads it.
+    writeFileSync(
+      join(root, 'server.conf'),
+      wrapInServer([
+        'include /etc/nginx/conf.d/extra-locations.conf;',
+        ...ALLOWED_LOCATIONS,
+        DENY_BY_DEFAULT,
+      ]) + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason:
+          'must not contain an `include` directive — nginx would expand it to a file this guard never reads',
+      },
+    ]);
+  });
+
   it('flags an allowed location that also rewrites the request to another path', () => {
     writeFileSync(
       join(root, 'server.conf'),
@@ -951,6 +979,162 @@ describe('findUnverifiedProxyConfigMounts', () => {
       {
         file: 'docker-compose.observability.yml',
         reason: 'service `docker-socket-proxy` not found — cannot verify its config mounts',
+      },
+    ]);
+  });
+});
+
+describe('findUnsafeProxyNetworkConfig', () => {
+  let root;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'observability-mounts-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  const CORRECT_NETWORKING = [
+    'services:',
+    '  docker-socket-proxy:',
+    '    networks:',
+    '      - docker-proxy-internal',
+    '  cadvisor:',
+    '    networks:',
+    '      - default',
+    '      - docker-proxy-internal',
+    'networks:',
+    '  docker-proxy-internal:',
+    '    internal: true',
+  ];
+
+  it('accepts the proxy on its own internal-only network, with cadvisor also attached', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      CORRECT_NETWORKING.join('\n') + '\n'
+    );
+
+    expect(findUnsafeProxyNetworkConfig('docker-compose.observability.yml', root)).toEqual([]);
+  });
+
+  it('flags docker-socket-proxy also attached to the shared `default` network', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  docker-socket-proxy:',
+        '    networks:',
+        // Every app service also sits on `default` — adding it here would
+        // let any of them reach the real docker.sock through this proxy,
+        // not just cAdvisor.
+        '      - default',
+        '      - docker-proxy-internal',
+        '  cadvisor:',
+        '    networks:',
+        '      - default',
+        '      - docker-proxy-internal',
+        'networks:',
+        '  docker-proxy-internal:',
+        '    internal: true',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeProxyNetworkConfig('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        reason:
+          '`docker-socket-proxy` must attach only to `docker-proxy-internal` (found: default, docker-proxy-internal) — any other network, including `default`, would let every app service reach the real docker.sock through it',
+      },
+    ]);
+  });
+
+  it('flags the internal network declared without `internal: true`', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        ...CORRECT_NETWORKING.slice(0, -1),
+        // Without `internal: true`, this network has a gateway to the
+        // outside — it's no longer the isolated boundary the other checks
+        // assume it is.
+        '    internal: false',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeProxyNetworkConfig('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        reason:
+          "top-level network `docker-proxy-internal` must be declared `internal: true` — without it, the network has a gateway to the outside and isn't actually isolated",
+      },
+    ]);
+  });
+
+  it('flags the internal network missing from the top-level networks block entirely', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  docker-socket-proxy:',
+        '    networks:',
+        '      - docker-proxy-internal',
+        '  cadvisor:',
+        '    networks:',
+        '      - default',
+        '      - docker-proxy-internal',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeProxyNetworkConfig('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        reason:
+          "top-level network `docker-proxy-internal` must be declared `internal: true` — without it, the network has a gateway to the outside and isn't actually isolated",
+      },
+    ]);
+  });
+
+  it('flags cadvisor missing its own attachment to the internal network', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  docker-socket-proxy:',
+        '    networks:',
+        '      - docker-proxy-internal',
+        '  cadvisor:',
+        '    networks:',
+        '      - default',
+        'networks:',
+        '  docker-proxy-internal:',
+        '    internal: true',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeProxyNetworkConfig('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        reason:
+          "cadvisor must attach to `docker-proxy-internal` — otherwise it can't reach docker-socket-proxy at all",
+      },
+    ]);
+  });
+
+  it('flags a missing docker-socket-proxy service as unable to verify', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      ['services:', '  grafana:', '    image: grafana/grafana'].join('\n') + '\n'
+    );
+
+    expect(findUnsafeProxyNetworkConfig('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        reason: 'service `docker-socket-proxy` not found — cannot verify its network attachment',
+      },
+      {
+        file: 'docker-compose.observability.yml',
+        reason:
+          "top-level network `docker-proxy-internal` must be declared `internal: true` — without it, the network has a gateway to the outside and isn't actually isolated",
       },
     ]);
   });
