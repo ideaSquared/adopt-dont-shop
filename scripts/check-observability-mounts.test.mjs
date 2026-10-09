@@ -251,6 +251,63 @@ describe('findCadvisorUnsafeMounts', () => {
     expect(findCadvisorUnsafeMounts('docker-compose.observability.yml', root)).toEqual([]);
   });
 
+  it('flags a Compose-interpolated mount source instead of letting its own `:` hide it', () => {
+    // `${DOCKER_SOCKET:-/var/run/docker.sock}` splits on its own `:-` to
+    // `${DOCKER_SOCKET`, which matches no unsafe pattern — yet if the var
+    // is unset, the resolved mount is exactly /var/run/docker.sock. This
+    // guard can't evaluate Compose interpolation, so it must reject the
+    // source outright rather than silently accept whatever text comes
+    // before the first `:`.
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  cadvisor:',
+        '    volumes:',
+        '      - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro',
+      ].join('\n') + '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    // Kept whole rather than re-truncated at the closing `}` — nested
+    // interpolation (`${A:-${B:-c}}`) would make that just as unreliable
+    // as the original colon-split this exists to avoid.
+    expect(failures).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        line: 4,
+        mount: '${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro',
+      },
+    ]);
+  });
+
+  it('flags an interpolated long-syntax source the same way', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  cadvisor:',
+        '    volumes:',
+        '      - type: bind',
+        '        source: ${DOCKER_SOCKET:-/var/run/docker.sock}',
+        '        target: /var/run/docker.sock',
+      ].join('\n') + '\n'
+    );
+
+    const failures = findCadvisorUnsafeMounts('docker-compose.observability.yml', root);
+
+    // The capture group stops before the closing `}` (it's outside the
+    // char class), but the `${` this check keys off is already in by then.
+    expect(failures).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        line: 5,
+        mount: '${DOCKER_SOCKET:-/var/run/docker.sock',
+      },
+    ]);
+  });
+
   it('is not fooled by an earlier service nesting a same-named key (e.g. depends_on: cadvisor:)', () => {
     writeFileSync(
       join(root, 'docker-compose.observability.yml'),
@@ -286,7 +343,7 @@ describe('findMissingSecretsMasks', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('flags node-exporter and cadvisor when neither masks /opt/ads', () => {
+  it('flags node-exporter and cadvisor when neither masks /opt/ads or /run', () => {
     writeFileSync(
       join(root, 'docker-compose.observability.yml'),
       [
@@ -308,8 +365,18 @@ describe('findMissingSecretsMasks', () => {
       },
       {
         file: 'docker-compose.observability.yml',
+        service: 'node-exporter',
+        tmpfsPath: '/host/root/run',
+      },
+      {
+        file: 'docker-compose.observability.yml',
         service: 'cadvisor',
         tmpfsPath: '/rootfs/opt/ads',
+      },
+      {
+        file: 'docker-compose.observability.yml',
+        service: 'cadvisor',
+        tmpfsPath: '/rootfs/run',
       },
     ]);
   });
@@ -324,11 +391,13 @@ describe('findMissingSecretsMasks', () => {
         '      - /:/host/root:ro',
         '    tmpfs:',
         '      - /host/root/opt/ads:size=1k,mode=000',
+        '      - /host/root/run:size=1k,mode=000',
         '  cadvisor:',
         '    volumes:',
         '      - /:/rootfs:ro',
         '    tmpfs:',
         '      - /rootfs/opt/ads:size=1k,mode=000',
+        '      - /rootfs/run:size=1k,mode=000',
       ].join('\n') + '\n'
     );
 
@@ -345,8 +414,10 @@ describe('findMissingSecretsMasks', () => {
         '      - /:/rootfs:ro',
         '    tmpfs:',
         // Readable by anyone — leaves the production secrets exposed,
-        // contrary to the whole point of this mask.
+        // contrary to the whole point of this mask. /run is masked
+        // correctly, isolating this test to just the /opt/ads regression.
         '      - /rootfs/opt/ads:size=1k,mode=755',
+        '      - /rootfs/run:size=1k,mode=000',
       ].join('\n') + '\n'
     );
 
@@ -359,7 +430,7 @@ describe('findMissingSecretsMasks', () => {
     ]);
   });
 
-  it('flags only the service missing its mask', () => {
+  it('flags only the service missing its masks', () => {
     writeFileSync(
       join(root, 'docker-compose.observability.yml'),
       [
@@ -369,6 +440,7 @@ describe('findMissingSecretsMasks', () => {
         '      - /:/host/root:ro',
         '    tmpfs:',
         '      - /host/root/opt/ads:size=1k,mode=000',
+        '      - /host/root/run:size=1k,mode=000',
         '  cadvisor:',
         '    volumes:',
         '      - /:/rootfs:ro',
@@ -380,6 +452,11 @@ describe('findMissingSecretsMasks', () => {
         file: 'docker-compose.observability.yml',
         service: 'cadvisor',
         tmpfsPath: '/rootfs/opt/ads',
+      },
+      {
+        file: 'docker-compose.observability.yml',
+        service: 'cadvisor',
+        tmpfsPath: '/rootfs/run',
       },
     ]);
   });
@@ -401,6 +478,10 @@ describe('findMissingSecretsMasks', () => {
         '  cadvisor:',
         '    volumes:',
         '      - /:/rootfs:ro',
+        '    tmpfs:',
+        // /run is masked correctly, isolating this test to the /opt/ads
+        // false-positive-avoidance behaviour below.
+        '      - /rootfs/run:size=1k,mode=000',
         // Not a real mask — this is a `command:` entry that happens to
         // contain the masked path as a substring, not a `tmpfs:` entry.
         '    command:',
@@ -724,6 +805,32 @@ describe('findUnsafeSocketProxyConfig', () => {
       {
         file: 'server.conf',
         reason: 'unterminated `server` block (missing closing `}`)',
+      },
+    ]);
+  });
+
+  it('flags an extra location hidden after a stray `}` inside an inline comment', () => {
+    // Copilot's exact scenario: the brace-depth parsers count every `{`/`}`
+    // character with no idea what a comment is. A stray `}` placed after a
+    // `#` closes the server block early as far as they're concerned,
+    // pushing everything that follows — including a real unrestricted
+    // location — outside the parsed body and so outside every check,
+    // even though nginx (which correctly treats `#` as starting a comment
+    // to end of line) still runs that location for real.
+    writeFileSync(
+      join(root, 'server.conf'),
+      wrapInServer([
+        ...ALLOWED_LOCATIONS,
+        'location / { return 403; } # end of allowed locations }',
+        'location ~ ^/containers/ { proxy_pass http://docker_socket; }',
+      ]) + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason:
+          'unexpected location `^/containers/` — only the 5 documented endpoints may reach docker_socket',
       },
     ]);
   });

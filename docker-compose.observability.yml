@@ -233,8 +233,18 @@ services:
     # mounts nested deeper in its tree). mode=000 plus this stack's
     # `cap_drop: ALL` means not even a root process in the container can
     # bypass it.
+    #
+    # The /:/host/root:ro bind is recursive, so it also carries the host's
+    # real /run/docker.sock along with it, reachable at
+    # /host/root/run/docker.sock — a `:ro` bind doesn't stop a `connect()`,
+    # so without this second mask node-exporter would have exactly the
+    # host-root-equivalent Docker API access ADS-1376 exists to remove.
+    # Masking the whole /run subtree (not just the socket file) has no
+    # effect on the filesystem-space metrics this container reports, which
+    # never read into /run.
     tmpfs:
       - /host/root/opt/ads:size=1k,mode=000
+      - /host/root/run:size=1k,mode=000
     read_only: true
     expose:
       - '9100'
@@ -328,8 +338,16 @@ services:
     # production secrets deploy-secrets.sh writes there. cAdvisor's
     # container_fs_*/machine metrics come from /var/lib/docker and cgroups,
     # not /opt/ads, so this has no effect on what it reports.
+    #
+    # Also shadow /run the same way — /:/rootfs:ro is recursive, so it
+    # carries the real /run/docker.sock along with it at
+    # /rootfs/run/docker.sock, fully connectable despite the `:ro` bind.
+    # Without this, routing cAdvisor through docker-socket-proxy above
+    # wouldn't actually remove its Docker API access, just add an unused
+    # second path to the same socket.
     tmpfs:
       - /rootfs/opt/ads:size=1k,mode=000
+      - /rootfs/run:size=1k,mode=000
     expose:
       - '8080'
     healthcheck:

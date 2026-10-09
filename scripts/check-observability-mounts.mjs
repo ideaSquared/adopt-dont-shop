@@ -16,11 +16,17 @@
  * secrets, out of any other container.
  *
  * node-exporter and cAdvisor also bind-mount the full host rootfs
- * (`/:/host/root:ro`, `/:/rootfs:ro`) for disk-space/container metrics, which
+ * (`/:/host/root:ro`, `/:/rootfs:ro`) for disk-space/container metrics. A
+ * recursive bind mount of `/` carries every host socket under it along for
+ * the ride, including /run/docker.sock itself — `:ro` doesn't stop a
+ * `connect()`, so without a mask *both* exporters would otherwise still
+ * have the exact host-root-equivalent Docker API access ADS-1376 removed
+ * cAdvisor's direct mount to get rid of. The same recursive bind also
  * exposes the plaintext production secrets deploy-secrets.sh materialises
- * under /opt/ads/<env>/secrets/. Both must shadow that path with a `tmpfs`
- * mounted `mode=000` — unreadable even to root, matching this stack's
- * `cap_drop: ALL` (no `CAP_DAC_OVERRIDE` to bypass the permission bits).
+ * under /opt/ads/<env>/secrets/. Both paths (/run and /opt/ads) must be
+ * shadowed with a `tmpfs` mounted `mode=000` — unreadable even to root,
+ * matching this stack's `cap_drop: ALL` (no `CAP_DAC_OVERRIDE` to bypass
+ * the permission bits).
  *
  * Run via `node scripts/check-observability-mounts.mjs` or
  * `pnpm check:observability-mounts` (wired into `ci:local`).
@@ -68,9 +74,14 @@ const PROXY_NETWORK = 'docker-proxy-internal';
 // it's bind-mounted from).
 const UNSAFE_SOURCE_PATTERN = /^\/(var\/)?run(\/|$)|\.sock$/i;
 
-const SECRETS_MASKS = [
+// Two independent reasons per service: /opt/ads (plaintext production
+// secrets) and /run (the real docker.sock, reachable through the recursive
+// rootfs bind regardless of cAdvisor's own mounts — see the header comment).
+const REQUIRED_ROOTFS_MASKS = [
   { service: 'node-exporter', tmpfsPath: '/host/root/opt/ads' },
+  { service: 'node-exporter', tmpfsPath: '/host/root/run' },
   { service: 'cadvisor', tmpfsPath: '/rootfs/opt/ads' },
+  { service: 'cadvisor', tmpfsPath: '/rootfs/run' },
 ];
 
 // cAdvisor's only legitimate reasons to talk to the Docker API at all. These
@@ -317,9 +328,15 @@ export function findCadvisorUnsafeMounts(file, root = ROOT) {
     // a single YAML scalar (`- "/var/run:/var/run:ro"`), whose `:` are then
     // literal, not syntax — strip matching quotes before splitting. Source
     // is the first colon-delimited segment (paths never contain a literal
-    // `:` on Linux, so splitting on it is safe once quotes are gone).
+    // `:` on Linux, so splitting on it is safe once quotes are gone) —
+    // unless the token is itself a `${...}` interpolation, whose own `:-`
+    // would make that split misleading; keep the whole thing in that case
+    // so the check below sees it intact.
     const shortMatch = line.match(/^\s*-\s*(\S+)\s*$/);
-    if (shortMatch) sources.push(stripQuotes(shortMatch[1]).split(':')[0]);
+    if (shortMatch) {
+      const token = stripQuotes(shortMatch[1]);
+      sources.push(token.includes('${') ? token : token.split(':')[0]);
+    }
 
     // Compose long syntax (`source: /var/run` or `source: '/var/run'` on
     // its own line) *and* inline-mapping syntax (`- { type: bind, source:
@@ -330,6 +347,17 @@ export function findCadvisorUnsafeMounts(file, root = ROOT) {
     if (sourceMatch) sources.push(sourceMatch[2]);
 
     for (const source of sources) {
+      // A Compose `${VAR:-default}` interpolation's own `:-` breaks the
+      // colon-split above — `${DOCKER_SOCKET:-/var/run/docker.sock}` yields
+      // `${DOCKER_SOCKET`, which matches no unsafe pattern, while the
+      // *resolved* value (when the var is unset, as in that default) is
+      // exactly the dangerous mount this check exists to catch. Resolving
+      // arbitrary Compose interpolation is out of scope for this guard —
+      // reject it outright instead of trying to evaluate it.
+      if (source.includes('${')) {
+        failures.push({ file, line: service.serviceIndex + offset + 1, mount: source });
+        continue;
+      }
       if (UNSAFE_SOURCE_PATTERN.test(source)) {
         failures.push({ file, line: service.serviceIndex + offset + 1, mount: source });
       }
@@ -342,7 +370,7 @@ export function findMissingSecretsMasks(file, root = ROOT) {
   const lines = readFileSync(join(root, file), 'utf8').split('\n');
 
   const failures = [];
-  for (const { service, tmpfsPath } of SECRETS_MASKS) {
+  for (const { service, tmpfsPath } of REQUIRED_ROOTFS_MASKS) {
     const found = getServiceLines(lines, service);
     if (!found) continue; // service absent from this file — nothing to guard
 
@@ -373,13 +401,19 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
     ];
   }
 
-  // Strip comment lines before scanning — this file's own explanatory
-  // comments necessarily name the dangerous endpoints/sections it exists
-  // to keep out (see the header comment above), which would otherwise
-  // false-positive the forbidden-keyword check below.
+  // Strip comments before scanning — both whole-line ones (this file's own
+  // explanatory comments necessarily name the dangerous endpoints/sections
+  // it exists to keep out, which would otherwise false-positive the
+  // forbidden-keyword check below) and trailing ones after a directive,
+  // which nginx treats as a comment too. The brace-depth parsers below
+  // count every `{`/`}` character in the text with no idea what a comment
+  // is — a `}` placed after a `#` would still close a block early as far
+  // as they're concerned, letting whatever comes after in the real file
+  // (which nginx correctly treats as still inside that block) go completely
+  // unparsed and unchecked.
   const content = rawContent
     .split('\n')
-    .filter(line => !line.trim().startsWith('#'))
+    .map(line => line.replace(/#.*$/, ''))
     .join('\n');
 
   const failures = [];
