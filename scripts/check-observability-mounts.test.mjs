@@ -10,6 +10,7 @@ import {
   findMissingSecretsMasks,
   findUnsafeMainNginxConfig,
   findUnsafeSocketProxyConfig,
+  findUnverifiedProxyConfigMounts,
   PROXY_CONF_FILE,
   PROXY_MAIN_CONF_FILE,
 } from './check-observability-mounts.mjs';
@@ -31,6 +32,10 @@ describe('the real docker-compose.observability.yml (ADS-1376)', () => {
 
   it('keeps the real main nginx.conf limited to `user root;` + the conf.d include', () => {
     expect(findUnsafeMainNginxConfig(PROXY_MAIN_CONF_FILE, REPO_ROOT)).toEqual([]);
+  });
+
+  it('mounts nginx.conf and server.conf at the exact paths the guard reads', () => {
+    expect(findUnverifiedProxyConfigMounts(COMPOSE_FILE, REPO_ROOT)).toEqual([]);
   });
 });
 
@@ -650,6 +655,50 @@ describe('findUnsafeSocketProxyConfig', () => {
       },
     ]);
   });
+
+  it('flags an allowed location that also rewrites the request to another path', () => {
+    writeFileSync(
+      join(root, 'server.conf'),
+      wrapInServer([
+        // Keeps both required substrings (limit_except GET, proxy_pass) —
+        // a check that only confirms they're present would miss that this
+        // silently redirects every /info request to /containers/json first.
+        'location ~ ^(/v[0-9][0-9.]*)?/info$ { limit_except GET { deny all; } rewrite ^ /containers/json break; proxy_pass http://docker_socket; }',
+        ...ALLOWED_LOCATIONS.filter(l => !l.includes('/info$')),
+        DENY_BY_DEFAULT,
+      ]) + '\n'
+    );
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason:
+          'location `^(/v[0-9][0-9.]*)?/info$` must contain only `limit_except GET { deny all; }` and `proxy_pass http://docker_socket;` — found an extra directive that could redirect or rewrite the request',
+      },
+    ]);
+  });
+
+  it('flags a server.conf missing its final closing brace instead of silently accepting it', () => {
+    // Copilot's exact scenario: every location present and well-formed, but
+    // the outer `server {` itself never closes. nginx would refuse to load
+    // this; a brace-depth parser that takes whatever's left at EOF as "the
+    // block's body" would not.
+    const unterminated = [
+      'server {',
+      'listen 2375;',
+      ...ALLOWED_LOCATIONS,
+      DENY_BY_DEFAULT,
+      // no closing `}` for the server block
+    ].join('\n');
+    writeFileSync(join(root, 'server.conf'), unterminated + '\n');
+
+    expect(findUnsafeSocketProxyConfig('server.conf', root)).toEqual([
+      {
+        file: 'server.conf',
+        reason: 'unterminated `server` block (missing closing `}`)',
+      },
+    ]);
+  });
 });
 
 describe('findUnsafeMainNginxConfig', () => {
@@ -784,6 +833,124 @@ describe('findUnsafeMainNginxConfig', () => {
       {
         file: 'nginx.conf',
         reason: 'file is missing — docker-socket-proxy has no main nginx config at all',
+      },
+    ]);
+  });
+
+  it('flags a main config that keeps the required include but adds a second, unvalidated one', () => {
+    // The required-include check only confirms default.conf's include is
+    // present — it doesn't rule out `extra.conf` also being pulled in,
+    // which this script never reads and could define its own server.
+    writeFileSync(
+      join(root, 'nginx.conf'),
+      [
+        'user root;',
+        'events { worker_connections 128; }',
+        'http {',
+        '  include /etc/nginx/conf.d/default.conf;',
+        '  include /etc/nginx/extra.conf;',
+        '}',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnsafeMainNginxConfig('nginx.conf', root)).toEqual([
+      {
+        file: 'nginx.conf',
+        reason:
+          'must contain exactly one `include` directive — an extra one can load a config this guard never reads',
+      },
+    ]);
+  });
+});
+
+describe('findUnverifiedProxyConfigMounts', () => {
+  let root;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'observability-mounts-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  const CORRECT_PROXY_VOLUMES = [
+    'services:',
+    '  docker-socket-proxy:',
+    '    volumes:',
+    '      - /var/run/docker.sock:/var/run/docker.sock:ro',
+    '      - ./observability/docker-socket-proxy/nginx.conf:/etc/nginx/nginx.conf:ro',
+    '      - ./observability/docker-socket-proxy/server.conf:/etc/nginx/conf.d/default.conf:ro',
+  ];
+
+  it('accepts the two config files mounted at the exact paths the guard reads', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      CORRECT_PROXY_VOLUMES.join('\n') + '\n'
+    );
+
+    expect(findUnverifiedProxyConfigMounts('docker-compose.observability.yml', root)).toEqual([]);
+  });
+
+  it('flags server.conf mounted at a different target than nginx.conf includes', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  docker-socket-proxy:',
+        '    volumes:',
+        '      - /var/run/docker.sock:/var/run/docker.sock:ro',
+        '      - ./observability/docker-socket-proxy/nginx.conf:/etc/nginx/nginx.conf:ro',
+        // findUnsafeMainNginxConfig requires nginx.conf to `include
+        // /etc/nginx/conf.d/default.conf;` — mounting server.conf
+        // somewhere else means that include loads nothing this guard
+        // validated at all, while the live proxy runs whatever's actually
+        // there (or nothing, if the include target is empty).
+        '      - ./observability/docker-socket-proxy/server.conf:/etc/nginx/conf.d/other.conf:ro',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnverifiedProxyConfigMounts('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        reason:
+          "`docker-socket-proxy` must bind-mount ./observability/docker-socket-proxy/server.conf to /etc/nginx/conf.d/default.conf (found no mount at that target) — otherwise the file this guard checks isn't the one the live proxy actually runs",
+      },
+    ]);
+  });
+
+  it('flags nginx.conf mounted from a different, unvalidated source file', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      [
+        'services:',
+        '  docker-socket-proxy:',
+        '    volumes:',
+        '      - /var/run/docker.sock:/var/run/docker.sock:ro',
+        '      - ./observability/docker-socket-proxy/nginx-alt.conf:/etc/nginx/nginx.conf:ro',
+        '      - ./observability/docker-socket-proxy/server.conf:/etc/nginx/conf.d/default.conf:ro',
+      ].join('\n') + '\n'
+    );
+
+    expect(findUnverifiedProxyConfigMounts('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        reason:
+          "`docker-socket-proxy` must bind-mount ./observability/docker-socket-proxy/nginx.conf to /etc/nginx/nginx.conf (found ./observability/docker-socket-proxy/nginx-alt.conf) — otherwise the file this guard checks isn't the one the live proxy actually runs",
+      },
+    ]);
+  });
+
+  it('flags a missing docker-socket-proxy service as unable to verify', () => {
+    writeFileSync(
+      join(root, 'docker-compose.observability.yml'),
+      ['services:', '  cadvisor:', '    volumes:', '      - /:/rootfs:ro'].join('\n') + '\n'
+    );
+
+    expect(findUnverifiedProxyConfigMounts('docker-compose.observability.yml', root)).toEqual([
+      {
+        file: 'docker-compose.observability.yml',
+        reason: 'service `docker-socket-proxy` not found — cannot verify its config mounts',
       },
     ]);
   });

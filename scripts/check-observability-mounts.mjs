@@ -39,6 +39,17 @@ export const PROXY_CONF_FILE = 'observability/docker-socket-proxy/server.conf';
 // in at all, so a `server {}`/`location`/`proxy_pass` added here directly
 // would run with none of the checks above and bypass every one of them.
 export const PROXY_MAIN_CONF_FILE = 'observability/docker-socket-proxy/nginx.conf';
+const PROXY_SERVICE = 'docker-socket-proxy';
+// findUnsafeSocketProxyConfig/findUnsafeMainNginxConfig only ever read these
+// two repo-relative paths directly — they never confirm the compose file
+// actually mounts them at these targets for docker-socket-proxy. Changing
+// either volume's source or target would leave both of those checks (and
+// their real-file tests) green while validating files the live container
+// doesn't use at all.
+const EXPECTED_PROXY_MOUNTS = [
+  { file: PROXY_MAIN_CONF_FILE, target: '/etc/nginx/nginx.conf' },
+  { file: PROXY_CONF_FILE, target: '/etc/nginx/conf.d/default.conf' },
+];
 
 // Matches on the mount SOURCE only (never the target or options) — a `/`
 // or end-of-string boundary after `/var/run` *or* `/run` (on a standard
@@ -170,6 +181,14 @@ function parseNginxLocationBlocks(content) {
       else if (content[i] === '}') depth--;
       i++;
     }
+    if (depth > 0) {
+      // Ran off the end of the file before the brace this `location` opened
+      // was ever closed. nginx would refuse to load a config like this
+      // outright — silently treating the unterminated block as "valid"
+      // (slicing whatever's left as its body) would let a config this
+      // broken keep passing every check below.
+      throw new Error('unterminated `location` block (missing closing `}`)');
+    }
     blocks.push({ selector: match[2].trim(), body: content.slice(braceIndex + 1, i - 1) });
   }
   return blocks;
@@ -195,6 +214,9 @@ function parseNginxServerBlocks(content) {
       if (content[i] === '{') depth++;
       else if (content[i] === '}') depth--;
       i++;
+    }
+    if (depth > 0) {
+      throw new Error('unterminated `server` block (missing closing `}`)');
     }
     blocks.push({ body: content.slice(braceIndex + 1, i - 1) });
   }
@@ -320,7 +342,12 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
     .join('\n');
 
   const failures = [];
-  const serverBlocks = parseNginxServerBlocks(content);
+  let serverBlocks;
+  try {
+    serverBlocks = parseNginxServerBlocks(content);
+  } catch (error) {
+    return [{ file, reason: error.message }];
+  }
   if (serverBlocks.length !== 1) {
     failures.push({
       file,
@@ -328,7 +355,14 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
     });
   }
 
-  const blocks = serverBlocks.length > 0 ? parseNginxLocationBlocks(serverBlocks[0].body) : [];
+  let blocks = [];
+  if (serverBlocks.length > 0) {
+    try {
+      blocks = parseNginxLocationBlocks(serverBlocks[0].body);
+    } catch (error) {
+      return [{ file, reason: error.message }];
+    }
+  }
   const denyBlock = blocks.find(block => block.selector === DENY_ALL_SELECTOR);
   const proxyingBlocks = blocks.filter(block => block.selector !== DENY_ALL_SELECTOR);
 
@@ -353,6 +387,19 @@ export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT)
       failures.push({
         file,
         reason: `location \`${selector}\` must proxy_pass to docker_socket — cAdvisor gets no response otherwise`,
+      });
+    }
+    // The two checks above only confirm those directives are PRESENT — a
+    // location keeping both while also adding e.g. a `rewrite` could still
+    // redirect the request somewhere else entirely (another allowed
+    // endpoint's path, or one disguised well enough to dodge the keyword
+    // scan below) before proxy_pass ever sees it. Require the body contain
+    // nothing else at all.
+    const extra = body.replace(LIMIT_TO_GET_PATTERN, '').replace(PROXY_PASS_PATTERN, '').trim();
+    if (extra !== '') {
+      failures.push({
+        file,
+        reason: `location \`${selector}\` must contain only \`limit_except GET { deny all; }\` and \`proxy_pass http://docker_socket;\` — found an extra directive that could redirect or rewrite the request`,
       });
     }
   }
@@ -406,6 +453,18 @@ export function findUnsafeMainNginxConfig(file = PROXY_MAIN_CONF_FILE, root = RO
         "must `include /etc/nginx/conf.d/default.conf;` — otherwise server.conf's allow-list never loads at all",
     });
   }
+  // Confirming that include exists doesn't rule out a second one: a file
+  // can keep the required include and still add e.g. `include
+  // /etc/nginx/extra.conf;`, which could define its own unrestricted
+  // server — nothing in this script ever reads that file.
+  const includeCount = (content.match(/\binclude\s+\S+;/g) ?? []).length;
+  if (includeCount > 1) {
+    failures.push({
+      file,
+      reason:
+        'must contain exactly one `include` directive — an extra one can load a config this guard never reads',
+    });
+  }
   if (!REQUIRED_USER_ROOT_PATTERN.test(content)) {
     failures.push({
       file,
@@ -416,10 +475,49 @@ export function findUnsafeMainNginxConfig(file = PROXY_MAIN_CONF_FILE, root = RO
   return failures;
 }
 
+// findUnsafeSocketProxyConfig/findUnsafeMainNginxConfig trust that
+// PROXY_CONF_FILE/PROXY_MAIN_CONF_FILE are the files docker-socket-proxy
+// actually runs. Confirm that by reading the compose file's own volume
+// mounts for that service instead of assuming it.
+export function findUnverifiedProxyConfigMounts(file = COMPOSE_FILE, root = ROOT) {
+  const lines = readFileSync(join(root, file), 'utf8').split('\n');
+  const service = getServiceLines(lines, PROXY_SERVICE);
+  if (!service) {
+    return [
+      { file, reason: `service \`${PROXY_SERVICE}\` not found — cannot verify its config mounts` },
+    ];
+  }
+
+  const mountedSourceByTarget = new Map();
+  for (const line of getKeyBlockLines(service.serviceLines, 'volumes')) {
+    const shortMatch = line.trim().match(/^-\s*(\S+)\s*$/);
+    if (!shortMatch) continue;
+    const [source, target] = stripQuotes(shortMatch[1]).split(':');
+    if (source && target) mountedSourceByTarget.set(target, source);
+  }
+
+  const failures = [];
+  for (const { file: confFile, target } of EXPECTED_PROXY_MOUNTS) {
+    const expectedSource = `./${confFile}`;
+    const actualSource = mountedSourceByTarget.get(target);
+    if (actualSource !== expectedSource) {
+      failures.push({
+        file,
+        reason: `\`${PROXY_SERVICE}\` must bind-mount ${expectedSource} to ${target} (found ${actualSource ?? 'no mount at that target'}) — otherwise the file this guard checks isn't the one the live proxy actually runs`,
+      });
+    }
+  }
+  return failures;
+}
+
 function main() {
   const unsafeMounts = findCadvisorUnsafeMounts(COMPOSE_FILE);
   const missingMasks = findMissingSecretsMasks(COMPOSE_FILE);
-  const unsafeProxyConfig = [...findUnsafeSocketProxyConfig(), ...findUnsafeMainNginxConfig()];
+  const unsafeProxyConfig = [
+    ...findUnsafeSocketProxyConfig(),
+    ...findUnsafeMainNginxConfig(),
+    ...findUnverifiedProxyConfigMounts(COMPOSE_FILE),
+  ];
 
   if (unsafeMounts.length === 0 && missingMasks.length === 0 && unsafeProxyConfig.length === 0) {
     console.log('OK — observability host mounts are hardened (ADS-1376).');
