@@ -127,6 +127,9 @@ export const RegisterRequestSchema = z.object({
   firstName: NameSchema,
   lastName: NameSchema,
   phoneNumber: PhoneNumberSchema.optional(),
+  // The gateway refuses a registration unless both consents are given.
+  termsAccepted: z.boolean().optional(),
+  privacyPolicyAccepted: z.boolean().optional(),
 });
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 
