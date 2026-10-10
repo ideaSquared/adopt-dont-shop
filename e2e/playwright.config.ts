@@ -119,24 +119,29 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // calls PATCH /users/account and unwraps the { user } envelope the
     // gateway returns.
     '**/profile-update-persistence.spec.ts',
-    // ADS-870 — PARKED (files retained, not listed): three UI journeys that
-    // fail in CI on causes only reproducible with the full docker stack UP,
-    // which can't be run in the un-parking environment:
-    // - 2fa-login-ui: a freshly-registered throwaway account can't be driven to
-    //   a token — the API login returns no access token, and reading the
-    //   verification token via the peek seam comes back null, even though
-    //   registration sets it and the identical peek works for the green
-    //   email-verification-roundtrip. Needs the live stack to see why the token
-    //   is absent before the UI 2FA challenge can be exercised.
-    // - favourite-add-via-ui: the pet detail "Add to Favorites" control never
-    //   flips to "Favorited" in CI (the assert at spec line 33 timed out across
-    //   all retries) — needs the running UI to see whether the click, the
-    //   POST /pets/:id/favorite, or the state refresh is at fault.
-    // - custom-question-on-application-form: even after fixing the apply form's
-    //   `{ data }` read (the gateway returns `{ data: [...] }`, not
-    //   `{ questions }`), the custom question still doesn't render on /apply in
-    //   CI (spec line 69) — a second cause that needs runtime debugging.
-    // Un-park each once reproduced green against a live stack (tracked ADS-870).
+    // ADS-870 — the three journeys parked for want of a live stack, reproduced
+    // and fixed against one:
+    // - 2fa-login-ui: the API half was fine; the spec's /sign in/ button match
+    //   became ambiguous once the social sign-in buttons landed.
+    // - favourite-add-via-ui: apiService sent body-less POSTs with a JSON
+    //   Content-Type, which the gateway rejects (lib.api now sends `{}`).
+    // - custom-question-on-application-form: the apply form treated ANY active
+    //   application as "already applied to this pet", and the rescue service
+    //   refused applicants the questionnaire (applications.create may read it).
+    '**/2fa-login-ui.spec.ts',
+    '**/favourite-add-via-ui.spec.ts',
+    '**/custom-question-on-application-form.spec.ts',
+    // UI journeys — the adopter's flows driven through the browser rather than
+    // the API, each of which was broken end to end before its fix landed:
+    // - apply-via-ui: core questionnaire never seeded (rescue migration 013),
+    //   success screen read `data.applicationId` (the view's id is `id`).
+    // - chat-via-ui: lib.chat now maps the gateway's chat/message shapes and
+    //   listens for `chat:message:created`.
+    // - signup-and-reset-via-ui: register form's hidden phone field + missing
+    //   consents; verify/reset pages posted `{ token }`.
+    '**/apply-via-ui.spec.ts',
+    '**/chat-via-ui.spec.ts',
+    '**/signup-and-reset-via-ui.spec.ts',
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
@@ -178,6 +183,14 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/custom-application-questions.spec.ts',
     // Still deferred (full feature build, ADS-868):
     // - 2fa-enrollment → /auth/2fa/* RPCs not built yet
+    // UI journeys (see the client list):
+    // - review-and-approve-via-ui: the stage panel matched no transitions for
+    //   the gateway's lower-case stage, and Make Final Decision never asked
+    //   approve-or-reject.
+    // - add-pet-via-ui: the form sends no rescueId; pets now defaults it to
+    //   the staff member's own rescue.
+    '**/review-and-approve-via-ui.spec.ts',
+    '**/add-pet-via-ui.spec.ts',
   ],
   admin: [
     // ADS-867 (batch A3) — admin journeys. superadmin storageState
@@ -204,6 +217,12 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // prompt. Runs on a throwaway account so the enabled 2FA can't leak into
     // a shared persona's login.
     '**/2fa-enrollment.spec.ts',
+    // UI journeys (see the client list):
+    // - suspend-user-via-ui: Users page → detail panel → Suspend User.
+    // - publish-blog-post-via-ui: the gateway never wired its CMS client, so
+    //   every /api/v1/cms/* route 404'd until index.ts created it.
+    '**/suspend-user-via-ui.spec.ts',
+    '**/publish-blog-post-via-ui.spec.ts',
   ],
 };
 

@@ -12,14 +12,17 @@ import { test, expect } from '../../fixtures';
 test.describe('cross-app data flow', () => {
   test('a seeded rescue pet is findable in the adopter search', async ({ page }) => {
     await page.goto('/search');
-    const searchInput = page
+    // Scoped to the page: the dev-login overlay has its own "Search dev
+    // users" searchbox, which comes first in DOM order.
+    const main = page.getByRole('main');
+    const searchInput = main
       .getByRole('searchbox')
-      .or(page.getByPlaceholder(/search/i))
-      .or(page.getByLabel(/^search$/i))
+      .or(main.getByPlaceholder(/search/i))
+      .or(main.getByLabel(/^search$/i))
       .first();
     await searchInput.fill('Buddy');
     await searchInput.press('Enter');
 
-    await expect(page.getByText('Buddy').first()).toBeVisible({ timeout: 20_000 });
+    await expect(main.getByText('Buddy').first()).toBeVisible({ timeout: 20_000 });
   });
 });

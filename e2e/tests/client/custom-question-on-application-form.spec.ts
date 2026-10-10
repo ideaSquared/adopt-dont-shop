@@ -1,6 +1,12 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
-import { SEEDED_PET_IDS, expectOk, getMyRescueId, postWithCsrf } from '../../helpers/seeds';
+import {
+  SEEDED_PET_IDS,
+  deleteWithCsrf,
+  expectOk,
+  getMyRescueId,
+  postWithCsrf,
+} from '../../helpers/seeds';
 
 /**
  * UI-level coverage for the rescue custom-application-questions feature
@@ -58,14 +64,27 @@ test.describe('custom application question on the adopter form', () => {
       }
     );
     await expectOk(createRes, `POST /rescues/${rescueId}/questions`);
+    const { question } = (await createRes.json()) as { question?: { questionId?: string } };
+    expect(question?.questionId).toBeTruthy();
 
-    // The adopter opens the application form for that pet and sees the
-    // rescue's custom question rendered as a field.
-    await page.goto(`/apply/${SEEDED_PET_IDS.available}`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60_000,
-    });
-    await expect(page).toHaveURL(/\/apply\//, { timeout: 15_000 });
-    await expect(page.getByText(questionText, { exact: false })).toBeVisible({ timeout: 20_000 });
+    try {
+      // The adopter opens the application form for that pet and sees the
+      // rescue's custom question rendered as a field.
+      await page.goto(`/apply/${SEEDED_PET_IDS.available}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60_000,
+      });
+      await expect(page).toHaveURL(/\/apply\//, { timeout: 15_000 });
+      await expect(page.getByText(questionText, { exact: false })).toBeVisible({
+        timeout: 20_000,
+      });
+    } finally {
+      // The question is required: left behind, it would gate every later
+      // application to this rescue (including the UI submission journey).
+      await deleteWithCsrf(
+        rescueApi.context,
+        `/api/v1/rescues/${rescueId}/questions/${question!.questionId}`
+      );
+    }
   });
 });
