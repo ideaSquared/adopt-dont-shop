@@ -6,6 +6,7 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/components/application';
 import type { CategoryGroup } from '@/components/application/ApplicationForm';
 import { DraftRestoreBanner } from '@/components/application/DraftRestoreBanner';
+import { findActiveApplicationForPet } from '@/components/application/active-application';
 import type { Question } from '@/components/application/QuestionField';
 import { SubmissionSuccess } from '@/components/application/SubmissionSuccess';
 // Backend-synced draft replaces the legacy localStorage-backed useAutoSave —
@@ -210,9 +211,9 @@ export const ApplicationPage: React.FC = () => {
 
       // Check for an existing active application for this pet before showing the form
       const existing = await apiService.get<{
-        data: { id: string; status: string }[];
+        data: { id: string; petId: string; status: string }[];
       }>(`/api/v1/applications?petId=${encodeURIComponent(petId)}`);
-      const active = existing.data.find(a => a.status !== 'withdrawn' && a.status !== 'rejected');
+      const active = findActiveApplicationForPet(existing.data, petId);
       if (active) {
         navigate(`/applications/${active.id}`, {
           state: { message: 'You already have an active application for this pet.' },
@@ -314,14 +315,12 @@ export const ApplicationPage: React.FC = () => {
       setIsSubmitting(true);
       setError(null);
 
-      const result = await apiService.post<{ data: { applicationId: string } }>(
-        '/api/v1/applications',
-        {
-          petId: pet.pet_id,
-          answers,
-          referencesConsented,
-        }
-      );
+      // The gateway answers with the application view, whose id is `id`.
+      const result = await apiService.post<{ data: { id: string } }>('/api/v1/applications', {
+        petId: pet.pet_id,
+        answers,
+        referencesConsented,
+      });
 
       // Fire-and-forget: persist the reusable parts of this application back
       // into the user's applicationDefaults so the next application pre-fills.
@@ -342,14 +341,14 @@ export const ApplicationPage: React.FC = () => {
       }
 
       void clearDraft();
-      setSubmittedApplicationId(result.data.applicationId);
+      setSubmittedApplicationId(result.data.id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // ADS-125: toast confirmation with a quick action to jump straight there.
       toast.success('Application submitted', {
         action: {
           label: 'View',
-          onClick: () => navigate(`/applications/${result.data.applicationId}`),
+          onClick: () => navigate(`/applications/${result.data.id}`),
         },
       });
     } catch (err) {
