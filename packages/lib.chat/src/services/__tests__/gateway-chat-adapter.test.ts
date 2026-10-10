@@ -36,6 +36,13 @@ describe('gateway chat adapter', () => {
     expect(toConversation(empty).lastMessage).toBeUndefined();
   });
 
+  it('treats a locked chat as closed, not as an active one that can take messages', () => {
+    expect(toConversation({ ...chat, status: 'CHAT_STATUS_LOCKED' })).toMatchObject({
+      status: 'closed',
+      isActive: false,
+    });
+  });
+
   it('reads the proto status as active or archived', () => {
     expect(toConversation(chat)).toMatchObject({ status: 'active', isActive: true });
     expect(toConversation({ ...chat, status: 'CHAT_STATUS_ARCHIVED' })).toMatchObject({

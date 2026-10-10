@@ -37,6 +37,10 @@ type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
 
 const toConversationStatus = (status: string | undefined): ConversationStatus => {
   const name = (status ?? '').replace(/^CHAT_STATUS_/, '').toLowerCase();
+  // The chat service's read-only lifecycle state; the UI calls it closed.
+  if (name === 'locked') {
+    return 'closed';
+  }
   return CONVERSATION_STATUSES.find((s) => s === name) ?? 'active';
 };
 

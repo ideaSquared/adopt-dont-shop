@@ -209,10 +209,11 @@ export const ApplicationPage: React.FC = () => {
       const petData = await petService.getPetById(petId);
       setPet(petData);
 
-      // Check for an existing active application for this pet before showing the form
+      // Check for an existing active application for this pet before showing the
+      // form. The list has no pet filter server-side, so fetch the largest page.
       const existing = await apiService.get<{
         data: { id: string; petId: string; status: string }[];
-      }>(`/api/v1/applications?petId=${encodeURIComponent(petId)}`);
+      }>(`/api/v1/applications?petId=${encodeURIComponent(petId)}&limit=100`);
       const active = findActiveApplicationForPet(existing.data, petId);
       if (active) {
         navigate(`/applications/${active.id}`, {

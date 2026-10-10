@@ -81,10 +81,11 @@ test.describe('custom application question on the adopter form', () => {
     } finally {
       // The question is required: left behind, it would gate every later
       // application to this rescue (including the UI submission journey).
-      await deleteWithCsrf(
+      const cleanup = await deleteWithCsrf(
         rescueApi.context,
         `/api/v1/rescues/${rescueId}/questions/${question!.questionId}`
       );
+      await expectOk(cleanup, 'DELETE the custom question');
     }
   });
 });

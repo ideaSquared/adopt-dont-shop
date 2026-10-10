@@ -52,12 +52,24 @@ describe('013_seed_core_application_questions', () => {
     expect(calls.join('\n')).toContain(withApostrophe!.text.replaceAll("'", "''"));
   });
 
-  it('down removes only the core questions it seeded', async () => {
+  it('gives each seeded question an id derived from its key, so rollback can find it', async () => {
+    const { pgm, calls } = makePgm();
+
+    await up(pgm as never);
+
+    expect(calls.join('\n')).toContain(
+      "(md5('013_core_application_question:' || 'employment_status')::uuid,"
+    );
+  });
+
+  it('down removes only the rows it seeded, never a pre-existing core question', async () => {
     const { pgm, calls } = makePgm();
 
     await down(pgm as never);
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toMatch(/^DELETE FROM rescue\.application_questions WHERE scope = 'core'/);
+    expect(calls[0]).toMatch(/^DELETE FROM rescue\.application_questions WHERE question_id IN \(/);
+    expect(calls[0]).toContain("md5('013_core_application_question:' || 'agree_terms')::uuid");
+    expect(calls[0]).not.toContain('question_key IN');
   });
 });

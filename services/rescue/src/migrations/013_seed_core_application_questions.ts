@@ -378,8 +378,13 @@ const literal = (value: string | null): string =>
 const arrayLiteral = (values: readonly string[] | null): string =>
   values === null ? 'NULL' : `ARRAY[${values.map(literal).join(', ')}]::text[]`;
 
+// A key-derived id marks the rows this migration inserted, so `down` removes
+// those and never a core question that predates it (skipped by ON CONFLICT).
+const seededId = (q: CoreQuestion): string =>
+  `md5('013_core_application_question:' || ${literal(q.key)})::uuid`;
+
 const toValuesRow = (q: CoreQuestion): string =>
-  `(gen_random_uuid(), 'core', NULL, ${literal(q.key)}, ` +
+  `(${seededId(q)}, 'core', NULL, ${literal(q.key)}, ` +
   `${literal(q.category)}::rescue.application_question_category, ` +
   `${literal(q.type)}::rescue.application_question_type, ${literal(q.text)}, ` +
   `${literal(q.helpText)}, ${literal(q.placeholder)}, ${arrayLiteral(q.options)}, ` +
@@ -398,8 +403,8 @@ export const up = async (pgm: MigrationBuilder): Promise<void> => {
 
 export const down = async (pgm: MigrationBuilder): Promise<void> => {
   pgm.sql(
-    `DELETE FROM rescue.application_questions WHERE scope = 'core' AND question_key IN (${CORE_APPLICATION_QUESTIONS.map(
-      q => literal(q.key)
+    `DELETE FROM rescue.application_questions WHERE question_id IN (${CORE_APPLICATION_QUESTIONS.map(
+      seededId
     ).join(', ')})`
   );
 };

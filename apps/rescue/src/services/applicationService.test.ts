@@ -355,6 +355,18 @@ describe('RescueApplicationService stage normalisation', () => {
     expect(result.applications.map(a => a.stage)).toEqual(['PENDING', 'REVIEWING']);
   });
 
+  it('reports progress for the normalised stage', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({
+      success: true,
+      data: [rawApplication('reviewing')],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+
+    const result = await service.getApplications();
+
+    expect(result.applications[0].stageProgressPercentage).toBeGreaterThanOrEqual(30);
+  });
+
   it('loads an application for review with the stage the stage machine understands', async () => {
     apiServiceMock.get.mockResolvedValueOnce({ data: rawApplication('visiting') });
 

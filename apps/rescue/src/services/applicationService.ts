@@ -1125,7 +1125,7 @@ export class RescueApplicationService {
    * Calculate stage progress percentage based on current stage and completed steps
    */
   private calculateStageProgress(app: RawApplication): number {
-    const stage = app.stage || 'PENDING';
+    const stage = this.normalizeStage(app);
 
     // Base progress by stage
     const stageProgress: Record<string, number> = {
