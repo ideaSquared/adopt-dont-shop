@@ -7,6 +7,8 @@ import { ImageUploadResponseSchema, type ImageUploadResponse } from '../schemas/
 /**
  * ApiService - Pure HTTP transport layer with interceptors and error handling
  */
+const METHODS_WITH_BODY: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH']);
+
 export class ApiService {
   private config: Required<Omit<ApiServiceConfig, 'onUnauthorized'>>;
   private onUnauthorized: (() => void) | undefined;
@@ -406,6 +408,13 @@ export class ApiService {
       } else {
         requestBody = JSON.stringify(body);
       }
+    } else if (METHODS_WITH_BODY.has(method)) {
+      // The gateway (Fastify) rejects `Content-Type: application/json` with an
+      // empty body, and routes that declare an object body reject a missing
+      // one — so a payload-less POST/PUT/PATCH sends an empty object.
+      requestBody = '{}';
+    } else {
+      delete requestHeaders['Content-Type'];
     }
 
     // Create abort controller for timeout
