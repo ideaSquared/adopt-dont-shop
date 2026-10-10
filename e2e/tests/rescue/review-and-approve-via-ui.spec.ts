@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures';
+import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { createAdopterApplication } from '../../helpers/seeds';
 
 /**
@@ -22,8 +23,7 @@ test.describe('rescue application review in the UI', () => {
     const { data: pet } = (await petRes.json()) as { data: { name: string } };
 
     await page.goto('/applications');
-    // The cookie banner sits over the stage modal's buttons until dismissed.
-    await page.getByRole('button', { name: 'Essentials only' }).click();
+    await dismissCookieBannerWhenShown(page);
 
     const row = page.getByRole('row').filter({ hasText: pet.name });
     await expect(row).toBeVisible({ timeout: 20_000 });

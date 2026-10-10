@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures';
+import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniquePetName } from '../../helpers/factories';
 
 /**
@@ -17,7 +18,7 @@ test.describe('adding a pet in the rescue app', () => {
     const name = uniquePetName('UiListed');
 
     await page.goto('/pets');
-    await page.getByRole('button', { name: 'Essentials only' }).click();
+    await dismissCookieBannerWhenShown(page);
     await page.getByRole('button', { name: 'Add New Pet' }).click();
 
     await page.getByRole('textbox', { name: 'Pet Name *' }).fill(name);

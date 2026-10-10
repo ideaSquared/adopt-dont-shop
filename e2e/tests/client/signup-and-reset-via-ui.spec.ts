@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures';
+import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { createVerifiedAdopter } from '../../helpers/accounts';
 import { loginViaUI } from '../../helpers/auth';
 import { uniqueEmail } from '../../helpers/factories';
@@ -25,7 +26,7 @@ test.describe('account sign-up and recovery in the UI', () => {
     const password = 'BehaviourTest123!';
 
     await page.goto('/register');
-    await page.getByRole('button', { name: 'Essentials only' }).click();
+    await dismissCookieBannerWhenShown(page);
     await page.getByRole('textbox', { name: 'First Name*' }).fill('Ava');
     await page.getByRole('textbox', { name: 'Last Name*' }).fill('Adopter');
     await page.getByRole('textbox', { name: 'Email Address*' }).fill(email);
@@ -56,7 +57,7 @@ test.describe('account sign-up and recovery in the UI', () => {
     const newPassword = 'FreshPassword456!';
 
     await page.goto('/forgot-password');
-    await page.getByRole('button', { name: 'Essentials only' }).click();
+    await dismissCookieBannerWhenShown(page);
     await page.getByRole('textbox', { name: /email address/i }).fill(account.email);
     await page.getByRole('button', { name: 'Send Reset Instructions' }).click();
     await expect(page.getByText(/check your email|instructions/i).first()).toBeVisible({

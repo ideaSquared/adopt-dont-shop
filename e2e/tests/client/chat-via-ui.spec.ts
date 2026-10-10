@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
+import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
 
 /**
@@ -17,7 +18,7 @@ import { uniqueText } from '../../helpers/factories';
  */
 async function openFirstConversation(page: Page, path: string): Promise<void> {
   await page.goto(path);
-  await page.getByRole('button', { name: 'Essentials only' }).click();
+  await dismissCookieBannerWhenShown(page);
   const conversations = page.locator('main').getByRole('button', { name: /rescue organization/i });
   await conversations.first().click();
   await expect(page.getByRole('textbox', { name: /message input/i })).toBeVisible({

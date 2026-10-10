@@ -1,6 +1,7 @@
 import { request as playwrightRequest } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
+import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { createVerifiedAdopter } from '../../helpers/accounts';
 import { postWithCsrf } from '../../helpers/seeds';
 import { URLS } from '../../playwright.config';
@@ -17,7 +18,7 @@ test.describe('suspending a user in the admin app', () => {
     const target = await createVerifiedAdopter('suspend-ui');
 
     await page.goto('/users');
-    await page.getByRole('button', { name: 'Essentials only' }).click();
+    await dismissCookieBannerWhenShown(page);
     await page.getByRole('textbox', { name: /search by name or email/i }).fill(target.email);
     const row = page.getByRole('row').filter({ hasText: target.email });
     // Wait for the debounced search to settle (header row + the one match):

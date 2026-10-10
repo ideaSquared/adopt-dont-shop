@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures';
+import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
 import { URLS } from '../../playwright.config';
 
@@ -17,7 +18,7 @@ test.describe('publishing content in the admin app', () => {
     const body = 'Older dogs are calm, house-trained and wonderful company.';
 
     await page.goto('/content-management');
-    await page.getByRole('button', { name: 'Essentials only' }).click();
+    await dismissCookieBannerWhenShown(page);
     await page.getByRole('button', { name: 'New Content' }).click();
     await page.getByRole('textbox', { name: 'Title *' }).fill(title);
     await page.getByRole('combobox', { name: 'Content Type' }).selectOption({ label: 'Blog Post' });
