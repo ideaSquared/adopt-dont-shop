@@ -13,6 +13,17 @@ import type {
   RawTimelineItem,
 } from '../types/applications';
 import type { ApplicationStage } from '../types/applicationStages';
+
+const APPLICATION_STAGES: ReadonlySet<string> = new Set<ApplicationStage>([
+  'PENDING',
+  'REVIEWING',
+  'VISITING',
+  'DECIDING',
+  'RESOLVED',
+]);
+
+const isApplicationStage = (value: string | undefined): value is ApplicationStage =>
+  value !== undefined && APPLICATION_STAGES.has(value);
 import type { ApplicationPriority } from '@adopt-dont-shop/lib.applications';
 
 /**
@@ -359,7 +370,8 @@ export class RescueApplicationService {
       const response = await this.apiService.get<RawApplicationEnvelope>(
         `/api/v1/applications/${id}`
       );
-      return response.data || response; // Extract data field from API response wrapper
+      const application = response.data || response; // Extract data field from API response wrapper
+      return { ...application, stage: this.normalizeStage(application) };
     } catch (error) {
       console.error(`Failed to fetch application ${id}:`, error);
       throw new Error(`Failed to fetch application details from server`);
@@ -386,6 +398,19 @@ export class RescueApplicationService {
       WITHDRAWN: 'withdrawn',
     };
     return map[key] || status.toLowerCase();
+  }
+
+  /**
+   * The stage machine is keyed by upper-case stages; the gateway sends them
+   * lower-case and adds a `withdrawn` stage the rescue workflow folds into
+   * RESOLVED. Fall back to the status when no stage is sent.
+   */
+  private normalizeStage(app: Pick<RawApplication, 'stage' | 'status'>): ApplicationStage {
+    const stage = app.stage?.toUpperCase();
+    if (stage === 'WITHDRAWN') {
+      return 'RESOLVED';
+    }
+    return isApplicationStage(stage) ? stage : this.mapStatusToStage(app.status);
   }
 
   /**
@@ -1032,7 +1057,7 @@ export class RescueApplicationService {
       referencesStatus: this.calculateReferencesStatus(app),
       homeVisitStatus: this.calculateHomeVisitStatus(app),
       // New stage-based fields - map status to appropriate stage if no stage provided
-      stage: app.stage || this.mapStatusToStage(app.status),
+      stage: this.normalizeStage(app),
       stageProgressPercentage: this.calculateStageProgress(app),
       assignedStaff: app.assignedStaff,
       tags: app.tags || [],

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { toast } from '@adopt-dont-shop/lib.components';
+import { Input, toast } from '@adopt-dont-shop/lib.components';
 import {
   ApplicationStage,
   STAGE_CONFIG,
@@ -7,6 +7,36 @@ import {
   StageAction,
 } from '../../types/applicationStages';
 import * as styles from './StageTransitionModal.css';
+
+type Choice = { value: string; label: string };
+
+// Actions the bulk-update route can only apply with an extra value: the
+// decision itself, the visit outcome, or when the visit is.
+const DECISION_CHOICES: Choice[] = [
+  { value: 'approved', label: 'Approve' },
+  { value: 'rejected', label: 'Reject' },
+];
+const VISIT_OUTCOME_CHOICES: Choice[] = [
+  { value: 'passed', label: 'Passed' },
+  { value: 'failed', label: 'Failed' },
+];
+
+const actionData = (
+  type: StageAction['type'] | undefined,
+  choice: string | null,
+  visitAt: string
+): Record<string, unknown> | undefined | null => {
+  if (type === 'MAKE_DECISION') {
+    return choice ? { status: choice } : null;
+  }
+  if (type === 'COMPLETE_VISIT') {
+    return choice ? { outcome: choice } : null;
+  }
+  if (type === 'SCHEDULE_VISIT') {
+    return visitAt ? { scheduledAt: new Date(visitAt).toISOString() } : null;
+  }
+  return undefined;
+};
 
 interface StageTransitionModalProps {
   currentStage: ApplicationStage;
@@ -21,18 +51,31 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
 }) => {
   const [selectedAction, setSelectedAction] = useState<StageAction | null>(null);
   const [notes, setNotes] = useState('');
+  const [choice, setChoice] = useState<string | null>(null);
+  const [visitAt, setVisitAt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const availableActions = STAGE_ACTIONS[currentStage] || [];
+  // null = the selected action still needs its value; undefined = it needs none.
+  const data = actionData(selectedAction?.type, choice, visitAt);
+
+  const selectAction = (action: StageAction) => {
+    setSelectedAction(action);
+    setChoice(null);
+    setVisitAt('');
+  };
 
   const handleSubmit = async () => {
-    if (!selectedAction) {
+    if (!selectedAction || data === null) {
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await onTransition(selectedAction, notes.trim() || undefined);
+      await onTransition(
+        data ? { ...selectedAction, data } : selectedAction,
+        notes.trim() || undefined
+      );
       onClose();
     } catch (error) {
       console.error('Failed to transition stage:', error);
@@ -119,7 +162,7 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
                     className={styles.actionOption({
                       selected: selectedAction?.type === action.type,
                     })}
-                    onClick={() => setSelectedAction(action)}
+                    onClick={() => selectAction(action)}
                     type="button"
                   >
                     <div className={styles.actionLabel}>{getActionLabel(action.type)}</div>
@@ -128,6 +171,48 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
                 ))}
               </div>
             </div>
+
+            {(selectedAction?.type === 'MAKE_DECISION' ||
+              selectedAction?.type === 'COMPLETE_VISIT') && (
+              <div className={styles.formField}>
+                <p className={styles.label} id="stage-transition-choice">
+                  {selectedAction.type === 'MAKE_DECISION' ? 'Decision' : 'Visit outcome'}
+                </p>
+                <div
+                  className={styles.actionList}
+                  role="group"
+                  aria-labelledby="stage-transition-choice"
+                >
+                  {(selectedAction.type === 'MAKE_DECISION'
+                    ? DECISION_CHOICES
+                    : VISIT_OUTCOME_CHOICES
+                  ).map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={styles.actionOption({ selected: choice === option.value })}
+                      aria-pressed={choice === option.value}
+                      onClick={() => setChoice(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedAction?.type === 'SCHEDULE_VISIT' && (
+              <div className={styles.formField}>
+                <Input
+                  id="stage-transition-visit-at"
+                  type="datetime-local"
+                  label="Visit date and time"
+                  value={visitAt}
+                  onChange={e => setVisitAt(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             {selectedAction && (
               <div className={styles.formField}>
@@ -158,7 +243,9 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
             type="button"
             className={styles.button({ variant: 'primary' })}
             onClick={handleSubmit}
-            disabled={!selectedAction || isSubmitting || availableActions.length === 0}
+            disabled={
+              !selectedAction || data === null || isSubmitting || availableActions.length === 0
+            }
           >
             {isSubmitting ? 'Transitioning...' : 'Confirm Transition'}
           </button>
