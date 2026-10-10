@@ -235,7 +235,9 @@ export interface RawApplication {
   petName?: string;
   petType?: string;
   petBreed?: string;
-  stage?: ApplicationStage;
+  // The gateway sends the stage lowercase (`pending`, `withdrawn`, …); the
+  // service normalises it to ApplicationStage before the UI sees it.
+  stage?: string;
   priority?: string;
   submittedAt?: string | null;
   data?: RawApplicationData;

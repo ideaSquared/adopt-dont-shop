@@ -210,7 +210,7 @@ export class AuthService {
    * Reset password with token
    */
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    await apiService.post(AUTH_ENDPOINTS.RESET_PASSWORD, { token, newPassword });
+    await apiService.post(AUTH_ENDPOINTS.RESET_PASSWORD, { resetToken: token, newPassword });
   }
 
   /**
@@ -224,7 +224,7 @@ export class AuthService {
    * Verify email with token
    */
   async verifyEmail(token: string): Promise<void> {
-    await apiService.post(AUTH_ENDPOINTS.VERIFY_EMAIL, { token });
+    await apiService.post(AUTH_ENDPOINTS.VERIFY_EMAIL, { verificationToken: token });
   }
 
   /**

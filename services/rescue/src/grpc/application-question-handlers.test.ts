@@ -30,6 +30,14 @@ const READ_ONLY_STAFF: Principal = {
   rescueId: RESCUE_ID as RescueId,
 };
 
+// An adopter filling in the application form: can apply to any rescue, but
+// holds no rescue scope of their own.
+const APPLICANT: Principal = {
+  userId: 'usr-adopter' as UserId,
+  roles: ['adopter'],
+  permissions: ['applications.create' as Permission, 'applications.read' as Permission],
+};
+
 const UNPRIVILEGED: Principal = {
   userId: 'usr-nobody' as UserId,
   roles: ['adopter'],
@@ -95,6 +103,12 @@ describe('listApplicationQuestions', () => {
     await expect(listApplicationQuestions(mocks.deps, STAFF, { rescueId: '' })).rejects.toThrow(
       /rescue_id is required/
     );
+  });
+
+  it('lets an applicant read the questionnaire of the rescue they are applying to', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [questionRow()] });
+    const res = await listApplicationQuestions(mocks.deps, APPLICANT, { rescueId: RESCUE_ID });
+    expect(res.questions.map(q => q.questionId)).toEqual(['q-1']);
   });
 
   it('denies a caller without applications.read for the rescue', async () => {

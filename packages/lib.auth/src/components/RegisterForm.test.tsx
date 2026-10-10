@@ -96,3 +96,34 @@ describe('RegisterForm async error announcement [C2-7]', () => {
     expect(alert).toHaveAttribute('aria-live', 'assertive');
   });
 });
+
+describe('RegisterForm without a phone number field', () => {
+  // The client app hides the phone field. Its empty value used to fail the
+  // phone-number rule, and with the field hidden the error was never shown:
+  // Create Account silently did nothing.
+  it('registers the adopter when the phone number is not asked for', async () => {
+    const user = userEvent.setup();
+    const registerMock = vi.fn().mockResolvedValue(undefined);
+
+    renderRegisterForm(false, buildAuthValue({ register: registerMock }));
+
+    await user.type(screen.getByPlaceholderText(/enter your first name/i), 'Ada');
+    await user.type(screen.getByPlaceholderText(/enter your last name/i), 'Lovelace');
+    await user.type(screen.getByPlaceholderText(/enter your email/i), 'ada@example.com');
+    await user.type(screen.getByPlaceholderText(/create a strong password/i), 'Password1!');
+    await user.type(screen.getByPlaceholderText(/confirm your password/i), 'Password1!');
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    await waitFor(() => {
+      expect(registerMock).toHaveBeenCalledWith({
+        email: 'ada@example.com',
+        password: 'Password1!',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
+      });
+    });
+  });
+});

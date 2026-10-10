@@ -83,8 +83,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     setError(null);
     setFieldErrors({});
 
-    // Validate form data
-    const result = registerSchema.safeParse(formData);
+    // An unasked-for phone number stays empty; leave it out rather than
+    // failing the phone-number rule on a field the user cannot see.
+    const { phoneNumber: enteredPhone, ...withoutPhone } = formData;
+    const result = registerSchema.safeParse(
+      requirePhoneNumber || enteredPhone ? formData : withoutPhone
+    );
     if (!result.success) {
       const errors: Record<string, string> = {};
       result.error.issues.forEach((err) => {
@@ -98,9 +102,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
     try {
       const { confirmPassword: _, acceptTerms: __, phoneNumber, ...rest } = formData;
+      // The one checkbox accepts both the terms and the privacy policy.
       const registerData = {
         ...rest,
         ...(phoneNumber ? { phoneNumber } : {}),
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
       };
       await registerUser(registerData);
       onSuccess?.();

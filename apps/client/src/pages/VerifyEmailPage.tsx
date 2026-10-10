@@ -35,6 +35,20 @@ export const VerifyEmailPage: React.FC = () => {
   // token and the user sees a spurious "error" state. The ref keys on
   // token so a genuinely-different token (very rare) is still verified.
   const verifiedTokenRef = useRef<string | null>(null);
+  // The verification outlives any one run of the effect below: stripping the
+  // token changes the location, which hands us a new `navigate` and re-runs
+  // the effect, and the single-use guard rightly skips a second call. So the
+  // result is applied while the page is mounted, not per effect run.
+  const isMountedRef = useRef(true);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -49,25 +63,22 @@ export const VerifyEmailPage: React.FC = () => {
     }
     verifiedTokenRef.current = token;
 
-    let cancelled = false;
-    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
-
     const verifyEmail = async () => {
       try {
         // Token is stripped from the address bar by the dedicated effect above
         // (ADS-1012); no need to touch history here.
         await authService.verifyEmail(token);
-        if (cancelled) {
+        if (!isMountedRef.current) {
           return;
         }
         setStatus('success');
 
         // Redirect to login after 3 seconds
-        redirectTimer = setTimeout(() => {
+        redirectTimerRef.current = setTimeout(() => {
           navigate('/login?verified=true');
         }, 3000);
       } catch (error) {
-        if (cancelled) {
+        if (!isMountedRef.current) {
           return;
         }
         const message = error instanceof Error ? error.message : 'Verification failed';
@@ -83,13 +94,6 @@ export const VerifyEmailPage: React.FC = () => {
     };
 
     verifyEmail();
-
-    return () => {
-      cancelled = true;
-      if (redirectTimer !== undefined) {
-        clearTimeout(redirectTimer);
-      }
-    };
   }, [token, navigate]);
 
   const handleResendEmail = async () => {

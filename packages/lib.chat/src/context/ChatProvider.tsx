@@ -189,9 +189,20 @@ export function ChatProvider({
         if (prev.some((m) => m.id === message.id)) {
           return prev;
         }
+        // The sender gets the socket echo of their own message too, and it
+        // can beat the send's response: let it stand in for the matching
+        // optimistic bubble rather than showing the message twice.
+        const optimistic = prev.find(
+          (m) =>
+            m.status === 'sending' &&
+            m.senderId === message.senderId &&
+            m.conversationId === message.conversationId &&
+            m.content === message.content
+        );
+        const rest = optimistic ? prev.filter((m) => m !== optimistic) : prev;
         // Sort by server-assigned sequence so an out-of-order Socket.IO
         // arrival lands at its correct position rather than the end.
-        return sortMessagesBySequence([...prev, message]);
+        return sortMessagesBySequence([...rest, message]);
       });
 
       setConversations((prev) =>

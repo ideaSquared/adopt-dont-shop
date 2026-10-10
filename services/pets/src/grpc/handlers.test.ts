@@ -173,12 +173,27 @@ describe('createPet', () => {
     await expect(createPet(mocks.deps, STAFF, { ...BASE_CREATE, name: '' })).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
     });
+    // A caller with no rescue of their own (super_admin) must name one.
     await expect(
-      createPet(mocks.deps, STAFF, { ...BASE_CREATE, rescueId: '' })
+      createPet(mocks.deps, SUPER_ADMIN, { ...BASE_CREATE, rescueId: '' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     await expect(
       createPet(mocks.deps, STAFF, { ...BASE_CREATE, type: PetsV1.PetType.PET_TYPE_UNSPECIFIED })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it("lists the pet under the staff member's own rescue when none is named", async () => {
+    let insertParams: unknown[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[]) => {
+      if (sql.includes('INSERT INTO pets.pets')) {
+        insertParams = params;
+      }
+      return { rows: [petRow()] };
+    });
+
+    await createPet(mocks.deps, STAFF, { ...BASE_CREATE, rescueId: '' });
+
+    expect(insertParams[2]).toBe(STAFF.rescueId);
   });
 
   it('PERMISSION_DENIED when staff is scoped to a different rescue', async () => {
