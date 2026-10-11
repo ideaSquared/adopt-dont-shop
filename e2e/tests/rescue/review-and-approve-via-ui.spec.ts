@@ -29,6 +29,17 @@ test.describe('rescue application review in the UI', () => {
     await expect(row).toBeVisible({ timeout: 20_000 });
     await row.getByRole('button', { name: 'View' }).click();
 
+    // The details tab shows the adopter's answers under the questionnaire's
+    // wording (they used to read "N/A" — the panel looked for old field names).
+    await expect(
+      page.getByRole('term').filter({ hasText: 'Why do you want to adopt this pet?' })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('definition').filter({
+        hasText: 'We have the time, space, and experience to give a pet a great home.',
+      })
+    ).toBeVisible();
+
     const transition = async (action: RegExp, choice?: string) => {
       await page.getByRole('button', { name: 'Transition Stage' }).click();
       await page.getByRole('button', { name: action }).click();
