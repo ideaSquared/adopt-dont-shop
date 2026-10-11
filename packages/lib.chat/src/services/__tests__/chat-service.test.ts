@@ -586,7 +586,7 @@ describe('ChatService', () => {
           expect(event.messageId).toBe('msg-123');
           expect(event.emoji).toBe('\u{1F44D}');
           expect(event.userId).toBe('user-456');
-          expect(event.reactions).toHaveLength(1);
+          expect(event.change).toBe('added');
           resolve();
         });
 
@@ -594,9 +594,7 @@ describe('ChatService', () => {
           messageId: 'msg-123',
           emoji: '\u{1F44D}',
           userId: 'user-456',
-          reactions: [
-            { userId: 'user-456', emoji: '\u{1F44D}', createdAt: new Date().toISOString() },
-          ],
+          change: 'added',
         });
       });
     });
@@ -631,7 +629,7 @@ describe('ChatService', () => {
         messageId: 'msg-123',
         emoji: '\u{1F44D}',
         userId: 'user-456',
-        reactions: [],
+        change: 'added',
       });
 
       expect(reactionCallback).not.toHaveBeenCalled();

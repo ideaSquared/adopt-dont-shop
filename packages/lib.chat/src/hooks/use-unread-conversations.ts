@@ -41,7 +41,7 @@ export type UseUnreadConversationsResult = {
  * Data flow:
  * - Reads `conversations` from {@link useChat}. The provider already keeps
  *   `unreadCount` in sync with the live socket (new messages bump it,
- *   `messages_read` events clear it), so consumers automatically update in
+ *   `chat:message:read` events clear it), so consumers automatically update in
  *   real time without polling.
  * - `markRead(conversationId)` calls the context's `markAsRead` (which
  *   optimistically zeroes the counter + persists via the backend) **and**

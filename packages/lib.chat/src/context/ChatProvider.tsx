@@ -238,26 +238,44 @@ export function ChatProvider({
     };
 
     const handleReactionUpdate = (event: ReactionUpdateEvent) => {
+      // Apply the one reaction that changed. Idempotent, so the echo of my
+      // own optimistic reaction doesn't add it twice.
+      const isThisReaction = (r: { userId: string; emoji: string }) =>
+        r.userId === event.userId && r.emoji === event.emoji;
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === event.messageId
-            ? {
-                ...msg,
-                reactions: (event.reactions || []).map((r) => ({
-                  userId: r.userId,
-                  emoji: r.emoji,
-                  createdAt: r.createdAt ?? new Date().toISOString(),
-                })),
-              }
-            : msg
-        )
+        prev.map((msg) => {
+          if (msg.id !== event.messageId) {
+            return msg;
+          }
+          const others = (msg.reactions ?? []).filter((r) => !isThisReaction(r));
+          const reactions =
+            event.change === 'added'
+              ? [
+                  ...others,
+                  (msg.reactions ?? []).find(isThisReaction) ?? {
+                    userId: event.userId,
+                    emoji: event.emoji,
+                    createdAt: new Date().toISOString(),
+                  },
+                ]
+              : others;
+          return { ...msg, reactions };
+        })
       );
     };
 
     const handleReadStatusUpdate = (event: ReadStatusUpdateEvent) => {
+      // I read this chat (e.g. in another tab): nothing in it is unread.
+      if (event.userId === user.userId) {
+        setConversations((prev) =>
+          prev.map((conv) => (conv.id === event.chatId ? { ...conv, unreadCount: 0 } : conv))
+        );
+        return;
+      }
+      // Someone else read it: mark my messages there as read by them.
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.conversationId === event.chatId
+          msg.conversationId === event.chatId && msg.senderId === user.userId
             ? {
                 ...msg,
                 status: 'read' as const,
@@ -267,9 +285,6 @@ export function ChatProvider({
               }
             : msg
         )
-      );
-      setConversations((prev) =>
-        prev.map((conv) => (conv.id === event.chatId ? { ...conv, unreadCount: 0 } : conv))
       );
     };
 

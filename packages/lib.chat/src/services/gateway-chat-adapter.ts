@@ -34,6 +34,20 @@ export const GatewayMessageSchema = z.object({
 });
 export type GatewayMessage = z.infer<typeof GatewayMessageSchema>;
 
+// Socket payloads for `chat:reaction:added` / `chat:reaction:removed` and
+// `chat:message:read` (services/gateway/src/ws/chat-subscriber.ts). A reaction
+// event carries the one emoji that changed, not the message's full list.
+export const GatewayReactionEventSchema = z.object({
+  messageId: z.string(),
+  userId: z.string(),
+  emoji: z.string(),
+});
+
+export const GatewayReadEventSchema = z.object({
+  chatId: z.string(),
+  userId: z.string(),
+});
+
 const CONVERSATION_STATUSES = ['active', 'archived', 'blocked', 'closed'] as const;
 type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
 
