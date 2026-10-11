@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Owns application-scoped messaging between adopters and rescue staff: opening
-chats, sending / reading messages, reactions, read receipts, and full-text
+Owns messaging between adopters and rescue staff — application chats and
+pre-application pet enquiries: opening chats, sending / reading messages, reactions, read receipts, and full-text
 search. Real-time delivery is event-driven — the service publishes `chat.*`
 events on NATS that the gateway's WebSocket subscriber fans out to connected
 clients. Owns the `chat.*` schema. Classical (no event sourcing — messages are
@@ -17,7 +17,10 @@ terminates Socket.IO and this service is the source of the `chat.*` fan-out
 events. `services/moderation` consumes `chat.messageCreated` for content
 scanning. `OpenChat` makes outbound gRPC calls to `service.applications`
 (`getApplication`) and `service.rescue` (`listStaffMembers`) to resolve chat
-participants; all other RPCs read participants from its own schema. Depends on
+participants. `OpenPetEnquiry` calls `service.pets` (`get`) to find the pet's
+rescue, and `SendMessage` lists a rescue's staff (`listStaffMembers`) to fan a
+pet enquiry's messages out to all of them. All other RPCs read participants
+from its own schema. Depends on
 the shared backend packages `@adopt-dont-shop/{authz,
 config-secrets, db, events, lib.types, observability, proto,
 service-bootstrap}`. For how this service was carved out of the monolith, see
@@ -49,13 +52,14 @@ curl localhost:5006/health/simple        # liveness probe
 ```
 
 Bare-metal (this service alone, against host Postgres + NATS from
-`pnpm dev:services`). `OpenChat` calls applications + rescue over gRPC, so
-point those at running services for that path:
+`pnpm dev:services`). `OpenChat` calls applications + rescue and
+`OpenPetEnquiry` calls pets over gRPC, so point those at running services for
+those paths:
 
 ```bash
 DATABASE_URL=postgres://adopt_user:adopt_pass@localhost:5432/adopt_dont_shop_dev \
 NATS_URL=nats://localhost:4222 \
-APPLICATIONS_GRPC_URL=localhost:6005 RESCUE_GRPC_URL=localhost:6004 \
+APPLICATIONS_GRPC_URL=localhost:6005 RESCUE_GRPC_URL=localhost:6004 PETS_GRPC_URL=localhost:6003 \
 pnpm --filter @adopt-dont-shop/service.chat dev
 ```
 
@@ -67,23 +71,28 @@ To debug the container, see
 HTTP surface: `/health/simple`. Everything else is gRPC `ChatService`
 (`packages/proto`), proxied by the gateway under `/api/v1/chats/*`. Most RPCs
 additionally require **participant membership** in the chat; `super_admin`
-bypasses the membership check.
+bypasses the membership check. A **pet enquiry** (a chat with a pet and no
+application) is a shared rescue inbox: any staff member of the pet's rescue
+counts as a participant, `ListChats` lists the rescue's enquiries to its staff,
+and their messages fan out to all of that rescue's staff.
 
 | RPC                                                                           | Permission                           |
 | ----------------------------------------------------------------------------- | ------------------------------------ |
 | `OpenChat`                                                                    | `chats.create`                       |
+| `OpenPetEnquiry` (one per adopter and pet; reopening returns it)              | `chats.create`                       |
 | `SendMessage` / `React`                                                       | `messages.create` + participant      |
 | `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat` / `DeleteChat` | `chats.read` + participant           |
 | `ListChats` / `SearchChats`                                                   | `chats.read`                         |
 | `DeleteMessage`                                                               | sender, or `chat.message.delete:any` |
 
-Schema (`chat`): `chats` (anchored to an application), `chat_participants`
+Schema (`chat`): `chats` (anchored to an application, or to a pet for an
+enquiry), `chat_participants`
 (with read watermarks), `messages` (with a full-text search vector),
 `message_reactions`, `message_reads`, and `event_outbox` (the transactional
 publish-after-commit outbox — see
 [`packages/events`](../../packages/events/README.md)). Migrations:
-`src/migrations/001`–`007` (004 installs the search-vector trigger so the DB
-owns the invariant).
+`src/migrations/001`–`008` (004 installs the search-vector trigger so the DB
+owns the invariant; 008 allows one live enquiry per adopter and pet).
 
 **NATS** — emits (publish-after-commit): `chat.created`, `chat.messageCreated`,
 `chat.messageRead`, `chat.reactionAdded`, `chat.reactionRemoved`,
@@ -95,7 +104,8 @@ owns the invariant).
 
 `DATABASE_URL` is **required** (boot fails fast without it). `CHAT_PORT`
 (5006), `CHAT_GRPC_PORT` (6006), `CHAT_HOST`, `CHAT_SCHEMA` (`chat`), and
-`NATS_URL` have dev defaults, plus the standard
+`NATS_URL` have dev defaults, as do the outbound `APPLICATIONS_GRPC_URL`,
+`RESCUE_GRPC_URL` and `PETS_GRPC_URL` (`service-pets:6003`), plus the standard
 `@adopt-dont-shop/observability` vars. See
 [`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 

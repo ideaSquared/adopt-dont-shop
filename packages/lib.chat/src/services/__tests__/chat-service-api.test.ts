@@ -228,35 +228,32 @@ describe('ChatService REST API methods', () => {
   });
 
   describe('createConversation', () => {
-    it('posts the conversation payload and returns the created conversation', async () => {
+    it("opens an enquiry to the pet's rescue and returns the conversation", async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
         okJson({ chat: gatewayChat('c-new'), created: true })
       );
 
-      const result = await service.createConversation({
-        rescueId: 'r-1',
-        petId: 'p-1',
-        initialMessage: 'Hello',
-      });
+      const result = await service.createConversation({ rescueId: 'r-1', petId: 'p-1' });
 
       expect(result.id).toBe('c-new');
       const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-      expect(call[0]).toBe('https://api.test/api/v1/chats');
+      expect(call[0]).toBe('https://api.test/api/v1/chats/enquiries');
       const init = call[1] as RequestInit;
       expect(init.method).toBe('POST');
-      expect(JSON.parse(init.body as string)).toEqual({
-        rescueId: 'r-1',
-        petId: 'p-1',
-        initialMessage: 'Hello',
-      });
+      expect(JSON.parse(init.body as string)).toEqual({ petId: 'p-1' });
+    });
+
+    it('needs a pet to know which rescue to ask', async () => {
+      await expect(service.createConversation({ rescueId: 'r-1' })).rejects.toThrow(/pet/i);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('throws on failure', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
-        failure(409, 'Conflict')
+        failure(429, 'Too Many Requests')
       );
-      await expect(service.createConversation({ rescueId: 'r-1' })).rejects.toThrow(
-        'HTTP 409: Conflict'
+      await expect(service.createConversation({ rescueId: 'r-1', petId: 'p-1' })).rejects.toThrow(
+        'HTTP 429: Too Many Requests'
       );
     });
   });

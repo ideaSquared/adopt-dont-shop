@@ -78,9 +78,8 @@ export function chatStatusToJSON(object: ChatStatus): string {
 export interface Chat {
   chatId: string;
   /**
-   * Application this chat is anchored to (every chat in
-   * adopt-dont-shop is application-scoped — adopters can't DM
-   * rescue staff outside an application context).
+   * Application this chat is anchored to. Empty for a pet enquiry (see
+   * OpenPetEnquiry), which is anchored to pet_id instead.
    */
   applicationId: string;
   /**
@@ -99,7 +98,15 @@ export interface Chat {
    * Messages in this chat, sent by others, that the calling user hasn't
    * read. Set by ListChats; other RPCs leave it unset.
    */
-  unreadCount?: number | undefined;
+  unreadCount?:
+    | number
+    | undefined;
+  /** The pet a pre-application enquiry is about (unset for application chats). */
+  petId?:
+    | string
+    | undefined;
+  /** The rescue the chat belongs to. */
+  rescueId: string;
 }
 
 /**
@@ -151,6 +158,10 @@ export interface OpenChatRequest {
    * chats instead of the previous null-UUID placeholder.
    */
   rescueId: string;
+}
+
+export interface OpenPetEnquiryRequest {
+  petId: string;
 }
 
 export interface OpenChatResponse {
@@ -401,6 +412,8 @@ function createBaseChat(): Chat {
     updatedAt: "",
     status: 0,
     unreadCount: undefined,
+    petId: undefined,
+    rescueId: "",
   };
 }
 
@@ -435,6 +448,12 @@ export const Chat: MessageFns<Chat> = {
     }
     if (message.unreadCount !== undefined) {
       writer.uint32(80).uint32(message.unreadCount);
+    }
+    if (message.petId !== undefined) {
+      writer.uint32(90).string(message.petId);
+    }
+    if (message.rescueId !== "") {
+      writer.uint32(98).string(message.rescueId);
     }
     return writer;
   },
@@ -526,6 +545,22 @@ export const Chat: MessageFns<Chat> = {
           message.unreadCount = reader.uint32();
           continue;
         }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -583,6 +618,16 @@ export const Chat: MessageFns<Chat> = {
         : isSet(object.unread_count)
         ? globalThis.Number(object.unread_count)
         : undefined,
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : undefined,
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
     };
   },
 
@@ -618,6 +663,12 @@ export const Chat: MessageFns<Chat> = {
     if (message.unreadCount !== undefined) {
       obj.unreadCount = Math.round(message.unreadCount);
     }
+    if (message.petId !== undefined) {
+      obj.petId = message.petId;
+    }
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
     return obj;
   },
 
@@ -636,6 +687,8 @@ export const Chat: MessageFns<Chat> = {
     message.updatedAt = object.updatedAt ?? "";
     message.status = object.status ?? 0;
     message.unreadCount = object.unreadCount ?? undefined;
+    message.petId = object.petId ?? undefined;
+    message.rescueId = object.rescueId ?? "";
     return message;
   },
 };
@@ -1166,6 +1219,70 @@ export const OpenChatRequest: MessageFns<OpenChatRequest> = {
     message.applicationId = object.applicationId ?? "";
     message.otherUserId = object.otherUserId ?? "";
     message.rescueId = object.rescueId ?? "";
+    return message;
+  },
+};
+
+function createBaseOpenPetEnquiryRequest(): OpenPetEnquiryRequest {
+  return { petId: "" };
+}
+
+export const OpenPetEnquiryRequest: MessageFns<OpenPetEnquiryRequest> = {
+  encode(message: OpenPetEnquiryRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.petId !== "") {
+      writer.uint32(10).string(message.petId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): OpenPetEnquiryRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseOpenPetEnquiryRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): OpenPetEnquiryRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : "",
+    };
+  },
+
+  toJSON(message: OpenPetEnquiryRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== "") {
+      obj.petId = message.petId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<OpenPetEnquiryRequest>, I>>(base?: I): OpenPetEnquiryRequest {
+    return OpenPetEnquiryRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<OpenPetEnquiryRequest>, I>>(object: I): OpenPetEnquiryRequest {
+    const message = createBaseOpenPetEnquiryRequest();
+    message.petId = object.petId ?? "";
     return message;
   },
 };
@@ -3476,6 +3593,23 @@ export const ChatServiceService = {
     responseDeserialize: (value: Buffer): OpenChatResponse => OpenChatResponse.decode(value),
   },
   /**
+   * Open (or reopen) an adopter's enquiry about a pet, before any
+   * application exists. The chat belongs to the pet's rescue as a shared
+   * inbox: every staff member of that rescue with chat access can read and
+   * reply, not just named participants. One enquiry per adopter and pet —
+   * asking again returns the existing chat with created = false.
+   */
+  openPetEnquiry: {
+    path: "/adopt_dont_shop.chat.v1.ChatService/OpenPetEnquiry" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: OpenPetEnquiryRequest): Buffer =>
+      Buffer.from(OpenPetEnquiryRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): OpenPetEnquiryRequest => OpenPetEnquiryRequest.decode(value),
+    responseSerialize: (value: OpenChatResponse): Buffer => Buffer.from(OpenChatResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): OpenChatResponse => OpenChatResponse.decode(value),
+  },
+  /**
    * Send a text message into an existing chat. Publishes
    * chat.messageCreated after commit — the gateway's WS subscriber
    * fans this to the other participant's open sockets.
@@ -3687,6 +3821,14 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    */
   openChat: handleUnaryCall<OpenChatRequest, OpenChatResponse>;
   /**
+   * Open (or reopen) an adopter's enquiry about a pet, before any
+   * application exists. The chat belongs to the pet's rescue as a shared
+   * inbox: every staff member of that rescue with chat access can read and
+   * reply, not just named participants. One enquiry per adopter and pet —
+   * asking again returns the existing chat with created = false.
+   */
+  openPetEnquiry: handleUnaryCall<OpenPetEnquiryRequest, OpenChatResponse>;
+  /**
    * Send a text message into an existing chat. Publishes
    * chat.messageCreated after commit — the gateway's WS subscriber
    * fans this to the other participant's open sockets.
@@ -3794,6 +3936,28 @@ export interface ChatServiceClient extends Client {
   ): ClientUnaryCall;
   openChat(
     request: OpenChatRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: OpenChatResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Open (or reopen) an adopter's enquiry about a pet, before any
+   * application exists. The chat belongs to the pet's rescue as a shared
+   * inbox: every staff member of that rescue with chat access can read and
+   * reply, not just named participants. One enquiry per adopter and pet —
+   * asking again returns the existing chat with created = false.
+   */
+  openPetEnquiry(
+    request: OpenPetEnquiryRequest,
+    callback: (error: ServiceError | null, response: OpenChatResponse) => void,
+  ): ClientUnaryCall;
+  openPetEnquiry(
+    request: OpenPetEnquiryRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: OpenChatResponse) => void,
+  ): ClientUnaryCall;
+  openPetEnquiry(
+    request: OpenPetEnquiryRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: OpenChatResponse) => void,

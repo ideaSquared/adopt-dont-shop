@@ -775,12 +775,17 @@ export class ChatService {
     rescueId: string;
     initialMessage?: string;
   }): Promise<Conversation> {
+    // Contacting a rescue outside an application is a pet enquiry: the chat
+    // service resolves the rescue from the pet, so the pet is what it needs.
+    if (!data.petId) {
+      throw new Error('A pet is required to contact its rescue');
+    }
     try {
-      const response = await this.fetchWithTimeout(`${this.config.apiUrl}/api/v1/chats`, {
+      const response = await this.fetchWithTimeout(`${this.config.apiUrl}/api/v1/chats/enquiries`, {
         method: 'POST',
         credentials: 'include',
         headers: await this.getMutatingHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify({ petId: data.petId }),
       });
 
       if (!response.ok) {

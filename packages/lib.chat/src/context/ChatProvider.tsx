@@ -578,7 +578,9 @@ export function ChatProvider({
       setError(null);
       try {
         const conversation = await chatService.createConversation({ rescueId, petId });
-        setConversations((prev) => [conversation, ...prev]);
+        // Asking about the same pet again returns the existing enquiry; move
+        // it to the top rather than listing it twice.
+        setConversations((prev) => [conversation, ...prev.filter((c) => c.id !== conversation.id)]);
         return conversation;
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to create conversation';

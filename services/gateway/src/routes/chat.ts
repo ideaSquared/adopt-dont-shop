@@ -11,7 +11,7 @@
 // the gRPC metadata the chat handlers' principal extractor reads.
 
 import rateLimit from '@fastify/rate-limit';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import {
   ChatV1,
@@ -64,6 +64,18 @@ const CHAT_RATE_LIMITS = {
   delete: { max: 30, timeWindow: '1 minute' },
 } as const;
 
+// Opening a pet enquiry (a chat with a rescue before applying) is capped per
+// user, not per IP, at 10 a day — enough for a real adopter, too few for chat
+// spam. Mirrors the userId-keyed limits in gdpr.ts / users-export.ts.
+const PET_ENQUIRY_RATE_LIMIT = {
+  max: 10,
+  timeWindow: '1 day',
+  keyGenerator: (req: FastifyRequest) => {
+    const userId = req.headers['x-user-id'];
+    return typeof userId === 'string' && userId.length > 0 ? `chat-enquiry:${userId}` : req.ip;
+  },
+};
+
 // Envelope normalization: the proto Message carries its text under `body`
 // (the POST maps the SPA's `content` onto it). But the SPA chat client
 // (ChatContext) and the e2e helpers READ `content`, so without this the text
@@ -94,6 +106,40 @@ export const registerChatRoutes = async (
   for (const prefix of CHAT_PREFIXES) {
     registerChatRoutesForPrefix(app, client, prefix);
   }
+
+  // ---- POST /api/v1/chats/enquiries ----------------------------------
+  // Ask a rescue about a pet before applying. Registered once (not per
+  // prefix) so the daily cap can't be doubled through the alias.
+  app.post<{ Body: { petId?: string } }>(
+    '/api/v1/chats/enquiries',
+    {
+      config: { rateLimit: PET_ENQUIRY_RATE_LIMIT },
+      schema: {
+        tags: ['chat'],
+        summary: "Open (or reopen) an enquiry to a pet's rescue",
+        body: {
+          type: 'object',
+          required: ['petId'],
+          properties: { petId: { type: 'string', minLength: 1 } },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          201: { type: 'object', additionalProperties: true },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.openPetEnquiry(
+          { petId: req.body.petId ?? '' },
+          buildMetadata(req)
+        );
+        return reply.code(res.created ? 201 : 200).send(ChatV1.OpenChatResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 
   // The /api/v1/messages/:messageId/reactions endpoint is unique —
   // it's a message-level operation, not chat-scoped — so it only
