@@ -3,6 +3,8 @@ import { io, Socket } from 'socket.io-client';
 import {
   GatewayChatSchema,
   GatewayMessageSchema,
+  GatewayReactionEventSchema,
+  GatewayReadEventSchema,
   toConversation,
   toMessage,
 } from './gateway-chat-adapter';
@@ -10,7 +12,6 @@ import {
   ChatServiceConfig,
   Conversation,
   Message,
-  MessageReaction,
   TypingIndicator,
   PaginatedResponse,
   ConnectionStatus,
@@ -37,7 +38,8 @@ export interface ReactionUpdateEvent {
   messageId: string;
   emoji: string;
   userId: string;
-  reactions: MessageReaction[];
+  // The gateway reports one reaction changing, not the message's full list.
+  change: 'added' | 'removed';
 }
 
 /**
@@ -46,6 +48,8 @@ export interface ReactionUpdateEvent {
 export interface ReadStatusUpdateEvent {
   chatId: string;
   userId: string;
+  // Messages up to and including this one were read (absent: unknown).
+  upToMessageId?: string;
   timestamp: string;
 }
 
@@ -240,58 +244,29 @@ export class ChatService {
       // Handle stopped typing if needed
     });
 
-    // Reaction added
-    this.socket.on(
-      'reaction_added',
-      (data: {
-        messageId: string;
-        emoji: string;
-        userId: string;
-        reactions: MessageReaction[];
-        timestamp: string;
-      }) => {
-        const event: ReactionUpdateEvent = {
-          messageId: data.messageId,
-          emoji: data.emoji,
-          userId: data.userId,
-          reactions: data.reactions,
-        };
+    // Reactions — one emoji added or removed by one user.
+    const onReaction =
+      (change: ReactionUpdateEvent['change']) =>
+      (data: unknown): void => {
+        const { messageId, emoji, userId } = GatewayReactionEventSchema.parse(data);
+        const event: ReactionUpdateEvent = { messageId, emoji, userId, change };
         this.reactionListeners.forEach((listener) => listener(event));
-      }
-    );
+      };
+    this.socket.on('chat:reaction:added', onReaction('added'));
+    this.socket.on('chat:reaction:removed', onReaction('removed'));
 
-    // Reaction removed
-    this.socket.on(
-      'reaction_removed',
-      (data: {
-        messageId: string;
-        emoji: string;
-        userId: string;
-        reactions: MessageReaction[];
-        timestamp: string;
-      }) => {
-        const event: ReactionUpdateEvent = {
-          messageId: data.messageId,
-          emoji: data.emoji,
-          userId: data.userId,
-          reactions: data.reactions,
-        };
-        this.reactionListeners.forEach((listener) => listener(event));
-      }
-    );
-
-    // Messages read by another user
-    this.socket.on(
-      'messages_read',
-      (data: { userId: string; chatId: string; timestamp: string }) => {
-        const event: ReadStatusUpdateEvent = {
-          chatId: data.chatId,
-          userId: data.userId,
-          timestamp: new Date(data.timestamp).toISOString(),
-        };
-        this.readStatusListeners.forEach((listener) => listener(event));
-      }
-    );
+    // A participant read the chat (up to a message). The payload has no
+    // timestamp, so stamp it on arrival.
+    this.socket.on('chat:message:read', (data: unknown) => {
+      const { chatId, userId, upToMessageId } = GatewayReadEventSchema.parse(data);
+      const event: ReadStatusUpdateEvent = {
+        chatId,
+        userId,
+        upToMessageId,
+        timestamp: new Date().toISOString(),
+      };
+      this.readStatusListeners.forEach((listener) => listener(event));
+    });
 
     // Error event
     this.socket.on('error', (error: { event: string; message: string; error: string }) => {

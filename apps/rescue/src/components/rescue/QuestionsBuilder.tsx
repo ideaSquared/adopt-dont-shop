@@ -78,7 +78,7 @@ type QuestionsBuilderProps = {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CATEGORY_LABELS: Record<QuestionCategory, string> = {
+export const CATEGORY_LABELS: Record<QuestionCategory, string> = {
   personal_information: 'Personal Information',
   household_information: 'Household Information',
   pet_ownership_experience: 'Pet Ownership Experience',

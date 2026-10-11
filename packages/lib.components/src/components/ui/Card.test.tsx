@@ -23,6 +23,12 @@ describe('Card', () => {
     expect(card).toBeInTheDocument();
   });
 
+  it('gives a ref to its element, so callers can manage focus inside it', () => {
+    const ref = React.createRef<HTMLDivElement>();
+    renderWithTheme(<Card ref={ref}>Card with ref</Card>);
+    expect(ref.current).toHaveTextContent('Card with ref');
+  });
+
   it('renders with hover effect when hoverable', () => {
     renderWithTheme(<Card hoverable>Hoverable card</Card>);
     const card = screen.getByText('Hoverable card');

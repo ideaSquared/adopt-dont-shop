@@ -65,6 +65,20 @@ describe('StageTransitionModal backdrop accessibility', () => {
 
     expect(screen.queryByRole('button', { name: /close modal/i })).toBeNull();
   });
+
+  it('is announced as a modal dialog named after its heading, with focus inside', () => {
+    render(
+      <StageTransitionModal
+        currentStage="PENDING"
+        onClose={vi.fn()}
+        onTransition={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const dialog = screen.getByRole('dialog', { name: 'Transition Application Stage' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+  });
 });
 
 /**

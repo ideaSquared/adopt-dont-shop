@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
-import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
+import { formatCurrency, formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import { resolveFileUrl } from '../../utils/fileUtils';
 import * as styles from './PetCard.css';
 
@@ -196,7 +196,7 @@ const PetCard: React.FC<PetCardProps> = ({
             </div>
             <div className="detail-item">
               <span className="label">Fee:</span>
-              <span className="value">${pet.adoption_fee || '0'}</span>
+              <span className="value">{formatCurrency(Number(pet.adoption_fee ?? 0))}</span>
             </div>
             <div className="detail-item">
               <span className="label">Added:</span>

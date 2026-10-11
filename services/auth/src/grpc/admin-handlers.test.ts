@@ -927,6 +927,21 @@ describe('getUserPermissions', () => {
     const res = await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
     expect(res.permissions).toEqual(['pets.read', 'pets.update']);
   });
+
+  it("lets any user read their own permissions (the SPAs' permission gates need them)", async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    const res = await getUserPermissions(mocks.deps, NO_PERMS, { userId: NO_PERMS.userId });
+    expect(res.permissions).toEqual(['pets.read']);
+  });
+
+  it("still refuses another user's permissions without admin.users.read", async () => {
+    await expect(
+      getUserPermissions(mocks.deps, NO_PERMS, { userId: 'usr-someone-else' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
 });
 
 // --- getUserPermissions: direct permission grants (ADS-1141) ---------

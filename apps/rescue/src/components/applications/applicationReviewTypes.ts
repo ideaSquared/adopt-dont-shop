@@ -18,6 +18,7 @@ export type ApplicationData = {
   status: string;
   petName?: string;
   petId?: string;
+  rescueId?: string;
   applicantName?: string;
   userName?: string;
   submittedDaysAgo?: number;

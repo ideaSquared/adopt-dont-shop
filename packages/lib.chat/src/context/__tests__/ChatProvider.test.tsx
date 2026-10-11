@@ -1049,4 +1049,169 @@ describe('ChatProvider', () => {
       });
     });
   });
+
+  describe('live reactions and read receipts', () => {
+    const renderWithOpenChat = async (conversation: Conversation, messages: Message[]) => {
+      const { chatService } = buildHarness([conversation]);
+      vi.spyOn(chatService, 'getMessages').mockResolvedValue({
+        data: messages,
+        success: true,
+        timestamp: '2026-01-01T00:00:00Z',
+        pagination: { page: 1, limit: 50, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+      });
+      vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+      let ctxRef: ReturnType<typeof useChat> | null = null;
+      const OpenFirstChat = () => {
+        const ctx = useChat();
+        ctxRef = ctx;
+        useEffect(() => {
+          if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+            ctx.setActiveConversation(ctx.conversations[0]);
+          }
+        }, [ctx]);
+        return null;
+      };
+      render(
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
+          <OpenFirstChat />
+        </ChatProvider>
+      );
+      await waitFor(() => expect(ctxRef?.messages).toHaveLength(messages.length));
+      return { chatService, ctx: () => ctxRef };
+    };
+
+    it("adds another person's reaction alongside the ones already there, then removes it", async () => {
+      const heart = { userId: 'user-x', emoji: '❤️', createdAt: '2026-01-01T00:00:02Z' };
+      const { chatService, ctx } = await renderWithOpenChat(buildConversation({ id: 'chat-1' }), [
+        buildMessage({ id: 'msg-1', reactions: [heart] }),
+      ]);
+      const emojisOnMessage = () =>
+        ctx()
+          ?.messages.find((m) => m.id === 'msg-1')
+          ?.reactions?.map((r) => r.emoji);
+
+      act(() =>
+        chatService.simulateReactionUpdate({
+          messageId: 'msg-1',
+          emoji: '👍',
+          userId: 'user-other',
+          change: 'added',
+        })
+      );
+      await waitFor(() => expect(emojisOnMessage()).toEqual(['❤️', '👍']));
+
+      act(() =>
+        chatService.simulateReactionUpdate({
+          messageId: 'msg-1',
+          emoji: '👍',
+          userId: 'user-other',
+          change: 'removed',
+        })
+      );
+      await waitFor(() => expect(emojisOnMessage()).toEqual(['❤️']));
+    });
+
+    it('does not double up my own reaction when its echo arrives', async () => {
+      const mine = { userId: 'user-1', emoji: '👍', createdAt: '2026-01-01T00:00:02Z' };
+      const { chatService, ctx } = await renderWithOpenChat(buildConversation({ id: 'chat-1' }), [
+        buildMessage({ id: 'msg-1', reactions: [mine] }),
+      ]);
+
+      act(() =>
+        chatService.simulateReactionUpdate({
+          messageId: 'msg-1',
+          emoji: '👍',
+          userId: 'user-1',
+          change: 'added',
+        })
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(ctx()?.messages.find((m) => m.id === 'msg-1')?.reactions).toHaveLength(1);
+    });
+
+    it('marks my messages read up to the one the other person read, and no further', async () => {
+      const { chatService, ctx } = await renderWithOpenChat(buildConversation({ id: 'chat-2' }), [
+        buildMessage({
+          id: 'msg-1',
+          conversationId: 'chat-2',
+          senderId: 'user-1',
+          timestamp: '2026-01-01T00:00:01Z',
+        }),
+        buildMessage({
+          id: 'msg-2',
+          conversationId: 'chat-2',
+          senderId: 'user-1',
+          timestamp: '2026-01-01T00:00:02Z',
+        }),
+      ]);
+      const readers = (id: string) =>
+        ctx()
+          ?.messages.find((m) => m.id === id)
+          ?.readBy?.map((r) => r.userId) ?? [];
+
+      act(() =>
+        chatService.simulateReadStatusUpdate({
+          chatId: 'chat-2',
+          userId: 'user-other',
+          upToMessageId: 'msg-1',
+          timestamp: '2026-01-01T00:00:05Z',
+        })
+      );
+
+      await waitFor(() => expect(readers('msg-1')).toEqual(['user-other']));
+      expect(readers('msg-2')).toEqual([]);
+    });
+
+    // These two leave the chat closed: opening it clears the count itself.
+    const renderWithClosedChat = async (conversation: Conversation) => {
+      const { chatService } = buildHarness([conversation]);
+      let latest: Harness | null = null;
+      render(
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
+          <TestConsumer onRender={(h) => (latest = h)} />
+        </ChatProvider>
+      );
+      await waitFor(() => expect(latest?.conversations).toHaveLength(1));
+      return { chatService, unread: () => latest?.conversations[0].unreadCount };
+    };
+
+    it('keeps my unread count when the other person reads the chat', async () => {
+      const { chatService, unread } = await renderWithClosedChat(
+        buildConversation({ id: 'chat-2', unreadCount: 3 })
+      );
+
+      act(() =>
+        chatService.simulateReadStatusUpdate({
+          chatId: 'chat-2',
+          userId: 'user-other',
+          timestamp: '2026-01-01T00:00:05Z',
+        })
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(unread()).toBe(3);
+    });
+
+    it('clears my unread count when I read the chat elsewhere', async () => {
+      const { chatService, unread } = await renderWithClosedChat(
+        buildConversation({ id: 'chat-2', unreadCount: 3 })
+      );
+
+      act(() =>
+        chatService.simulateReadStatusUpdate({
+          chatId: 'chat-2',
+          userId: 'user-1',
+          timestamp: '2026-01-01T00:00:05Z',
+        })
+      );
+
+      await waitFor(() => expect(unread()).toBe(0));
+    });
+  });
 });
