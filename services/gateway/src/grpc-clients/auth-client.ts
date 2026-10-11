@@ -93,6 +93,8 @@ import {
   type AdminCreateUserResponse,
   type AdminGetUserRequest,
   type AdminGetUserResponse,
+  type GetApplicantProfileRequest,
+  type GetApplicantProfileResponse,
   type AdminUpdateUserRequest,
   type AdminUpdateUserResponse,
   type DeactivateUserRequest,
@@ -213,6 +215,10 @@ export type AuthClient = {
   ): Promise<GetConsentStatusResponse>;
   searchUsers(req: SearchUsersRequest, metadata: Metadata): Promise<SearchUsersResponse>;
   adminGetUser(req: AdminGetUserRequest, metadata: Metadata): Promise<AdminGetUserResponse>;
+  getApplicantProfile(
+    req: GetApplicantProfileRequest,
+    metadata: Metadata
+  ): Promise<GetApplicantProfileResponse>;
   adminCreateUser(
     req: AdminCreateUserRequest,
     metadata: Metadata
@@ -395,6 +401,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     getConsentStatus: (req, metadata) => callUnary(stub.getConsentStatus, req, metadata, true),
     searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata, true),
     adminGetUser: (req, metadata) => callUnary(stub.adminGetUser, req, metadata, true),
+    getApplicantProfile: (req, metadata) =>
+      callUnary(stub.getApplicantProfile, req, metadata, true),
     exportUserData: (req, metadata) => callUnary(stub.exportUserData, req, metadata, true),
     getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata, true),
     getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata, true),

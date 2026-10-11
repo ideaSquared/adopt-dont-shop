@@ -952,6 +952,17 @@ export interface AdminGetUserResponse {
   user?: User | undefined;
 }
 
+export interface GetApplicantProfileRequest {
+  applicationId: string;
+}
+
+export interface GetApplicantProfileResponse {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 export interface AdminUpdateUserRequest {
   userId: string;
   /** Only set fields are written. */
@@ -7361,6 +7372,190 @@ export const AdminGetUserResponse: MessageFns<AdminGetUserResponse> = {
   },
 };
 
+function createBaseGetApplicantProfileRequest(): GetApplicantProfileRequest {
+  return { applicationId: "" };
+}
+
+export const GetApplicantProfileRequest: MessageFns<GetApplicantProfileRequest> = {
+  encode(message: GetApplicantProfileRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== "") {
+      writer.uint32(10).string(message.applicationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetApplicantProfileRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetApplicantProfileRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetApplicantProfileRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+        ? globalThis.String(object.application_id)
+        : "",
+    };
+  },
+
+  toJSON(message: GetApplicantProfileRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== "") {
+      obj.applicationId = message.applicationId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetApplicantProfileRequest>, I>>(base?: I): GetApplicantProfileRequest {
+    return GetApplicantProfileRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetApplicantProfileRequest>, I>>(object: I): GetApplicantProfileRequest {
+    const message = createBaseGetApplicantProfileRequest();
+    message.applicationId = object.applicationId ?? "";
+    return message;
+  },
+};
+
+function createBaseGetApplicantProfileResponse(): GetApplicantProfileResponse {
+  return { userId: "", firstName: "", lastName: "", email: "" };
+}
+
+export const GetApplicantProfileResponse: MessageFns<GetApplicantProfileResponse> = {
+  encode(message: GetApplicantProfileResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.firstName !== "") {
+      writer.uint32(18).string(message.firstName);
+    }
+    if (message.lastName !== "") {
+      writer.uint32(26).string(message.lastName);
+    }
+    if (message.email !== "") {
+      writer.uint32(34).string(message.email);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetApplicantProfileResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetApplicantProfileResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetApplicantProfileResponse {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+        ? globalThis.String(object.first_name)
+        : "",
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+        ? globalThis.String(object.last_name)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+    };
+  },
+
+  toJSON(message: GetApplicantProfileResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.firstName !== "") {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== "") {
+      obj.lastName = message.lastName;
+    }
+    if (message.email !== "") {
+      obj.email = message.email;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetApplicantProfileResponse>, I>>(base?: I): GetApplicantProfileResponse {
+    return GetApplicantProfileResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetApplicantProfileResponse>, I>>(object: I): GetApplicantProfileResponse {
+    const message = createBaseGetApplicantProfileResponse();
+    message.userId = object.userId ?? "";
+    message.firstName = object.firstName ?? "";
+    message.lastName = object.lastName ?? "";
+    message.email = object.email ?? "";
+    return message;
+  },
+};
+
 function createBaseAdminUpdateUserRequest(): AdminUpdateUserRequest {
   return { userId: "", status: 0, userType: 0, emailVerified: undefined, firstName: undefined, lastName: undefined };
 }
@@ -12810,6 +13005,24 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): AdminGetUserResponse => AdminGetUserResponse.decode(value),
   },
   /**
+   * The applicant's name and email for one application, for rescue staff
+   * reviewing it. The caller must be able to read the application (auth
+   * resolves it through ApplicationService.Get under the caller's own
+   * principal) and hold applications.read for its rescue. admin.users.read
+   * holders also pass. Narrower than AdminGetUser, which staff can't call.
+   */
+  getApplicantProfile: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetApplicantProfile" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetApplicantProfileRequest): Buffer =>
+      Buffer.from(GetApplicantProfileRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetApplicantProfileRequest => GetApplicantProfileRequest.decode(value),
+    responseSerialize: (value: GetApplicantProfileResponse): Buffer =>
+      Buffer.from(GetApplicantProfileResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetApplicantProfileResponse => GetApplicantProfileResponse.decode(value),
+  },
+  /**
    * Create a new user from the admin console as a pending, credential-less
    * account and issue a single-use invitation token (emailed via the
    * auth.userInvited event) the invitee redeems to set their password.
@@ -13361,6 +13574,14 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
   searchUsers: handleUnaryCall<SearchUsersRequest, SearchUsersResponse>;
   /** Fetch a single user by id (admin view — full row). admin.users.read. */
   adminGetUser: handleUnaryCall<AdminGetUserRequest, AdminGetUserResponse>;
+  /**
+   * The applicant's name and email for one application, for rescue staff
+   * reviewing it. The caller must be able to read the application (auth
+   * resolves it through ApplicationService.Get under the caller's own
+   * principal) and hold applications.read for its rescue. admin.users.read
+   * holders also pass. Narrower than AdminGetUser, which staff can't call.
+   */
+  getApplicantProfile: handleUnaryCall<GetApplicantProfileRequest, GetApplicantProfileResponse>;
   /**
    * Create a new user from the admin console as a pending, credential-less
    * account and issue a single-use invitation token (emailed via the
@@ -14058,6 +14279,28 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: AdminGetUserResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * The applicant's name and email for one application, for rescue staff
+   * reviewing it. The caller must be able to read the application (auth
+   * resolves it through ApplicationService.Get under the caller's own
+   * principal) and hold applications.read for its rescue. admin.users.read
+   * holders also pass. Narrower than AdminGetUser, which staff can't call.
+   */
+  getApplicantProfile(
+    request: GetApplicantProfileRequest,
+    callback: (error: ServiceError | null, response: GetApplicantProfileResponse) => void,
+  ): ClientUnaryCall;
+  getApplicantProfile(
+    request: GetApplicantProfileRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetApplicantProfileResponse) => void,
+  ): ClientUnaryCall;
+  getApplicantProfile(
+    request: GetApplicantProfileRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetApplicantProfileResponse) => void,
   ): ClientUnaryCall;
   /**
    * Create a new user from the admin console as a pending, credential-less

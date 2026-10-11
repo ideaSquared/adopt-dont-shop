@@ -572,3 +572,56 @@ describe('RescueApplicationService.getHomeVisits error propagation (UX P2 G)', (
     await expect(service.getHomeVisits('app-1')).resolves.toEqual([]);
   });
 });
+
+describe('RescueApplicationService.getApplications applicant identity', () => {
+  const service = new RescueApplicationService();
+
+  const rawApplication = (overrides: Record<string, unknown> = {}) => ({
+    id: 'app-1',
+    petId: 'pet-1',
+    userId: 'usr-1',
+    rescueId: 'rsc-1',
+    status: 'submitted',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    submittedAt: '2026-01-01T00:00:00.000Z',
+    data: {},
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows the applicant's account name and email from the gateway", async () => {
+    apiServiceMock.get.mockResolvedValue({
+      data: [rawApplication({ userName: 'Jane Doe', userEmail: 'jane@example.com' })],
+    });
+
+    const { applications } = await service.getApplications();
+
+    expect(applications[0]).toMatchObject({
+      applicantName: 'Jane Doe',
+      applicantEmail: 'jane@example.com',
+    });
+  });
+
+  it('falls back to the personal details in the answers when the gateway sends no name', async () => {
+    apiServiceMock.get.mockResolvedValue({
+      data: [
+        rawApplication({
+          userName: '',
+          userEmail: '',
+          data: { personalInfo: { firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com' } },
+        }),
+      ],
+    });
+
+    const { applications } = await service.getApplications();
+
+    expect(applications[0]).toMatchObject({
+      applicantName: 'Ann Lee',
+      applicantEmail: 'ann@example.com',
+    });
+  });
+});

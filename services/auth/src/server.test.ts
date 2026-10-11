@@ -20,6 +20,7 @@ const baseConfig: AuthConfig = {
   databaseUrl: 'postgres://test',
   schema: 'auth',
   natsUrl: 'nats://localhost:4222',
+  applicationsGrpcUrl: 'localhost:6005',
   jwtSecret: 'test-access',
   jwtRefreshSecret: 'test-refresh',
 };

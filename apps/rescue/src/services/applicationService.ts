@@ -1025,8 +1025,12 @@ export class RescueApplicationService {
       createdAt: app.createdAt,
       updatedAt: app.updatedAt,
       data: app.data,
+      // Prefer the account details the gateway resolves; older applications
+      // may also carry them in the answers' personalInfo block.
       applicantName:
+        app.userName ||
         `${app.data?.personalInfo?.firstName || 'Unknown'} ${app.data?.personalInfo?.lastName || ''}`.trim(),
+      applicantEmail: app.userEmail || app.data?.personalInfo?.email || '',
       submittedDaysAgo: daysDiff,
       priority: this.getPriority(app),
       referencesStatus: this.calculateReferencesStatus(app),
