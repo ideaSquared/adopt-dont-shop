@@ -295,6 +295,10 @@ const SERVICE_NAME = 'service.auth';
 export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
   const stub = new AuthV1.AuthServiceClient(opts.address, credentials.createInsecure());
   const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
+  // GetApplicantProfile depends on service.applications. Its failures get
+  // their own breaker so an applications outage can't open the one that
+  // guards ValidateToken / Login.
+  const applicantProfileBreaker = getOrCreateCircuitBreaker(`${SERVICE_NAME}:applicant-profile`);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -305,7 +309,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     ) => unknown,
     req: Req,
     metadata: Metadata,
-    idempotent: boolean
+    idempotent: boolean,
+    circuitBreaker = breaker
   ): Promise<Res> =>
     callWithResilience<Res>(
       deadline =>
@@ -335,7 +340,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
         service: SERVICE_NAME,
         deadlineMs: DEFAULT_DEADLINE_MS,
         idempotent,
-        circuitBreaker: breaker,
+        circuitBreaker,
       }
     );
 
@@ -401,8 +406,9 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     getConsentStatus: (req, metadata) => callUnary(stub.getConsentStatus, req, metadata, true),
     searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata, true),
     adminGetUser: (req, metadata) => callUnary(stub.adminGetUser, req, metadata, true),
+    // Not retried here: auth already retries its call to service.applications.
     getApplicantProfile: (req, metadata) =>
-      callUnary(stub.getApplicantProfile, req, metadata, true),
+      callUnary(stub.getApplicantProfile, req, metadata, false, applicantProfileBreaker),
     exportUserData: (req, metadata) => callUnary(stub.exportUserData, req, metadata, true),
     getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata, true),
     getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata, true),

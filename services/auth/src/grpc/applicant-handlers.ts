@@ -9,7 +9,8 @@
 // read scope then refuses anything the caller couldn't open directly (other
 // rescues, still-private drafts) — and checks applications.read is held for
 // that application's rescue. admin.users.read holders already read any user
-// through AdminGetUser, so they pass too.
+// through AdminGetUser, so they read the given user_id directly (Get would
+// refuse a regular admin).
 
 import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { ADMIN_USERS_READ, APPLICATIONS_VIEW, type RescueId } from '@adopt-dont-shop/lib.types';
@@ -25,6 +26,8 @@ import { HandlerError, type HandlerDeps } from './handlers.js';
 
 const CROSS_SERVICE_GRPC_NOT_FOUND = 5;
 const CROSS_SERVICE_GRPC_PERMISSION_DENIED = 7;
+const CROSS_SERVICE_GRPC_DEADLINE_EXCEEDED = 4;
+const CROSS_SERVICE_GRPC_UNAVAILABLE = 14;
 
 type ApplicantRow = {
   user_id: string;
@@ -45,26 +48,12 @@ export function makeGetApplicantProfile(
       throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
     }
 
-    const application = await resolveApplication(applicationsClient, principal, req.applicationId);
-    const canRead =
-      hasPermission(principal, ADMIN_USERS_READ) ||
-      // The proto carries a plain string; brand it the same way
-      // services/applications/src/grpc/command-runner.ts does.
-      requirePermission(principal, APPLICATIONS_VIEW, {
-        rescueId: application.rescueId as RescueId,
-      });
-    if (!canRead) {
-      throw new HandlerError(
-        'PERMISSION_DENIED',
-        `'${APPLICATIONS_VIEW}' required for this rescue`
-      );
-    }
-
+    const applicantId = await resolveApplicantId(applicationsClient, principal, req);
     const { rows } = await deps.pool.query<ApplicantRow>(
       `SELECT user_id, first_name, last_name, email
        FROM auth.users
        WHERE user_id = $1 AND deleted_at IS NULL`,
-      [application.adopterId]
+      [applicantId]
     );
     const row = rows[0];
     if (!row) {
@@ -78,6 +67,31 @@ export function makeGetApplicantProfile(
       email: row.email,
     };
   };
+}
+
+// admin.users.read holders may read any user (as AdminGetUser does), and
+// ApplicationService.Get scopes regular admins out, so they use the user id
+// from their own application list. Everyone else gets the applicant from the
+// application, which Get only returns if the caller may see it.
+async function resolveApplicantId(
+  applicationsClient: ApplicationsClient,
+  principal: Principal,
+  req: GetApplicantProfileRequest
+): Promise<string> {
+  if (hasPermission(principal, ADMIN_USERS_READ) && req.userId) {
+    return req.userId;
+  }
+  const application = await resolveApplication(applicationsClient, principal, req.applicationId);
+  // The proto carries a plain string; brand it the same way
+  // services/applications/src/grpc/command-runner.ts does.
+  if (
+    !requirePermission(principal, APPLICATIONS_VIEW, {
+      rescueId: application.rescueId as RescueId,
+    })
+  ) {
+    throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_VIEW}' required for this rescue`);
+  }
+  return application.adopterId;
 }
 
 async function resolveApplication(
@@ -98,6 +112,9 @@ async function resolveApplication(
     }
     if (code === CROSS_SERVICE_GRPC_PERMISSION_DENIED) {
       throw new HandlerError('PERMISSION_DENIED', 'not authorized for this application');
+    }
+    if (code === CROSS_SERVICE_GRPC_UNAVAILABLE || code === CROSS_SERVICE_GRPC_DEADLINE_EXCEEDED) {
+      throw new HandlerError('UNAVAILABLE', 'applications service unavailable');
     }
     throw new HandlerError('INTERNAL', 'failed to resolve application');
   }

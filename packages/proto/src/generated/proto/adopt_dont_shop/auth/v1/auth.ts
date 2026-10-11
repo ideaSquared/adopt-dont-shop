@@ -954,6 +954,12 @@ export interface AdminGetUserResponse {
 
 export interface GetApplicantProfileRequest {
   applicationId: string;
+  /**
+   * The applicant's user id, as the caller's application list reports it.
+   * Read directly only for admin.users.read callers (who may read any
+   * user); for everyone else the applicant comes from the application.
+   */
+  userId: string;
 }
 
 export interface GetApplicantProfileResponse {
@@ -7373,13 +7379,16 @@ export const AdminGetUserResponse: MessageFns<AdminGetUserResponse> = {
 };
 
 function createBaseGetApplicantProfileRequest(): GetApplicantProfileRequest {
-  return { applicationId: "" };
+  return { applicationId: "", userId: "" };
 }
 
 export const GetApplicantProfileRequest: MessageFns<GetApplicantProfileRequest> = {
   encode(message: GetApplicantProfileRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.applicationId !== "") {
       writer.uint32(10).string(message.applicationId);
+    }
+    if (message.userId !== "") {
+      writer.uint32(18).string(message.userId);
     }
     return writer;
   },
@@ -7399,6 +7408,14 @@ export const GetApplicantProfileRequest: MessageFns<GetApplicantProfileRequest> 
           message.applicationId = reader.string();
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -7415,6 +7432,11 @@ export const GetApplicantProfileRequest: MessageFns<GetApplicantProfileRequest> 
         : isSet(object.application_id)
         ? globalThis.String(object.application_id)
         : "",
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
     };
   },
 
@@ -7422,6 +7444,9 @@ export const GetApplicantProfileRequest: MessageFns<GetApplicantProfileRequest> 
     const obj: any = {};
     if (message.applicationId !== "") {
       obj.applicationId = message.applicationId;
+    }
+    if (message.userId !== "") {
+      obj.userId = message.userId;
     }
     return obj;
   },
@@ -7432,6 +7457,7 @@ export const GetApplicantProfileRequest: MessageFns<GetApplicantProfileRequest> 
   fromPartial<I extends Exact<DeepPartial<GetApplicantProfileRequest>, I>>(object: I): GetApplicantProfileRequest {
     const message = createBaseGetApplicantProfileRequest();
     message.applicationId = object.applicationId ?? "";
+    message.userId = object.userId ?? "";
     return message;
   },
 };
@@ -13009,7 +13035,8 @@ export const AuthServiceService = {
    * reviewing it. The caller must be able to read the application (auth
    * resolves it through ApplicationService.Get under the caller's own
    * principal) and hold applications.read for its rescue. admin.users.read
-   * holders also pass. Narrower than AdminGetUser, which staff can't call.
+   * holders read user_id directly (ApplicationService.Get scopes regular
+   * admins out). Narrower than AdminGetUser, which staff can't call.
    */
   getApplicantProfile: {
     path: "/adopt_dont_shop.auth.v1.AuthService/GetApplicantProfile" as const,
@@ -13579,7 +13606,8 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * reviewing it. The caller must be able to read the application (auth
    * resolves it through ApplicationService.Get under the caller's own
    * principal) and hold applications.read for its rescue. admin.users.read
-   * holders also pass. Narrower than AdminGetUser, which staff can't call.
+   * holders read user_id directly (ApplicationService.Get scopes regular
+   * admins out). Narrower than AdminGetUser, which staff can't call.
    */
   getApplicantProfile: handleUnaryCall<GetApplicantProfileRequest, GetApplicantProfileResponse>;
   /**
@@ -14285,7 +14313,8 @@ export interface AuthServiceClient extends Client {
    * reviewing it. The caller must be able to read the application (auth
    * resolves it through ApplicationService.Get under the caller's own
    * principal) and hold applications.read for its rescue. admin.users.read
-   * holders also pass. Narrower than AdminGetUser, which staff can't call.
+   * holders read user_id directly (ApplicationService.Get scopes regular
+   * admins out). Narrower than AdminGetUser, which staff can't call.
    */
   getApplicantProfile(
     request: GetApplicantProfileRequest,

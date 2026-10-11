@@ -1292,7 +1292,7 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
       });
       expect(res.statusCode).toBe(200);
       expect(e.getApplicantProfile).toHaveBeenCalledWith(
-        { applicationId: 'app-a' },
+        { applicationId: 'app-a', userId: 'usr-a' },
         expect.anything()
       );
     } finally {

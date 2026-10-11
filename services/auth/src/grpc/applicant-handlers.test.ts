@@ -50,6 +50,8 @@ const ADMIN: Principal = {
 const GRPC_NOT_FOUND = 5;
 const GRPC_PERMISSION_DENIED = 7;
 const GRPC_UNAVAILABLE = 14;
+const GRPC_DEADLINE_EXCEEDED = 4;
+const GRPC_INTERNAL = 13;
 
 function makeMocks() {
   const getApplication = vi.fn().mockResolvedValue({
@@ -83,7 +85,10 @@ describe('getApplicantProfile', () => {
   });
 
   it("gives staff of the application's rescue the applicant's name and email", async () => {
-    const res = await getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1' });
+    const res = await getApplicantProfile(mocks.deps, STAFF, {
+      applicationId: 'app-1',
+      userId: '',
+    });
 
     expect(res).toEqual<GetApplicantProfileResponse>({
       userId: 'usr-adopter',
@@ -95,7 +100,7 @@ describe('getApplicantProfile', () => {
   });
 
   it("resolves the application under the caller's own principal", async () => {
-    await getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1' });
+    await getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1', userId: '' });
 
     const [req, metadata] = mocks.getApplication.mock.calls[0] as [unknown, Metadata];
     expect(req).toMatchObject({ applicationId: 'app-1' });
@@ -105,7 +110,7 @@ describe('getApplicantProfile', () => {
 
   it('refuses staff of a different rescue', async () => {
     await expect(
-      getApplicantProfile(mocks.deps, OTHER_RESCUE_STAFF, { applicationId: 'app-1' })
+      getApplicantProfile(mocks.deps, OTHER_RESCUE_STAFF, { applicationId: 'app-1', userId: '' })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(mocks.query).not.toHaveBeenCalled();
   });
@@ -114,37 +119,66 @@ describe('getApplicantProfile', () => {
     mocks.getApplication.mockRejectedValueOnce({ code: GRPC_PERMISSION_DENIED });
 
     await expect(
-      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1' })
+      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1', userId: '' })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(mocks.query).not.toHaveBeenCalled();
   });
 
   it('refuses an adopter, even one reading their own application', async () => {
     await expect(
-      getApplicantProfile(mocks.deps, ADOPTER, { applicationId: 'app-1' })
+      getApplicantProfile(mocks.deps, ADOPTER, { applicationId: 'app-1', userId: '' })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(mocks.query).not.toHaveBeenCalled();
   });
 
-  it('lets an admin with admin.users.read through', async () => {
-    const res = await getApplicantProfile(mocks.deps, ADMIN, { applicationId: 'app-1' });
+  it('lets an admin with admin.users.read read the applicant without an application scope', async () => {
+    // ApplicationService.Get scopes regular admins to nothing, so the admin
+    // path must not depend on it.
+    const res = await getApplicantProfile(mocks.deps, ADMIN, {
+      applicationId: 'app-1',
+      userId: 'usr-adopter',
+    });
 
     expect(res.email).toBe('jane@x.test');
+    expect(mocks.getApplication).not.toHaveBeenCalled();
+    expect(mocks.query.mock.calls[0]?.[1]).toEqual(['usr-adopter']);
+  });
+
+  it("ignores a staff caller's user id and reads the application's own adopter", async () => {
+    await getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1', userId: 'usr-other' });
+
+    expect(mocks.query.mock.calls[0]?.[1]).toEqual(['usr-adopter']);
   });
 
   it('returns NOT_FOUND for an unknown application', async () => {
     mocks.getApplication.mockRejectedValueOnce({ code: GRPC_NOT_FOUND });
 
     await expect(
-      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'missing' })
+      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'missing', userId: '' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('returns INTERNAL when the applications service is unreachable', async () => {
+  it('returns UNAVAILABLE when the applications service is unreachable', async () => {
     mocks.getApplication.mockRejectedValueOnce({ code: GRPC_UNAVAILABLE });
 
     await expect(
-      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1' })
+      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1', userId: '' })
+    ).rejects.toMatchObject({ code: 'UNAVAILABLE' });
+  });
+
+  it('returns UNAVAILABLE when the applications service times out', async () => {
+    mocks.getApplication.mockRejectedValueOnce({ code: GRPC_DEADLINE_EXCEEDED });
+
+    await expect(
+      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1', userId: '' })
+    ).rejects.toMatchObject({ code: 'UNAVAILABLE' });
+  });
+
+  it('returns INTERNAL for an unexpected applications-service failure', async () => {
+    mocks.getApplication.mockRejectedValueOnce({ code: GRPC_INTERNAL });
+
+    await expect(
+      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1', userId: '' })
     ).rejects.toMatchObject({ code: 'INTERNAL' });
   });
 
@@ -152,13 +186,13 @@ describe('getApplicantProfile', () => {
     mocks.query.mockResolvedValueOnce({ rows: [] });
 
     await expect(
-      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1' })
+      getApplicantProfile(mocks.deps, STAFF, { applicationId: 'app-1', userId: '' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('rejects a request with no application id', async () => {
     await expect(
-      getApplicantProfile(mocks.deps, STAFF, { applicationId: '' })
+      getApplicantProfile(mocks.deps, STAFF, { applicationId: '', userId: '' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     expect(mocks.getApplication).not.toHaveBeenCalled();
   });

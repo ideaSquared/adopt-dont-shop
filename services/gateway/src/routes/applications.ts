@@ -1846,6 +1846,7 @@ async function enrichApplicationViews(
   clients: EnrichmentClients,
   meta: Metadata
 ): Promise<Array<ApplicationView & ApplicationEnrichment>> {
+  const userIdByApplication = new Map(views.map(v => [v.id, v.userId]));
   const [pets, applicants, rescues] = await Promise.all([
     lookupById<Pet>(
       views.map(v => v.petId),
@@ -1856,7 +1857,11 @@ async function enrichApplicationViews(
     // rescue, or an admin).
     lookupById<GetApplicantProfileResponse>(
       views.map(v => v.id),
-      id => clients.authClient?.getApplicantProfile({ applicationId: id }, meta)
+      id =>
+        clients.authClient?.getApplicantProfile(
+          { applicationId: id, userId: userIdByApplication.get(id) ?? '' },
+          meta
+        )
     ),
     lookupById<Rescue>(
       views.map(v => v.rescueId),
