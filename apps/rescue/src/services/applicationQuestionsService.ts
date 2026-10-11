@@ -9,6 +9,7 @@ const toQuestionSummary = (raw: RawQuestion): QuestionSummary | null =>
         questionKey: raw.questionKey,
         questionText: raw.questionText,
         category: typeof raw.category === 'string' ? raw.category : '',
+        questionType: typeof raw.questionType === 'string' ? raw.questionType : '',
         displayOrder: typeof raw.displayOrder === 'number' ? raw.displayOrder : 0,
       }
     : null;

@@ -7,6 +7,7 @@ const question = (
 ): QuestionSummary => ({
   category: 'household_information',
   questionText: overrides.questionKey,
+  questionType: 'text',
   displayOrder: 0,
   ...overrides,
 });
@@ -74,6 +75,23 @@ describe('buildAnswerSections', () => {
       'Cat, Rabbit',
       'Type: Dog, Years owned: 12',
     ]);
+  });
+
+  it('shows a date answer in UK format', () => {
+    const [section] = buildAnswerSections({ move_in: '2026-03-05' }, [
+      question({ questionKey: 'move_in', questionType: 'date' }),
+    ]);
+
+    expect(section.items[0].value).toBe('05/03/2026');
+  });
+
+  it("leaves the form's internal ids out of structured answers", () => {
+    const [section] = buildAnswerSections(
+      { household_members: [{ id: 'k3j9x', name: 'Sam', age: 9 }] },
+      [question({ questionKey: 'household_members' })]
+    );
+
+    expect(section.items[0].value).toBe('Name: Sam, Age: 9');
   });
 
   it('skips questions the applicant was not asked or left blank', () => {

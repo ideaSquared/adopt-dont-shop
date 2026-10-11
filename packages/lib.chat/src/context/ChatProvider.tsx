@@ -272,10 +272,19 @@ export function ChatProvider({
         );
         return;
       }
-      // Someone else read it: mark my messages there as read by them.
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.conversationId === event.chatId && msg.senderId === user.userId
+      // Someone else read it: mark my messages there, up to the receipt's
+      // message, as read by them. A receipt for a message not loaded here
+      // can't be placed, so it changes nothing.
+      setMessages((prev) => {
+        const boundary = prev.find((msg) => msg.id === event.upToMessageId);
+        if (!boundary) {
+          return prev;
+        }
+        const coveredUntil = Date.parse(boundary.timestamp);
+        return prev.map((msg) =>
+          msg.conversationId === event.chatId &&
+          msg.senderId === user.userId &&
+          Date.parse(msg.timestamp) <= coveredUntil
             ? {
                 ...msg,
                 status: 'read' as const,
@@ -284,8 +293,8 @@ export function ChatProvider({
                   : [...(msg.readBy || []), { userId: event.userId, readAt: event.timestamp }],
               }
             : msg
-        )
-      );
+        );
+      });
     };
 
     chatService.onMessage(handleMessage);

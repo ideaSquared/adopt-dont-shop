@@ -19,6 +19,7 @@ describe('getApplicationQuestions', () => {
           questionKey: 'why_adopt',
           category: 'final_acknowledgments',
           questionText: 'Why do you want to adopt this pet?',
+          questionType: 'text',
           displayOrder: 3,
           isEnabled: true,
         },
@@ -30,6 +31,7 @@ describe('getApplicationQuestions', () => {
         questionKey: 'why_adopt',
         category: 'final_acknowledgments',
         questionText: 'Why do you want to adopt this pet?',
+        questionType: 'text',
         displayOrder: 3,
       },
     ]);

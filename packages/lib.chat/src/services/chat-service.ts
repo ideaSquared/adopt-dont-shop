@@ -48,6 +48,8 @@ export interface ReactionUpdateEvent {
 export interface ReadStatusUpdateEvent {
   chatId: string;
   userId: string;
+  // Messages up to and including this one were read (absent: unknown).
+  upToMessageId?: string;
   timestamp: string;
 }
 
@@ -256,8 +258,13 @@ export class ChatService {
     // A participant read the chat (up to a message). The payload has no
     // timestamp, so stamp it on arrival.
     this.socket.on('chat:message:read', (data: unknown) => {
-      const { chatId, userId } = GatewayReadEventSchema.parse(data);
-      const event: ReadStatusUpdateEvent = { chatId, userId, timestamp: new Date().toISOString() };
+      const { chatId, userId, upToMessageId } = GatewayReadEventSchema.parse(data);
+      const event: ReadStatusUpdateEvent = {
+        chatId,
+        userId,
+        upToMessageId,
+        timestamp: new Date().toISOString(),
+      };
       this.readStatusListeners.forEach((listener) => listener(event));
     });
 

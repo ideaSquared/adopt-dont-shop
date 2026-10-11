@@ -46,6 +46,8 @@ export const GatewayReactionEventSchema = z.object({
 export const GatewayReadEventSchema = z.object({
   chatId: z.string(),
   userId: z.string(),
+  // The receipt covers messages up to and including this one.
+  upToMessageId: z.string(),
 });
 
 const CONVERSATION_STATUSES = ['active', 'archived', 'blocked', 'closed'] as const;

@@ -141,7 +141,7 @@ describe('ChatService REST API methods', () => {
       });
 
       expect(received).toHaveBeenCalledWith(
-        expect.objectContaining({ chatId: 'c-1', userId: 'staff-1' })
+        expect.objectContaining({ chatId: 'c-1', userId: 'staff-1', upToMessageId: 'm-9' })
       );
     });
   });

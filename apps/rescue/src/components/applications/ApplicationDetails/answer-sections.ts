@@ -2,12 +2,15 @@
 // sections for the rescue's review screen, using the rescue's questionnaire
 // (core + its own questions) for the wording and grouping.
 
+import { formatDate } from '@adopt-dont-shop/lib.utils';
+
 import { CATEGORY_LABELS } from '../../rescue/QuestionsBuilder';
 
 export type QuestionSummary = {
   questionKey: string;
   category: string;
   questionText: string;
+  questionType: string;
   displayOrder: number;
 };
 
@@ -21,7 +24,14 @@ const humaniseKey = (key: string): string => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
-const formatAnswer = (value: unknown): string => {
+// The application form gives each household member / current pet entry an
+// id for its own bookkeeping; it means nothing to the rescue.
+const FORM_INTERNAL_KEYS = new Set(['id']);
+
+const formatAnswer = (value: unknown, questionType = ''): string => {
+  if (questionType === 'date' && typeof value === 'string' && value.trim() !== '') {
+    return formatDate(value);
+  }
   if (typeof value === 'boolean') {
     return value ? 'Yes' : 'No';
   }
@@ -33,12 +43,13 @@ const formatAnswer = (value: unknown): string => {
   }
   if (Array.isArray(value)) {
     return value
-      .map(formatAnswer)
+      .map(item => formatAnswer(item))
       .filter(Boolean)
       .join(value.some(isRecord) ? '; ' : ', ');
   }
   if (isRecord(value)) {
     return Object.entries(value)
+      .filter(([key]) => !FORM_INTERNAL_KEYS.has(key))
       .map(([key, inner]) => `${humaniseKey(key)}: ${formatAnswer(inner)}`)
       .join(', ');
   }
@@ -64,18 +75,23 @@ export const buildAnswerSections = (
   answers: Record<string, unknown>,
   questions: ReadonlyArray<QuestionSummary>
 ): AnswerSection[] => {
-  const answered = (key: string): string => formatAnswer(answers[key]);
+  const answered = (key: string, questionType?: string): string =>
+    formatAnswer(answers[key], questionType);
 
   const asked = [...questions]
     .sort(
       (a, b) =>
         categoryRank(a.category) - categoryRank(b.category) || a.displayOrder - b.displayOrder
     )
-    .filter(q => answered(q.questionKey) !== '');
+    .filter(q => answered(q.questionKey, q.questionType) !== '');
 
   const sections = asked.reduce<AnswerSection[]>((acc, q) => {
     const title = categoryTitle(q.category);
-    const item = { key: q.questionKey, label: q.questionText, value: answered(q.questionKey) };
+    const item = {
+      key: q.questionKey,
+      label: q.questionText,
+      value: answered(q.questionKey, q.questionType),
+    };
     const last = acc[acc.length - 1];
     return last?.title === title
       ? [...acc.slice(0, -1), { title, items: [...last.items, item] }]

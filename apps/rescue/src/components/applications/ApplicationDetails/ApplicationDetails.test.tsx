@@ -31,6 +31,7 @@ describe('ApplicationDetails', () => {
         questionKey: 'hours_alone',
         category: 'lifestyle_compatibility',
         questionText: 'How many hours would the pet be alone each day?',
+        questionType: 'text',
         displayOrder: 1,
       },
     ]);
@@ -51,6 +52,7 @@ describe('ApplicationDetails', () => {
         questionKey: 'yard_fenced',
         category: 'household_information',
         questionText: 'Is your garden fenced?',
+        questionType: 'text',
         displayOrder: 1,
       },
     ]);

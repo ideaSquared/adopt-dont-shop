@@ -1133,22 +1133,37 @@ describe('ChatProvider', () => {
       expect(ctx()?.messages.find((m) => m.id === 'msg-1')?.reactions).toHaveLength(1);
     });
 
-    it('marks my messages read when the other person reads the chat', async () => {
+    it('marks my messages read up to the one the other person read, and no further', async () => {
       const { chatService, ctx } = await renderWithOpenChat(buildConversation({ id: 'chat-2' }), [
-        buildMessage({ id: 'msg-1', conversationId: 'chat-2', senderId: 'user-1' }),
+        buildMessage({
+          id: 'msg-1',
+          conversationId: 'chat-2',
+          senderId: 'user-1',
+          timestamp: '2026-01-01T00:00:01Z',
+        }),
+        buildMessage({
+          id: 'msg-2',
+          conversationId: 'chat-2',
+          senderId: 'user-1',
+          timestamp: '2026-01-01T00:00:02Z',
+        }),
       ]);
+      const readers = (id: string) =>
+        ctx()
+          ?.messages.find((m) => m.id === id)
+          ?.readBy?.map((r) => r.userId) ?? [];
 
       act(() =>
         chatService.simulateReadStatusUpdate({
           chatId: 'chat-2',
           userId: 'user-other',
+          upToMessageId: 'msg-1',
           timestamp: '2026-01-01T00:00:05Z',
         })
       );
 
-      await waitFor(() =>
-        expect(ctx()?.messages[0].readBy?.map((r) => r.userId)).toEqual(['user-other'])
-      );
+      await waitFor(() => expect(readers('msg-1')).toEqual(['user-other']));
+      expect(readers('msg-2')).toEqual([]);
     });
 
     // These two leave the chat closed: opening it clears the count itself.
