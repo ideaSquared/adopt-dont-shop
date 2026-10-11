@@ -20,6 +20,8 @@ import type { ChatConfig } from '../config.js';
 import { adapt } from './adapter.js';
 import { createApplicationsClient, type ApplicationsClient } from './applications-client.js';
 import { createRescueClient, type RescueClient } from './rescue-client.js';
+import { createPetsClient, type PetsClient } from './pets-client.js';
+import { makeOpenPetEnquiry } from './pet-enquiry-handlers.js';
 import {
   deleteChat,
   deleteMessage,
@@ -48,6 +50,8 @@ export type CreateGrpcServerOptions = {
   // always builds + owns them so it can close them on shutdown.
   applicationsClient?: ApplicationsClient;
   rescueClient?: RescueClient;
+  // OpenPetEnquiry resolves pet → rescue through service.pets.
+  petsClient?: PetsClient;
 };
 
 export type { RunningGrpcServer };
@@ -55,13 +59,24 @@ export type { RunningGrpcServer };
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
   const server = new Server();
-  const deps = { pool, nats };
   const applicationsClient =
     opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
   const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
+  const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
+  const deps = {
+    pool,
+    nats,
+    // Pet enquiries are a shared rescue inbox: their message events reach
+    // every staff member of the rescue.
+    rescueStaffIds: async (rescueId: string): Promise<string[]> => {
+      const res = await rescueClient.listStaffMembers({ rescueId });
+      return res.staffMembers.map(member => member.userId);
+    },
+  };
 
   server.addService(ChatV1.ChatServiceService, {
     openChat: adapt(makeOpenChat(applicationsClient, rescueClient), { deps, logger }),
+    openPetEnquiry: adapt(makeOpenPetEnquiry(petsClient), { deps, logger }),
     sendMessage: adapt(sendMessage, { deps, logger }),
     listMessages: adapt(listMessages, { deps, logger }),
     listChats: adapt(listChats, { deps, logger }),
@@ -80,6 +95,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   logger.info('gRPC ChatService registered', {
     methods: [
       'openChat',
+      'openPetEnquiry',
       'sendMessage',
       'listMessages',
       'listChats',
@@ -109,7 +125,8 @@ export const startGrpcServer = async (
   const applicationsClient =
     opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
   const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
-  const server = createGrpcServer({ ...opts, applicationsClient, rescueClient });
+  const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
+  const server = createGrpcServer({ ...opts, applicationsClient, rescueClient, petsClient });
   const running = await startGrpcServerShared(server, config, logger);
 
   return {
@@ -123,6 +140,7 @@ export const startGrpcServer = async (
           try {
             applicationsClient.close();
             rescueClient.close();
+            petsClient.close();
           } catch (closeErr) {
             logger.error('cross-service client close error', { err: closeErr });
           }

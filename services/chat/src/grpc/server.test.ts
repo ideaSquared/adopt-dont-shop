@@ -26,6 +26,7 @@ const config: ChatConfig = {
   natsUrl: 'nats://localhost:4222',
   applicationsGrpcUrl: 'service-applications:6005',
   rescueGrpcUrl: 'service-rescue:6004',
+  petsGrpcUrl: 'service-pets:6003',
 };
 
 const pool = {} as unknown as Pool;

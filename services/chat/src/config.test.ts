@@ -18,6 +18,7 @@ describe('loadConfig', () => {
     expect(config.natsUrl).toBe('nats://nats:4222');
     expect(config.applicationsGrpcUrl).toBe('service-applications:6005');
     expect(config.rescueGrpcUrl).toBe('service-rescue:6004');
+    expect(config.petsGrpcUrl).toBe('service-pets:6003');
   });
 
   it('honours all env overrides when set', () => {
@@ -31,6 +32,7 @@ describe('loadConfig', () => {
       NATS_URL: 'nats://nats.internal:4222',
       APPLICATIONS_GRPC_URL: 'service-applications.internal:6005',
       RESCUE_GRPC_URL: 'service-rescue.internal:6004',
+      PETS_GRPC_URL: 'service-pets.internal:6003',
     });
 
     expect(config.port).toBe(5500);
@@ -42,6 +44,7 @@ describe('loadConfig', () => {
     expect(config.natsUrl).toBe('nats://nats.internal:4222');
     expect(config.applicationsGrpcUrl).toBe('service-applications.internal:6005');
     expect(config.rescueGrpcUrl).toBe('service-rescue.internal:6004');
+    expect(config.petsGrpcUrl).toBe('service-pets.internal:6003');
   });
 
   it('rejects a non-numeric CHAT_PORT', () => {

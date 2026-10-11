@@ -80,7 +80,13 @@ import {
   type GetChatStatsResponse,
 } from '@adopt-dont-shop/proto';
 
-export type HandlerDeps = WithTransactionDeps;
+// rescueStaffIds lists a rescue's staff user ids. Pet enquiries are a shared
+// rescue inbox, so their message events fan out to every staff member, not
+// just the chat's participants. Optional: without it (tests, tools) events
+// reach participants only.
+export type HandlerDeps = WithTransactionDeps & {
+  rescueStaffIds?: (rescueId: string) => Promise<string[]>;
+};
 
 export type HandlerErrorCode =
   | 'INVALID_ARGUMENT'
@@ -103,7 +109,7 @@ export class HandlerError extends Error {
 
 // --- Row shapes ------------------------------------------------------
 
-type ChatRow = {
+export type ChatRow = {
   chat_id: string;
   application_id: string | null;
   rescue_id: string;
@@ -136,6 +142,24 @@ type ReactionRow = {
 
 // --- Helpers ---------------------------------------------------------
 
+// A pet enquiry: a chat about a pet that no application anchors.
+const PET_ENQUIRY_SQL = 'c.application_id IS NULL AND c.pet_id IS NOT NULL';
+
+// ListChats visibility, with $1 = caller user id and $2 = caller rescue id
+// (null for adopters): chats they take part in, plus their rescue's pet
+// enquiries. Always self-scoped — never widens past the caller's own rescue.
+const VISIBLE_CHATS_SQL = `c.deleted_at IS NULL AND (
+      EXISTS (
+        SELECT 1 FROM chat_participants p
+        WHERE p.chat_id = c.chat_id AND p.participant_id = $1 AND p.deleted_at IS NULL
+      )
+      OR (${PET_ENQUIRY_SQL} AND c.rescue_id = $2)
+    )`;
+
+// Who may use a chat: its participants, super_admin, and — for a pet
+// enquiry (a chat with a pet and no application) — any staff member of the
+// rescue the enquiry belongs to, because enquiries are a shared rescue inbox.
+// Callers check the action's permission (chats.read / messages.create) first.
 const isParticipantOrAdmin = async (
   deps: HandlerDeps,
   principal: Principal,
@@ -144,11 +168,18 @@ const isParticipantOrAdmin = async (
   if (hasPermission(principal, CHAT_READ) && principal.roles.includes('super_admin')) {
     return true;
   }
-  const res = await deps.pool.query<{ chat_participant_id: string }>(
-    `SELECT chat_participant_id FROM chat_participants
-     WHERE chat_id = $1 AND participant_id = $2 AND deleted_at IS NULL
+  const res = await deps.pool.query<{ ok: number }>(
+    `SELECT 1 AS ok FROM chats c
+     WHERE c.chat_id = $1
+       AND (
+         EXISTS (
+           SELECT 1 FROM chat_participants p
+           WHERE p.chat_id = c.chat_id AND p.participant_id = $2 AND p.deleted_at IS NULL
+         )
+         OR (${PET_ENQUIRY_SQL} AND c.rescue_id = $3)
+       )
      LIMIT 1`,
-    [chatId, principal.userId]
+    [chatId, principal.userId, principal.rescueId ?? null]
   );
   return res.rows.length > 0;
 };
@@ -158,9 +189,18 @@ const isParticipantOrAdmin = async (
 // — but isParticipantOrAdmin only checks membership, so without this guard
 // messages and reactions silently accrue to chats that the read side
 // (getChat/listChats/searchChats) already treats as closed.
-const ensureChatWritable = async (deps: HandlerDeps, chatId: string): Promise<void> => {
-  const res = await deps.pool.query<{ status: string; deleted_at: Date | null }>(
-    `SELECT status, deleted_at FROM chats WHERE chat_id = $1 LIMIT 1`,
+type WritableChat = {
+  status: string;
+  deleted_at: Date | null;
+  application_id: string | null;
+  pet_id: string | null;
+  rescue_id: string;
+};
+
+const ensureChatWritable = async (deps: HandlerDeps, chatId: string): Promise<WritableChat> => {
+  const res = await deps.pool.query<WritableChat>(
+    `SELECT status, deleted_at, application_id, pet_id, rescue_id FROM chats
+     WHERE chat_id = $1 LIMIT 1`,
     [chatId]
   );
   const row = res.rows[0];
@@ -173,6 +213,19 @@ const ensureChatWritable = async (deps: HandlerDeps, chatId: string): Promise<vo
       `chat '${chatId}' is ${row.status} and cannot accept new messages`
     );
   }
+  return row;
+};
+
+// Extra recipients for a message event: a pet enquiry reaches every staff
+// member of its rescue; any other chat reaches its participants only.
+const rescueInboxRecipients = async (deps: HandlerDeps, chat: WritableChat): Promise<string[]> => {
+  const isPetEnquiry = chat.application_id === null && chat.pet_id !== null;
+  if (!isPetEnquiry || !deps.rescueStaffIds) {
+    return [];
+  }
+  // Best effort: the message is stored either way, and staff who miss the
+  // live event see it on their next chat-list refresh.
+  return deps.rescueStaffIds(chat.rescue_id).catch(() => []);
 };
 
 const loadChatParticipants = async (deps: HandlerDeps, chatId: string): Promise<string[]> => {
@@ -238,7 +291,7 @@ const CHAT_STATUS_FROM_PROTO: Partial<Record<ChatV1.ChatStatus, ChatRow['status'
   [ChatV1.ChatStatus.CHAT_STATUS_ARCHIVED]: 'archived',
 };
 
-const chatRowToProto = async (deps: HandlerDeps, row: ChatRow): Promise<Chat> => {
+export const chatRowToProto = async (deps: HandlerDeps, row: ChatRow): Promise<Chat> => {
   const participants = await loadChatParticipants(deps, row.chat_id);
   const last = await loadLastMessagePreview(deps, row.chat_id);
   return {
@@ -251,6 +304,8 @@ const chatRowToProto = async (deps: HandlerDeps, row: ChatRow): Promise<Chat> =>
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     status: CHAT_STATUS_TO_PROTO[row.status],
+    petId: row.pet_id ?? undefined,
+    rescueId: row.rescue_id,
   };
 };
 
@@ -554,7 +609,9 @@ export async function sendMessage(
   if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
     throw new HandlerError('PERMISSION_DENIED', 'only chat participants may send messages');
   }
-  await ensureChatWritable(deps, req.chatId);
+  const chat = await ensureChatWritable(deps, req.chatId);
+  // Resolved before the transaction so no network call holds it open.
+  const inboxStaffIds = await rescueInboxRecipients(deps, chat);
 
   const messageId = randomUUID();
   const storedAttachments = attachments.map(attachmentToStorage);
@@ -577,7 +634,8 @@ export async function sendMessage(
     // surfaces it. messages_chat_created_idx handles the actual sort.
     await client.query(`UPDATE chats SET updated_at = now() WHERE chat_id = $1`, [req.chatId]);
 
-    const participantUserIds = await loadChatParticipantsTx(client, req.chatId);
+    const participants = await loadChatParticipantsTx(client, req.chatId);
+    const participantUserIds = [...new Set([...participants, ...inboxStaffIds])];
     publish({
       type: 'chat.messageCreated',
       id: `chat.messageCreated.${messageId}`,
@@ -702,6 +760,8 @@ export async function listChats(
   }
   const limit = clampLimit(req.limit, DEFAULT_CHAT_LIMIT, MAX_CHAT_LIMIT);
   const cursor = req.cursor ? decodeCursor<ChatCursor>(req.cursor) : null;
+  // Staff also see their rescue's pet enquiries (the shared inbox).
+  const rescueId = principal.rescueId ?? null;
 
   // Offset mode: the admin chats datatable passes `page` and needs a real
   // total so the shared DataTable can render "Page X of Y". Keyset cursors
@@ -713,23 +773,21 @@ export async function listChats(
     const offset = (req.page - 1) * limit;
     const pageResult = await deps.pool.query<ChatRow>(
       `
-      SELECT DISTINCT c.*
+      SELECT c.*
       FROM chats c
-      JOIN chat_participants p ON p.chat_id = c.chat_id
-      WHERE p.participant_id = $1 AND p.deleted_at IS NULL AND c.deleted_at IS NULL
+      WHERE ${VISIBLE_CHATS_SQL}
       ORDER BY c.updated_at DESC, c.chat_id DESC
-      LIMIT $2 OFFSET $3
+      LIMIT $3 OFFSET $4
       `,
-      [principal.userId, limit, offset]
+      [principal.userId, rescueId, limit, offset]
     );
     const countResult = await deps.pool.query<{ total: string }>(
       `
       SELECT COUNT(DISTINCT c.chat_id)::text AS total
       FROM chats c
-      JOIN chat_participants p ON p.chat_id = c.chat_id
-      WHERE p.participant_id = $1 AND p.deleted_at IS NULL AND c.deleted_at IS NULL
+      WHERE ${VISIBLE_CHATS_SQL}
       `,
-      [principal.userId]
+      [principal.userId, rescueId]
     );
     const chats = await Promise.all(pageResult.rows.map(row => chatRowToProto(deps, row)));
     return {
@@ -742,17 +800,16 @@ export async function listChats(
   // through the participant filter — staff-tooling that needs to see
   // all chats should call a different RPC (not exposed today).
   const baseSql = `
-    SELECT DISTINCT c.*
+    SELECT c.*
     FROM chats c
-    JOIN chat_participants p ON p.chat_id = c.chat_id
-    WHERE p.participant_id = $1 AND p.deleted_at IS NULL AND c.deleted_at IS NULL
-    ${cursor ? 'AND (c.updated_at, c.chat_id) < ($2::timestamptz, $3::uuid)' : ''}
+    WHERE ${VISIBLE_CHATS_SQL}
+    ${cursor ? 'AND (c.updated_at, c.chat_id) < ($3::timestamptz, $4::uuid)' : ''}
     ORDER BY c.updated_at DESC, c.chat_id DESC
-    LIMIT $${cursor ? 4 : 2}
+    LIMIT $${cursor ? 5 : 3}
   `;
   const params = cursor
-    ? [principal.userId, cursor.updatedAt, cursor.chatId, limit]
-    : [principal.userId, limit];
+    ? [principal.userId, rescueId, cursor.updatedAt, cursor.chatId, limit]
+    : [principal.userId, rescueId, limit];
   const res = await deps.pool.query<ChatRow>(baseSql, params);
 
   // unread_only filter is a follow-on — requires aggregating reads vs

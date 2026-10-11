@@ -32,6 +32,8 @@ export type ChatConfig = {
   // ADS-918: OpenChat verifies otherUserId is actually rescue staff (the
   // adopter-initiates-chat direction) via service.rescue's staff list.
   rescueGrpcUrl: string;
+  // OpenPetEnquiry resolves the pet → owning rescue via service.pets.
+  petsGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 5006;
@@ -41,6 +43,7 @@ const DEFAULT_SCHEMA = 'chat';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_APPLICATIONS_GRPC_URL = 'service-applications:6005';
 const DEFAULT_RESCUE_GRPC_URL = 'service-rescue:6004';
+const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ChatConfig => {
   const port = parsePort(env.CHAT_PORT, DEFAULT_PORT, 'CHAT_PORT');
@@ -58,5 +61,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ChatConfig => 
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     applicationsGrpcUrl: env.APPLICATIONS_GRPC_URL?.trim() || DEFAULT_APPLICATIONS_GRPC_URL,
     rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || DEFAULT_RESCUE_GRPC_URL,
+    petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
   };
 };

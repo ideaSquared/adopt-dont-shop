@@ -22,6 +22,13 @@ service ChatService {
   // existing chat. Publishes chat.created on first creation.
   rpc OpenChat(OpenChatRequest) returns (OpenChatResponse);
 
+  // Open (or reopen) an adopter's enquiry about a pet, before any
+  // application exists. The chat belongs to the pet's rescue as a shared
+  // inbox: every staff member of that rescue with chat access can read and
+  // reply, not just named participants. One enquiry per adopter and pet —
+  // asking again returns the existing chat with created = false.
+  rpc OpenPetEnquiry(OpenPetEnquiryRequest) returns (OpenChatResponse);
+
   // Send a text message into an existing chat. Publishes
   // chat.messageCreated after commit — the gateway's WS subscriber
   // fans this to the other participant's open sockets.
@@ -115,9 +122,8 @@ enum ChatStatus {
 // SendMessage / MarkRead handlers maintain.
 message Chat {
   string chat_id = 1;
-  // Application this chat is anchored to (every chat in
-  // adopt-dont-shop is application-scoped — adopters can't DM
-  // rescue staff outside an application context).
+  // Application this chat is anchored to. Empty for a pet enquiry (see
+  // OpenPetEnquiry), which is anchored to pet_id instead.
   string application_id = 2;
   // Participant user ids (adopter, rescue staff member). Two-party
   // chats only in this phase; group threads are a later concern.
@@ -132,6 +138,10 @@ message Chat {
   // Messages in this chat, sent by others, that the calling user hasn't
   // read. Set by ListChats; other RPCs leave it unset.
   optional uint32 unread_count = 10;
+  // The pet a pre-application enquiry is about (unset for application chats).
+  optional string pet_id = 11;
+  // The rescue the chat belongs to.
+  string rescue_id = 12;
 }
 
 // Message mirrors the chat.messages row. Edited / deleted timestamps
@@ -179,6 +189,10 @@ message OpenChatRequest {
   // owning rescue — rescue-scoped chat search can then match gRPC-created
   // chats instead of the previous null-UUID placeholder.
   string rescue_id = 3;
+}
+
+message OpenPetEnquiryRequest {
+  string pet_id = 1;
 }
 
 message OpenChatResponse {

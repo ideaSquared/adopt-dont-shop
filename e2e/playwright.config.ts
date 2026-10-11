@@ -142,6 +142,10 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/apply-via-ui.spec.ts',
     '**/chat-via-ui.spec.ts',
     '**/signup-and-reset-via-ui.spec.ts',
+    // - pet-enquiry-via-ui: "Ask a question before applying" opens a pet
+    //   enquiry (no application needed) that the rescue answers from its
+    //   shared inbox.
+    '**/pet-enquiry-via-ui.spec.ts',
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863

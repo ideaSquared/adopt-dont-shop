@@ -495,6 +495,42 @@ describe('ChatProvider', () => {
     });
   });
 
+  it('keeps one entry when I ask about a pet I already have an enquiry for', async () => {
+    // User journey: I click "Ask a question" on a pet I asked about before;
+    // the existing chat opens and my list doesn't show it twice.
+    const existing = buildConversation({ id: 'chat-1', rescueId: 'rescue-42', petId: 'pet-99' });
+    const { chatService } = buildHarness([existing]);
+    vi.spyOn(chatService, 'createConversation').mockResolvedValue(existing);
+
+    let latest: Harness | null = null;
+    const AskAgain = () => {
+      const ctx = useChat();
+      const triggeredRef = useRef(false);
+      useEffect(() => {
+        if (!triggeredRef.current && ctx.conversations.length === 1) {
+          triggeredRef.current = true;
+          void ctx.startConversation('rescue-42', 'pet-99');
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    render(
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
+        <AskAgain />
+        <TestConsumer onRender={(h) => (latest = h)} />
+      </ChatProvider>
+    );
+
+    await waitFor(() => expect(chatService.createConversation).toHaveBeenCalled());
+    await waitFor(() => expect(latest?.conversations.map((c) => c.id)).toEqual(['chat-1']));
+    // Give a duplicate prepend the chance to land before the final check.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(latest?.conversations.map((c) => c.id)).toEqual(['chat-1']);
+  });
+
   it('auto-clears a typing indicator after the display window', async () => {
     // User journey: someone starts typing, I see their name; they pause,
     // and the indicator disappears on its own after ~3 seconds.

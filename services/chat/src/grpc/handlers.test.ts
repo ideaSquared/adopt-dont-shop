@@ -769,11 +769,12 @@ describe('listChats', () => {
 
     await listChats(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE, page: 1 } as never);
 
-    // Both the page SELECT and the COUNT filter on the caller's participant id.
+    // Both the page SELECT and the COUNT filter on the caller's participant id
+    // (and their rescue — none for an adopter, so no enquiries widen it).
     const pageParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
     const countParams = mocks.poolMock.query.mock.calls[1][1] as unknown[];
     expect(pageParams).toContain('usr-adopter');
-    expect(countParams).toEqual(['usr-adopter']);
+    expect(countParams).toEqual(['usr-adopter', null]);
   });
 });
 
@@ -1832,5 +1833,154 @@ describe('getChatStats', () => {
     });
     const res = await getChatStats(mocks.deps, MODERATOR_PRINCIPAL, {});
     expect(res.averageMessagesPerChat).toBe(0);
+  });
+});
+
+// --- Pet enquiries: the rescue's shared inbox -----------------------
+
+describe('pet enquiries as a shared rescue inbox', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  const RESCUE_ID = '00000000-0000-0000-0000-000000000000';
+
+  const decodePayload = (call: unknown[]): { participantUserIds: string[] } => {
+    const raw = call[1];
+    const text = raw instanceof Uint8Array ? new TextDecoder().decode(raw) : String(raw);
+    return (JSON.parse(text) as { payload: { participantUserIds: string[] } }).payload;
+  };
+
+  it("checks chat access against the caller's rescue as well as membership", async () => {
+    mocks.poolScript.push({ rows: [{ ok: 1 }] });
+    mocks.poolScript.push({ rows: [] });
+
+    await listMessages(mocks.deps, RESCUE_STAFF_PRINCIPAL, { chatId: 'chat-1', limit: 0 });
+
+    const [accessSql, accessParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(accessSql).toContain('application_id IS NULL');
+    expect(accessParams).toEqual(['chat-1', 'usr-staff', RESCUE_ID]);
+  });
+
+  it('gives a caller with no rescue only membership-based access', async () => {
+    mocks.poolScript.push({ rows: [] });
+
+    await expect(
+      listMessages(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1', limit: 0 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+
+    const [, accessParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(accessParams).toEqual(['chat-1', 'usr-adopter', null]);
+  });
+
+  it("lists the rescue's pet enquiries to its staff", async () => {
+    mocks.poolScript.push({ rows: [chatRowFixture({ application_id: null, pet_id: 'pet-1' })] });
+
+    const res = await listChats(mocks.deps, RESCUE_STAFF_PRINCIPAL, {
+      limit: 0,
+      unreadOnly: false,
+    });
+
+    const [listSql, listParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(listSql).toContain('application_id IS NULL');
+    expect(listParams.slice(0, 2)).toEqual(['usr-staff', RESCUE_ID]);
+    expect(res.chats?.[0]).toMatchObject({ petId: 'pet-1', rescueId: RESCUE_ID });
+  });
+
+  it('delivers a message in an enquiry to every staff member of the rescue', async () => {
+    const rescueStaffIds = vi.fn().mockResolvedValue(['usr-staff', 'usr-staff-2']);
+    // access, then the writable check (which also says what kind of chat it is)
+    mocks.poolScript.push({ rows: [{ ok: 1 }] });
+    mocks.poolScript.push({
+      rows: [
+        {
+          status: 'active',
+          deleted_at: null,
+          application_id: null,
+          pet_id: 'pet-1',
+          rescue_id: 'rsc-1',
+        },
+      ],
+    });
+    mocks.clientScript.push({ rows: [messageRowFixture()] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+
+    await sendMessage({ ...mocks.deps, rescueStaffIds }, ADOPTER_PRINCIPAL, {
+      chatId: 'chat-1',
+      body: 'Is she good with cats?',
+      attachments: [],
+    });
+
+    expect(rescueStaffIds).toHaveBeenCalledWith('rsc-1');
+    expect(decodePayload(mocks.natsMock.publish.mock.calls[0]).participantUserIds).toEqual([
+      'usr-adopter',
+      'usr-staff',
+      'usr-staff-2',
+    ]);
+  });
+
+  it('still sends an enquiry message when the staff lookup fails', async () => {
+    const rescueStaffIds = vi.fn().mockRejectedValue(new Error('rescue unavailable'));
+    mocks.poolScript.push({ rows: [{ ok: 1 }] });
+    mocks.poolScript.push({
+      rows: [
+        {
+          status: 'active',
+          deleted_at: null,
+          application_id: null,
+          pet_id: 'pet-1',
+          rescue_id: 'rsc-1',
+        },
+      ],
+    });
+    mocks.clientScript.push({ rows: [messageRowFixture()] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+
+    const res = await sendMessage({ ...mocks.deps, rescueStaffIds }, ADOPTER_PRINCIPAL, {
+      chatId: 'chat-1',
+      body: 'Is she good with cats?',
+      attachments: [],
+    });
+
+    expect(res.message?.messageId).toBe('msg-1');
+    expect(decodePayload(mocks.natsMock.publish.mock.calls[0]).participantUserIds).toEqual([
+      'usr-adopter',
+    ]);
+  });
+
+  it('keeps application chats between their participants', async () => {
+    const rescueStaffIds = vi.fn().mockResolvedValue(['usr-staff']);
+    mocks.poolScript.push({ rows: [{ ok: 1 }] });
+    mocks.poolScript.push({
+      rows: [
+        {
+          status: 'active',
+          deleted_at: null,
+          application_id: 'app-1',
+          pet_id: null,
+          rescue_id: 'rsc-1',
+        },
+      ],
+    });
+    mocks.clientScript.push({ rows: [messageRowFixture()] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+
+    await sendMessage({ ...mocks.deps, rescueStaffIds }, ADOPTER_PRINCIPAL, {
+      chatId: 'chat-1',
+      body: 'Hello',
+      attachments: [],
+    });
+
+    expect(rescueStaffIds).not.toHaveBeenCalled();
+    expect(decodePayload(mocks.natsMock.publish.mock.calls[0]).participantUserIds).toEqual([
+      'usr-adopter',
+      'usr-rescue',
+    ]);
   });
 });
