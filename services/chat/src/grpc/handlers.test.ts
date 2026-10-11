@@ -679,6 +679,59 @@ describe('listChats', () => {
     expect(res.chats?.[0].chatId).toBe('chat-1');
   });
 
+  it("reports how many messages in each chat the caller hasn't read", async () => {
+    mocks.poolScript.push({ rows: [chatRowFixture()] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+    // unread counts for the page, one row per chat that has any
+    mocks.poolScript.push({ rows: [{ chat_id: 'chat-1', count: '3' }] });
+
+    const res = await listChats(mocks.deps, ADOPTER_PRINCIPAL, BASE);
+
+    expect(res.chats?.[0].unreadCount).toBe(3);
+    const [unreadSql, unreadParams] = mocks.poolMock.query.mock.calls[3] as [string, unknown[]];
+    expect(unreadSql).toContain('message_reads');
+    expect(unreadParams).toEqual([['chat-1'], 'usr-adopter']);
+  });
+
+  it('reports zero unread for a chat with nothing new', async () => {
+    mocks.poolScript.push({ rows: [chatRowFixture()] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await listChats(mocks.deps, ADOPTER_PRINCIPAL, BASE);
+
+    expect(res.chats?.[0].unreadCount).toBe(0);
+  });
+
+  it('skips the unread query when the caller has no chats', async () => {
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await listChats(mocks.deps, ADOPTER_PRINCIPAL, BASE);
+
+    expect(res.chats).toEqual([]);
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('offset mode also reports unread counts', async () => {
+    mocks.poolScript.push({ rows: [chatRowFixture()] });
+    mocks.poolScript.push({ rows: [{ total: '1' }] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+    mocks.poolScript.push({ rows: [{ chat_id: 'chat-1', count: '2' }] });
+
+    const res = await listChats(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE, page: 1 } as never);
+
+    expect(res.chats?.[0].unreadCount).toBe(2);
+  });
+
   it('offset mode (page set) returns a real total and a LIMIT/OFFSET page, not a cursor', async () => {
     // page SELECT
     mocks.poolScript.push({ rows: [chatRowFixture()] });

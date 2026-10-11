@@ -136,6 +136,21 @@ describe('GET /api/v1/chats — list', () => {
     expect(metadata.get('x-user-id')).toEqual(['usr-1']);
   });
 
+  it("includes each chat's unread count for the caller", async () => {
+    client.listChatsMock.mockResolvedValueOnce({
+      chats: [{ ...CHAT_FIXTURE, unreadCount: 4 }],
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data[0]).toMatchObject({ unreadCount: 4 });
+  });
+
   it('accepts snake_case unread_only too', async () => {
     client.listChatsMock.mockResolvedValueOnce({ chats: [] });
     await app.inject({

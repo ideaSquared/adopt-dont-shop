@@ -732,7 +732,10 @@ export async function listChats(
       [principal.userId]
     );
     const chats = await Promise.all(pageResult.rows.map(row => chatRowToProto(deps, row)));
-    return { chats, total: Number.parseInt(countResult.rows[0]?.total ?? '0', 10) };
+    return {
+      chats: await withUnreadCounts(deps, principal.userId, chats),
+      total: Number.parseInt(countResult.rows[0]?.total ?? '0', 10),
+    };
   }
 
   // Always self-scoped by participant_id. super_admin still goes
@@ -755,7 +758,11 @@ export async function listChats(
   // unread_only filter is a follow-on — requires aggregating reads vs
   // messages per chat. For now, return rows and let the caller filter
   // (the SPA already does this via the unread badge calculation).
-  const chats = await Promise.all(res.rows.map(row => chatRowToProto(deps, row)));
+  const chats = await withUnreadCounts(
+    deps,
+    principal.userId,
+    await Promise.all(res.rows.map(row => chatRowToProto(deps, row)))
+  );
 
   let nextCursor: string | undefined;
   if (res.rows.length === limit) {
@@ -767,6 +774,30 @@ export async function listChats(
   }
 
   return { chats, nextCursor };
+}
+
+// Stamps each chat with the caller's unread count, using the same rule as
+// GetChatUnreadCount (messages from others with no message_reads row for the
+// caller) but aggregated for the whole page in one query.
+async function withUnreadCounts(deps: HandlerDeps, userId: string, chats: Chat[]): Promise<Chat[]> {
+  if (chats.length === 0) {
+    return chats;
+  }
+  const { rows } = await deps.pool.query<{ chat_id: string; count: string }>(
+    `
+    SELECT m.chat_id, COUNT(*)::text AS count
+    FROM messages m
+    LEFT JOIN message_reads r ON r.message_id = m.message_id AND r.user_id = $2
+    WHERE m.chat_id = ANY($1::uuid[])
+      AND m.sender_id <> $2
+      AND m.deleted_at IS NULL
+      AND r.read_id IS NULL
+    GROUP BY m.chat_id
+    `,
+    [chats.map(chat => chat.chatId), userId]
+  );
+  const counts = new Map(rows.map(row => [row.chat_id, Number.parseInt(row.count, 10)]));
+  return chats.map(chat => ({ ...chat, unreadCount: counts.get(chat.chatId) ?? 0 }));
 }
 
 // --- MarkRead --------------------------------------------------------

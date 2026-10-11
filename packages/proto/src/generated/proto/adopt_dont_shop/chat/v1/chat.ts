@@ -95,6 +95,11 @@ export interface Chat {
   createdAt: string;
   updatedAt: string;
   status: ChatStatus;
+  /**
+   * Messages in this chat, sent by others, that the calling user hasn't
+   * read. Set by ListChats; other RPCs leave it unset.
+   */
+  unreadCount?: number | undefined;
 }
 
 /**
@@ -395,6 +400,7 @@ function createBaseChat(): Chat {
     createdAt: "",
     updatedAt: "",
     status: 0,
+    unreadCount: undefined,
   };
 }
 
@@ -426,6 +432,9 @@ export const Chat: MessageFns<Chat> = {
     }
     if (message.status !== 0) {
       writer.uint32(72).int32(message.status);
+    }
+    if (message.unreadCount !== undefined) {
+      writer.uint32(80).uint32(message.unreadCount);
     }
     return writer;
   },
@@ -509,6 +518,14 @@ export const Chat: MessageFns<Chat> = {
           message.status = reader.int32() as any;
           continue;
         }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.unreadCount = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -561,6 +578,11 @@ export const Chat: MessageFns<Chat> = {
         ? globalThis.String(object.updated_at)
         : "",
       status: isSet(object.status) ? chatStatusFromJSON(object.status) : 0,
+      unreadCount: isSet(object.unreadCount)
+        ? globalThis.Number(object.unreadCount)
+        : isSet(object.unread_count)
+        ? globalThis.Number(object.unread_count)
+        : undefined,
     };
   },
 
@@ -593,6 +615,9 @@ export const Chat: MessageFns<Chat> = {
     if (message.status !== 0) {
       obj.status = chatStatusToJSON(message.status);
     }
+    if (message.unreadCount !== undefined) {
+      obj.unreadCount = Math.round(message.unreadCount);
+    }
     return obj;
   },
 
@@ -610,6 +635,7 @@ export const Chat: MessageFns<Chat> = {
     message.createdAt = object.createdAt ?? "";
     message.updatedAt = object.updatedAt ?? "";
     message.status = object.status ?? 0;
+    message.unreadCount = object.unreadCount ?? undefined;
     return message;
   },
 };

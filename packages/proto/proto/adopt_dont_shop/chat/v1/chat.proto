@@ -129,6 +129,9 @@ message Chat {
   string created_at = 7;
   string updated_at = 8;
   ChatStatus status = 9;
+  // Messages in this chat, sent by others, that the calling user hasn't
+  // read. Set by ListChats; other RPCs leave it unset.
+  optional uint32 unread_count = 10;
 }
 
 // Message mirrors the chat.messages row. Edited / deleted timestamps

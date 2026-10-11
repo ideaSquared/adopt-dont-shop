@@ -16,6 +16,8 @@ export const GatewayChatSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   status: z.string().optional(),
+  // The caller's unread count — only the chat list sends it.
+  unreadCount: z.number().optional(),
   petId: z.string().optional(),
   rescueId: z.string().optional(),
 });
@@ -72,7 +74,7 @@ export const toConversation = (chat: GatewayChat): Conversation => {
     chat_id: chat.chatId,
     participants: (chat.participantUserIds ?? []).map((id) => ({ id, name: '', type: 'user' })),
     lastMessage,
-    unreadCount: 0,
+    unreadCount: chat.unreadCount ?? 0,
     createdAt: chat.createdAt,
     updatedAt: chat.updatedAt,
     isActive: status === 'active',
