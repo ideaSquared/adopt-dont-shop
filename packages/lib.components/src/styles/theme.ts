@@ -2,6 +2,7 @@ import {
   animations,
   black,
   brand,
+  brandDark,
   brandGradient,
   gray,
   primaryGradient,
@@ -396,7 +397,7 @@ export const normalTheme: Theme = {
 export const darkTheme: Theme = {
   ...baseTheme,
   mode: 'dark',
-  colors: baseColors,
+  colors: { ...baseColors, ...brandDark },
   text: {
     primary: gray[100],
     secondary: gray[300],

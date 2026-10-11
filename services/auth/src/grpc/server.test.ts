@@ -25,6 +25,7 @@ const config: AuthConfig = {
   databaseUrl: 'postgres://test',
   schema: 'auth',
   natsUrl: 'nats://localhost:4222',
+  applicationsGrpcUrl: 'localhost:6005',
   jwtSecret: 'access-secret',
   jwtRefreshSecret: 'refresh-secret',
   encryptionKey: 'a'.repeat(64),

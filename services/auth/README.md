@@ -13,9 +13,11 @@ identity layer every other service and the gateway depend on.
 ## Location in the architecture
 
 See [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../../docs/infrastructure/MICROSERVICES-STANDARDS.md)
-for the shared service boundaries / ownership model. This service makes **no**
-outbound cross-service gRPC calls — it sits at the root of the dependency graph
-(everyone calls it). The gateway's authenticate middleware calls
+for the shared service boundaries / ownership model. This service sits at the
+root of the dependency graph (everyone calls it). Its one outbound gRPC call is
+`GetApplicantProfile` → `ApplicationService.Get` on **service.applications**
+(`APPLICATIONS_GRPC_URL`), made under the caller's own principal to confirm the
+caller may see that application before revealing who applied. The gateway's authenticate middleware calls
 `AuthService.ValidateToken` on every request. Depends on the shared backend
 packages `@adopt-dont-shop/{authz, config-secrets, db, events, lib.types,
 observability, proto, service-bootstrap}`. For how this service was carved out
@@ -84,6 +86,11 @@ permission checks.
 `RecordConsent` / `GetConsentStatus`, `ExportUserData`,
 `RequestAccountDeletion`.
 
+**Application-scoped:** `GetApplicantProfile` returns an applicant's name and
+email to a caller who can read the application (via
+`ApplicationService.Get`) and holds `applications.read` for its rescue, or who
+holds `admin.users.read`.
+
 **Admin-gated:**
 
 | RPC                                                                                                                               | Permission                      |
@@ -124,7 +131,8 @@ compromise refresh, so the two JWT secrets are distinct by design; the three
 secrets must also be distinct from one another — ADS-1047). `ENCRYPTION_KEY` is
 the AES-256-GCM key (64 hex chars) that encrypts TOTP secrets at rest.
 `AUTH_PORT` (5002), `AUTH_GRPC_PORT`
-(6002), `AUTH_HOST`, `AUTH_SCHEMA` (`auth`), and `NATS_URL` have dev defaults,
+(6002), `AUTH_HOST`, `AUTH_SCHEMA` (`auth`), `NATS_URL`, and
+`APPLICATIONS_GRPC_URL` (`service-applications:6005`) have dev defaults,
 plus the standard `@adopt-dont-shop/observability` vars. See
 [`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 

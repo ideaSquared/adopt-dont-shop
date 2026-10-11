@@ -38,6 +38,7 @@ export enum TimelineEventType {
 // lowercase is a separate follow-up.
 export interface ApplicationListItem extends Omit<ApplicationWithPetInfo, 'stage'> {
   applicantName: string;
+  applicantEmail: string;
   submittedDaysAgo: number;
   priority: ApplicationPriority;
   referencesStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
@@ -216,6 +217,7 @@ export interface RawTimelineItem {
 export interface RawApplicationPersonalInfo {
   firstName?: string;
   lastName?: string;
+  email?: string;
 }
 
 export interface RawApplicationData {
@@ -245,6 +247,9 @@ export interface RawApplication {
   assignedStaff?: string;
   tags?: string[];
   finalOutcome?: FinalOutcome;
+  // The applicant's account name / email, resolved by the gateway.
+  userName?: string;
+  userEmail?: string;
   referencesCompleted?: boolean;
   homeVisitCompleted?: boolean;
   interviewCompleted?: boolean;

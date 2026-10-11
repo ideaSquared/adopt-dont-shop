@@ -5,10 +5,12 @@
 // explicitly. Naming follows Bootstrap 5.3 conventions.
 
 export const brand = {
-  // Brand
-  primary: '#F43F5E',
-  primaryHover: '#E11D48',
-  primaryActive: '#BE123C',
+  // Brand. primary is rose-600 rather than the logo's rose-500 (#F43F5E,
+  // ~3.67:1) so white button text meets WCAG AA (4.70:1); hover and active
+  // step one shade darker each.
+  primary: '#E11D48',
+  primaryHover: '#BE123C',
+  primaryActive: '#9F1239',
   primaryBgSubtle: '#FFE4E6',
   primaryBorderSubtle: '#FECDD3',
   primaryTextEmphasis: '#881337',
@@ -55,6 +57,21 @@ export const brand = {
   accentLeaf: '#22C55E',
 };
 
+// Dark theme primaries. The dark theme's text.inverse is dark, so primary
+// buttons there need a light rose fill, and that same rose reads as link
+// text on the near-black body. Lighter steps for hover and active, and the
+// whole family swaps so strong-on-subtle pairings still read.
+export const brandDark = {
+  primary: '#FB7185',
+  primaryHover: '#FDA4AF',
+  primaryActive: '#FECDD3',
+  // The tints flip too: strong roses are light here, so the surfaces they sit
+  // on (chips, badges, chat bubbles) are dark, and emphasis text is light.
+  primaryBgSubtle: '#4C0519',
+  primaryBorderSubtle: '#881337',
+  primaryTextEmphasis: '#FECDD3',
+};
+
 // Bootstrap-style 9-step gray ramp (100 = lightest, 900 = darkest).
 // Not inverted in dark mode — the gray scale is constant; surfaces flip via
 // semantic tokens (`text.*`, `background.*`, `border.color.*`) instead.
@@ -79,7 +96,7 @@ export const warmCream = '#FAF7F2';
 export const warmCreamMuted = '#F2EBDF';
 
 export const brandGradient = 'linear-gradient(135deg, #38BDF8 0%, #F43F5E 55%, #FF6B35 100%)';
-export const primaryGradient = 'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)';
+export const primaryGradient = 'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)';
 
 export const typography = {
   family: {

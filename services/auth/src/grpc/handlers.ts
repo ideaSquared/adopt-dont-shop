@@ -69,6 +69,8 @@ export type HandlerErrorCode =
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
   | 'ALREADY_EXISTS'
+  // A dependency (another service) is down — the gateway answers 503.
+  | 'UNAVAILABLE'
   | 'INTERNAL';
 
 export class HandlerError extends Error {

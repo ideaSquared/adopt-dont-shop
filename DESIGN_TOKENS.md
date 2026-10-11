@@ -39,7 +39,7 @@ explicit variants. Use the base for filled CTAs; the variants for states and
 tints.
 
 ```ts
-vars.colors.primary; // brand rose (#F43F5E)
+vars.colors.primary; // brand rose (#E11D48; the logo keeps #F43F5E)
 vars.colors.primaryHover; // darker rose for :hover
 vars.colors.primaryActive; // darker still for :active
 vars.colors.primaryBgSubtle; // very light rose tint for badge/alert fills
@@ -50,6 +50,12 @@ vars.colors.primaryTextEmphasis; // deep rose for text on tinted surfaces
 The same shape exists for `secondary`, `success`, `danger`, `warning`,
 `info`. Logo accents are flat: `accentPaw`, `accentSky`, `accentLeaf`.
 Gradients: `gradientPrimary`, `gradientBrand`.
+
+The dark theme swaps the whole primary family (`brandDark` in `colors.ts`):
+light roses for `primary` / `primaryHover` / `primaryActive` and light
+`primaryTextEmphasis`, over dark `primaryBgSubtle` / `primaryBorderSubtle`. Dark
+button text, rose link text on the near-black body, and strong-on-subtle
+pairings (chips, badges, chat bubbles) all meet WCAG AA.
 
 ### Gray ramp
 

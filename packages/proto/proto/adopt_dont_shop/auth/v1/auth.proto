@@ -195,6 +195,14 @@ service AuthService {
   // Fetch a single user by id (admin view — full row). admin.users.read.
   rpc AdminGetUser(AdminGetUserRequest) returns (AdminGetUserResponse);
 
+  // The applicant's name and email for one application, for rescue staff
+  // reviewing it. The caller must be able to read the application (auth
+  // resolves it through ApplicationService.Get under the caller's own
+  // principal) and hold applications.read for its rescue. admin.users.read
+  // holders read user_id directly (ApplicationService.Get scopes regular
+  // admins out). Narrower than AdminGetUser, which staff can't call.
+  rpc GetApplicantProfile(GetApplicantProfileRequest) returns (GetApplicantProfileResponse);
+
   // Create a new user from the admin console as a pending, credential-less
   // account and issue a single-use invitation token (emailed via the
   // auth.userInvited event) the invitee redeems to set their password.
@@ -893,6 +901,21 @@ message AdminGetUserRequest {
 
 message AdminGetUserResponse {
   User user = 1;
+}
+
+message GetApplicantProfileRequest {
+  string application_id = 1;
+  // The applicant's user id, as the caller's application list reports it.
+  // Read directly only for admin.users.read callers (who may read any
+  // user); for everyone else the applicant comes from the application.
+  string user_id = 2;
+}
+
+message GetApplicantProfileResponse {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string email = 4;
 }
 
 message AdminUpdateUserRequest {
