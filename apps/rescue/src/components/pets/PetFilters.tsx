@@ -73,11 +73,11 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
 
       <div className={styles.filtersGrid}>
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="search">
+          <label className="label" htmlFor="pet-filter-search">
             Search
           </label>
           <input
-            id="search"
+            id="pet-filter-search"
             type="text"
             placeholder="Pet name, breed, or ID..."
             value={localSearch}
@@ -86,11 +86,11 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
         </div>
 
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="type">
+          <label className="label" htmlFor="pet-filter-type">
             Pet Type
           </label>
           <select
-            id="type"
+            id="pet-filter-type"
             value={filters.type}
             onChange={e => onFilterChange('type', e.target.value)}
           >
@@ -104,11 +104,11 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
         </div>
 
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="status">
+          <label className="label" htmlFor="pet-filter-status">
             Status
           </label>
           <select
-            id="status"
+            id="pet-filter-status"
             value={filters.status}
             onChange={e => onFilterChange('status', e.target.value)}
           >
@@ -124,11 +124,11 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
         </div>
 
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="size">
+          <label className="label" htmlFor="pet-filter-size">
             Size
           </label>
           <select
-            id="size"
+            id="pet-filter-size"
             value={filters.size}
             onChange={e => onFilterChange('size', e.target.value)}
           >
@@ -141,11 +141,11 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
         </div>
 
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="breed">
+          <label className="label" htmlFor="pet-filter-breed">
             Breed
           </label>
           <input
-            id="breed"
+            id="pet-filter-breed"
             type="text"
             placeholder="Enter breed..."
             value={localBreed}
@@ -154,11 +154,11 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
         </div>
 
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="ageGroup">
+          <label className="label" htmlFor="pet-filter-ageGroup">
             Age Group
           </label>
           <select
-            id="ageGroup"
+            id="pet-filter-ageGroup"
             value={filters.ageGroup}
             onChange={e => onFilterChange('ageGroup', e.target.value)}
           >
@@ -170,11 +170,11 @@ const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClea
         </div>
 
         <div className={styles.filterGroup}>
-          <label className="label" htmlFor="gender">
+          <label className="label" htmlFor="pet-filter-gender">
             Gender
           </label>
           <select
-            id="gender"
+            id="pet-filter-gender"
             value={filters.gender}
             onChange={e => onFilterChange('gender', e.target.value)}
           >

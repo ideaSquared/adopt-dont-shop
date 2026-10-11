@@ -1,6 +1,8 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { within } from '@testing-library/react';
 import { renderWithProviders, screen, fireEvent, waitFor } from '../../test-utils';
 import PetFilters from './PetFilters';
+import PetFormModal from './PetFormModal';
 
 const defaultFilters = {
   search: '',
@@ -99,5 +101,29 @@ describe('PetFilters auto-apply behaviour', () => {
     fireEvent.change(typeSelect, { target: { value: 'dog' } });
 
     expect(onFilterChange).toHaveBeenCalledWith('type', 'dog');
+  });
+});
+
+describe('PetFilters alongside the add-pet form', () => {
+  // The pets page renders the filters and, when adding a pet, the form at the
+  // same time. Each label must still point at its own control.
+  it("keeps the form's labels pointing at the form's own fields", () => {
+    renderWithProviders(
+      <>
+        <PetFilters filters={defaultFilters} onFilterChange={vi.fn()} onClearFilters={vi.fn()} />
+        <PetFormModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />
+      </>
+    );
+
+    const form = screen.getByRole('button', { name: /add pet/i }).closest('form');
+    if (!form) {
+      throw new Error('add-pet form not rendered');
+    }
+    const formFields = within(form);
+    for (const label of [/^pet type/i, /^size/i, /^primary breed/i, /^gender/i]) {
+      expect(form).toContainElement(
+        formFields.getByLabelText(label, { selector: 'input, select' })
+      );
+    }
   });
 });
