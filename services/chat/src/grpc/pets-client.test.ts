@@ -11,8 +11,6 @@
 // Each test binds a real @grpc/grpc-js Server to 127.0.0.1:0 so there
 // are no port conflicts; the server is torn down in afterEach.
 
-import { promisify } from 'node:util';
-
 import {
   Metadata,
   Server,
@@ -30,12 +28,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createPetsClient } from './pets-client.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
-
-const bindAsync = promisify<string, ServerCredentials, number>(
-  // Bind signature: (address, creds, cb) — promisify wraps that.
-  (addr: string, creds: ServerCredentials, cb: (err: Error | null, port: number) => void) =>
-    new Server().bindAsync(addr, creds, cb)
-);
 
 const makeServiceError = (code: number, details: string): ServiceError => {
   const err = new Error(details) as ServiceError;
