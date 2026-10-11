@@ -4,6 +4,9 @@ import React from 'react';
 import * as styles from './Card.css';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  // React 19 passes `ref` to function components as a prop; it reaches the
+  // underlying <div> through the props spread.
+  ref?: React.Ref<HTMLDivElement>;
   children: React.ReactNode;
   hoverable?: boolean;
   shadowed?: boolean;
