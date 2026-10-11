@@ -160,6 +160,8 @@ export type {
   SearchUsersRequest,
   SearchUsersResponse,
   AdminGetUserRequest,
+  GetApplicantProfileRequest,
+  GetApplicantProfileResponse,
   AdminGetUserResponse,
   AdminUpdateUserRequest,
   AdminUpdateUserResponse,

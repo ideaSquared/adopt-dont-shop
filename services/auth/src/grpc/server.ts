@@ -17,6 +17,8 @@ import { AuthV1 } from '@adopt-dont-shop/proto';
 import type { AuthConfig } from '../config.js';
 
 import { adapt, adaptUnauth } from './adapter.js';
+import { makeGetApplicantProfile } from './applicant-handlers.js';
+import { createApplicationsClient, type ApplicationsClient } from './applications-client.js';
 import {
   changePassword,
   forgotPassword,
@@ -93,12 +95,16 @@ export type CreateGrpcServerOptions = {
   passwordHasher: HandlerDeps['passwordHasher'];
   tokenIssuer: HandlerDeps['tokenIssuer'];
   logger: Logger;
+  // Injectable for tests; otherwise dialled from config.applicationsGrpcUrl.
+  applicationsClient?: ApplicationsClient;
 };
 
 export type { RunningGrpcServer };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, passwordHasher, tokenIssuer, logger } = opts;
+  const applicationsClient =
+    opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
   const deps: HandlerDeps = {
     pool,
     nats,
@@ -150,6 +156,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // Admin user management — /api/v1/users/* admin surface.
     searchUsers: adapt(searchUsers, { deps, logger }),
     adminGetUser: adapt(adminGetUser, { deps, logger }),
+    // Rescue-staff view of who applied — scoped through service.applications.
+    getApplicantProfile: adapt(makeGetApplicantProfile(applicationsClient), { deps, logger }),
     adminCreateUser: adapt(adminCreateUser, { deps, logger }),
     adminUpdateUser: adapt(adminUpdateUser, { deps, logger }),
     deactivateUser: adapt(deactivateUser, { deps, logger }),
@@ -210,6 +218,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getConsentStatus',
       'searchUsers',
       'adminGetUser',
+      'getApplicantProfile',
       'adminCreateUser',
       'adminUpdateUser',
       'deactivateUser',
@@ -247,6 +256,28 @@ export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
-  const server = createGrpcServer(opts);
-  return startGrpcServerShared(server, config, logger);
+  // Build + own the cross-service client here so it's closed on shutdown
+  // (mirrors services/chat/src/grpc/server.ts).
+  const applicationsClient =
+    opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
+  const server = createGrpcServer({ ...opts, applicationsClient });
+  const running = await startGrpcServerShared(server, config, logger);
+
+  return {
+    ...running,
+    shutdown: () =>
+      new Promise<void>(resolve => {
+        server.tryShutdown(err => {
+          if (err) {
+            logger.error('gRPC server shutdown error', { err });
+          }
+          try {
+            applicationsClient.close();
+          } catch (closeErr) {
+            logger.error('cross-service client close error', { err: closeErr });
+          }
+          resolve();
+        });
+      }),
+  };
 };

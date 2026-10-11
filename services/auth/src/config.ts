@@ -27,6 +27,10 @@ export type AuthConfig = {
   // NATS bus. Phase 2.4+ publishes auth.userCreated, auth.roleAssigned,
   // auth.tokenRevoked etc. for downstream services to consume.
   natsUrl: string;
+  // service.applications gRPC address. GetApplicantProfile resolves the
+  // application there (under the caller's principal) before revealing who
+  // applied.
+  applicationsGrpcUrl: string;
   // JWT signing secret for short-lived access tokens. Required at
   // boot — a misconfigured deploy must fail fast, not at first
   // login attempt.
@@ -44,6 +48,7 @@ const DEFAULT_GRPC_PORT = 6002;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'auth';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
+const DEFAULT_APPLICATIONS_GRPC_URL = 'service-applications:6005';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => {
   const port = parsePort(env.AUTH_PORT, DEFAULT_PORT, 'AUTH_PORT');
@@ -85,6 +90,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
     databaseUrl,
     schema: env.AUTH_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    applicationsGrpcUrl: env.APPLICATIONS_GRPC_URL?.trim() || DEFAULT_APPLICATIONS_GRPC_URL,
     jwtSecret,
     jwtRefreshSecret,
     encryptionKey,

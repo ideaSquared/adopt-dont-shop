@@ -225,9 +225,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
         return (
           <div className={styles.applicantInfo}>
             <div className={styles.applicantName}>{app.applicantName}</div>
-            <div className={styles.applicantEmail}>
-              {app.data?.personalInfo?.email || 'No email provided'}
-            </div>
+            <div className={styles.applicantEmail}>{app.applicantEmail || 'No email provided'}</div>
           </div>
         );
       },

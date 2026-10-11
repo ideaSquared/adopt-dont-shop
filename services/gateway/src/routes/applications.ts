@@ -35,7 +35,7 @@ import {
   PetsV1,
   type Application,
   type ApproveRequest,
-  type AuthUser,
+  type GetApplicantProfileResponse,
   type CompleteHomeVisitRequest,
   type ListApplicationsRequest,
   type Pet,
@@ -1831,7 +1831,7 @@ async function lookupById<T>(
   return map;
 }
 
-function fullName(user: AuthUser): string {
+function fullName(user: GetApplicantProfileResponse): string {
   return [user.firstName, user.lastName]
     .filter((part): part is string => part !== undefined && part !== '')
     .join(' ');
@@ -1846,14 +1846,22 @@ async function enrichApplicationViews(
   clients: EnrichmentClients,
   meta: Metadata
 ): Promise<Array<ApplicationView & ApplicationEnrichment>> {
-  const [pets, users, rescues] = await Promise.all([
+  const userIdByApplication = new Map(views.map(v => [v.id, v.userId]));
+  const [pets, applicants, rescues] = await Promise.all([
     lookupById<Pet>(
       views.map(v => v.petId),
       id => clients.petsClient?.get({ petId: id }, meta).then(r => r.pet)
     ),
-    lookupById<AuthUser>(
-      views.map(v => v.userId),
-      id => clients.authClient?.adminGetUser({ userId: id }, meta).then(r => r.user)
+    // Keyed by application, not user: auth only reveals an applicant to a
+    // caller who may read that particular application (rescue staff of its
+    // rescue, or an admin).
+    lookupById<GetApplicantProfileResponse>(
+      views.map(v => v.id),
+      id =>
+        clients.authClient?.getApplicantProfile(
+          { applicationId: id, userId: userIdByApplication.get(id) ?? '' },
+          meta
+        )
     ),
     lookupById<Rescue>(
       views.map(v => v.rescueId),
@@ -1863,7 +1871,7 @@ async function enrichApplicationViews(
 
   return views.map(v => {
     const pet = pets.get(v.petId);
-    const user = users.get(v.userId);
+    const user = applicants.get(v.id);
     const rescue = rescues.get(v.rescueId);
     return {
       ...v,

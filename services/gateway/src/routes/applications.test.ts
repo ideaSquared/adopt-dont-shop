@@ -1204,16 +1204,16 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
     authClient: AuthClient;
     petGet: ReturnType<typeof vi.fn>;
     rescueGet: ReturnType<typeof vi.fn>;
-    adminGetUser: ReturnType<typeof vi.fn>;
+    getApplicantProfile: ReturnType<typeof vi.fn>;
   } {
     const listMock = vi.fn();
     const client = { list: listMock, close: vi.fn() } as unknown as ApplicationsClient;
     const petGet = vi.fn();
     const rescueGet = vi.fn();
-    const adminGetUser = vi.fn();
+    const getApplicantProfile = vi.fn();
     const petsClient = { get: petGet } as unknown as PetsClient;
     const rescueClient = { get: rescueGet } as unknown as RescueClient;
-    const authClient = { adminGetUser } as unknown as AuthClient;
+    const authClient = { getApplicantProfile } as unknown as AuthClient;
     return {
       client,
       listMock,
@@ -1222,7 +1222,7 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
       authClient,
       petGet,
       rescueGet,
-      adminGetUser,
+      getApplicantProfile,
     };
   }
 
@@ -1243,8 +1243,11 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
     e.petGet.mockResolvedValue({
       pet: { petId: 'pet-a', name: 'Rex', type: PetsV1.PetType.PET_TYPE_DOG },
     });
-    e.adminGetUser.mockResolvedValue({
-      user: { userId: 'usr-a', firstName: 'Jane', lastName: 'Doe', email: 'jane@example.com' },
+    e.getApplicantProfile.mockResolvedValue({
+      userId: 'usr-a',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'jane@example.com',
     });
     e.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-a', name: 'Happy Paws' } });
 
@@ -1270,6 +1273,33 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
     }
   });
 
+  it('looks the applicant up by application id, so rescue staff can see who applied', async () => {
+    const e = makeEnrichment();
+    e.listMock.mockResolvedValue({ applications: [SUBMITTED_APP], total: 1 });
+    e.getApplicantProfile.mockResolvedValue({
+      userId: 'usr-a',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'jane@example.com',
+    });
+
+    const app = await makeEnrichedApp(e);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications',
+        headers: HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(e.getApplicantProfile).toHaveBeenCalledWith(
+        { applicationId: 'app-a', userId: 'usr-a' },
+        expect.anything()
+      );
+    } finally {
+      await app.close();
+    }
+  });
+
   it('dedupes lookups by id across the page', async () => {
     const e = makeEnrichment();
     // Second row shares the same pet / applicant / rescue ids.
@@ -1278,8 +1308,11 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
     e.petGet.mockResolvedValue({
       pet: { petId: 'pet-a', name: 'Rex', type: PetsV1.PetType.PET_TYPE_DOG },
     });
-    e.adminGetUser.mockResolvedValue({
-      user: { userId: 'usr-a', firstName: 'Jane', email: 'jane@example.com' },
+    e.getApplicantProfile.mockResolvedValue({
+      userId: 'usr-a',
+      firstName: 'Jane',
+      lastName: '',
+      email: 'jane@example.com',
     });
     e.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-a', name: 'Happy Paws' } });
 
@@ -1293,7 +1326,9 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
       expect(res.statusCode).toBe(200);
       expect(e.petGet).toHaveBeenCalledTimes(1);
       expect(e.rescueGet).toHaveBeenCalledTimes(1);
-      expect(e.adminGetUser).toHaveBeenCalledTimes(1);
+      // Applicant lookups are authorised per application, so they are not
+      // deduped by user id.
+      expect(e.getApplicantProfile).toHaveBeenCalledTimes(2);
       const body = res.json() as { data: Array<Record<string, unknown>> };
       expect(body.data).toHaveLength(2);
       expect(body.data[1]).toMatchObject({ id: 'app-b', petName: 'Rex', rescueName: 'Happy Paws' });
@@ -1306,8 +1341,11 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
     const e = makeEnrichment();
     e.listMock.mockResolvedValue({ applications: [SUBMITTED_APP], total: 1 });
     e.petGet.mockRejectedValue(new Error('pets down'));
-    e.adminGetUser.mockResolvedValue({
-      user: { userId: 'usr-a', firstName: 'Jane', lastName: 'Doe', email: 'jane@example.com' },
+    e.getApplicantProfile.mockResolvedValue({
+      userId: 'usr-a',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'jane@example.com',
     });
     e.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-a', name: 'Happy Paws' } });
 

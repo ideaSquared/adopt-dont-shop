@@ -27,6 +27,17 @@ test.describe('rescue application review', () => {
     await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 30_000 });
   });
 
+  test('rescue staff can see who applied', async ({ page }) => {
+    // The seeded John Smith application belongs to Paws Rescue. Before the
+    // scoped GetApplicantProfile lookup, staff could not read the applicant's
+    // account and every row read "Unknown / No email provided".
+    await page.goto('/applications', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+
+    const main = page.getByRole('main');
+    await expect(main.getByText('John Smith').first()).toBeVisible({ timeout: 30_000 });
+    await expect(main.getByText('john.smith@gmail.com').first()).toBeVisible();
+  });
+
   test("an admin status patch is reflected in the rescue's listing", async ({ apiAs }) => {
     const adopterApi = await apiAs('adopter');
     const adminApi = await apiAs('admin');
