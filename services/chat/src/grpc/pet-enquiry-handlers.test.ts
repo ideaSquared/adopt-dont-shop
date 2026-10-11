@@ -136,6 +136,28 @@ describe('openPetEnquiry', () => {
     expect(mocks.publish.mock.calls[0][0]).toBe('chat.created');
   });
 
+  it('records opening an enquiry in the audit trail', async () => {
+    mocks.poolScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [enquiryRow()] });
+    mocks.clientScript.push({ rows: [] });
+
+    await openPetEnquiry(mocks.deps, ADOPTER, { petId: 'pet-1' });
+
+    const auditCall = mocks.publish.mock.calls.find(([subject]) => subject === 'chat.actionTaken');
+    expect(auditCall).toBeDefined();
+    const raw = auditCall?.[1];
+    const text = raw instanceof Uint8Array ? new TextDecoder().decode(raw) : String(raw);
+    expect(JSON.parse(text).payload).toMatchObject({
+      service: 'service.chat',
+      aggregateType: 'chat',
+      aggregateId: 'chat-enquiry',
+      actorUserId: 'usr-adopter',
+      action: 'openPetEnquiry',
+      outcome: 'success',
+      payload: { petId: 'pet-1', rescueId: PET_RESCUE_ID },
+    });
+  });
+
   it("takes the rescue from the pets service under the caller's own principal", async () => {
     mocks.poolScript.push({ rows: [enquiryRow()] });
 
@@ -199,8 +221,19 @@ describe('openPetEnquiry', () => {
     });
   });
 
-  it('returns INTERNAL when the pets service is unreachable', async () => {
-    mocks.getPet.mockRejectedValueOnce({ code: 14 });
+  it.each([
+    ['unreachable', 14],
+    ['timing out', 4],
+  ])('returns UNAVAILABLE when the pets service is %s', async (_state, code) => {
+    mocks.getPet.mockRejectedValueOnce({ code });
+
+    await expect(openPetEnquiry(mocks.deps, ADOPTER, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'UNAVAILABLE',
+    });
+  });
+
+  it('returns INTERNAL for an unexpected pets-service failure', async () => {
+    mocks.getPet.mockRejectedValueOnce({ code: 13 });
 
     await expect(openPetEnquiry(mocks.deps, ADOPTER, { petId: 'pet-1' })).rejects.toMatchObject({
       code: 'INTERNAL',
