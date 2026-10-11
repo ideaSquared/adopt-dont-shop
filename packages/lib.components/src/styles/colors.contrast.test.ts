@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { brand, warmCream, white } from './colors';
-import { lightTheme, normalTheme } from './theme';
+import { darkTheme, lightTheme, normalTheme } from './theme';
 
 /**
  * ADS-1326: axe-core's Playwright smoke gate (e2e/tests/a11y/axe-smoke.spec.ts)
@@ -112,5 +112,57 @@ describe('Button secondary variant: colors.secondaryActive against white text (A
   // rather than a theme body.
   it('meets AA with white button text — colors.secondary measured ~2.49:1 here, the violation axe caught on the home page "Get Started" button', () => {
     expect(contrastRatio(brand.secondaryActive, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+});
+
+describe('Button primary variant: white text on colors.primary in every state', () => {
+  // The primary variant renders white text (text.inverse) on colors.primary
+  // at rest, primaryHover on hover and primaryActive when pressed.
+  it('meets AA at rest — colors.primary #F43F5E measured ~3.67:1 here', () => {
+    expect(contrastRatio(brand.primary, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on hover', () => {
+    expect(contrastRatio(brand.primaryHover, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA when pressed', () => {
+    expect(contrastRatio(brand.primaryActive, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+});
+
+describe('CookieBanner policy link: colors.primaryHover on the banner body', () => {
+  // packages/lib.legal's CookieBanner policyLink paints colors.primaryHover
+  // on background.body. #E11D48 measured ~4.40:1 on warm-cream.
+  it('meets AA on white (light theme)', () => {
+    expect(contrastRatio(brand.primaryHover, white)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it('meets AA on warm-cream (normal theme)', () => {
+    expect(contrastRatio(brand.primaryHover, warmCream)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+});
+
+describe('dark theme primary colours', () => {
+  // The dark theme's text.inverse is dark, so the primary button there puts
+  // dark text on colors.primary, and primary-coloured links sit on a
+  // near-black body. The light-theme rose measured ~3.98:1 as a button and
+  // primaryActive ~2.84:1 as link text.
+  const { colors, text, background } = darkTheme;
+
+  it.each([
+    ['primary', colors.primary],
+    ['primaryHover', colors.primaryHover],
+    ['primaryActive', colors.primaryActive],
+  ])('button text meets AA on colors.%s', (_name, fill) => {
+    expect(contrastRatio(text.inverse, fill)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  it.each([
+    ['primary', colors.primary],
+    ['primaryHover', colors.primaryHover],
+    ['primaryActive', colors.primaryActive],
+  ])('colors.%s meets AA as text on the body', (_name, ink) => {
+    expect(contrastRatio(ink, background.body)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
   });
 });
