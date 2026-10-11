@@ -893,7 +893,10 @@ export async function getUserPermissions(
   if (!req.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
   }
-  if (!hasPermission(principal, ADMIN_USERS_READ)) {
+  // Users may read their own permissions — the SPAs' permission gates load
+  // them for the signed-in user. Anyone else's need admin.users.read.
+  const isSelf = req.userId === principal.userId;
+  if (!isSelf && !hasPermission(principal, ADMIN_USERS_READ)) {
     throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_READ}' required`);
   }
   // loadPrincipal throws NOT_FOUND for a missing user; reuse its

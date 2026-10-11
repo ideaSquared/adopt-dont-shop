@@ -80,6 +80,72 @@ describe('ChatService REST API methods', () => {
     });
   });
 
+  describe('real-time reactions and read receipts', () => {
+    const socketHandler = (event: string): ((payload: unknown) => void) => {
+      const socket = vi.mocked(io).mock.results.at(-1)?.value as {
+        on: ReturnType<typeof vi.fn>;
+      };
+      const handler = socket.on.mock.calls.find(([name]) => name === event)?.[1];
+      if (!handler) {
+        throw new Error(`no listener for ${event}`);
+      }
+      return handler;
+    };
+
+    it('passes on a reaction the gateway fans out as chat:reaction:added', () => {
+      const received = vi.fn();
+      service.onReactionUpdate(received);
+      service.connect('user-1', 'token');
+
+      socketHandler('chat:reaction:added')({
+        messageId: 'm-1',
+        chatId: 'c-1',
+        userId: 'staff-1',
+        emoji: '👍',
+      });
+
+      expect(received).toHaveBeenCalledWith({
+        messageId: 'm-1',
+        emoji: '👍',
+        userId: 'staff-1',
+        change: 'added',
+      });
+    });
+
+    it('passes on a removed reaction from chat:reaction:removed', () => {
+      const received = vi.fn();
+      service.onReactionUpdate(received);
+      service.connect('user-1', 'token');
+
+      socketHandler('chat:reaction:removed')({
+        messageId: 'm-1',
+        chatId: 'c-1',
+        userId: 'staff-1',
+        emoji: '👍',
+      });
+
+      expect(received).toHaveBeenCalledWith(
+        expect.objectContaining({ messageId: 'm-1', change: 'removed' })
+      );
+    });
+
+    it('passes on a read receipt the gateway fans out as chat:message:read', () => {
+      const received = vi.fn();
+      service.onReadStatusUpdate(received);
+      service.connect('user-1', 'token');
+
+      socketHandler('chat:message:read')({
+        chatId: 'c-1',
+        userId: 'staff-1',
+        upToMessageId: 'm-9',
+      });
+
+      expect(received).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: 'c-1', userId: 'staff-1', upToMessageId: 'm-9' })
+      );
+    });
+  });
+
   describe('markAsRead', () => {
     // The gateway marks a chat read *up to* a message (up_to_message_id is
     // required), so the receipt names the newest message in the chat.

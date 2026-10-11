@@ -186,3 +186,31 @@ describe('PetCard bulk selection (ADS-646)', () => {
     expect(onToggleSelect).toHaveBeenCalledWith('pet-1');
   });
 });
+
+describe('PetCard adoption fee', () => {
+  it('shows the fee in pounds sterling', () => {
+    renderWithProviders(
+      <PetCard
+        pet={buildPet({ adoption_fee: '150.00' })}
+        onStatusChange={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('£150.00')).toBeInTheDocument();
+  });
+
+  it('shows a pet with no fee as £0.00', () => {
+    renderWithProviders(
+      <PetCard
+        pet={buildPet({ adoption_fee: undefined })}
+        onStatusChange={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('£0.00')).toBeInTheDocument();
+  });
+});

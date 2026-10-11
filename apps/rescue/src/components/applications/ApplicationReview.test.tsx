@@ -133,6 +133,12 @@ vi.mock('./ApplicationReview.css', () => {
 });
 
 // useStaff hits an auth-protected API; stub it.
+// The answers panel loads the rescue's questionnaire; these tests cover the
+// modal around it (see ApplicationDetails.test.tsx for the panel itself).
+vi.mock('../../hooks/useApplicationQuestions', () => ({
+  useApplicationQuestions: () => ({ data: [], isLoading: false }),
+}));
+
 vi.mock('../../hooks/useStaff', () => ({
   useStaff: () => ({ staff: [], loading: false, error: null }),
 }));

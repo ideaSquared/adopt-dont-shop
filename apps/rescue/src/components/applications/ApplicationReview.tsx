@@ -110,10 +110,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   };
 
   const getStr = (path: string): string => (getData(path) as string | null | undefined) ?? '';
-  const getArr = (path: string): unknown[] => {
-    const val = getData(path);
-    return Array.isArray(val) ? val : [];
-  };
+  const rawAnswers = getData('answers');
+  const answers: Record<string, unknown> =
+    typeof rawAnswers === 'object' && rawAnswers !== null && !Array.isArray(rawAnswers)
+      ? Object.fromEntries(Object.entries(rawAnswers))
+      : {};
 
   const extractedReferences = useMemo(
     () => extractReferences(application, getData),
@@ -387,7 +388,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         {/* Tab Content */}
         <div className={styles.content}>
           <div className={styles.tabPanel({ active: activeTab === 'details' })}>
-            <ApplicationDetails getData={getData} getStr={getStr} getArr={getArr} />
+            <ApplicationDetails answers={answers} rescueId={application.rescueId} />
           </div>
           <div className={styles.tabPanel({ active: activeTab === 'references' })}>
             <ReferenceChecksContainer
