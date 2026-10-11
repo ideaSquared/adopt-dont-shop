@@ -166,3 +166,37 @@ describe('dark theme primary colours', () => {
     expect(contrastRatio(ink, background.body)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
   });
 });
+
+describe('dark theme primary pairings used by components', () => {
+  // Strong primary tokens sit on the subtle ones (chips, badges, chat
+  // bubbles, select options). The dark theme swaps the whole family so these
+  // pairs keep working — the light-theme subtle tints under light dark-theme
+  // roses measured as low as 1:1.
+  const { colors } = darkTheme;
+
+  it.each([
+    [
+      'primaryActive on primaryBgSubtle (SelectInput chip)',
+      colors.primaryActive,
+      colors.primaryBgSubtle,
+    ],
+    [
+      'primaryTextEmphasis on primaryBgSubtle (Badge, Stepper)',
+      colors.primaryTextEmphasis,
+      colors.primaryBgSubtle,
+    ],
+    [
+      'primaryBgSubtle on primaryTextEmphasis (Badge hover)',
+      colors.primaryBgSubtle,
+      colors.primaryTextEmphasis,
+    ],
+    ['primaryBgSubtle on primaryHover (chat message)', colors.primaryBgSubtle, colors.primaryHover],
+    [
+      'primaryHover on primaryBorderSubtle (SelectInput option hover)',
+      colors.primaryHover,
+      colors.primaryBorderSubtle,
+    ],
+  ])('%s meets AA', (_pair, ink, paper) => {
+    expect(contrastRatio(ink, paper)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+});

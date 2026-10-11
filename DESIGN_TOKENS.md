@@ -51,9 +51,11 @@ The same shape exists for `secondary`, `success`, `danger`, `warning`,
 `info`. Logo accents are flat: `accentPaw`, `accentSky`, `accentLeaf`.
 Gradients: `gradientPrimary`, `gradientBrand`.
 
-The dark theme swaps `primary`, `primaryHover` and `primaryActive` for light
-roses (`brandDark` in `colors.ts`) so dark button text and rose link text on
-the near-black body both meet WCAG AA.
+The dark theme swaps the whole primary family (`brandDark` in `colors.ts`):
+light roses for `primary` / `primaryHover` / `primaryActive` and light
+`primaryTextEmphasis`, over dark `primaryBgSubtle` / `primaryBorderSubtle`. Dark
+button text, rose link text on the near-black body, and strong-on-subtle
+pairings (chips, badges, chat bubbles) all meet WCAG AA.
 
 ### Gray ramp
 

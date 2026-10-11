@@ -59,11 +59,17 @@ export const brand = {
 
 // Dark theme primaries. The dark theme's text.inverse is dark, so primary
 // buttons there need a light rose fill, and that same rose reads as link
-// text on the near-black body. Lighter steps for hover and active.
+// text on the near-black body. Lighter steps for hover and active, and the
+// whole family swaps so strong-on-subtle pairings still read.
 export const brandDark = {
   primary: '#FB7185',
   primaryHover: '#FDA4AF',
   primaryActive: '#FECDD3',
+  // The tints flip too: strong roses are light here, so the surfaces they sit
+  // on (chips, badges, chat bubbles) are dark, and emphasis text is light.
+  primaryBgSubtle: '#4C0519',
+  primaryBorderSubtle: '#881337',
+  primaryTextEmphasis: '#FECDD3',
 };
 
 // Bootstrap-style 9-step gray ramp (100 = lightest, 900 = darkest).
