@@ -95,6 +95,8 @@ export type HandlerErrorCode =
   | 'NOT_FOUND'
   | 'ALREADY_EXISTS'
   | 'FAILED_PRECONDITION'
+  // A dependency (another service) is down — the gateway answers 503.
+  | 'UNAVAILABLE'
   | 'INTERNAL';
 
 export class HandlerError extends Error {

@@ -30,6 +30,8 @@ import type { PetsClient } from './pets-client.js';
 
 const CROSS_SERVICE_GRPC_NOT_FOUND = 5;
 const CROSS_SERVICE_GRPC_PERMISSION_DENIED = 7;
+const CROSS_SERVICE_GRPC_DEADLINE_EXCEEDED = 4;
+const CROSS_SERVICE_GRPC_UNAVAILABLE = 14;
 
 export function makeOpenPetEnquiry(
   petsClient: PetsClient
@@ -96,6 +98,23 @@ export function makeOpenPetEnquiry(
           participantUserIds: [principal.userId],
         },
       });
+      // Forensic trail: service.audit persists every *.actionTaken event.
+      publish({
+        type: 'chat.actionTaken',
+        id: `chat.actionTaken.openPetEnquiry.${inserted.chat_id}`,
+        payload: {
+          eventId: randomUUID(),
+          service: 'service.chat',
+          subject: 'chat.actionTaken',
+          aggregateType: 'chat',
+          aggregateId: inserted.chat_id,
+          actorUserId: principal.userId,
+          action: 'openPetEnquiry',
+          outcome: 'success',
+          occurredAt: new Date().toISOString(),
+          payload: { petId: req.petId, rescueId },
+        },
+      });
     });
 
     if (inserted) {
@@ -140,6 +159,9 @@ async function resolvePetRescueId(
     }
     if (code === CROSS_SERVICE_GRPC_PERMISSION_DENIED) {
       throw new HandlerError('PERMISSION_DENIED', 'not authorized to view this pet');
+    }
+    if (code === CROSS_SERVICE_GRPC_UNAVAILABLE || code === CROSS_SERVICE_GRPC_DEADLINE_EXCEEDED) {
+      throw new HandlerError('UNAVAILABLE', 'pets service unavailable');
     }
     throw new HandlerError('INTERNAL', 'failed to resolve pet');
   }
