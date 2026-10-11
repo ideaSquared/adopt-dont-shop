@@ -413,8 +413,9 @@ describe('AuthService', () => {
 
       await authService.resetPassword('reset-token', 'newPassword123');
 
+      // The gateway reads the token as `resetToken` (auth.schemas.ts).
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/reset-password', {
-        token: 'reset-token',
+        resetToken: 'reset-token',
         newPassword: 'newPassword123',
       });
     });
@@ -465,8 +466,9 @@ describe('AuthService', () => {
 
       await authService.verifyEmail('verify-token');
 
+      // The gateway reads the token as `verificationToken` (auth.schemas.ts).
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
-        token: 'verify-token',
+        verificationToken: 'verify-token',
       });
     });
 

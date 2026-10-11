@@ -1,4 +1,11 @@
 import { io, Socket } from 'socket.io-client';
+
+import {
+  GatewayChatSchema,
+  GatewayMessageSchema,
+  toConversation,
+  toMessage,
+} from './gateway-chat-adapter';
 import {
   ChatServiceConfig,
   Conversation,
@@ -207,9 +214,11 @@ export class ChatService {
       this.handleDisconnect(reason);
     });
 
-    // New message received
-    this.socket.on('new_message', (data: { message: Message }) => {
-      this.messageListeners.forEach((listener) => listener(data.message));
+    // New message received — the gateway fans chat.messageCreated out as
+    // `chat:message:created` (services/gateway/src/ws/chat-subscriber.ts).
+    this.socket.on('chat:message:created', (data: unknown) => {
+      const message = toMessage(GatewayMessageSchema.parse(data));
+      this.messageListeners.forEach((listener) => listener(message));
     });
 
     // Typing indicator
@@ -533,7 +542,9 @@ export class ChatService {
       }
 
       const data = await response.json();
-      return data.data || [];
+      return GatewayChatSchema.array()
+        .parse(data.data ?? [])
+        .map(toConversation);
     } catch (error) {
       if (this.config.debug) {
         console.error(`${ChatService.name} getConversations error:`, error);
@@ -569,7 +580,9 @@ export class ChatService {
 
       const data = await response.json();
       return {
-        data: data.data?.messages || data.messages || [],
+        data: GatewayMessageSchema.array()
+          .parse(data.data?.messages ?? data.messages ?? [])
+          .map(toMessage),
         success: true,
         message: data.message,
         timestamp: new Date().toISOString(),
@@ -671,7 +684,7 @@ export class ChatService {
       }
 
       const data = await response.json();
-      return data.data;
+      return toMessage(GatewayMessageSchema.parse(data.message));
     } catch (error) {
       if (this.config.debug) {
         console.error(`${ChatService.name} sendMessage error:`, error);
@@ -685,12 +698,30 @@ export class ChatService {
    */
   async markAsRead(conversationId: string): Promise<void> {
     try {
+      // The gateway marks a chat read up to a given message, so name the
+      // newest one (the messages list is newest-first).
+      const latest = await this.fetchWithTimeout(
+        `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages?limit=1`,
+        { credentials: 'include', headers: this.getHeaders() }
+      );
+      if (!latest.ok) {
+        throw new Error(`HTTP ${latest.status}: ${latest.statusText}`);
+      }
+      const latestData = await latest.json();
+      const [newest] = GatewayMessageSchema.array().parse(
+        latestData.data?.messages ?? latestData.messages ?? []
+      );
+      if (!newest) {
+        return;
+      }
+
       const response = await this.fetchWithTimeout(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/read`,
         {
           method: 'POST',
           credentials: 'include',
           headers: await this.getMutatingHeaders(),
+          body: JSON.stringify({ upToMessageId: newest.messageId }),
         }
       );
 
@@ -727,7 +758,7 @@ export class ChatService {
       }
 
       const result = await response.json();
-      return result.data;
+      return toConversation(GatewayChatSchema.parse(result.data));
     } catch (error) {
       if (this.config.debug) {
         console.error(`${ChatService.name} updateConversationStatus error:`, error);
@@ -757,7 +788,7 @@ export class ChatService {
       }
 
       const result = await response.json();
-      return result.data;
+      return toConversation(GatewayChatSchema.parse(result.chat));
     } catch (error) {
       if (this.config.debug) {
         console.error(`${ChatService.name} createConversation error:`, error);

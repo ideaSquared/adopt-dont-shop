@@ -17,7 +17,27 @@ The suite exercises real user journeys across the three React apps (`app.client`
 >
 > **All legacy specs un-parked.** The four feature specs were built out: `admin/bulk-user-actions` (`/admin/users` surface), `rescue/custom-application-questions` (rescue question RPCs + routes), `admin/2fa-enrollment` (full 2FA: proto + auth handlers + login enforcement + `/auth/2fa/*` routes + the lib.auth login prompt), and `client/swipe-and-favourite` (pets user-favourites RPCs + `/pets/:id/favorite[/status]` + `/pets/favorites/user` routes + a 2-favourite seed for John Smith).
 >
-> **`client/profile-update-persistence.spec.ts` — deferred, needs runtime debugging.** The whole server path is wired (the SPA submits `bio`; the gateway `PUT /users/profile` maps it; `account-handlers` persists it; `GET /auth/me` returns it via `withApiUser`), yet the bio does not round-trip back into the edit form after a reload (the assertion timed out across all CI retries). The likely cause is the client hydrating a stale cached user rather than refetching `/me` — confirm at runtime before un-parking (ADS-868).
+> **ADS-870 un-parked.** `client/2fa-login-ui`, `client/favourite-add-via-ui` and `client/custom-question-on-application-form` were reproduced against a live stack and their root causes fixed (see the comments in `playwright.config.ts`). `client/profile-update-persistence` is green too.
+
+## Journey coverage
+
+Many specs set up or even complete a journey through the API, which proves the backend contract but not that a person can do it in the browser. The `*-via-ui` specs drive the whole flow through the apps; writing them found (and this change fixes) breaks in most of these flows — only 2FA login and user suspension already worked.
+
+| Who     | Flow                                                     | Driven through the UI by                                            |
+| ------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
+| Visitor | Sign up → verify email from the link → log in            | `client/signup-and-reset-via-ui`                                    |
+| Adopter | Reset a forgotten password from the link                 | `client/signup-and-reset-via-ui`                                    |
+| Adopter | Log in with 2FA                                          | `client/2fa-login-ui`                                               |
+| Adopter | Favourite a pet                                          | `client/favourite-add-via-ui`                                       |
+| Adopter | Apply for a pet (questionnaire → send → My Applications) | `client/apply-via-ui`, `client/custom-question-on-application-form` |
+| Adopter | Message the rescue, get a live reply                     | `client/chat-via-ui`                                                |
+| Rescue  | List a new pet; adopters can open it                     | `rescue/add-pet-via-ui`                                             |
+| Rescue  | Start a review and approve an application                | `rescue/review-and-approve-via-ui`                                  |
+| Rescue  | Reply to an adopter                                      | `client/chat-via-ui` (second browser)                               |
+| Admin   | Suspend a user (they can no longer log in)               | `admin/suspend-user-via-ui`                                         |
+| Admin   | Publish a blog post; visitors read it                    | `admin/publish-blog-post-via-ui`                                    |
+
+Still covered through the API only (worth a UI spec next): home-visit scheduling, staff invitations, custom questions (rescue side), notification preferences, bulk user actions, moderation/support triage and audit log (page-load smokes only).
 
 ## Layout
 
@@ -31,7 +51,8 @@ e2e/
 │   ├── index.ts                  # `test` extended with `apiAs` and `asRole`
 │   └── roles.ts                  # seeded role credentials (DevPassword123!)
 ├── helpers/
-│   ├── application.ts            # fillApplicationForm, submitApplication, ...
+│   ├── accounts.ts               # createVerifiedAdopter — throwaway, login-ready adopter
+│   ├── application-form.ts       # answerEveryApplicationStep — walks /apply/:petId
 │   ├── auth.ts                   # loginViaUI, logoutViaUI
 │   ├── factories.ts              # uniqueEmail/petName/text — collision-proof data
 │   ├── pet.ts                    # gotoDiscover, searchForPet, openFirstPet, ...

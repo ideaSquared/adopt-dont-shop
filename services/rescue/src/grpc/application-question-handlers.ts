@@ -16,6 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import {
+  APPLICATIONS_CREATE,
   APPLICATIONS_UPDATE,
   APPLICATIONS_VIEW as APPLICATIONS_READ,
   type RescueId,
@@ -96,8 +97,16 @@ export async function listApplicationQuestions(
   if (!req.rescueId) {
     throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
   }
-  if (!requirePermission(principal, APPLICATIONS_READ, { rescueId: req.rescueId as RescueId })) {
-    throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_READ}' required for this rescue`);
+  // Staff read their own rescue's questionnaire; an applicant reads it to fill
+  // in the application form for one of that rescue's pets.
+  const canRead =
+    requirePermission(principal, APPLICATIONS_READ, { rescueId: req.rescueId as RescueId }) ||
+    requirePermission(principal, APPLICATIONS_CREATE);
+  if (!canRead) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `'${APPLICATIONS_READ}' for this rescue or '${APPLICATIONS_CREATE}' required`
+    );
   }
 
   // The shared `core` baseline (rescue_id IS NULL) plus this rescue's own

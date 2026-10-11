@@ -17,6 +17,9 @@ export const modal = style({
   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   maxWidth: '28rem',
   width: '90%',
+  // Scroll inside the modal so Confirm stays reachable on short viewports.
+  maxHeight: '90vh',
+  overflowY: 'auto',
   padding: '1.5rem',
 });
 

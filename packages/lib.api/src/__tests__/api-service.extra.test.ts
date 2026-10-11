@@ -46,6 +46,43 @@ describe('ApiService — additional behaviour', () => {
     });
   });
 
+  describe('requests without a payload', () => {
+    // The gateway (Fastify) rejects `Content-Type: application/json` with an
+    // empty body, and routes that declare an object body reject a missing
+    // one. A POST with nothing to say (favouriting a pet, a read receipt)
+    // therefore sends an empty JSON object.
+    it('sends an empty JSON object for a POST without data', async () => {
+      mockFetch.mockResolvedValueOnce(csrfResponse()).mockResolvedValueOnce(okJson({ ok: true }));
+
+      await apiService.post('/pets/1/favorite');
+
+      const [, init] = mockFetch.mock.calls[1] as [string, RequestInit];
+      expect(init.body).toBe('{}');
+      expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+      expect((init.headers as Record<string, string>)['x-csrf-token']).toBe('csrf-token');
+    });
+
+    it('sends no body and no JSON Content-Type for a DELETE without data', async () => {
+      mockFetch.mockResolvedValueOnce(csrfResponse()).mockResolvedValueOnce(okJson({ ok: true }));
+
+      await apiService.delete('/pets/1/favorite');
+
+      const [, init] = mockFetch.mock.calls[1] as [string, RequestInit];
+      expect(init.body).toBeUndefined();
+      expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined();
+    });
+
+    it('keeps the JSON body when data is sent', async () => {
+      mockFetch.mockResolvedValueOnce(csrfResponse()).mockResolvedValueOnce(okJson({ ok: true }));
+
+      await apiService.post('/pets', { name: 'Rex' });
+
+      const [, init] = mockFetch.mock.calls[1] as [string, RequestInit];
+      expect(init.body).toBe(JSON.stringify({ name: 'Rex' }));
+      expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+    });
+  });
+
   describe('query parameter serialization', () => {
     it('omits undefined, null and empty-string params', async () => {
       mockFetch.mockResolvedValueOnce(okJson({ data: [] }));

@@ -90,6 +90,15 @@ describe('User schemas', () => {
       expect(parsed.email).toBe('new@user.com');
     });
 
+    it('carries the terms and privacy consents the gateway requires', () => {
+      const parsed = RegisterRequestSchema.parse({
+        ...valid,
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
+      });
+      expect(parsed).toMatchObject({ termsAccepted: true, privacyPolicyAccepted: true });
+    });
+
     it('rejects when password is weak', () => {
       expect(() => RegisterRequestSchema.parse({ ...valid, password: 'weakpass' })).toThrow();
     });

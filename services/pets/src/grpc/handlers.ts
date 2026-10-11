@@ -258,7 +258,10 @@ export async function createPet(
   if (!req.name) {
     throw new HandlerError('INVALID_ARGUMENT', 'name is required');
   }
-  if (!req.rescueId) {
+  // Staff list pets under their own rescue unless they name one; a caller
+  // with no rescue of their own (super_admin) must name it.
+  const rescueId = req.rescueId || principal.rescueId;
+  if (!rescueId) {
     throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
   }
   if (req.type === PetsV1.PetType.PET_TYPE_UNSPECIFIED) {
@@ -266,7 +269,7 @@ export async function createPet(
   }
 
   // pets.create scoped to the target rescue. super_admin bypasses.
-  if (!requirePermission(principal, PETS_CREATE, { rescueId: req.rescueId as RescueId })) {
+  if (!requirePermission(principal, PETS_CREATE, { rescueId: rescueId as RescueId })) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_CREATE}' required for this rescue`);
   }
 
@@ -300,7 +303,7 @@ export async function createPet(
       [
         petId,
         req.name,
-        req.rescueId,
+        rescueId,
         typeToDb(req.type),
         genderToDb(req.gender),
         sizeToDb(req.size),
@@ -326,7 +329,7 @@ export async function createPet(
     publish({
       type: 'pets.created',
       id: `pets.created.${petId}`,
-      payload: { petId, rescueId: req.rescueId, type: typeToDb(req.type) },
+      payload: { petId, rescueId, type: typeToDb(req.type) },
     });
   });
 

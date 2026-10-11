@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render } from '@/test-utils/render';
 import { screen, waitFor } from '@testing-library/react';
 import { VerifyEmailPage } from './VerifyEmailPage';
@@ -14,13 +14,17 @@ vi.mock('@/services', () => ({
 }));
 
 let searchParamsValue = new URLSearchParams('?token=token-123');
+// react-router hands out a new navigate function when the location changes —
+// which stripping the token from the URL does.
+let navigateChangesPerRender = false;
 const setSearchParamsMock = vi.fn();
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
   return {
     ...actual,
-    useNavigate: () => navigateMock,
+    useNavigate: () =>
+      navigateChangesPerRender ? (...args: unknown[]) => navigateMock(...args) : navigateMock,
     useSearchParams: () => [searchParamsValue, setSearchParamsMock] as const,
   };
 });
@@ -103,5 +107,29 @@ describe('VerifyEmailPage async error announcement [C2-7]', () => {
 
     const alert = await waitFor(() => screen.getByRole('alert'));
     expect(alert).toHaveTextContent(/verification token is malformed/i);
+  });
+});
+
+describe('VerifyEmailPage after the token is stripped from the URL', () => {
+  beforeEach(() => {
+    verifyEmailMock.mockReset();
+    navigateMock.mockReset();
+    searchParamsValue = new URLSearchParams('?token=token-123');
+    navigateChangesPerRender = true;
+  });
+
+  afterEach(() => {
+    navigateChangesPerRender = false;
+  });
+
+  it('shows the verified state even though the location change re-renders the page', async () => {
+    verifyEmailMock.mockResolvedValueOnce(undefined);
+
+    const { rerender } = render(<VerifyEmailPage />);
+    // The token strip changes the location: re-render with a new navigate.
+    rerender(<VerifyEmailPage />);
+
+    expect(await screen.findByRole('heading', { name: 'Email Verified!' })).toBeInTheDocument();
+    expect(verifyEmailMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -25,6 +25,8 @@ test.describe('2FA via the login UI', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test('a user with 2FA enabled is prompted for a TOTP code and logs in', async ({ page }) => {
+    // Up to 30s waiting for the TOTP step to roll over, on top of the journey.
+    test.slow();
     const email = uniqueEmail('twofa-ui');
     const password = 'BehaviourTest123!';
 
@@ -70,9 +72,10 @@ test.describe('2FA via the login UI', () => {
         const { secret } = (await setupRes.json()) as { secret?: string };
         expect(secret).toBeTruthy();
 
+        const enableToken = generateSync({ secret: secret! });
         const enableRes = await postWithCsrf(authed, '/api/v1/auth/2fa/enable', {
           secret,
-          token: generateSync({ secret: secret! }),
+          token: enableToken,
         });
         expect(enableRes.ok()).toBe(true);
 
@@ -80,14 +83,19 @@ test.describe('2FA via the login UI', () => {
         await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 60_000 });
         await page.getByLabel('Email Address').fill(email);
         await page.getByLabel('Password').fill(password);
-        await page.getByRole('button', { name: /sign in/i }).click();
+        await page.getByRole('button', { name: 'Sign In', exact: true }).click();
 
         // Step 2: the form detects two_factor_required and shows the code field.
         const codeField = page.getByPlaceholder('000000');
         await expect(codeField).toBeVisible({ timeout: 20_000 });
 
-        // Fill a fresh code (generated just before submit so it is current),
-        // then verify. A correct code completes the login and leaves /login.
+        // Fill a fresh code, then verify. It must come from a later TOTP step
+        // than the one enable consumed: the server refuses a replayed code
+        // (ADS-976), and enable + login often land in the same 30s window.
+        // Same rollover wait as admin/2fa-enrollment.spec.ts.
+        await expect
+          .poll(() => generateSync({ secret: secret! }), { timeout: 35_000, intervals: [1_000] })
+          .not.toBe(enableToken);
         await codeField.fill(generateSync({ secret: secret! }));
         await page.getByRole('button', { name: /verify/i }).click();
 

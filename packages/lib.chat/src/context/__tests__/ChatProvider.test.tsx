@@ -392,6 +392,65 @@ describe('ChatProvider', () => {
     expect(chatService.sendMessage).toHaveBeenCalledWith('chat-1', 'hello there');
   });
 
+  it('shows a sent message once when its socket echo arrives before the send resolves', async () => {
+    // The gateway fans a new message out to every participant, the sender
+    // included, and that echo can beat the POST response.
+    const conv = buildConversation({ id: 'chat-1' });
+    const { chatService } = buildHarness([conv]);
+    const sent = buildMessage({ id: 'msg-sent', senderId: 'user-1', content: 'hello there' });
+
+    let resolveSend: (m: Message) => void = () => {};
+    vi.spyOn(chatService, 'sendMessage').mockImplementation(
+      () => new Promise<Message>((resolve) => (resolveSend = resolve))
+    );
+    vi.spyOn(chatService, 'getMessages').mockResolvedValue({
+      data: [],
+      success: true,
+      timestamp: '2026-01-01T00:00:00Z',
+      pagination: { page: 1, limit: 50, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+    vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+    let latest: Harness | null = null;
+    const Caller = () => {
+      const ctx = useChat();
+      const sentOnce = useRef(false);
+      useEffect(() => {
+        if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+          ctx.setActiveConversation(ctx.conversations[0]);
+        }
+      }, [ctx]);
+      useEffect(() => {
+        if (ctx.activeConversation && !sentOnce.current) {
+          sentOnce.current = true;
+          void ctx.sendMessage('hello there');
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1', firstName: 'Alice' }}
+        isAuthenticated
+      >
+        <Caller />
+        <TestConsumer onRender={(h) => (latest = h)} />
+      </ChatProvider>
+    );
+
+    await waitFor(() => expect(chatService.sendMessage).toHaveBeenCalled());
+    act(() => chatService.simulateIncomingMessage(sent));
+
+    await waitFor(() =>
+      expect(latest?.messages.filter((m) => m.content === 'hello there')).toHaveLength(1)
+    );
+
+    await act(async () => resolveSend(sent));
+    expect(latest?.messages.filter((m) => m.content === 'hello there')).toHaveLength(1);
+  });
+
   it('prepends a newly started conversation to the list', async () => {
     // User journey: I click "Contact rescue" on a pet and the new chat
     // appears at the top of my Conversations list without refreshing.

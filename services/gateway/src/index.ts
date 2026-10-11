@@ -15,6 +15,7 @@ import { createApplicationsClient } from './grpc-clients/applications-client.js'
 import { createAuditClient } from './grpc-clients/audit-client.js';
 import { createAuthClient } from './grpc-clients/auth-client.js';
 import { createChatClient } from './grpc-clients/chat-client.js';
+import { createCmsClient } from './grpc-clients/cms-client.js';
 import { createMatchingClient } from './grpc-clients/matching-client.js';
 import { createModerationClient } from './grpc-clients/moderation-client.js';
 import { createNotificationsClient } from './grpc-clients/notifications-client.js';
@@ -53,8 +54,9 @@ const main = async (): Promise<void> => {
   let moderationClient: ReturnType<typeof createModerationClient> | undefined;
   let applicationsClient: ReturnType<typeof createApplicationsClient> | undefined;
   let chatClient: ReturnType<typeof createChatClient> | undefined;
+  let cmsClient: ReturnType<typeof createCmsClient> | undefined;
 
-  // Close the 9 gRPC clients (and any future ones) through one helper so the
+  // Close the 10 gRPC clients (and any future ones) through one helper so the
   // success path (logs) and the boot-failure path (silent) can't drift apart.
   // `log: false` swallows errors, matching the original error-path cleanup
   // which never logged. Reads the closed-over client `let`s, so it works for
@@ -70,6 +72,7 @@ const main = async (): Promise<void> => {
       { label: 'moderation client', client: moderationClient },
       { label: 'applications client', client: applicationsClient },
       { label: 'chat client', client: chatClient },
+      { label: 'cms client', client: cmsClient },
     ];
     for (const { label, client } of clients) {
       try {
@@ -104,6 +107,8 @@ const main = async (): Promise<void> => {
     moderationClient = createModerationClient({ address: config.moderationGrpcUrl });
     applicationsClient = createApplicationsClient({ address: config.applicationsGrpcUrl });
     chatClient = createChatClient({ address: config.chatGrpcUrl });
+    // Without it createServer skips the /api/v1/cms/* routes entirely.
+    cmsClient = createCmsClient({ address: config.cmsGrpcUrl });
 
     // NATS comes up BEFORE createServer so the GDPR erasure-request route
     // can publish on it. Socket.IO still attaches after server.listen.
@@ -127,6 +132,7 @@ const main = async (): Promise<void> => {
       moderationClient,
       applicationsClient,
       chatClient,
+      cmsClient,
       nats,
     });
 
@@ -178,6 +184,7 @@ const main = async (): Promise<void> => {
       moderationGrpcUrl: config.moderationGrpcUrl,
       applicationsGrpcUrl: config.applicationsGrpcUrl,
       chatGrpcUrl: config.chatGrpcUrl,
+      cmsGrpcUrl: config.cmsGrpcUrl,
       environment: config.environment,
     });
 

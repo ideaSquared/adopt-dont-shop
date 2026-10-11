@@ -108,13 +108,10 @@ describe('ApiService', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.example.com/test',
-        expect.objectContaining({
-          method: 'GET',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-          }),
-        })
+        expect.objectContaining({ method: 'GET', body: undefined })
       );
+      const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined();
       expect(result).toEqual(mockResponse);
     });
 

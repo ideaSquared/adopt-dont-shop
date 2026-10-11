@@ -19,11 +19,20 @@ vi.mock('socket.io-client', () => {
   };
 });
 
+// A message as the gateway's POST /chats/:id/messages returns it.
+const GATEWAY_MESSAGE = {
+  messageId: 'msg-1',
+  chatId: 'conv-123',
+  senderUserId: 'user-123',
+  body: 'hi',
+  createdAt: '2026-10-10T10:00:00.000Z',
+};
+
 // Mock global fetch
 global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
-    json: () => Promise.resolve({ data: {} }),
+    json: () => Promise.resolve({ data: {}, message: GATEWAY_MESSAGE }),
     status: 200,
     statusText: 'OK',
   } as Response)
@@ -744,7 +753,7 @@ describe('ChatService', () => {
     it('should mark conversation as read via API', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({}),
+        json: () => Promise.resolve({ messages: [GATEWAY_MESSAGE] }),
         status: 200,
         statusText: 'OK',
       } as Response);
@@ -785,7 +794,7 @@ describe('ChatService', () => {
         ok: true,
         status: 200,
         statusText: 'OK',
-        json: () => Promise.resolve({ data: { id: 'msg-1' } }),
+        json: () => Promise.resolve({ message: GATEWAY_MESSAGE }),
       } as Response);
 
     it('includes the x-csrf-token header and credentials on sendMessage', async () => {
@@ -874,7 +883,16 @@ describe('ChatService', () => {
           ok: true,
           status: 200,
           statusText: 'OK',
-          json: () => Promise.resolve({ data: { id: 'chat-1', status: 'archived' } }),
+          json: () =>
+            Promise.resolve({
+              data: {
+                chatId: 'chat-1',
+                participantUserIds: [],
+                createdAt: '2026-10-10T10:00:00.000Z',
+                updatedAt: '2026-10-10T10:00:00.000Z',
+                status: 'CHAT_STATUS_ARCHIVED',
+              },
+            }),
         } as Response)
       );
 
@@ -887,7 +905,7 @@ describe('ChatService', () => {
       expect(init.method).toBe('PATCH');
       expect(init.credentials).toBe('include');
       expect(JSON.parse(init.body as string)).toEqual({ status: 'archived' });
-      expect(result).toEqual({ id: 'chat-1', status: 'archived' });
+      expect(result).toMatchObject({ id: 'chat-1', status: 'archived' });
     });
 
     it('throws when the backend rejects the status update', async () => {

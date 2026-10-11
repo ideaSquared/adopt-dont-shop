@@ -317,6 +317,74 @@ describe('RescueApplicationService.getApplications pagination (ADS-1190)', () =>
 });
 
 /**
+ * The gateway serves the workflow stage lowercase (`pending`, `reviewing`, …)
+ * while the rescue app's stage machine is keyed by `PENDING`, `REVIEWING`, ….
+ * Unnormalised, every stage lookup missed: the per-stage counts read 0 and the
+ * review panel offered "No stage transitions available for pending", leaving
+ * staff no way to start a review (and so no way to approve).
+ */
+describe('RescueApplicationService stage normalisation', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const rawApplication = (stage: string, status = 'submitted') => ({
+    id: 'app-1',
+    petId: 'pet-1',
+    userId: 'user-1',
+    rescueId: 'rescue-1',
+    status,
+    stage,
+    submittedAt: '2026-10-01T00:00:00.000Z',
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+    data: {},
+  });
+
+  it('lists applications with the stage the stage machine understands', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({
+      success: true,
+      data: [rawApplication('pending'), rawApplication('reviewing')],
+      pagination: { page: 1, limit: 20, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+
+    const result = await service.getApplications();
+
+    expect(result.applications.map(a => a.stage)).toEqual(['PENDING', 'REVIEWING']);
+  });
+
+  it('reports progress for the normalised stage', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({
+      success: true,
+      data: [rawApplication('reviewing')],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+
+    const result = await service.getApplications();
+
+    expect(result.applications[0].stageProgressPercentage).toBeGreaterThanOrEqual(30);
+  });
+
+  it('loads an application for review with the stage the stage machine understands', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({ data: rawApplication('visiting') });
+
+    const application = await service.getApplicationById('app-1');
+
+    expect(application.stage).toBe('VISITING');
+  });
+
+  it('treats a withdrawn application as resolved', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({ data: rawApplication('withdrawn', 'withdrawn') });
+
+    const application = await service.getApplicationById('app-1');
+
+    expect(application.stage).toBe('RESOLVED');
+  });
+});
+
+/**
  * ADS-1199: references live inside the submitted answers blob
  * (application.data.references), shaped { veterinarian?, personal?[] } — the
  * applications view never returns a flat top-level `references` array, so the
