@@ -66,13 +66,15 @@ HTTP surface: `/health/simple`. Everything else is gRPC `ModerationService`
 | ------------------------------------------------------------- | ----------------------------------------------------- |
 | `FileReport` / `OpenSupportTicket`                            | authenticated (any user)                              |
 | `GetReport` / `ListReports`                                   | `moderation.reports.view` (reporter may read own)     |
-| `AssignReport` / `ResolveReport`                              | `moderation.reports.manage`                           |
+| `GetModerationMetrics`                                        | `moderation.reports.view`                             |
+| `AssignReport` / `ResolveReport` / `EscalateReport`           | `moderation.reports.manage`                           |
 | `LogModeratorAction` / `ListModeratorActions` / `AddEvidence` | `moderation.actions.manage`                           |
 | `IssueSanction`                                               | `moderation.sanctions.manage`                         |
 | `ListUserSanctions`                                           | self-scoped; `moderation.sanctions.manage` for others |
-| `AppealSanction`                                              | self-scoped (the sanctioned user)                     |
+| `AppealSanction` / `AcknowledgeSanction`                      | self-scoped (the sanctioned user)                     |
 | `GetSupportTicket` / `RespondToTicket`                        | owner, or `moderation.tickets.manage`                 |
 | `ListSupportTickets`                                          | self-scoped; `moderation.tickets.manage` for all      |
+| `AssignSupportTicket` / `UpdateSupportTicket` / `EscalateSupportTicket` / `GetSupportTicketStats` | `moderation.tickets.manage`     |
 
 Schema (`moderation`): `reports`, `report_status_transitions`,
 `moderator_actions`, `moderation_evidence` (polymorphic), `user_sanctions`,

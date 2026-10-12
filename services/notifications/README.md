@@ -73,8 +73,8 @@ admin surfaces require an explicit permission. `super_admin` bypasses.
 
 | RPC                                                                                              | Permission                                         |
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| `Create`                                                                                         | `notifications.create`                             |
-| `List` / `GetNotification` / `GetUnreadCount` / `Dismiss` / `MarkAllRead` / `DeleteNotification` | self-scoped                                        |
+| `Create` / `BulkCreateNotifications`                                                             | `notifications.create`                             |
+| `List` / `GetNotification` / `GetUnreadCount` / `Dismiss` / `MarkRead` / `MarkAllRead` / `DeleteNotification` | self-scoped                           |
 | `Get/Update/ResetNotificationPreferences`                                                        | self; `notification-prefs:*:any` for others        |
 | `CleanupExpiredNotifications`                                                                    | `notifications.cleanup`                            |
 | `SendEmail`                                                                                      | `notifications.email.send` (or service-to-service) |

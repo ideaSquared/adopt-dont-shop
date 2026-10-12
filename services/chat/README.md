@@ -74,7 +74,9 @@ bypasses the membership check.
 | `OpenChat`                                                                    | `chats.create`                       |
 | `SendMessage` / `React`                                                       | `messages.create` + participant      |
 | `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat` / `DeleteChat` | `chats.read` + participant           |
-| `ListChats` / `SearchChats`                                                   | `chats.read`                         |
+| `ListChats` / `SearchChats` / `SearchMessages`                                | `chats.read` (results limited to the caller's own chats) |
+| `UpdateChatStatus`                                                            | `chats.read` + rescue staff of the chat (moderator/admin bypass) |
+| `GetChatStats`                                                                | `chats.read` + moderator/admin role (cross-chat admin dashboard) |
 | `DeleteMessage`                                                               | sender, or `chat.message.delete:any` |
 
 Schema (`chat`): `chats` (anchored to an application), `chat_participants`
