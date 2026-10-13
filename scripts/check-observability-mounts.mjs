@@ -1,0 +1,723 @@
+#!/usr/bin/env node
+/**
+ * Observability container host-mount guard (ADS-1376).
+ *
+ * cAdvisor must never bind-mount `/var/run` (or any other host socket, e.g.
+ * `docker.sock`/`podman.sock`, wherever it lives) directly: a unix socket
+ * mounted `:ro` is still fully connectable, so a compromised cAdvisor
+ * process would get full Docker API access — a host-root-equivalent escape
+ * — despite this stack's otherwise-strict hardening. It still needs *some*
+ * Docker API access (via the `docker-socket-proxy` service) to populate the
+ * container-name label the ContainerRestarting alert filters on, so that
+ * proxy's nginx config (observability/docker-socket-proxy/server.conf) must
+ * stay an exact-path allow-list of the 5 endpoints cAdvisor actually needs —
+ * never a URL-prefix one, which would also let through endpoints like
+ * `/containers/{id}/archive` that can read arbitrary files, including
+ * secrets, out of any other container.
+ *
+ * node-exporter and cAdvisor also bind-mount the full host rootfs
+ * (`/:/host/root:ro`, `/:/rootfs:ro`) for disk-space/container metrics. A
+ * recursive bind mount of `/` carries every host socket under it along for
+ * the ride, including /run/docker.sock itself — `:ro` doesn't stop a
+ * `connect()`, so without a mask *both* exporters would otherwise still
+ * have the exact host-root-equivalent Docker API access ADS-1376 removed
+ * cAdvisor's direct mount to get rid of. The same recursive bind also
+ * exposes the plaintext production secrets deploy-secrets.sh materialises
+ * under /opt/ads/<env>/secrets/. Both paths (/run and /opt/ads) must be
+ * shadowed with a `tmpfs` mounted `mode=000` — unreadable even to root,
+ * matching this stack's `cap_drop: ALL` (no `CAP_DAC_OVERRIDE` to bypass
+ * the permission bits).
+ *
+ * Run via `node scripts/check-observability-mounts.mjs` or
+ * `pnpm check:observability-mounts` (wired into `ci:local`).
+ */
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+export const COMPOSE_FILE = 'docker-compose.observability.yml';
+export const PROXY_CONF_FILE = 'observability/docker-socket-proxy/server.conf';
+// Compose mounts this as the *main* nginx config (not a conf.d fragment —
+// see docker-compose.observability.yml's docker-socket-proxy volumes). It's
+// the file whose `include` is what actually pulls server.conf's allow-list
+// in at all, so a `server {}`/`location`/`proxy_pass` added here directly
+// would run with none of the checks above and bypass every one of them.
+export const PROXY_MAIN_CONF_FILE = 'observability/docker-socket-proxy/nginx.conf';
+const PROXY_SERVICE = 'docker-socket-proxy';
+// findUnsafeSocketProxyConfig/findUnsafeMainNginxConfig only ever read these
+// two repo-relative paths directly — they never confirm the compose file
+// actually mounts them at these targets for docker-socket-proxy. Changing
+// either volume's source or target would leave both of those checks (and
+// their real-file tests) green while validating files the live container
+// doesn't use at all.
+const EXPECTED_PROXY_MOUNTS = [
+  { file: PROXY_MAIN_CONF_FILE, target: '/etc/nginx/nginx.conf' },
+  { file: PROXY_CONF_FILE, target: '/etc/nginx/conf.d/default.conf' },
+];
+// The actual security boundary: docker-socket-proxy must be reachable only
+// from cadvisor, never from the shared `default` network every app service
+// also sits on. None of the nginx-config checks above can see this —
+// they only ever read the two config files, never the compose networking
+// that decides who can even reach the proxy to send those configs' allowed
+// requests in the first place.
+const PROXY_NETWORK = 'docker-proxy-internal';
+
+// Matches on the mount SOURCE only (never the target or options) — a `/`
+// or end-of-string boundary after `/var/run` *or* `/run` (on a standard
+// Linux host `/var/run` is a symlink to `/run`, so `- /run:/run:ro` exposes
+// exactly the same docker.sock without ever mentioning `/var/run`) so
+// `/(var/)?run/anything` is caught, not just `/var/run` exactly — plus any
+// source ending in `.sock` (podman, containerd, cri-dockerd, docker — any
+// host-control socket, not just docker.sock specifically, and wherever
+// it's bind-mounted from).
+const UNSAFE_SOURCE_PATTERN = /^\/(var\/)?run(\/|$)|\.sock$/i;
+
+// Two independent reasons per service: /opt/ads (plaintext production
+// secrets) and /run (the real docker.sock, reachable through the recursive
+// rootfs bind regardless of cAdvisor's own mounts — see the header comment).
+const REQUIRED_ROOTFS_MASKS = [
+  { service: 'node-exporter', tmpfsPath: '/host/root/opt/ads' },
+  { service: 'node-exporter', tmpfsPath: '/host/root/run' },
+  { service: 'cadvisor', tmpfsPath: '/rootfs/opt/ads' },
+  { service: 'cadvisor', tmpfsPath: '/rootfs/run' },
+];
+
+// cAdvisor's only legitimate reasons to talk to the Docker API at all. These
+// are matched as exact nginx `location` *selectors* (see
+// parseNginxLocationBlocks below) — not substrings — so a `location` added
+// for anything else, however it's phrased, is an "unexpected location"
+// failure regardless of whether it happens to contain one of the forbidden
+// keywords below.
+const EXPECTED_PROXY_LOCATIONS = [
+  { label: "GET /_ping (this proxy's own healthcheck)", selector: '^(/v[0-9][0-9.]*)?/_ping$' },
+  { label: 'GET /version (API version negotiation)', selector: '^(/v[0-9][0-9.]*)?/version$' },
+  { label: 'GET /info (cAdvisor startup handshake)', selector: '^(/v[0-9][0-9.]*)?/info$' },
+  {
+    label: 'GET /containers/json (container list)',
+    selector: '^(/v[0-9][0-9.]*)?/containers/json$',
+  },
+  {
+    label: 'GET /containers/{id}/json (inspect -> name label)',
+    selector: '^(/v[0-9][0-9.]*)?/containers/[^/]+/json$',
+  },
+];
+const DENY_ALL_SELECTOR = '/';
+const LIMIT_TO_GET_PATTERN = /limit_except\s+GET\s*\{\s*deny\s+all;?\s*\}/;
+const PROXY_PASS_PATTERN = /proxy_pass\s+http:\/\/docker_socket;?/;
+// The catch-all's body must be *only* this — not merely contain it — or a
+// conditional (`if ($request_method = POST) { return 403; } proxy_pass
+// ...;`) would still forward every unmatched GET while passing a looser
+// "contains return 403 somewhere" check.
+const UNCONDITIONAL_DENY_PATTERN = /^\s*return\s+403;?\s*$/;
+
+// Defense in depth alongside the exact-selector check above: catches a
+// dangerous directive added somewhere that isn't a `location` block at all
+// (e.g. a stray `proxy_pass`/`allow all` in the `server` block itself).
+const PROXY_FORBIDDEN_KEYWORDS = [
+  'archive',
+  'export',
+  'logs',
+  'attach',
+  'exec',
+  'auth',
+  'build',
+  'commit',
+  'configs',
+  'distribution',
+  'grpc',
+  'images',
+  'networks',
+  'nodes',
+  'plugins',
+  'secrets',
+  'services',
+  'session',
+  'swarm',
+  'tasks',
+  'volumes',
+];
+
+// An exact filename, not a `*.conf` glob — a glob would load *any* file a
+// future Compose change mounts into conf.d/, none of which
+// findUnsafeSocketProxyConfig would ever see (it only ever reads
+// server.conf by name). Naming the one file this stack ships means nothing
+// else mounted there has any effect, closing that off at the source.
+const REQUIRED_CONF_D_INCLUDE_PATTERN = /include\s+\/etc\/nginx\/conf\.d\/default\.conf;/;
+const REQUIRED_USER_ROOT_PATTERN = /\buser\s+root;/;
+// The main config's only job is to set `user root;` (see its own comment
+// for why) and include conf.d/default.conf — it must never define a
+// server, location or proxy_pass of its own, which would run completely
+// outside every check findUnsafeSocketProxyConfig does on server.conf.
+const DISALLOWED_IN_MAIN_CONF = [
+  {
+    pattern: /\bserver\s*\{/,
+    reason: 'must not define a `server {}` block directly — only include conf.d/default.conf',
+  },
+  {
+    pattern: /\blocation\b/,
+    reason: 'must not define a `location` directive directly — only include conf.d/default.conf',
+  },
+  {
+    pattern: /\bproxy_pass\b/,
+    reason: 'must not define a `proxy_pass` directive directly — only include conf.d/default.conf',
+  },
+];
+
+function leadingSpaces(line) {
+  return line.match(/^(\s*)/)[1].length;
+}
+
+// Strips one matching pair of surrounding quotes, if present — a quoted
+// Compose scalar's `:` characters are literal, not syntax, so the quotes
+// must come off before splitting a short-syntax mount on `:`.
+function stripQuotes(token) {
+  const first = token[0];
+  const last = token[token.length - 1];
+  if (token.length >= 2 && (first === '"' || first === "'") && first === last) {
+    return token.slice(1, -1);
+  }
+  return token;
+}
+
+// Parses nginx `location [~] <selector> { ... }` blocks, tracking brace
+// depth so a block's `body` is everything up to its own matching `}` (not
+// the next literal `}`, which could belong to a nested block like
+// `limit_except`). Good enough for our own fixed, simple file — not a
+// general nginx-config parser.
+function parseNginxLocationBlocks(content) {
+  const blocks = [];
+  const header = /location\s+(~\s*)?([^{]+?)\s*\{/g;
+  let match;
+  while ((match = header.exec(content)) !== null) {
+    const braceIndex = match.index + match[0].length - 1;
+    let depth = 1;
+    let i = braceIndex + 1;
+    while (i < content.length && depth > 0) {
+      if (content[i] === '{') depth++;
+      else if (content[i] === '}') depth--;
+      i++;
+    }
+    if (depth > 0) {
+      // Ran off the end of the file before the brace this `location` opened
+      // was ever closed. nginx would refuse to load a config like this
+      // outright — silently treating the unterminated block as "valid"
+      // (slicing whatever's left as its body) would let a config this
+      // broken keep passing every check below.
+      throw new Error('unterminated `location` block (missing closing `}`)');
+    }
+    blocks.push({ selector: match[2].trim(), body: content.slice(braceIndex + 1, i - 1) });
+  }
+  return blocks;
+}
+
+// Parses top-level `server { ... }` blocks the same way (brace-depth
+// tracked). findUnsafeSocketProxyConfig requires exactly one of these —
+// without that, a second `server { listen 2376; location / { proxy_pass
+// http://docker_socket; } }` block would add its own catch-all, and since
+// parseNginxLocationBlocks flattens every `location` across the whole
+// file, `.find()`-ing "the" deny block would silently keep validating only
+// the first one found while a second, actually-permissive one went
+// unchecked.
+function parseNginxServerBlocks(content) {
+  const blocks = [];
+  const header = /\bserver\s*\{/g;
+  let match;
+  while ((match = header.exec(content)) !== null) {
+    const braceIndex = match.index + match[0].length - 1;
+    let depth = 1;
+    let i = braceIndex + 1;
+    while (i < content.length && depth > 0) {
+      if (content[i] === '{') depth++;
+      else if (content[i] === '}') depth--;
+      i++;
+    }
+    if (depth > 0) {
+      throw new Error('unterminated `server` block (missing closing `}`)');
+    }
+    blocks.push({ body: content.slice(braceIndex + 1, i - 1) });
+  }
+  return blocks;
+}
+
+// A direct child of the top-level `services:` map — exactly two leading
+// spaces — not merely a line that happens to trim down to `${service}:`,
+// which a nested key (e.g. another service's `depends_on: cadvisor:`)
+// could also do, misidentifying that nested line as the real service start.
+function getServiceLines(lines, service) {
+  const serviceIndex = lines.findIndex(
+    line => /^ {2}\S/.test(line) && line.trim() === `${service}:`
+  );
+  if (serviceIndex === -1) return null;
+
+  const nextServiceIndex = lines.findIndex(
+    (line, index) => index > serviceIndex && /^\s{2}\S.*:\s*$/.test(line)
+  );
+  return {
+    serviceIndex,
+    serviceLines: lines.slice(
+      serviceIndex,
+      nextServiceIndex === -1 ? lines.length : nextServiceIndex
+    ),
+  };
+}
+
+// Returns the direct child lines of a `key:` block (e.g. `tmpfs:`),
+// stopping at the first line dedented back to (or past) the key's own
+// indent. Works for both list (`- foo`) and mapping (`FOO: bar`) blocks.
+function getKeyBlockLines(lines, key) {
+  const keyIndex = lines.findIndex(line => line.trim() === `${key}:`);
+  if (keyIndex === -1) return [];
+
+  const keyIndent = leadingSpaces(lines[keyIndex]);
+  const blockLines = [];
+  for (let i = keyIndex + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === '') continue;
+    if (leadingSpaces(line) <= keyIndent) break;
+    blockLines.push(line);
+  }
+  return blockLines;
+}
+
+// Like getKeyBlockLines, but anchored to a zero-indent `key:` line — every
+// service also has its own same-named nested key (e.g. `networks:` under
+// cadvisor or docker-socket-proxy), which getKeyBlockLines' unanchored
+// search would match first and mistake for the real top-level block.
+function getTopLevelKeyBlockLines(lines, key) {
+  const keyIndex = lines.findIndex(line => line.trim() === `${key}:` && leadingSpaces(line) === 0);
+  if (keyIndex === -1) return [];
+
+  const blockLines = [];
+  for (let i = keyIndex + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === '') continue;
+    if (leadingSpaces(line) === 0) break;
+    blockLines.push(line);
+  }
+  return blockLines;
+}
+
+// True when `networkName:` appears in `topLevelNetworksLines` (the
+// top-level `networks:` block) with `internal: true` as a direct child.
+function isNetworkInternal(topLevelNetworksLines, networkName) {
+  const networkIndex = topLevelNetworksLines.findIndex(line => line.trim() === `${networkName}:`);
+  if (networkIndex === -1) return false;
+
+  const networkIndent = leadingSpaces(topLevelNetworksLines[networkIndex]);
+  for (let i = networkIndex + 1; i < topLevelNetworksLines.length; i++) {
+    const line = topLevelNetworksLines[i];
+    if (line.trim() === '') continue;
+    if (leadingSpaces(line) <= networkIndent) break;
+    if (line.trim() === 'internal: true') return true;
+  }
+  return false;
+}
+
+export function findCadvisorUnsafeMounts(file, root = ROOT) {
+  const lines = readFileSync(join(root, file), 'utf8').split('\n');
+  const service = getServiceLines(lines, 'cadvisor');
+  if (!service) return [];
+
+  const failures = [];
+  service.serviceLines.forEach((line, offset) => {
+    const sources = [];
+
+    // Compose short syntax: `- /var/run:/var/run:ro`, optionally quoted as
+    // a single YAML scalar (`- "/var/run:/var/run:ro"`), whose `:` are then
+    // literal, not syntax — strip matching quotes before splitting. Source
+    // is the first colon-delimited segment (paths never contain a literal
+    // `:` on Linux, so splitting on it is safe once quotes are gone) —
+    // unless the token is itself a `${...}` interpolation, whose own `:-`
+    // would make that split misleading; keep the whole thing in that case
+    // so the check below sees it intact.
+    const shortMatch = line.match(/^\s*-\s*(\S+)\s*$/);
+    if (shortMatch) {
+      const token = stripQuotes(shortMatch[1]);
+      sources.push(token.includes('${') ? token : token.split(':')[0]);
+    }
+
+    // Compose long syntax (`source: /var/run` or `source: '/var/run'` on
+    // its own line) *and* inline-mapping syntax (`- { type: bind, source:
+    // /var/run, target: /var/run }`) — both contain the substring
+    // `source: <value>` somewhere on the line, optionally quoted, so one
+    // unanchored regex catches both.
+    const sourceMatch = line.match(/\bsource:\s*(['"]?)([^\s,}'"]+)\1/);
+    if (sourceMatch) sources.push(sourceMatch[2]);
+
+    for (const source of sources) {
+      // A Compose `${VAR:-default}` interpolation's own `:-` breaks the
+      // colon-split above — `${DOCKER_SOCKET:-/var/run/docker.sock}` yields
+      // `${DOCKER_SOCKET`, which matches no unsafe pattern, while the
+      // *resolved* value (when the var is unset, as in that default) is
+      // exactly the dangerous mount this check exists to catch. Resolving
+      // arbitrary Compose interpolation is out of scope for this guard —
+      // reject it outright instead of trying to evaluate it.
+      if (source.includes('${')) {
+        failures.push({ file, line: service.serviceIndex + offset + 1, mount: source });
+        continue;
+      }
+      if (UNSAFE_SOURCE_PATTERN.test(source)) {
+        failures.push({ file, line: service.serviceIndex + offset + 1, mount: source });
+      }
+    }
+  });
+  return failures;
+}
+
+export function findMissingSecretsMasks(file, root = ROOT) {
+  const lines = readFileSync(join(root, file), 'utf8').split('\n');
+
+  const failures = [];
+  for (const { service, tmpfsPath } of REQUIRED_ROOTFS_MASKS) {
+    const found = getServiceLines(lines, service);
+    if (!found) continue; // service absent from this file — nothing to guard
+
+    const tmpfsLines = getKeyBlockLines(found.serviceLines, 'tmpfs');
+    const hasMask = tmpfsLines.some(line => {
+      const trimmed = line.trim();
+      const prefix = `- ${tmpfsPath}:`;
+      if (!trimmed.startsWith(prefix)) return false;
+      const options = trimmed.slice(prefix.length).split(',');
+      return options.includes('mode=000');
+    });
+    if (!hasMask) failures.push({ file, service, tmpfsPath });
+  }
+  return failures;
+}
+
+export function findUnsafeSocketProxyConfig(file = PROXY_CONF_FILE, root = ROOT) {
+  let rawContent;
+  try {
+    rawContent = readFileSync(join(root, file), 'utf8');
+  } catch {
+    // Missing, not "nothing to guard": Compose requires this file to
+    // configure the only container with access to the real docker.sock, so
+    // its absence is itself the security failure, not an exemption from
+    // checking for one.
+    return [
+      { file, reason: 'file is missing — docker-socket-proxy has no allow-list configured at all' },
+    ];
+  }
+
+  // Strip comments before scanning — both whole-line ones (this file's own
+  // explanatory comments necessarily name the dangerous endpoints/sections
+  // it exists to keep out, which would otherwise false-positive the
+  // forbidden-keyword check below) and trailing ones after a directive,
+  // which nginx treats as a comment too. The brace-depth parsers below
+  // count every `{`/`}` character in the text with no idea what a comment
+  // is — a `}` placed after a `#` would still close a block early as far
+  // as they're concerned, letting whatever comes after in the real file
+  // (which nginx correctly treats as still inside that block) go completely
+  // unparsed and unchecked.
+  const content = rawContent
+    .split('\n')
+    .map(line => line.replace(/#.*$/, ''))
+    .join('\n');
+
+  const failures = [];
+  // nginx expands `include` wherever it appears, including inside a
+  // `server` block — a location added by an included file would be
+  // completely invisible to the parsing below (which only ever sees
+  // server.conf's own literal text) while still being live in the real
+  // proxy. The Compose-mount check only pins down nginx.conf/server.conf
+  // themselves, not whatever else server.conf might pull in, so the only
+  // thing that actually closes this off is banning `include` here outright.
+  if (/\binclude\s+\S+;/.test(content)) {
+    failures.push({
+      file,
+      reason:
+        'must not contain an `include` directive — nginx would expand it to a file this guard never reads',
+    });
+  }
+
+  let serverBlocks;
+  try {
+    serverBlocks = parseNginxServerBlocks(content);
+  } catch (error) {
+    return [{ file, reason: error.message }];
+  }
+  if (serverBlocks.length !== 1) {
+    failures.push({
+      file,
+      reason: `must define exactly one \`server {}\` block (found ${serverBlocks.length}) — an extra one would add its own, unchecked catch-all`,
+    });
+  }
+
+  let blocks = [];
+  if (serverBlocks.length > 0) {
+    try {
+      blocks = parseNginxLocationBlocks(serverBlocks[0].body);
+    } catch (error) {
+      return [{ file, reason: error.message }];
+    }
+  }
+  const denyBlock = blocks.find(block => block.selector === DENY_ALL_SELECTOR);
+  const proxyingBlocks = blocks.filter(block => block.selector !== DENY_ALL_SELECTOR);
+
+  const seenSelectors = new Set();
+  for (const { selector, body } of proxyingBlocks) {
+    const expected = EXPECTED_PROXY_LOCATIONS.find(location => location.selector === selector);
+    if (!expected) {
+      failures.push({
+        file,
+        reason: `unexpected location \`${selector}\` — only the 5 documented endpoints may reach docker_socket`,
+      });
+      continue;
+    }
+    seenSelectors.add(selector);
+    if (!LIMIT_TO_GET_PATTERN.test(body)) {
+      failures.push({
+        file,
+        reason: `location \`${selector}\` must restrict itself to GET with limit_except`,
+      });
+    }
+    if (!PROXY_PASS_PATTERN.test(body)) {
+      failures.push({
+        file,
+        reason: `location \`${selector}\` must proxy_pass to docker_socket — cAdvisor gets no response otherwise`,
+      });
+    }
+    // The two checks above only confirm those directives are PRESENT — a
+    // location keeping both while also adding e.g. a `rewrite` could still
+    // redirect the request somewhere else entirely (another allowed
+    // endpoint's path, or one disguised well enough to dodge the keyword
+    // scan below) before proxy_pass ever sees it. Require the body contain
+    // nothing else at all.
+    const extra = body.replace(LIMIT_TO_GET_PATTERN, '').replace(PROXY_PASS_PATTERN, '').trim();
+    if (extra !== '') {
+      failures.push({
+        file,
+        reason: `location \`${selector}\` must contain only \`limit_except GET { deny all; }\` and \`proxy_pass http://docker_socket;\` — found an extra directive that could redirect or rewrite the request`,
+      });
+    }
+  }
+
+  for (const { label, selector } of EXPECTED_PROXY_LOCATIONS) {
+    if (!seenSelectors.has(selector)) {
+      failures.push({ file, reason: `missing required endpoint: ${label}` });
+    }
+  }
+
+  if (!denyBlock || !UNCONDITIONAL_DENY_PATTERN.test(denyBlock.body.trim())) {
+    failures.push({
+      file,
+      reason:
+        'the catch-all `location / { ... }` must be an unconditional `return 403;` and nothing else',
+    });
+  }
+
+  for (const word of PROXY_FORBIDDEN_KEYWORDS) {
+    if (new RegExp(`\\b${word}\\b`, 'i').test(content)) {
+      failures.push({ file, reason: `must not reference "${word}"` });
+    }
+  }
+
+  return failures;
+}
+
+export function findUnsafeMainNginxConfig(file = PROXY_MAIN_CONF_FILE, root = ROOT) {
+  let rawContent;
+  try {
+    rawContent = readFileSync(join(root, file), 'utf8');
+  } catch {
+    return [
+      { file, reason: 'file is missing — docker-socket-proxy has no main nginx config at all' },
+    ];
+  }
+
+  const content = rawContent
+    .split('\n')
+    .filter(line => !line.trim().startsWith('#'))
+    .join('\n');
+
+  const failures = [];
+  for (const { pattern, reason } of DISALLOWED_IN_MAIN_CONF) {
+    if (pattern.test(content)) failures.push({ file, reason });
+  }
+  if (!REQUIRED_CONF_D_INCLUDE_PATTERN.test(content)) {
+    failures.push({
+      file,
+      reason:
+        "must `include /etc/nginx/conf.d/default.conf;` — otherwise server.conf's allow-list never loads at all",
+    });
+  }
+  // Confirming that include exists doesn't rule out a second one: a file
+  // can keep the required include and still add e.g. `include
+  // /etc/nginx/extra.conf;`, which could define its own unrestricted
+  // server — nothing in this script ever reads that file.
+  const includeCount = (content.match(/\binclude\s+\S+;/g) ?? []).length;
+  if (includeCount > 1) {
+    failures.push({
+      file,
+      reason:
+        'must contain exactly one `include` directive — an extra one can load a config this guard never reads',
+    });
+  }
+  if (!REQUIRED_USER_ROOT_PATTERN.test(content)) {
+    failures.push({
+      file,
+      reason:
+        "must set `user root;` — the worker process can't open the root-owned docker.sock without it, silently disabling the proxy (and the name label it exists for)",
+    });
+  }
+  return failures;
+}
+
+// findUnsafeSocketProxyConfig/findUnsafeMainNginxConfig trust that
+// PROXY_CONF_FILE/PROXY_MAIN_CONF_FILE are the files docker-socket-proxy
+// actually runs. Confirm that by reading the compose file's own volume
+// mounts for that service instead of assuming it.
+export function findUnverifiedProxyConfigMounts(file = COMPOSE_FILE, root = ROOT) {
+  const lines = readFileSync(join(root, file), 'utf8').split('\n');
+  const service = getServiceLines(lines, PROXY_SERVICE);
+  if (!service) {
+    return [
+      { file, reason: `service \`${PROXY_SERVICE}\` not found — cannot verify its config mounts` },
+    ];
+  }
+
+  const mountedSourceByTarget = new Map();
+  for (const line of getKeyBlockLines(service.serviceLines, 'volumes')) {
+    const shortMatch = line.trim().match(/^-\s*(\S+)\s*$/);
+    if (!shortMatch) continue;
+    const [source, target] = stripQuotes(shortMatch[1]).split(':');
+    if (source && target) mountedSourceByTarget.set(target, source);
+  }
+
+  const failures = [];
+  for (const { file: confFile, target } of EXPECTED_PROXY_MOUNTS) {
+    const expectedSource = `./${confFile}`;
+    const actualSource = mountedSourceByTarget.get(target);
+    if (actualSource !== expectedSource) {
+      failures.push({
+        file,
+        reason: `\`${PROXY_SERVICE}\` must bind-mount ${expectedSource} to ${target} (found ${actualSource ?? 'no mount at that target'}) — otherwise the file this guard checks isn't the one the live proxy actually runs`,
+      });
+    }
+  }
+  return failures;
+}
+
+// None of the nginx-config checks above can see Compose networking — they
+// only ever read server.conf/nginx.conf's text. The allow-list in those
+// files is meaningless if docker-socket-proxy is *also* reachable from the
+// shared `default` network (every app service could then reach it, not
+// just cAdvisor), or if the dedicated network it's on isn't actually
+// `internal: true` (which is what keeps it from having a gateway out, or
+// in, at all).
+export function findUnsafeProxyNetworkConfig(file = COMPOSE_FILE, root = ROOT) {
+  const lines = readFileSync(join(root, file), 'utf8').split('\n');
+  const failures = [];
+
+  const proxyService = getServiceLines(lines, PROXY_SERVICE);
+  if (!proxyService) {
+    failures.push({
+      file,
+      reason: `service \`${PROXY_SERVICE}\` not found — cannot verify its network attachment`,
+    });
+  } else {
+    const networks = getKeyBlockLines(proxyService.serviceLines, 'networks')
+      .map(line => line.trim().replace(/^-\s*/, ''))
+      .filter(Boolean);
+    if (networks.length !== 1 || networks[0] !== PROXY_NETWORK) {
+      failures.push({
+        file,
+        reason: `\`${PROXY_SERVICE}\` must attach only to \`${PROXY_NETWORK}\` (found: ${networks.join(', ') || 'none'}) — any other network, including \`default\`, would let every app service reach the real docker.sock through it`,
+      });
+    }
+  }
+
+  const cadvisorService = getServiceLines(lines, 'cadvisor');
+  if (cadvisorService) {
+    const networks = getKeyBlockLines(cadvisorService.serviceLines, 'networks')
+      .map(line => line.trim().replace(/^-\s*/, ''))
+      .filter(Boolean);
+    if (!networks.includes(PROXY_NETWORK)) {
+      failures.push({
+        file,
+        reason: `cadvisor must attach to \`${PROXY_NETWORK}\` — otherwise it can't reach docker-socket-proxy at all`,
+      });
+    }
+  }
+
+  const topLevelNetworks = getTopLevelKeyBlockLines(lines, 'networks');
+  if (!isNetworkInternal(topLevelNetworks, PROXY_NETWORK)) {
+    failures.push({
+      file,
+      reason: `top-level network \`${PROXY_NETWORK}\` must be declared \`internal: true\` — without it, the network has a gateway to the outside and isn't actually isolated`,
+    });
+  }
+
+  return failures;
+}
+
+function main() {
+  const unsafeMounts = findCadvisorUnsafeMounts(COMPOSE_FILE);
+  const missingMasks = findMissingSecretsMasks(COMPOSE_FILE);
+  const unsafeProxyConfig = [
+    ...findUnsafeSocketProxyConfig(),
+    ...findUnsafeMainNginxConfig(),
+    ...findUnverifiedProxyConfigMounts(COMPOSE_FILE),
+    ...findUnsafeProxyNetworkConfig(COMPOSE_FILE),
+  ];
+
+  if (unsafeMounts.length === 0 && missingMasks.length === 0 && unsafeProxyConfig.length === 0) {
+    console.log('OK — observability host mounts are hardened (ADS-1376).');
+    return;
+  }
+
+  if (unsafeMounts.length > 0) {
+    console.error('cAdvisor has an unsafe host-socket mount (ADS-1376):');
+    for (const { file, line, mount } of unsafeMounts) {
+      console.error(`  - ${file}:${line} — ${mount}`);
+    }
+    console.error('');
+    console.error(
+      'A unix socket mounted :ro is still fully connectable; this grants full Docker API access.'
+    );
+    console.error(
+      'Front the socket with the docker-socket-proxy service instead, if container-name resolution is needed.'
+    );
+    console.error('');
+  }
+
+  if (missingMasks.length > 0) {
+    console.error(
+      'An observability exporter is missing its production-secrets mount mask (ADS-1376):'
+    );
+    for (const { service, tmpfsPath } of missingMasks) {
+      console.error(`  - ${service} has no \`tmpfs: - ${tmpfsPath}:...,mode=000\` entry`);
+    }
+    console.error('');
+    console.error(
+      'Both exporters bind-mount the full host rootfs for metrics, which also exposes the plaintext'
+    );
+    console.error(
+      'production secrets under /opt/ads/<env>/secrets/. Shadow that path with a `mode=000` tmpfs mount.'
+    );
+    console.error('');
+  }
+
+  if (unsafeProxyConfig.length > 0) {
+    console.error('docker-socket-proxy is misconfigured (ADS-1376):');
+    for (const { file, reason } of unsafeProxyConfig) {
+      console.error(`  - ${file}: ${reason}`);
+    }
+    console.error('');
+    console.error(
+      'This proxy is the only container with access to the real docker.sock; its nginx config must'
+    );
+    console.error(
+      'stay an exact-path allow-list of the 5 endpoints cAdvisor needs, or it reintroduces the'
+    );
+    console.error('host-root-equivalent escape ADS-1376 removed from cAdvisor itself.');
+  }
+
+  process.exit(1);
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}

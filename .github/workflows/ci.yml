@@ -68,6 +68,10 @@ jobs:
               - 'docker-compose*.yml'
               - '**/Dockerfile*'
               - '**/*.proto'
+              # ADS-1376: check-observability-mounts.test.mjs (run by the
+              # `pnpm test:scripts` step right below) asserts this directory's
+              # nginx config directly — a server.conf-only PR must still run it.
+              - 'observability/docker-socket-proxy/**'
 
       # ADS-1001: run the scripts/ guard-script test suite before the guards
       # themselves, so a broken guard is reported as a test failure rather
