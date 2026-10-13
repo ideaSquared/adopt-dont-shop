@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Input, toast } from '@adopt-dont-shop/lib.components';
 import {
   ApplicationStage,
@@ -6,6 +6,7 @@ import {
   STAGE_ACTIONS,
   StageAction,
 } from '../../types/applicationStages';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 import * as styles from './StageTransitionModal.css';
 
 type Choice = { value: string; label: string };
@@ -49,6 +50,9 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
   onClose,
   onTransition,
 }) => {
+  // Only rendered while open.
+  const titleId = useId();
+  const dialog = useDialogFocus<HTMLDivElement>(true);
   const [selectedAction, setSelectedAction] = useState<StageAction | null>(null);
   const [notes, setNotes] = useState('');
   const [choice, setChoice] = useState<string | null>(null);
@@ -119,9 +123,18 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
       onKeyDown={e => e.key === 'Escape' && onClose()}
       role="presentation"
     >
-      <div className={styles.modal}>
+      <div
+        ref={dialog.ref}
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onKeyDown={dialog.onKeyDown}
+      >
         <div className={styles.header}>
-          <h2 className={styles.title}>Transition Application Stage</h2>
+          <h2 id={titleId} className={styles.title}>
+            Transition Application Stage
+          </h2>
           <p className={styles.subtitle}>Move this application to a new stage</p>
         </div>
 

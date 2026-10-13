@@ -80,6 +80,72 @@ describe('ChatService REST API methods', () => {
     });
   });
 
+  describe('real-time reactions and read receipts', () => {
+    const socketHandler = (event: string): ((payload: unknown) => void) => {
+      const socket = vi.mocked(io).mock.results.at(-1)?.value as {
+        on: ReturnType<typeof vi.fn>;
+      };
+      const handler = socket.on.mock.calls.find(([name]) => name === event)?.[1];
+      if (!handler) {
+        throw new Error(`no listener for ${event}`);
+      }
+      return handler;
+    };
+
+    it('passes on a reaction the gateway fans out as chat:reaction:added', () => {
+      const received = vi.fn();
+      service.onReactionUpdate(received);
+      service.connect('user-1', 'token');
+
+      socketHandler('chat:reaction:added')({
+        messageId: 'm-1',
+        chatId: 'c-1',
+        userId: 'staff-1',
+        emoji: '👍',
+      });
+
+      expect(received).toHaveBeenCalledWith({
+        messageId: 'm-1',
+        emoji: '👍',
+        userId: 'staff-1',
+        change: 'added',
+      });
+    });
+
+    it('passes on a removed reaction from chat:reaction:removed', () => {
+      const received = vi.fn();
+      service.onReactionUpdate(received);
+      service.connect('user-1', 'token');
+
+      socketHandler('chat:reaction:removed')({
+        messageId: 'm-1',
+        chatId: 'c-1',
+        userId: 'staff-1',
+        emoji: '👍',
+      });
+
+      expect(received).toHaveBeenCalledWith(
+        expect.objectContaining({ messageId: 'm-1', change: 'removed' })
+      );
+    });
+
+    it('passes on a read receipt the gateway fans out as chat:message:read', () => {
+      const received = vi.fn();
+      service.onReadStatusUpdate(received);
+      service.connect('user-1', 'token');
+
+      socketHandler('chat:message:read')({
+        chatId: 'c-1',
+        userId: 'staff-1',
+        upToMessageId: 'm-9',
+      });
+
+      expect(received).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: 'c-1', userId: 'staff-1', upToMessageId: 'm-9' })
+      );
+    });
+  });
+
   describe('markAsRead', () => {
     // The gateway marks a chat read *up to* a message (up_to_message_id is
     // required), so the receipt names the newest message in the chat.
@@ -228,35 +294,32 @@ describe('ChatService REST API methods', () => {
   });
 
   describe('createConversation', () => {
-    it('posts the conversation payload and returns the created conversation', async () => {
+    it("opens an enquiry to the pet's rescue and returns the conversation", async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
         okJson({ chat: gatewayChat('c-new'), created: true })
       );
 
-      const result = await service.createConversation({
-        rescueId: 'r-1',
-        petId: 'p-1',
-        initialMessage: 'Hello',
-      });
+      const result = await service.createConversation({ rescueId: 'r-1', petId: 'p-1' });
 
       expect(result.id).toBe('c-new');
       const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-      expect(call[0]).toBe('https://api.test/api/v1/chats');
+      expect(call[0]).toBe('https://api.test/api/v1/chats/enquiries');
       const init = call[1] as RequestInit;
       expect(init.method).toBe('POST');
-      expect(JSON.parse(init.body as string)).toEqual({
-        rescueId: 'r-1',
-        petId: 'p-1',
-        initialMessage: 'Hello',
-      });
+      expect(JSON.parse(init.body as string)).toEqual({ petId: 'p-1' });
+    });
+
+    it('needs a pet to know which rescue to ask', async () => {
+      await expect(service.createConversation({ rescueId: 'r-1' })).rejects.toThrow(/pet/i);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('throws on failure', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() =>
-        failure(409, 'Conflict')
+        failure(429, 'Too Many Requests')
       );
-      await expect(service.createConversation({ rescueId: 'r-1' })).rejects.toThrow(
-        'HTTP 409: Conflict'
+      await expect(service.createConversation({ rescueId: 'r-1', petId: 'p-1' })).rejects.toThrow(
+        'HTTP 429: Too Many Requests'
       );
     });
   });

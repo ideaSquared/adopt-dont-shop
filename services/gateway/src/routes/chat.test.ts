@@ -38,6 +38,7 @@ const MESSAGE_FIXTURE = {
 
 function makeClient(): ChatClient & {
   openChatMock: ReturnType<typeof vi.fn>;
+  openPetEnquiryMock: ReturnType<typeof vi.fn>;
   sendMessageMock: ReturnType<typeof vi.fn>;
   listMessagesMock: ReturnType<typeof vi.fn>;
   listChatsMock: ReturnType<typeof vi.fn>;
@@ -52,6 +53,7 @@ function makeClient(): ChatClient & {
   getChatStatsMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
+  const openPetEnquiryMock = vi.fn();
   const deleteChatMock = vi.fn();
   const updateChatStatusMock = vi.fn();
   const getChatStatsMock = vi.fn();
@@ -66,6 +68,7 @@ function makeClient(): ChatClient & {
   const getChatMock = vi.fn();
   return {
     openChat: openChatMock,
+    openPetEnquiry: openPetEnquiryMock,
     sendMessage: sendMessageMock,
     listMessages: listMessagesMock,
     listChats: listChatsMock,
@@ -80,6 +83,7 @@ function makeClient(): ChatClient & {
     getChatStats: getChatStatsMock,
     close: vi.fn(),
     openChatMock,
+    openPetEnquiryMock,
     sendMessageMock,
     listMessagesMock,
     listChatsMock,
@@ -134,6 +138,21 @@ describe('GET /api/v1/chats — list', () => {
     expect(req.cursor).toBe('abc');
     expect(req.unreadOnly).toBe(true);
     expect(metadata.get('x-user-id')).toEqual(['usr-1']);
+  });
+
+  it("includes each chat's unread count for the caller", async () => {
+    client.listChatsMock.mockResolvedValueOnce({
+      chats: [{ ...CHAT_FIXTURE, unreadCount: 4 }],
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data[0]).toMatchObject({ unreadCount: 4 });
   });
 
   it('accepts snake_case unread_only too', async () => {
@@ -1113,5 +1132,85 @@ describe('GET /api/v1/chats/analytics — admin aggregate stats', () => {
 
     expect(client.getChatStatsMock).toHaveBeenCalledTimes(1);
     expect(client.getChatMock).not.toHaveBeenCalled();
+  });
+});
+
+// --- POST /api/v1/chats/enquiries ------------------------------------
+
+describe('POST /api/v1/chats/enquiries — ask about a pet', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  const ADOPTER_HEADERS = { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' };
+
+  it('opens an enquiry for the pet and answers 201 with the chat', async () => {
+    client.openPetEnquiryMock.mockResolvedValueOnce({
+      chat: { ...CHAT_FIXTURE, petId: 'pet-1' },
+      created: true,
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/chats/enquiries',
+      headers: ADOPTER_HEADERS,
+      payload: { petId: 'pet-1' },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toMatchObject({ chat: { petId: 'pet-1' }, created: true });
+    const [req, metadata] = client.openPetEnquiryMock.mock.calls[0] as [unknown, Metadata];
+    expect(req).toEqual({ petId: 'pet-1' });
+    expect(metadata.get('x-user-id')).toEqual(['usr-1']);
+  });
+
+  it('answers 200 when the adopter already has an enquiry about the pet', async () => {
+    client.openPetEnquiryMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE, created: false });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/chats/enquiries',
+      headers: ADOPTER_HEADERS,
+      payload: { petId: 'pet-1' },
+    });
+
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('rejects a request without a pet id', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/chats/enquiries',
+      headers: ADOPTER_HEADERS,
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(client.openPetEnquiryMock).not.toHaveBeenCalled();
+  });
+
+  it('caps each user at 10 enquiry requests a day', async () => {
+    client.openPetEnquiryMock.mockResolvedValue({ chat: CHAT_FIXTURE, created: true });
+    const ask = (userId: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/v1/chats/enquiries',
+        headers: { 'x-user-id': userId, 'x-user-roles': 'adopter' },
+        payload: { petId: 'pet-1' },
+      });
+
+    const firstTen = await Promise.all(Array.from({ length: 10 }, () => ask('usr-busy')));
+    expect(firstTen.every(res => res.statusCode === 201)).toBe(true);
+    expect((await ask('usr-busy')).statusCode).toBe(429);
+    // Another adopter (even behind the same IP) is unaffected.
+    expect((await ask('usr-other')).statusCode).toBe(201);
   });
 });

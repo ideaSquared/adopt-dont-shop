@@ -16,6 +16,8 @@ export const GatewayChatSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   status: z.string().optional(),
+  // The caller's unread count — only the chat list sends it.
+  unreadCount: z.number().optional(),
   petId: z.string().optional(),
   rescueId: z.string().optional(),
 });
@@ -31,6 +33,22 @@ export const GatewayMessageSchema = z.object({
   createdAt: z.string().optional(),
 });
 export type GatewayMessage = z.infer<typeof GatewayMessageSchema>;
+
+// Socket payloads for `chat:reaction:added` / `chat:reaction:removed` and
+// `chat:message:read` (services/gateway/src/ws/chat-subscriber.ts). A reaction
+// event carries the one emoji that changed, not the message's full list.
+export const GatewayReactionEventSchema = z.object({
+  messageId: z.string(),
+  userId: z.string(),
+  emoji: z.string(),
+});
+
+export const GatewayReadEventSchema = z.object({
+  chatId: z.string(),
+  userId: z.string(),
+  // The receipt covers messages up to and including this one.
+  upToMessageId: z.string(),
+});
 
 const CONVERSATION_STATUSES = ['active', 'archived', 'blocked', 'closed'] as const;
 type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
@@ -72,7 +90,7 @@ export const toConversation = (chat: GatewayChat): Conversation => {
     chat_id: chat.chatId,
     participants: (chat.participantUserIds ?? []).map((id) => ({ id, name: '', type: 'user' })),
     lastMessage,
-    unreadCount: 0,
+    unreadCount: chat.unreadCount ?? 0,
     createdAt: chat.createdAt,
     updatedAt: chat.updatedAt,
     isActive: status === 'active',

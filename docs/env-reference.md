@@ -96,7 +96,7 @@ The gateway reads `GATEWAY_PORT` (default `4000`) and `GATEWAY_HOST` (default `0
 | `NATS_URL`       | every `services/<name>/src/config.ts`               | `nats://nats:4222`                                     | JetStream bus for `withTransaction` publish-after-commit events. |
 | `<SVC>_GRPC_URL` | `services/gateway/src/config.ts` (all ten services) | `service-<name>:<grpcPort>` (e.g. `service-pets:6003`) | Override only when a service runs on a different host/port.      |
 
-Services that call other services read a subset of `*_GRPC_URL` too: `services/auth` (`APPLICATIONS_GRPC_URL`), `services/rescue` (`PETS_GRPC_URL`, `APPLICATIONS_GRPC_URL`), `services/applications` (`PETS_GRPC_URL`), `services/chat` (`APPLICATIONS_GRPC_URL`, `RESCUE_GRPC_URL`), `services/matching` (`PETS_GRPC_URL`, `RESCUE_GRPC_URL`). `services/notifications` reads `AUTH_GRPC_URL` / `PETS_GRPC_URL` / `RESCUE_GRPC_URL` / `APPLICATIONS_GRPC_URL` as optional — unset, the fan-outs that need them no-op (the weekly-digest job specifically needs the first three; see below).
+Services that call other services read a subset of `*_GRPC_URL` too: `services/auth` (`APPLICATIONS_GRPC_URL`), `services/rescue` (`PETS_GRPC_URL`, `APPLICATIONS_GRPC_URL`), `services/applications` (`PETS_GRPC_URL`), `services/chat` (`APPLICATIONS_GRPC_URL`, `RESCUE_GRPC_URL`, `PETS_GRPC_URL`), `services/matching` (`PETS_GRPC_URL`, `RESCUE_GRPC_URL`). `services/notifications` reads `AUTH_GRPC_URL` / `PETS_GRPC_URL` / `RESCUE_GRPC_URL` / `APPLICATIONS_GRPC_URL` as optional — unset, the fan-outs that need them no-op (the weekly-digest job specifically needs the first three; see below).
 
 ## Gateway (`services/gateway/src/config.ts` unless noted)
 

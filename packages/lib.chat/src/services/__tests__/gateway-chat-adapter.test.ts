@@ -36,6 +36,14 @@ describe('gateway chat adapter', () => {
     expect(toConversation(empty).lastMessage).toBeUndefined();
   });
 
+  it("carries the caller's unread count from the chat list", () => {
+    expect(toConversation({ ...chat, unreadCount: 3 }).unreadCount).toBe(3);
+  });
+
+  it('counts nothing as unread when the gateway sends no count', () => {
+    expect(toConversation(chat).unreadCount).toBe(0);
+  });
+
   it('treats a locked chat as closed, not as an active one that can take messages', () => {
     expect(toConversation({ ...chat, status: 'CHAT_STATUS_LOCKED' })).toMatchObject({
       status: 'closed',

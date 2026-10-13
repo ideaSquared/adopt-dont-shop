@@ -451,6 +451,7 @@ export type {
   MessageReaction,
   MessageAttachment,
   OpenChatRequest,
+  OpenPetEnquiryRequest,
   OpenChatResponse,
   SendMessageRequest,
   SendMessageResponse,

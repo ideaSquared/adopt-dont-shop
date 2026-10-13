@@ -1,8 +1,12 @@
 import type { Page } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
+import { URLS } from '../../playwright.config';
+import { createVerifiedAdopter, loginAccountViaApi } from '../../helpers/accounts';
+import { loginViaUI } from '../../helpers/auth';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
+import { createAdopterApplication, expectOk, postWithCsrf } from '../../helpers/seeds';
 
 /**
  * Adopter and rescue talk through the chat UIs of both apps.
@@ -55,5 +59,60 @@ test.describe('chat in the UI', () => {
     await expect(page.getByRole('article').filter({ hasText: reply })).toBeVisible({
       timeout: 15_000,
     });
+  });
+
+  test("a rescue message the adopter hasn't read shows as unread until they open it", async ({
+    browser,
+    apiAs,
+  }) => {
+    // A fresh adopter and chat, so messages other specs post to the seeded
+    // chat can't change the count under this test.
+    const account = await createVerifiedAdopter('unread');
+    const adopterApi = await loginAccountViaApi(account);
+    const rescueApi = await apiAs('rescue');
+    const { applicationId } = await createAdopterApplication(adopterApi, rescueApi);
+
+    const openRes = await postWithCsrf(rescueApi.context, '/api/v1/chats', {
+      applicationId,
+      otherUserId: adopterApi.userId,
+    });
+    await expectOk(openRes, 'rescue opens a chat with the applicant');
+    const { chat } = (await openRes.json()) as { chat: { chatId: string } };
+    const sendRes = await postWithCsrf(rescueApi.context, `/api/v1/chats/${chat.chatId}/messages`, {
+      content: uniqueText('We would love to meet you'),
+      messageType: 'text',
+    });
+    await expectOk(sendRes, 'rescue sends a message');
+    await adopterApi.dispose();
+
+    // Contexts opened in a test inherit the project's storageState (the seeded
+    // adopter); start this one signed out.
+    const context = await browser.newContext({
+      baseURL: URLS.client,
+      storageState: { cookies: [], origins: [] },
+    });
+    const page = await context.newPage();
+    try {
+      await loginViaUI(page, account.email, account.password);
+      await page.goto('/chat');
+      await dismissCookieBannerWhenShown(page);
+      const conversation = page
+        .locator('main')
+        .getByRole('button', { name: /rescue organization/i })
+        .first();
+      await expect(conversation).toHaveAccessibleName(/1 unread message$/, { timeout: 15_000 });
+
+      const markedRead = page.waitForResponse(
+        res => res.url().endsWith(`/chats/${chat.chatId}/read`) && res.ok()
+      );
+      await conversation.click();
+      await markedRead;
+
+      await page.reload();
+      await expect(conversation).toBeVisible({ timeout: 15_000 });
+      await expect(conversation).not.toHaveAccessibleName(/unread/);
+    } finally {
+      await context.close();
+    }
   });
 });

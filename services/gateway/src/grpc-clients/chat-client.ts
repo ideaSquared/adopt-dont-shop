@@ -16,6 +16,7 @@ import {
   type MarkReadResponse,
   type OpenChatRequest,
   type OpenChatResponse,
+  type OpenPetEnquiryRequest,
   type ReactRequest,
   type ReactResponse,
   type SearchChatsRequest,
@@ -44,6 +45,7 @@ import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
 
 export type ChatClient = {
   openChat(req: OpenChatRequest, metadata: Metadata): Promise<OpenChatResponse>;
+  openPetEnquiry(req: OpenPetEnquiryRequest, metadata: Metadata): Promise<OpenChatResponse>;
   sendMessage(req: SendMessageRequest, metadata: Metadata): Promise<SendMessageResponse>;
   listMessages(req: ListMessagesRequest, metadata: Metadata): Promise<ListMessagesResponse>;
   listChats(req: ListChatsRequest, metadata: Metadata): Promise<ListChatsResponse>;
@@ -127,6 +129,7 @@ export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
   return {
     // ── Non-idempotent (writes / mutations) ──────────────────────────
     openChat: (req, metadata) => callUnary(stub.openChat, req, metadata, false),
+    openPetEnquiry: (req, metadata) => callUnary(stub.openPetEnquiry, req, metadata, false),
     sendMessage: (req, metadata) => callUnary(stub.sendMessage, req, metadata, false),
     markRead: (req, metadata) => callUnary(stub.markRead, req, metadata, false),
     react: (req, metadata) => callUnary(stub.react, req, metadata, false),

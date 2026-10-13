@@ -13,8 +13,16 @@
 import type { ImageUploadResponse } from '@adopt-dont-shop/lib.api';
 import type { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, renderWithProviders, screen, waitFor } from '../../test-utils/render';
+import {
+  act,
+  fireEvent,
+  renderWithProviders,
+  screen,
+  waitFor,
+  within,
+} from '../../test-utils/render';
 import PetFormModal from './PetFormModal';
 
 type SubmitArg = PetCreateData | PetUpdateData;
@@ -583,5 +591,49 @@ describe('PetFormModal — image upload field (ADS-574)', () => {
       'src',
       'https://cdn.example.com/rex.jpg'
     );
+  });
+});
+
+describe('PetFormModal as a dialog', () => {
+  it('is announced as a modal dialog named after its heading', () => {
+    renderWithProviders(<PetFormModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />);
+
+    const dialog = screen.getByRole('dialog', { name: 'Add New Pet' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+  });
+
+  it('takes focus when it opens and gives it back to the button that opened it', async () => {
+    const user = userEvent.setup();
+    const Harness = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Add pet</button>
+          <PetFormModal isOpen={open} onClose={() => setOpen(false)} onSubmit={vi.fn()} />
+        </>
+      );
+    };
+    renderWithProviders(<Harness />);
+    const trigger = screen.getByRole('button', { name: 'Add pet' });
+
+    await user.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: 'Add New Pet' });
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(trigger).toHaveFocus();
+  });
+
+  it('keeps Tab inside the dialog', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PetFormModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />);
+    const dialog = screen.getByRole('dialog', { name: 'Add New Pet' });
+    const buttons = within(dialog).getAllByRole('button');
+    buttons[buttons.length - 1].focus();
+
+    await user.tab();
+
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
   });
 });

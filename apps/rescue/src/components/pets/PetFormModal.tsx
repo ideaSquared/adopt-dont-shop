@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Button, Card, FormField, Input } from '@adopt-dont-shop/lib.components';
 import { apiService, type ImageUploadResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 import { resolveFileUrl } from '../../utils/fileUtils';
 import * as styles from './PetFormModal.css';
 
@@ -52,6 +53,8 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
   onSubmit,
   uploadImage = (file: File) => apiService.uploadImage(file),
 }) => {
+  const titleId = useId();
+  const dialog = useDialogFocus<HTMLDivElement>(isOpen);
   // ADS-646: minimal required fields to publish a pet are name + type +
   // gender + size. Everything else (breed, colour, descriptions, behaviour
   // flags, photos) is editable post-publish from the same modal. The
@@ -395,8 +398,16 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
       onKeyDown={e => e.key === 'Escape' && onClose()}
       role="presentation"
     >
-      <Card className={styles.modalContent} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-        <h2>{pet ? 'Edit Pet' : 'Add New Pet'}</h2>
+      <Card
+        ref={dialog.ref}
+        className={styles.modalContent}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onKeyDown={dialog.onKeyDown}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      >
+        <h2 id={titleId}>{pet ? 'Edit Pet' : 'Add New Pet'}</h2>
 
         {!pet && (
           <p className={styles.minimalFieldsHint}>
