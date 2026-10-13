@@ -78,6 +78,7 @@ scope is the pet's `rescue_id`; admin / `super_admin` bypass the scope.
 | `GetTopRescuesByAdoptions`                                                         | `pets.read:any` (cross-rescue leaderboard)                                                                              |
 | `AddFavorite` / `RemoveFavorite` / `GetFavoriteStatus` / `ListUserFavorites`       | authenticated (self-scoped to the caller's own favourites)                                                              |
 | `ListFavoriters`                                                                   | `pets.favoriters.list:any` (system-principal-only service-to-service read — ADS-922)                                    |
+| `ListFavoritesForUser`                                                             | `pets.favorites.list:any` (system-principal-only service-to-service read; the pets a given user has favourited)         |
 
 Schema (`pets`): `breeds` (reference lookup), `pets` (main listing row, PostGIS
 `location` + full-text `search_vector`), `pet_media`, `pet_status_transitions`

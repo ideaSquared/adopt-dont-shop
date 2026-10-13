@@ -73,6 +73,8 @@ gated on the `view Audit` ability (admin+). `super_admin` bypasses.
 | `ListSavedReports` / `GetSavedReport`                           | `reports.read`                                            |
 | `CreateSavedReport` / `UpdateSavedReport` / `DeleteSavedReport` | `reports.create` / `.update` / `.delete`                  |
 | `ListReportTemplates`                                           | read-only (template library)                              |
+| `UpsertReportSchedule` / `CreateReportShare` / `DeleteReportSchedule` / `RevokeReportShare` | `reports.update` (scoped to the caller's own saved report; `reports.update:any` for others) |
+| `GetReportShareByToken`                                         | none (the share token is the credential)                  |
 | `GetGdprErasureRequest`                                         | `admin.gdpr.read` (or the subject reading their own saga) |
 
 Schema (`audit`): `audit_events` (append-only, PK `event_id`),

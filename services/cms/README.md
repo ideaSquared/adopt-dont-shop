@@ -64,6 +64,7 @@ permission check.
 | ----------------------------------------------------------------------- | --------------------- |
 | `ListPublicContent` / `GetPublicContentBySlug`                          | none (public)         |
 | `ListContent` / `GetContent` / `GetContentBySlug` / `GetVersionHistory` | `cms.content.read`    |
+| `GenerateSlug`                                                          | `cms.content.create` or `cms.content.update` |
 | `CreateContent`                                                         | `cms.content.create`  |
 | `UpdateContent` / `RestoreVersion`                                      | `cms.content.update`  |
 | `DeleteContent`                                                         | `cms.content.delete`  |

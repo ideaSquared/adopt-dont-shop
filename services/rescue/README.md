@@ -102,7 +102,7 @@ join, no cross-schema FK), `invitations` (one-time token), `foster_placements`,
 `application_questions`, `events`, `event_attendees`, and `event_outbox` (the
 transactional publish-after-commit outbox — see
 [`packages/events`](../../packages/events/README.md)). Migrations:
-`src/migrations/001`–`012`.
+`src/migrations/001`–`013` (013 seeds the core application-question set).
 
 **NATS** — emits (publish-after-commit): `rescue.created`, `rescue.updated`,
 `rescue.verified` / `rescue.rejected`, `rescue.staffInvited`,
