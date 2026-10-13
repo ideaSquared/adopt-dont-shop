@@ -49,6 +49,17 @@ const SNIFF_EQUIVALENTS: Record<string, ReadonlySet<string>> = {
 
 const IMAGE_MIME_PREFIX = 'image/';
 
+// Office/PDF container formats whose magic bytes file-type is expected to
+// recognise (PDF's `%PDF` header, legacy DOC's OLE/CFB header, DOCX's ZIP
+// header). A declared MIME in this set that sniffs as `undefined` is not a
+// format file-type merely can't classify — it's bytes that aren't actually
+// one of these containers, smuggled behind a document Content-Type.
+const DOCUMENT_CONTAINER_MIMES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
 const mimeMatchesDeclared = (sniffedMime: string, declaredMime: string): boolean => {
   if (sniffedMime === declaredMime) {
     return true;
@@ -63,9 +74,6 @@ export const verifyUploadContent = async (
 
   const sniffed = await fileTypeFromBuffer(buffer);
 
-  // file-type returns undefined for formats it can't classify (plain text,
-  // some legacy containers). The MIME + extension allowlists already gate
-  // those upstream, so an unknown sniff is a pass-through, not a rejection.
   if (sniffed !== undefined) {
     if (!mimeMatchesDeclared(sniffed.mime, declaredMime)) {
       return { ok: false, error: 'file content does not match the declared type' };
@@ -73,7 +81,15 @@ export const verifyUploadContent = async (
     if (!allowedMimes.has(sniffed.mime) && !allowedMimes.has(declaredMime)) {
       return { ok: false, error: `File type ${sniffed.mime} is not allowed` };
     }
+  } else if (DOCUMENT_CONTAINER_MIMES.has(declaredMime)) {
+    // A genuine PDF/DOC/DOCX always sniffs to a defined type (see above), so
+    // an undefined sniff here means the bytes aren't actually one of those
+    // containers — reject rather than pass through.
+    return { ok: false, error: 'file content does not match the declared type' };
   }
+  // Any other declared MIME that file-type can't classify (not a document
+  // container) still passes through to the checks below — the MIME +
+  // extension allowlists upstream already gate those.
 
   // Image-bomb guard only applies to images. Documents (PDF / Word) skip it.
   if (declaredMime.startsWith(IMAGE_MIME_PREFIX)) {

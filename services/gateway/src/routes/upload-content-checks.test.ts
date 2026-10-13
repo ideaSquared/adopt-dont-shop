@@ -75,13 +75,59 @@ describe('verifyUploadContent — magic-byte verification (ADS-848 step 1)', () 
     expect(result.ok).toBe(true);
   });
 
-  it('passes through when the sniffer cannot determine a type (e.g. legacy .doc)', async () => {
-    // file-type returns undefined for many plain/old container formats. We
-    // must not reject on "unknown" — the MIME + extension allowlists already
-    // gate those upstream. Use bytes file-type cannot classify.
+  it('rejects HTML/text bytes declared as a Word document (ADS-1405)', async () => {
+    // A genuine .doc/.docx/.pdf always sniffs to a defined type (OLE/CFB,
+    // ZIP, %PDF respectively) — an undefined sniff behind one of those
+    // declared MIMEs means the bytes aren't actually that container.
+    const html = Buffer.from('<html><body>not a document</body></html>');
+    const result = await verifyUploadContent({
+      buffer: html,
+      declaredMime: 'application/msword',
+      extension: '.doc',
+      allowedMimes: DOC_ALLOWLIST,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/content does not match/i);
+    }
+  });
+
+  it('rejects HTML/text bytes declared as a .docx or .pdf (ADS-1405)', async () => {
+    const html = Buffer.from('<html><body>not a document</body></html>');
+    for (const declaredMime of [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/pdf',
+    ]) {
+      const result = await verifyUploadContent({
+        buffer: html,
+        declaredMime,
+        extension: declaredMime === 'application/pdf' ? '.pdf' : '.docx',
+        allowedMimes: DOC_ALLOWLIST,
+      });
+      expect(result.ok).toBe(false);
+    }
+  });
+
+  it('still passes through an unclassifiable sniff for a non-document declared MIME', async () => {
+    // The pass-through only exists for declared types file-type genuinely
+    // can't classify — not exercised by either real upload route today, but
+    // the function stays correct for a declared MIME outside the document
+    // container set.
     const unknown = Buffer.from('plain text that file-type does not recognise');
     const result = await verifyUploadContent({
       buffer: unknown,
+      declaredMime: 'text/plain',
+      extension: '.txt',
+      allowedMimes: new Set(['text/plain']),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it('still accepts a genuine legacy .doc (OLE/CFB magic bytes)', async () => {
+    // OLE/Compound File Binary header — what a real legacy .doc actually is.
+    const cfb = Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, ...Buffer.alloc(8)]);
+    const result = await verifyUploadContent({
+      buffer: cfb,
       declaredMime: 'application/msword',
       extension: '.doc',
       allowedMimes: DOC_ALLOWLIST,
