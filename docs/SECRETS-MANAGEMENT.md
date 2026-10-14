@@ -39,7 +39,7 @@ pnpm secrets:generate >> .env
 
 # If you need ad-hoc generation, Node works on any platform:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # base64
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"      # hex (for ENCRYPTION_KEY)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"      # hex (for ENCRYPTION_KEY, POSTGRES_PASSWORD, REDIS_PASSWORD — URL-safe)
 ```
 
 ### 3. Update .env File
@@ -102,13 +102,15 @@ ENCRYPTION_KEY=64_CHAR_HEX_STRING_FOR_ENCRYPTION
 
 | Secret               | Purpose                                             | How to Generate           |
 | -------------------- | --------------------------------------------------- | ------------------------- |
-| `POSTGRES_PASSWORD`  | Database access                                     | `openssl rand -base64 32` |
+| `POSTGRES_PASSWORD`  | Database access                                     | `openssl rand -hex 24`    |
 | `JWT_SECRET`         | Sign JWT tokens                                     | `openssl rand -base64 32` |
 | `JWT_REFRESH_SECRET` | Sign refresh tokens                                 | `openssl rand -base64 32` |
 | `SESSION_SECRET`     | Encrypt sessions                                    | `openssl rand -base64 32` |
 | `ENCRYPTION_KEY`     | Encrypt sensitive data (exactly 64 hex characters)  | `openssl rand -hex 32`    |
 | `NATS_AUTH_TOKEN`    | Authenticate every service's NATS client (ADS-1273) | `openssl rand -base64 32` |
-| `REDIS_PASSWORD`     | Redis authentication (required by Docker Compose)   | `openssl rand -base64 32` |
+| `REDIS_PASSWORD`     | Redis authentication (required by Docker Compose)   | `openssl rand -hex 24`    |
+
+`POSTGRES_PASSWORD` and `REDIS_PASSWORD` are interpolated raw into connection URLs (`DATABASE_URL` / `REDIS_URL`), so they must be URL-safe — hex only. Base64 output contains `+`, `/`, `=` the large majority of the time, which breaks URL parsing. Prefer `pnpm secrets:generate` (or `pnpm bootstrap` for a fresh `.env`) over the manual `openssl` commands below — both already generate these two secrets as hex for exactly this reason (`scripts/generate-secrets.mjs`).
 
 #### Required for Production
 
@@ -212,6 +214,8 @@ const uploadSigningSecret = readSecret('UPLOAD_SIGNING_SECRET');
 ```bash
 mkdir -p secrets && chmod 700 secrets
 # Connection URLs — use the same POSTGRES_USER / POSTGRES_DB / passwords as .env.
+# DB_PASSWORD / REDIS_PASSWORD must be hex (openssl rand -hex 24) — they're
+# interpolated raw into these URLs, and base64's + / = break URL parsing.
 printf '%s' "postgresql://USER:DB_PASSWORD@database:5432/DB_NAME" > secrets/database_url
 printf '%s' "redis://:REDIS_PASSWORD@redis:6379"                  > secrets/redis_url
 printf '%s' "REDIS_PASSWORD"               > secrets/redis_password  # same value used in redis_url
