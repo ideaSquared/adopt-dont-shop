@@ -90,4 +90,54 @@ describe('gateway chat adapter', () => {
 
     expect(new Date(message.timestamp).getTime()).toBeGreaterThanOrEqual(before);
   });
+
+  it("carries the sender's resolved display name onto the message (ADS-1408)", () => {
+    const message = toMessage({
+      messageId: 'msg-1',
+      chatId: 'chat-1',
+      senderUserId: 'staff-1',
+      senderName: 'Sam Rescue',
+      body: 'Hello!',
+    });
+
+    expect(message.senderName).toBe('Sam Rescue');
+  });
+
+  it('falls back to an empty sender name when the gateway sends none (e.g. a WS event)', () => {
+    const message = toMessage({
+      messageId: 'msg-1',
+      chatId: 'chat-1',
+      senderUserId: 'staff-1',
+      body: 'Hello!',
+    });
+
+    expect(message.senderName).toBe('');
+  });
+
+  it("maps each participant's resolved display name from participantNames (ADS-1408)", () => {
+    const conversation = toConversation({
+      ...chat,
+      participantNames: { 'user-1': 'Jo Adopter', 'staff-1': 'Sam Rescue' },
+    });
+
+    expect(conversation.participants).toEqual([
+      { id: 'user-1', name: 'Jo Adopter', type: 'user' },
+      { id: 'staff-1', name: 'Sam Rescue', type: 'user' },
+    ]);
+  });
+
+  it('falls back to an empty participant name when none resolved', () => {
+    const conversation = toConversation(chat);
+
+    expect(conversation.participants).toEqual([
+      { id: 'user-1', name: '', type: 'user' },
+      { id: 'staff-1', name: '', type: 'user' },
+    ]);
+  });
+
+  it("carries the last message's resolved sender name onto its preview", () => {
+    const conversation = toConversation({ ...chat, lastMessageSenderName: 'Sam Rescue' });
+
+    expect(conversation.lastMessage).toMatchObject({ senderName: 'Sam Rescue' });
+  });
 });

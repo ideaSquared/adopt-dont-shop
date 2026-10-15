@@ -11,6 +11,7 @@
 // the gRPC metadata the chat handlers' principal extractor reads.
 
 import rateLimit from '@fastify/rate-limit';
+import type { Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import {
@@ -24,6 +25,7 @@ import {
   type SendMessageRequest,
 } from '@adopt-dont-shop/proto';
 
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { ChatClient } from '../grpc-clients/chat-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
@@ -31,6 +33,10 @@ import { buildPaginationEnvelope, parsePagination } from '../middleware/paginati
 
 export type ChatRoutesOptions = {
   client: ChatClient;
+  // Resolves participant/sender display names (ADS-1408). Optional — with
+  // it absent, chats and messages carry no name and the lib.chat adapter
+  // falls back to '' exactly as it did before this enrichment existed.
+  authClient?: AuthClient;
 };
 
 // The monolith mounts the same chat routes at /api/v1/chats AND
@@ -95,16 +101,93 @@ const normalizeMessages = (json: unknown): unknown => {
   return { ...obj, messages: obj.messages.map(withMessageContent) };
 };
 
+// --- Participant/sender name enrichment (ADS-1408) --------------------
+//
+// The chat service's own shape carries only ids (senderUserId,
+// participantUserIds, lastMessageSenderId) — it has no reason to know
+// display names. The gateway resolves them from service.auth the same
+// way applications.ts resolves pet/rescue/applicant names: one
+// GetUserName call per distinct id, tolerating per-id failures (unknown
+// user, soft-deleted, auth unavailable) by leaving that id unresolved
+// rather than failing the whole request.
+
+async function lookupNames(
+  ids: ReadonlyArray<string>,
+  authClient: AuthClient | undefined,
+  metadata: Metadata
+): Promise<Map<string, string>> {
+  const unique = [...new Set(ids.filter(id => id !== ''))];
+  const names = new Map<string, string>();
+  if (!authClient) {
+    return names;
+  }
+  await Promise.all(
+    unique.map(async id => {
+      try {
+        const res = await authClient.getUserName({ userId: id }, metadata);
+        const full = [res.firstName, res.lastName].filter(Boolean).join(' ');
+        if (full) {
+          names.set(id, full);
+        }
+      } catch {
+        // Leave unresolved — the lib.chat adapter falls back to ''.
+      }
+    })
+  );
+  return names;
+}
+
+// Collects every id a page of chats could need a name for: each chat's
+// participants plus its last-message sender (which may not be a participant
+// once a chat's membership has changed).
+const chatNameIds = (chats: ReadonlyArray<Record<string, unknown>>): string[] =>
+  chats.flatMap(c => [
+    ...(Array.isArray(c.participantUserIds) ? (c.participantUserIds as string[]) : []),
+    ...(typeof c.lastMessageSenderId === 'string' ? [c.lastMessageSenderId] : []),
+  ]);
+
+const withChatNames = (
+  chat: Record<string, unknown>,
+  names: Map<string, string>
+): Record<string, unknown> => {
+  const participantIds = Array.isArray(chat.participantUserIds)
+    ? (chat.participantUserIds as string[])
+    : [];
+  const participantNames: Record<string, string> = {};
+  for (const id of participantIds) {
+    const name = names.get(id);
+    if (name) {
+      participantNames[id] = name;
+    }
+  }
+  const lastMessageSenderId = chat.lastMessageSenderId;
+  return {
+    ...chat,
+    participantNames,
+    lastMessageSenderName:
+      typeof lastMessageSenderId === 'string' ? names.get(lastMessageSenderId) : undefined,
+  };
+};
+
+const withMessageSenderName = (
+  message: Record<string, unknown>,
+  names: Map<string, string>
+): Record<string, unknown> => ({
+  ...message,
+  senderName:
+    typeof message.senderUserId === 'string' ? names.get(message.senderUserId) : undefined,
+});
+
 export const registerChatRoutes = async (
   app: FastifyInstance,
   opts: ChatRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, authClient } = opts;
 
   await app.register(rateLimit, { global: false });
 
   for (const prefix of CHAT_PREFIXES) {
-    registerChatRoutesForPrefix(app, client, prefix);
+    registerChatRoutesForPrefix(app, client, prefix, authClient);
   }
 
   // ---- POST /api/v1/chats/enquiries ----------------------------------
@@ -188,7 +271,8 @@ export const registerChatRoutes = async (
 const registerChatRoutesForPrefix = (
   app: FastifyInstance,
   client: ChatClient,
-  prefix: string
+  prefix: string,
+  authClient: AuthClient | undefined
 ): void => {
   // ---- GET <prefix> -------------------------------------------------
   app.get(
@@ -249,9 +333,11 @@ const registerChatRoutesForPrefix = (
 
       try {
         const res = await client.listChats(grpcReq, metadata);
+        const chats = res.chats.map(c => ChatV1.Chat.toJSON(c) as Record<string, unknown>);
+        const names = await lookupNames(chatNameIds(chats), authClient, metadata);
         return reply.send({
           success: true,
-          data: res.chats.map(c => ChatV1.Chat.toJSON(c)),
+          data: chats.map(c => withChatNames(c, names)),
           pagination: buildPaginationEnvelope({
             mode: 'offset',
             page: pagination.page,
@@ -520,9 +606,11 @@ const registerChatRoutesForPrefix = (
         if (!res.chat) {
           return reply.code(404).send({ success: false, error: 'Chat not found' });
         }
+        const chat = ChatV1.Chat.toJSON(res.chat) as Record<string, unknown>;
+        const names = await lookupNames(chatNameIds([chat]), authClient, metadata);
         return reply.send({
           success: true,
-          data: ChatV1.Chat.toJSON(res.chat),
+          data: withChatNames(chat, names),
         });
       } catch (err) {
         return handleGrpcError(err, reply);
@@ -689,8 +777,17 @@ const registerChatRoutesForPrefix = (
           string,
           unknown
         >;
+        const messages = Array.isArray(body.messages)
+          ? (body.messages as Array<Record<string, unknown>>)
+          : [];
+        const names = await lookupNames(
+          messages.map(m => (typeof m.senderUserId === 'string' ? m.senderUserId : '')),
+          authClient,
+          metadata
+        );
         return reply.send({
           ...body,
+          messages: messages.map(m => withMessageSenderName(m, names)),
           pagination: buildPaginationEnvelope({
             mode: 'keyset',
             limit: pagination.limit,

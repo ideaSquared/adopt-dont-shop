@@ -95,6 +95,8 @@ import {
   type AdminGetUserResponse,
   type GetApplicantProfileRequest,
   type GetApplicantProfileResponse,
+  type GetUserNameRequest,
+  type GetUserNameResponse,
   type AdminUpdateUserRequest,
   type AdminUpdateUserResponse,
   type DeactivateUserRequest,
@@ -219,6 +221,7 @@ export type AuthClient = {
     req: GetApplicantProfileRequest,
     metadata: Metadata
   ): Promise<GetApplicantProfileResponse>;
+  getUserName(req: GetUserNameRequest, metadata: Metadata): Promise<GetUserNameResponse>;
   adminCreateUser(
     req: AdminCreateUserRequest,
     metadata: Metadata
@@ -409,6 +412,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     // Not retried here: auth already retries its call to service.applications.
     getApplicantProfile: (req, metadata) =>
       callUnary(stub.getApplicantProfile, req, metadata, false, applicantProfileBreaker),
+    getUserName: (req, metadata) => callUnary(stub.getUserName, req, metadata, true),
     exportUserData: (req, metadata) => callUnary(stub.exportUserData, req, metadata, true),
     getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata, true),
     getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata, true),
