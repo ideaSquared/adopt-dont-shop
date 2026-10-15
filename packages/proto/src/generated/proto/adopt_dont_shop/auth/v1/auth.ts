@@ -969,6 +969,16 @@ export interface GetApplicantProfileResponse {
   email: string;
 }
 
+export interface GetUserNameRequest {
+  userId: string;
+}
+
+export interface GetUserNameResponse {
+  userId: string;
+  firstName: string;
+  lastName: string;
+}
+
 export interface AdminUpdateUserRequest {
   userId: string;
   /** Only set fields are written. */
@@ -7582,6 +7592,174 @@ export const GetApplicantProfileResponse: MessageFns<GetApplicantProfileResponse
   },
 };
 
+function createBaseGetUserNameRequest(): GetUserNameRequest {
+  return { userId: "" };
+}
+
+export const GetUserNameRequest: MessageFns<GetUserNameRequest> = {
+  encode(message: GetUserNameRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserNameRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserNameRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserNameRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+    };
+  },
+
+  toJSON(message: GetUserNameRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserNameRequest>, I>>(base?: I): GetUserNameRequest {
+    return GetUserNameRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserNameRequest>, I>>(object: I): GetUserNameRequest {
+    const message = createBaseGetUserNameRequest();
+    message.userId = object.userId ?? "";
+    return message;
+  },
+};
+
+function createBaseGetUserNameResponse(): GetUserNameResponse {
+  return { userId: "", firstName: "", lastName: "" };
+}
+
+export const GetUserNameResponse: MessageFns<GetUserNameResponse> = {
+  encode(message: GetUserNameResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.firstName !== "") {
+      writer.uint32(18).string(message.firstName);
+    }
+    if (message.lastName !== "") {
+      writer.uint32(26).string(message.lastName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserNameResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserNameResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserNameResponse {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+        ? globalThis.String(object.first_name)
+        : "",
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+        ? globalThis.String(object.last_name)
+        : "",
+    };
+  },
+
+  toJSON(message: GetUserNameResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.firstName !== "") {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== "") {
+      obj.lastName = message.lastName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserNameResponse>, I>>(base?: I): GetUserNameResponse {
+    return GetUserNameResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserNameResponse>, I>>(object: I): GetUserNameResponse {
+    const message = createBaseGetUserNameResponse();
+    message.userId = object.userId ?? "";
+    message.firstName = object.firstName ?? "";
+    message.lastName = object.lastName ?? "";
+    return message;
+  },
+};
+
 function createBaseAdminUpdateUserRequest(): AdminUpdateUserRequest {
   return { userId: "", status: 0, userType: 0, emailVerified: undefined, firstName: undefined, lastName: undefined };
 }
@@ -13050,6 +13228,29 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): GetApplicantProfileResponse => GetApplicantProfileResponse.decode(value),
   },
   /**
+   * Display-name lookup by user id, for a caller's own inter-service
+   * enrichment — e.g. the gateway resolving chat participant/sender
+   * names (ADS-1408) the same way it already resolves pets/rescues via
+   * lookupById. Returns only first_name / last_name, never email or
+   * other PII. NOT_FOUND for an unknown or soft-deleted user — callers
+   * already tolerate per-id NOT_FOUND via lookupById. Deliberately has
+   * no extra authorization beyond requiring a principal: unlike
+   * GetApplicantProfile, this grants no new visibility, because a
+   * caller only ever has a legitimate reason to pass an id it already
+   * learned from another, separately-authorized read (e.g. a chat the
+   * caller is confirmed to participate in) — never an id typed by an
+   * end user.
+   */
+  getUserName: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/GetUserName" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetUserNameRequest): Buffer => Buffer.from(GetUserNameRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetUserNameRequest => GetUserNameRequest.decode(value),
+    responseSerialize: (value: GetUserNameResponse): Buffer => Buffer.from(GetUserNameResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetUserNameResponse => GetUserNameResponse.decode(value),
+  },
+  /**
    * Create a new user from the admin console as a pending, credential-less
    * account and issue a single-use invitation token (emailed via the
    * auth.userInvited event) the invitee redeems to set their password.
@@ -13610,6 +13811,21 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * admins out). Narrower than AdminGetUser, which staff can't call.
    */
   getApplicantProfile: handleUnaryCall<GetApplicantProfileRequest, GetApplicantProfileResponse>;
+  /**
+   * Display-name lookup by user id, for a caller's own inter-service
+   * enrichment — e.g. the gateway resolving chat participant/sender
+   * names (ADS-1408) the same way it already resolves pets/rescues via
+   * lookupById. Returns only first_name / last_name, never email or
+   * other PII. NOT_FOUND for an unknown or soft-deleted user — callers
+   * already tolerate per-id NOT_FOUND via lookupById. Deliberately has
+   * no extra authorization beyond requiring a principal: unlike
+   * GetApplicantProfile, this grants no new visibility, because a
+   * caller only ever has a legitimate reason to pass an id it already
+   * learned from another, separately-authorized read (e.g. a chat the
+   * caller is confirmed to participate in) — never an id typed by an
+   * end user.
+   */
+  getUserName: handleUnaryCall<GetUserNameRequest, GetUserNameResponse>;
   /**
    * Create a new user from the admin console as a pending, credential-less
    * account and issue a single-use invitation token (emailed via the
@@ -14330,6 +14546,35 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetApplicantProfileResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Display-name lookup by user id, for a caller's own inter-service
+   * enrichment — e.g. the gateway resolving chat participant/sender
+   * names (ADS-1408) the same way it already resolves pets/rescues via
+   * lookupById. Returns only first_name / last_name, never email or
+   * other PII. NOT_FOUND for an unknown or soft-deleted user — callers
+   * already tolerate per-id NOT_FOUND via lookupById. Deliberately has
+   * no extra authorization beyond requiring a principal: unlike
+   * GetApplicantProfile, this grants no new visibility, because a
+   * caller only ever has a legitimate reason to pass an id it already
+   * learned from another, separately-authorized read (e.g. a chat the
+   * caller is confirmed to participate in) — never an id typed by an
+   * end user.
+   */
+  getUserName(
+    request: GetUserNameRequest,
+    callback: (error: ServiceError | null, response: GetUserNameResponse) => void,
+  ): ClientUnaryCall;
+  getUserName(
+    request: GetUserNameRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetUserNameResponse) => void,
+  ): ClientUnaryCall;
+  getUserName(
+    request: GetUserNameRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetUserNameResponse) => void,
   ): ClientUnaryCall;
   /**
    * Create a new user from the admin console as a pending, credential-less

@@ -10,9 +10,14 @@ import type { Conversation, Message } from '../schemas';
 export const GatewayChatSchema = z.object({
   chatId: z.string(),
   participantUserIds: z.array(z.string()).optional(),
+  // Display names for participantUserIds, keyed by id (ADS-1408). The
+  // gateway resolves these from service.auth; an id absent from the map
+  // (unresolved, or no authClient configured) falls back to ''.
+  participantNames: z.record(z.string(), z.string()).optional(),
   lastMessagePreview: z.string().optional(),
   lastMessageAt: z.string().optional(),
   lastMessageSenderId: z.string().optional(),
+  lastMessageSenderName: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   status: z.string().optional(),
@@ -27,6 +32,10 @@ export const GatewayMessageSchema = z.object({
   messageId: z.string(),
   chatId: z.string(),
   senderUserId: z.string(),
+  // The sender's display name (ADS-1408), resolved by the gateway from
+  // service.auth. Unset on WS-pushed events (the gateway doesn't yet
+  // enrich those) and when no authClient is configured.
+  senderName: z.string().optional(),
   body: z.string().optional(),
   content: z.string().optional(),
   // Socket events carry no timestamp; REST responses do.
@@ -66,7 +75,7 @@ export const toMessage = (message: GatewayMessage): Message => ({
   id: message.messageId,
   conversationId: message.chatId,
   senderId: message.senderUserId,
-  senderName: '',
+  senderName: message.senderName ?? '',
   content: message.content ?? message.body ?? '',
   timestamp: message.createdAt ?? new Date().toISOString(),
   type: 'text',
@@ -81,6 +90,7 @@ export const toConversation = (chat: GatewayChat): Conversation => {
           messageId: `${chat.chatId}:last`,
           chatId: chat.chatId,
           senderUserId: chat.lastMessageSenderId ?? '',
+          senderName: chat.lastMessageSenderName,
           body: chat.lastMessagePreview,
           createdAt: chat.lastMessageAt,
         })
@@ -88,7 +98,11 @@ export const toConversation = (chat: GatewayChat): Conversation => {
   return {
     id: chat.chatId,
     chat_id: chat.chatId,
-    participants: (chat.participantUserIds ?? []).map((id) => ({ id, name: '', type: 'user' })),
+    participants: (chat.participantUserIds ?? []).map((id) => ({
+      id,
+      name: chat.participantNames?.[id] ?? '',
+      type: 'user',
+    })),
     lastMessage,
     unreadCount: chat.unreadCount ?? 0,
     createdAt: chat.createdAt,

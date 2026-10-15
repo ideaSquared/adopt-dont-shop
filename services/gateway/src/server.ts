@@ -792,7 +792,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
   if (opts.chatClient) {
-    await registerChatRoutes(server, { client: opts.chatClient });
+    // authClient (optional) resolves participant/sender display names
+    // (ADS-1408); absent, chats and messages carry no name as before.
+    await registerChatRoutes(server, { client: opts.chatClient, authClient: opts.authClient });
   }
   // /api/v1/search/{messages,suggestions} — cross-service lib.search
   // surface (ADS-1142). Needs both chat (message search) and pets

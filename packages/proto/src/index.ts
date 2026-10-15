@@ -162,6 +162,8 @@ export type {
   AdminGetUserRequest,
   GetApplicantProfileRequest,
   GetApplicantProfileResponse,
+  GetUserNameRequest,
+  GetUserNameResponse,
   AdminGetUserResponse,
   AdminUpdateUserRequest,
   AdminUpdateUserResponse,
