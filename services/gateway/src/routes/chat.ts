@@ -449,6 +449,20 @@ const registerChatRoutesForPrefix = (
 
       try {
         const res = await client.searchChats(grpcReq, metadata);
+        const hits = res.hits.map(h => ({
+          chat: ChatV1.Chat.toJSON(h.chat!) as Record<string, unknown>,
+          match: h.match ? (ChatV1.Message.toJSON(h.match) as Record<string, unknown>) : null,
+        }));
+        const names = await lookupNames(
+          [
+            ...chatNameIds(hits.map(h => h.chat)),
+            ...hits.map(h =>
+              h.match && typeof h.match.senderUserId === 'string' ? h.match.senderUserId : ''
+            ),
+          ],
+          authClient,
+          metadata
+        );
         // Match the monolith ConversationsController.searchConversations
         // body shape: { chats, pagination } so the SPA's existing search
         // handler keeps working unchanged.
@@ -458,9 +472,9 @@ const registerChatRoutesForPrefix = (
         return reply.send({
           success: true,
           data: {
-            chats: res.hits.map(h => ({
-              ...(ChatV1.Chat.toJSON(h.chat!) as Record<string, unknown>),
-              matched_message: h.match ? ChatV1.Message.toJSON(h.match) : null,
+            chats: hits.map(h => ({
+              ...withChatNames(h.chat, names),
+              matched_message: h.match ? withMessageSenderName(h.match, names) : null,
             })),
             pagination: {
               page,

@@ -1038,6 +1038,35 @@ describe('chat + message responses carry resolved display names', () => {
     expect(body.messages[0].senderName).toBe('usr-1 name');
   });
 
+  it('adds participantNames and a matched_message senderName to search results', async () => {
+    client.searchChatsMock.mockResolvedValueOnce({
+      hits: [{ chat: CHAT_FIXTURE, match: MESSAGE_FIXTURE }],
+      page: 1,
+      limit: 20,
+      total: 1,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/search?query=hello',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    const body = res.json() as {
+      data: {
+        chats: Array<{
+          participantNames: Record<string, string>;
+          matched_message: { senderName?: string } | null;
+        }>;
+      };
+    };
+    expect(body.data.chats[0].participantNames).toEqual({
+      'usr-1': 'usr-1 name',
+      'usr-2': 'usr-2 name',
+    });
+    expect(body.data.chats[0].matched_message?.senderName).toBe('usr-1 name');
+  });
+
   it('resolves each distinct sender only once per page of messages', async () => {
     client.listMessagesMock.mockResolvedValueOnce({
       messages: [MESSAGE_FIXTURE, { ...MESSAGE_FIXTURE, messageId: 'msg-2' }],
