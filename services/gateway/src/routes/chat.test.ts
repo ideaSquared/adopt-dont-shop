@@ -13,6 +13,7 @@ import {
   type SendMessageRequest,
 } from '@adopt-dont-shop/proto';
 
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { ChatClient } from '../grpc-clients/chat-client.js';
 
 import { registerChatRoutes } from './chat.js';
@@ -99,10 +100,25 @@ function makeClient(): ChatClient & {
   };
 }
 
-async function buildApp(client: ChatClient): Promise<FastifyInstance> {
+async function buildApp(client: ChatClient, authClient?: AuthClient): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
-  await registerChatRoutes(app, { client });
+  await registerChatRoutes(app, { client, authClient });
   return app;
+}
+
+// Resolves every id to `${id}-name` — just enough to prove enrichment
+// threads ids through to the response, without pinning the real shape of
+// GetUserName's firstName/lastName join.
+function makeAuthClient(): AuthClient & { getUserNameMock: ReturnType<typeof vi.fn> } {
+  const getUserNameMock = vi
+    .fn()
+    .mockImplementation(({ userId }: { userId: string }) =>
+      Promise.resolve({ userId, firstName: userId, lastName: 'name' })
+    );
+  return {
+    getUserName: getUserNameMock,
+    getUserNameMock,
+  } as unknown as AuthClient & { getUserNameMock: ReturnType<typeof vi.fn> };
 }
 
 // --- GET /api/v1/chats ----------------------------------------------
@@ -945,6 +961,126 @@ describe('GET /api/v1/chats/:chatId', () => {
     expect(res.statusCode).toBe(200);
     expect(client.getChatUnreadCountMock).toHaveBeenCalledTimes(1);
     expect(client.getChatMock).not.toHaveBeenCalled();
+  });
+});
+
+// --- Participant/sender name enrichment (ADS-1408) -------------------
+
+describe('chat + message responses carry resolved display names', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+  let authClient: ReturnType<typeof makeAuthClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    authClient = makeAuthClient();
+    app = await buildApp(client, authClient);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('adds a participantNames map to each chat in the list', async () => {
+    client.listChatsMock.mockResolvedValueOnce({ chats: [CHAT_FIXTURE] });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    const body = res.json() as { data: Array<{ participantNames: Record<string, string> }> };
+    expect(body.data[0].participantNames).toEqual({
+      'usr-1': 'usr-1 name',
+      'usr-2': 'usr-2 name',
+    });
+  });
+
+  it('resolves the last-message sender name even when they left the chat', async () => {
+    client.listChatsMock.mockResolvedValueOnce({
+      chats: [{ ...CHAT_FIXTURE, participantUserIds: ['usr-1'], lastMessageSenderId: 'usr-2' }],
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    const body = res.json() as { data: Array<{ lastMessageSenderName: string }> };
+    expect(body.data[0].lastMessageSenderName).toBe('usr-2 name');
+  });
+
+  it('adds participantNames to a single fetched chat', async () => {
+    client.getChatMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    const body = res.json() as { data: { participantNames: Record<string, string> } };
+    expect(body.data.participantNames).toEqual({ 'usr-1': 'usr-1 name', 'usr-2': 'usr-2 name' });
+  });
+
+  it('adds the resolved senderName to each listed message', async () => {
+    client.listMessagesMock.mockResolvedValueOnce({ messages: [MESSAGE_FIXTURE] });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/messages',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    const body = res.json() as { messages: Array<{ senderName?: string }> };
+    expect(body.messages[0].senderName).toBe('usr-1 name');
+  });
+
+  it('resolves each distinct sender only once per page of messages', async () => {
+    client.listMessagesMock.mockResolvedValueOnce({
+      messages: [MESSAGE_FIXTURE, { ...MESSAGE_FIXTURE, messageId: 'msg-2' }],
+    });
+
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/messages',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(authClient.getUserNameMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves senderName unset when auth cannot resolve the id', async () => {
+    authClient.getUserNameMock.mockRejectedValueOnce({ code: status.NOT_FOUND });
+    client.listMessagesMock.mockResolvedValueOnce({ messages: [MESSAGE_FIXTURE] });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/messages',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { messages: Array<{ senderName?: string }> };
+    expect(body.messages[0].senderName).toBeUndefined();
+  });
+
+  it('skips enrichment entirely when no authClient is configured', async () => {
+    const plainApp = await buildApp(client);
+    client.listMessagesMock.mockResolvedValueOnce({ messages: [MESSAGE_FIXTURE] });
+
+    const res = await plainApp.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/messages',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { messages: Array<{ senderName?: string }> };
+    expect(body.messages[0].senderName).toBeUndefined();
+    await plainApp.close();
   });
 });
 

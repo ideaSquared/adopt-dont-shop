@@ -203,6 +203,20 @@ service AuthService {
   // admins out). Narrower than AdminGetUser, which staff can't call.
   rpc GetApplicantProfile(GetApplicantProfileRequest) returns (GetApplicantProfileResponse);
 
+  // Display-name lookup by user id, for a caller's own inter-service
+  // enrichment — e.g. the gateway resolving chat participant/sender
+  // names (ADS-1408) the same way it already resolves pets/rescues via
+  // lookupById. Returns only first_name / last_name, never email or
+  // other PII. NOT_FOUND for an unknown or soft-deleted user — callers
+  // already tolerate per-id NOT_FOUND via lookupById. Deliberately has
+  // no extra authorization beyond requiring a principal: unlike
+  // GetApplicantProfile, this grants no new visibility, because a
+  // caller only ever has a legitimate reason to pass an id it already
+  // learned from another, separately-authorized read (e.g. a chat the
+  // caller is confirmed to participate in) — never an id typed by an
+  // end user.
+  rpc GetUserName(GetUserNameRequest) returns (GetUserNameResponse);
+
   // Create a new user from the admin console as a pending, credential-less
   // account and issue a single-use invitation token (emailed via the
   // auth.userInvited event) the invitee redeems to set their password.
@@ -916,6 +930,16 @@ message GetApplicantProfileResponse {
   string first_name = 2;
   string last_name = 3;
   string email = 4;
+}
+
+message GetUserNameRequest {
+  string user_id = 1;
+}
+
+message GetUserNameResponse {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
 }
 
 message AdminUpdateUserRequest {

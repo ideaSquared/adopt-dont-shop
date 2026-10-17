@@ -18,6 +18,7 @@ import type { AuthConfig } from '../config.js';
 
 import { adapt, adaptUnauth } from './adapter.js';
 import { makeGetApplicantProfile } from './applicant-handlers.js';
+import { getUserName } from './user-name-handlers.js';
 import { createApplicationsClient, type ApplicationsClient } from './applications-client.js';
 import {
   changePassword,
@@ -158,6 +159,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     adminGetUser: adapt(adminGetUser, { deps, logger }),
     // Rescue-staff view of who applied — scoped through service.applications.
     getApplicantProfile: adapt(makeGetApplicantProfile(applicationsClient), { deps, logger }),
+    // Plain display-name lookup for a caller's own enrichment (e.g. the
+    // gateway resolving chat participant names, ADS-1408).
+    getUserName: adapt(getUserName, { deps, logger }),
     adminCreateUser: adapt(adminCreateUser, { deps, logger }),
     adminUpdateUser: adapt(adminUpdateUser, { deps, logger }),
     deactivateUser: adapt(deactivateUser, { deps, logger }),
@@ -219,6 +223,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'searchUsers',
       'adminGetUser',
       'getApplicantProfile',
+      'getUserName',
       'adminCreateUser',
       'adminUpdateUser',
       'deactivateUser',
