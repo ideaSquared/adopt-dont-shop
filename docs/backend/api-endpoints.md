@@ -60,9 +60,11 @@ universal.
 ## Errors
 
 Every error response is `{ "error": string }`. The gateway maps the upstream gRPC status to an
-HTTP status (`services/gateway/src/middleware/grpc-error.ts`). For 5xx and for
-`PERMISSION_DENIED` / `FAILED_PRECONDITION` / `UNAUTHENTICATED`, the body carries a generic
-message; other 4xx forward the upstream validation text.
+HTTP status (`services/gateway/src/middleware/grpc-error.ts`). Only `INVALID_ARGUMENT`,
+`NOT_FOUND` and `ALREADY_EXISTS` forward the upstream message; every other status — all 5xx and
+the remaining 4xx (`PERMISSION_DENIED`, `FAILED_PRECONDITION`, `UNAUTHENTICATED`, `ABORTED`,
+`RESOURCE_EXHAUSTED`) — gets a generic per-status message, so an upstream service cannot leak
+untrusted text into a 4xx body (ADS-1364).
 
 | gRPC status                                    | HTTP |
 | ---------------------------------------------- | ---- |

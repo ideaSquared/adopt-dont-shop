@@ -26,9 +26,10 @@ in application code.
 
 The gateway owns no schema. Every connection's `search_path` is set to `<schema>, public` on
 connect (`packages/db/src/client.ts`), so a service references its own tables unqualified and
-still reaches shared extensions installed into `public`. Each schema also carries an
-`event_outbox` table used by the transactional outbox (see
-[`writing-migrations.md`](./writing-migrations.md) and the audit-logging skill).
+still reaches shared extensions installed into `public`. Every schema except `audit` (a terminal
+event consumer, which publishes nothing) also carries an `event_outbox` table used by the
+transactional outbox (see [`writing-migrations.md`](./writing-migrations.md) and the audit-logging
+skill).
 
 ## auth
 
@@ -94,9 +95,11 @@ Adoption applications, home visits, and their timelines.
 | `home_visit_status_transitions`  | Home-visit status log                                 | `005_create_home_visit_status_transitions.ts`  |
 | `application_drafts`             | In-progress draft answers                             | `007_create_application_drafts.ts`             |
 | `application_documents`          | Uploaded documents, answers, references (JSONB)       | `008_create_application_documents.ts`          |
+| `application_defaults`           | Reusable adopter data to pre-populate applications    | `009_create_application_defaults.ts`           |
 | `application_preferences`        | Applicant preferences                                 | `012_create_application_preferences.ts`        |
 | `application_reference_checks`   | Reference-check tracking                              | `013_create_application_reference_checks.ts`   |
 | `application_timeline_notes`     | Staff timeline notes                                  | `014_create_application_timeline_notes.ts`     |
+| `scheduled_job_runs`             | Cross-instance scheduled-run claims                   | `015_create_scheduled_job_runs.ts`             |
 
 Application status: `DRAFT | SUBMITTED | APPROVED | REJECTED | WITHDRAWN` (`DRAFT` is the
 default; `002_create_applications.ts`). `stage` is a backend column; the frontend
@@ -118,16 +121,17 @@ Conversations, messages, reactions, reads.
 
 In-app/email notifications, templates, device tokens.
 
-| Table                     | Purpose                       | Created in                              |
-| ------------------------- | ----------------------------- | --------------------------------------- |
-| `notifications`           | In-app notifications          | `001_create_notifications.ts`           |
-| `device_tokens`           | Registered push device tokens | `002_create_device_tokens.ts`           |
-| `user_notification_prefs` | Per-user channel preferences  | `003_create_user_notification_prefs.ts` |
-| `email_queue`             | Outbound email queue          | `004_create_email_queue.ts`             |
-| `email_templates`         | Email templates (versioned)   | `005_create_email_templates.ts`         |
-| `email_preferences`       | Per-user email preferences    | `006_create_email_preferences.ts`       |
-| `processed_events`        | Consumer idempotency ledger   | `008_create_processed_events.ts`        |
-| `scheduled_job_runs`      | Scheduled-dispatch run log    | `010_create_scheduled_job_runs.ts`      |
+| Table                     | Purpose                              | Created in                              |
+| ------------------------- | ------------------------------------ | --------------------------------------- |
+| `notifications`           | In-app notifications                 | `001_create_notifications.ts`           |
+| `device_tokens`           | Registered push device tokens        | `002_create_device_tokens.ts`           |
+| `user_notification_prefs` | Per-user channel preferences         | `003_create_user_notification_prefs.ts` |
+| `email_queue`             | Outbound email queue                 | `004_create_email_queue.ts`             |
+| `email_templates`         | Email templates (versioned)          | `005_create_email_templates.ts`         |
+| `email_template_versions` | Immutable template history snapshots | `005_create_email_templates.ts`         |
+| `email_preferences`       | Per-user email preferences           | `006_create_email_preferences.ts`       |
+| `processed_events`        | Consumer idempotency ledger          | `008_create_processed_events.ts`        |
+| `scheduled_job_runs`      | Scheduled-dispatch run log           | `010_create_scheduled_job_runs.ts`      |
 
 ## moderation
 
@@ -166,14 +170,15 @@ Editorial content and navigation.
 
 Forensic event store, GDPR erasure sagas, and saved reports.
 
-| Table                    | Purpose                          | Created in                                  |
-| ------------------------ | -------------------------------- | ------------------------------------------- |
-| `audit_events`           | Append-only forensic event store | `001_create_audit_events.ts`                |
-| `gdpr_erasure_requests`  | GDPR erasure saga state          | `002_create_gdpr_erasure_requests.ts`       |
-| `report_templates`       | Report templates                 | `003_create_reports.ts`                     |
-| `saved_reports`          | Saved report definitions         | `003_create_reports.ts`                     |
-| `saved_report_schedules` | Scheduled report runs            | `008_create_report_schedules_and_shares.ts` |
-| `saved_report_shares`    | Report sharing grants            | `008_create_report_schedules_and_shares.ts` |
+| Table                    | Purpose                             | Created in                                  |
+| ------------------------ | ----------------------------------- | ------------------------------------------- |
+| `audit_events`           | Append-only forensic event store    | `001_create_audit_events.ts`                |
+| `gdpr_erasure_requests`  | GDPR erasure saga state             | `002_create_gdpr_erasure_requests.ts`       |
+| `report_templates`       | Report templates                    | `003_create_reports.ts`                     |
+| `saved_reports`          | Saved report definitions            | `003_create_reports.ts`                     |
+| `saved_report_schedules` | Scheduled report runs               | `008_create_report_schedules_and_shares.ts` |
+| `saved_report_shares`    | Report sharing grants               | `008_create_report_schedules_and_shares.ts` |
+| `scheduled_job_runs`     | Cross-instance scheduled-run claims | `010_create_scheduled_job_runs.ts`          |
 
 ## Conventions
 
