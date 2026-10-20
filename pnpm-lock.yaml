@@ -2052,10 +2052,10 @@ importers:
         specifier: ^5.11.1
         version: 5.11.1
       jspdf:
-        specifier: 4.2.1
+        specifier: ^4.2.1
         version: 4.2.1
       jspdf-autotable:
-        specifier: 5.0.8
+        specifier: ^5.0.8
         version: 5.0.8(jspdf@4.2.1)
       nats:
         specifier: ^2.29.3
