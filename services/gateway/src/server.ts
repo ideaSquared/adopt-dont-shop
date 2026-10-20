@@ -870,11 +870,22 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // skip). When unwired the route doesn't register, so
   // /api/v1/users/me/erasure-request falls to the 404 handler.
   if (opts.nats) {
+    // Per-principal erasure-request cap (ADS-1421) — enforced as a route
+    // preHandler, after authenticate.ts has stamped the real principal, not
+    // via config.rateLimit.keyGenerator (which runs too early to trust
+    // x-user-id). Same Redis store as the per-IP limiter, so the cap is
+    // N-replica-safe; falls back to an in-memory counter without Redis.
+    const erasureUserRateLimiter = createEmailRateLimiter({
+      max: 5,
+      windowMs: 60 * 60_000,
+      redis: rateLimitRedis,
+    });
     await registerGdprRoutes(server, {
       nats: opts.nats,
       auditClient: opts.auditClient,
       authClient: opts.authClient,
       redis: rateLimitRedis,
+      erasureUserRateLimiter,
     });
   }
 

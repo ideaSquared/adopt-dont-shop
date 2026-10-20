@@ -723,6 +723,98 @@ describe('createServer — Prometheus rate-limit counter', () => {
   });
 });
 
+// ADS-1421: the GDPR erasure route's per-principal cap used to be a
+// `config.rateLimit.keyGenerator` reading `x-user-id` — but that runs at
+// onRequest, BEFORE registerAuthenticate's onRequest hook (registered
+// later) strips a client-forged x-user-id and re-stamps the validated
+// principal. These tests exercise the full chain (authenticate + the
+// erasure route) to prove the fix: a preHandler-based cap, which always
+// runs after every onRequest hook, so it only ever sees the real principal.
+describe('createServer — GDPR erasure route per-principal rate limit (ADS-1421)', () => {
+  function makeErasureAuthClient(): Parameters<typeof createServer>[0]['authClient'] {
+    return {
+      // Test convenience: the bearer token IS the resulting userId, so a
+      // test can pick which "real" authenticated user a request is by
+      // choosing the token — independent of whatever x-user-id the caller
+      // also sends (which authenticate.ts strips before this ever matters).
+      validateToken: (req: { accessToken: string }) =>
+        Promise.resolve({
+          principal: { userId: req.accessToken, roles: [1], permissions: [], rescueId: '' },
+        }),
+      verifyCredentials: () => Promise.resolve({ verified: true, twoFactorRequired: false }),
+      getMe: () => Promise.resolve({ user: { email: 'erased@example.com' } }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['authClient'];
+  }
+
+  function makeErasureNats(): import('nats').NatsConnection {
+    return {
+      isClosed: () => false,
+      jetstream: () => ({
+        publish: () => Promise.resolve({ stream: 'DOMAIN_EVENTS', seq: 1, duplicate: false }),
+      }),
+    } as unknown as import('nats').NatsConnection;
+  }
+
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({
+      config: { ...baseConfig, trustProxy: true },
+      logger: quietLogger,
+      authClient: makeErasureAuthClient(),
+      nats: makeErasureNats(),
+    });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  const postErasure = (bearerToken: string, ip: string, forgedUserId?: string) =>
+    server.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: {
+        authorization: `Bearer ${bearerToken}`,
+        'x-forwarded-for': ip,
+        ...(forgedUserId ? { 'x-user-id': forgedUserId } : {}),
+      },
+      payload: { password: 'hunter2' },
+    });
+
+  it('enforces the per-principal cap even when the client forges a rotating x-user-id from a rotating IP', async () => {
+    // Same real principal every time (same bearer token), but each request
+    // forges a DIFFERENT x-user-id and uses a DIFFERENT source IP — exactly
+    // what the bug let an attacker do to mint a fresh bucket per request.
+    // A distinct IP per request also keeps every individual IP's own count
+    // under its 5/hour backstop, so a 429 here can only come from the
+    // per-principal preHandler.
+    for (let i = 0; i < 5; i++) {
+      const res = await postErasure('victim-token', `30.0.0.${i}`, `forged-user-${i}`);
+      expect(res.statusCode).toBe(202);
+    }
+    const sixth = await postErasure('victim-token', '30.0.0.99', 'forged-user-99');
+    expect(sixth.statusCode).toBe(429);
+  });
+
+  it('does not share a bucket between two different authenticated users on the same IP', async () => {
+    // Exhaust alice's per-principal cap, rotating IPs so no single IP's own
+    // backstop trips first.
+    for (let i = 0; i < 5; i++) {
+      const res = await postErasure('alice', `40.0.0.${i}`);
+      expect(res.statusCode).toBe(202);
+    }
+    const aliceSixth = await postErasure('alice', '40.0.0.0');
+    expect(aliceSixth.statusCode).toBe(429);
+
+    // bob is a different authenticated principal reusing an IP alice just
+    // used. His own bucket is untouched, so he isn't blocked by alice's.
+    const bobFirst = await postErasure('bob', '40.0.0.0');
+    expect(bobFirst.statusCode).toBe(202);
+  });
+});
+
 // Domain routes register whenever their gRPC client is wired — there is
 // no migration toggle anymore. A path whose client isn't wired, or that
 // the gateway doesn't own, falls through to the 404 handler.

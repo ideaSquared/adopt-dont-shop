@@ -11,6 +11,7 @@ import type { AuditClient } from '../grpc-clients/audit-client.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 import { registerGdprRoutes, type ErasureStore } from './gdpr.js';
+import { createEmailRateLimiter, type EmailRateLimiter } from './email-rate-limiter.js';
 
 // The password the step-up check (ADS-1205) requires in every erasure POST.
 const PASSWORD = 'hunter2';
@@ -202,6 +203,86 @@ describe('POST /api/v1/users/me/erasure-request', () => {
   });
 });
 
+// ADS-1421: the per-principal cap is a preHandler, keyed on x-user-id. In
+// production that header can only hold the real authenticated userId by the
+// time preHandler runs (authenticate.ts's onRequest hook has already
+// stripped/re-stamped it), so these tests set the header directly — exactly
+// as a post-auth request arrives at this route — and exercise the limiter
+// itself: same key shares a bucket, different keys don't, and a tripped
+// limiter blocks before VerifyCredentials or NATS ever run.
+describe('POST /api/v1/users/me/erasure-request — per-principal rate limit (ADS-1421)', () => {
+  let app: FastifyInstance;
+  let published: Array<{ subject: string; data: string }>;
+  let erasureUserRateLimiter: EmailRateLimiter;
+
+  beforeEach(async () => {
+    app = Fastify({ logger: false });
+    const { nats, published: p } = fakeNats();
+    published = p;
+    const auth = makeAuthClient();
+    erasureUserRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 60_000 });
+    await registerGdprRoutes(app, { nats, authClient: auth.client, erasureUserRateLimiter });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  const post = (userId: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': userId },
+      payload: { password: PASSWORD },
+    });
+
+  it('throttles a second request from the same principal within the window', async () => {
+    const first = await post('usr-1');
+    expect(first.statusCode).toBe(202);
+
+    const second = await post('usr-1');
+    expect(second.statusCode).toBe(429);
+    expect(second.json()).toMatchObject({ success: false, error: 'rate_limit_exceeded' });
+    // Blocked before the saga publishes — only the first request's event.
+    expect(published).toHaveLength(1);
+  });
+
+  it('does not share a bucket between two different principals', async () => {
+    const first = await post('usr-1');
+    expect(first.statusCode).toBe(202);
+
+    // A different authenticated user gets their own bucket, even though
+    // the route's only other cap (the per-IP backstop) is shared.
+    const other = await post('usr-2');
+    expect(other.statusCode).toBe(202);
+    expect(published).toHaveLength(2);
+  });
+
+  it('does not throttle when no erasureUserRateLimiter is wired', async () => {
+    const bareApp = Fastify({ logger: false });
+    const { nats, published: barePublished } = fakeNats();
+    const auth = makeAuthClient();
+    await registerGdprRoutes(bareApp, { nats, authClient: auth.client });
+
+    const first = await bareApp.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: { password: PASSWORD },
+    });
+    const second = await bareApp.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: { password: PASSWORD },
+    });
+    expect(first.statusCode).toBe(202);
+    expect(second.statusCode).toBe(202);
+    expect(barePublished).toHaveLength(2);
+    await bareApp.close();
+  });
+});
+
 describe('POST /api/v1/users/me/erasure-request — auth client unavailable', () => {
   let app: FastifyInstance;
   let published: Array<{ subject: string; data: string }>;
@@ -361,11 +442,18 @@ describe('POST /api/v1/users/me/erasure-request — idempotency', () => {
   });
 });
 
-describe('POST /api/v1/users/me/erasure-request — rate-limit', () => {
+// ADS-1421: config.rateLimit on this route is now a pure per-IP backstop —
+// it no longer keys on x-user-id (that header isn't trustworthy at the
+// onRequest phase where @fastify/rate-limit's keyGenerator runs; see
+// ERASURE_RATE_LIMIT's comment in gdpr.ts). These tests exercise that raw
+// plugin behaviour directly, with no erasureUserRateLimiter wired, so they
+// differentiate requests by source IP rather than by the (now irrelevant
+// to this limiter) x-user-id header.
+describe('POST /api/v1/users/me/erasure-request — per-IP rate-limit backstop', () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    app = Fastify({ logger: false });
+    app = Fastify({ logger: false, trustProxy: true });
     // Register the global plugin so per-route config.rateLimit takes effect.
     await app.register(rateLimit, { global: true, max: 1000, timeWindow: '1 minute' });
     const { nats } = fakeNats();
@@ -377,40 +465,26 @@ describe('POST /api/v1/users/me/erasure-request — rate-limit', () => {
     await app.close();
   });
 
-  it('returns 429 after the per-user limit (5/hour) is exceeded', async () => {
-    for (let i = 0; i < 5; i++) {
-      const res = await app.inject({
-        method: 'POST',
-        url: '/api/v1/users/me/erasure-request',
-        headers: { 'x-user-id': '44444444-4444-4444-4444-444444444444' },
-        payload: { password: PASSWORD },
-      });
-      expect(res.statusCode).toBe(202);
-    }
-    const limited = await app.inject({
+  const post = (ip: string) =>
+    app.inject({
       method: 'POST',
       url: '/api/v1/users/me/erasure-request',
-      headers: { 'x-user-id': '44444444-4444-4444-4444-444444444444' },
+      headers: { 'x-user-id': '44444444-4444-4444-4444-444444444444', 'x-forwarded-for': ip },
       payload: { password: PASSWORD },
     });
-    expect(limited.statusCode).toBe(429);
+
+  it('returns 429 after the per-IP limit (5/hour) is exceeded', async () => {
+    for (let i = 0; i < 5; i++) {
+      expect((await post('10.0.0.1')).statusCode).toBe(202);
+    }
+    expect((await post('10.0.0.1')).statusCode).toBe(429);
   });
 
-  it('rate-limits per user — a different user is not affected', async () => {
+  it('rate-limits per IP — a different source IP is not affected', async () => {
     for (let i = 0; i < 5; i++) {
-      await app.inject({
-        method: 'POST',
-        url: '/api/v1/users/me/erasure-request',
-        headers: { 'x-user-id': '55555555-5555-5555-5555-555555555555' },
-        payload: { password: PASSWORD },
-      });
+      await post('10.0.0.2');
     }
-    const other = await app.inject({
-      method: 'POST',
-      url: '/api/v1/users/me/erasure-request',
-      headers: { 'x-user-id': '66666666-6666-6666-6666-666666666666' },
-      payload: { password: PASSWORD },
-    });
+    const other = await post('10.0.0.3');
     expect(other.statusCode).toBe(202);
   });
 });
