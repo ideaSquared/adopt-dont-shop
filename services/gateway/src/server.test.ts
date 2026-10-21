@@ -815,6 +815,71 @@ describe('createServer — GDPR erasure route per-principal rate limit (ADS-1421
   });
 });
 
+// ADS-1421: same bug/fix shape as the GDPR erasure route above, for the
+// self-service export route's per-principal cap.
+describe('createServer — users-export route per-principal rate limit (ADS-1421)', () => {
+  function makeExportAuthClient(): Parameters<typeof createServer>[0]['authClient'] {
+    return {
+      validateToken: (req: { accessToken: string }) =>
+        Promise.resolve({
+          principal: { userId: req.accessToken, roles: [1], permissions: [], rescueId: '' },
+        }),
+      exportUserData: (req: { userId: string }) =>
+        Promise.resolve({
+          user: { userId: req.userId, email: 'exported@example.com' },
+          exportedAt: '2026-10-21T00:00:00.000Z',
+        }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['authClient'];
+  }
+
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({
+      config: { ...baseConfig, trustProxy: true },
+      logger: quietLogger,
+      authClient: makeExportAuthClient(),
+    });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  const getExport = (bearerToken: string, ip: string, forgedUserId?: string) =>
+    server.inject({
+      method: 'GET',
+      url: '/api/v1/users/me/export',
+      headers: {
+        authorization: `Bearer ${bearerToken}`,
+        'x-forwarded-for': ip,
+        ...(forgedUserId ? { 'x-user-id': forgedUserId } : {}),
+      },
+    });
+
+  it('enforces the per-principal cap even when the client forges a rotating x-user-id from a rotating IP', async () => {
+    for (let i = 0; i < 5; i++) {
+      const res = await getExport('victim-token', `31.0.0.${i}`, `forged-user-${i}`);
+      expect(res.statusCode).toBe(200);
+    }
+    const sixth = await getExport('victim-token', '31.0.0.99', 'forged-user-99');
+    expect(sixth.statusCode).toBe(429);
+  });
+
+  it('does not share a bucket between two different authenticated users on the same IP', async () => {
+    for (let i = 0; i < 5; i++) {
+      const res = await getExport('alice', `41.0.0.${i}`);
+      expect(res.statusCode).toBe(200);
+    }
+    const aliceSixth = await getExport('alice', '41.0.0.0');
+    expect(aliceSixth.statusCode).toBe(429);
+
+    const bobFirst = await getExport('bob', '41.0.0.0');
+    expect(bobFirst.statusCode).toBe(200);
+  });
+});
+
 // Domain routes register whenever their gRPC client is wired — there is
 // no migration toggle anymore. A path whose client isn't wired, or that
 // the gateway doesn't own, falls through to the 404 handler.
