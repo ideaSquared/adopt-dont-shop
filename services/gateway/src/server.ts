@@ -629,7 +629,21 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // /api/v1/users/me/export — self-service data export (GDPR Art. 15/20,
     // ADS-1320). Reuses the same ExportUserData RPC as the admin route
     // above, always scoped to the caller's own userId.
-    await registerUsersExportRoutes(server, { client: opts.authClient });
+    //
+    // Per-principal export cap (ADS-1421) — enforced as a route preHandler,
+    // after authenticate.ts has stamped the real principal, not via
+    // config.rateLimit.keyGenerator (which runs too early to trust
+    // x-user-id). Same Redis store as the per-IP limiter, so the cap is
+    // N-replica-safe; falls back to an in-memory counter without Redis.
+    const exportUserRateLimiter = createEmailRateLimiter({
+      max: 5,
+      windowMs: 60 * 60_000,
+      redis: rateLimitRedis,
+    });
+    await registerUsersExportRoutes(server, {
+      client: opts.authClient,
+      exportUserRateLimiter,
+    });
     // /api/v1/privacy/{consent,cookies-consent} + /api/v1/legal/
     // pending-reacceptance — self-scoped legal consent store (ADS-1137).
     await registerConsentRoutes(server, { client: opts.authClient });
@@ -728,7 +742,20 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerMatchingRoutes(server, { client: opts.matchingClient });
   }
   if (opts.moderationClient) {
-    await registerModerationRoutes(server, { client: opts.moderationClient });
+    // Per-principal report-filing cap (ADS-1421) — enforced as a route
+    // preHandler, after authenticate.ts has stamped the real principal, not
+    // via config.rateLimit.keyGenerator (which runs too early to trust
+    // x-user-id). Same Redis store as the per-IP limiter, so the cap is
+    // N-replica-safe; falls back to an in-memory counter without Redis.
+    const reportFileUserRateLimiter = createEmailRateLimiter({
+      max: 30,
+      windowMs: 60_000,
+      redis: rateLimitRedis,
+    });
+    await registerModerationRoutes(server, {
+      client: opts.moderationClient,
+      reportFileUserRateLimiter,
+    });
     // SPA-facing surface at /api/v1/admin/{moderation,support}/* with
     // frontend-shape envelopes (lib.moderation, lib.support-tickets).
     await registerModerationAdminRoutes(server, { client: opts.moderationClient });
@@ -792,9 +819,23 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
   if (opts.chatClient) {
+    // Per-principal pet-enquiry cap (ADS-1421) — enforced as a route
+    // preHandler, after authenticate.ts has stamped the real principal, not
+    // via config.rateLimit.keyGenerator (which runs too early to trust
+    // x-user-id). Same Redis store as the per-IP limiter, so the cap is
+    // N-replica-safe; falls back to an in-memory counter without Redis.
+    const petEnquiryUserRateLimiter = createEmailRateLimiter({
+      max: 10,
+      windowMs: 24 * 60 * 60_000,
+      redis: rateLimitRedis,
+    });
     // authClient (optional) resolves participant/sender display names
     // (ADS-1408); absent, chats and messages carry no name as before.
-    await registerChatRoutes(server, { client: opts.chatClient, authClient: opts.authClient });
+    await registerChatRoutes(server, {
+      client: opts.chatClient,
+      authClient: opts.authClient,
+      petEnquiryUserRateLimiter,
+    });
   }
   // /api/v1/search/{messages,suggestions} — cross-service lib.search
   // surface (ADS-1142). Needs both chat (message search) and pets
@@ -870,11 +911,22 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // skip). When unwired the route doesn't register, so
   // /api/v1/users/me/erasure-request falls to the 404 handler.
   if (opts.nats) {
+    // Per-principal erasure-request cap (ADS-1421) — enforced as a route
+    // preHandler, after authenticate.ts has stamped the real principal, not
+    // via config.rateLimit.keyGenerator (which runs too early to trust
+    // x-user-id). Same Redis store as the per-IP limiter, so the cap is
+    // N-replica-safe; falls back to an in-memory counter without Redis.
+    const erasureUserRateLimiter = createEmailRateLimiter({
+      max: 5,
+      windowMs: 60 * 60_000,
+      redis: rateLimitRedis,
+    });
     await registerGdprRoutes(server, {
       nats: opts.nats,
       auditClient: opts.auditClient,
       authClient: opts.authClient,
       redis: rateLimitRedis,
+      erasureUserRateLimiter,
     });
   }
 

@@ -17,6 +17,7 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { ChatClient } from '../grpc-clients/chat-client.js';
 
 import { registerChatRoutes } from './chat.js';
+import { createEmailRateLimiter, type EmailRateLimiter } from './email-rate-limiter.js';
 
 // --- Fixtures -------------------------------------------------------
 
@@ -1361,21 +1362,79 @@ describe('POST /api/v1/chats/enquiries — ask about a pet', () => {
     expect(res.statusCode).toBe(400);
     expect(client.openPetEnquiryMock).not.toHaveBeenCalled();
   });
+});
+
+// ADS-1421: the per-principal cap is a preHandler, keyed on x-user-id. In
+// production that header can only hold the real authenticated userId by the
+// time preHandler runs (authenticate.ts's onRequest hook has already
+// stripped/re-stamped it), so these tests set the header directly — exactly
+// as a post-auth request arrives at this route — and exercise the limiter
+// itself: same key shares a bucket, different keys don't, and a tripped
+// limiter blocks before openPetEnquiry ever runs.
+describe('POST /api/v1/chats/enquiries — per-principal rate limit (ADS-1421)', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+  let petEnquiryUserRateLimiter: EmailRateLimiter;
+
+  // Each request carries its own source IP (x-forwarded-for, with
+  // trustProxy) so the route's own 10/day per-IP backstop (PET_ENQUIRY_
+  // RATE_LIMIT, now unkeyed — see chat.ts) never interferes: these tests
+  // isolate the per-principal preHandler, which is keyed on x-user-id
+  // regardless of source IP.
+  const ask = (userId: string, ip: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/v1/chats/enquiries',
+      headers: { 'x-user-id': userId, 'x-user-roles': 'adopter', 'x-forwarded-for': ip },
+      payload: { petId: 'pet-1' },
+    });
+
+  beforeEach(async () => {
+    client = makeClient();
+    client.openPetEnquiryMock.mockResolvedValue({ chat: CHAT_FIXTURE, created: true });
+    app = Fastify({ logger: false, trustProxy: true });
+    petEnquiryUserRateLimiter = createEmailRateLimiter({ max: 10, windowMs: 24 * 60 * 60_000 });
+    await registerChatRoutes(app, { client, petEnquiryUserRateLimiter });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
 
   it('caps each user at 10 enquiry requests a day', async () => {
-    client.openPetEnquiryMock.mockResolvedValue({ chat: CHAT_FIXTURE, created: true });
-    const ask = (userId: string) =>
-      app.inject({
-        method: 'POST',
-        url: '/api/v1/chats/enquiries',
-        headers: { 'x-user-id': userId, 'x-user-roles': 'adopter' },
-        payload: { petId: 'pet-1' },
-      });
-
-    const firstTen = await Promise.all(Array.from({ length: 10 }, () => ask('usr-busy')));
+    const firstTen = await Promise.all(
+      Array.from({ length: 10 }, (_, i) => ask('usr-busy', `50.0.0.${i}`))
+    );
     expect(firstTen.every(res => res.statusCode === 201)).toBe(true);
-    expect((await ask('usr-busy')).statusCode).toBe(429);
-    // Another adopter (even behind the same IP) is unaffected.
-    expect((await ask('usr-other')).statusCode).toBe(201);
+    const eleventh = await ask('usr-busy', '50.0.0.99');
+    expect(eleventh.statusCode).toBe(429);
+    // A different principal, reusing an IP usr-busy already used, is
+    // unaffected — that IP's own backstop count is nowhere near its cap.
+    expect((await ask('usr-other', '50.0.0.0')).statusCode).toBe(201);
+  });
+
+  it('does not throttle per-principal when no petEnquiryUserRateLimiter is wired', async () => {
+    // Stays well under the route's own 10/day per-IP backstop (PET_ENQUIRY_
+    // RATE_LIMIT) — this only proves the per-principal preHandler is a no-op
+    // without a limiter, not that the IP backstop is gone.
+    const bareApp = Fastify({ logger: false });
+    const bareClient = makeClient();
+    bareClient.openPetEnquiryMock.mockResolvedValue({ chat: CHAT_FIXTURE, created: true });
+    await registerChatRoutes(bareApp, { client: bareClient });
+    try {
+      const askBare = () =>
+        bareApp.inject({
+          method: 'POST',
+          url: '/api/v1/chats/enquiries',
+          headers: { 'x-user-id': 'usr-busy', 'x-user-roles': 'adopter' },
+          payload: { petId: 'pet-1' },
+        });
+      const first = await askBare();
+      const second = await askBare();
+      expect(first.statusCode).toBe(201);
+      expect(second.statusCode).toBe(201);
+    } finally {
+      await bareApp.close();
+    }
   });
 });
