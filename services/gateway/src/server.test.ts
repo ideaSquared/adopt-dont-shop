@@ -880,6 +880,149 @@ describe('createServer — users-export route per-principal rate limit (ADS-1421
   });
 });
 
+// ADS-1421: same bug/fix shape as the GDPR erasure route above, for the
+// chat pet-enquiry route's per-principal cap.
+describe('createServer — chat pet-enquiry route per-principal rate limit (ADS-1421)', () => {
+  function makeEnquiryAuthClient(): Parameters<typeof createServer>[0]['authClient'] {
+    return {
+      validateToken: (req: { accessToken: string }) =>
+        Promise.resolve({
+          principal: { userId: req.accessToken, roles: [1], permissions: [], rescueId: '' },
+        }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['authClient'];
+  }
+
+  function makeChatClient(): Parameters<typeof createServer>[0]['chatClient'] {
+    return {
+      openPetEnquiry: () =>
+        Promise.resolve({ chat: { chatId: 'chat-1', participantUserIds: [] }, created: true }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['chatClient'];
+  }
+
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({
+      config: { ...baseConfig, trustProxy: true },
+      logger: quietLogger,
+      authClient: makeEnquiryAuthClient(),
+      chatClient: makeChatClient(),
+    });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  const postEnquiry = (bearerToken: string, ip: string, forgedUserId?: string) =>
+    server.inject({
+      method: 'POST',
+      url: '/api/v1/chats/enquiries',
+      headers: {
+        authorization: `Bearer ${bearerToken}`,
+        'x-forwarded-for': ip,
+        ...(forgedUserId ? { 'x-user-id': forgedUserId } : {}),
+      },
+      payload: { petId: 'pet-1' },
+    });
+
+  it('enforces the per-principal cap even when the client forges a rotating x-user-id from a rotating IP', async () => {
+    for (let i = 0; i < 10; i++) {
+      const res = await postEnquiry('victim-token', `32.0.0.${i}`, `forged-user-${i}`);
+      expect(res.statusCode).toBe(201);
+    }
+    const eleventh = await postEnquiry('victim-token', '32.0.0.99', 'forged-user-99');
+    expect(eleventh.statusCode).toBe(429);
+  });
+
+  it('does not share a bucket between two different authenticated users on the same IP', async () => {
+    for (let i = 0; i < 10; i++) {
+      const res = await postEnquiry('alice', `42.0.0.${i}`);
+      expect(res.statusCode).toBe(201);
+    }
+    const aliceEleventh = await postEnquiry('alice', '42.0.0.0');
+    expect(aliceEleventh.statusCode).toBe(429);
+
+    // bob is a different authenticated principal reusing an IP alice just
+    // used. His own bucket is untouched, so he isn't blocked by alice's.
+    const bobFirst = await postEnquiry('bob', '42.0.0.0');
+    expect(bobFirst.statusCode).toBe(201);
+  });
+});
+
+// ADS-1421: same bug/fix shape as the GDPR erasure route above, for the
+// moderation report-filing route's per-principal cap.
+describe('createServer — moderation report-filing route per-principal rate limit (ADS-1421)', () => {
+  function makeReportAuthClient(): Parameters<typeof createServer>[0]['authClient'] {
+    return {
+      validateToken: (req: { accessToken: string }) =>
+        Promise.resolve({
+          principal: { userId: req.accessToken, roles: [1], permissions: [], rescueId: '' },
+        }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['authClient'];
+  }
+
+  function makeModerationClient(): Parameters<typeof createServer>[0]['moderationClient'] {
+    return {
+      fileReport: () => Promise.resolve({ report: { reportId: 'rep-1' } }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['moderationClient'];
+  }
+
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({
+      config: { ...baseConfig, trustProxy: true },
+      logger: quietLogger,
+      authClient: makeReportAuthClient(),
+      moderationClient: makeModerationClient(),
+    });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  const postReport = (bearerToken: string, ip: string, forgedUserId?: string) =>
+    server.inject({
+      method: 'POST',
+      url: '/api/v1/moderation/reports',
+      headers: {
+        authorization: `Bearer ${bearerToken}`,
+        'x-forwarded-for': ip,
+        ...(forgedUserId ? { 'x-user-id': forgedUserId } : {}),
+      },
+      payload: { reportedEntityId: 'ent-1', title: 't', description: 'd' },
+    });
+
+  it('enforces the per-principal cap even when the client forges a rotating x-user-id from a rotating IP', async () => {
+    for (let i = 0; i < 30; i++) {
+      const res = await postReport('victim-token', `33.0.0.${i}`, `forged-user-${i}`);
+      expect(res.statusCode).toBe(201);
+    }
+    const thirtyFirst = await postReport('victim-token', '33.0.0.199', 'forged-user-199');
+    expect(thirtyFirst.statusCode).toBe(429);
+  });
+
+  it('does not share a bucket between two different authenticated users on the same IP', async () => {
+    for (let i = 0; i < 30; i++) {
+      const res = await postReport('alice', `43.0.0.${i}`);
+      expect(res.statusCode).toBe(201);
+    }
+    const aliceNext = await postReport('alice', '43.0.0.0');
+    expect(aliceNext.statusCode).toBe(429);
+
+    // bob is a different authenticated principal reusing an IP alice just
+    // used. His own bucket is untouched, so he isn't blocked by alice's.
+    const bobFirst = await postReport('bob', '43.0.0.0');
+    expect(bobFirst.statusCode).toBe(201);
+  });
+});
+
 // Domain routes register whenever their gRPC client is wired — there is
 // no migration toggle anymore. A path whose client isn't wired, or that
 // the gateway doesn't own, falls through to the 404 handler.

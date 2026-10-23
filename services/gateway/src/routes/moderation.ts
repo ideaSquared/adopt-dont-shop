@@ -33,7 +33,7 @@
 // x-user-* metadata via the Phase 2.5 authenticate middleware.
 
 import rateLimit from '@fastify/rate-limit';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
   ModerationV1,
@@ -57,8 +57,17 @@ import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
+import type { EmailRateLimiter } from './email-rate-limiter.js';
+
 export type ModerationRoutesOptions = {
   client: ModerationClient;
+  // Per-authenticated-user report-filing cap (ADS-1421), enforced as a route
+  // preHandler — NOT via config.rateLimit.keyGenerator. @fastify/rate-limit's
+  // keyGenerator runs at onRequest, before authenticate.ts has stripped a
+  // client-forged x-user-id and re-stamped the validated principal, so a key
+  // read there is attacker-controlled. Optional so tests / dev that don't
+  // wire it keep the per-IP-only backstop behaviour.
+  reportFileUserRateLimiter?: EmailRateLimiter;
 };
 
 // Canonical list response schema: { success, data[], pagination }. This raw
@@ -92,23 +101,44 @@ const RL_READ = { max: 120, timeWindow: '1 minute' } as const;
 
 // Report filing is open to any authenticated user, so it is rate-limited PER
 // PRINCIPAL (ADS-1019) — one account can't flood the moderator queue across
-// many entities even from rotating IPs. Falls back to the peer IP for the rare
-// unauthenticated path. Bounds the cross-entity volume the per-reporter dedup
-// (one open report per entity) doesn't cover on its own.
-export const reportFileRateLimitKey = (req: FastifyRequest): string => headerUserId(req) ?? req.ip;
+// many entities even from rotating IPs. Bounds the cross-entity volume the
+// per-reporter dedup (one open report per entity) doesn't cover on its own.
+//
+// Per-route IP backstop: 30 requests per minute per source IP, applied before
+// authentication runs. The INTENDED per-principal cap (same 30/minute) is
+// enforced separately below as a preHandler keyed on the authenticated
+// principal — see reportFileUserRateLimiter (ADS-1421). This no longer keys
+// on x-user-id: that header isn't trustworthy yet at the onRequest phase
+// where @fastify/rate-limit's keyGenerator runs.
 const RL_REPORT_FILE = {
   max: 30,
   timeWindow: '1 minute',
-  keyGenerator: reportFileRateLimitKey,
 } as const;
 
 export const registerModerationRoutes = async (
   app: FastifyInstance,
   opts: ModerationRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, reportFileUserRateLimiter } = opts;
 
   await app.register(rateLimit, { global: false });
+
+  // Per-principal cap preHandler (ADS-1421) — runs after authenticate.ts's
+  // onRequest hook has already stripped any client-forged x-user-id and
+  // re-stamped the validated principal, so the key is never attacker-
+  // controlled. A no-op when no limiter is wired (tests / dev).
+  const reportFileUserRateLimit = reportFileUserRateLimiter
+    ? async (req: FastifyRequest, reply: FastifyReply) => {
+        const userId = headerUserId(req);
+        if (!userId) {
+          return;
+        }
+        const allowed = await reportFileUserRateLimiter.consume(userId);
+        if (!allowed) {
+          return reply.code(429).send({ success: false, error: 'rate_limit_exceeded' });
+        }
+      }
+    : undefined;
 
   // ---------- Reports ----------
 
@@ -116,6 +146,7 @@ export const registerModerationRoutes = async (
     '/api/v1/moderation/reports',
     {
       config: { rateLimit: RL_REPORT_FILE },
+      preHandler: reportFileUserRateLimit,
       schema: {
         tags: ['moderation'],
         summary: 'File a moderation report',

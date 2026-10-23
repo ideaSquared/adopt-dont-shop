@@ -742,7 +742,20 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerMatchingRoutes(server, { client: opts.matchingClient });
   }
   if (opts.moderationClient) {
-    await registerModerationRoutes(server, { client: opts.moderationClient });
+    // Per-principal report-filing cap (ADS-1421) — enforced as a route
+    // preHandler, after authenticate.ts has stamped the real principal, not
+    // via config.rateLimit.keyGenerator (which runs too early to trust
+    // x-user-id). Same Redis store as the per-IP limiter, so the cap is
+    // N-replica-safe; falls back to an in-memory counter without Redis.
+    const reportFileUserRateLimiter = createEmailRateLimiter({
+      max: 30,
+      windowMs: 60_000,
+      redis: rateLimitRedis,
+    });
+    await registerModerationRoutes(server, {
+      client: opts.moderationClient,
+      reportFileUserRateLimiter,
+    });
     // SPA-facing surface at /api/v1/admin/{moderation,support}/* with
     // frontend-shape envelopes (lib.moderation, lib.support-tickets).
     await registerModerationAdminRoutes(server, { client: opts.moderationClient });
@@ -806,9 +819,23 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
   if (opts.chatClient) {
+    // Per-principal pet-enquiry cap (ADS-1421) — enforced as a route
+    // preHandler, after authenticate.ts has stamped the real principal, not
+    // via config.rateLimit.keyGenerator (which runs too early to trust
+    // x-user-id). Same Redis store as the per-IP limiter, so the cap is
+    // N-replica-safe; falls back to an in-memory counter without Redis.
+    const petEnquiryUserRateLimiter = createEmailRateLimiter({
+      max: 10,
+      windowMs: 24 * 60 * 60_000,
+      redis: rateLimitRedis,
+    });
     // authClient (optional) resolves participant/sender display names
     // (ADS-1408); absent, chats and messages carry no name as before.
-    await registerChatRoutes(server, { client: opts.chatClient, authClient: opts.authClient });
+    await registerChatRoutes(server, {
+      client: opts.chatClient,
+      authClient: opts.authClient,
+      petEnquiryUserRateLimiter,
+    });
   }
   // /api/v1/search/{messages,suggestions} — cross-service lib.search
   // surface (ADS-1142). Needs both chat (message search) and pets
