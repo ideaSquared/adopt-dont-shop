@@ -639,6 +639,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       max: 5,
       windowMs: 60 * 60_000,
       redis: rateLimitRedis,
+      // Distinct namespace (ADS-1421 follow-up) — without it this shares a
+      // Redis key with erasureUserRateLimiter below (same 1-hour window),
+      // merging the two routes' per-user quotas for the same userId.
+      keyPrefix: 'gdpr-export-user-rl',
     });
     await registerUsersExportRoutes(server, {
       client: opts.authClient,
@@ -751,6 +755,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       max: 30,
       windowMs: 60_000,
       redis: rateLimitRedis,
+      // Distinct namespace (ADS-1421 follow-up) — without it this shares a
+      // Redis key namespace with any other limiter on the same window,
+      // letting a caller of one route burn another route's quota.
+      keyPrefix: 'moderation-report-user-rl',
     });
     await registerModerationRoutes(server, {
       client: opts.moderationClient,
@@ -828,6 +836,8 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       max: 10,
       windowMs: 24 * 60 * 60_000,
       redis: rateLimitRedis,
+      // Distinct namespace (ADS-1421 follow-up) — see exportUserRateLimiter.
+      keyPrefix: 'chat-pet-enquiry-user-rl',
     });
     // authClient (optional) resolves participant/sender display names
     // (ADS-1408); absent, chats and messages carry no name as before.
@@ -920,6 +930,8 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       max: 5,
       windowMs: 60 * 60_000,
       redis: rateLimitRedis,
+      // Distinct namespace (ADS-1421 follow-up) — see exportUserRateLimiter.
+      keyPrefix: 'gdpr-erasure-user-rl',
     });
     await registerGdprRoutes(server, {
       nats: opts.nats,

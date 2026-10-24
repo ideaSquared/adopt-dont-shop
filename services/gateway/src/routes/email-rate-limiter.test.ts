@@ -188,4 +188,63 @@ describe('createEmailRateLimiter (redis-backed)', () => {
     // Same email hashes to the same key, so the 3rd attempt is throttled.
     expect(await limiter.consume('a@example.com')).toBe(false);
   });
+
+  // ADS-1421 follow-up: this module backs several independent per-route
+  // limiters (GDPR export, GDPR erasure, moderation report-filing, chat
+  // pet-enquiry, ...) that all share one Redis store in production. Without
+  // a distinct keyPrefix per instance, two instances with the SAME windowMs
+  // compute the same bucket number, so consuming the same value (e.g. the
+  // same userId calling two different capped routes) hits the identical
+  // Redis key and silently merges their quotas.
+  it('does not share a bucket between two limiter instances with different keyPrefixes, even with the same windowMs and value', async () => {
+    const counts = new Map<string, number>();
+    const redis = {
+      incr: (key: string): Promise<number> => {
+        const next = (counts.get(key) ?? 0) + 1;
+        counts.set(key, next);
+        return Promise.resolve(next);
+      },
+      expire: (): Promise<number> => Promise.resolve(1),
+    };
+    const exportLimiter = createEmailRateLimiter({
+      max: 1,
+      windowMs: 60_000,
+      redis,
+      keyPrefix: 'gdpr-export-user-rl',
+    });
+    const erasureLimiter = createEmailRateLimiter({
+      max: 1,
+      windowMs: 60_000,
+      redis,
+      keyPrefix: 'gdpr-erasure-user-rl',
+    });
+
+    // Same "userId" consumed on both limiters in the same window.
+    expect(await exportLimiter.consume('user-123')).toBe(true);
+    // If export and erasure shared a Redis key, this would already be the
+    // 2nd hit on a max-1 bucket and come back throttled.
+    expect(await erasureLimiter.consume('user-123')).toBe(true);
+    // Each limiter's own cap still applies independently.
+    expect(await exportLimiter.consume('user-123')).toBe(false);
+    expect(await erasureLimiter.consume('user-123')).toBe(false);
+  });
+
+  it('falls back to the pre-existing shared namespace when keyPrefix is omitted (back-compat)', async () => {
+    const seenKeys: string[] = [];
+    const counts = new Map<string, number>();
+    const redis = {
+      incr: (key: string): Promise<number> => {
+        seenKeys.push(key);
+        const next = (counts.get(key) ?? 0) + 1;
+        counts.set(key, next);
+        return Promise.resolve(next);
+      },
+      expire: (): Promise<number> => Promise.resolve(1),
+    };
+    const limiter = createEmailRateLimiter({ max: 1, windowMs: 60_000, redis });
+
+    await limiter.consume('a@example.com');
+
+    expect(seenKeys[0].startsWith('auth-email-rl:')).toBe(true);
+  });
 });
