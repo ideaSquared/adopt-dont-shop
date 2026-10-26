@@ -43,9 +43,12 @@ Plus `preview`, `test:watch`, `test:coverage`, `test:ui`, `format`,
 ## Public surface
 
 Route tree lives in `src/App.tsx`; page components are flat files under
-`src/pages/` (Users, Rescues, Pets, Applications, Moderation, Support,
-Messages, Inbox, Analytics, Reports, Configuration, FieldPermissions,
-ContentManagement, PrivacyTools, Audit, SecurityCenter, AccountSettings).
+`src/pages/` (Dashboard, Users, Rescues, Pets, Applications, Inbox,
+Moderation, Support, Messages, BroadcastNotifications, Analytics, Reports,
+ReportBuilderPage, ReportViewPage, Configuration, FieldPermissions,
+ContentManagement, PrivacyTools, Audit, SecurityCenter, AccountSettings),
+plus the unauthenticated `LoginPage` / `RegisterPage` and a `NotFoundPage`
+catch-all.
 
 ## Environment variables consumed
 
