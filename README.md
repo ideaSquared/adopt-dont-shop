@@ -81,10 +81,10 @@ Only `auth`, `rescue`, `pets`, `applications` and `chat` have seeders, and they 
 
 ### Run (native — no Docker)
 
-You'll need Postgres + Redis running locally. The quickest option is to let Docker run just those two services while the rest of the stack runs natively. `.env.example` uses the Docker Compose hostnames, so before running natively edit `.env` to point at your host: set `DB_HOST=localhost`, `REDIS_HOST=localhost`, and `REDIS_PORT=6379` (the host port `pnpm dev:services` publishes Redis on — not the `6380` remap the `pnpm docker:dev` overlay uses).
+You'll need Postgres + Redis + NATS running locally. The quickest option is to let Docker run just those three while the rest of the stack runs natively. `.env.example` uses the Docker Compose hostnames, so before running natively edit `.env` to point at your host: set `DB_HOST=localhost`, `REDIS_HOST=localhost`, `REDIS_PORT=6379` (the host port `pnpm dev:services` publishes Redis on — not the `6380` remap the `pnpm docker:dev` overlay uses), and `NATS_URL=nats://localhost:4222`.
 
 ```bash
-pnpm dev:services        # start Postgres + Redis in Docker (detached)
+pnpm dev:services        # start Postgres + Redis + NATS in Docker (detached)
 pnpm dev                 # all packages via Turbo (apps + gateway + services)
 pnpm dev:apps            # frontend apps only
 ```
