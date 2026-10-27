@@ -27,7 +27,7 @@ the repo root with `pnpm <script>`.
 | --- | --- |
 | `pnpm dev` | `turbo run dev --parallel` |
 | `pnpm dev:apps` | `turbo run dev --filter='@adopt-dont-shop/app.*' --parallel` |
-| `pnpm dev:services` | `node scripts/write-redis-secret.mjs && docker compose up -d database redis` |
+| `pnpm dev:services` | `node scripts/write-redis-secret.mjs && docker compose up -d database redis nats` |
 
 ### Build
 
