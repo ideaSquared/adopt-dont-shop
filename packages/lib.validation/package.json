@@ -44,7 +44,7 @@
   "license": "MIT",
   "dependencies": {
     "@adopt-dont-shop/lib.types": "workspace:*",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*",
