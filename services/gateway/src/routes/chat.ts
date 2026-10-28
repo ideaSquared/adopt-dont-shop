@@ -12,7 +12,7 @@
 
 import rateLimit from '@fastify/rate-limit';
 import type { Metadata } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
   ChatV1,
@@ -31,12 +31,21 @@ import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
 
+import type { EmailRateLimiter } from './email-rate-limiter.js';
+
 export type ChatRoutesOptions = {
   client: ChatClient;
   // Resolves participant/sender display names (ADS-1408). Optional — with
   // it absent, chats and messages carry no name and the lib.chat adapter
   // falls back to '' exactly as it did before this enrichment existed.
   authClient?: AuthClient;
+  // Per-authenticated-user enquiry cap (ADS-1421), enforced as a route
+  // preHandler — NOT via config.rateLimit.keyGenerator. @fastify/rate-limit's
+  // keyGenerator runs at onRequest, before authenticate.ts has stripped a
+  // client-forged x-user-id and re-stamped the validated principal, so a key
+  // read there is attacker-controlled. Optional so tests / dev that don't
+  // wire it keep the per-IP-only backstop behaviour.
+  petEnquiryUserRateLimiter?: EmailRateLimiter;
 };
 
 // The monolith mounts the same chat routes at /api/v1/chats AND
@@ -70,17 +79,22 @@ const CHAT_RATE_LIMITS = {
   delete: { max: 30, timeWindow: '1 minute' },
 } as const;
 
-// Opening a pet enquiry (a chat with a rescue before applying) is capped per
-// user, not per IP, at 10 a day — enough for a real adopter, too few for chat
-// spam. Mirrors the userId-keyed limits in gdpr.ts / users-export.ts.
+// Per-route IP backstop: 10 requests per day per source IP, applied before
+// authentication runs. The INTENDED per-user cap (same 10/day) is enforced
+// separately below as a preHandler keyed on the authenticated principal —
+// see petEnquiryUserRateLimiter (ADS-1421). This no longer keys on
+// x-user-id: that header isn't trustworthy yet at the onRequest phase where
+// @fastify/rate-limit's keyGenerator runs.
 const PET_ENQUIRY_RATE_LIMIT = {
   max: 10,
   timeWindow: '1 day',
-  keyGenerator: (req: FastifyRequest) => {
-    const userId = req.headers['x-user-id'];
-    return typeof userId === 'string' && userId.length > 0 ? `chat-enquiry:${userId}` : req.ip;
-  },
 };
+
+function principalUserId(req: FastifyRequest): string | null {
+  const headers = req.headers as Record<string, string | string[] | undefined>;
+  const raw = headers['x-user-id'];
+  return typeof raw === 'string' && raw.length > 0 ? raw : null;
+}
 
 // Envelope normalization: the proto Message carries its text under `body`
 // (the POST maps the SPA's `content` onto it). But the SPA chat client
@@ -182,9 +196,26 @@ export const registerChatRoutes = async (
   app: FastifyInstance,
   opts: ChatRoutesOptions
 ): Promise<void> => {
-  const { client, authClient } = opts;
+  const { client, authClient, petEnquiryUserRateLimiter } = opts;
 
   await app.register(rateLimit, { global: false });
+
+  // Per-principal cap preHandler (ADS-1421) — runs after authenticate.ts's
+  // onRequest hook has already stripped any client-forged x-user-id and
+  // re-stamped the validated principal, so the key is never attacker-
+  // controlled. A no-op when no limiter is wired (tests / dev).
+  const petEnquiryUserRateLimit = petEnquiryUserRateLimiter
+    ? async (req: FastifyRequest, reply: FastifyReply) => {
+        const userId = principalUserId(req);
+        if (!userId) {
+          return;
+        }
+        const allowed = await petEnquiryUserRateLimiter.consume(userId);
+        if (!allowed) {
+          return reply.code(429).send({ success: false, error: 'rate_limit_exceeded' });
+        }
+      }
+    : undefined;
 
   for (const prefix of CHAT_PREFIXES) {
     registerChatRoutesForPrefix(app, client, prefix, authClient);
@@ -197,6 +228,7 @@ export const registerChatRoutes = async (
     '/api/v1/chats/enquiries',
     {
       config: { rateLimit: PET_ENQUIRY_RATE_LIMIT },
+      preHandler: petEnquiryUserRateLimit,
       schema: {
         tags: ['chat'],
         summary: "Open (or reopen) an enquiry to a pet's rescue",

@@ -6,7 +6,8 @@ import { ModerationV1 } from '@adopt-dont-shop/proto';
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
 
-import { registerModerationRoutes, reportFileRateLimitKey } from './moderation.js';
+import { registerModerationRoutes } from './moderation.js';
+import { createEmailRateLimiter, type EmailRateLimiter } from './email-rate-limiter.js';
 
 function makeClient(): {
   client: ModerationClient;
@@ -49,21 +50,82 @@ const HEADERS = {
   'x-user-permissions': 'admin.dashboard',
 };
 
-describe('reportFileRateLimitKey (ADS-1019 per-principal report rate limit)', () => {
-  it('keys on the authenticated user id when present', () => {
-    const req = {
-      headers: { 'x-user-id': 'usr-1' },
-      ip: '10.0.0.5',
-    } as unknown as Parameters<typeof reportFileRateLimitKey>[0];
-    expect(reportFileRateLimitKey(req)).toBe('usr-1');
+// ADS-1421: the per-principal cap is a preHandler, keyed on x-user-id. In
+// production that header can only hold the real authenticated userId by the
+// time preHandler runs (authenticate.ts's onRequest hook has already
+// stripped/re-stamped it), so these tests set the header directly — exactly
+// as a post-auth request arrives at this route — and exercise the limiter
+// itself: same key shares a bucket, different keys don't, and a tripped
+// limiter blocks before FileReport ever runs.
+describe('POST /api/v1/moderation/reports — per-principal rate limit (ADS-1421)', () => {
+  let app: FastifyInstance;
+  let mocks: Record<string, ReturnType<typeof vi.fn>>;
+  let reportFileUserRateLimiter: EmailRateLimiter;
+
+  const file = (userId: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/v1/moderation/reports',
+      headers: { 'x-user-id': userId },
+      payload: { reportedEntityId: 'ent-1', title: 't', description: 'd' },
+    });
+
+  beforeEach(async () => {
+    const m = makeClient();
+    mocks = m.mocks;
+    mocks.fileReport.mockResolvedValue({ report: { reportId: 'rep-1' } });
+    app = Fastify({ logger: false });
+    reportFileUserRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 60_000 });
+    await registerModerationRoutes(app, { client: m.client, reportFileUserRateLimiter });
   });
 
-  it('falls back to the peer IP when unauthenticated', () => {
-    const req = {
-      headers: {},
-      ip: '10.0.0.5',
-    } as unknown as Parameters<typeof reportFileRateLimitKey>[0];
-    expect(reportFileRateLimitKey(req)).toBe('10.0.0.5');
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('throttles a second request from the same principal within the window', async () => {
+    const first = await file('usr-1');
+    expect(first.statusCode).toBe(201);
+
+    const second = await file('usr-1');
+    expect(second.statusCode).toBe(429);
+    expect(second.json()).toMatchObject({ success: false, error: 'rate_limit_exceeded' });
+    expect(mocks.fileReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not share a bucket between two different principals', async () => {
+    const first = await file('usr-1');
+    expect(first.statusCode).toBe(201);
+
+    const other = await file('usr-2');
+    expect(other.statusCode).toBe(201);
+    expect(mocks.fileReport).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not throttle when no reportFileUserRateLimiter is wired', async () => {
+    const bareApp = Fastify({ logger: false });
+    const m = makeClient();
+    m.mocks.fileReport.mockResolvedValue({ report: { reportId: 'rep-1' } });
+    await registerModerationRoutes(bareApp, { client: m.client });
+    try {
+      const first = await bareApp.inject({
+        method: 'POST',
+        url: '/api/v1/moderation/reports',
+        headers: { 'x-user-id': 'usr-1' },
+        payload: { reportedEntityId: 'ent-1', title: 't', description: 'd' },
+      });
+      const second = await bareApp.inject({
+        method: 'POST',
+        url: '/api/v1/moderation/reports',
+        headers: { 'x-user-id': 'usr-1' },
+        payload: { reportedEntityId: 'ent-1', title: 't', description: 'd' },
+      });
+      expect(first.statusCode).toBe(201);
+      expect(second.statusCode).toBe(201);
+      expect(m.mocks.fileReport).toHaveBeenCalledTimes(2);
+    } finally {
+      await bareApp.close();
+    }
   });
 });
 

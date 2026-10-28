@@ -28,6 +28,17 @@ export type EmailRateLimiterOptions = {
   redis?: EmailRateLimiterRedis;
   // Injectable clock for tests.
   now?: () => number;
+  // Trusted, literal namespace for this limiter instance's Redis keys
+  // (ADS-1421 follow-up). Every createEmailRateLimiter() call sharing one
+  // Redis store must pass a distinct prefix: the key is
+  // `<prefix>:<bucket>:<hash(value)>`, and two instances with the same
+  // prefix AND the same windowMs collide on any shared consumed value (e.g.
+  // the same userId calling two different per-principal-capped routes).
+  // Must be a caller-supplied constant, never derived from request input —
+  // unlike the consumed value, this segment is NOT hashed, so it still goes
+  // through assertSafeKeyPart's `:`/CRLF check. Omit only for an
+  // in-memory-only limiter, or to keep the pre-existing shared default.
+  keyPrefix?: string;
 };
 
 export type EmailRateLimiter = {
@@ -38,7 +49,7 @@ export type EmailRateLimiter = {
   size?: () => number;
 };
 
-const KEY_PREFIX = 'auth-email-rl';
+const DEFAULT_KEY_PREFIX = 'auth-email-rl';
 
 // Hard ceiling on the in-memory limiter's bucket map. The opportunistic sweep
 // reclaims expired buckets across windows (the real attack vector — a flood of
@@ -63,8 +74,16 @@ export const normalizeEmail = (value: unknown): string | undefined => {
 export const createEmailRateLimiter = (opts: EmailRateLimiterOptions): EmailRateLimiter => {
   const now = opts.now ?? Date.now;
   if (opts.redis) {
-    return redisLimiter(opts.redis, opts.max, opts.windowMs, now);
+    return redisLimiter(
+      opts.redis,
+      opts.max,
+      opts.windowMs,
+      now,
+      opts.keyPrefix ?? DEFAULT_KEY_PREFIX
+    );
   }
+  // Each in-memory limiter owns its own Map, so instances are already
+  // isolated without a keyPrefix — only the shared-Redis case needs one.
   return memoryLimiter(opts.max, opts.windowMs, now);
 };
 
@@ -72,7 +91,8 @@ const redisLimiter = (
   redis: EmailRateLimiterRedis,
   max: number,
   windowMs: number,
-  now: () => number
+  now: () => number,
+  keyPrefix: string
 ): EmailRateLimiter => {
   const windowSeconds = Math.ceil(windowMs / 1000);
   return {
@@ -81,7 +101,7 @@ const redisLimiter = (
       // The email is hashed (not stored raw) so a crafted value containing
       // `:` or newlines can't fragment or collide with a neighbouring key.
       const bucket = Math.floor(now() / windowMs);
-      const key = redisKey(KEY_PREFIX, String(bucket), hashKeyPart(email));
+      const key = redisKey(keyPrefix, String(bucket), hashKeyPart(email));
       try {
         const count = await redis.incr(key);
         if (count === 1) {

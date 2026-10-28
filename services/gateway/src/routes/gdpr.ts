@@ -15,13 +15,15 @@ import { randomUUID } from 'node:crypto';
 
 import { GDPR_ERASURE_REQUESTED, type GdprErasureRequestedPayload } from '@adopt-dont-shop/events';
 import type { NatsConnection } from 'nats';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { assertUuid, redisKey } from '../utils/redis-key.js';
+
+import type { EmailRateLimiter } from './email-rate-limiter.js';
 
 // Minimal Redis interface — only the operations the route needs.
 // Satisfied by ioredis.Redis and the test doubles alike.
@@ -44,6 +46,16 @@ export type GdprRoutesOptions = {
   // When wired, used for per-user idempotency: a second POST within
   // ERASURE_IDEMPOTENCY_TTL_SECONDS returns the original correlationId.
   redis?: ErasureStore;
+  // Per-authenticated-user cap (ADS-1421), enforced as a route preHandler —
+  // NOT via config.rateLimit.keyGenerator. @fastify/rate-limit's keyGenerator
+  // runs at onRequest, before authenticate.ts has stripped a client-forged
+  // x-user-id and re-stamped the validated principal (the global rate-limit
+  // plugin registers before registerAuthenticate in server.ts), so a key
+  // read there is attacker-controlled. preHandler always runs after every
+  // onRequest hook completes, so by the time this fires the header can only
+  // hold the real authenticated userId. Optional so tests / dev that don't
+  // wire it keep the per-IP-only backstop behaviour.
+  erasureUserRateLimiter?: EmailRateLimiter;
 };
 
 // userId is sourced from the authenticated x-user-id header today, so this
@@ -53,30 +65,45 @@ export type GdprRoutesOptions = {
 const ERASURE_IDEMPOTENCY_KEY = (userId: string) => redisKey('gdpr', 'erasure', assertUuid(userId));
 const ERASURE_IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 
-// Per-route rate-limit: 5 requests per hour per authenticated user.
-// Keyed on userId (not IP) so corporate NAT doesn't penalise shared
-// addresses. Falls back to req.ip for unauthenticated callers (who
-// receive 401 from the handler anyway).
+// Per-route IP backstop: 5 requests per hour per source IP, applied before
+// authentication runs. The INTENDED per-user cap (same 5/hour) is enforced
+// separately below as a preHandler keyed on the authenticated principal —
+// see erasureUserRateLimiter (ADS-1421). This no longer keys on x-user-id:
+// that header isn't trustworthy yet at the onRequest phase where
+// @fastify/rate-limit's keyGenerator runs.
 const ERASURE_RATE_LIMIT = {
   max: 5,
   timeWindow: '1 hour',
-  keyGenerator: (req: FastifyRequest) => {
-    const headers = req.headers as Record<string, string | string[] | undefined>;
-    const userId = headers['x-user-id'];
-    return typeof userId === 'string' && userId.length > 0 ? `gdpr-erasure:${userId}` : req.ip;
-  },
 };
 
 export const registerGdprRoutes = async (
   app: FastifyInstance,
   opts: GdprRoutesOptions
 ): Promise<void> => {
-  const { nats, auditClient, authClient, redis } = opts;
+  const { nats, auditClient, authClient, redis, erasureUserRateLimiter } = opts;
+
+  // Per-principal cap preHandler (ADS-1421) — runs after authenticate.ts's
+  // onRequest hook has already stripped any client-forged x-user-id and
+  // re-stamped the validated principal, so the key is never attacker-
+  // controlled. A no-op when no limiter is wired (tests / dev).
+  const erasureUserRateLimit = erasureUserRateLimiter
+    ? async (req: FastifyRequest, reply: FastifyReply) => {
+        const userId = principalUserId(req);
+        if (!userId) {
+          return;
+        }
+        const allowed = await erasureUserRateLimiter.consume(userId);
+        if (!allowed) {
+          return reply.code(429).send({ success: false, error: 'rate_limit_exceeded' });
+        }
+      }
+    : undefined;
 
   app.post(
     '/api/v1/users/me/erasure-request',
     {
       config: { rateLimit: ERASURE_RATE_LIMIT },
+      preHandler: erasureUserRateLimit,
       schema: {
         tags: ['gdpr'],
         summary: 'Submit a GDPR erasure request for the authenticated user',
