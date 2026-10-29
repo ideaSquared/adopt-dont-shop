@@ -185,10 +185,12 @@ Without `DATABASE_URL` set, the same command reports the suite as skipped rather
 
 **In CI.** `ci.yml`'s `test-services` job runs a `postgis/postgis` service container (matching
 the image `docker-compose.prod.yml` runs) and sets `DATABASE_URL` for the whole job, so every
-`*.integration.test.ts` under `services/*` runs for real on every backend-touching PR. A real
-NATS container was deliberately not added — the two suites above use `makeNatsDouble()`, and
-nothing yet needs a real broker; add one to `test-services` following the same `services:` shape
-if a future suite does.
+`*.integration.test.ts` under `services/*` runs for real on every backend-touching PR.
+`packages/events` isn't a `service.*` package, so it doesn't match that job's filter — its own
+`outbox.integration.test.ts` instead runs for real under `test-packages`, which carries the same
+`postgis/postgis` service container and `DATABASE_URL` (ADS-1426). A real NATS container was
+deliberately not added to either job — the two suites above use `makeNatsDouble()`, and nothing
+yet needs a real broker; add one following the same `services:` shape if a future suite does.
 
 ### Running backend tests
 

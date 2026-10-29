@@ -478,6 +478,13 @@ jobs:
   # observability, …). ADS-1029: these matched none of test-libs (lib.*),
   # test-services (service.*) or test-frontend (app.*), so 35 test files ran in
   # CI zero times. Mirrors test-libs; gated on the same libs/backend filters.
+  #
+  # ADS-1426: runs its own `postgres` service + `DATABASE_URL` (mirrors
+  # test-services) so packages/events' `outbox.integration.test.ts` — the
+  # ADS-1315 real-Postgres transactional-outbox suite — actually executes
+  # instead of silently `skipIf`-skipping. `packages/events` is `@adopt-dont-
+  # shop/events`, not a `service.*` package, so test-services' filter never
+  # selects it.
   # ============================================================================
   test-packages:
     name: Package Tests
@@ -485,6 +492,24 @@ jobs:
     if: needs.changes.outputs.libs == 'true' || needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
     steps:
       # Local composite actions can only load after the repo is checked out.
@@ -507,17 +532,19 @@ jobs:
   # packages) and so actually gates CI.
   #
   # ADS-1315 (P1-9): a real Postgres service container backs the DB-gated
-  # integration suites (packages/events, services/auth
-  # `*.integration.test.ts`) — SQL correctness and the events transactional-
-  # outbox seam were previously verified only against mocks. NATS is
-  # deliberately NOT added here: the integration suites use
-  # @adopt-dont-shop/test-utils' `makeNatsDouble()` (a real NATS broker adds
-  # no additional signal for what they assert — transaction/outbox durability
-  # against real Postgres — and a service container would be dead weight).
-  # postgis/postgis matches the exact image docker-compose.prod.yml runs
-  # (citext + postgis are the two extensions services/auth's migrations
-  # require); the DB-gated tests are skipped (not failed) for any package
-  # whose migrations don't need it. See docs/testing.md.
+  # `services/auth` `*.integration.test.ts` suites — SQL correctness was
+  # previously verified only against mocks. (The events transactional-outbox
+  # seam has its own DB-gated suite under packages/events, backed by
+  # test-packages' own postgres service — ADS-1426 — since packages/events
+  # doesn't match this job's `service.*` filter.) NATS is deliberately NOT
+  # added here: the integration suites use @adopt-dont-shop/test-utils'
+  # `makeNatsDouble()` (a real NATS broker adds no additional signal for what
+  # they assert — transaction/outbox durability against real Postgres — and
+  # a service container would be dead weight). postgis/postgis matches the
+  # exact image docker-compose.prod.yml runs (citext + postgis are the two
+  # extensions services/auth's migrations require); the DB-gated tests are
+  # skipped (not failed) for any package whose migrations don't need it. See
+  # docs/testing.md.
   #
   # Gated on the `backend` path filter — ci-required treats skipped as pass.
   # ============================================================================
