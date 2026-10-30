@@ -593,18 +593,29 @@ services:
       # block AND every location block that uses `add_header`, so per-location
       # Cache-Control directives don't strip server-level CSP/HSTS/etc.
       - ./nginx/security-headers.conf:/etc/nginx/security-headers.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      # Let's Encrypt certificates (if using)
-      - letsencrypt:/etc/letsencrypt:ro
+      # ADS-1325: `include`d by every SPA vhost in nginx.prod.conf — without
+      # this mount nginx refuses to start. The page it serves lives beside
+      # /srv/uploads; the /srv/maintenance.flag switch still has no writable
+      # mount (see the note in nginx/maintenance.conf).
+      - ./nginx/maintenance.conf:/etc/nginx/maintenance.conf:ro
+      - ./nginx/maintenance.html:/srv/maintenance.html:ro
       # ADS-422: shared uploads volume mounted read-only so nginx can serve
       # files directly after a successful auth_request to the backend.
       # Must match the path used in the nginx `root` directive (/srv/uploads).
       - uploads:/srv/uploads:ro
+    # Plain HTTP only — TLS terminates at the shared edge gateway
+    # (deploy/gateway/), which reaches this over the Docker network.
     expose:
       - "80"
-      - "443"
     cap_drop:
       - ALL
+    # The stock nginx image starts as root, chowns its temp dirs and drops
+    # its workers to the `nginx` user — without these three it exits at boot
+    # (`chown("/var/cache/nginx/client_temp", 101) failed`).
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
     security_opt:
       - no-new-privileges:true
     # ADS-1228: read-only rootfs + tmpfs, matching the x-app-common nginx
@@ -653,8 +664,6 @@ volumes:
   clamav_data:
     driver: local
   uploads:
-    driver: local
-  letsencrypt:
     driver: local
 
 networks:

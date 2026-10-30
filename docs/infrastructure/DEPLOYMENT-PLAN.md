@@ -12,7 +12,9 @@ One-time setup to stand up a new Adopt Don't Shop environment: server, DNS, TLS,
 
 ## Architecture
 
-A single Hetzner host runs a shared gateway stack (nginx + certbot on :80/:443) plus one full application stack per environment on its own Docker network.
+A single host (any x86-64 Linux VPS with Docker — the `HETZNER_*` secret names are historical) runs a shared gateway stack (nginx + certbot on :80/:443) plus one full application stack per environment on its own Docker network. Staging is optional: a production-only host runs just the production stack and the gateway without its staging overlay.
+
+TLS terminates at the gateway only. Each stack's own nginx is plain HTTP on the internal Docker network (it serves `/uploads/` from the uploads volume) and publishes no host port; nothing else is reachable from outside except SSH.
 
 ```
 main branch
@@ -28,6 +30,26 @@ Per-environment application stack (docker-compose.prod.yml / .staging.yml):
   database (PG16+PostGIS) · redis · nats (JetStream) · clamav
 ```
 
+## Sizing
+
+Estimates, not measurements — confirm on your host after the first deploy:
+
+| Workload                                                                     | Approx. RAM   |
+| ---------------------------------------------------------------------------- | ------------- |
+| Production stack (11 services, 3 apps, Postgres, Redis, NATS, ClamAV, nginx) | 4–5 GB        |
+| Observability overlay (Prometheus, Loki, Tempo, Grafana, exporters)          | 1–1.5 GB      |
+| GlitchTip overlay                                                            | ~1.5 GB       |
+| A staging stack                                                              | as production |
+
+An **8 GB host** runs production plus the observability overlay, and nothing else:
+
+- Set `OBSERVABILITY_ENABLED=true` — production deploys fail preflight without it (ADS-1307).
+- Leave `GLITCHTIP_ENABLED` unset. For error tracking use a hosted Sentry project instead (its free tier is enough): put its DSN in `SENTRY_DSN` in the host `.env` and in `VITE_SENTRY_DSN` under the `production-vars` environment.
+- No staging stack on the same host.
+- Add the 4 GB swap file from "Initial server setup" — headroom for ClamAV's signature reloads, not for steady-state load.
+
+After the first deploy, check headroom: `free -h`, `docker stats --no-stream`, and `dmesg | grep -i oom` (no output = no out-of-memory kills). If swap stays in use or anything was OOM-killed, either move to a 16 GB host or turn observability off and deploy with `allow_blind_deploy=true` plus a `bypass_reason` (audited; nothing pages anyone while it is off). Staging, or GlitchTip, needs 16 GB.
+
 ## Repo files
 
 | File                                                                | Purpose                                                                   |
@@ -37,14 +59,15 @@ Per-environment application stack (docker-compose.prod.yml / .staging.yml):
 | `docker-compose.observability.yml` / `docker-compose.glitchtip.yml` | Optional per-env overlays (`OBSERVABILITY_ENABLED` / `GLITCHTIP_ENABLED`) |
 | `nginx/`                                                            | Per-stack nginx config (`docker-compose.prod.yml`'s own nginx service)    |
 | `observability/`                                                    | Config tree for the observability overlay                                 |
-| `deploy/gateway/docker-compose.gateway.yml`                         | Shared edge gateway nginx + certbot                                       |
+| `deploy/gateway/docker-compose.gateway.yml`                         | Shared edge gateway nginx + certbot (joins the prod network)              |
+| `deploy/gateway/docker-compose.gateway.staging.yml`                 | Overlay for hosts that also run staging (joins the staging network)       |
 | `deploy/gateway/nginx.conf`                                         | All-domain routing (prod + staging)                                       |
 | `.github/workflows/deploy.yml`                                      | Build → push → deploy workflow                                            |
 | `.github/workflows/rollback.yml`                                    | Redeploy a previous SHA                                                   |
 | `Makefile`                                                          | `make staging`, `make prod`, `make rollback`                              |
 | `services/<name>/src/migrations/`                                   | Per-service migrations (each service runs its own)                        |
 
-**ADS-1312**: everything above except `deploy/gateway/*` is now `scp`'d fresh to `/opt/ads/<env>/` by `deploy.yml` and `rollback.yml` on every run — it is no longer a one-time hand-copy. `deploy/gateway/*` is shipped to `/opt/ads/gateway/` too, but the shared edge stack itself is not auto-restarted (see "Initial server setup" below).
+**ADS-1312**: everything above except `deploy/gateway/*` is now `scp`'d fresh to `/opt/ads/<env>/` by `deploy.yml` and `rollback.yml` on every run — it is no longer a one-time hand-copy. `deploy/gateway/*` is shipped to `/opt/ads/gateway/` too. The edge stack is not restarted by a deploy, but its nginx reloads itself every 12h (so renewed certificates are served), which also picks up a shipped `nginx.conf` change — an invalid config is rejected by the reload and the running one kept. Do not hand-edit files under `/opt/ads/gateway/`: the next deploy overwrites them. **The hostnames in `deploy/gateway/nginx.conf` are `adoptdontshop.app` and its subdomains** (`scripts/check-csp-headers.mjs` checks the same list) — if you deploy under a different domain, change both in the repo, and keep `PROD_HOSTNAME` identical.
 
 ## GitHub setup
 
@@ -110,24 +133,52 @@ Build-time-only secret (`build-and-push` in `deploy.yml`, not shipped to the hos
 
 ### Initial server setup
 
+Run as root on a fresh Ubuntu 24.04 VPS. Order matters: harden first, and start the edge gateway only after the first deploy (it joins the Docker network that deploy creates) and after the certificate exists (nginx will not start without it).
+
 ```bash
-# As root:
-adduser deploy && usermod -aG docker deploy && usermod -aG sudo deploy
-# Install the deploy user's SSH public key into ~deploy/.ssh/authorized_keys
-
-curl -fsSL https://get.docker.com | sh          # Docker Engine + Compose v2
-
-mkdir -p /opt/ads/{gateway/snippets,staging,production}
-chown -R deploy:deploy /opt/ads
-
-# deploy/gateway/* is shipped by the first deploy.yml/rollback.yml run to
-# /opt/ads/gateway/ (ADS-1312) — copy it by hand only if you need the edge
-# gateway running BEFORE the first CI-driven deploy:
-#   deploy/gateway/*  → /opt/ads/gateway/
-
-# Start the edge gateway first (creates the shared external networks)
-cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml up -d
+# 1. Updates, automatic security patches, firewall (SSH + HTTP/S only).
+apt-get update && apt-get -y upgrade
+apt-get -y install unattended-upgrades ufw fail2ban
+dpkg-reconfigure -f noninteractive unattended-upgrades
+ufw default deny incoming && ufw default allow outgoing
+ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp
+ufw --force enable
 ```
+
+Docker publishes container ports around ufw, so the firewall above is not what keeps the databases private — the compose files are: only the gateway publishes ports (80/443), and the observability/GlitchTip UIs bind `127.0.0.1` only (reach them over an SSH tunnel). Do not add a `ports:` mapping to any other service.
+
+```bash
+# 2. Deploy user (key-only SSH) and Docker.
+adduser --disabled-password --gecos '' deploy
+usermod -aG docker deploy
+install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
+# Paste the PUBLIC half of the key whose private half is the HETZNER_SSH_KEY secret:
+nano /home/deploy/.ssh/authorized_keys && chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys
+curl -fsSL https://get.docker.com | sh
+
+# 3. SSH: keys only, no root login. sshd keeps the FIRST value it reads for
+#    each option and reads sshd_config.d/ in name order, so the file must sort
+#    before any provider drop-in (e.g. 50-cloud-init.conf sets
+#    `PasswordAuthentication yes`). Confirm the effective values, then check
+#    you can log in as `deploy` with your own key in a second terminal BEFORE
+#    closing this session.
+printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/00-hardening.conf
+sshd -t && sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication) '
+# Expected: all three `no`.
+systemctl reload ssh
+
+# 4. Swap — headroom for memory spikes (ClamAV signature reloads) on an 8–12 GB box.
+fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+# 5. Directory skeleton.
+mkdir -p /opt/ads/{gateway,production}   # add staging only if you run it
+chown -R deploy:deploy /opt/ads
+```
+
+`deploy` is in the `docker` group, which is root-equivalent on the host — protect `HETZNER_SSH_KEY` accordingly. Record the host key fingerprint for the `HETZNER_HOST_FINGERPRINT` secret **on the server itself**, from the provider's web/VNC console (an authenticated channel): `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}'`. Do not take it from `ssh-keyscan` across the network — that trusts whatever answers, which is the impersonation the pinned fingerprint exists to stop. When you first SSH in from your own machine, check the fingerprint it shows matches.
+
+Then: write `/opt/ads/production/.env` (next section), run the first deploy (`make prod`), issue the certificate and start the gateway (see "DNS & TLS").
 
 ### Host `.env` (non-secret config)
 
@@ -136,14 +187,24 @@ Application secrets come from GitHub (above) as `secrets/*` files. The host `/op
 ```env
 POSTGRES_USER=ads_prod
 POSTGRES_DB=adopt_dont_shop_prod
-REDIS_PASSWORD=<generated>
-CORS_ORIGIN=https://${PROD_HOSTNAME},https://admin.${PROD_HOSTNAME},https://rescue.${PROD_HOSTNAME}
-# PROD_HOSTNAME (production only) — a plain literal, e.g. example.com, NOT
-# the ${PROD_HOSTNAME} shell-style reference used above (docker-compose does
-# not expand one .env value inside another). deploy.yml/rollback.yml read it
-# to re-apply the __PROD_HOSTNAME__ substitution into nginx/nginx.prod.conf
-# on every run, now that the file is shipped fresh each deploy (ADS-1312).
-PROD_HOSTNAME=example.com
+REDIS_PASSWORD=<generated, e.g. openssl rand -hex 32>
+# Literal values only — write out each origin in full.
+CORS_ORIGIN=https://adoptdontshop.app,https://admin.adoptdontshop.app,https://rescue.adoptdontshop.app
+# PROD_HOSTNAME (production only) — a plain literal. deploy.yml/rollback.yml
+# read it to re-apply the __PROD_HOSTNAME__ substitution into
+# nginx/nginx.prod.conf on every run (ADS-1312). It must match the hostnames
+# in deploy/gateway/nginx.conf, or the per-stack nginx drops the gateway's
+# /uploads/ requests.
+PROD_HOSTNAME=adoptdontshop.app
+# service-notifications refuses to boot in production without these
+# (ADS-1302); the deploy fails before `up -d` if either key is missing.
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=<from resend.com — the sending domain must be verified there>
+DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
+FCM_PROJECT_ID=<Firebase project id>
+# The service-account JSON on ONE line (the deploy reads a single line):
+#   jq -c . service-account.json
+FCM_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 # DEPLOY_SHA is set to a specific git SHA by deploy.yml — there is NO :latest fallback.
 # Optional observability toggles (off by default): OBSERVABILITY_ENABLED, GLITCHTIP_ENABLED, LOKI_URL, OTEL_EXPORTER_OTLP_ENDPOINT, SENTRY_DSN
 # Production deploys FAIL preflight when OBSERVABILITY_ENABLED isn't `true`
@@ -154,7 +215,25 @@ PROD_HOSTNAME=example.com
 
 Point A/AAAA records at the host. `nginx/nginx.prod.conf` uses a `__PROD_HOSTNAME__` placeholder (nginx does not expand env vars in `server_name`). **ADS-1312**: this file is now shipped fresh by `deploy.yml`/`rollback.yml` on every run, so the previous one-time hand `sed` would be silently overwritten by the next deploy — the substitution is now re-applied automatically on every run, driven by the `PROD_HOSTNAME` key in `/opt/ads/production/.env` (see above). Set that key once; there is no longer a manual `sed` step.
 
-Records: `${PROD_HOSTNAME}`, `api.`, `admin.`, `rescue.` (and the `staging.`-prefixed equivalents). Certbot in the gateway stack issues and auto-renews the certs.
+Records: `${PROD_HOSTNAME}`, `www.`, `api.`, `admin.`, `rescue.` (and `staging.`, `staging-api.`, `staging-admin.`, `staging-rescue.` if you run staging). The gateway serves one certificate for every name, from `/etc/letsencrypt/live/<first name>/`, so the first `-d` below must be the bare domain the gateway config names.
+
+**First issuance** — once DNS resolves to the host and after the first deploy, with nothing yet on port 80 (the gateway's nginx cannot start without a certificate, so this uses certbot's own standalone server):
+
+```bash
+cd /opt/ads/gateway
+docker compose -f docker-compose.gateway.yml run --rm --no-deps -p 80:80 \
+  --entrypoint certbot certbot certonly --standalone \
+  -d adoptdontshop.app -d www.adoptdontshop.app -d api.adoptdontshop.app \
+  -d admin.adoptdontshop.app -d rescue.adoptdontshop.app \
+  --email <an address you read — expiry warnings go here> --agree-tos --no-eff-email
+docker compose -f docker-compose.gateway.yml up -d
+# Host that also runs staging (after its first deploy):
+# docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d
+```
+
+The staging vhosts use the same certificate, so a host that runs staging must include its names too: add `-d staging.adoptdontshop.app -d staging-api.adoptdontshop.app -d staging-admin.adoptdontshop.app -d staging-rescue.adoptdontshop.app` to the command above. Adding staging later means expanding the existing certificate first — with the gateway running, `docker compose -f docker-compose.gateway.yml run --rm --no-deps certbot certonly --webroot -w /var/www/certbot --expand` with every `-d` (production and staging), then `docker compose -f docker-compose.gateway.yml exec nginx nginx -s reload`.
+
+From then on the `certbot` container renews via the webroot every 12h and nginx reloads itself every 12h to serve the renewed certificate. `TlsCertificateExpiringSoon` (observability overlay) alerts if renewal stops working — see [runbooks/tls-cert-renewal.md](../runbooks/tls-cert-renewal.md).
 
 ## Database migrations
 
@@ -169,10 +248,14 @@ Backups are automated by `.github/workflows/backup.yml` (nightly `0 2 * * *`) �
 - [ ] `staging-vars` / `production-vars` environments created, **no** required reviewers, each with `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` set to that target's values (ADS-1318)
 - [ ] Infra secrets added: `HETZNER_HOST`, `HETZNER_HOST_FINGERPRINT`, `HETZNER_SSH_KEY`, `GHCR_TOKEN` (**`read:packages` only**); repo variables `BACKUP_BUCKET`, `AWS_REGION`; optional `DISCORD_WEBHOOK_URL` secret for deploy failure notifications (ADS-1324)
 - [ ] Seven application secrets added: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `UPLOAD_SIGNING_SECRET`, `DB_PASSWORD`, `PRINCIPAL_SIGNING_KEY`, `NATS_AUTH_TOKEN`; optional build-time `SENTRY_AUTH_TOKEN` (ADS-1319)
+- [ ] Host hardened (updates, ufw 22/80/443, key-only SSH, no root login, swap) — see "Initial server setup"
 - [ ] Host provisioned, `deploy` user + Docker installed, `/opt/ads/*` created
 - [ ] DNS records point at the host
 - [ ] `PROD_HOSTNAME` (plain literal) set in `/opt/ads/production/.env` — `deploy.yml` substitutes it into the freshly-shipped `nginx.prod.conf` on every run (ADS-1312); certbot issuance done
 - [ ] Per-env `.env` created (non-secret config) — compose/nginx/observability files are shipped by the first deploy, not hand-copied (ADS-1312)
 - [ ] `OBSERVABILITY_ENABLED=true` set in `/opt/ads/production/.env` before the first production deploy, or the deploy will fail preflight (ADS-1307; override with `allow_blind_deploy` + a reason if truly needed)
-- [ ] Edge gateway started: `cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml up -d`
-- [ ] First deploy: `make staging` → verify end-to-end → `make prod` (approve in the Actions UI)
+- [ ] Host `.env` includes `RESEND_API_KEY`, `DEFAULT_FROM_EMAIL`, `FCM_PROJECT_ID` and single-line `FCM_SERVICE_ACCOUNT_JSON`
+- [ ] Production reviewers configured — with a single maintainer, leave **Prevent self-review** off or nobody can approve
+- [ ] First deploy: `make prod` (approve in the Actions UI); with staging, `make staging` first and verify end-to-end
+- [ ] Certificate issued and edge gateway started — see "DNS & TLS" (after the first deploy: the gateway joins the network it creates)
+- [ ] Backups configured (`BACKUP_BUCKET`/`AWS_REGION` + host AWS credentials) — until then the nightly `backup.yml` run fails

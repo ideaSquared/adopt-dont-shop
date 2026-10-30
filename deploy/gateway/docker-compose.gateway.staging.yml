@@ -1,0 +1,15 @@
+# Staging overlay for the shared edge gateway — only for a host that also
+# runs the staging stack (docker-compose.staging.yml creates the network).
+# A production-only host leaves this out; the gateway then fails to start
+# if it is asked to join a network that does not exist.
+#   docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d
+
+services:
+  nginx:
+    networks:
+      - ads-prod-network
+      - ads-staging-network
+
+networks:
+  ads-staging-network:
+    external: true

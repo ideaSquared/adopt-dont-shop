@@ -64,6 +64,12 @@ The `verify-images` job runs **after** `build-and-push` and **before**
 3. Fails the job — and the deploy — if any image lacks a valid signature
    produced by a workflow in this repo on `main`.
 
+Images named in a `tag_overrides` input (another commit's build of one
+service) are verified the same way, and the deploy host explicitly pulls
+them so a stale locally cached image with that tag is never started.
+`rollback.yml` runs the same verification on the runner before it touches
+the host.
+
 ## Manual verification
 
 To verify an image yourself (e.g. before bringing it up on a non-CI host):
@@ -124,11 +130,16 @@ reviewer approval. See
 
 ## Known gaps
 
-- `.github/workflows/rollback.yml` pulls and runs previously-built images
-  without re-verifying their signatures. The images it pulls were signed
-  by `deploy.yml` at the time they were built, so the trust chain is
-  intact, but the rollback workflow does not enforce that on its own.
-  Adding a parallel verify step there is tracked separately.
+- **Tag, not digest, reaches the host.** Verification resolves each tag to
+  a digest and checks that digest, but the deploy host then pulls by **tag**
+  (`docker-compose.prod.yml` references `image:${DEPLOY_SHA}`), so there is
+  a short window between verification and the host's pull. Someone holding
+  `packages: write` on this repo could re-push a tag in that window and the
+  host would run the re-pushed, unverified image. The exposure is limited to
+  people who can already push to the repo's registry. Closing it means
+  passing each verified digest from `verify-images` to the host and pinning
+  every service to `image@sha256:…` in the compose files — planned as a
+  separate change, not yet done.
 
 ## References
 

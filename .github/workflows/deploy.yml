@@ -42,11 +42,13 @@ on:
         type: string
         default: ''
       # ADS-824: per-service tag overrides. Newline- or comma-separated
-      # KEY=VALUE pairs where KEY must match ^(SERVICE|APP)_[A-Z_]+_TAG$.
-      # Example: SERVICE_AUTH_TAG=abc1234,SERVICE_PETS_TAG=def5678
-      # Omit entirely for a full-stack deploy at DEPLOY_SHA.
+      # KEY=VALUE pairs where KEY must match ^(SERVICE|APP)_[A-Z_]+_TAG$ and
+      # VALUE is the full 40-char git SHA of an earlier signed build.
+      # Example: SERVICE_AUTH_TAG=<40-char sha>,SERVICE_PETS_TAG=<40-char sha>
+      # Omit entirely for a full-stack deploy at DEPLOY_SHA. Overrides last
+      # for this deploy only — the next deploy clears them.
       tag_overrides:
-        description: 'Per-service image tag overrides (KEY=VALUE, comma- or newline-separated). Keys must match (SERVICE|APP)_[A-Z_]+_TAG.'
+        description: 'Per-service image tag overrides (KEY=<full 40-char git SHA>, comma- or newline-separated). Keys must match (SERVICE|APP)_[A-Z_]+_TAG. Cleared by the next deploy.'
         required: false
         type: string
         default: ''
@@ -95,6 +97,20 @@ jobs:
       ALLOW_BLIND_DEPLOY: ${{ github.event.inputs.allow_blind_deploy }}
       BYPASS_REASON: ${{ github.event.inputs.bypass_reason }}
     steps:
+      # Every deploy ships from main (docs/infrastructure/DEPLOYMENT-PLAN.md).
+      # verify-images already rejects images signed off-main, but
+      # skip_cosign_verify turns that off — without this guard an approved
+      # bypass run dispatched from a feature branch would put that branch's
+      # unreviewed code on the host.
+      - name: Require the main branch
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::Deploys must be dispatched from main, not '$REF'."
+            exit 1
+          fi
+
       - name: Require bypass_reason when a bypass flag is set
         run: |
           set -euo pipefail
@@ -239,49 +255,32 @@ jobs:
     permissions:
       contents: read
       packages: write
-      checks: read
+      # Read the CI workflow's runs for this commit (deploy-ci-gate.sh).
+      actions: read
       # ADS-673: id-token required for cosign keyless signing via the
       # GitHub Actions OIDC token. No private key is provisioned.
       id-token: write
     outputs:
       sha: ${{ github.sha }}
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      # Judges the CI workflow's push run for this commit only — see
+      # scripts/deploy-ci-gate.sh for why the old all-check-suites gate was
+      # both too loose (ignored a still-running CI) and too strict (blocked on
+      # a failed earlier deploy or nightly backup run on the same SHA).
       - name: Verify CI passed on this commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SKIP_CI_CHECK: ${{ github.event.inputs.skip_ci_check }}
         run: |
           set -euo pipefail
-          SHA="${{ github.sha }}"
-          REPO="${{ github.repository }}"
-          echo "Checking CI status for $SHA on $REPO"
-          # Fetch all check-suites for the commit
-          suites=$(curl -fsSL \
+          RUNS_JSON=$(curl -fsSL \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${REPO}/commits/${SHA}/check-suites")
-          # Filter to GitHub Actions suites (app id 15368) that have completed
-          completed=$(echo "$suites" | \
-            jq '[.check_suites[] | select(.app.slug == "github-actions" and .status == "completed")]')
-          total=$(echo "$completed" | jq 'length')
-          if [ "$total" -eq 0 ]; then
-            if [ "$SKIP_CI_CHECK" = "true" ]; then
-              echo "WARNING: No completed GitHub Actions check-suites found for $SHA — skip_ci_check=true, proceeding."
-            else
-              echo "ERROR: No completed GitHub Actions check-suites found for $SHA. CI may not have run yet."
-              echo "Use the skip_ci_check input to override for emergency deploys."
-              exit 1
-            fi
-          fi
-          failed=$(echo "$completed" | jq '[.[] | select(.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped")] | length')
-          if [ "$failed" -gt 0 ]; then
-            echo "ERROR: $failed check-suite(s) did not succeed on $SHA. Aborting deploy."
-            echo "$completed" | jq '[.[] | {id, status, conclusion}]'
-            exit 1
-          fi
-          echo "All $total completed check-suite(s) passed. Proceeding with deploy."
-
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ github.sha }}&event=push&per_page=5")
+          export RUNS_JSON
+          scripts/deploy-ci-gate.sh
 
       - name: Setup workspace (Node + pnpm)
         uses: ./.github/actions/setup-workspace
@@ -456,6 +455,8 @@ jobs:
         env:
           SHA: ${{ github.sha }}
           SKIP_VERIFY: ${{ github.event.inputs.skip_cosign_verify }}
+          # Free text — passed via env, never interpolated into the script.
+          TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
         run: |
           set -euo pipefail
           if [ "$SKIP_VERIFY" = "true" ]; then
@@ -470,12 +471,34 @@ jobs:
           IDENTITY_REGEX='^https://github.com/ideaSquared/adopt-dont-shop/\.github/workflows/.+@refs/heads/main$'
           ISSUER='https://token.actions.githubusercontent.com'
 
-          for image in \
-            service-gateway service-auth service-notifications service-pets \
-            service-rescue service-applications service-chat service-moderation \
-            service-matching service-audit service-cms \
-            app-client app-admin app-rescue; do
-            ref="$IMAGE_PREFIX/$image:$SHA"
+          IMAGES="service-gateway service-auth service-notifications service-pets
+            service-rescue service-applications service-chat service-moderation
+            service-matching service-audit service-cms
+            app-client app-admin app-rescue"
+          REFS=""
+          for image in $IMAGES; do
+            REFS="$REFS $image:$SHA"
+          done
+
+          # tag_overrides pin services to OTHER SHAs' images, which this run
+          # did not build — verify those too, or an override would bypass the
+          # signature gate entirely. SERVICE_AUTH_TAG -> service-auth, etc.
+          while IFS= read -r pair; do
+            pair="$(printf '%s' "$pair" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            [ -z "$pair" ] && continue
+            key="${pair%%=*}"
+            value="${pair#*=}"
+            image="$(printf '%s' "${key%_TAG}" | tr 'A-Z_' 'a-z-')"
+            if ! [[ "$value" =~ ^[0-9a-f]{40}$ ]] || ! echo " $IMAGES " | tr -s ' \n' ' ' | grep -q " $image "; then
+              echo "::error::Invalid tag override '$pair' — key must name a known image and the value must be a full 40-char git SHA."
+              exit 1
+            fi
+            REFS="$REFS $image:$value"
+          done < <(printf '%s\n' "$TAG_OVERRIDES" | tr ',' '\n')
+
+          for image_tag in $REFS; do
+            image="${image_tag%%:*}"
+            ref="$IMAGE_PREFIX/$image_tag"
             # Resolve tag -> digest via the registry API so we verify the
             # immutable artifact, not whatever the tag happens to point at
             # right now. `docker buildx imagetools inspect` is pre-installed
@@ -574,8 +597,10 @@ jobs:
               echo "ERROR: invalid tag override key '$KEY'. Keys must match ^(SERVICE|APP)_[A-Z_]+_TAG\$"
               exit 1
             fi
-            if ! echo "$VALUE" | grep -qE '^[A-Za-z0-9._-]+$'; then
-              echo "ERROR: invalid tag override value '$VALUE' for key '$KEY'. Values must match ^[A-Za-z0-9._-]+\$"
+            # Images are tagged by full git SHA only, and verify-images can
+            # only check signatures on those.
+            if ! echo "$VALUE" | grep -qE '^[0-9a-f]{40}$'; then
+              echo "ERROR: invalid tag override value '$VALUE' for key '$KEY'. Values must be a full 40-char lowercase git SHA."
               exit 1
             fi
             echo "OK: $KEY=$VALUE"
@@ -599,7 +624,7 @@ jobs:
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -608,8 +633,9 @@ jobs:
       # here too, but intentionally NOT restarted by this workflow: it is not
       # scoped to one environment, so recreating it on every staging-or-prod
       # deploy would bounce the other environment's traffic and certbot's
-      # renewal timer. Apply a shipped change by hand (one-time or on the rare
-      # edge-config change):
+      # renewal timer. Its nginx reloads itself every 12h (so renewed certs
+      # are served), which also picks up a shipped nginx.conf/snippets change;
+      # a compose-file change, or one needed sooner, is applied by hand:
       #   cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml up -d
       - name: Copy shared edge gateway config to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
@@ -670,8 +696,10 @@ jobs:
           fi
 
       # ADS-670: SSH host fingerprint pinned to prevent MitM during deploy.
-      # Compute on the host and store as HETZNER_HOST_FINGERPRINT secret:
-      #   ssh-keyscan -t ed25519,rsa $HOST | ssh-keygen -lf - | awk '{print $2}'
+      # Read it ON the host via the provider's console (not ssh-keyscan over
+      # the network, which trusts whoever answers) and store it as the
+      # HETZNER_HOST_FINGERPRINT secret:
+      #   ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}'
       - name: Deploy to server
         # Pass secrets via `envs:` rather than `${{ secrets.* }}` interpolation
         # inside `script:`. Interpolation embeds the secret in the wrapper
@@ -757,38 +785,25 @@ jobs:
               docker pull "$IMAGE_PREFIX/$image:$SHA"
             done
 
-            # Persist SHA in .env so restarts use correct version
-            sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
+            # Pin DEPLOY_SHA and this run's per-service overrides (validated
+            # again on the host). Clears overrides left by earlier deploys and
+            # adds DEPLOY_SHA on a first deploy — see scripts/deploy-pin-env.sh.
+            # TAG_OVERRIDES arrives via `envs:`, never interpolated here.
+            chmod +x scripts/deploy-pin-env.sh
+            scripts/deploy-pin-env.sh "$SHA"
 
-            # ADS-824: inject per-service tag overrides into .env.
-            # TAG_OVERRIDES is forwarded from the workflow input as a shell
-            # env var via the step's `envs:` list (comma- or newline-separated
-            # KEY=VALUE pairs) — NOT interpolated into this script text, so a
-            # quote in the value can't break out. Validation runs in the runner
-            # step above; here we re-validate and write the pairs.
-            if [ -n "${TAG_OVERRIDES:-}" ]; then
-              # Normalise commas to newlines, strip blank lines
-              echo "$TAG_OVERRIDES" | tr ',' '\n' | while IFS= read -r pair; do
-                pair="$(echo "$pair" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-                [ -z "$pair" ] && continue
-                KEY="${pair%%=*}"
-                VALUE="${pair#*=}"
-                # Validate key pattern
-                if ! echo "$KEY" | grep -qE '^(SERVICE|APP)_[A-Z_]+_TAG$'; then
-                  echo "ERROR: invalid tag override key: $KEY (must match ^(SERVICE|APP)_[A-Z_]+_TAG\$)"
-                  exit 1
-                fi
-                # Validate value pattern (alphanumeric, dots, dashes, underscores only)
-                if ! echo "$VALUE" | grep -qE '^[A-Za-z0-9._-]+$'; then
-                  echo "ERROR: invalid tag override value for $KEY: '$VALUE' (must match ^[A-Za-z0-9._-]+\$)"
-                  exit 1
-                fi
-                # Remove any existing line for this key, then append
-                sed -i "/^${KEY}=/d" .env
-                echo "${KEY}=${VALUE}" >> .env
-                echo "Tag override applied: ${KEY}=${VALUE}"
-              done
-            fi
+            # Pull every override image too. verify-images checked the
+            # registry's current artifact for each override tag; without an
+            # explicit pull, `up -d` would reuse any locally cached image with
+            # that tag instead of the one that passed verification. After
+            # deploy-pin-env.sh the only override lines left in .env are this
+            # run's validated ones.
+            # (`|| true`: no overrides is the normal case, and grep's exit 1
+            # would otherwise fail the pipeline under pipefail.)
+            { grep -E '^(SERVICE|APP)_[A-Z_]+_TAG=' .env || true; } | while IFS='=' read -r key value; do
+              image="$(printf '%s' "${key%_TAG}" | tr 'A-Z_' 'a-z-')"
+              docker pull "$IMAGE_PREFIX/$image:$value"
+            done
 
             # Determine compose file
             if [ "$ENV" = "production" ]; then
@@ -904,8 +919,7 @@ jobs:
               # DEPLOY_SHA, then point DEPLOY_SHA at LAST_GOOD. (.last_sha stores a
               # single SHA, so per-service overrides from a prior deploy are not
               # reconstructed — the whole stack reverts to that SHA.)
-              sed -i '/^SERVICE_[A-Z_]*_TAG=/d;/^APP_[A-Z_]*_TAG=/d' .env
-              sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$LAST_GOOD/" .env
+              TAG_OVERRIDES="" scripts/deploy-pin-env.sh "$LAST_GOOD"
               # Re-pull the last-good images — usually still cached from the prior
               # deploy, so a transient registry error is non-fatal when the image
               # is already present locally.
@@ -960,6 +974,14 @@ jobs:
             # Record deployed SHA
             echo "$SHA" > .last_sha
             echo "Deployed $SHA to $ENV successfully."
+
+            # Every deploy pulls 14 new images; without pruning, a small VPS
+            # disk fills within weeks and takes the database down with it.
+            # Removes only images no container uses and built over 7 days ago —
+            # an older SHA is still re-pulled from GHCR on rollback. Never
+            # fails a deploy that has already succeeded.
+            docker image prune -af --filter "until=168h" ||
+              echo "warn: docker image prune failed — check disk space on the host"
 
   # ADS-1324: this workflow previously had no failure notification — a
   # broken deploy was only visible to whoever happened to check the Actions

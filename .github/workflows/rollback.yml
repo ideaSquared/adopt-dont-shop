@@ -11,7 +11,7 @@ on:
           - staging
           - production
       sha:
-        description: 'Git SHA to roll back to (must already exist in GHCR)'
+        description: 'Full 40-char git SHA to roll back to (its signed images must already exist in GHCR)'
         required: true
         type: string
 
@@ -27,9 +27,57 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ${{ github.event.inputs.environment }}
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      # Images are tagged by full git SHA only, so a short SHA could never be
+      # pulled; validating here also keeps the value shell-safe below.
+      - name: Validate rollback SHA
+        env:
+          ROLLBACK_SHA: ${{ github.event.inputs.sha }}
+        run: |
+          if ! [[ "$ROLLBACK_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::sha must be a full 40-char lowercase git SHA."
+            exit 1
+          fi
+
+      # Same supply-chain gate as deploy.yml's verify-images: only images
+      # signed by this repo's workflows on main may reach the host, so a
+      # rollback cannot be used to deploy an image pushed some other way.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+
+      - name: Log in to GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0  # v4.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify image signatures
+        env:
+          SHA: ${{ github.event.inputs.sha }}
+          IMAGE_PREFIX: ghcr.io/ideasquared/adopt-dont-shop
+        run: |
+          set -euo pipefail
+          IDENTITY_REGEX='^https://github.com/ideaSquared/adopt-dont-shop/\.github/workflows/.+@refs/heads/main$'
+          ISSUER='https://token.actions.githubusercontent.com'
+          for image in \
+            service-gateway service-auth service-notifications service-pets \
+            service-rescue service-applications service-chat service-moderation \
+            service-matching service-audit service-cms \
+            app-client app-admin app-rescue; do
+            digest=$(docker buildx imagetools inspect "$IMAGE_PREFIX/$image:$SHA" --format '{{.Manifest.Digest}}')
+            cosign verify \
+              --certificate-identity-regexp "$IDENTITY_REGEX" \
+              --certificate-oidc-issuer "$ISSUER" \
+              "$IMAGE_PREFIX/$image@$digest" > /dev/null
+            echo "OK: $image@$digest signed by main."
+          done
 
       # ADS-900/ADS-1312: the deploy host doesn't hold a full repo checkout —
       # only the specific files it needs under /opt/ads/<env> (.env,
@@ -45,7 +93,7 @@ jobs:
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -119,8 +167,8 @@ jobs:
           script: |
             set -euo pipefail
             # Validate SHA before use to prevent shell injection.
-            if ! [[ "$ROLLBACK_SHA" =~ ^[0-9a-f]{7,40}$ ]]; then
-              echo "Invalid SHA: must be 7-40 lowercase hex characters"
+            if ! [[ "$ROLLBACK_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Invalid SHA: must be a full 40-char lowercase git SHA"
               exit 1
             fi
             ENV="$ROLLBACK_ENV"
@@ -146,8 +194,9 @@ jobs:
             # a service pinned via SERVICE_<NAME>_TAG stays on the SHA being
             # rolled back (or worse, the bad release) instead of following the
             # rest of the stack to $SHA.
-            sed -i '/^SERVICE_[A-Z_]*_TAG=/d;/^APP_[A-Z_]*_TAG=/d' .env
-            sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
+            # (scripts/deploy-pin-env.sh, shared with deploy.yml).
+            chmod +x scripts/deploy-pin-env.sh
+            TAG_OVERRIDES="" scripts/deploy-pin-env.sh "$SHA"
 
             if [ "$ENV" = "production" ]; then
               COMPOSE_FILE="docker-compose.prod.yml"

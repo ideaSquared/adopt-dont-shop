@@ -90,16 +90,16 @@ const gatewayNginxConf = cspSources.find(s => s.path === 'deploy/gateway/nginx.c
 const serverBlocks = gatewayNginxConf.split(/\n(?=    server \{)/);
 
 const PROD_SPA_HOSTNAMES = [
-  'adoptdontshop.com',
-  'admin.adoptdontshop.com',
-  'rescue.adoptdontshop.com',
+  'adoptdontshop.app',
+  'admin.adoptdontshop.app',
+  'rescue.adoptdontshop.app',
 ];
 
 for (const hostname of PROD_SPA_HOSTNAMES) {
   const block = serverBlocks.find(b => {
     const match = b.match(/server_name\s+([^;]+);/);
     if (!match) return false;
-    // Exclude the staging vhosts (e.g. staging-admin.adoptdontshop.com) —
+    // Exclude the staging vhosts (e.g. staging-admin.adoptdontshop.app) —
     // they don't literally equal the prod hostname.
     const names = match[1].trim().split(/\s+/);
     return names.includes(hostname);
