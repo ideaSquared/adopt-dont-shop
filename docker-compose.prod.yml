@@ -47,6 +47,10 @@ x-service-common: &service-common
   read_only: true
   tmpfs:
     - /tmp:size=64m,mode=1777
+    # `pnpm run start` goes through corepack, which recreates its cache under
+    # $HOME at every start; the root FS is read-only, so without this every
+    # service exits at boot (`ENOENT: ... mkdir '/home/svcuser/.cache/node/corepack/v1'`).
+    - /home/svcuser/.cache:mode=1777
   cap_drop:
     - ALL
   security_opt:
@@ -141,10 +145,13 @@ x-app-common: &app-common
   #   /var/run         — nginx.pid (default pid path)
   #   /var/cache/nginx — client_temp/proxy_temp/fastcgi_temp/uwsgi_temp/scgi_temp
   read_only: true
+  # uid/gid 101: the unprivileged nginx image runs as UID 101 and cannot
+  # create its temp dirs in root-owned tmpfs mounts (`mkdir()
+  # "/var/cache/nginx/client_temp" failed (13: Permission denied)`).
   tmpfs:
-    - /tmp
-    - /var/run
-    - /var/cache/nginx
+    - /tmp:uid=101,gid=101
+    - /var/run:uid=101,gid=101
+    - /var/cache/nginx:uid=101,gid=101
   # ADS-701: nginx runs unprivileged and listens on 8080.
   expose:
     - "8080"
@@ -208,6 +215,17 @@ services:
     ports: []
     cap_drop:
       - ALL
+    # The postgres/redis entrypoints start as root, fix ownership of the data
+    # dir and then drop to their own user — on EVERY start, not just the
+    # first. With cap_drop: ALL alone they exit at boot (`failed switching to
+    # "postgres": operation not permitted`, `setpriv: setresuid failed`).
+    # These five restore exactly that; every other capability stays dropped.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     security_opt:
       - no-new-privileges:true
     logging: *default-logging
@@ -246,6 +264,17 @@ services:
       start_period: 10s
     cap_drop:
       - ALL
+    # The postgres/redis entrypoints start as root, fix ownership of the data
+    # dir and then drop to their own user — on EVERY start, not just the
+    # first. With cap_drop: ALL alone they exit at boot (`failed switching to
+    # "postgres": operation not permitted`, `setpriv: setresuid failed`).
+    # These five restore exactly that; every other capability stays dropped.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     security_opt:
       - no-new-privileges:true
     logging: *default-logging
@@ -315,6 +344,16 @@ services:
       start_period: 180s
     cap_drop:
       - ALL
+    # The clamav entrypoint starts as root, chowns /var/lib/clamav and drops
+    # to the clamav user — on every start. With cap_drop: ALL alone it
+    # crash-loops (`chown: /var/lib/clamav: Operation not permitted`), and the
+    # gateway, which fails closed in production, then rejects every upload.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     security_opt:
       - no-new-privileges:true
     logging: *default-logging

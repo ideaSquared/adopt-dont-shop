@@ -848,7 +848,9 @@ jobs:
             FCM_JSON="$(read_env FCM_SERVICE_ACCOUNT_JSON)"
             printf '%s' "$RESEND_KEY" > secrets/resend_api_key
             printf '%s' "$FCM_JSON"   > secrets/fcm_service_account_json
-            chmod 600 secrets/resend_api_key secrets/fcm_service_account_json
+            # 644 inside the 700 secrets/ dir: service-notifications reads
+            # them as its container user (see scripts/deploy-secrets.sh).
+            chmod 644 secrets/resend_api_key secrets/fcm_service_account_json
 
             # ADS-1342: GlitchTip's DB password / Django SECRET_KEY / Redis
             # password are file-mounted secrets too, but — like RESEND_KEY/
@@ -965,7 +967,7 @@ jobs:
             # reboot / container recreate the daemon re-resolves the mount
             # source, so a deleted file leaves the restarted service reading an
             # absent/empty secret and crash-looping. The files stay dir-700 /
-            # file-600 owned by `deploy` (set at materialization above) and are
+            # file-644 owned by `deploy` (set at materialization above) and are
             # overwritten by the next deploy. Tradeoff: secrets remain at rest on
             # the host — but the host .env already persists POSTGRES_* /
             # REDIS_PASSWORD, so this is consistent, and it buys reboot

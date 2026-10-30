@@ -33,5 +33,7 @@ REDIS_PASSWORD="$(read_env GLITCHTIP_REDIS_PASSWORD)"
 printf '%s' "$DB_PASSWORD"    > secrets/glitchtip_db_password
 printf '%s' "$SECRET_KEY"     > secrets/glitchtip_secret_key
 printf '%s' "$REDIS_PASSWORD" > secrets/glitchtip_redis_password
-chmod 600 secrets/glitchtip_db_password secrets/glitchtip_secret_key secrets/glitchtip_redis_password
+# 644 inside the 700 secrets/ dir — see deploy-secrets.sh: the containers
+# read these bind-mounted files as their own user, not the deploy user.
+chmod 644 secrets/glitchtip_db_password secrets/glitchtip_secret_key secrets/glitchtip_redis_password
 echo "Materialized secrets/glitchtip_* from .env."

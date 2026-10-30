@@ -147,7 +147,7 @@ Production deployments use file-based Docker secrets (plain Compose v2, not Swar
 - ✅ Not visible in `docker inspect`
 - ✅ Automatically mounted at `/run/secrets/<name>` — same path as Swarm secrets
 - ✅ Compatible with plain `docker compose up -d` (no Swarm infrastructure required)
-- ✅ Secret files **persist** on the host at `./secrets/<name>` (dir-700 / file-600, owned by `deploy`) — they are bind-mounted, not copied, into `restart: always` containers, so they must survive a host reboot / container recreate (ADS-1247). They are overwritten by the next deploy, never deleted.
+- ✅ Secret files **persist** on the host at `./secrets/<name>` (dir-700 / file-644, owned by `deploy` — the 700 directory keeps other host users out, and the files must be readable because each service reads its bind-mounted copy as its own container user, e.g. `svcuser` UID 1001; a 600 file is `Permission denied` inside the container) — they are bind-mounted, not copied, into `restart: always` containers, so they must survive a host reboot / container recreate (ADS-1247). They are overwritten by the next deploy, never deleted.
 
 ### How the Deploy Workflow Materializes Secrets
 
@@ -165,7 +165,7 @@ printf '%s' "$SECRET_ENCRYPTION_KEY"                > secrets/encryption_key
 printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret
 printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
 printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
-chmod 600 secrets/*
+chmod 644 secrets/*   # the 700 dir keeps host users out; containers read these as their own UID
 # ... docker compose up -d ... (the files are LEFT on disk — see the note above)
 ```
 
@@ -225,7 +225,7 @@ printf '%s' "$(openssl rand -hex 32)"     > secrets/encryption_key   # 64 hex ch
 printf '%s' "$(openssl rand -base64 32)"  > secrets/upload_signing_secret
 printf '%s' "$(openssl rand -base64 32)"  > secrets/principal_signing_key
 printf '%s' "DB_PASSWORD"                  > secrets/db_password   # same value used in database_url
-chmod 600 secrets/*
+chmod 644 secrets/*   # the 700 dir keeps host users out; containers read these as their own UID
 ```
 
 ## External Secrets Management
@@ -416,7 +416,7 @@ docker compose --env-file .env.prod up -d
 mkdir -p secrets && chmod 700 secrets
 printf '%s' "$JWT_SECRET" > secrets/jwt_secret
 # ... (repeat for every file in the compose secrets: block) ...
-chmod 600 secrets/*
+chmod 644 secrets/*   # the 700 dir keeps host users out; containers read these as their own UID
 docker compose -f docker-compose.prod.yml --env-file .env up -d
 # Leave the files in place — they are bind-mounted into restart:always containers (ADS-1247).
 ```
@@ -480,7 +480,7 @@ ls -la secrets/
 
 # Re-materialize the missing file (replace with actual secret value)
 printf '%s' "actual-secret-value" > secrets/jwt_secret
-chmod 600 secrets/jwt_secret
+chmod 644 secrets/jwt_secret
 
 # Restart the affected service (substitute the service that consumes the secret)
 docker compose -f docker-compose.prod.yml --env-file .env up -d service-auth
