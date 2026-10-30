@@ -30,6 +30,26 @@ Per-environment application stack (docker-compose.prod.yml / .staging.yml):
   database (PG16+PostGIS) · redis · nats (JetStream) · clamav
 ```
 
+## Sizing
+
+Estimates, not measurements — confirm on your host after the first deploy:
+
+| Workload                                                                     | Approx. RAM   |
+| ---------------------------------------------------------------------------- | ------------- |
+| Production stack (11 services, 3 apps, Postgres, Redis, NATS, ClamAV, nginx) | 4–5 GB        |
+| Observability overlay (Prometheus, Loki, Tempo, Grafana, exporters)          | 1–1.5 GB      |
+| GlitchTip overlay                                                            | ~1.5 GB       |
+| A staging stack                                                              | as production |
+
+An **8 GB host** runs production plus the observability overlay, and nothing else:
+
+- Set `OBSERVABILITY_ENABLED=true` — production deploys fail preflight without it (ADS-1307).
+- Leave `GLITCHTIP_ENABLED` unset. For error tracking use a hosted Sentry project instead (its free tier is enough): put its DSN in `SENTRY_DSN` in the host `.env` and in `VITE_SENTRY_DSN` under the `production-vars` environment.
+- No staging stack on the same host.
+- Add the 4 GB swap file from "Initial server setup" — headroom for ClamAV's signature reloads, not for steady-state load.
+
+After the first deploy, check headroom: `free -h`, `docker stats --no-stream`, and `dmesg | grep -i oom` (no output = no out-of-memory kills). If swap stays in use or anything was OOM-killed, either move to a 16 GB host or turn observability off and deploy with `allow_blind_deploy=true` plus a `bypass_reason` (audited; nothing pages anyone while it is off). Staging, or GlitchTip, needs 16 GB.
+
 ## Repo files
 
 | File                                                                | Purpose                                                                   |
