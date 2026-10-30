@@ -82,6 +82,8 @@ docker-compose.prod.yml`. Note the two compose roots: the app stack at
    ```bash
    cd /opt/ads/gateway
    docker compose -f docker-compose.gateway.yml up -d
+   # Host that also runs staging:
+   # docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d
    ```
 
    Expected: `ads_gateway` (nginx) and `ads_certbot` `Up`.

@@ -95,8 +95,10 @@ export PROD_HOSTNAME=<the production hostname>
 renewal` (nothing to do). A challenge failure prints the reason — fix it (port
    80 / DNS / nginx webroot) and re-run.
 
-2. **Reload nginx to pick up the new cert.** The certbot loop renews but does
-   **not** reload nginx, so a freshly renewed cert isn't served until you do:
+2. **Reload nginx to pick up the new cert.** The certbot loop renews but cannot
+   signal nginx; the gateway's nginx reloads itself every 12h (its `command:`
+   in `docker-compose.gateway.yml`), so a renewed cert is live within 12h. To
+   serve it now:
 
    ```bash
    docker compose -f docker-compose.gateway.yml exec nginx nginx -t

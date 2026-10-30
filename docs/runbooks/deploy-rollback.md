@@ -101,18 +101,21 @@ commit SHA). Watch the workflow run to confirm health checks pass.
 
 When only one service regressed and you don't want a full-stack redeploy,
 dispatch `deploy.yml` with a per-service tag override. The workflow validates
-the key (`^(SERVICE|APP)_[A-Z_]+_TAG$`) and value, appends it to the host
-`.env`, and recreates only that one service.
+the key (`^(SERVICE|APP)_[A-Z_]+_TAG$`) and value (a full 40-char git SHA —
+images are only tagged that way), cosign-verifies the override image like
+every other image, and writes it to the host `.env` via
+`scripts/deploy-pin-env.sh`.
 
 ```bash
 gh workflow run deploy.yml \
   -f environment=production \
-  -f tag_overrides="SERVICE_PETS_TAG=<previous-good-sha>"
+  -f tag_overrides="SERVICE_PETS_TAG=<previous-good-40-char-sha>"
 ```
 
 Multiple overrides are comma-separated: `"SERVICE_AUTH_TAG=<sha1>,SERVICE_PETS_TAG=<sha2>"`.
-To return a service to the fleet-wide `DEPLOY_SHA`, redeploy without its
-override and remove the `SERVICE_*_TAG` line from `/opt/ads/production/.env`.
+Overrides last for that deploy only: the next deploy (or rollback) clears every
+`SERVICE_*_TAG` / `APP_*_TAG` line and returns all services to `DEPLOY_SHA`.
+Re-pass the override on each deploy for as long as you need the pin.
 
 | Variable                    | Compose service         | Internal port |
 | --------------------------- | ----------------------- | ------------- |
