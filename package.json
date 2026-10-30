@@ -40,6 +40,7 @@
     "test:e2e": "pnpm --filter @adopt-dont-shop/e2e test",
     "test:e2e:single": "pnpm --filter @adopt-dont-shop/e2e exec playwright test",
     "test:e2e:smoke": "pnpm --filter @adopt-dont-shop/e2e test:smoke",
+    "smoke:prod": "bash scripts/smoke-prod.sh",
     "test:e2e:ui": "pnpm --filter @adopt-dont-shop/e2e test:ui",
     "test:e2e:debug": "pnpm --filter @adopt-dont-shop/e2e test:debug",
     "test:e2e:headed": "pnpm --filter @adopt-dont-shop/e2e test:headed",

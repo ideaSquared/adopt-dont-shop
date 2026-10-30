@@ -5,11 +5,12 @@ covered by automated tests in this repository.
 
 ## Test runners
 
-| Runner     | Where it lives                           | What it covers                                                  |
-| ---------- | ---------------------------------------- | --------------------------------------------------------------- |
-| Vitest     | every `services/*`, `app.*`, and `lib.*` | Behaviour-driven tests for services, components, libraries      |
-| Vitest     | `scripts/` (`pnpm test:scripts`)         | The repo's own DX guard-scripts (see below)                     |
-| Playwright | `e2e/`                                   | Cross-app integration journeys against the docker-compose stack |
+| Runner     | Where it lives                              | What it covers                                                  |
+| ---------- | ------------------------------------------- | --------------------------------------------------------------- |
+| Vitest     | every `services/*`, `app.*`, and `lib.*`    | Behaviour-driven tests for services, components, libraries      |
+| Vitest     | `scripts/` (`pnpm test:scripts`)            | The repo's own DX guard-scripts (see below)                     |
+| Playwright | `e2e/`                                      | Cross-app integration journeys against the docker-compose stack |
+| Bash       | `scripts/smoke-prod.sh` (`pnpm smoke:prod`) | Production smoke test: the real production stack, end to end    |
 
 Each backend service — and every `packages/lib.*` — owns its own
 `vitest.config.ts`, which declares and enforces that package's coverage
@@ -23,6 +24,38 @@ PR — it runs only when the PR carries the `run-e2e` label (or on `main`
 push / manual dispatch). When it runs it is a required check and blocks
 merge on failure; unlabelled PRs skip the job entirely to keep the
 default CI path fast. See CONTRIBUTING.md for the label workflow.
+
+## Production smoke test
+
+`pnpm smoke:prod` (`scripts/smoke-prod.sh`) is the one test that runs the
+production configuration rather than the development stack. It builds the 14
+`production` images (`docker-bake.hcl`), lays out the host directories the
+way `deploy.yml` ships them, and boots `docker-compose.prod.yml` as shipped
+with the per-stack nginx and the TLS edge gateway (self-signed certificate
+for the production hostnames). It reuses the deploy's own
+`scripts/deploy-secrets.sh` and `scripts/wait-for-services.sh`, then checks
+real routes through HTTPS. The `Production Image Smoke` CI check runs the
+same script, so run it locally before changing anything that ships to the
+host: compose files, Dockerfiles, `nginx/`, `deploy/gateway/`, or the deploy
+scripts.
+
+- Needs Docker with Compose v2.24+ and buildx, `openssl` and `curl`, and
+  about 6–8 GB of free RAM. The first build takes a while; later runs reuse
+  the build cache.
+- `--keep` leaves the stack running and prints how to stop it; `--no-build`
+  reuses images already tagged `:smoke`. HTTPS is published on
+  `127.0.0.1:8443` (`SMOKE_HTTPS_PORT`).
+- On Apple Silicon the PostGIS image has no ARM build and runs under
+  emulation — slower, but it works.
+- It does not cover the GitHub Actions deploy itself (SSH, image signing),
+  the real domain and Let's Encrypt, real Resend/FCM, or the
+  observability/GlitchTip overlays.
+
+`docker-compose.ci-smoke.yml` is the only override it applies, and it swaps
+the email provider and nothing else. Never add a setting there to make the
+production compose pass: it once restored database/redis capabilities and
+tmpfs mounts the real compose lacked, which hid that the production stack
+could not start at all.
 
 ## Scope: payment / donation processing — out of scope
 
