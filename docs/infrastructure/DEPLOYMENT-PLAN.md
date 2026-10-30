@@ -47,7 +47,7 @@ Per-environment application stack (docker-compose.prod.yml / .staging.yml):
 | `Makefile`                                                          | `make staging`, `make prod`, `make rollback`                              |
 | `services/<name>/src/migrations/`                                   | Per-service migrations (each service runs its own)                        |
 
-**ADS-1312**: everything above except `deploy/gateway/*` is now `scp`'d fresh to `/opt/ads/<env>/` by `deploy.yml` and `rollback.yml` on every run — it is no longer a one-time hand-copy. `deploy/gateway/*` is shipped to `/opt/ads/gateway/` too. The edge stack is not restarted by a deploy, but its nginx reloads itself every 12h (so renewed certificates are served), which also picks up a shipped `nginx.conf` change — an invalid config is rejected by the reload and the running one kept. Do not hand-edit files under `/opt/ads/gateway/`: the next deploy overwrites them. **The hostnames in `deploy/gateway/nginx.conf` are `adoptdontshop.com` and its subdomains** — if you deploy under a different domain, change them in the repo, and keep `PROD_HOSTNAME` identical.
+**ADS-1312**: everything above except `deploy/gateway/*` is now `scp`'d fresh to `/opt/ads/<env>/` by `deploy.yml` and `rollback.yml` on every run — it is no longer a one-time hand-copy. `deploy/gateway/*` is shipped to `/opt/ads/gateway/` too. The edge stack is not restarted by a deploy, but its nginx reloads itself every 12h (so renewed certificates are served), which also picks up a shipped `nginx.conf` change — an invalid config is rejected by the reload and the running one kept. Do not hand-edit files under `/opt/ads/gateway/`: the next deploy overwrites them. **The hostnames in `deploy/gateway/nginx.conf` are `adoptdontshop.app` and its subdomains** (`scripts/check-csp-headers.mjs` checks the same list) — if you deploy under a different domain, change both in the repo, and keep `PROD_HOSTNAME` identical.
 
 ## GitHub setup
 
@@ -163,18 +163,18 @@ POSTGRES_USER=ads_prod
 POSTGRES_DB=adopt_dont_shop_prod
 REDIS_PASSWORD=<generated, e.g. openssl rand -hex 32>
 # Literal values only — write out each origin in full.
-CORS_ORIGIN=https://example.com,https://admin.example.com,https://rescue.example.com
+CORS_ORIGIN=https://adoptdontshop.app,https://admin.adoptdontshop.app,https://rescue.adoptdontshop.app
 # PROD_HOSTNAME (production only) — a plain literal. deploy.yml/rollback.yml
 # read it to re-apply the __PROD_HOSTNAME__ substitution into
 # nginx/nginx.prod.conf on every run (ADS-1312). It must match the hostnames
 # in deploy/gateway/nginx.conf, or the per-stack nginx drops the gateway's
 # /uploads/ requests.
-PROD_HOSTNAME=example.com
+PROD_HOSTNAME=adoptdontshop.app
 # service-notifications refuses to boot in production without these
 # (ADS-1302); the deploy fails before `up -d` if either key is missing.
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=<from resend.com — the sending domain must be verified there>
-DEFAULT_FROM_EMAIL=noreply@example.com
+DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
 FCM_PROJECT_ID=<Firebase project id>
 # The service-account JSON on ONE line (the deploy reads a single line):
 #   jq -c . service-account.json
@@ -197,9 +197,9 @@ Records: `${PROD_HOSTNAME}`, `www.`, `api.`, `admin.`, `rescue.` (and `staging.`
 cd /opt/ads/gateway
 docker compose -f docker-compose.gateway.yml run --rm --no-deps -p 80:80 \
   --entrypoint certbot certbot certonly --standalone \
-  -d example.com -d www.example.com -d api.example.com \
-  -d admin.example.com -d rescue.example.com \
-  --email you@example.com --agree-tos --no-eff-email
+  -d adoptdontshop.app -d www.adoptdontshop.app -d api.adoptdontshop.app \
+  -d admin.adoptdontshop.app -d rescue.adoptdontshop.app \
+  --email <an address you read — expiry warnings go here> --agree-tos --no-eff-email
 docker compose -f docker-compose.gateway.yml up -d
 # Host that also runs staging (after its first deploy):
 # docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d
