@@ -136,9 +136,15 @@ install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
 nano /home/deploy/.ssh/authorized_keys && chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys
 curl -fsSL https://get.docker.com | sh
 
-# 3. SSH: keys only, no root login. Check you can log in as `deploy` with
-#    your own key in a second terminal BEFORE closing this session.
-printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/99-hardening.conf
+# 3. SSH: keys only, no root login. sshd keeps the FIRST value it reads for
+#    each option and reads sshd_config.d/ in name order, so the file must sort
+#    before any provider drop-in (e.g. 50-cloud-init.conf sets
+#    `PasswordAuthentication yes`). Confirm the effective values, then check
+#    you can log in as `deploy` with your own key in a second terminal BEFORE
+#    closing this session.
+printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/00-hardening.conf
+sshd -t && sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication) '
+# Expected: all three `no`.
 systemctl reload ssh
 
 # 4. Swap — headroom for memory spikes (ClamAV signature reloads) on an 8–12 GB box.
@@ -150,7 +156,7 @@ mkdir -p /opt/ads/{gateway,production}   # add staging only if you run it
 chown -R deploy:deploy /opt/ads
 ```
 
-`deploy` is in the `docker` group, which is root-equivalent on the host — protect `HETZNER_SSH_KEY` accordingly. Record the host key fingerprint for the `HETZNER_HOST_FINGERPRINT` secret (from your machine): `ssh-keyscan -t ed25519 <host> | ssh-keygen -lf - | awk '{print $2}'`.
+`deploy` is in the `docker` group, which is root-equivalent on the host — protect `HETZNER_SSH_KEY` accordingly. Record the host key fingerprint for the `HETZNER_HOST_FINGERPRINT` secret **on the server itself**, from the provider's web/VNC console (an authenticated channel): `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}'`. Do not take it from `ssh-keyscan` across the network — that trusts whatever answers, which is the impersonation the pinned fingerprint exists to stop. When you first SSH in from your own machine, check the fingerprint it shows matches.
 
 Then: write `/opt/ads/production/.env` (next section), run the first deploy (`make prod`), issue the certificate and start the gateway (see "DNS & TLS").
 
@@ -204,6 +210,8 @@ docker compose -f docker-compose.gateway.yml up -d
 # Host that also runs staging (after its first deploy):
 # docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d
 ```
+
+The staging vhosts use the same certificate, so a host that runs staging must include its names too: add `-d staging.adoptdontshop.app -d staging-api.adoptdontshop.app -d staging-admin.adoptdontshop.app -d staging-rescue.adoptdontshop.app` to the command above. Adding staging later means expanding the existing certificate first — with the gateway running, `docker compose -f docker-compose.gateway.yml run --rm --no-deps certbot certonly --webroot -w /var/www/certbot --expand` with every `-d` (production and staging), then `docker compose -f docker-compose.gateway.yml exec nginx nginx -s reload`.
 
 From then on the `certbot` container renews via the webroot every 12h and nginx reloads itself every 12h to serve the renewed certificate. `TlsCertificateExpiringSoon` (observability overlay) alerts if renewal stops working — see [runbooks/tls-cert-renewal.md](../runbooks/tls-cert-renewal.md).
 

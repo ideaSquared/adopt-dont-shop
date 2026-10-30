@@ -696,8 +696,10 @@ jobs:
           fi
 
       # ADS-670: SSH host fingerprint pinned to prevent MitM during deploy.
-      # Compute on the host and store as HETZNER_HOST_FINGERPRINT secret:
-      #   ssh-keyscan -t ed25519,rsa $HOST | ssh-keygen -lf - | awk '{print $2}'
+      # Read it ON the host via the provider's console (not ssh-keyscan over
+      # the network, which trusts whoever answers) and store it as the
+      # HETZNER_HOST_FINGERPRINT secret:
+      #   ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}'
       - name: Deploy to server
         # Pass secrets via `envs:` rather than `${{ secrets.* }}` interpolation
         # inside `script:`. Interpolation embeds the secret in the wrapper
@@ -789,6 +791,19 @@ jobs:
             # TAG_OVERRIDES arrives via `envs:`, never interpolated here.
             chmod +x scripts/deploy-pin-env.sh
             scripts/deploy-pin-env.sh "$SHA"
+
+            # Pull every override image too. verify-images checked the
+            # registry's current artifact for each override tag; without an
+            # explicit pull, `up -d` would reuse any locally cached image with
+            # that tag instead of the one that passed verification. After
+            # deploy-pin-env.sh the only override lines left in .env are this
+            # run's validated ones.
+            # (`|| true`: no overrides is the normal case, and grep's exit 1
+            # would otherwise fail the pipeline under pipefail.)
+            { grep -E '^(SERVICE|APP)_[A-Z_]+_TAG=' .env || true; } | while IFS='=' read -r key value; do
+              image="$(printf '%s' "${key%_TAG}" | tr 'A-Z_' 'a-z-')"
+              docker pull "$IMAGE_PREFIX/$image:$value"
+            done
 
             # Determine compose file
             if [ "$ENV" = "production" ]; then
