@@ -42,6 +42,23 @@ done
 
 log() { printf '\n==> %s\n' "$*"; }
 
+# This test reuses the real project, container, network and volume names (so
+# it boots exactly what a deploy boots), and its teardown runs `down -v`. On a
+# deploy host — or next to a leftover --keep run — that would recreate and
+# then delete the live stack and its database. Refuse before touching
+# anything; the teardown trap is only installed after this check.
+existing="$(
+  docker ps -a --format '{{.Names}}' | grep -E '^(ads_prod_.*|ads_gateway|ads_certbot)$' || true
+  docker network ls --format '{{.Name}}' | grep -x 'ads-prod-network' || true
+  docker volume ls --format '{{.Name}}' | grep -E '^(production|gateway)_' || true
+)"
+if [ -n "$existing" ]; then
+  echo "Refusing to run: these Docker resources already exist on this daemon:" >&2
+  echo "$existing" >&2
+  echo "Never run the smoke test on a deploy host. If they are from an earlier --keep run, stop that stack first (the commands were printed when it finished)." >&2
+  exit 1
+fi
+
 # Same directory names as the host (/opt/ads/production, /opt/ads/gateway), so
 # compose derives the same project, volume and network names a deploy does.
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/ads-smoke.XXXXXX")"
@@ -149,6 +166,16 @@ if [ -n "$not_ready" ]; then
 fi
 echo "All containers running and healthy."
 
+# A real photo in the uploads volume, written the way the gateway stores
+# them. Requesting only a missing file can't tell "served" from "uploads
+# volume not mounted" — both are 404.
+fixture="adopt-dont-shop smoke fixture $(openssl rand -hex 8)"
+uploads_volume="$(docker volume ls -q --filter label=com.docker.compose.project=production \
+  --filter label=com.docker.compose.volume=uploads)"
+nginx_image="$(prod config --images | grep -m1 '^nginx:')"
+docker run --rm -v "$uploads_volume:/uploads" --entrypoint sh "$nginx_image" -c \
+  "mkdir -p /uploads/pets && printf '%s' '$fixture' > /uploads/pets/smoke-fixture.jpg"
+
 log "Starting the edge gateway with a self-signed certificate"
 names=("$DOMAIN" "www.$DOMAIN" "api.$DOMAIN" "admin.$DOMAIN" "rescue.$DOMAIN" "staging.$DOMAIN")
 san="$(printf 'DNS:%s,' "${names[@]}")"
@@ -184,6 +211,11 @@ status() {
   curl -s -o /dev/null -w '%{http_code}' --max-time 20 --noproxy '*' --cacert "$WORK/cert/fullchain.pem" \
     --resolve "$host:$HTTPS_PORT:127.0.0.1" "$@" "https://$host:$HTTPS_PORT$path" || true
 }
+body() {
+  local host="$1" path="$2"
+  curl -s --max-time 20 --noproxy '*' --cacert "$WORK/cert/fullchain.pem" \
+    --resolve "$host:$HTTPS_PORT:127.0.0.1" "https://$host:$HTTPS_PORT$path" || true
+}
 check() {
   local description="$1" expected="$2" actual="$3"
   if [[ "$actual" =~ ^($expected)$ ]]; then
@@ -199,11 +231,16 @@ check "admin site" 200 "$(status "admin.$DOMAIN" /)"
 check "rescue site" 200 "$(status "rescue.$DOMAIN" /)"
 check "API readiness" 200 "$(status "api.$DOMAIN" /health/ready)"
 check "legal terms (docs baked into the gateway image)" 200 "$(status "$DOMAIN" /api/v1/legal/terms)"
-# 404 would mean the gateway came up without its routes; any 4xx below that
-# is the route answering an empty body, as deploy.yml's own smoke check does.
-check "auth routes registered (empty login body is rejected, not 404)" '40[0-3]|422' \
+# The public login route forwards an empty body to auth, whose validation
+# answers 400. 404 means the route is missing; 401/403 that it was wrongly
+# put behind authentication or CSRF.
+check "login route registered and public (empty body is a 400)" 400 \
   "$(status "api.$DOMAIN" /api/v1/auth/login -X POST -H 'content-type: application/json' -d '{}')"
-check "uploads reach the per-stack nginx (missing photo is 404, not a redirect)" 404 \
+check "uploaded photos are served from the uploads volume" 200 \
+  "$(status "$DOMAIN" /uploads/pets/smoke-fixture.jpg)"
+check "uploaded photo content is intact" match \
+  "$([ "$(body "$DOMAIN" /uploads/pets/smoke-fixture.jpg)" = "$fixture" ] && echo match || echo mismatch)"
+check "a missing photo is a 404 (not a redirect)" 404 \
   "$(status "$DOMAIN" /uploads/pets/smoke-missing.jpg)"
 check "ID documents are never served directly" 403 "$(status "$DOMAIN" /uploads/documents/smoke.pdf)"
 check "a vhost whose stack is absent fails alone (staging, no staging stack)" 502 \
