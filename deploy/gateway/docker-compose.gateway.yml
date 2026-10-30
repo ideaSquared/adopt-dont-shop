@@ -1,27 +1,46 @@
 # Gateway — single nginx that routes all domains to correct stack
 # Lives at /opt/ads/gateway/ on the server
-# Joins both prod and staging Docker networks
+# Joins the prod Docker network. A host that also runs staging layers in
+# docker-compose.gateway.staging.yml to join the staging network too:
+#   docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d
+# Both networks are created by their app stacks, so deploy the app stack(s)
+# before starting the gateway.
 
 services:
   nginx:
     image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     container_name: ads_gateway
     restart: always
+    # certbot renews into the shared volume but cannot signal nginx, and nginx
+    # only reads certificates at start/reload — without this loop it keeps
+    # serving the old certificate until it expires. A reload is graceful (no
+    # dropped connections) and a no-op when nothing changed.
+    command:
+      - /bin/sh
+      - -c
+      - 'while :; do sleep 12h; nginx -s reload; done & exec nginx -g "daemon off;"'
     ports:
       - '80:80'
       - '443:443'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./snippets/ssl-params.conf:/etc/nginx/snippets/ssl-params.conf:ro
+      # The whole directory: nginx.conf also includes uploads-prod.conf and
+      # uploads-staging.conf from here, and refuses to start without them.
+      - ./snippets:/etc/nginx/snippets:ro
       - certbot_webroot:/var/www/certbot:ro
       - letsencrypt:/etc/letsencrypt:ro
     networks:
       - ads-prod-network
-      - ads-staging-network
     cap_drop:
       - ALL
+    # CHOWN/SETUID/SETGID: the stock nginx image starts as root, chowns its
+    # temp dirs and drops its workers to the `nginx` user — without them it
+    # exits at boot (`chown("/var/cache/nginx/client_temp", 101) failed`).
     cap_add:
       - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -65,6 +84,4 @@ volumes:
 
 networks:
   ads-prod-network:
-    external: true
-  ads-staging-network:
     external: true
