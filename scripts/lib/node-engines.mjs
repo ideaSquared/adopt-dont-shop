@@ -3,7 +3,7 @@
  *
  * bootstrap.mjs runs before `pnpm install`, so it cannot import `semver`.
  * package.json `engines.node` is a space-separated list of comparators
- * (e.g. `>=22.22.0 <23.0.0`); that is the only range syntax supported here.
+ * (e.g. `>=24.0.0 <25.0.0`); that is the only range syntax supported here.
  * Anything else throws rather than silently accepting an unsupported Node.
  */
 
@@ -41,8 +41,8 @@ const satisfiesComparator = (version, comparator) => {
 };
 
 /**
- * @param {string} versionText - e.g. the output of `node --version` ("v22.22.0")
- * @param {string} range - e.g. package.json `engines.node` (">=22.22.0 <23.0.0")
+ * @param {string} versionText - e.g. the output of `node --version` ("v24.0.0")
+ * @param {string} range - e.g. package.json `engines.node` (">=24.0.0 <25.0.0")
  * @returns {boolean} whether the version satisfies every comparator in the range
  */
 export const satisfiesNodeRange = (versionText, range) => {

@@ -10,13 +10,13 @@ A monorepo containing three React frontends, a Fastify API gateway fronting a fl
 
 ### Devcontainer / Codespaces (zero local setup)
 
-Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 22 and ships docker-in-docker so `pnpm docker:dev` works inside the container. Its `postCreateCommand` runs `corepack enable && pnpm bootstrap -- --skip-playwright --no-start --no-enable-prepush` on first launch — so bootstrap sets up `.env` and secrets but the dev stack is **not** started automatically (run `pnpm docker:dev` yourself) and the pre-push hook is left disabled. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
+Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 24 and ships docker-in-docker so `pnpm docker:dev` works inside the container. Its `postCreateCommand` runs `corepack enable && pnpm bootstrap -- --skip-playwright --no-start --no-enable-prepush` on first launch — so bootstrap sets up `.env` and secrets but the dev stack is **not** started automatically (run `pnpm docker:dev` yourself) and the pre-push hook is left disabled. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
 
 For full local control (faster HMR, native Docker performance) follow the prerequisites below.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22.22.0 <23.0.0`
+- [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=24.0.0 <25.0.0`
 - [pnpm](https://pnpm.io/) — provided via Corepack. `pnpm bootstrap` enables Corepack for you (ADS-894); if you'd rather do it yourself first, run `corepack enable` and the pinned version (`package.json` `"packageManager"`) is used automatically
 - Prefer [asdf](https://asdf-vm.com/) or [mise](https://mise.jdx.dev/) instead of nvm/Corepack? The repo also ships a root [`.tool-versions`](./.tool-versions) pinning the same Node and pnpm versions as `.nvmrc` / `package.json` — run `asdf install` or `mise install` and both tools are provisioned automatically
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
@@ -32,7 +32,7 @@ pnpm bootstrap
 
 That's it. `pnpm bootstrap` is the one-shot bootstrap and it will:
 
-1. Verify Node.js v22
+1. Verify Node.js v24
 2. Enable Corepack so `pnpm` resolves the pinned version
 3. Create `.env` from `.env.example` (if missing)
 4. **Generate fresh JWT / session / encryption secrets straight into `.env`** (won't overwrite existing values)
@@ -181,7 +181,7 @@ The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 ## Tech Stack
 
 **Frontend:** React 19, TypeScript, Vite, vanilla-extract, React Router, React Query, Socket.io
-**Backend:** Node.js 22, Fastify (gateway), gRPC microservices, TypeScript, pg + node-pg-migrate, PostgreSQL 16 + PostGIS, Redis 7, NATS JetStream, Socket.io, JWT
+**Backend:** Node.js 24, Fastify (gateway), gRPC microservices, TypeScript, pg + node-pg-migrate, PostgreSQL 16 + PostGIS, Redis 7, NATS JetStream, Socket.io, JWT
 **Tooling:** Turborepo, Docker (BuildKit), Nginx, GitHub Actions
 
 ## Environment Configuration
