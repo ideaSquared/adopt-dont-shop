@@ -200,7 +200,7 @@ Checks that run but are **not** part of `ci-required`:
 
 - **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`. A separate required check in branch protection.
 - **Schema Equivalence** (`schema-equivalence.yml`) — pg_dump diff of migrated vs synced schemas. A separate required check in branch protection, path-filtered to migrations.
-- **Production Image Smoke** (`docker.yml` → `prod-image-smoke-gate`, which always reports and wraps the `prod-image-smoke` boot job, ADS-1400) — a separate required check in branch protection (ADS-1314), not part of `ci-required` because it lives in a different workflow file — see [`.github/workflows/README.md`](./.github/workflows/README.md#docker-workflow-dockeryml).
+- **Production Image Smoke** (`docker.yml` → `prod-image-smoke-gate`, which always reports and wraps the `prod-image-smoke` boot job, ADS-1400) — a separate required check in branch protection (ADS-1314), not part of `ci-required` because it lives in a different workflow file — see [`.github/workflows/README.md`](./.github/workflows/README.md#docker-workflow-dockeryml). The boot job only runs on PRs that change deploy files or carry the `run-smoke` label (and on every push to `main`, where the deploy gate requires it); run `pnpm smoke:prod` locally for the same test.
 - **Dependency Audit** (`security.yml`) — one `dependency-audit` job running `node scripts/audit-bulk.mjs`; advisory.
 - **Dependency Check** (`quality.yml`) — one `dependency-check` job: `pnpm outdated -r` and `pnpm list -r --depth 0`, both advisory (`continue-on-error`).
 
@@ -327,6 +327,8 @@ Code ownership is defined in [`.github/CODEOWNERS`](./.github/CODEOWNERS). All P
 ## Dependency updates
 
 [Renovate](./renovate.json) is the single source of truth for dependency PRs (npm workspace, GitHub Actions, Docker image digests) — there is no separate Dependabot config (ADS-891). Don't re-add `.github/dependabot.yml`; adjust grouping/scheduling in `renovate.json` instead.
+
+To fix an advisory in a transitive dependency, refresh the lockfile or bump the parent package first. Use `pnpm.overrides` only when no released parent allows the patched version; the Stale Overrides check fails once an override stops being needed. See [docs/security/dependency-policy.md](docs/security/dependency-policy.md#fixing-a-transitive-advisory-and-when-to-use-pnpmoverrides).
 
 ## E2E Testing
 

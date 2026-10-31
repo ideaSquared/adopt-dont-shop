@@ -255,7 +255,7 @@ async function setup() {
       nodeVersion = execSync('node --version', { encoding: 'utf-8' }).trim();
     } catch {
       logError('Node.js is not installed');
-      log('Please install Node.js v22 (see .nvmrc) from https://nodejs.org/', YELLOW);
+      log('Please install Node.js v24 (see .nvmrc) from https://nodejs.org/', YELLOW);
       process.exit(1);
     }
 

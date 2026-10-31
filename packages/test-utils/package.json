@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/test-utils",
   "version": "0.1.0",
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=24.0.0"
   },
   "private": true,
   "description": "Shared test utilities for gRPC microservices: stub gRPC server harness, principal/metadata builders, and NATS/JetStream test doubles. Dev-only — never shipped in service images.",

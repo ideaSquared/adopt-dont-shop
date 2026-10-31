@@ -93,3 +93,58 @@ describe('deploy-ci-gate.sh', () => {
     expect(result.status).toBe(1);
   });
 });
+
+describe('deploy-ci-gate.sh with the production smoke check', () => {
+  const SMOKE = 'Production Image Smoke (boot)';
+
+  function smokeRuns(...runs) {
+    return JSON.stringify({ total_count: runs.length, check_runs: runs });
+  }
+
+  function runSmokeGate({ runsJson, skip = 'false' }) {
+    return spawnSync('bash', [SCRIPT], {
+      env: { ...process.env, RUNS_JSON: runsJson, SKIP_CI_CHECK: skip, CHECK_NAME: SMOKE },
+      encoding: 'utf8',
+    });
+  }
+
+  it('passes when the smoke test succeeded on the commit', () => {
+    const result = runSmokeGate({
+      runsJson: smokeRuns({ name: SMOKE, status: 'completed', conclusion: 'success' }),
+    });
+
+    expect(result.status).toBe(0);
+  });
+
+  it('blocks the deploy when the smoke test failed, even with skip_ci_check', () => {
+    const result = runSmokeGate({
+      runsJson: smokeRuns({ name: SMOKE, status: 'completed', conclusion: 'failure' }),
+      skip: 'true',
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain(SMOKE);
+  });
+
+  it('blocks the deploy while the smoke test is still running', () => {
+    const result = runSmokeGate({
+      runsJson: smokeRuns({ name: SMOKE, status: 'in_progress', conclusion: null }),
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain(`${SMOKE} is still in_progress`);
+  });
+
+  it('blocks the deploy when the smoke test never ran on the commit', () => {
+    const result = runSmokeGate({ runsJson: smokeRuns() });
+
+    expect(result.status).toBe(1);
+  });
+
+  it('lets skip_ci_check through when the smoke test never ran', () => {
+    const result = runSmokeGate({ runsJson: smokeRuns(), skip: 'true' });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('WARNING');
+  });
+});

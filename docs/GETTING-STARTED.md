@@ -4,7 +4,7 @@ The ordered Day-1 path from `git clone` to a first PR-worthy change, for a new e
 
 ## 1. Install prerequisites
 
-See the README's [Prerequisites](../README.md#prerequisites): Node.js v22 (via `.nvmrc`), pnpm via Corepack, Docker Desktop, Git.
+See the README's [Prerequisites](../README.md#prerequisites): Node.js v24 (via `.nvmrc`), pnpm via Corepack, Docker Desktop, Git.
 
 Using GitHub Codespaces or the devcontainer? It does steps 1-2 for you (with `--no-start`, so the stack is not running yet) — see [Devcontainer / Codespaces](../README.md#devcontainer--codespaces-zero-local-setup) and continue at step 3.
 

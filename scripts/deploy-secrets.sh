@@ -62,5 +62,9 @@ printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_sec
 printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
 printf '%s' "$SECRET_NATS_AUTH_TOKEN"               > secrets/nats_auth_token
 printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
-chmod 600 secrets/*
+# 644, not 600: compose (outside Swarm) bind-mounts each file as-is, and the
+# services read it as their own container user (svcuser, UID 1001), not as
+# the host's deploy user — a 600 file is `Permission denied` to them. The
+# 700 directory above is what keeps other host users out.
+chmod 644 secrets/*
 echo "Materialized secrets/* from .env + provided secret values."

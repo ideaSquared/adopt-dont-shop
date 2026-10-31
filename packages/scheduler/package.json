@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/scheduler",
   "version": "0.1.0",
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=24.0.0"
   },
   "private": true,
   "description": "Tick-based periodic-job scheduler for backend microservices, with an optional cross-instance run claim so a multi-replica service runs each job exactly once per interval instead of once per replica.",

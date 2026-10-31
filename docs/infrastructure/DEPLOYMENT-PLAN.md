@@ -85,14 +85,14 @@ Configure reviewers once (repo admin): Settings → Environments → New environ
 
 Infrastructure secrets:
 
-| Secret                         | Value                                                                                                                                                                                               |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `HETZNER_HOST`                 | Server IP / hostname                                                                                                                                                                                |
-| `HETZNER_HOST_FINGERPRINT`     | SSH host key fingerprint (pinned, ADS-670)                                                                                                                                                          |
-| `HETZNER_SSH_KEY`              | Private key for the `deploy` user                                                                                                                                                                   |
-| `GHCR_TOKEN`                   | PAT scoped **`read:packages` only** — pulls images on the host. Both `deploy.yml` and `rollback.yml` FAIL the run if it carries `write:packages`, `delete:packages`, or `repo` scope (ADS-671).     |
-| `BACKUP_BUCKET` / `AWS_REGION` | Repo **variables** (not secrets) for the nightly backup workflow                                                                                                                                    |
-| `DISCORD_WEBHOOK_URL`          | Optional. `deploy.yml` posts to it on any job failure (ADS-1324) — reuse the same webhook `observability/alertmanager/secrets/discord_webhook_url` uses on the host. Skipped gracefully when unset. |
+| Secret                         | Value                                                                                                                                                                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HETZNER_HOST`                 | Server IP / hostname                                                                                                                                                                                                                                                          |
+| `HETZNER_HOST_FINGERPRINT`     | SSH host key fingerprint (pinned, ADS-670)                                                                                                                                                                                                                                    |
+| `HETZNER_SSH_KEY`              | Private key for the `deploy` user                                                                                                                                                                                                                                             |
+| `GHCR_TOKEN`                   | PAT scoped **`read:packages` only** — pulls images on the host. Both `deploy.yml` and `rollback.yml` FAIL the run if it carries `write:packages`, `delete:packages`, or `repo` scope (ADS-671).                                                                               |
+| `BACKUP_BUCKET` / `AWS_REGION` | Repo **variables** (not secrets) for the nightly backup workflow                                                                                                                                                                                                              |
+| `DISCORD_WEBHOOK_URL`          | Optional. `deploy.yml` posts to it on any job failure (ADS-1324), and `docker.yml` posts every production smoke test result (pass or fail) — reuse the same webhook `observability/alertmanager/secrets/discord_webhook_url` uses on the host. Skipped gracefully when unset. |
 
 Application secrets — `deploy.yml` validates all seven are present, then materialises them into `./secrets/<name>` file-mounts on the host (they are **not** hand-written into `.env`). `rollback.yml` requires the same set (ADS-1311) except `SENTRY_AUTH_TOKEN`, which is a build-time-only secret (see below):
 
@@ -244,6 +244,7 @@ Backups are automated by `.github/workflows/backup.yml` (nightly `0 2 * * *`) �
 ## Pre-flight checklist
 
 - [ ] Repo confirmed as `ideaSquared/adopt-dont-shop`
+- [ ] The production stack boots and serves end to end: `Production Image Smoke` is green on `main`, or run `pnpm smoke:prod` locally (see [testing.md](../testing.md#production-smoke-test))
 - [ ] GitHub environments created: `staging`, `production`, `production-bypass` (reviewers + prevent self-review on the latter two)
 - [ ] `staging-vars` / `production-vars` environments created, **no** required reviewers, each with `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_SENTRY_DSN`, `VITE_STATSIG_CLIENT_KEY` set to that target's values (ADS-1318)
 - [ ] Infra secrets added: `HETZNER_HOST`, `HETZNER_HOST_FINGERPRINT`, `HETZNER_SSH_KEY`, `GHCR_TOKEN` (**`read:packages` only**); repo variables `BACKUP_BUCKET`, `AWS_REGION`; optional `DISCORD_WEBHOOK_URL` secret for deploy failure notifications (ADS-1324)

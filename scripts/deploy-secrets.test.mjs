@@ -55,16 +55,19 @@ describe('deploy-secrets.sh', () => {
     expect(readSecret('db_password')).toBe('db-password-value');
   });
 
-  it('locks down the secrets directory and files', () => {
+  it('keeps the secrets directory private but the files readable by container users', () => {
     execFileSync('bash', [SCRIPT], {
       cwd: dir,
       env: { ...process.env, ...REQUIRED_SECRET_ENV },
     });
 
+    // Host users other than the deploy user cannot traverse the directory;
+    // the services, which run as their own UID inside the container, read
+    // the bind-mounted files directly and need them world-readable.
     const dirMode = statSync(join(dir, 'secrets')).mode & 0o777;
     const fileMode = statSync(join(dir, 'secrets', 'jwt_secret')).mode & 0o777;
     expect(dirMode).toBe(0o700);
-    expect(fileMode).toBe(0o600);
+    expect(fileMode).toBe(0o644);
   });
 
   it('fails fast with the offending name(s) when a required secret is missing', () => {

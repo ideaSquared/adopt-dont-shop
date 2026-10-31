@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/seed-faker",
   "version": "0.1.0",
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=24.0.0"
   },
   "private": true,
   "description": "Dev-only bulk-data ('spam') seeding toolkit: env-guard, seeded UK Faker, and a batched bulk-insert helper. Shared by each service's db:spam script, and home of the db:seed production/staging guard. NEVER imported by service runtime code — it exists purely to seed or flood a development database.",

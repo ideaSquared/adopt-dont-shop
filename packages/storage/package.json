@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/storage",
   "version": "0.1.0",
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=24.0.0"
   },
   "private": true,
   "description": "Config-injected file storage abstraction for backend microservices — local filesystem and S3 providers behind a single StorageProvider contract. Dependency-light extraction of service.backend's storage service with no global config/logger coupling. Malware scanning is intentionally out of scope (documented follow-up).",
