@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { AdoptionFeeStringSchema, PetCreateDataSchema } from './schemas';
+import { AdoptionFeeStringSchema, PetCreateDataSchema, PetSchema } from './schemas';
 
 describe('AdoptionFeeStringSchema', () => {
   it.each(['0', '150', '150.0', '150.5', '150.00', '0.99'])('accepts %s', (value) => {
@@ -44,5 +44,25 @@ describe('PetCreateDataSchema adoptionFee field', () => {
     expect(PetCreateDataSchema.safeParse({ ...validBase, adoptionFee: '£150' }).success).toBe(
       false
     );
+  });
+});
+
+describe('PetSchema images', () => {
+  // The gateway sends images as { url, is_primary, order_index } only
+  // (services/gateway/src/routes/pets-view.ts), so the schema must accept that.
+  const gatewayPet = {
+    pet_id: '00000000-0000-4000-8000-000000000001',
+    name: 'Luna',
+    rescue_id: '00000000-0000-4000-8000-000000000002',
+    type: 'cat',
+    status: 'available',
+    gender: 'female',
+    size: 'small',
+    age_group: 'young',
+    images: [{ url: 'https://example.com/luna.jpg', is_primary: true, order_index: 0 }],
+  };
+
+  it('accepts images in the shape the gateway returns', () => {
+    expect(PetSchema.safeParse(gatewayPet).success).toBe(true);
   });
 });

@@ -60,10 +60,11 @@ export const AdoptionFeeStringSchema = z
 export const PetImageSchema = z.object({
   url: z.string(),
   caption: z.string().optional(),
-  image_id: z.string(),
+  // The gateway sends images as { url, is_primary, order_index } only.
+  image_id: z.string().optional(),
   is_primary: z.boolean(),
   order_index: z.number(),
-  uploaded_at: z.string(),
+  uploaded_at: z.string().optional(),
   thumbnail_url: z.string().optional(),
 });
 
