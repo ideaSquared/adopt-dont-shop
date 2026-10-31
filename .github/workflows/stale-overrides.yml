@@ -4,7 +4,7 @@ name: Stale Overrides
 # installed (ADS-1112). scripts/check-stale-overrides.mjs reads each override's
 # consumers from pnpm-lock.yaml and their declared ranges from the npm
 # registry, and flags any override whose consumers would all resolve a patched
-# version without it. While this was only a report, 30 of 34 security pins
+# version without it. While this was only a report, 30 of 33 security pins
 # went dead unnoticed, so it now fails instead.
 #
 # Runs on PRs and pushes that change dependencies, and weekly, because

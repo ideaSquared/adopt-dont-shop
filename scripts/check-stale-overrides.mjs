@@ -7,7 +7,7 @@
  * still resolve to a vulnerable version. Once every consumer's own range
  * reaches a patched release, a lockfile refresh fixes the advisory on its own
  * and the override is dead weight — and dead weight piles up: by October 2026
- * the block held 34 security pins and 30 of them no longer did anything.
+ * the block held 33 security pins and 30 of them no longer did anything.
  *
  * For each security override this script:
  *   1. finds every consumer in pnpm-lock.yaml (workspace importers and
@@ -160,16 +160,13 @@ export function wouldResolve(packument, range) {
   return semver.maxSatisfying(Object.keys(packument.versions ?? {}), range);
 }
 
-// The range a third-party consumer declares for `name`, from its manifest.
-function declaredRange(packuments, parent, parentVersion, name) {
-  const manifest = packuments.get(parent)?.versions?.[parentVersion];
-  return (
-    manifest?.dependencies?.[name] ??
-    manifest?.optionalDependencies?.[name] ??
-    manifest?.peerDependencies?.[name] ??
-    null
-  );
-}
+// The range a manifest declares for `name`, or null if it declares none.
+const declaredRange = (manifest, name) =>
+  manifest?.dependencies?.[name] ??
+  manifest?.devDependencies?.[name] ??
+  manifest?.optionalDependencies?.[name] ??
+  manifest?.peerDependencies?.[name] ??
+  null;
 
 // Every package name whose registry metadata the decision needs.
 export function packumentsNeeded(entries, consumers) {
@@ -184,16 +181,29 @@ export function packumentsNeeded(entries, consumers) {
 // a vulnerable version without it. `blockers` lists the consumers that still
 // need it (a range resolving to an unsafe version, or one we cannot evaluate,
 // which conservatively counts as needing the override).
-export function judgeOverrides(entries, consumers, packuments) {
+//
+// `workspaceManifests` maps an importer path to its package.json. pnpm writes
+// the override's target into the lockfile's importer `specifier`, so a
+// workspace package's real range must come from its manifest; the lockfile
+// specifier is only a fallback when no manifest is supplied.
+export function judgeOverrides(entries, consumers, packuments, workspaceManifests = new Map()) {
   return entries.map(entry => {
     const fromImporters = consumers.importers
       .filter(consumer => consumer.name === entry.name)
-      .map(consumer => ({ consumer: consumer.importer, range: consumer.specifier }));
+      .map(consumer => ({
+        consumer: consumer.importer,
+        range:
+          declaredRange(workspaceManifests.get(consumer.importer), entry.name) ??
+          consumer.specifier,
+      }));
     const fromPackages = consumers.packages
       .filter(consumer => consumer.name === entry.name)
       .map(consumer => ({
         consumer: `${consumer.parent}@${consumer.parentVersion}`,
-        range: declaredRange(packuments, consumer.parent, consumer.parentVersion, entry.name),
+        range: declaredRange(
+          packuments.get(consumer.parent)?.versions?.[consumer.parentVersion],
+          entry.name
+        ),
       }));
     const ranges = [...fromImporters, ...fromPackages];
 
@@ -270,7 +280,13 @@ async function main() {
     process.exit(1);
   }
 
-  const results = judgeOverrides(entries, consumers, packuments);
+  const workspaceManifests = new Map(
+    [...new Set(consumers.importers.map(consumer => consumer.importer))].map(importer => [
+      importer,
+      JSON.parse(readFileSync(join(ROOT, importer, 'package.json'), 'utf8')),
+    ])
+  );
+  const results = judgeOverrides(entries, consumers, packuments, workspaceManifests);
   const stale = results.filter(result => result.stale);
 
   for (const result of results.filter(r => !r.stale)) {

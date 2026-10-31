@@ -75,9 +75,9 @@ function registry({ adapterWsRange }) {
   ]);
 }
 
-function judge(overrides, packuments) {
+function judge(overrides, packuments, workspaceManifests = new Map()) {
   const entries = securityOverrides(overrides);
-  return judgeOverrides(entries, lockfileConsumers(LOCKFILE), packuments);
+  return judgeOverrides(entries, lockfileConsumers(LOCKFILE), packuments, workspaceManifests);
 }
 
 describe('parseOverrideKey', () => {
@@ -174,6 +174,22 @@ describe('judgeOverrides', () => {
 
     expect(kept.stale).toBe(false);
     expect(stale.stale).toBe(true);
+  });
+
+  it("judges a workspace package by its package.json range, not the lockfile's override-rewritten specifier", () => {
+    // pnpm records the override's target as the importer specifier, so the
+    // lockfile alone would hide that services/gateway still asks for ~8.20.0.
+    const workspaceManifests = new Map([['services/gateway', { dependencies: { ws: '~8.20.0' } }]]);
+    const [result] = judge(
+      { 'ws@<8.21.0': '8.21.0' },
+      registry({ adapterWsRange: '^8.17.1' }),
+      workspaceManifests
+    );
+
+    expect(result.stale).toBe(false);
+    expect(result.blockers).toEqual([
+      { consumer: 'services/gateway', range: '~8.20.0', resolves: '8.20.1' },
+    ]);
   });
 
   it('flags an override for a package nothing depends on any more', () => {

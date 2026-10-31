@@ -60,7 +60,7 @@ forcing a version:
 
 An override that outlives its reason is not harmless: it hides the parent's
 real range, so nobody notices when it could be dropped. In October 2026 the
-block held 34 security overrides; 30 no longer changed what got installed, and
+block held 33 security overrides; 30 no longer changed what got installed, and
 only one (`uuid`, whose `firebase-admin` chain still declares `^9`) survived the
 cleanup.
 
