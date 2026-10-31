@@ -200,7 +200,12 @@ The set is filtered to **HIGH-accuracy, no-regression-allowed** signals:
 - **Production Image Smoke (ADS-1314 / P1-8)** — the only check that boots the
   actual `production`-target images (E2E only exercises `development`-target
   images); catches config-validation-at-boot and missing-file-in-image classes
-  of bug that a dev-target stack can't surface.
+  of bug that a dev-target stack can't surface. The boot job itself only runs
+  on pushes to `main`, PRs touching deploy files (the `deploy` paths filter),
+  PRs labelled `run-smoke`, and manual dispatch; otherwise the gate reports it
+  green. `deploy.yml` then requires it to have passed on the commit being
+  deployed, and `prod-image-smoke-notify` posts every result to Discord
+  (`DISCORD_WEBHOOK_URL`).
 
 Intentionally **not** required:
 

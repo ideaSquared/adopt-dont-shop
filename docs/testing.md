@@ -39,6 +39,19 @@ same script, so run it locally before changing anything that ships to the
 host: compose files, Dockerfiles, `nginx/`, `deploy/gateway/`, or the deploy
 scripts.
 
+It is too heavy for every PR (about 20–25 minutes), so CI runs it:
+
+- on **every push to `main`** — and `deploy.yml` refuses to deploy a commit
+  whose smoke test did not pass (`scripts/deploy-ci-gate.sh`);
+- on **PRs that change how a host boots**: Dockerfiles, compose files,
+  `nginx/`, `deploy/`, `docker-bake.hcl`, the deploy scripts and the
+  docker/deploy/rollback workflows;
+- on **any PR labelled `run-smoke`**, and on manual dispatch.
+
+Every result, pass or fail, is posted to Discord through the
+`DISCORD_WEBHOOK_URL` secret (skipped when it isn't set). On other PRs the
+required `Production Image Smoke` check reports green without running.
+
 - Needs Docker with Compose v2.24+ and buildx, `openssl` and `curl`, and
   about 6–8 GB of free RAM. The first build takes a while; later runs reuse
   the build cache.

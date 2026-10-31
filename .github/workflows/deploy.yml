@@ -255,8 +255,10 @@ jobs:
     permissions:
       contents: read
       packages: write
-      # Read the CI workflow's runs for this commit (deploy-ci-gate.sh).
+      # Read the CI workflow's runs and the smoke test's check run for this
+      # commit (deploy-ci-gate.sh).
       actions: read
+      checks: read
       # ADS-673: id-token required for cosign keyless signing via the
       # GitHub Actions OIDC token. No private key is provisioned.
       id-token: write
@@ -279,6 +281,26 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ github.sha }}&event=push&per_page=5")
+          export RUNS_JSON
+          scripts/deploy-ci-gate.sh
+
+      # The production smoke test (docker.yml's prod-image-smoke) boots this
+      # exact stack — every image, both nginx layers, the TLS edge — and is the
+      # only check that does. It runs on every push to main rather than on
+      # every PR, so this is where it gates: a commit whose stack didn't boot
+      # can't be deployed. Same skip_ci_check rules as CI above.
+      - name: Verify the production smoke test passed on this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SKIP_CI_CHECK: ${{ github.event.inputs.skip_ci_check }}
+          CHECK_NAME: Production Image Smoke (boot)
+        run: |
+          set -euo pipefail
+          RUNS_JSON=$(curl -fsSL --get \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            --data-urlencode "check_name=$CHECK_NAME" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs")
           export RUNS_JSON
           scripts/deploy-ci-gate.sh
 

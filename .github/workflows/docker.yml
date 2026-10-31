@@ -28,6 +28,9 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+    # `labeled` so adding the `run-smoke` label re-triggers this workflow and
+    # opts the PR into the production smoke test (see prod-image-smoke).
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 permissions:
@@ -57,6 +60,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       docker: ${{ steps.filter.outputs.docker }}
+      deploy: ${{ steps.filter.outputs.deploy }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
@@ -84,14 +88,22 @@ jobs:
               - 'tsconfig*.json'
               - 'docs/legal/**'
               - '.github/workflows/docker.yml'
-              # The production smoke test (prod-image-smoke) also boots both
-              # nginx layers using the deploy scripts it reuses.
+            # What decides how a host boots: the files the production smoke
+            # test runs a PR for (prod-image-smoke). App code is covered on
+            # every push to main instead, and the deploy gate requires it.
+            deploy:
+              - '**/Dockerfile*'
+              - 'docker-compose*.yml'
+              - '.dockerignore'
               - 'docker-bake.hcl'
               - 'nginx/**'
-              - 'deploy/gateway/**'
+              - 'deploy/**'
               - 'scripts/smoke-prod.sh'
-              - 'scripts/deploy-secrets.sh'
+              - 'scripts/deploy-*.sh'
               - 'scripts/wait-for-services.sh'
+              - '.github/workflows/docker.yml'
+              - '.github/workflows/deploy.yml'
+              - '.github/workflows/rollback.yml'
 
   # ============================================================================
   # BUILD FRONTEND APPS — dev + production images for each app
@@ -431,10 +443,24 @@ jobs:
   # GHA cache (same `cache-from`/`cache-to: type=gha` key space as the matrix
   # jobs above) makes the rebuild a near-total cache hit in the common case.
   # ============================================================================
+  # Too heavy for every PR (14 image builds and a full stack boot), so it
+  # runs where it matters:
+  #   - every push to main — deploy.yml refuses a commit without a pass here;
+  #   - PRs that change how a host boots (the `deploy` filter above);
+  #   - PRs labelled `run-smoke`, and manual dispatch.
+  # The gate job below reports the required check green when this is skipped.
   prod-image-smoke:
     name: Production Image Smoke (boot)
     needs: changes
-    if: ${{ needs.changes.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'pull_request' && (
+          needs.changes.outputs.deploy == 'true' ||
+          contains(github.event.pull_request.labels.*.name, 'run-smoke')
+        ))
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -479,6 +505,51 @@ jobs:
       # it dumps container logs itself on failure and always tears down.
       - name: Run the production smoke test
         run: scripts/smoke-prod.sh --no-build
+
+  # Posts every production smoke result (pass or fail) to Discord, using the
+  # same DISCORD_WEBHOOK_URL secret as deploy/backup alerts. Skipped when the
+  # smoke job didn't run, and a no-op when the secret isn't set (fork PRs
+  # never see it). Never fails the workflow.
+  prod-image-smoke-notify:
+    name: Production Image Smoke (report)
+    needs: prod-image-smoke
+    if: ${{ always() && needs.prod-image-smoke.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post the result to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          RESULT: ${{ needs.prod-image-smoke.result }}
+          # Free text (PR title) — passed via env, never interpolated.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
+            echo "DISCORD_WEBHOOK_URL secret not set — skipping the smoke report."
+            exit 0
+          fi
+          case "$RESULT" in
+            success) headline="✅ Production smoke test passed" ;;
+            failure) headline="❌ Production smoke test FAILED" ;;
+            *)       headline="⚠️ Production smoke test $RESULT" ;;
+          esac
+          if [ -n "$PR_NUMBER" ]; then
+            where="PR #$PR_NUMBER: $PR_TITLE"
+          else
+            where="$REF_NAME"
+          fi
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          PAYLOAD=$(jq -n \
+            --arg headline "$headline" --arg where "$where" \
+            --arg sha "${HEAD_SHA:0:7}" --arg url "$RUN_URL" \
+            '{content: ($headline + " — " + $where + " (" + $sha + ")\n" + $url),
+              allowed_mentions: {parse: []}}')
+          curl -fsS -X POST -H 'Content-Type: application/json' -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" ||
+            echo "::warning::Could not post the smoke report to Discord."
 
   # ============================================================================
   # PRODUCTION IMAGE SMOKE GATE — ADS-1400: the job that reports the required
