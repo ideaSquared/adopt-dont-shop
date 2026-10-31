@@ -7,6 +7,6 @@
 #
 # (No active exemptions.) The former CVE-2026-14257 / GHSA-mh99-v99m-4gvg
 # brace-expansion OOM exemption was dropped in ADS-1053: upstream shipped the
-# 1.x/2.x patches (1.1.18 / 2.1.4) the exemption was waiting on, and the
-# pnpm.overrides now pin every reachable brace-expansion line to a patched
-# release, so the advisory no longer resolves in any image.
+# 1.x/2.x patches (1.1.18 / 2.1.4) the exemption was waiting on, and every
+# resolved brace-expansion copy is now on a patched release, so the advisory no
+# longer resolves in any image.
