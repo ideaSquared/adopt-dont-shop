@@ -42,9 +42,10 @@ x-dev-env: &dev-env
   # from the developer's real uid/gid so the container's dev user matches the
   # host user that owns the bind-mounted source — without that match, writes
   # into the bind mount (e.g. lib.types' `tsc --watch` dist/ output) fail
-  # once the container drops root. Defaults to 1000 (the image's baked dev
-  # user) when unset, e.g. on Windows where docker-dev.mjs can't compute a
-  # POSIX uid.
+  # once the container drops root. On Windows docker-dev.mjs sets 0, so the
+  # containers stay root (Docker Desktop shows the bind mount as root-owned).
+  # Defaults to 1000 (the image's baked dev user) when unset, e.g. when the
+  # stack is started without docker-dev.mjs.
   HOST_UID: ${HOST_UID:-1000}
   HOST_GID: ${HOST_GID:-1000}
 
@@ -166,6 +167,11 @@ services:
     <<: *dev-build
     environment:
       <<: *dev-env
+      # Windows/macOS bind mounts don't forward inotify, so `tsc --watch`
+      # must poll or it never sees an edit. lib.types/src is small enough
+      # that polling on every host is free.
+      TSC_WATCHFILE: DynamicPriorityPolling
+      TSC_WATCHDIRECTORY: RecursiveDirectoryUsingDynamicPriorityPolling
     volumes: *dev-volumes
     command: sh -c "pnpm --filter @adopt-dont-shop/lib.types run dev"
 

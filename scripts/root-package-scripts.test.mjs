@@ -31,3 +31,17 @@ describe('root `pnpm test` script (ADS-1282)', () => {
     expect(e2ePkg.name).toBe('@adopt-dont-shop/e2e');
   });
 });
+
+// On Windows pnpm runs scripts through cmd.exe, which does not strip single
+// quotes: `--filter='@adopt-dont-shop/lib.*'` reaches turbo with the quotes
+// intact, matches zero packages, and exits 0. `pnpm build:libs` (and so
+// `pnpm bootstrap`) silently built nothing.
+describe('root script --filter values', () => {
+  it('are never single-quoted, so they match packages under cmd.exe too', () => {
+    const rootPkg = readPkg('.');
+    const quoted = Object.entries(rootPkg.scripts)
+      .filter(([, cmd]) => cmd.includes("--filter='"))
+      .map(([name]) => name);
+    expect(quoted).toEqual([]);
+  });
+});

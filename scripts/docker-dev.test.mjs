@@ -1,9 +1,10 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolveComposeFiles, resolveProfiles } from './docker-dev.mjs';
+import { resolveComposeFiles, resolveHostIds, resolveProfiles } from './docker-dev.mjs';
 
 // resolveProfiles maps the requested `--profile` onto the real compose profiles
 // `pnpm docker:dev` enables. The behaviour that matters to a developer booting
@@ -68,5 +69,38 @@ describe('resolveComposeFiles', () => {
       '-f',
       'docker-compose.override.yml',
     ]);
+  });
+});
+
+// resolveHostIds picks the uid/gid the dev entrypoint steps down to. On POSIX
+// hosts that is the developer's own, so writes into the `.:/app` bind mount
+// land as them. Docker Desktop on Windows presents bind-mounted files as
+// root-owned 0644, so any non-root uid gets EACCES writing them (the
+// lib-types-watcher's `tsc --watch` dist/ output); there the container stays
+// root.
+describe('resolveHostIds', () => {
+  it("uses the developer's own uid/gid on POSIX hosts", () => {
+    expect(resolveHostIds({ platform: 'linux', getuid: () => 501, getgid: () => 20 })).toEqual({
+      uid: '501',
+      gid: '20',
+    });
+  });
+
+  it('stays root on Windows so the container can write the bind-mounted source', () => {
+    expect(resolveHostIds({ platform: 'win32' })).toEqual({ uid: '0', gid: '0' });
+  });
+});
+
+// Windows -> Linux bind mounts don't forward inotify, so lib.types'
+// `tsc --watch` never saw a source change and services kept importing a
+// stale dist/. tsc must poll; lib.types/src is small enough that polling
+// everywhere costs nothing.
+describe('lib-types-watcher in docker-compose.dev.yml', () => {
+  it('polls for file and directory changes so edits reach dist/ on every host', () => {
+    const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+    const compose = readFileSync(join(root, 'docker-compose.dev.yml'), 'utf8');
+    const block = compose.split(/\r?\n {2}lib-types-watcher:\r?\n/)[1].split(/\r?\n\r?\n/)[0];
+    expect(block).toMatch(/TSC_WATCHFILE: DynamicPriorityPolling/);
+    expect(block).toMatch(/TSC_WATCHDIRECTORY: RecursiveDirectoryUsingDynamicPriorityPolling/);
   });
 });
