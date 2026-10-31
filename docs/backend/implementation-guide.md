@@ -9,7 +9,7 @@ for the behavioural contract see [`product-requirements.md`](./product-requireme
 
 ### Prerequisites
 
-- Node.js 22 (pinned in `.nvmrc`; `package.json` `engines` requires `>=22 <23`)
+- Node.js 24 (pinned in `.nvmrc`; `package.json` `engines` requires `>=24 <25`)
 - PostgreSQL 16 with PostGIS (provided by the Docker stack)
 - Docker and Docker Compose (recommended)
 
