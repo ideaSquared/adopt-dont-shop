@@ -36,9 +36,8 @@ const MAX_RETRIES = 3;
 //   The former brace-expansion exemptions (GHSA-mh99-v99m-4gvg OOM DoS,
 //   GHSA-rgw5-rvv9-x895 unbounded-intermediate-arrays DoS) were dropped in
 //   ADS-1053 once upstream shipped the 1.x/2.x patches they were waiting on
-//   (1.1.18 / 2.1.4). pnpm.overrides now pins every reachable brace-expansion
-//   line to a patched release, so the overrides reach the fix and no exemption
-//   is needed. Keep this set in sync with .trivyignore.
+//   (1.1.18 / 2.1.4). Every resolved brace-expansion copy is now on a patched
+//   release, so no exemption is needed. Keep this set in sync with .trivyignore.
 //
 const EXEMPTED_GHSA_IDS = new Set([]);
 

@@ -1,14 +1,31 @@
 name: Stale Overrides
 
-# Weekly advisory report for stale pnpm.overrides pins (ADS-1234 / ADS-1112).
-# scripts/check-stale-overrides.mjs flags CVE-patched overrides whose upstream
-# has moved far enough past the pinned/vulnerable range that the pin is now
-# redundant, so the ~20 hand-maintained pins don't silently rot. The script is
-# informational and always exits 0; this workflow surfaces its report in the
-# run's job summary. It is advisory only — it runs on a schedule (and on
-# demand) and never gates a PR, matching the script's non-blocking design.
+# Fails when a security entry in pnpm.overrides no longer changes what gets
+# installed (ADS-1112). scripts/check-stale-overrides.mjs reads each override's
+# consumers from pnpm-lock.yaml and their declared ranges from the npm
+# registry, and flags any override whose consumers would all resolve a patched
+# version without it. While this was only a report, 30 of 33 security pins
+# went dead unnoticed, so it now fails instead.
+#
+# Runs on PRs and pushes that change dependencies, and weekly, because
+# upstream releases can make an override stale with no change in this repo; a
+# red scheduled run is the signal to remove it.
 
 on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'scripts/check-stale-overrides.mjs'
+      - '.github/workflows/stale-overrides.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'scripts/check-stale-overrides.mjs'
+      - '.github/workflows/stale-overrides.yml'
   schedule:
     - cron: '0 4 * * 1'
   workflow_dispatch: {}
@@ -17,27 +34,17 @@ permissions:
   contents: read
 
 concurrency:
-  group: stale-overrides
-  cancel-in-progress: false
+  group: stale-overrides-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   stale-overrides:
-    name: Stale pnpm.overrides report
+    name: Stale pnpm.overrides
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Setup workspace (Node + pnpm)
         uses: ./.github/actions/setup-workspace
-      # The script writes its report to stdout (not $GITHUB_STEP_SUMMARY), so
-      # wrap it in a fenced block and append. `|| true` keeps the step green
-      # even on a network hiccup, honouring the script's non-blocking contract.
-      - name: Report stale pnpm.overrides pins
-        run: |
-          {
-            echo '### `pnpm.overrides` staleness report (ADS-1112)'
-            echo ''
-            echo '```text'
-            node scripts/check-stale-overrides.mjs || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail on security overrides that are no longer needed
+        run: node scripts/check-stale-overrides.mjs
