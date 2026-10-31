@@ -26,7 +26,7 @@ the repo root with `pnpm <script>`.
 | Script | Command |
 | --- | --- |
 | `pnpm dev` | `turbo run dev --parallel` |
-| `pnpm dev:apps` | `turbo run dev --filter='@adopt-dont-shop/app.*' --parallel` |
+| `pnpm dev:apps` | `turbo run dev --filter=@adopt-dont-shop/app.* --parallel` |
 | `pnpm dev:services` | `node scripts/write-redis-secret.mjs && docker compose up -d database redis nats` |
 
 ### Build
@@ -34,14 +34,14 @@ the repo root with `pnpm <script>`.
 | Script | Command |
 | --- | --- |
 | `pnpm build` | `turbo run build` |
-| `pnpm build:apps` | `turbo run build --filter='@adopt-dont-shop/app.*'` |
-| `pnpm build:libs` | `turbo run build --filter='@adopt-dont-shop/lib.*'` |
+| `pnpm build:apps` | `turbo run build --filter=@adopt-dont-shop/app.*` |
+| `pnpm build:libs` | `turbo run build --filter=@adopt-dont-shop/lib.*` |
 
 ### Test
 
 | Script | Command |
 | --- | --- |
-| `pnpm test` | `turbo run test --filter='!@adopt-dont-shop/e2e'` |
+| `pnpm test` | `turbo run test --filter=!@adopt-dont-shop/e2e` |
 | `pnpm test:changed` | `turbo run test -- --changed` |
 | `pnpm test:coverage` | `turbo run test:coverage` |
 | `pnpm test:e2e` | `pnpm --filter @adopt-dont-shop/e2e test` |

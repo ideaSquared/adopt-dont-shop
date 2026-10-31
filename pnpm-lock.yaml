@@ -1530,6 +1530,9 @@ importers:
       '@bufbuild/buf':
         specifier: ^1.71.0
         version: 1.71.0
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.1.1
       ts-proto:
         specifier: ^2.11.8
         version: 2.11.8
