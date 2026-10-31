@@ -1,23 +1,28 @@
 #!/usr/bin/env node
 /**
- * Stale pnpm.overrides reporter (ADS-1112).
+ * Stale pnpm.overrides gate (ADS-1112).
  *
- * The pnpm.overrides block pins ~20 transitive packages to CVE-patched
- * versions. Nothing detected when upstream had released far enough past the
- * vulnerable range that a pin became redundant, so stale pins were pruned only
- * by hand (ADS-1053). This is a NON-BLOCKING report: for each versioned
- * override it fetches the package's latest published version and flags pins the
- * ecosystem can now satisfy on its own — candidates a maintainer should
- * re-evaluate and drop once every transitive consumer resolves a safe version
- * without the override forcing it.
+ * A security override forces a transitive package onto a patched version. It
+ * only does work while some package in the tree declares a range that would
+ * still resolve to a vulnerable version. Once every consumer's own range
+ * reaches a patched release, a lockfile refresh fixes the advisory on its own
+ * and the override is dead weight — and dead weight piles up: by October 2026
+ * the block held 34 security pins and 30 of them no longer did anything.
  *
- *   node scripts/check-stale-overrides.mjs        # human report
- *   node scripts/check-stale-overrides.mjs --json  # machine-readable
+ * For each security override this script:
+ *   1. finds every consumer in pnpm-lock.yaml (workspace importers and
+ *      third-party packages that depend on the overridden package),
+ *   2. reads the range each consumer declares (importer specifiers from the
+ *      lockfile; package manifests from the npm registry),
+ *   3. works out what pnpm would resolve for that range without the override
+ *      (dist-tags.latest if it satisfies, else the highest match), and
+ *   4. fails if no consumer would land on a vulnerable version.
  *
- * Exit code is always 0 (informational). Network access is required; fetch
- * failures are reported per-package and never fail the run. The version logic
- * is factored into pure, unit-tested helpers below; only fetchLatestVersion
- * touches the network.
+ * Fails closed: a registry error exits non-zero rather than passing unverified.
+ * The decision logic is pure and unit-tested; only fetchPackument touches the
+ * network.
+ *
+ *   node scripts/check-stale-overrides.mjs
  */
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -26,6 +31,22 @@ import { fileURLToPath } from 'url';
 import semver from 'semver';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const REGISTRY = 'https://registry.npmjs.org';
+const MAX_RETRIES = 3;
+const FETCH_CONCURRENCY = 10;
+
+// Overrides that exist for deduplication or peer compatibility, not to force a
+// patched version. They are expected to match what consumers already resolve,
+// so the staleness test does not apply. Nested `parent>child` selectors are
+// skipped too (see parseOverrideKey). Every other override is a security floor.
+export const NON_SECURITY_OVERRIDE_BASES = new Set([
+  'react',
+  'react-dom',
+  '@types/react',
+  '@types/react-dom',
+  '@types/express',
+  '@types/express-serve-static-core',
+]);
 
 // The pnpm nested-override separator is a `>` that begins a child package spec
 // (followed by a name char), NOT a `>`/`>=` version operator (followed by `=`
@@ -33,9 +54,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const NESTED_SEPARATOR = />(?=[a-zA-Z@])/;
 
 // Split a pnpm.overrides key into { name, range, nested }. `range` is the
-// version selector the override matches against (the vulnerable range for CVE
-// pins), or null for a bare key. Nested selectors (`parent>child`) carry no
-// standalone range and are skipped by the reporter.
+// version selector the override matches against (the vulnerable range for a
+// security pin), or null for a bare key.
 export function parseOverrideKey(key) {
   const gt = key.search(NESTED_SEPARATOR);
   if (gt !== -1) {
@@ -49,96 +69,229 @@ export function parseOverrideKey(key) {
   return { name: key.trim(), range: null, nested: false };
 }
 
-// Decide whether a pin is a staleness candidate. The override is only doing
-// work while the ecosystem could still resolve a version inside the vulnerable
-// `range`; once upstream's latest release sits at or above the forced version
-// AND outside the vulnerable range, a fresh resolution lands on a safe version
-// on its own, so the pin is a candidate for removal. Pure + semver-based so it
-// is unit-testable without the network.
-export function classifyOverride({ name, range, pinnedVersion, latestVersion }) {
-  const latest = semver.coerce(latestVersion);
-  const pinned = semver.coerce(pinnedVersion);
-  if (!latest) return { name, status: 'unknown', pinnedVersion, latestVersion };
-
-  const upstreamAheadOfPin = pinned ? semver.gte(latest, pinned) : true;
-  // If the key carried a vulnerable range, the pin is only redundant when the
-  // latest release is outside it (a default install would not land in it).
-  const latestOutsideVulnerable = range
-    ? !semver.satisfies(latest, range, { includePrerelease: true })
-    : true;
-
-  const status = upstreamAheadOfPin && latestOutsideVulnerable ? 'review' : 'keep';
-  return { name, status, pinnedVersion, latestVersion, range: range ?? null };
-}
-
-// Reduce a pnpm.overrides object to the versioned entries worth reporting on
-// (skips nested `parent>child` shims, which have no standalone range/pin).
-export function reportableOverrides(overrides) {
+// The overrides this gate judges: not nested, not a dedup/compat pin.
+export function securityOverrides(overrides, exempt = NON_SECURITY_OVERRIDE_BASES) {
   return Object.entries(overrides ?? {})
     .map(([key, value]) => ({ key, value, ...parseOverrideKey(key) }))
-    .filter(entry => !entry.nested);
+    .filter(entry => !entry.nested && !exempt.has(entry.name));
 }
 
-async function fetchLatestVersion(name) {
-  try {
-    const res = await fetch(`https://registry.npmjs.org/${name.replace('/', '%2F')}/latest`);
-    if (!res.ok) return { latestVersion: null, error: `HTTP ${res.status}` };
-    const body = await res.json();
-    return { latestVersion: body.version ?? null, error: null };
-  } catch (err) {
-    return { latestVersion: null, error: err instanceof Error ? err.message : String(err) };
+// A version the override exists to keep out of the tree. A versioned key
+// (`pkg@<1.2.3`) names the vulnerable range directly; a bare key (`pkg: ^1.2.3`)
+// treats anything outside its value as unsafe.
+export function isUnsafeVersion(version, { range, value }) {
+  return range
+    ? semver.satisfies(version, range, { includePrerelease: true })
+    : !semver.satisfies(version, value, { includePrerelease: true });
+}
+
+const unquote = text => text.trim().replace(/^'(.*)'$/, '$1');
+const indentOf = line => line.length - line.trimStart().length;
+
+// `'@scope/name@1.2.3(peer@4.5.6)'` → { name: '@scope/name', version: '1.2.3' }
+function parseSnapshotKey(rawKey) {
+  const key = unquote(rawKey).replace(/\(.*$/, '');
+  const at = key.lastIndexOf('@');
+  return { name: key.slice(0, at), version: key.slice(at + 1) };
+}
+
+const DEPENDENCY_FIELDS = new Set(['dependencies', 'devDependencies', 'optionalDependencies']);
+
+// Every consumer pnpm-lock.yaml (v9) records, as
+//   importers: [{ importer, name, specifier }]   workspace package.json ranges
+//   packages:  [{ parent, parentVersion, name }] third-party dependents
+// Line-based so the gate needs no YAML dependency; the lockfile layout is fixed.
+export function lockfileConsumers(lockfileText) {
+  const importers = [];
+  const packages = [];
+  let section = null;
+  let owner = null;
+  let field = null;
+  let dep = null;
+
+  for (const line of lockfileText.split('\n')) {
+    if (line.trim() === '') continue;
+    const indent = indentOf(line);
+    const text = line.trim();
+
+    if (indent === 0) {
+      section = text.replace(/:.*$/, '');
+      continue;
+    }
+    if (indent === 2) {
+      owner = unquote(text.replace(/:( \{\})?$/, ''));
+      field = null;
+      continue;
+    }
+    if (indent === 4) {
+      field = text.replace(/:$/, '');
+      continue;
+    }
+    if (!DEPENDENCY_FIELDS.has(field)) continue;
+
+    if (section === 'importers') {
+      if (indent === 6) dep = unquote(text.replace(/:$/, ''));
+      const specifier = indent === 8 && text.match(/^specifier: (.+)$/);
+      if (specifier)
+        importers.push({ importer: owner, name: dep, specifier: unquote(specifier[1]) });
+      continue;
+    }
+    if (section === 'snapshots' && indent === 6) {
+      const sep = text.indexOf(': ');
+      const { name: parent, version: parentVersion } = parseSnapshotKey(owner);
+      packages.push({ parent, parentVersion, name: unquote(text.slice(0, sep)) });
+    }
   }
+  return { importers, packages };
+}
+
+// A consumer can declare the package through an alias of itself
+// (`npm:esbuild@>=0.17.6 <0.29.0`); that is still a plain range for it.
+const selfAliasRange = (name, range) =>
+  range.startsWith(`npm:${name}@`) ? range.slice(`npm:${name}@`.length) : range;
+
+// What pnpm resolves for `range` with no override: dist-tags.latest when it
+// satisfies the range, otherwise the highest satisfying version. null when the
+// range is not a plain semver range (alias of another package, git URL, …).
+export function wouldResolve(packument, range) {
+  if (!packument || semver.validRange(range) === null) return null;
+  const latest = packument['dist-tags']?.latest;
+  if (latest && semver.satisfies(latest, range)) return latest;
+  return semver.maxSatisfying(Object.keys(packument.versions ?? {}), range);
+}
+
+// The range a third-party consumer declares for `name`, from its manifest.
+function declaredRange(packuments, parent, parentVersion, name) {
+  const manifest = packuments.get(parent)?.versions?.[parentVersion];
+  return (
+    manifest?.dependencies?.[name] ??
+    manifest?.optionalDependencies?.[name] ??
+    manifest?.peerDependencies?.[name] ??
+    null
+  );
+}
+
+// Every package name whose registry metadata the decision needs.
+export function packumentsNeeded(entries, consumers) {
+  const names = new Set(entries.map(entry => entry.name));
+  const parents = consumers.packages
+    .filter(consumer => names.has(consumer.name))
+    .map(consumer => consumer.parent);
+  return [...new Set([...names, ...parents])].sort();
+}
+
+// Judge each security override. `stale: true` means no consumer would resolve
+// a vulnerable version without it. `blockers` lists the consumers that still
+// need it (a range resolving to an unsafe version, or one we cannot evaluate,
+// which conservatively counts as needing the override).
+export function judgeOverrides(entries, consumers, packuments) {
+  return entries.map(entry => {
+    const fromImporters = consumers.importers
+      .filter(consumer => consumer.name === entry.name)
+      .map(consumer => ({ consumer: consumer.importer, range: consumer.specifier }));
+    const fromPackages = consumers.packages
+      .filter(consumer => consumer.name === entry.name)
+      .map(consumer => ({
+        consumer: `${consumer.parent}@${consumer.parentVersion}`,
+        range: declaredRange(packuments, consumer.parent, consumer.parentVersion, entry.name),
+      }));
+    const ranges = [...fromImporters, ...fromPackages];
+
+    if (ranges.length === 0) {
+      return { key: entry.key, stale: true, reason: 'nothing in pnpm-lock.yaml depends on it' };
+    }
+
+    const blockers = ranges
+      .map(({ consumer, range }) => ({
+        consumer,
+        range,
+        resolves:
+          range === null
+            ? null
+            : wouldResolve(packuments.get(entry.name), selfAliasRange(entry.name, range)),
+      }))
+      .filter(({ resolves }) => resolves === null || isUnsafeVersion(resolves, entry));
+
+    return blockers.length === 0
+      ? {
+          key: entry.key,
+          stale: true,
+          reason: `every consumer's own range resolves to a safe version (${ranges.length} checked)`,
+        }
+      : { key: entry.key, stale: false, blockers };
+  });
+}
+
+async function fetchPackument(name) {
+  const url = `${REGISTRY}/${name.replace('/', '%2F')}`;
+  let lastError = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
+    try {
+      const res = await fetch(url, { headers: { accept: 'application/vnd.npm.install-v1+json' } });
+      if (res.ok) return await res.json();
+      lastError = `HTTP ${res.status}`;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
+  }
+  throw new Error(`${name}: ${lastError}`);
+}
+
+async function fetchAll(names) {
+  const batches = Array.from({ length: Math.ceil(names.length / FETCH_CONCURRENCY) }, (_, i) =>
+    names.slice(i * FETCH_CONCURRENCY, (i + 1) * FETCH_CONCURRENCY)
+  );
+  const fetched = [];
+  for (const batch of batches) {
+    fetched.push(
+      ...(await Promise.all(batch.map(async name => [name, await fetchPackument(name)])))
+    );
+  }
+  return new Map(fetched);
 }
 
 async function main() {
-  const asJson = process.argv.includes('--json');
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-  const entries = reportableOverrides(pkg.pnpm?.overrides ?? {});
+  const entries = securityOverrides(pkg.pnpm?.overrides);
 
-  const rows = [];
-  for (const entry of entries) {
-    const { latestVersion, error } = await fetchLatestVersion(entry.name);
-    if (error) {
-      rows.push({ name: entry.name, status: 'fetch-error', pinnedVersion: entry.value, error });
-      continue;
-    }
-    rows.push(
-      classifyOverride({
-        name: entry.name,
-        range: entry.range,
-        pinnedVersion: entry.value,
-        latestVersion,
-      })
-    );
-  }
-
-  if (asJson) {
-    console.log(JSON.stringify(rows, null, 2));
+  if (entries.length === 0) {
+    console.log('OK — pnpm.overrides holds no security overrides to check.');
     return;
   }
 
-  const review = rows.filter(r => r.status === 'review');
-  const errors = rows.filter(r => r.status === 'fetch-error');
-
-  console.log('pnpm.overrides staleness report (ADS-1112) — informational, non-blocking\n');
-  if (review.length === 0) {
-    console.log('No override was flagged as a removal candidate.');
-  } else {
-    console.log('Candidates to re-evaluate (upstream latest is past the pinned/vulnerable range):');
-    for (const r of review) {
-      console.log(
-        `  - ${r.name}: pinned '${r.pinnedVersion}', latest ${r.latestVersion}${r.range ? ` (guarded range: ${r.range})` : ''}`
-      );
-    }
-    console.log(
-      '\nBefore removing a pin, confirm every transitive consumer resolves a safe version'
+  const consumers = lockfileConsumers(readFileSync(join(ROOT, 'pnpm-lock.yaml'), 'utf8'));
+  let packuments;
+  try {
+    packuments = await fetchAll(packumentsNeeded(entries, consumers));
+  } catch (err) {
+    console.error(
+      `Could not read npm registry metadata, so the overrides are unverified: ${err.message}`
     );
-    console.log('(pnpm why <pkg>) and that the advisory the override cites is fully out of range.');
+    process.exit(1);
   }
-  if (errors.length > 0) {
-    console.log('\nCould not fetch (network) — re-run with connectivity:');
-    for (const r of errors) console.log(`  - ${r.name}: ${r.error}`);
+
+  const results = judgeOverrides(entries, consumers, packuments);
+  const stale = results.filter(result => result.stale);
+
+  for (const result of results.filter(r => !r.stale)) {
+    const first = result.blockers[0];
+    console.log(
+      `keep  ${result.key} — ${first.consumer} declares '${first.range}' → ${first.resolves ?? 'unresolvable'}` +
+        (result.blockers.length > 1 ? ` (+${result.blockers.length - 1} more)` : '')
+    );
   }
+
+  if (stale.length === 0) {
+    console.log(`\nOK — all ${results.length} security override(s) are still needed.`);
+    return;
+  }
+
+  console.error('\nStale pnpm.overrides (ADS-1112) — these no longer change what gets installed:');
+  for (const result of stale) console.error(`  - ${result.key}: ${result.reason}`);
+  console.error('');
+  console.error('Remove each from pnpm.overrides and its overridesDocumentation note, run');
+  console.error('`pnpm install`, and confirm `node scripts/audit-bulk.mjs` still passes.');
+  process.exit(1);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -3,10 +3,11 @@
 How CI treats dependency risk vs. staleness, and how Renovate keeps updates
 moving. Audience: anyone triaging a red dependency check or an update PR.
 
-`Last reviewed: 2026-09-03`
+`Last reviewed: 2026-10-31`
 
-Three CI surfaces watch the dependency graph. Two block merges on real risk
-(one on the npm advisory data, one on the built image), and one surfaces
+Four CI surfaces watch the dependency graph. Two block merges on real risk
+(one on the npm advisory data, one on the built image), one fails when a
+security override in `pnpm.overrides` is no longer needed, and one surfaces
 staleness without blocking anything.
 
 ## Blocking: `security.yml` (Dependency Audit)
@@ -42,6 +43,47 @@ in the npm-audit gate (no reachable patched version) is equally un-actionable in
 the image scan. When you add or remove an exemption in one, do the same in the
 other in the same PR. Both files carry a comment stating this; keep them in sync.
 Today both lists are empty.
+
+## Fixing a transitive advisory, and when to use `pnpm.overrides`
+
+Most advisories in transitive packages are fixed by resolving again, not by
+forcing a version:
+
+1. **Refresh the lockfile** (Renovate's weekly lock-file maintenance does this).
+   pnpm resolves the highest version each consumer's range allows, so if the
+   parent's range already includes the patched release, this is the whole fix.
+2. **Bump the parent** when its range excludes the patched release but a newer
+   parent allows it.
+3. **Override** (`pnpm.overrides`) only when no released parent allows the fix.
+   Add an `overridesDocumentation` note naming the advisory and the parent
+   that needs it (`pnpm check:overrides-docs` enforces the note).
+
+An override that outlives its reason is not harmless: it hides the parent's
+real range, so nobody notices when it could be dropped. In October 2026 the
+block held 34 security overrides; 30 no longer changed what got installed, and
+only one (`uuid`, whose `firebase-admin` chain still declares `^9`) survived the
+cleanup.
+
+### Blocking: `stale-overrides.yml` (Stale Overrides)
+
+`node scripts/check-stale-overrides.mjs` (`pnpm check:stale-overrides`) runs on
+PRs and pushes that change `package.json` or `pnpm-lock.yaml`, and weekly. For
+each security override it reads every consumer from `pnpm-lock.yaml`, looks up
+the range that consumer declares (workspace specifiers from the lockfile,
+third-party manifests from the npm registry), and works out what pnpm would
+resolve without the override. **If no consumer would land on a vulnerable
+version, the override is stale and the job fails.** Remove the override and its
+note, run `pnpm install`, and confirm `node scripts/audit-bulk.mjs` still
+passes.
+
+The React/`@types` pins and nested `parent>child` shims exist for
+deduplication and peer compatibility, not security; the script lists them in
+`NON_SECURITY_OVERRIDE_BASES` and skips them. A consumer range the script cannot
+evaluate (a git URL, an alias of another package) counts as still needing the
+override, and a registry error fails the job rather than passing unverified.
+
+The weekly run matters because an upstream release can make an override stale
+with no change in this repo. A red scheduled run is the prompt to remove it.
 
 ## Advisory: `quality.yml` (Dependency Check)
 
