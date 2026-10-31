@@ -45,7 +45,7 @@ describe('lib-types-watcher digest pin (ADS-1277)', () => {
     const serviceIndex = lines.findIndex(line => line.trim() === 'lib-types-watcher:');
     expect(serviceIndex).toBeGreaterThan(-1);
     const imageLine = lines.slice(serviceIndex + 1).find(line => /^\s*image:\s*/.test(line));
-    expect(imageLine).toMatch(/^\s*image:\s*node:22\.23\.1-alpine@sha256:[0-9a-f]{64}\s*$/);
+    expect(imageLine).toMatch(/^\s*image:\s*node:24\.22\.2-alpine@sha256:[0-9a-f]{64}\s*$/);
   });
 });
 
