@@ -78,6 +78,13 @@ finish() {
   if [ "$status" -ne 0 ]; then
     log "Smoke test FAILED — container state and logs"
     prod ps -a || true
+    # Why each unhealthy container fails its health check (docker logs don't say).
+    for id in $(prod ps -aq 2>/dev/null); do
+      if [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$id")" = unhealthy ]; then
+        echo "--- health check output: $(docker inspect -f '{{.Name}}' "$id")"
+        docker inspect -f '{{range .State.Health.Log}}exit {{.ExitCode}}: {{.Output}}{{end}}' "$id" | tail -n 6
+      fi
+    done
     prod logs --no-color --tail=80 || true
     gateway logs --no-color --tail=80 || true
   fi

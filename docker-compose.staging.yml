@@ -148,7 +148,11 @@ x-app-common: &app-common
   security_opt:
     - no-new-privileges:true
   healthcheck:
-    test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/']
+    # 127.0.0.1, not localhost: nginx here listens on IPv4 only (`listen
+    # 8080`). On a host with IPv6, `localhost` resolves to ::1 first and
+    # busybox wget does not fall back to IPv4, so the check fails while the
+    # app serves fine.
+    test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:8080/']
     interval: 30s
     timeout: 10s
     retries: 3

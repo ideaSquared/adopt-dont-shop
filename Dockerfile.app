@@ -261,7 +261,7 @@ USER nginx
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
+    CMD wget --quiet --tries=1 --spider http://127.0.0.1:8080/health || exit 1
 
 # Expose port (unprivileged nginx listens on 8080, not 80) [ADS-701]
 EXPOSE 8080
