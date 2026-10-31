@@ -117,7 +117,7 @@ Every schema-owning service migrates **its own** schema on boot — the `Dockerf
 
 2. For a production run, approve it in the GitHub Actions UI when the `deploy` job pauses on the `production` environment. The build + cosign-verify jobs run first, so you approve a fully built, signature-verified release.
 
-   The build job first checks that the `CI` workflow's push run for the commit **succeeded** (`scripts/deploy-ci-gate.sh`). A still-running or missing CI run blocks the deploy unless `skip_ci_check=true`; a failed CI run always blocks. Only `main` can be deployed — the preflight job rejects a dispatch from any other branch.
+   The build job first checks that the `CI` workflow's push run for the commit **succeeded**, and that the production smoke test (`Production Image Smoke (boot)`, which runs on every push to `main`) **passed** on it (`scripts/deploy-ci-gate.sh`, once per check). A still-running or missing check blocks the deploy unless `skip_ci_check=true`; a failed one always blocks. The smoke test takes about 20–25 minutes after a merge, so wait for its Discord report before `make prod`. Only `main` can be deployed — the preflight job rejects a dispatch from any other branch.
 
 3. The workflow runs its own per-service health gate (`wait-for-services.sh`, polling `/health/ready` — DB pool/Redis/NATS, not just process liveness, ADS-1308) after `compose up`; a failed gate auto-rolls back to the last-known-good SHA (see [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md)). Wait for the run to go green.
 

@@ -34,6 +34,7 @@
   "test:e2e": "Run the full Playwright suite against a running Docker stack.",
   "test:e2e:single": "Run one Playwright spec: pnpm test:e2e:single tests/foo.spec.ts (path relative to e2e/).",
   "test:e2e:smoke": "Run only the @smoke-tagged Playwright specs.",
+  "smoke:prod": "Build the 14 production images and boot the real production stack (prod compose, per-stack nginx, TLS edge gateway with a test certificate) locally, then check it through HTTPS. Same test as the Production Image Smoke CI job. Flags: --no-build, --keep.",
   "test:e2e:ui": "Playwright interactive UI mode — pick tests, watch live, time-travel debug.",
   "test:e2e:debug": "Playwright step-by-step debugger (opens Inspector).",
   "test:e2e:headed": "Run the Playwright suite in a visible browser window.",

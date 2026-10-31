@@ -33,6 +33,10 @@
   color: "16a34a"
   description: "Run the full Playwright E2E suite on this PR"
 
+- name: "run-smoke"
+  color: "16a34a"
+  description: "Run the production smoke test (full production stack) on this PR"
+
 # Applied by Renovate (renovate.json `labels` / `vulnerabilityAlerts.labels`).
 # `dependencies` keeps the colour and description GitHub already gives it, so
 # the sync is a no-op for that label.

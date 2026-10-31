@@ -34,11 +34,11 @@ describe('deploy-glitchtip-secrets.sh', () => {
     expect(readSecret('glitchtip_redis_password')).toBe('gt-redis-pw');
   });
 
-  it('locks down the secret files', () => {
+  it('makes the secret files readable by container users (the secrets directory stays private)', () => {
     execFileSync('bash', [SCRIPT], { cwd: dir });
 
     const fileMode = statSync(join(dir, 'secrets', 'glitchtip_db_password')).mode & 0o777;
-    expect(fileMode).toBe(0o600);
+    expect(fileMode).toBe(0o644);
   });
 
   it('fails fast with the offending key when a required .env value is missing', () => {

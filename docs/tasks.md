@@ -155,6 +155,7 @@ the repo root with `pnpm <script>`.
 | `pnpm db:spam` | `node scripts/spam.mjs` |
 | `pnpm ratchet:coverage` | `node scripts/ratchet-coverage.mjs` |
 | `pnpm ratchet:stories-coverage` | `node scripts/check-storybook-coverage.mjs --ratchet` |
+| `pnpm smoke:prod` | `bash scripts/smoke-prod.sh` |
 | `pnpm tasks` | `node scripts/generate-task-index.mjs --print` |
 | `pnpm tasks:write` | `node scripts/generate-task-index.mjs` |
 

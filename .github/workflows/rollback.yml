@@ -259,7 +259,7 @@ jobs:
             # (`file: ./secrets/<name>`) bind-mounted into containers that run
             # `restart: always`, so a host reboot / recreate re-resolves the
             # mount source; a deleted file would strand the rolled-back service
-            # reading an absent secret. Files stay dir-700 / file-600 owned by
+            # reading an absent secret. Files stay dir-700 / file-644 owned by
             # `deploy` and are overwritten by the next deploy/rollback. Mirrors
             # the same fix in deploy.yml.
 

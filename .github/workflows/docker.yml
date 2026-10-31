@@ -4,10 +4,11 @@ name: Docker
 # never booted, and this workflow was not a required check — the exact
 # artifact `deploy.yml` ships had never been health-checked. Two changes:
 #
-# - `prod-image-smoke` (below) boots the `production` target for the gateway,
-#   service-auth, service-notifications and app-client against real
-#   Postgres/Redis/NATS and asserts /health/ready + a real gateway route
-#   respond, so a crash-looping or misconfigured image is caught before main.
+# - `prod-image-smoke` (below) builds all 14 `production` images and boots
+#   the full production stack exactly as a deploy lays it out — including
+#   the per-stack nginx and the TLS edge gateway — then checks real routes
+#   through HTTPS (scripts/smoke-prod.sh, also `pnpm smoke:prod` locally), so
+#   a crash-looping or misconfigured image or config is caught before main.
 # - This workflow now runs on every PR touching source (apps/, packages/,
 #   services/), not only Dockerfile-changing PRs — a source change can still
 #   break the image (e.g. a config-validation regression the dev-target E2E
@@ -27,6 +28,9 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+    # `labeled` so adding the `run-smoke` label re-triggers this workflow and
+    # opts the PR into the production smoke test (see prod-image-smoke).
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 permissions:
@@ -56,6 +60,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       docker: ${{ steps.filter.outputs.docker }}
+      deploy: ${{ steps.filter.outputs.deploy }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
@@ -83,6 +88,22 @@ jobs:
               - 'tsconfig*.json'
               - 'docs/legal/**'
               - '.github/workflows/docker.yml'
+            # What decides how a host boots: the files the production smoke
+            # test runs a PR for (prod-image-smoke). App code is covered on
+            # every push to main instead, and the deploy gate requires it.
+            deploy:
+              - '**/Dockerfile*'
+              - 'docker-compose*.yml'
+              - '.dockerignore'
+              - 'docker-bake.hcl'
+              - 'nginx/**'
+              - 'deploy/**'
+              - 'scripts/smoke-prod.sh'
+              - 'scripts/deploy-*.sh'
+              - 'scripts/wait-for-services.sh'
+              - '.github/workflows/docker.yml'
+              - '.github/workflows/deploy.yml'
+              - '.github/workflows/rollback.yml'
 
   # ============================================================================
   # BUILD FRONTEND APPS — dev + production images for each app
@@ -422,167 +443,113 @@ jobs:
   # GHA cache (same `cache-from`/`cache-to: type=gha` key space as the matrix
   # jobs above) makes the rebuild a near-total cache hit in the common case.
   # ============================================================================
+  # Too heavy for every PR (14 image builds and a full stack boot), so it
+  # runs where it matters:
+  #   - every push to main — deploy.yml refuses a commit without a pass here;
+  #   - PRs that change how a host boots (the `deploy` filter above);
+  #   - PRs labelled `run-smoke`, and manual dispatch.
+  # The gate job below reports the required check green when this is skipped.
   prod-image-smoke:
     name: Production Image Smoke (boot)
     needs: changes
-    if: ${{ needs.changes.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'pull_request' && (
+          needs.changes.outputs.deploy == 'true' ||
+          contains(github.event.pull_request.labels.*.name, 'run-smoke')
+        ))
+      }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      # 14 images plus their build cache don't fit in the runner's default
+      # free space; drop preinstalled toolchains this job never uses.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
 
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c  # v4.2.0
         with:
           driver-opts: |
             image=moby/buildkit:v0.23.0
             network=host
+          # Bound concurrent build steps so 14 parallel `pnpm install`s don't
+          # exhaust the runner's memory.
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = 4
 
-      - name: Build service-gateway production image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
+      # Same definition `pnpm smoke:prod` builds locally (docker-bake.hcl).
+      - name: Build the 14 production images
+        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e  # v7.5.0
+        env:
+          TAG: smoke
         with:
-          context: .
-          file: ./Dockerfile.service
-          target: production
+          source: .
+          files: docker-bake.hcl
+          targets: smoke
           load: true
-          build-args: |
-            SERVICE=@adopt-dont-shop/service.gateway
-            SERVICE_DIR=services/gateway
-            BUILDKIT_INLINE_CACHE=1
-          push: false
-          tags: ghcr.io/ideasquared/adopt-dont-shop/service-gateway:ci-smoke
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max,ignore-error=true
 
-      - name: Build service-auth production image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
-        with:
-          context: .
-          file: ./Dockerfile.service
-          target: production
-          load: true
-          build-args: |
-            SERVICE=@adopt-dont-shop/service.auth
-            SERVICE_DIR=services/auth
-            BUILDKIT_INLINE_CACHE=1
-          push: false
-          tags: ghcr.io/ideasquared/adopt-dont-shop/service-auth:ci-smoke
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
+      # Boots the full production stack (docker-compose.prod.yml as shipped,
+      # per-stack nginx, edge gateway with a self-signed cert) and checks it
+      # through TLS. See the script's header for what is and isn't covered;
+      # it dumps container logs itself on failure and always tears down.
+      - name: Run the production smoke test
+        run: scripts/smoke-prod.sh --no-build
 
-      - name: Build service-notifications production image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
-        with:
-          context: .
-          file: ./Dockerfile.service
-          target: production
-          load: true
-          build-args: |
-            SERVICE=@adopt-dont-shop/service.notifications
-            SERVICE_DIR=services/notifications
-            BUILDKIT_INLINE_CACHE=1
-          push: false
-          tags: ghcr.io/ideasquared/adopt-dont-shop/service-notifications:ci-smoke
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
-
-      - name: Build app-client production image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
-        with:
-          context: .
-          file: ./Dockerfile.app
-          target: production
-          load: true
-          build-args: |
-            APP_NAME=client
-            BUILDKIT_INLINE_CACHE=1
-          push: false
-          tags: ghcr.io/ideasquared/adopt-dont-shop/app-client:ci-smoke
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
-
-      # Throwaway, CI-only secrets — never used outside this job's ephemeral
-      # runner. See docker-compose.ci-smoke.yml's header comment for what
-      # each var/secret is for.
-      - name: Generate throwaway secrets and env
+  # Posts every production smoke result (pass or fail) to Discord, using the
+  # same DISCORD_WEBHOOK_URL secret as deploy/backup alerts. Skipped when the
+  # smoke job didn't run, and a no-op when the secret isn't set (fork PRs
+  # never see it). Never fails the workflow.
+  prod-image-smoke-notify:
+    name: Production Image Smoke (report)
+    needs: prod-image-smoke
+    if: ${{ always() && needs.prod-image-smoke.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post the result to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          RESULT: ${{ needs.prod-image-smoke.result }}
+          # Free text (PR title) — passed via env, never interpolated.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          mkdir -p secrets
-          openssl rand -hex 16 > secrets/db_password
-          openssl rand -hex 16 > secrets/redis_password
-          openssl rand -hex 32 > secrets/jwt_secret
-          openssl rand -hex 32 > secrets/jwt_refresh_secret
-          openssl rand -hex 32 > secrets/encryption_key
-          openssl rand -hex 32 > secrets/upload_signing_secret
-          openssl rand -hex 32 > secrets/principal_signing_key
-          openssl rand -hex 32 > secrets/nats_auth_token
-          printf 'postgresql://ci_smoke:%s@database:5432/ci_smoke' "$(cat secrets/db_password)" > secrets/database_url
-          printf 'redis://:%s@redis:6379' "$(cat secrets/redis_password)" > secrets/redis_url
-          # ADS-1302: docker-compose.prod.yml mounts resend_api_key and
-          # fcm_service_account_json into service-notifications, so the files
-          # must exist for `compose up` to resolve the secrets. Throwaway values:
-          # docker-compose.ci-smoke.yml pins EMAIL_PROVIDER=ethereal, and the FCM
-          # JSON only has to be the right shape (no push is ever sent here).
-          openssl rand -hex 16 > secrets/resend_api_key
-          printf '%s' '{"project_id":"ci-smoke","client_email":"ci-smoke@example.com","private_key":"-----BEGIN PRIVATE KEY-----\nci-smoke\n-----END PRIVATE KEY-----\n"}' > secrets/fcm_service_account_json
-
-          cat > .env <<EOF
-          POSTGRES_USER=ci_smoke
-          POSTGRES_DB=ci_smoke
-          CORS_ORIGIN=http://localhost:8080
-          DEPLOY_SHA=ci-smoke-unused
-          # ADS-1302: required (:?) by docker-compose.prod.yml's service-notifications
-          # block; interpolation runs before the ci-smoke override is merged.
-          DEFAULT_FROM_EMAIL=ci-smoke@example.com
-          FCM_PROJECT_ID=ci-smoke
-          SERVICE_GATEWAY_TAG=ci-smoke
-          SERVICE_AUTH_TAG=ci-smoke
-          SERVICE_NOTIFICATIONS_TAG=ci-smoke
-          APP_CLIENT_TAG=ci-smoke
-          EOF
-
-      - name: Start the smoke stack
-        run: |
-          docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml \
-            up -d database redis nats clamav \
-            service-gateway service-auth service-notifications app-client
-
-      - name: Wait for /health/ready on each service
-        run: |
-          check() {
-            name=$1
-            url=$2
-            for i in $(seq 1 36); do
-              if curl -fsS "$url" >/dev/null 2>&1; then
-                echo "$name is ready ($url)"
-                return 0
-              fi
-              sleep 5
-            done
-            echo "::error::$name never became ready at $url within the start_period"
-            return 1
-          }
-          check service-gateway http://localhost:4000/health/ready
-          check service-auth http://localhost:5002/health/ready
-          check service-notifications http://localhost:5001/health/ready
-          check app-client http://localhost:8080/health
-
-      - name: Assert GET /api/v1/legal/terms returns 200
-        run: |
-          status=$(curl -s -o /tmp/legal-terms.json -w '%{http_code}' http://localhost:4000/api/v1/legal/terms)
-          cat /tmp/legal-terms.json
-          echo
-          if [ "$status" != "200" ]; then
-            echo "::error::GET /api/v1/legal/terms returned $status, expected 200 — see ADS-1301 P0 (legal docs missing from the production image)."
-            exit 1
+          set -euo pipefail
+          if [ -z "${DISCORD_WEBHOOK_URL:-}" ]; then
+            echo "DISCORD_WEBHOOK_URL secret not set — skipping the smoke report."
+            exit 0
           fi
-
-      - name: Dump container logs on failure
-        if: failure()
-        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml logs --tail=200
-
-      - name: Tear down
-        if: always()
-        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci-smoke.yml down -v
+          case "$RESULT" in
+            success) headline="✅ Production smoke test passed" ;;
+            failure) headline="❌ Production smoke test FAILED" ;;
+            *)       headline="⚠️ Production smoke test $RESULT" ;;
+          esac
+          if [ -n "$PR_NUMBER" ]; then
+            where="PR #$PR_NUMBER: $PR_TITLE"
+          else
+            where="$REF_NAME"
+          fi
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          PAYLOAD=$(jq -n \
+            --arg headline "$headline" --arg where "$where" \
+            --arg sha "${HEAD_SHA:0:7}" --arg url "$RUN_URL" \
+            '{content: ($headline + " — " + $where + " (" + $sha + ")\n" + $url),
+              allowed_mentions: {parse: []}}')
+          curl -fsS -X POST -H 'Content-Type: application/json' -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" ||
+            echo "::warning::Could not post the smoke report to Discord."
 
   # ============================================================================
   # PRODUCTION IMAGE SMOKE GATE — ADS-1400: the job that reports the required
