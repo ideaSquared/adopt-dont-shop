@@ -107,7 +107,7 @@ export const SelectInput = ({
   // Use country options if isCountrySelect is true
   const countryOptions: SelectOption[] = useMemo(() => {
     return countries.map(country => ({
-      value: country.name,
+      value: country.code,
       label: country.name,
     }));
   }, []);
