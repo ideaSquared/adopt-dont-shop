@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApplicationsConfig } from '../config.js';
+import { fold, type ApplicationEvent } from '../domain/index.js';
 
 import { main, seedApplications, type QueryFn } from './seed.js';
 import { SEED_APPLICATIONS } from './seed-data.js';
@@ -62,13 +63,18 @@ function recordingQuery(): { query: QueryFn; calls: Array<{ text: string; values
   return { query, calls };
 }
 
+const isEventInsert = (c: { text: string }): boolean =>
+  /INSERT INTO applications\.application_events/.test(c.text);
+const isProjectionInsert = (c: { text: string }): boolean =>
+  /INSERT INTO applications\.applications/.test(c.text);
+
 describe('applications seed', () => {
   it('seeds every application exactly once', async () => {
     const { query, calls } = recordingQuery();
 
     const seeded = await seedApplications({ query });
 
-    expect(calls).toHaveLength(SEED_APPLICATIONS.length);
+    expect(calls.filter(isProjectionInsert)).toHaveLength(SEED_APPLICATIONS.length);
     expect(seeded).toEqual(SEED_APPLICATIONS.map(a => a.applicationId));
   });
 
@@ -77,8 +83,8 @@ describe('applications seed', () => {
 
     await seedApplications({ query });
 
-    for (const call of calls) {
-      // params: [application_id, user_id, pet_id, rescue_id, status]
+    for (const call of calls.filter(isProjectionInsert)) {
+      // params: [application_id, user_id, pet_id, rescue_id, status, version]
       expect(call.values[1]).toBe('98915d9e-69ed-46b2-a897-57d8469ff360'); // John Smith
       expect(call.values[3]).toBeTruthy(); // rescue_id set → rescue inbox resolves it
     }
@@ -89,17 +95,57 @@ describe('applications seed', () => {
 
     await seedApplications({ query });
 
-    for (const call of calls) {
+    for (const call of calls.filter(isProjectionInsert)) {
       expect(['submitted', 'under_review']).toContain(call.values[4]);
     }
   });
 
-  it('is idempotent — every insert uses ON CONFLICT (application_id) DO UPDATE', async () => {
+  // The list and detail reads fold application_events and never the projection
+  // row, so a row without events loads as an empty aggregate and is dropped.
+  it('seeds an event stream whose fold matches the projection row', async () => {
     const { query, calls } = recordingQuery();
 
     await seedApplications({ query });
 
-    for (const call of calls) {
+    for (const app of SEED_APPLICATIONS) {
+      const events = calls
+        .filter(isEventInsert)
+        .filter(c => c.values[0] === app.applicationId)
+        .map(c => JSON.parse(c.values[3] as string) as ApplicationEvent);
+      const state = fold(events);
+      const projection = calls
+        .filter(isProjectionInsert)
+        .find(c => c.values[0] === app.applicationId);
+
+      expect(state.applicationId).toBe(app.applicationId);
+      expect(state.adopterId).toBe(app.userId);
+      expect(state.petId).toBe(app.petId);
+      expect(state.rescueId).toBe(app.rescueId);
+      expect(state.status).toBe(app.status);
+      expect(projection?.values[5]).toBe(state.version);
+    }
+  });
+
+  it('writes events at consecutive versions starting at 1 before the projection row', async () => {
+    const { query, calls } = recordingQuery();
+
+    await seedApplications({ query });
+
+    const eventCalls = calls.filter(isEventInsert);
+    expect(eventCalls.map(c => c.values[1])).toEqual(eventCalls.map((_, i) => i + 1));
+    const firstProjection = calls.findIndex(isProjectionInsert);
+    expect(calls.findIndex(isEventInsert)).toBeLessThan(firstProjection);
+  });
+
+  it('is idempotent — events DO NOTHING on conflict, the projection DO UPDATEs', async () => {
+    const { query, calls } = recordingQuery();
+
+    await seedApplications({ query });
+
+    for (const call of calls.filter(isEventInsert)) {
+      expect(call.text).toMatch(/ON CONFLICT \(aggregate_id, version\) DO NOTHING/);
+    }
+    for (const call of calls.filter(isProjectionInsert)) {
       expect(call.text).toMatch(/ON CONFLICT \(application_id\) DO UPDATE/);
     }
 
@@ -139,10 +185,16 @@ describe('main (the `pnpm db:seed` CLI entry point)', () => {
     });
     // seedApplications ran for real against the wired `query` callback: one
     // UPSERT per seed fixture, landing on the fake pool.
-    expect(poolQueryMock).toHaveBeenCalledTimes(SEED_APPLICATIONS.length);
-    const [sql, params] = poolQueryMock.mock.calls[0] as [string, unknown[]];
-    expect(sql).toMatch(/ON CONFLICT \(application_id\) DO UPDATE/);
-    expect(params[0]).toBe(SEED_APPLICATIONS[0].applicationId);
+    const sqls = poolQueryMock.mock.calls.map(([sql]) => sql as string);
+    expect(sqls.filter(sql => /INSERT INTO applications\.applications/.test(sql))).toHaveLength(
+      SEED_APPLICATIONS.length
+    );
+    expect(sqls.some(sql => /INSERT INTO applications\.application_events/.test(sql))).toBe(true);
+    const projection = poolQueryMock.mock.calls.find(([sql]) =>
+      /INSERT INTO applications\.applications/.test(sql as string)
+    ) as [string, unknown[]];
+    expect(projection[0]).toMatch(/ON CONFLICT \(application_id\) DO UPDATE/);
+    expect(projection[1][0]).toBe(SEED_APPLICATIONS[0].applicationId);
     // The pool is closed exactly once, and only after every insert has been
     // issued — not before, not skipped.
     expect(poolEndMock).toHaveBeenCalledTimes(1);
