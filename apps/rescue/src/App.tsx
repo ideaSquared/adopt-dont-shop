@@ -16,6 +16,7 @@ const PetManagement = lazy(() => import('./pages/PetManagement'));
 const Applications = lazy(() => import('./pages/Applications'));
 const StaffManagement = lazy(() => import('./pages/StaffManagement'));
 const RescueSettings = lazy(() => import('./pages/RescueSettings'));
+const UserSettings = lazy(() => import('./pages/UserSettings'));
 const Communication = lazy(() => import('./pages/Communication'));
 const Events = lazy(() => import('./pages/Events'));
 const FosterCoordination = lazy(() => import('./pages/FosterCoordination'));
@@ -101,6 +102,7 @@ function App() {
                       />
                       <Route path="/staff" element={<StaffManagement />} />
                       <Route path="/settings" element={<RescueSettings />} />
+                      <Route path="/user-settings" element={<UserSettings />} />
                       <Route
                         path="/communication"
                         element={

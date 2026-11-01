@@ -1,6 +1,6 @@
 import { vi, describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import RescueSettings from './RescueSettings';
 import { apiService } from '../services/libraryServices';
 
@@ -9,13 +9,11 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({ user: { userId: '1', rescueId: 'r1' } }),
   // ADS-757: hook now returns { allowed, isLoading, error }.
   useHasPermission: () => ({ allowed: true, isLoading: false, error: null }),
-  TwoFactorSettings: () => null,
 }));
 
 vi.mock('@adopt-dont-shop/lib.components', async () => {
   const React = await import('react');
   return {
-    ThemeToggle: () => null,
     toast: { success: vi.fn(), error: vi.fn() },
     Skeleton: (props: Record<string, unknown>) =>
       React.createElement('div', { 'aria-hidden': 'true', ...props }),
@@ -51,18 +49,20 @@ vi.mock('../components/rescue/AdoptionPolicyForm', () => ({
   default: () => <div data-testid="policy-form">Policy Form</div>,
 }));
 
-vi.mock('../components/rescue/NotificationPreferencesForm', () => ({
-  default: () => <div data-testid="notif-form">Notification Form</div>,
-}));
-
 vi.mock('../components/rescue/QuestionsBuilder', () => ({
   default: () => <div data-testid="questions-builder">Questions</div>,
 }));
+
+const LocationProbe = () => {
+  const { pathname, hash } = useLocation();
+  return <div data-testid="location">{`${pathname}${hash}`}</div>;
+};
 
 const renderWithRoute = (initialRoute: string) =>
   render(
     <MemoryRouter initialEntries={[initialRoute]}>
       <RescueSettings />
+      <LocationProbe />
     </MemoryRouter>
   );
 
@@ -79,18 +79,23 @@ describe('RescueSettings tab persistence via URL hash', () => {
     expect(profileButton).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('restores the security tab from #security hash', async () => {
-    renderWithRoute('/settings#security');
-    await waitForTabsToLoad();
-    const securityButton = screen.getByRole('tab', { name: /^security$/i });
-    expect(securityButton).toHaveAttribute('aria-selected', 'true');
-  });
+  it.each(['#preferences', '#security', '#appearance'])(
+    'redirects the old %s hash to /user-settings',
+    async hash => {
+      renderWithRoute(`/settings${hash}`);
+      expect(await screen.findByTestId('location')).toHaveTextContent(`/user-settings${hash}`);
+      expect(screen.queryByRole('tab', { name: /rescue profile/i })).not.toBeInTheDocument();
+    }
+  );
 
-  it('restores the appearance tab from #appearance hash', async () => {
-    renderWithRoute('/settings#appearance');
+  it('no longer renders the personal settings tabs', async () => {
+    renderWithRoute('/settings');
     await waitForTabsToLoad();
-    const appearanceButton = screen.getByRole('tab', { name: /appearance/i });
-    expect(appearanceButton).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual([
+      'Rescue Profile',
+      'Adoption Policies',
+      'Application Questions',
+    ]);
   });
 
   it('falls back to profile for invalid hash values', async () => {
