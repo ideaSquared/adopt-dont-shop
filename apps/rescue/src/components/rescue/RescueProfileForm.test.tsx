@@ -1,7 +1,29 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderWithProviders, screen, userEvent, waitFor } from '../../test-utils';
+import { renderWithProviders, screen, userEvent, waitFor, fireEvent } from '../../test-utils';
 import RescueProfileForm from './RescueProfileForm';
 import type { RescueProfile } from '../../types/rescue';
+
+// The global test setup renders SelectInput as an empty <select>. Expose the props the form
+// passes so the country contract (ISO code value, built-in country list) can be asserted.
+vi.mock('@adopt-dont-shop/lib.components', async importOriginal => {
+  const actual = await importOriginal<typeof import('@adopt-dont-shop/lib.components')>();
+  return {
+    ...actual,
+    SelectInput: ({
+      label,
+      value,
+      isCountrySelect,
+      onChange,
+    }: import('@adopt-dont-shop/lib.components').SelectInputProps) => (
+      <actual.Input
+        aria-label={label}
+        data-country-select={String(Boolean(isCountrySelect))}
+        value={typeof value === 'string' ? value : ''}
+        onChange={event => onChange?.(event.target.value)}
+      />
+    ),
+  };
+});
 
 const buildRescue = (overrides: Partial<RescueProfile> = {}): RescueProfile => ({
   rescueId: 'r1',
@@ -16,7 +38,7 @@ const buildRescue = (overrides: Partial<RescueProfile> = {}): RescueProfile => (
     city: 'London',
     county: 'Greater London',
     postcode: 'SW1A 1AA',
-    country: 'United Kingdom',
+    country: 'GB',
   },
   verified: true,
   createdAt: '2026-01-01T00:00:00Z',
@@ -111,6 +133,27 @@ describe('RescueProfileForm', () => {
     expect(saved.email).toBe('contact@happytails.org.uk');
     expect(saved.address.city).toBe('Manchester');
     expect(saved.address.postcode).toBe('SW1A 1AA');
+    expect(saved.address.country).toBe('GB');
     expect(await screen.findByText(/updated successfully/i)).toBeInTheDocument();
+  });
+
+  it('holds the API country code in the built-in country select', () => {
+    renderWithProviders(<RescueProfileForm rescue={buildRescue()} onSave={vi.fn()} />);
+
+    const country = screen.getByLabelText(/country/i);
+    expect(country).toHaveValue('GB');
+    expect(country).toHaveAttribute('data-country-select', 'true');
+  });
+
+  it('saves the newly selected country as its code', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderWithProviders(<RescueProfileForm rescue={buildRescue()} onSave={onSave} />);
+
+    fireEvent.change(screen.getByLabelText(/country/i), { target: { value: 'IE' } });
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].address.country).toBe('IE');
   });
 });
