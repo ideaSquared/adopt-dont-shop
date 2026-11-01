@@ -60,6 +60,15 @@ type Question = {
   conditionalLogic: ConditionalLogic | null;
 };
 
+// The gateway serialises proto JSON: the scope enum arrives as
+// APPLICATION_QUESTION_SCOPE_CORE / APPLICATION_QUESTION_SCOPE_RESCUE_SPECIFIC.
+type GatewayQuestion = Omit<Question, 'scope'> & { scope: string };
+
+const toQuestion = (q: GatewayQuestion): Question => ({
+  ...q,
+  scope: q.scope === 'APPLICATION_QUESTION_SCOPE_RESCUE_SPECIFIC' ? 'rescue_specific' : 'core',
+});
+
 type QuestionFormData = {
   questionKey: string;
   category: QuestionCategory;
@@ -246,10 +255,10 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiService.get<{ questions: Question[] }>(
+      const response = await apiService.get<{ data?: GatewayQuestion[] }>(
         `${apiBase}/api/v1/rescues/${rescueId}/questions`
       );
-      setQuestions(response.questions ?? []);
+      setQuestions((response.data ?? []).map(toQuestion));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load questions');
     } finally {
