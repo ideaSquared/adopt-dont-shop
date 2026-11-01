@@ -229,13 +229,24 @@ runs:
         fi
 
         echo "Building ${#targets[@]} targets: ${targets[*]}"
+        # Only non-PR runs (push to main, manual) write the layer cache. A PR
+        # run reads main's cache but doesn't add its own: the cache is
+        # repo-wide capped at 10 GB, and ~14 image caches per PR push evicted
+        # main's warm layers, which made every PR build cold (~8 min).
+        write_cache=true
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          write_cache=false
+        fi
+
         set_args=()
         for t in "${targets[@]}"; do
           set_args+=(
             --set "${t}.tags=${project}-${t}"
             --set "${t}.cache-from=type=gha,scope=e2e-${t}"
-            --set "${t}.cache-to=type=gha,mode=min,scope=e2e-${t},ignore-error=true"
           )
+          if [ "$write_cache" = true ]; then
+            set_args+=(--set "${t}.cache-to=type=gha,mode=min,scope=e2e-${t},ignore-error=true")
+          fi
         done
 
         # --load = output=type=docker: images land in the daemon store
