@@ -29,6 +29,57 @@ const parseTabFromHash = (hash: string): TabType => {
   return VALID_TABS.has(value) ? (value as TabType) : 'profile';
 };
 
+type RescueView = {
+  name: string;
+  email: string;
+  phone: string | null;
+  address: string;
+  city: string;
+  county: string | null;
+  postcode: string;
+  country: string;
+  website: string | null;
+  description: string | null;
+  status: string;
+  settings?: { adoptionPolicies?: AdoptionPolicy };
+  created_at: string;
+  updated_at: string;
+};
+
+// The gateway returns a flat snake_case view; the settings forms want a RescueProfile.
+const toRescueProfile = (view: RescueView, rescueId: string): RescueProfile => ({
+  rescueId,
+  name: view.name,
+  rescue_type: 'animal_shelter',
+  email: view.email,
+  phone: view.phone ?? '',
+  address: {
+    street: view.address,
+    city: view.city,
+    county: view.county ?? undefined,
+    postcode: view.postcode,
+    country: view.country,
+  },
+  description: view.description ?? undefined,
+  website: view.website ?? undefined,
+  adoptionPolicies: view.settings?.adoptionPolicies,
+  verified: view.status === 'verified',
+  createdAt: view.created_at,
+  updatedAt: view.updated_at,
+});
+
+const fetchRescueProfile = async (): Promise<RescueProfile> => {
+  const staffData = await apiService.get<{ data: { rescueId?: string } }>('/api/v1/staff/me');
+  const rescueId = staffData.data.rescueId;
+
+  if (!rescueId) {
+    throw new Error('No rescue ID found for current user');
+  }
+
+  const rescueData = await apiService.get<{ data: RescueView }>(`/api/v1/rescues/${rescueId}`);
+  return toRescueProfile(rescueData.data, rescueId);
+};
+
 const RescueSettings: React.FC = () => {
   const { user } = useAuth();
   // ADS-757: wait for permissions to load before deciding access. Otherwise
@@ -58,30 +109,10 @@ const RescueSettings: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-
-        const staffData = await apiService.get<{ data: { rescueId?: string } }>('/api/v1/staff/me');
-        const rescueId = staffData.data.rescueId;
-
-        if (!rescueId) {
-          throw new Error('No rescue ID found for current user');
+        const profile = await fetchRescueProfile();
+        if (!cancelled) {
+          setRescue(profile);
         }
-
-        const rescueData = await apiService.get<{
-          data: RescueProfile & { settings?: { adoptionPolicies?: AdoptionPolicy } };
-        }>(`/api/v1/rescues/${rescueId}`);
-
-        if (cancelled) {
-          return;
-        }
-
-        // Extract adoption policies from settings if they exist
-        const { settings, ...rest } = rescueData.data;
-        const rescueProfile: RescueProfile = {
-          ...rest,
-          adoptionPolicies: settings?.adoptionPolicies,
-        };
-
-        setRescue(rescueProfile);
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -105,26 +136,7 @@ const RescueSettings: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-
-      const staffData = await apiService.get<{ data: { rescueId?: string } }>('/api/v1/staff/me');
-      const rescueId = staffData.data.rescueId;
-
-      if (!rescueId) {
-        throw new Error('No rescue ID found for current user');
-      }
-
-      const rescueData = await apiService.get<{
-        data: RescueProfile & { settings?: { adoptionPolicies?: AdoptionPolicy } };
-      }>(`/api/v1/rescues/${rescueId}`);
-
-      // Extract adoption policies from settings if they exist
-      const { settings, ...rest } = rescueData.data;
-      const rescueProfile: RescueProfile = {
-        ...rest,
-        adoptionPolicies: settings?.adoptionPolicies,
-      };
-
-      setRescue(rescueProfile);
+      setRescue(await fetchRescueProfile());
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load rescue settings. Please try again.'
