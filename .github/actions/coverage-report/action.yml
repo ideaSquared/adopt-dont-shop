@@ -5,8 +5,8 @@ description: >-
   input) and the main-branch baseline (an actions/cache snapshot), computes
   the per-package coverage delta, fetches this run's job timings from the
   Actions API, and posts/updates a single sticky PR comment. On a push to
-  main: snapshots this run's coverage as the new baseline for future PRs to
-  diff against. Informational only — never fails the job on API/permission
+  main: layers this run's coverage over the previous baseline as the new
+  baseline for future PRs to diff against. Informational only — never fails the job on API/permission
   errors (e.g. a fork PR's read-only token), so it can't block merge.
 inputs:
   lib-dist-cache-hit:
@@ -73,8 +73,12 @@ runs:
     # ADS-947: the main-branch snapshot to diff against. restore-keys prefix
     # match returns the most recently saved entry — GitHub's cross-branch
     # cache fallback lets a PR branch read a cache saved from main natively.
+    # Also restored on a push to main, so the new baseline below carries
+    # forward the packages that push didn't test.
     - name: Restore main coverage baseline
-      if: github.event_name == 'pull_request'
+      if: >-
+        github.event_name == 'pull_request' ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/main')
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: coverage-baseline
@@ -185,12 +189,13 @@ runs:
     # ADS-947: snapshot this run's coverage as the new baseline for future
     # PRs. Staged into its own directory (not the live apps/*|packages/*|
     # services/* trees) so it can't collide with a PR run's "current" restore
-    # above landing at the same live paths.
+    # above landing at the same live paths. Layered over the restored
+    # baseline: CI only tests the packages a change reaches, so a package
+    # this run skipped keeps its previous summary instead of dropping out.
     - name: Stage coverage baseline for main
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       shell: bash
       run: |
-        rm -rf coverage-baseline
         for family in apps packages services; do
           [ -d "$family" ] || continue
           for pkg_dir in "$family"/*/; do
