@@ -2,6 +2,7 @@ import { recipe } from '@vanilla-extract/recipes';
 import { globalStyle, style } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
+import { control } from '../control.css';
 
 export const container = recipe({
   base: {
@@ -49,6 +50,7 @@ export const addonGroup = style({
 export const inputWrapper = recipe({
   base: {
     position: 'relative',
+    boxSizing: 'border-box',
     display: 'flex',
     alignItems: 'center',
     transition: `all ${vars.transitions.fast}`,
@@ -56,40 +58,34 @@ export const inputWrapper = recipe({
   variants: {
     size: {
       sm: {
-        height: vars.spacing['5'],
-        paddingTop: vars.spacing['2'],
-        paddingBottom: vars.spacing['2'],
-        paddingLeft: vars.spacing['2'],
-        paddingRight: vars.spacing['2'],
-        fontSize: vars.typography.size.sm,
+        height: control.height.sm,
+        paddingLeft: control.paddingX,
+        paddingRight: control.paddingX,
+        fontSize: control.fontSize.sm,
       },
       md: {
-        height: vars.spacing['5'],
-        paddingTop: vars.spacing['2'],
-        paddingBottom: vars.spacing['2'],
-        paddingLeft: vars.spacing['2'],
-        paddingRight: vars.spacing['2'],
-        fontSize: vars.typography.size.base,
+        height: control.height.md,
+        paddingLeft: control.paddingX,
+        paddingRight: control.paddingX,
+        fontSize: control.fontSize.md,
       },
       lg: {
-        height: vars.spacing['6'],
-        paddingTop: vars.spacing['2'],
-        paddingBottom: vars.spacing['2'],
-        paddingLeft: vars.spacing['3'],
-        paddingRight: vars.spacing['3'],
-        fontSize: vars.typography.size.lg,
+        height: control.height.lg,
+        paddingLeft: control.paddingX,
+        paddingRight: control.paddingX,
+        fontSize: control.fontSize.lg,
       },
     },
     variant: {
       default: {
-        background: vars.background.surface,
-        border: `1px solid ${vars.border.color.default}`,
-        borderRadius: vars.border.radius.lg,
+        background: control.background,
+        border: `1px solid ${control.borderColor}`,
+        borderRadius: control.radius,
       },
       filled: {
         background: vars.background.muted,
         border: '1px solid transparent',
-        borderRadius: vars.border.radius.lg,
+        borderRadius: control.radius,
       },
       underlined: {
         background: 'transparent',
@@ -342,27 +338,27 @@ export const addon = recipe({
   variants: {
     position: {
       left: {
-        borderTopLeftRadius: vars.border.radius.lg,
-        borderBottomLeftRadius: vars.border.radius.lg,
+        borderTopLeftRadius: control.radius,
+        borderBottomLeftRadius: control.radius,
         borderRight: 'none',
       },
       right: {
-        borderTopRightRadius: vars.border.radius.lg,
-        borderBottomRightRadius: vars.border.radius.lg,
+        borderTopRightRadius: control.radius,
+        borderBottomRightRadius: control.radius,
         borderLeft: 'none',
       },
     },
     size: {
       sm: {
-        height: vars.spacing['5'],
+        height: control.height.sm,
         fontSize: vars.typography.size.sm,
       },
       md: {
-        height: vars.spacing['5'],
+        height: control.height.md,
         fontSize: vars.typography.size.base,
       },
       lg: {
-        height: vars.spacing['6'],
+        height: control.height.lg,
         fontSize: vars.typography.size.lg,
       },
     },
