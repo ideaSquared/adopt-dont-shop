@@ -302,7 +302,7 @@ carefully on every bump:
 | `appleboy/ssh-action`    | `deploy.yml`, `rollback.yml` | `HETZNER_SSH_KEY`, `HETZNER_HOST`       |
 | `docker/login-action`    | `deploy.yml`, `docker.yml`   | `GHCR_TOKEN`                            |
 | `github/codeql-action/*` | `codeql.yml`, `docker.yml`   | `GITHUB_TOKEN` (security-events: write) |
-| `dorny/paths-filter`     | `ci.yml`                     | `GITHUB_TOKEN`                          |
+| `dorny/paths-filter`     | `ci.yml`, `docker.yml`       | `GITHUB_TOKEN`                          |
 
 ### Updating an action
 

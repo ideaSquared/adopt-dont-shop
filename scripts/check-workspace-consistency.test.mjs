@@ -402,6 +402,34 @@ describe('CI test-filter reachability (ADS-1029)', () => {
     });
   });
 
+  describe('extractCiFilterGroups with a dynamic app matrix', () => {
+    // The changes job emits the affected apps as JSON, so the matrix can hold
+    // any workspace app; the guard must treat that as every app.
+    const dynamicCi = ci.replace(
+      '        app: [client, admin, rescue]',
+      '        app: ${{ fromJSON(needs.changes.outputs.apps) }}'
+    );
+
+    it('expands to every workspace app', () => {
+      const groups = extractCiFilterGroups(dynamicCi, ['client', 'admin', 'rescue']);
+      expect(groups).toContainEqual({
+        includes: [
+          '@adopt-dont-shop/app.client',
+          '@adopt-dont-shop/app.admin',
+          '@adopt-dont-shop/app.rescue',
+        ],
+        excludes: [],
+      });
+    });
+
+    it('leaves an app out of coverage when it is not a workspace app', () => {
+      const groups = extractCiFilterGroups(dynamicCi, ['client']);
+      expect(
+        findUncoveredPackages([{ name: '@adopt-dont-shop/app.admin', dir: 'apps/admin' }], groups)
+      ).toHaveLength(1);
+    });
+  });
+
   describe('findUncoveredPackages', () => {
     const groups = extractCiFilterGroups(ci);
 
