@@ -648,6 +648,30 @@ describe('updateRescue', () => {
     }
   );
 
+  it('leaves the stored country alone when country is an empty string', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ name: 'Pawsome 2' })] });
+
+    await updateRescue(mocks.deps, STAFF, {
+      rescueId: 'rsc-1',
+      name: 'Pawsome 2',
+      country: '',
+    } as never);
+
+    // calls[0] is the wrapper's BEGIN; the UPDATE is calls[1].
+    const sql = mocks.clientMock.query.mock.calls[1][0] as string;
+    expect(sql).toMatch(/name = \$1/);
+    expect(sql).not.toMatch(/country = /);
+  });
+
+  it('no-ops when the only field supplied is an empty country', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+
+    await updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1', country: '' } as never);
+
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
   it('PERMISSION_DENIED for staff at a different rescue', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     await expect(

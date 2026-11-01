@@ -627,7 +627,8 @@ export async function updateRescue(
   const requestedFields: Partial<Record<(typeof UPDATABLE_RESCUE_FIELDS)[number], unknown>> = {};
   for (const field of UPDATABLE_RESCUE_FIELDS) {
     const value = req[field];
-    if (value !== undefined) {
+    // An empty country means "not supplied", not "blank the column".
+    if (value !== undefined && !(field === 'country' && value === '')) {
       requestedFields[field] = value;
     }
   }
