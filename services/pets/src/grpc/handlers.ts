@@ -1118,16 +1118,23 @@ function isSafeImageUrl(value: string): boolean {
   return parsed.protocol === 'https:' && allowedImageHosts().has(parsed.host);
 }
 
+// Photos arrive under `image_urls` (image routes) and the legacy `images`
+// key (create/update body); both are rendered to other users, so both are
+// held to the same policy.
+const IMAGE_URL_KEYS = ['image_urls', 'images'] as const;
+
 function assertSafeImageUrls(extra: Record<string, unknown>): void {
-  const urls = extra.image_urls;
-  if (!Array.isArray(urls)) {
-    return;
-  }
-  if (urls.some(url => typeof url !== 'string' || !isSafeImageUrl(url))) {
-    throw new HandlerError(
-      'INVALID_ARGUMENT',
-      'extra_json.image_urls must be same-origin paths or https platform URLs'
-    );
+  for (const key of IMAGE_URL_KEYS) {
+    const urls = extra[key];
+    if (!Array.isArray(urls)) {
+      continue;
+    }
+    if (urls.some(url => typeof url !== 'string' || !isSafeImageUrl(url))) {
+      throw new HandlerError(
+        'INVALID_ARGUMENT',
+        `extra_json.${key} must be same-origin paths or https platform URLs`
+      );
+    }
   }
 }
 

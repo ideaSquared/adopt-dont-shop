@@ -155,6 +155,24 @@ message PetCandidate {
   // Higher = better fit. SPA may render this as a heart-meter or
   // hide it entirely.
   float score = 9;
+  // Lowercase size/age-group/gender tokens (same vocabulary as TopPick),
+  // so the swipe card can render without a second pets lookup.
+  optional string age_group = 10;
+  optional string size = 11;
+  optional string gender = 12;
+  optional int32 age_years = 13;
+  optional int32 age_months = 14;
+  // Every image URL for the pet, primary first.
+  repeated string images = 15;
+  // Server-driven badge for the card; at most one per pet.
+  optional ActivityLabel activity_label = 16;
+}
+
+// ActivityLabel kinds: 'views_today' | 'days_waiting' | 'similar_adopted_fast'.
+message ActivityLabel {
+  string kind = 1;
+  string text = 2;
+  optional string icon = 3;
 }
 
 // SwipeActionRecord mirrors the matching.swipe_actions row.

@@ -1095,6 +1095,30 @@ describe('DELETE /api/v1/pets/:id/images', () => {
     }
   });
 
+  it('removes the image from the legacy `images` list too so it cannot reappear', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMock.mockResolvedValueOnce({
+        pet: petWithExtra({ image_urls: ['a.jpg', 'b.jpg'], images: ['b.jpg', 'c.jpg'] }),
+      });
+      m.updateMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/pets/pet-1/images?imageUrl=b.jpg',
+      });
+
+      expect(res.statusCode).toBe(200);
+      const [updateReq] = m.updateMock.mock.calls[0];
+      const sentExtra = JSON.parse(updateReq.extraJson) as Record<string, unknown>;
+      expect(sentExtra.image_urls).toEqual(['a.jpg']);
+      expect(sentExtra.images).toEqual(['c.jpg']);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('url-decodes the imageUrl query param before matching', async () => {
     const m = makeClient();
     const app = await makeApp(m.client);

@@ -956,8 +956,16 @@ export const registerPetsRoutes = async (
         }
         const extra = parseExtra(current.pet.extraJson);
         const remaining = readImageUrls(extra).filter(u => u !== target);
+        // The create/update body packs photos under the legacy `images` key;
+        // drop the URL there too or it would resurface in readers of that key.
+        const legacy = Array.isArray(extra.images)
+          ? { images: extra.images.filter(u => u !== target) }
+          : {};
         const res = await client.update(
-          { petId: req.params.id, extraJson: JSON.stringify({ ...extra, image_urls: remaining }) },
+          {
+            petId: req.params.id,
+            extraJson: JSON.stringify({ ...extra, ...legacy, image_urls: remaining }),
+          },
           metadata
         );
         if (res.pet === undefined) {

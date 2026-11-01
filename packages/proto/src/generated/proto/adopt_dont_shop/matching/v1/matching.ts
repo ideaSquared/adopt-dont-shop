@@ -180,6 +180,28 @@ export interface PetCandidate {
    * hide it entirely.
    */
   score: number;
+  /**
+   * Lowercase size/age-group/gender tokens (same vocabulary as TopPick),
+   * so the swipe card can render without a second pets lookup.
+   */
+  ageGroup?: string | undefined;
+  size?: string | undefined;
+  gender?: string | undefined;
+  ageYears?: number | undefined;
+  ageMonths?:
+    | number
+    | undefined;
+  /** Every image URL for the pet, primary first. */
+  images: string[];
+  /** Server-driven badge for the card; at most one per pet. */
+  activityLabel?: ActivityLabel | undefined;
+}
+
+/** ActivityLabel kinds: 'views_today' | 'days_waiting' | 'similar_adopted_fast'. */
+export interface ActivityLabel {
+  kind: string;
+  text: string;
+  icon?: string | undefined;
 }
 
 /** SwipeActionRecord mirrors the matching.swipe_actions row. */
@@ -820,6 +842,13 @@ function createBasePetCandidate(): PetCandidate {
     primaryImageUrl: undefined,
     shortDescription: undefined,
     score: 0,
+    ageGroup: undefined,
+    size: undefined,
+    gender: undefined,
+    ageYears: undefined,
+    ageMonths: undefined,
+    images: [],
+    activityLabel: undefined,
   };
 }
 
@@ -851,6 +880,27 @@ export const PetCandidate: MessageFns<PetCandidate> = {
     }
     if (message.score !== 0) {
       writer.uint32(77).float(message.score);
+    }
+    if (message.ageGroup !== undefined) {
+      writer.uint32(82).string(message.ageGroup);
+    }
+    if (message.size !== undefined) {
+      writer.uint32(90).string(message.size);
+    }
+    if (message.gender !== undefined) {
+      writer.uint32(98).string(message.gender);
+    }
+    if (message.ageYears !== undefined) {
+      writer.uint32(104).int32(message.ageYears);
+    }
+    if (message.ageMonths !== undefined) {
+      writer.uint32(112).int32(message.ageMonths);
+    }
+    for (const v of message.images) {
+      writer.uint32(122).string(v!);
+    }
+    if (message.activityLabel !== undefined) {
+      ActivityLabel.encode(message.activityLabel, writer.uint32(130).fork()).join();
     }
     return writer;
   },
@@ -934,6 +984,62 @@ export const PetCandidate: MessageFns<PetCandidate> = {
           message.score = reader.float();
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.ageGroup = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.size = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.gender = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.ageYears = reader.int32();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.ageMonths = reader.int32();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.images.push(reader.string());
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.activityLabel = ActivityLabel.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -970,6 +1076,31 @@ export const PetCandidate: MessageFns<PetCandidate> = {
         ? globalThis.String(object.short_description)
         : undefined,
       score: isSet(object.score) ? globalThis.Number(object.score) : 0,
+      ageGroup: isSet(object.ageGroup)
+        ? globalThis.String(object.ageGroup)
+        : isSet(object.age_group)
+        ? globalThis.String(object.age_group)
+        : undefined,
+      size: isSet(object.size) ? globalThis.String(object.size) : undefined,
+      gender: isSet(object.gender) ? globalThis.String(object.gender) : undefined,
+      ageYears: isSet(object.ageYears)
+        ? globalThis.Number(object.ageYears)
+        : isSet(object.age_years)
+        ? globalThis.Number(object.age_years)
+        : undefined,
+      ageMonths: isSet(object.ageMonths)
+        ? globalThis.Number(object.ageMonths)
+        : isSet(object.age_months)
+        ? globalThis.Number(object.age_months)
+        : undefined,
+      images: globalThis.Array.isArray(object?.images)
+        ? object.images.map((e: any) => globalThis.String(e))
+        : [],
+      activityLabel: isSet(object.activityLabel)
+        ? ActivityLabel.fromJSON(object.activityLabel)
+        : isSet(object.activity_label)
+        ? ActivityLabel.fromJSON(object.activity_label)
+        : undefined,
     };
   },
 
@@ -1002,6 +1133,27 @@ export const PetCandidate: MessageFns<PetCandidate> = {
     if (message.score !== 0) {
       obj.score = message.score;
     }
+    if (message.ageGroup !== undefined) {
+      obj.ageGroup = message.ageGroup;
+    }
+    if (message.size !== undefined) {
+      obj.size = message.size;
+    }
+    if (message.gender !== undefined) {
+      obj.gender = message.gender;
+    }
+    if (message.ageYears !== undefined) {
+      obj.ageYears = Math.round(message.ageYears);
+    }
+    if (message.ageMonths !== undefined) {
+      obj.ageMonths = Math.round(message.ageMonths);
+    }
+    if (message.images?.length) {
+      obj.images = message.images;
+    }
+    if (message.activityLabel !== undefined) {
+      obj.activityLabel = ActivityLabel.toJSON(message.activityLabel);
+    }
     return obj;
   },
 
@@ -1019,6 +1171,107 @@ export const PetCandidate: MessageFns<PetCandidate> = {
     message.primaryImageUrl = object.primaryImageUrl ?? undefined;
     message.shortDescription = object.shortDescription ?? undefined;
     message.score = object.score ?? 0;
+    message.ageGroup = object.ageGroup ?? undefined;
+    message.size = object.size ?? undefined;
+    message.gender = object.gender ?? undefined;
+    message.ageYears = object.ageYears ?? undefined;
+    message.ageMonths = object.ageMonths ?? undefined;
+    message.images = object.images?.map((e) => e) || [];
+    message.activityLabel = (object.activityLabel !== undefined && object.activityLabel !== null)
+      ? ActivityLabel.fromPartial(object.activityLabel)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseActivityLabel(): ActivityLabel {
+  return { kind: "", text: "", icon: undefined };
+}
+
+export const ActivityLabel: MessageFns<ActivityLabel> = {
+  encode(message: ActivityLabel, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.kind !== "") {
+      writer.uint32(10).string(message.kind);
+    }
+    if (message.text !== "") {
+      writer.uint32(18).string(message.text);
+    }
+    if (message.icon !== undefined) {
+      writer.uint32(26).string(message.icon);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ActivityLabel {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseActivityLabel();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.kind = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.text = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.icon = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ActivityLabel {
+    return {
+      kind: isSet(object.kind) ? globalThis.String(object.kind) : "",
+      text: isSet(object.text) ? globalThis.String(object.text) : "",
+      icon: isSet(object.icon) ? globalThis.String(object.icon) : undefined,
+    };
+  },
+
+  toJSON(message: ActivityLabel): unknown {
+    const obj: any = {};
+    if (message.kind !== "") {
+      obj.kind = message.kind;
+    }
+    if (message.text !== "") {
+      obj.text = message.text;
+    }
+    if (message.icon !== undefined) {
+      obj.icon = message.icon;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ActivityLabel>, I>>(base?: I): ActivityLabel {
+    return ActivityLabel.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ActivityLabel>, I>>(object: I): ActivityLabel {
+    const message = createBaseActivityLabel();
+    message.kind = object.kind ?? "";
+    message.text = object.text ?? "";
+    message.icon = object.icon ?? undefined;
     return message;
   },
 };

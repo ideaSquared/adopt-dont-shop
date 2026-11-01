@@ -25,6 +25,7 @@ function makeCandidate(overrides: Partial<PetCandidate> = {}): PetCandidate {
     age: '3 years',
     shortDescription: 'Good boy',
     primaryImageUrl: '/uploads/pets/pet-1.jpg',
+    images: [],
     ...overrides,
   } as PetCandidate;
 }
@@ -71,8 +72,8 @@ describe('recommendToQueue', () => {
     } as RecommendResponse);
     expect(env).toEqual({
       pets: [
-        expect.objectContaining({ pet_id: 'pet-1', score: 0.83 }),
-        expect.objectContaining({ pet_id: 'pet-2', score: 0.83 }),
+        expect.objectContaining({ petId: 'pet-1', compatibilityScore: 83 }),
+        expect.objectContaining({ petId: 'pet-2', compatibilityScore: 83 }),
       ],
       currentIndex: 0,
       hasMore: true,
@@ -83,6 +84,53 @@ describe('recommendToQueue', () => {
   it('reports hasMore false when exhausted', () => {
     const env = recommendToQueue({ candidates: [], exhausted: true } as RecommendResponse);
     expect(env.hasMore).toBe(false);
+  });
+
+  it('emits the camelCase DiscoveryPet shape the swipe card reads', () => {
+    const env = recommendToQueue(
+      {
+        candidates: [
+          makeCandidate({
+            ageGroup: 'young',
+            size: 'small',
+            gender: 'female',
+            ageYears: 2,
+            ageMonths: 3,
+            images: ['a.jpg', 'b.jpg'],
+            activityLabel: { kind: 'days_waiting', text: 'Waiting 90 days', icon: '🕒' },
+          }),
+        ],
+        exhausted: false,
+      } as RecommendResponse,
+      new Map([['rsc-1', 'Happy Paws']])
+    );
+    expect(env.pets[0]).toEqual({
+      petId: 'pet-1',
+      name: 'Rex',
+      type: 'dog',
+      breed: 'Labrador',
+      ageGroup: 'young',
+      ageYears: 2,
+      ageMonths: 3,
+      size: 'small',
+      gender: 'female',
+      images: ['a.jpg', 'b.jpg'],
+      shortDescription: 'Good boy',
+      rescueName: 'Happy Paws',
+      compatibilityScore: 83,
+      activityLabel: { kind: 'days_waiting', text: 'Waiting 90 days', icon: '🕒' },
+    });
+  });
+
+  it('falls back to the primary image and an empty rescue name', () => {
+    const env = recommendToQueue({
+      candidates: [makeCandidate()],
+      exhausted: false,
+    } as RecommendResponse);
+    expect(env.pets[0]).toMatchObject({
+      images: ['/uploads/pets/pet-1.jpg'],
+      rescueName: '',
+    });
   });
 });
 

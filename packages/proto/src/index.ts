@@ -493,6 +493,7 @@ export * as MatchingV1 from './generated/proto/adopt_dont_shop/matching/v1/match
 export type {
   SwipeSession,
   PetCandidate,
+  ActivityLabel,
   SwipeActionRecord,
   StartSessionRequest,
   StartSessionResponse,
