@@ -194,3 +194,56 @@ describe('GET /api/v1/test/invitation-token', () => {
     expect(endMock).toHaveBeenCalled();
   });
 });
+
+describe('GET /api/v1/test/user-invitation-token', () => {
+  let app: FastifyInstance;
+  beforeEach(async () => {
+    queryMock.mockReset();
+    endMock.mockClear();
+    app = await buildApp();
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('mints + returns a fresh token for the pending admin-issued invitation, storing its hash', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ invitation_id: 'uinv-1' }] });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/test/user-invitation-token?email=new.admin@example.com',
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { token: string };
+    expect(typeof body.token).toBe('string');
+    expect(body.token.length).toBeGreaterThan(0);
+
+    // Re-arms the latest pending + unexpired auth.user_invitations row for the
+    // user with that email, storing the sha256 of the raw token it returned
+    // (RedeemInvitation hashes the submitted token and compares).
+    const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/UPDATE auth\.user_invitations/);
+    expect(sql).toMatch(/JOIN auth\.users/);
+    expect(sql).toMatch(/status = 'pending'/);
+    expect(sql).toMatch(/expires_at > now\(\)/);
+    expect(sql).toMatch(/ORDER BY i\.created_at DESC/);
+    expect(params[0]).toBe('new.admin@example.com');
+    expect(params[1]).toBe(sha256Hex(body.token));
+  });
+
+  it('404s when there is no pending invitation', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/test/user-invitation-token?email=new.admin@example.com',
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('400s when no email is given', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/test/user-invitation-token' });
+    expect(res.statusCode).toBe(400);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+});

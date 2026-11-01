@@ -314,6 +314,15 @@ runs:
           sleep 2
         done
 
+    - name: Generate dev personas through the API
+      # The service containers' boot command only plants the SQL bootstrap
+      # (super_admin, breeds); every persona the suite logs in as is created
+      # through the gateway by scripts/seed.mjs. --api-only: the bootstrap
+      # already ran on container start. Needs E2E_TOKEN_PEEK=true (set in the
+      # .env above) to complete sign-ups and invitations.
+      shell: bash
+      run: node scripts/seed.mjs --api-only
+
     - name: Warm up Vite bundles
       # Vite dev servers compile on first request. Hit /login on each app
       # so the JS is built before Playwright tries to interact with it.

@@ -71,13 +71,13 @@ pnpm docker:down         # stop
 
 ### Seed dev data
 
-A fresh `pnpm docker:dev` stack seeds itself on boot: each seeded service's container runs `db:migrate` then `db:seed` as it starts (auth, pets and rescue also run `db:spam`, only into an empty database), so there is no manual step. Run `pnpm db:seed` only to re-seed a running Docker stack on demand:
+A fresh `pnpm docker:dev` stack seeds itself on boot, so there is no manual step: auth and pets plant their SQL-only rows (the bootstrap super_admin, the breed list), auth, pets and rescue run `db:spam` into an empty database, and the one-shot `seed-personas` container then generates the dev personas **through the API**. Run `pnpm db:seed` to re-seed a running Docker stack on demand:
 
 ```bash
-pnpm db:seed             # host-side orchestrator: runs each service's db:seed in dependency order
+pnpm db:seed             # SQL bootstrap, then admins/rescues/staff/adopters/pets/... via the gateway
 ```
 
-Only `auth`, `rescue`, `pets`, `applications` and `chat` have seeders, and they run in that order. The generated accounts share the `SEED_PASSWORD` from `.env` (default `DevPassword123!`). See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset. The orchestrator works by `docker compose exec`-ing into the service containers, so for native dev (no service containers) run `pnpm db:seed` inside each seeded service package, in that order, instead.
+The accounts share the password `DevPassword123!`. See [docs/operations/dev-seed-data.md](./docs/operations/dev-seed-data.md) for the personas, login details, and the larger `db:spam` volume dataset. For native dev (no service containers), run `pnpm db:seed` inside `services/auth` and `services/pets`, then `node scripts/seed.mjs --api-only` against your running gateway (started with `E2E_TOKEN_PEEK=true`).
 
 ### Run (native — no Docker)
 

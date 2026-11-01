@@ -93,5 +93,31 @@ describe('withTestDatabase', () => {
         await client.end();
       }
     });
+
+    it('refuses an exact schema that already exists instead of migrating into it and dropping it', async () => {
+      const migrationsDir = writeTrivialMigrationsDir();
+      const schema = `test_utils_existing_${Date.now()}`;
+      const client = new Client({ connectionString: process.env.DATABASE_URL });
+      await client.connect();
+      try {
+        // Stands in for a real service schema (a dev database's `pets`).
+        await client.query(`CREATE SCHEMA "${schema}"`);
+        await client.query(`CREATE TABLE "${schema}".keep_me (id int)`);
+
+        const fn = async () => 'ran';
+        await expect(
+          withTestDatabase({ schemaPrefix: schema, exactSchemaName: true, migrationsDir }, fn)
+        ).rejects.toThrow(/already exists/);
+
+        const { rows } = await client.query(
+          'SELECT 1 FROM pg_tables WHERE schemaname = $1 AND tablename = $2',
+          [schema, 'keep_me']
+        );
+        expect(rows).toHaveLength(1);
+      } finally {
+        await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+        await client.end();
+      }
+    });
   });
 });

@@ -61,7 +61,6 @@ const PARTICIPANT_COLUMNS = [
   'chat_id',
   'participant_id',
   'role',
-  'rescue_id',
   'created_at',
   'updated_at',
 ] as const;
@@ -123,25 +122,11 @@ export const spamChats = async (deps: {
     'ON CONFLICT (chat_id) DO NOTHING'
   );
 
+  // Both sides are plain members — what OpenChat writes (handlers.ts). Rescue
+  // staff reach a chat through membership, not through a participant role.
   const participantRows = built.flatMap(b => [
-    [
-      seededUuid(`chatpart-${b.index}-user`),
-      b.chatId,
-      b.seed.adopterId,
-      'user',
-      b.seed.rescueId,
-      now,
-      now,
-    ],
-    [
-      seededUuid(`chatpart-${b.index}-rescue`),
-      b.chatId,
-      b.seed.staffId,
-      'rescue',
-      b.seed.rescueId,
-      now,
-      now,
-    ],
+    [seededUuid(`chatpart-${b.index}-user`), b.chatId, b.seed.adopterId, 'member', now, now],
+    [seededUuid(`chatpart-${b.index}-rescue`), b.chatId, b.seed.staffId, 'member', now, now],
   ]);
   await bulkInsert(
     { query: deps.query },

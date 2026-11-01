@@ -48,4 +48,18 @@ describe('spamChats', () => {
     // chat_id is the first column of the chat insert.
     expect(calls[0].values[0]).toBe(seededUuid('chat-0'));
   });
+
+  it('adds both sides as plain members, the way the chat API creates participants', async () => {
+    const { query, calls } = recording();
+    await spamChats({ query, faker: createSpamFaker(), chats: 1, messages: 1, seeds: SEEDS });
+
+    const insert = calls.find(c => c.text.includes('INTO chat.chat_participants'))!;
+    expect(insert.text).toMatch(/\(chat_participant_id, chat_id, participant_id, role, /);
+    expect(insert.text).not.toMatch(/rescue_id/);
+    // chat_participant_id, chat_id, participant_id, role, created_at, updated_at
+    const roles = [insert.values[3], insert.values[9]];
+    const people = [insert.values[2], insert.values[8]];
+    expect(roles).toEqual(['member', 'member']);
+    expect(people).toEqual([SEEDS[0].adopterId, SEEDS[0].staffId]);
+  });
 });
