@@ -73,7 +73,7 @@ const mockCoreQuestion = {
   questionId: 'core-q-1',
   rescueId: null,
   questionKey: 'full_name',
-  scope: 'core',
+  scope: 'APPLICATION_QUESTION_SCOPE_CORE',
   category: 'personal_information',
   questionType: 'text',
   questionText: 'What is your full name?',
@@ -91,7 +91,7 @@ const mockCustomQuestion = {
   questionId: 'custom-q-1',
   rescueId: RESCUE_ID,
   questionKey: 'garden_size',
-  scope: 'rescue_specific',
+  scope: 'APPLICATION_QUESTION_SCOPE_RESCUE_SPECIFIC',
   category: 'household_information',
   questionType: 'text',
   questionText: 'What is the size of your garden?',
@@ -109,7 +109,7 @@ const mockConditionalQuestion = {
   questionId: 'custom-q-2',
   rescueId: RESCUE_ID,
   questionKey: 'containment_plan',
-  scope: 'rescue_specific',
+  scope: 'APPLICATION_QUESTION_SCOPE_RESCUE_SPECIFIC',
   category: 'household_information',
   questionType: 'text',
   questionText: 'Without a fence, how will you contain the dog?',
@@ -126,7 +126,7 @@ const mockConditionalQuestion = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(apiService.get).mockResolvedValue({
-    questions: [mockCoreQuestion, mockCustomQuestion],
+    data: [mockCoreQuestion, mockCustomQuestion],
   });
   vi.mocked(apiService.post).mockResolvedValue({ success: true, question: mockCustomQuestion });
   vi.mocked(apiService.put).mockResolvedValue({ success: true, question: mockCustomQuestion });
@@ -179,7 +179,7 @@ describe('Questions Builder - Behavioral Tests', () => {
 
     it('shows conditional badge on questions with conditional logic', async () => {
       vi.mocked(apiService.get).mockResolvedValue({
-        questions: [mockCustomQuestion, mockConditionalQuestion],
+        data: [mockCustomQuestion, mockConditionalQuestion],
       });
 
       renderWithProviders(<QuestionsBuilder rescueId={RESCUE_ID} />);
@@ -467,7 +467,7 @@ describe('Questions Builder - Behavioral Tests', () => {
     it('shows Enable button for disabled questions', async () => {
       const disabledQuestion = { ...mockCustomQuestion, isEnabled: false };
       vi.mocked(apiService.get).mockResolvedValue({
-        questions: [disabledQuestion],
+        data: [disabledQuestion],
       });
 
       renderWithProviders(<QuestionsBuilder rescueId={RESCUE_ID} />);
@@ -489,7 +489,7 @@ describe('Questions Builder - Behavioral Tests', () => {
         displayOrder: 1,
       };
       vi.mocked(apiService.get).mockResolvedValue({
-        questions: [mockCustomQuestion, question2],
+        data: [mockCustomQuestion, question2],
       });
 
       const user = userEvent.setup();
@@ -526,7 +526,7 @@ describe('Questions Builder - Behavioral Tests', () => {
   describe('Question required/optional configuration', () => {
     it('shows required badge for required questions', async () => {
       vi.mocked(apiService.get).mockResolvedValue({
-        questions: [{ ...mockCustomQuestion, isRequired: true }],
+        data: [{ ...mockCustomQuestion, isRequired: true }],
       });
 
       renderWithProviders(<QuestionsBuilder rescueId={RESCUE_ID} />);
