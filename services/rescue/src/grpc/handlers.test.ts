@@ -659,6 +659,23 @@ describe('updateRescue', () => {
     expect(sql).toMatch(/version = version \+ 1/);
   });
 
+  it('persists a changed primary email', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ email: 'new@pawsome.org' })] });
+
+    const res = await updateRescue(mocks.deps, STAFF, {
+      rescueId: 'rsc-1',
+      email: 'new@pawsome.org',
+    } as never);
+
+    expect(res.rescue.email).toBe('new@pawsome.org');
+    const updateCall = mocks.clientMock.query.mock.calls.find(
+      c => typeof c[0] === 'string' && c[0].includes('UPDATE rescue.rescues')
+    );
+    expect(updateCall?.[0]).toMatch(/\bemail = \$1/);
+    expect(updateCall?.[1]).toContain('new@pawsome.org');
+  });
+
   it('keys rescue.updated on aggregateId:version (deterministic, replay-safe)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ version: 3 })] });

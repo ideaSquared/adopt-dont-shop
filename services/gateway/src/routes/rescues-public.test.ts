@@ -183,6 +183,17 @@ describe('rescues public routes', () => {
     expect((res.json() as { data: { rescue_id: string } }).data.rescue_id).toBe('rsc-1');
   });
 
+  it('PUT /api/v1/rescues/:id forwards the primary email to the service', async () => {
+    mocks.update.mockResolvedValueOnce({ rescue: RESCUE });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/rescues/rsc-1',
+      payload: { email: 'new@happytails.org' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.update.mock.calls[0][0]).toMatchObject({ email: 'new@happytails.org' });
+  });
+
   it('PUT /api/v1/rescues/:id 404s when the rescue does not exist', async () => {
     mocks.update.mockResolvedValueOnce({ rescue: undefined });
     const res = await app.inject({

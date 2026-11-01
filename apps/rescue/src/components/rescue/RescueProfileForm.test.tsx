@@ -46,6 +46,22 @@ describe('RescueProfileForm', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  it('does not offer or submit a rescue type, which the backend cannot store', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderWithProviders(<RescueProfileForm rescue={buildRescue()} onSave={onSave} />);
+
+    expect(screen.queryByText(/rescue type/i)).not.toBeInTheDocument();
+
+    const name = screen.getByLabelText(/rescue name/i);
+    await user.clear(name);
+    await user.type(name, 'Renamed');
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('rescue_type');
+  });
+
   it('rejects an invalid email address', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);

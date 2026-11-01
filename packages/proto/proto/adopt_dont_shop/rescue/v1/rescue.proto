@@ -428,6 +428,8 @@ message UpdateRescueRequest {
   // moved beyond this version. Unset = no check (last-write-wins,
   // the pre-existing behaviour).
   optional uint32 expected_version = 17;
+  // The rescue's primary email (rescue.rescues.email, unique).
+  optional string email = 18;
 }
 
 message UpdateRescueResponse {

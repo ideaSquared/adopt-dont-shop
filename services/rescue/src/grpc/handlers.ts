@@ -546,6 +546,7 @@ export async function listRescues(
 // column each one maps to, so the two can't silently drift apart.
 const UPDATABLE_RESCUE_FIELDS = [
   'name',
+  'email',
   'phone',
   'address',
   'city',
@@ -565,6 +566,7 @@ const UPDATABLE_RESCUE_FIELDS = [
 // The rescue.rescues column each UPDATABLE_RESCUE_FIELDS entry writes to.
 const RESCUE_FIELD_COLUMNS: Record<(typeof UPDATABLE_RESCUE_FIELDS)[number], string> = {
   name: 'name',
+  email: 'email',
   phone: 'phone',
   address: 'address',
   city: 'city',
