@@ -4,10 +4,9 @@
 // breed/age/image). The frontend uses two contracts on top of these:
 //
 //   1. lib.discovery — POST /api/v1/discovery/queue returns
-//      { pets: Pet[], currentIndex, hasMore, nextBatchSize }. The "pets"
-//      shape is the snake_case lib.pets PetSchema (only pet_id + name
-//      are required; everything else optional), and pages of more pets
-//      come from POST /api/v1/discovery/pets/more.
+//      { pets: DiscoveryPet[], currentIndex, hasMore, nextBatchSize }. The
+//      "pets" shape is the camelCase swipe-deck DiscoveryPet, and pages of
+//      more pets come from POST /api/v1/discovery/pets/more.
 //   2. lib.search — GET /api/v1/search/pets returns a paginated list.
 //
 // Both surfaces are read-only, so the adapter is one-directional: proto
@@ -65,8 +64,59 @@ export function petCandidateToView(c: PetCandidate, includeScore = true): Discov
   return view;
 }
 
+// The swipe deck (lib.discovery DiscoveryPet) is camelCase and needs the
+// card fields (ageGroup, size, gender, images, rescueName), unlike the
+// snake_case lib.pets view search uses. Absent tokens are left off so the
+// client's own defaults apply.
+export type DiscoveryDeckPet = {
+  petId: string;
+  name: string;
+  type: string;
+  breed?: string;
+  ageGroup?: string;
+  ageYears?: number;
+  ageMonths?: number;
+  size?: string;
+  gender?: string;
+  images: string[];
+  shortDescription?: string;
+  rescueName: string;
+  compatibilityScore: number;
+  activityLabel?: { kind: string; text: string; icon?: string };
+};
+
+function candidateToDeckPet(
+  c: PetCandidate,
+  rescueNames: ReadonlyMap<string, string>
+): DiscoveryDeckPet {
+  const images =
+    c.images.length > 0 ? c.images : c.primaryImageUrl !== undefined ? [c.primaryImageUrl] : [];
+  const pet: DiscoveryDeckPet = {
+    petId: c.petId,
+    name: c.name,
+    type: c.species,
+    images,
+    rescueName: rescueNames.get(c.rescueId) ?? '',
+    compatibilityScore: c.score,
+  };
+  const optional = {
+    breed: c.breed,
+    ageGroup: c.ageGroup,
+    ageYears: c.ageYears,
+    ageMonths: c.ageMonths,
+    size: c.size,
+    gender: c.gender,
+    shortDescription: c.shortDescription,
+    activityLabel: c.activityLabel,
+  };
+  return {
+    ...pet,
+    ...Object.fromEntries(Object.entries(optional).filter(([, v]) => v !== undefined)),
+  };
+}
+
 export type DiscoveryQueueView = {
-  pets: DiscoveryPetView[];
+  pets: DiscoveryDeckPet[];
   currentIndex: number;
   hasMore: boolean;
   nextBatchSize: number;
@@ -75,9 +125,12 @@ export type DiscoveryQueueView = {
 // Recommend → the discovery queue the SPA expects. `hasMore` is the
 // inverse of the recommender's `exhausted` flag; `nextBatchSize` mirrors
 // the default the frontend service requests.
-export function recommendToQueue(res: RecommendResponse): DiscoveryQueueView {
+export function recommendToQueue(
+  res: RecommendResponse,
+  rescueNames: ReadonlyMap<string, string> = new Map()
+): DiscoveryQueueView {
   return {
-    pets: res.candidates.map(c => petCandidateToView(c, true)),
+    pets: res.candidates.map(c => candidateToDeckPet(c, rescueNames)),
     currentIndex: 0,
     hasMore: !res.exhausted,
     nextBatchSize: 20,

@@ -17,6 +17,7 @@ import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { PETS_VIEW } from '@adopt-dont-shop/lib.types';
 import {
   PetsV1,
+  type ActivityLabel,
   type ListPetsRequest,
   type Pet,
   type PetCandidate,
@@ -29,8 +30,11 @@ import {
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import {
   AGE_GROUP_TO_ENUM,
+  AGE_GROUP_TO_TOKEN,
+  GENDER_TO_TOKEN,
   lookupToken,
   SIZE_TO_ENUM,
+  SIZE_TO_TOKEN,
   SPECIES_TO_TYPE,
   TYPE_TO_SPECIES,
 } from './pet-tokens.js';
@@ -295,8 +299,9 @@ function mapAgeGroup(value: unknown): PetsV1.PetAgeGroup | undefined {
 
 // Pet (pets vertical) → PetCandidate (matching's swipe-card subset).
 // The pets Pet message has no plain `breed` name (only breedId) nor an
-// `age` string nor a primary image URL, so those optional candidate
-// fields are derived where possible and otherwise omitted.
+// `age` string nor image URLs; breed and images ride in extra_json (the
+// same keys service.gateway's petToView reads), so they are read from
+// there and otherwise omitted.
 function petToCandidate(pet: Pet, score: number): PetCandidate {
   const candidate: PetCandidate = {
     petId: pet.petId,
@@ -304,16 +309,79 @@ function petToCandidate(pet: Pet, score: number): PetCandidate {
     species: TYPE_TO_SPECIES[pet.type] ?? 'unknown',
     rescueId: pet.rescueId ?? '',
     score,
+    images: [],
   };
 
   const age = formatAge(pet.ageYears, pet.ageMonths);
   if (age !== undefined) {
     candidate.age = age;
   }
+  if (pet.ageYears !== undefined) {
+    candidate.ageYears = pet.ageYears;
+  }
+  if (pet.ageMonths !== undefined) {
+    candidate.ageMonths = pet.ageMonths;
+  }
   if (pet.shortDescription !== undefined && pet.shortDescription !== '') {
     candidate.shortDescription = pet.shortDescription;
   }
+  candidate.gender = GENDER_TO_TOKEN[pet.gender];
+  candidate.size = SIZE_TO_TOKEN[pet.size];
+  candidate.ageGroup = AGE_GROUP_TO_TOKEN[pet.ageGroup];
+
+  const extra = parseExtra(pet.extraJson);
+  if (typeof extra.breed === 'string' && extra.breed !== '') {
+    candidate.breed = extra.breed;
+  }
+  candidate.images = imageUrls(extra);
+  if (candidate.images.length > 0) {
+    candidate.primaryImageUrl = candidate.images[0];
+  }
+  const activityLabel = daysWaitingLabel(pet.availableSince);
+  if (activityLabel !== undefined) {
+    candidate.activityLabel = activityLabel;
+  }
   return candidate;
+}
+
+// Only `days_waiting` is derivable today: pets keeps a lifetime view_count
+// (no per-day views) and matching has no adoption-time stats, so
+// `views_today` / `similar_adopted_fast` are not produced. Under a week the
+// number isn't a meaningful nudge, so no label.
+const MIN_WAITING_DAYS = 7;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function daysWaitingLabel(availableSince: string | undefined): ActivityLabel | undefined {
+  if (availableSince === undefined) {
+    return undefined;
+  }
+  const since = Date.parse(availableSince);
+  if (Number.isNaN(since)) {
+    return undefined;
+  }
+  const days = Math.floor((Date.now() - since) / MS_PER_DAY);
+  return days >= MIN_WAITING_DAYS
+    ? { kind: 'days_waiting', text: `Waiting ${days} days`, icon: '🕒' }
+    : undefined;
+}
+
+function parseExtra(json: string): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(json);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? Object.fromEntries(Object.entries(parsed))
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+// `image_urls` (image routes) and bare `images` (create/update body) are
+// both plain URL lists; merge and dedupe, first wins as primary.
+function imageUrls(extra: Record<string, unknown>): string[] {
+  const collect = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u !== '') : [];
+  return [...new Set([...collect(extra.image_urls), ...collect(extra.images)])];
 }
 
 function formatAge(years: number | undefined, months: number | undefined): string | undefined {

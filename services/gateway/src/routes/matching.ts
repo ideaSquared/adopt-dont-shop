@@ -33,12 +33,14 @@ import {
   type GetTopPicksRequest,
   type ListSwipeHistoryRequest,
   type RecommendRequest,
+  type RecommendResponse,
   type RecordSwipeRequest,
   type SearchPetsRequest,
   type StartSessionRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { MatchingClient } from '../grpc-clients/matching-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { recommendToQueue, searchToView, topPicksToView } from './matching-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -47,6 +49,9 @@ import { parsePagination } from '../middleware/pagination.js';
 
 export type MatchingRoutesOptions = {
   client: MatchingClient;
+  // Optional: resolves each swipe card's rescue name. Without it the cards
+  // carry an empty rescueName.
+  rescueClient?: RescueClient;
 };
 
 // Adds UNIMPLEMENTED → 501 for the Recommend / SearchPets stubs.
@@ -93,7 +98,7 @@ export const registerMatchingRoutes = async (
   app: FastifyInstance,
   opts: MatchingRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, rescueClient } = opts;
 
   await app.register(rateLimit, { global: false });
 
@@ -329,8 +334,9 @@ export const registerMatchingRoutes = async (
           limit: clampLimit(body.limit),
           filtersJsonOverride: filtersJson !== '' ? filtersJson : undefined,
         };
-        const res = await client.recommend(grpcReq, buildMetadata(req));
-        return reply.send(recommendToQueue(res));
+        const meta = buildMetadata(req);
+        const res = await client.recommend(grpcReq, meta);
+        return reply.send(recommendToQueue(res, await rescueNamesFor(res, rescueClient, meta)));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -371,8 +377,9 @@ export const registerMatchingRoutes = async (
         filtersJsonOverride: body.filters !== undefined ? JSON.stringify(body.filters) : undefined,
       };
       try {
-        const res = await client.recommend(grpcReq, buildMetadata(req));
-        return reply.send(recommendToQueue(res));
+        const meta = buildMetadata(req);
+        const res = await client.recommend(grpcReq, meta);
+        return reply.send(recommendToQueue(res, await rescueNamesFor(res, rescueClient, meta)));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -755,4 +762,32 @@ function parseDeviceType(raw: string | undefined): MatchingV1.DeviceType {
   return out === MatchingV1.DeviceType.UNRECOGNIZED
     ? MatchingV1.DeviceType.DEVICE_TYPE_UNSPECIFIED
     : out;
+}
+
+// rescue_id → name for the cards in a Recommend page. One Get per distinct
+// rescue (pages are ~20 cards, no batch RPC); a failed lookup or a missing
+// client just leaves that rescue unnamed rather than failing the deck.
+async function rescueNamesFor(
+  res: RecommendResponse,
+  rescueClient: RescueClient | undefined,
+  meta: ReturnType<typeof buildMetadata>
+): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  if (rescueClient === undefined) {
+    return names;
+  }
+  const rescueIds = [...new Set(res.candidates.map(c => c.rescueId).filter(id => id !== ''))];
+  await Promise.all(
+    rescueIds.map(async rescueId => {
+      try {
+        const name = (await rescueClient.get({ rescueId }, meta)).rescue?.name;
+        if (name !== undefined) {
+          names.set(rescueId, name);
+        }
+      } catch {
+        // Tolerated: this rescue's cards render without a name.
+      }
+    })
+  );
+  return names;
 }

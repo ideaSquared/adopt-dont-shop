@@ -75,6 +75,84 @@ function listResponse(pets: Pet[], nextCursor?: string): ListPetsResponse {
 }
 
 describe('makeRecommend', () => {
+  describe('activity label', () => {
+    const recommendOne = async (pet: Pet) => {
+      const listPets = vi.fn().mockResolvedValue(listResponse([pet]));
+      const recommend = makeRecommend(makePetsClient(listPets));
+      const res = await recommend(recommendDeps, makePrincipal(), {
+        sessionId: 's-1',
+        limit: 10,
+      } as RecommendRequest);
+      return res.candidates[0];
+    };
+
+    it('says how long a pet has been waiting once it passes a week', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-01T12:00:00.000Z') });
+      try {
+        const candidate = await recommendOne(
+          makePet({ petId: 'p-1', availableSince: '2026-08-03T00:00:00.000Z' })
+        );
+        expect(candidate.activityLabel).toEqual({
+          kind: 'days_waiting',
+          text: 'Waiting 90 days',
+          icon: '🕒',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('shows no label for a recently listed pet or one without an available date', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-01T12:00:00.000Z') });
+      try {
+        const recent = await recommendOne(
+          makePet({ petId: 'p-1', availableSince: '2026-10-30T00:00:00.000Z' })
+        );
+        const undated = await recommendOne(makePet({ petId: 'p-2' }));
+        expect(recent.activityLabel).toBeUndefined();
+        expect(undated.activityLabel).toBeUndefined();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  it('carries the swipe-card fields on each candidate', async () => {
+    const listPets = vi.fn().mockResolvedValue(
+      listResponse([
+        makePet({
+          petId: 'p-1',
+          gender: PetsV1.PetGender.PET_GENDER_FEMALE,
+          size: PetsV1.PetSize.PET_SIZE_SMALL,
+          ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_YOUNG,
+          ageYears: 2,
+          ageMonths: 3,
+          extraJson: JSON.stringify({
+            breed: 'Beagle',
+            image_urls: ['a.jpg', 'b.jpg'],
+          }),
+        }),
+      ])
+    );
+    const recommend = makeRecommend(makePetsClient(listPets));
+
+    const res = await recommend(recommendDeps, makePrincipal(), {
+      sessionId: 's-1',
+      limit: 10,
+    } as RecommendRequest);
+
+    expect(res.candidates[0]).toMatchObject({
+      gender: 'female',
+      size: 'small',
+      ageGroup: 'young',
+      ageYears: 2,
+      ageMonths: 3,
+      breed: 'Beagle',
+      images: ['a.jpg', 'b.jpg'],
+      primaryImageUrl: 'a.jpg',
+    });
+  });
+
   it('throws PERMISSION_DENIED without pets.read', async () => {
     const recommend = makeRecommend(makePetsClient(vi.fn()));
     await expect(

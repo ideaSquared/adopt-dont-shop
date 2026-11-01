@@ -49,7 +49,7 @@ export interface SwipeStats {
 export interface DiscoveryPet {
   petId: string;
   name: string;
-  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
+  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'reptile' | 'small_mammal' | 'fish' | 'other';
   breed?: string;
   ageGroup: 'baby' | 'young' | 'adult' | 'senior';
   ageYears?: number;
