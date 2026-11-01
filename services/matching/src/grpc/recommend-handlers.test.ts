@@ -129,7 +129,7 @@ describe('makeRecommend', () => {
           ageMonths: 3,
           extraJson: JSON.stringify({
             breed: 'Beagle',
-            image_urls: ['a.jpg', 'b.jpg'],
+            image_urls: ['/a.jpg', '/b.jpg'],
           }),
         }),
       ])
@@ -148,9 +148,31 @@ describe('makeRecommend', () => {
       ageYears: 2,
       ageMonths: 3,
       breed: 'Beagle',
-      images: ['a.jpg', 'b.jpg'],
-      primaryImageUrl: 'a.jpg',
+      images: ['/a.jpg', '/b.jpg'],
+      primaryImageUrl: '/a.jpg',
     });
+  });
+
+  it('drops image urls that are not same-origin paths or https', async () => {
+    const listPets = vi.fn().mockResolvedValue(
+      listResponse([
+        makePet({
+          petId: 'p-1',
+          extraJson: JSON.stringify({
+            image_urls: ['/ok.jpg', 'http://insecure.example/a.jpg', 'javascript:alert(1)'],
+            images: ['//evil.example/b.jpg', 'https://cdn.example/c.jpg'],
+          }),
+        }),
+      ])
+    );
+    const recommend = makeRecommend(makePetsClient(listPets));
+
+    const res = await recommend(recommendDeps, makePrincipal(), {
+      sessionId: 's-1',
+      limit: 10,
+    } as RecommendRequest);
+
+    expect(res.candidates[0].images).toEqual(['/ok.jpg', 'https://cdn.example/c.jpg']);
   });
 
   it('throws PERMISSION_DENIED without pets.read', async () => {

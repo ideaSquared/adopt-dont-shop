@@ -270,6 +270,22 @@ describe('createPet', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('rejects an unsafe image url in extra_json.images too', async () => {
+    await expect(
+      createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        extraJson: JSON.stringify({ images: ['https://evil.example.com/a.jpg'] }),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    await expect(
+      createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        extraJson: JSON.stringify({ images: ['//evil.example.com/a.jpg'] }),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
   describe('breed names', () => {
     const BREED_ID = '11111111-1111-4111-8111-111111111111';
     const SECOND_BREED_ID = '22222222-2222-4222-8222-222222222222';

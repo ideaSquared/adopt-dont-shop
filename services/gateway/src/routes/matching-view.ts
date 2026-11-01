@@ -97,7 +97,9 @@ function candidateToDeckPet(
     type: c.species,
     images,
     rescueName: rescueNames.get(c.rescueId) ?? '',
-    compatibilityScore: c.score,
+    // The recommender scores on [0,1]; SwipeCard reads 0-100. Round off the
+    // protobuf float noise (0.699999988 -> 70).
+    compatibilityScore: Math.round(c.score * 100),
   };
   const optional = {
     breed: c.breed,

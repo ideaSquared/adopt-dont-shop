@@ -377,11 +377,22 @@ function parseExtra(json: string): Record<string, unknown> {
 }
 
 // `image_urls` (image routes) and bare `images` (create/update body) are
-// both plain URL lists; merge and dedupe, first wins as primary.
+// both plain URL lists; merge and dedupe, first wins as primary. Cards render
+// these in every viewer's browser, so only same-origin paths and https URLs
+// pass (the host allowlist is enforced by service.pets at write time).
 function imageUrls(extra: Record<string, unknown>): string[] {
   const collect = (v: unknown): string[] =>
-    Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u !== '') : [];
+    Array.isArray(v)
+      ? v.filter((u): u is string => typeof u === 'string' && isSafeImageUrl(u))
+      : [];
   return [...new Set([...collect(extra.image_urls), ...collect(extra.images)])];
+}
+
+function isSafeImageUrl(url: string): boolean {
+  if (url.startsWith('/')) {
+    return !url.startsWith('//');
+  }
+  return url.startsWith('https://');
 }
 
 function formatAge(years: number | undefined, months: number | undefined): string | undefined {

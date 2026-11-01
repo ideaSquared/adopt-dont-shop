@@ -72,8 +72,8 @@ describe('recommendToQueue', () => {
     } as RecommendResponse);
     expect(env).toEqual({
       pets: [
-        expect.objectContaining({ petId: 'pet-1', compatibilityScore: 0.83 }),
-        expect.objectContaining({ petId: 'pet-2', compatibilityScore: 0.83 }),
+        expect.objectContaining({ petId: 'pet-1', compatibilityScore: 83 }),
+        expect.objectContaining({ petId: 'pet-2', compatibilityScore: 83 }),
       ],
       currentIndex: 0,
       hasMore: true,
@@ -117,7 +117,7 @@ describe('recommendToQueue', () => {
       images: ['a.jpg', 'b.jpg'],
       shortDescription: 'Good boy',
       rescueName: 'Happy Paws',
-      compatibilityScore: 0.83,
+      compatibilityScore: 83,
       activityLabel: { kind: 'days_waiting', text: 'Waiting 90 days', icon: '🕒' },
     });
   });
