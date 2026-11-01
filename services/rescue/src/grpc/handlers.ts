@@ -732,11 +732,11 @@ export async function verifyRescue(
     const result = await client.query<RescueRow>(
       `
       UPDATE rescue.rescues
-      SET status = $1,
-          verified_at = CASE WHEN $1 = 'verified' THEN now() ELSE verified_at END,
-          verified_by = CASE WHEN $1 = 'verified' THEN $2 ELSE verified_by END,
-          verification_source = CASE WHEN $1 = 'verified' THEN $3::rescue_verification_source ELSE verification_source END,
-          verification_failure_reason = CASE WHEN $1 = 'rejected' THEN $4 ELSE verification_failure_reason END,
+      SET status = $1::rescue_status,
+          verified_at = CASE WHEN $1::rescue_status = 'verified' THEN now() ELSE verified_at END,
+          verified_by = CASE WHEN $1::rescue_status = 'verified' THEN $2 ELSE verified_by END,
+          verification_source = CASE WHEN $1::rescue_status = 'verified' THEN $3::rescue_verification_source ELSE verification_source END,
+          verification_failure_reason = CASE WHEN $1::rescue_status = 'rejected' THEN $4 ELSE verification_failure_reason END,
           updated_at = now(), updated_by = $2, version = version + 1
       WHERE rescue_id = $5
       RETURNING ${RESCUES_SELECT}

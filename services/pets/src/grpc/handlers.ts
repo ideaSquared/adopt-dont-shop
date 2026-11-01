@@ -838,9 +838,9 @@ export async function updatePetStatus(
     const result = await client.query<PetRow>(
       `
       UPDATE pets.pets
-      SET status = $1,
-          adopted_date = CASE WHEN $1 = 'adopted' THEN now() ELSE adopted_date END,
-          available_since = CASE WHEN $1 = 'available' THEN now() ELSE available_since END,
+      SET status = $1::pet_status,
+          adopted_date = CASE WHEN $1::pet_status = 'adopted' THEN now() ELSE adopted_date END,
+          available_since = CASE WHEN $1::pet_status = 'available' THEN now() ELSE available_since END,
           updated_at = now(), updated_by = $2, version = version + 1
       WHERE pet_id = $3
       RETURNING ${PETS_SELECT}

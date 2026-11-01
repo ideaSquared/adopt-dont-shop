@@ -2300,6 +2300,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@pact-foundation/pact':
         specifier: ^17.0.0
         version: 17.0.0
@@ -2358,6 +2361,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@pact-foundation/pact':
         specifier: ^17.0.0
         version: 17.0.0
