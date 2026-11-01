@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router';
-import { ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
+import { ConfirmDialog, Tabs, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { formatStatusName } from '../../utils/statusUtils';
 import { useStaff } from '../../hooks/useStaff';
 import { fosterService, type FosterPlacement } from '../../services/fosterService';
@@ -43,9 +43,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   onAddTimelineEvent,
   onRefresh,
 }) => {
-  const [activeTab, setActiveTab] = useState<'details' | 'references' | 'visits' | 'timeline'>(
-    'details'
-  );
+  const [activeTab, setActiveTab] = useState('details');
   const [statusNotes, setStatusNotes] = useState('');
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
   const [newStatus, setNewStatus] = useState('');
@@ -367,56 +365,57 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           </div>
         )}
 
-        {/* Tabs */}
-        <div className={styles.tabContainer}>
-          <div className={styles.tabList}>
-            {(['details', 'references', 'visits', 'timeline'] as const).map(tab => (
-              <button
-                key={tab}
-                className={styles.tab({ active: activeTab === tab })}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab === 'details' && 'Application Details'}
-                {tab === 'references' && `References (${extractedReferences.length})`}
-                {tab === 'visits' && `Home Visits (${homeVisits.length})`}
-                {tab === 'timeline' && `Timeline (${timeline.length})`}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className={styles.content}>
-          <div className={styles.tabPanel({ active: activeTab === 'details' })}>
-            <ApplicationDetails answers={answers} rescueId={application.rescueId} />
-          </div>
-          <div className={styles.tabPanel({ active: activeTab === 'references' })}>
-            <ReferenceChecksContainer
-              references={extractedReferences}
-              referencesError={referencesError}
-              applicationId={application.id}
-              onReferenceUpdate={onReferenceUpdate}
-            />
-          </div>
-          <div className={styles.tabPanel({ active: activeTab === 'visits' })}>
-            <VisitSchedulingContainer
-              homeVisits={homeVisits}
-              homeVisitsError={homeVisitsError}
-              staff={staff}
-              staffLoading={staffLoading}
-              onScheduleVisit={onScheduleVisit}
-              onUpdateVisit={onUpdateVisit}
-              onRefresh={onRefresh}
-            />
-          </div>
-          <div className={styles.tabPanel({ active: activeTab === 'timeline' })}>
-            <ApplicationTimelineContainer
-              timeline={timeline}
-              timelineError={timelineError}
-              onAddTimelineEvent={onAddTimelineEvent}
-            />
-          </div>
-        </div>
+        <Tabs
+          className={styles.content}
+          aria-label="Application sections"
+          value={activeTab}
+          onChange={setActiveTab}
+          tabs={[
+            {
+              id: 'details',
+              label: 'Application Details',
+              content: <ApplicationDetails answers={answers} rescueId={application.rescueId} />,
+            },
+            {
+              id: 'references',
+              label: `References (${extractedReferences.length})`,
+              content: (
+                <ReferenceChecksContainer
+                  references={extractedReferences}
+                  referencesError={referencesError}
+                  applicationId={application.id}
+                  onReferenceUpdate={onReferenceUpdate}
+                />
+              ),
+            },
+            {
+              id: 'visits',
+              label: `Home Visits (${homeVisits.length})`,
+              content: (
+                <VisitSchedulingContainer
+                  homeVisits={homeVisits}
+                  homeVisitsError={homeVisitsError}
+                  staff={staff}
+                  staffLoading={staffLoading}
+                  onScheduleVisit={onScheduleVisit}
+                  onUpdateVisit={onUpdateVisit}
+                  onRefresh={onRefresh}
+                />
+              ),
+            },
+            {
+              id: 'timeline',
+              label: `Timeline (${timeline.length})`,
+              content: (
+                <ApplicationTimelineContainer
+                  timeline={timeline}
+                  timelineError={timelineError}
+                  onAddTimelineEvent={onAddTimelineEvent}
+                />
+              ),
+            },
+          ]}
+        />
       </div>
 
       {showStageTransition && (

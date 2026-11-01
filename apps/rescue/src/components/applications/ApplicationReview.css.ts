@@ -198,61 +198,30 @@ export const button = recipe({
   },
 });
 
-export const tabContainer = style({
-  borderBottom: '1px solid #e5e7eb',
-  background: 'white',
-});
-
-export const tabList = style({
-  display: 'flex',
-  padding: '0 1.5rem',
-  // The four tabs don't fit across a phone-width modal; allow horizontal
-  // scrolling so every tab stays reachable instead of overflowing/clipping.
-  overflowX: 'auto',
-  '@media': {
-    '(max-width: 768px)': {
-      padding: '0 0.5rem',
-    },
-  },
-});
-
-globalStyle(`${tabList} > button`, {
-  whiteSpace: 'nowrap',
-});
-
-export const tab = recipe({
-  base: {
-    padding: '1rem 1.5rem',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    border: 'none',
-    background: 'none',
-    cursor: 'pointer',
-    borderBottom: '2px solid transparent',
-    transition: 'all 0.2s',
-    ':hover': {
-      color: '#3b82f6',
-    },
-  },
-  variants: {
-    active: {
-      true: {
-        color: '#3b82f6',
-        borderBottomColor: '#3b82f6',
-      },
-      false: {
-        color: '#6b7280',
-      },
-    },
-  },
-  defaultVariants: {
-    active: false,
-  },
-});
-
+// Root of the shared Tabs component: the tablist stays pinned while the panels scroll.
 export const content = style({
   overflowY: 'auto',
   maxHeight: 'calc(90vh - 120px)',
+});
+
+globalStyle(`${content} [role="tablist"]`, {
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
+  background: 'white',
+  padding: '0 1.5rem',
+  marginBottom: 0,
+  // The four tabs don't fit across a phone-width modal; allow horizontal
+  // scrolling so every tab stays reachable instead of overflowing/clipping.
+  overflowX: 'auto',
+});
+
+globalStyle(`${content} [role="tablist"] > button`, {
+  whiteSpace: 'nowrap',
+});
+
+globalStyle(`${content} [role="tabpanel"]`, {
+  padding: '1.5rem',
 });
 
 export const timelineContainer = style({
@@ -504,21 +473,6 @@ globalStyle(`${emptyTimeline} p:first-child`, {
 globalStyle(`${emptyTimeline} p:last-child`, {
   fontSize: '0.9375rem',
   lineHeight: '1.5',
-});
-
-export const tabPanel = recipe({
-  base: {
-    padding: '1.5rem',
-  },
-  variants: {
-    active: {
-      true: { display: 'block' },
-      false: { display: 'none' },
-    },
-  },
-  defaultVariants: {
-    active: false,
-  },
 });
 
 export const section = style({
