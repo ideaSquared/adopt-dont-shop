@@ -183,7 +183,53 @@ describe('viewToCreateRequest', () => {
   });
 });
 
+describe('viewToCreateRequest breed names', () => {
+  it('carries the breed names the rescue app sends into the gRPC request', () => {
+    const req = viewToCreateRequest({
+      name: 'Buddy',
+      type: 'dog',
+      breed: 'Labrador Retriever',
+      secondaryBreed: 'Poodle',
+    });
+    expect(req.breedName).toBe('Labrador Retriever');
+    expect(req.secondaryBreedName).toBe('Poodle');
+  });
+
+  it('also accepts the snake_case secondary_breed the pet view uses', () => {
+    expect(viewToCreateRequest({ secondary_breed: 'Poodle' }).secondaryBreedName).toBe('Poodle');
+  });
+
+  it('leaves the names unset when the body has none, or a blank one', () => {
+    expect(viewToCreateRequest({ name: 'Buddy' }).breedName).toBeUndefined();
+    expect(viewToCreateRequest({ breed: '' }).breedName).toBeUndefined();
+  });
+
+  it('still forwards an explicit breed_id untouched', () => {
+    const req = viewToCreateRequest({ breed_id: 'b-1', secondary_breed_id: 'b-2' });
+    expect(req.breedId).toBe('b-1');
+    expect(req.secondaryBreedId).toBe('b-2');
+  });
+});
+
 describe('viewToUpdateRequest', () => {
+  it('carries a breed name and secondary breed name when supplied', () => {
+    const req = viewToUpdateRequest('pet-1', { breed: 'Beagle', secondaryBreed: 'Pug' });
+    expect(req.breedName).toBe('Beagle');
+    expect(req.secondaryBreedName).toBe('Pug');
+  });
+
+  it('forwards a secondary_breed_id on update, which it used to drop', () => {
+    expect(viewToUpdateRequest('pet-1', { secondary_breed_id: 'b-2' }).secondaryBreedId).toBe(
+      'b-2'
+    );
+  });
+
+  it('leaves the breed untouched when the body does not mention it', () => {
+    const req = viewToUpdateRequest('pet-1', { name: 'Rexy' });
+    expect(req.breedName).toBeUndefined();
+    expect(req.secondaryBreedName).toBeUndefined();
+  });
+
   it('sets only the supplied fields (partial)', () => {
     const req = viewToUpdateRequest('pet-1', { name: 'Rexy', featured: true });
     expect(req.petId).toBe('pet-1');

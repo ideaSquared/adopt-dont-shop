@@ -223,7 +223,33 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     ),
   CheckboxInput: ({ children, ...props }: any) =>
     React.createElement('input', { type: 'checkbox', ...props }, children),
-  SelectInput: ({ children, ...props }: any) => React.createElement('select', props, children),
+  // Mirrors the real SelectInput contract (options + value + onChange(value),
+  // trigger id taken from data-testid) with a native <select>, so forms built on
+  // it stay queryable by label and by option.
+  SelectInput: ({
+    options = [],
+    value,
+    onChange,
+    label,
+    'data-testid': testId,
+    helperText,
+    fullWidth,
+    ...props
+  }: any) =>
+    React.createElement(
+      'select',
+      {
+        id: testId,
+        'data-testid': testId,
+        'aria-label': label,
+        value: value ?? '',
+        onChange: (e: any) => onChange?.(e.target.value),
+        ...props,
+      },
+      options.map((option: any) =>
+        React.createElement('option', { key: option.value, value: option.value }, option.label)
+      )
+    ),
   Badge: ({ children, ...props }: any) => React.createElement('span', props, children),
   Stack: ({ children, ...props }: any) => React.createElement('div', props, children),
   TextInput: ({ children, ...props }: any) =>

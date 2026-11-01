@@ -186,6 +186,7 @@ export const createGenerator = ({ baseUrl, password, fetchImpl, log = () => {} }
           name: pet.name,
           rescue_id: rescueId,
           type: pet.type,
+          breed: pet.breed,
           gender: pet.gender,
           size: pet.size,
           age_group: pet.ageGroup,

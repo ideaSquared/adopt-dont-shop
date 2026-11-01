@@ -29,11 +29,10 @@ type SubmitArg = PetCreateData | PetUpdateData;
 
 // Pre-ADS-646 the form gated submission on name + breed + colour + short
 // description. After ADS-646 only the name is required, but we still type
-// into the same four fields here so existing assertions about the
-// submission payload keep working.
+// into the same fields here so existing assertions about the submission
+// payload keep working. (Breed is a picker now: PetFormModal.breeds.test.tsx.)
 const fillRequiredFields = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.type(screen.getByLabelText(/pet name/i), 'Rex');
-  await user.type(screen.getByLabelText(/primary breed/i), 'Labrador');
   await user.type(screen.getByLabelText(/^color/i), 'Brown');
   await user.type(screen.getByLabelText(/short description/i), 'A friendly dog.');
 };

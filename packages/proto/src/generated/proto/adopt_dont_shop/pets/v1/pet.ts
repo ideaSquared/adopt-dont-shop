@@ -408,6 +408,14 @@ export interface CreatePetRequest {
   temperamentJson: string;
   tagsJson: string;
   extraJson: string;
+  /**
+   * Breed NAME, resolved to a breed_id by the service against pets.breeds
+   * (matched on the pet's type + name, case-insensitive). Used when the
+   * caller (the rescue app) only knows the name; an explicit breed_id /
+   * secondary_breed_id wins. An unknown name is INVALID_ARGUMENT.
+   */
+  breedName?: string | undefined;
+  secondaryBreedName?: string | undefined;
 }
 
 export interface CreatePetResponse {
@@ -542,7 +550,15 @@ export interface UpdatePetRequest {
    * Off-market archive flag (distinct from status + from soft Delete).
    * Mutating it platform-wide requires `pets.manage:any`.
    */
-  archived?: boolean | undefined;
+  archived?:
+    | boolean
+    | undefined;
+  /**
+   * Breed NAME, resolved against the pet's type; same rules as
+   * CreatePetRequest.breed_name. An explicit breed_id wins.
+   */
+  breedName?: string | undefined;
+  secondaryBreedName?: string | undefined;
 }
 
 export interface UpdatePetResponse {
@@ -1681,6 +1697,8 @@ function createBaseCreatePetRequest(): CreatePetRequest {
     temperamentJson: "",
     tagsJson: "",
     extraJson: "",
+    breedName: undefined,
+    secondaryBreedName: undefined,
   };
 }
 
@@ -1742,6 +1760,12 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     }
     if (message.extraJson !== "") {
       writer.uint32(154).string(message.extraJson);
+    }
+    if (message.breedName !== undefined) {
+      writer.uint32(162).string(message.breedName);
+    }
+    if (message.secondaryBreedName !== undefined) {
+      writer.uint32(170).string(message.secondaryBreedName);
     }
     return writer;
   },
@@ -1905,6 +1929,22 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
           message.extraJson = reader.string();
           continue;
         }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.breedName = reader.string();
+          continue;
+        }
+        case 21: {
+          if (tag !== 170) {
+            break;
+          }
+
+          message.secondaryBreedName = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1995,6 +2035,16 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
         : isSet(object.extra_json)
         ? globalThis.String(object.extra_json)
         : "",
+      breedName: isSet(object.breedName)
+        ? globalThis.String(object.breedName)
+        : isSet(object.breed_name)
+        ? globalThis.String(object.breed_name)
+        : undefined,
+      secondaryBreedName: isSet(object.secondaryBreedName)
+        ? globalThis.String(object.secondaryBreedName)
+        : isSet(object.secondary_breed_name)
+        ? globalThis.String(object.secondary_breed_name)
+        : undefined,
     };
   },
 
@@ -2057,6 +2107,12 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     if (message.extraJson !== "") {
       obj.extraJson = message.extraJson;
     }
+    if (message.breedName !== undefined) {
+      obj.breedName = message.breedName;
+    }
+    if (message.secondaryBreedName !== undefined) {
+      obj.secondaryBreedName = message.secondaryBreedName;
+    }
     return obj;
   },
 
@@ -2084,6 +2140,8 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     message.temperamentJson = object.temperamentJson ?? "";
     message.tagsJson = object.tagsJson ?? "";
     message.extraJson = object.extraJson ?? "";
+    message.breedName = object.breedName ?? undefined;
+    message.secondaryBreedName = object.secondaryBreedName ?? undefined;
     return message;
   },
 };
@@ -2960,6 +3018,8 @@ function createBaseUpdatePetRequest(): UpdatePetRequest {
     tagsJson: undefined,
     extraJson: undefined,
     archived: undefined,
+    breedName: undefined,
+    secondaryBreedName: undefined,
   };
 }
 
@@ -3021,6 +3081,12 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     }
     if (message.archived !== undefined) {
       writer.uint32(152).bool(message.archived);
+    }
+    if (message.breedName !== undefined) {
+      writer.uint32(162).string(message.breedName);
+    }
+    if (message.secondaryBreedName !== undefined) {
+      writer.uint32(170).string(message.secondaryBreedName);
     }
     return writer;
   },
@@ -3184,6 +3250,22 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
           message.archived = reader.bool();
           continue;
         }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.breedName = reader.string();
+          continue;
+        }
+        case 21: {
+          if (tag !== 170) {
+            break;
+          }
+
+          message.secondaryBreedName = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3270,6 +3352,16 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
         ? globalThis.String(object.extra_json)
         : undefined,
       archived: isSet(object.archived) ? globalThis.Boolean(object.archived) : undefined,
+      breedName: isSet(object.breedName)
+        ? globalThis.String(object.breedName)
+        : isSet(object.breed_name)
+        ? globalThis.String(object.breed_name)
+        : undefined,
+      secondaryBreedName: isSet(object.secondaryBreedName)
+        ? globalThis.String(object.secondaryBreedName)
+        : isSet(object.secondary_breed_name)
+        ? globalThis.String(object.secondary_breed_name)
+        : undefined,
     };
   },
 
@@ -3332,6 +3424,12 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     if (message.archived !== undefined) {
       obj.archived = message.archived;
     }
+    if (message.breedName !== undefined) {
+      obj.breedName = message.breedName;
+    }
+    if (message.secondaryBreedName !== undefined) {
+      obj.secondaryBreedName = message.secondaryBreedName;
+    }
     return obj;
   },
 
@@ -3359,6 +3457,8 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     message.tagsJson = object.tagsJson ?? undefined;
     message.extraJson = object.extraJson ?? undefined;
     message.archived = object.archived ?? undefined;
+    message.breedName = object.breedName ?? undefined;
+    message.secondaryBreedName = object.secondaryBreedName ?? undefined;
     return message;
   },
 };
