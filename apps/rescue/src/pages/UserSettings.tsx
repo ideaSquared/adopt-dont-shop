@@ -1,17 +1,39 @@
 import React, { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import clsx from 'clsx';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
-import { ThemeToggle } from '@adopt-dont-shop/lib.components';
+import { Tabs, ThemeToggle } from '@adopt-dont-shop/lib.components';
 import NotificationPreferencesForm from '../components/rescue/NotificationPreferencesForm';
 import * as styles from './RescueSettings.css';
 
 type TabType = 'preferences' | 'security' | 'appearance';
 
-const TABS: ReadonlyArray<{ id: TabType; label: string }> = [
-  { id: 'preferences', label: 'Preferences' },
-  { id: 'security', label: 'Security' },
-  { id: 'appearance', label: 'Appearance' },
+const TABS: ReadonlyArray<{ id: TabType; label: string; content: React.ReactNode }> = [
+  { id: 'preferences', label: 'Preferences', content: <NotificationPreferencesForm /> },
+  {
+    id: 'security',
+    label: 'Security',
+    content: (
+      <div className={styles.securitySection}>
+        <h2>Two-Factor Authentication</h2>
+        <p>
+          Add an extra layer of security to your account by requiring a verification code when you
+          sign in.
+        </p>
+        <TwoFactorSettings />
+      </div>
+    ),
+  },
+  {
+    id: 'appearance',
+    label: 'Appearance',
+    content: (
+      <div className={styles.securitySection}>
+        <h2>Theme</h2>
+        <p>Choose how the rescue tools look — light, cosy (warm cream), or dark.</p>
+        <ThemeToggle />
+      </div>
+    ),
+  },
 ];
 
 const parseTabFromHash = (hash: string): TabType =>
@@ -38,44 +60,12 @@ const UserSettings: React.FC = () => {
         <p>Manage your own notifications, account security and appearance.</p>
       </div>
 
-      <div className={styles.tabContainer}>
-        <div className={styles.tabList} role="tablist">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              className={clsx(styles.tab, activeTab === tab.id && styles.tabActive)}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={clsx(activeTab === 'preferences' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <NotificationPreferencesForm />
-      </div>
-
-      <div className={clsx(activeTab === 'security' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <div className={styles.securitySection}>
-          <h2>Two-Factor Authentication</h2>
-          <p>
-            Add an extra layer of security to your account by requiring a verification code when you
-            sign in.
-          </p>
-          <TwoFactorSettings />
-        </div>
-      </div>
-
-      <div className={clsx(activeTab === 'appearance' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <div className={styles.securitySection}>
-          <h2>Theme</h2>
-          <p>Choose how the rescue tools look — light, cosy (warm cream), or dark.</p>
-          <ThemeToggle />
-        </div>
-      </div>
+      <Tabs
+        tabs={TABS}
+        value={activeTab}
+        onChange={id => setActiveTab(parseTabFromHash(id))}
+        aria-label="My settings sections"
+      />
     </div>
   );
 };

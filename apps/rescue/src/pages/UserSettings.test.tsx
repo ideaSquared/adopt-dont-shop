@@ -10,7 +10,9 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   TwoFactorSettings: () => <div data-testid="two-factor">Two factor</div>,
 }));
 
-vi.mock('@adopt-dont-shop/lib.components', () => ({
+vi.mock('@adopt-dont-shop/lib.components', async importOriginal => ({
+  // Real Tabs: the page's tab behaviour is part of what these tests cover.
+  Tabs: (await importOriginal<typeof import('@adopt-dont-shop/lib.components')>()).Tabs,
   ThemeToggle: () => <div data-testid="theme-toggle">Theme</div>,
 }));
 
@@ -70,5 +72,13 @@ describe('UserSettings', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('#security'));
     expect(screen.getByRole('tab', { name: 'Security' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('moves between tabs with the arrow keys and keeps the hash in step', async () => {
+    renderAt('/user-settings');
+    screen.getByRole('tab', { name: 'Preferences' }).focus();
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Preferences' }), { key: 'ArrowRight' });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('#security'));
+    expect(screen.getByRole('tab', { name: 'Security' })).toHaveFocus();
   });
 });

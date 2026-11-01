@@ -97,6 +97,10 @@ Standard interactions must work without a mouse:
 | Dialog            | Escape closes                                |
 | Tabs              | Left/Right arrows move, Home/End jump        |
 
+For tabs, use `Tabs` from `@adopt-dont-shop/lib.components` rather than hand-rolling
+`role="tablist"` / `role="tab"`. It implements the arrow/Home/End keys, roving `tabIndex`, and the
+`aria-controls` / `aria-labelledby` linkage for you, and keeps inactive panels mounted but `hidden`.
+
 If you're building a custom widget, refer to the WAI-ARIA Authoring Practices for
 the keyboard pattern — don't invent your own.
 

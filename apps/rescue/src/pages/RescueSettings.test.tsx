@@ -11,9 +11,12 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useHasPermission: () => ({ allowed: true, isLoading: false, error: null }),
 }));
 
-vi.mock('@adopt-dont-shop/lib.components', async () => {
+vi.mock('@adopt-dont-shop/lib.components', async importOriginal => {
   const React = await import('react');
+  // Real Tabs: the page's tab behaviour is part of what these tests cover.
+  const { Tabs } = await importOriginal<typeof import('@adopt-dont-shop/lib.components')>();
   return {
+    Tabs,
     toast: { success: vi.fn(), error: vi.fn() },
     Skeleton: (props: Record<string, unknown>) =>
       React.createElement('div', { 'aria-hidden': 'true', ...props }),
