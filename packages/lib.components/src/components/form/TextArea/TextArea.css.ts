@@ -2,6 +2,7 @@ import { recipe } from '@vanilla-extract/recipes';
 import { style } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
+import { control } from '../control.css';
 
 export const container = recipe({
   base: {},
@@ -39,6 +40,7 @@ export const textAreaWrapper = style({
 
 export const textArea = recipe({
   base: {
+    boxSizing: 'border-box',
     width: '100%',
     border: 'none',
     outline: 'none',
@@ -65,41 +67,41 @@ export const textArea = recipe({
     size: {
       sm: {
         minHeight: '80px',
-        padding: '8px 12px',
-        fontSize: '14px',
+        padding: `${vars.spacing['2']} ${control.paddingX}`,
+        fontSize: control.fontSize.sm,
       },
       md: {
         minHeight: '100px',
-        padding: '12px 16px',
-        fontSize: '16px',
+        padding: `${vars.spacing['2']} ${control.paddingX}`,
+        fontSize: control.fontSize.md,
       },
       lg: {
         minHeight: '120px',
-        padding: '16px 20px',
-        fontSize: '18px',
+        padding: `${vars.spacing['2']} ${control.paddingX}`,
+        fontSize: control.fontSize.lg,
       },
     },
     variant: {
       default: {
-        border: `1px solid ${vars.border.color.default}`,
-        backgroundColor: vars.background.body,
-        borderRadius: vars.spacing['1'],
+        border: `1px solid ${control.borderColor}`,
+        backgroundColor: control.background,
+        borderRadius: control.radius,
         selectors: {
           '&:focus': {
             borderColor: vars.colors.primary,
-            boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
+            boxShadow: control.focusRing,
           },
         },
       },
       filled: {
         border: '1px solid transparent',
         backgroundColor: vars.background.muted,
-        borderRadius: vars.spacing['1'],
+        borderRadius: control.radius,
         selectors: {
           '&:focus': {
             backgroundColor: vars.background.body,
             borderColor: vars.colors.primary,
-            boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
+            boxShadow: control.focusRing,
           },
         },
       },
@@ -125,7 +127,7 @@ export const textArea = recipe({
         selectors: {
           '&:focus': {
             borderColor: vars.colors.danger,
-            boxShadow: `0 0 0 3px ${vars.colors.dangerBgSubtle}40`,
+            boxShadow: control.focusRingDanger,
           },
         },
       },

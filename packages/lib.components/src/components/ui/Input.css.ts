@@ -2,6 +2,7 @@ import { recipe } from '@vanilla-extract/recipes';
 import { style } from '@vanilla-extract/css';
 
 import { vars } from '../../styles/theme.css';
+import { control } from '../form/control.css';
 
 export const inputWrapper = recipe({
   base: {
@@ -39,10 +40,11 @@ export const inputContainer = style({
 export const styledInput = recipe({
   base: {
     width: '100%',
-    backgroundColor: vars.background.body,
+    boxSizing: 'border-box',
+    backgroundColor: control.background,
     color: vars.text.primary,
     border: `${vars.border.width.thin} solid`,
-    borderRadius: vars.border.radius.base,
+    borderRadius: control.radius,
     outline: 'none',
     transition: `all ${vars.transitions.fast}`,
     fontFamily: vars.typography.family.sans,
@@ -58,11 +60,11 @@ export const styledInput = recipe({
   variants: {
     variant: {
       default: {
-        borderColor: vars.border.color.muted,
+        borderColor: control.borderColor,
         selectors: {
           '&:focus': {
             borderColor: vars.colors.primary,
-            boxShadow: vars.shadows.focus,
+            boxShadow: control.focusRing,
           },
         },
       },
@@ -84,16 +86,19 @@ export const styledInput = recipe({
     },
     size: {
       sm: {
-        padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
-        fontSize: vars.typography.size.sm,
+        height: control.height.sm,
+        padding: `0 ${control.paddingX}`,
+        fontSize: control.fontSize.sm,
       },
       md: {
-        padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-        fontSize: vars.typography.size.base,
+        height: control.height.md,
+        padding: `0 ${control.paddingX}`,
+        fontSize: control.fontSize.md,
       },
       lg: {
-        padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-        fontSize: vars.typography.size.lg,
+        height: control.height.lg,
+        padding: `0 ${control.paddingX}`,
+        fontSize: control.fontSize.lg,
       },
     },
     hasStartIcon: {
