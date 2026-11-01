@@ -557,7 +557,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
             <div className='thumbnail-grid'>
               {pet.images.map((image, index) => (
                 <div
-                  key={image.image_id}
+                  key={image.image_id ?? image.url}
                   className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
                   onClick={() => handleImageSelect(index)}
                   onKeyDown={e => {
