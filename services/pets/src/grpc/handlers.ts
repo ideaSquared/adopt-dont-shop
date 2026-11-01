@@ -256,11 +256,18 @@ function isPetHiddenFrom(row: PetRow, privileged: boolean): boolean {
 // case-insensitively. An explicit id wins and skips the lookup. A name that
 // matches no breed is the caller's mistake, so it is INVALID_ARGUMENT rather
 // than a silently-null breed. Returns undefined when neither is supplied.
+//
+// `storedName` is the free-text breed already saved on the pet (extra_json).
+// Pets saved before names were validated can hold one that is not in the
+// catalogue, and the rescue app re-sends it on every save. Re-sending exactly
+// what is already stored is not a change, so it is accepted and the breed
+// column is left alone (undefined) instead of failing the whole edit.
 async function resolveBreedId(
   deps: HandlerDeps,
   species: PetTypeDb,
   id: string | undefined,
-  name: string | undefined
+  name: string | undefined,
+  storedName?: unknown
 ): Promise<string | undefined> {
   if (id !== undefined || name === undefined) {
     return id;
@@ -269,10 +276,13 @@ async function resolveBreedId(
     `SELECT breed_id FROM pets.breeds WHERE species = $1 AND lower(name) = lower($2)`,
     [species, name]
   );
-  if (!rows[0]) {
-    throw new HandlerError('INVALID_ARGUMENT', `unknown breed '${name}' for species '${species}'`);
+  if (rows[0]) {
+    return rows[0].breed_id;
   }
-  return rows[0].breed_id;
+  if (typeof storedName === 'string' && storedName.toLowerCase() === name.toLowerCase()) {
+    return undefined;
+  }
+  throw new HandlerError('INVALID_ARGUMENT', `unknown breed '${name}' for species '${species}'`);
 }
 
 // --- Create ----------------------------------------------------------
@@ -720,7 +730,14 @@ export async function updatePet(
   if (req.ageGroup !== undefined) {
     set('age_group', ageGroupToDb(req.ageGroup));
   }
-  const breedId = await resolveBreedId(deps, existing.type, req.breedId, req.breedName);
+  const storedExtra = isRecord(existing.extra_json) ? existing.extra_json : {};
+  const breedId = await resolveBreedId(
+    deps,
+    existing.type,
+    req.breedId,
+    req.breedName,
+    storedExtra.breed
+  );
   if (breedId !== undefined) {
     set('breed_id', breedId);
   }
@@ -728,7 +745,8 @@ export async function updatePet(
     deps,
     existing.type,
     req.secondaryBreedId,
-    req.secondaryBreedName
+    req.secondaryBreedName,
+    storedExtra.secondary_breed ?? storedExtra.secondaryBreed
   );
   if (secondaryBreedId !== undefined) {
     set('secondary_breed_id', secondaryBreedId);
