@@ -82,6 +82,9 @@ describe('classifyAffected', () => {
     'e2e/tests/client/pet-discovery.spec.ts',
     'docker-compose.yml',
     'Dockerfile.service',
+    '.dockerignore',
+    'scripts/init-postgis.sql',
+    'scripts/write-redis-secret.mjs',
     '.github/actions/e2e-suite/action.yml',
   ])('runs the e2e stack when %s changes', file => {
     expect(classify({ files: [file] }).e2e).toBe(true);

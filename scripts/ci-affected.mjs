@@ -46,6 +46,9 @@ const E2E_FILES = [
   /^docker-compose[^/]*\.yml$/,
   /^docker-bake\.hcl$/,
   /^Dockerfile[^/]*$/,
+  /^\.dockerignore$/,
+  /^scripts\/init-postgis\.sql$/,
+  /^scripts\/write-redis-secret\.mjs$/,
   /^nginx\//,
   /^\.github\/actions\/e2e-suite\//,
 ];
