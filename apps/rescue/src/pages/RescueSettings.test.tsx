@@ -2,6 +2,7 @@ import { vi, describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import RescueSettings from './RescueSettings';
+import { apiService } from '../services/libraryServices';
 
 // Mock all heavy dependencies to focus on tab/hash behaviour
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
@@ -41,7 +42,9 @@ vi.mock('@adopt-dont-shop/lib.permissions', () => ({
 }));
 
 vi.mock('../components/rescue/RescueProfileForm', () => ({
-  default: () => <div data-testid="profile-form">Profile Form</div>,
+  default: ({ rescue }: { rescue: { address: { street: string } } | null }) => (
+    <div data-testid="profile-form">{rescue?.address.street}</div>
+  ),
 }));
 
 vi.mock('../components/rescue/AdoptionPolicyForm', () => ({
@@ -105,5 +108,32 @@ describe('RescueSettings tab persistence via URL hash', () => {
     await waitForTabsToLoad();
     const policiesButton = screen.getByRole('tab', { name: /adoption policies/i });
     expect(policiesButton).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('RescueSettings application questions tab', () => {
+  it('maps the snake_case gateway rescue for the questions builder and profile form', async () => {
+    vi.mocked(apiService.get).mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes('/staff/me')
+          ? { data: { rescueId: 'r1' } }
+          : {
+              data: {
+                rescue_id: 'r1',
+                name: 'Test Rescue',
+                address: '1 High Street',
+                city: 'York',
+                postcode: 'YO1 1AA',
+                country: 'United Kingdom',
+                status: 'verified',
+                settings: {},
+              },
+            }
+      )
+    );
+    renderWithRoute('/settings#questions');
+    expect(await screen.findByTestId('questions-builder')).toBeInTheDocument();
+    expect(screen.queryByText(/loading rescue information/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('profile-form')).toHaveTextContent('1 High Street');
   });
 });
