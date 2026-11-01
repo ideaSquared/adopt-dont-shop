@@ -145,13 +145,12 @@ const eventsFor = (
 const actorOf = (event: ApplicationEvent, userId: string): string =>
   'actorUserId' in event ? event.actorUserId : userId;
 
-const application = (faker: Faker, userId: string, pet: Pet, now: Date) => {
+const projectionRow = (faker: Faker, userId: string, pet: Pet, now: Date): unknown[] => {
   const status = faker.helpers.arrayElement(STATUS_BAG);
   // Deterministic per (adopter, pet) pair — the pair is unique, so a re-run
   // regenerates the same id and ON CONFLICT skips it.
   const applicationId = seededUuid(`app-${userId}-${pet.pet_id}`);
-  const events = eventsFor(status, { applicationId, userId, pet }, now);
-  const row = [
+  return [
     applicationId,
     userId,
     pet.pet_id,
@@ -163,9 +162,14 @@ const application = (faker: Faker, userId: string, pet: Pet, now: Date) => {
     userId,
     now,
     now,
-    events.length,
+    eventsFor(status, { applicationId, userId, pet }, now).length,
   ];
-  const eventRows = events.map((event, i) => [
+};
+
+type StreamlessRow = { application_id: string; user_id: string; pet_id: string; status: string };
+
+const eventRows = (applicationId: string, userId: string, events: ApplicationEvent[]) =>
+  events.map((event, i) => [
     seededUuid(`app-event-${applicationId}-${i + 1}`),
     applicationId,
     i + 1,
@@ -174,8 +178,6 @@ const application = (faker: Faker, userId: string, pet: Pet, now: Date) => {
     event.at,
     actorOf(event, userId),
   ]);
-  return { row, eventRows };
-};
 
 export const spamApplications = async (deps: {
   query: QueryFn;
@@ -191,20 +193,9 @@ export const spamApplications = async (deps: {
   const pairs = deps.adopterIds.flatMap(userId => deps.pets.map(pet => ({ userId, pet })));
   const shuffled = deps.faker.helpers.shuffle(pairs);
   const target = Math.min(deps.applications, shuffled.length);
-  const generated = shuffled
+  const rows = shuffled
     .slice(0, target)
-    .map(({ userId, pet }) => application(deps.faker, userId, pet, now));
-  const rows = generated.map(g => g.row);
-  // Events are immutable (a trigger rejects UPDATE/DELETE), so a re-run is a
-  // no-op on (aggregate_id, version).
-  await bulkInsert(
-    { query: deps.query },
-    'applications.application_events',
-    EVENT_COLUMNS,
-    generated.flatMap(g => g.eventRows),
-    500,
-    'ON CONFLICT (aggregate_id, version) DO NOTHING'
-  );
+    .map(({ userId, pet }) => projectionRow(deps.faker, userId, pet, now));
   // Deterministic application_id means a re-run regenerates the same PK, so
   // conflicting on the primary key skips already-seeded rows (this also covers
   // the rejected/withdrawn tail the partial (user_id, pet_id) index misses).
@@ -216,6 +207,51 @@ export const spamApplications = async (deps: {
     500,
     'ON CONFLICT (application_id) DO NOTHING'
   );
+
+  // Give every row without an event stream the chain for the status it
+  // actually holds. A re-run can draw a different status for an existing row
+  // (a changed FAKER_SEED or SPAM_* count reshuffles the draws), so the chain
+  // is built from the stored status, and an existing stream is never touched:
+  // appending to it would contradict the projection. This also backfills rows
+  // written before the seeder wrote events.
+  const streamless = (await deps.query(
+    `SELECT a.application_id, a.user_id, a.pet_id, a.status
+       FROM applications.applications a
+      WHERE a.application_id = ANY($1::uuid[])
+        AND NOT EXISTS (
+          SELECT 1 FROM applications.application_events e WHERE e.aggregate_id = a.application_id
+        )`,
+    [rows.map(row => row[0])]
+  )) as { rows: StreamlessRow[] };
+  const petsById = new Map(deps.pets.map(pet => [pet.pet_id, pet]));
+  const streams = streamless.rows.flatMap(row => {
+    const pet = petsById.get(row.pet_id);
+    if (!pet || !(row.status in STAGE_FOR)) {
+      return [];
+    }
+    const ids = { applicationId: row.application_id, userId: row.user_id, pet };
+    return [{ row, events: eventsFor(row.status, ids, now) }];
+  });
+  // Events are immutable (a trigger rejects UPDATE/DELETE); the conflict
+  // clause only guards a concurrent run.
+  await bulkInsert(
+    { query: deps.query },
+    'applications.application_events',
+    EVENT_COLUMNS,
+    streams.flatMap(({ row, events }) => eventRows(row.application_id, row.user_id, events)),
+    500,
+    'ON CONFLICT (aggregate_id, version) DO NOTHING'
+  );
+  if (streams.length > 0) {
+    // version is the event count, as the live write path projects it.
+    await deps.query(
+      `UPDATE applications.applications a
+          SET version = v.version
+         FROM unnest($1::uuid[], $2::int[]) AS v(application_id, version)
+        WHERE a.application_id = v.application_id`,
+      [streams.map(s => s.row.application_id), streams.map(s => s.events.length)]
+    );
+  }
   return { applications: rows.length };
 };
 
