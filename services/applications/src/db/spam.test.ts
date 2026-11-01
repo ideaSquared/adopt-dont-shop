@@ -2,6 +2,7 @@ import { createSpamFaker, seededUuid } from '@adopt-dont-shop/seed-faker';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApplicationsConfig } from '../config.js';
+import { fold, type ApplicationEvent } from '../domain/index.js';
 
 import { main, runSpam, spamApplications, type QueryFn } from './spam.js';
 
@@ -74,9 +75,23 @@ function recording(): { query: QueryFn; calls: Array<{ text: string; values: unk
 
 const ADOPTERS = [seededUuid('adopter-0')];
 const PETS = [
-  { pet_id: seededUuid('pet-0'), rescue_id: seededUuid('rescue-0') },
-  { pet_id: seededUuid('pet-1'), rescue_id: seededUuid('rescue-1') },
+  {
+    pet_id: seededUuid('pet-0'),
+    rescue_id: seededUuid('rescue-0'),
+    reviewer_id: seededUuid('staff-0'),
+  },
+  {
+    pet_id: seededUuid('pet-1'),
+    rescue_id: seededUuid('rescue-1'),
+    reviewer_id: seededUuid('staff-1'),
+  },
 ];
+
+// Split a recorded bulk INSERT back into rows of `width` columns.
+const rowsOf = (call: { values: unknown[] }, width: number): unknown[][] =>
+  Array.from({ length: call.values.length / width }, (_, i) =>
+    call.values.slice(i * width, (i + 1) * width)
+  );
 
 describe('spamApplications', () => {
   it('inserts idempotently on the deterministic application_id', async () => {
@@ -92,13 +107,58 @@ describe('spamApplications', () => {
 
     // Only two adopter/pet pairs exist, so the request is capped at 2.
     expect(result.applications).toBe(2);
-    expect(calls[0].text).toMatch(/ON CONFLICT \(application_id\) DO NOTHING/);
+    const projection = calls.find(c => c.text.includes('INSERT INTO applications.applications '))!;
+    expect(projection.text).toMatch(/ON CONFLICT \(application_id\) DO NOTHING/);
     // First column of the first row is the deterministic per-pair id.
-    const firstId = calls[0].values[0];
+    const firstId = projection.values[0];
     expect([
       seededUuid(`app-${ADOPTERS[0]}-${PETS[0].pet_id}`),
       seededUuid(`app-${ADOPTERS[0]}-${PETS[1].pet_id}`),
     ]).toContain(firstId);
+  });
+
+  it("writes each application's event chain, so the event-sourced reads can load it", async () => {
+    const { query, calls } = recording();
+    const adopters = Array.from({ length: 30 }, (_, i) => seededUuid(`adopter-${i}`));
+
+    await spamApplications({
+      query,
+      faker: createSpamFaker(),
+      applications: 60,
+      adopterIds: adopters,
+      pets: PETS,
+    });
+
+    const eventCalls = calls.filter(c => c.text.includes('applications.application_events'));
+    expect(eventCalls.length).toBeGreaterThan(0);
+    for (const call of eventCalls) {
+      expect(call.text).toMatch(/ON CONFLICT \(aggregate_id, version\) DO NOTHING/);
+    }
+    // event_id, aggregate_id, version, event_type, event_data, occurred_at, actor_user_id
+    const events = eventCalls.flatMap(c => rowsOf(c, 7));
+    const projection = rowsOf(
+      calls.find(c => c.text.includes('INSERT INTO applications.applications '))!,
+      12
+    );
+    const statuses = new Set(projection.map(row => row[4]));
+    // The skewed bag covers every non-draft status we seed.
+    expect(statuses).toEqual(
+      new Set(['submitted', 'under_review', 'approved', 'rejected', 'withdrawn'])
+    );
+    for (const [applicationId, , , , status, , , , , , , version] of projection) {
+      const chain = events
+        .filter(e => e[1] === applicationId)
+        .sort((a, b) => Number(a[2]) - Number(b[2]));
+      expect(chain.map(e => e[2])).toEqual(chain.map((_, i) => i + 1));
+      const state = fold(chain.map(e => JSON.parse(String(e[4])) as ApplicationEvent));
+      // Folding the written events reproduces the projected row.
+      expect(state.applicationId).toBe(applicationId);
+      expect(state.status).toBe(status);
+      expect(state.version).toBe(version);
+      for (const e of chain) {
+        expect(JSON.parse(String(e[4])).type).toBe(e[3]);
+      }
+    }
   });
 });
 
