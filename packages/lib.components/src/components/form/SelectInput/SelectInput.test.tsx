@@ -250,6 +250,12 @@ describe('SelectInput', () => {
     // Component renders successfully with country options
   });
 
+  it('uses ISO country codes as values and country names as labels when isCountrySelect is true', () => {
+    renderWithTheme(<SelectInput options={[]} isCountrySelect value='GB' />);
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('United Kingdom');
+  });
+
   it('handles disabled options in options array', () => {
     const handleChange = vi.fn();
     renderWithTheme(<SelectInput options={mockOptions} onChange={handleChange} />);

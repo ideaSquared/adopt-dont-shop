@@ -7,7 +7,6 @@ import {
   SelectInput,
   TextArea as LibTextArea,
   Alert,
-  type SelectOption,
 } from '@adopt-dont-shop/lib.components';
 import { validatePostcode, validatePhoneNumber } from '@adopt-dont-shop/lib.utils';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
@@ -22,22 +21,12 @@ interface RescueProfileFormProps {
 type ProfileErrorField = 'name' | 'email' | 'phone' | 'website' | 'street' | 'city' | 'postcode';
 type ProfileErrors = Partial<Record<ProfileErrorField, string>>;
 
-// SelectOption arrays for dropdowns
-const countryOptions: SelectOption[] = [
-  { value: 'United Kingdom', label: 'United Kingdom' },
-  { value: 'Ireland', label: 'Ireland' },
-  { value: 'United States', label: 'United States' },
-  { value: 'Canada', label: 'Canada' },
-  { value: 'Australia', label: 'Australia' },
-  { value: 'Other', label: 'Other' },
-];
-
 const emptyAddress: RescueAddress = {
   street: '',
   city: '',
   county: '',
   postcode: '',
-  country: 'United Kingdom',
+  country: 'GB',
 };
 
 const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -326,9 +315,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
             <div className={styles.formGroup}>
               <SelectInput
                 label="Country *"
-                value={formData.address?.country || 'United Kingdom'}
+                value={formData.address?.country || 'GB'}
                 onChange={handleCountrySelect}
-                options={countryOptions}
+                options={[]}
+                isCountrySelect
+                searchable
                 required
                 fullWidth
               />
