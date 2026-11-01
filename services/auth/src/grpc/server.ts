@@ -18,8 +18,10 @@ import type { AuthConfig } from '../config.js';
 
 import { adapt, adaptUnauth } from './adapter.js';
 import { makeGetApplicantProfile } from './applicant-handlers.js';
+import { makeListColleagueProfiles } from './colleague-handlers.js';
 import { getUserName } from './user-name-handlers.js';
 import { createApplicationsClient, type ApplicationsClient } from './applications-client.js';
+import { createRescueClient, type RescueClient } from './rescue-client.js';
 import {
   changePassword,
   forgotPassword,
@@ -98,6 +100,8 @@ export type CreateGrpcServerOptions = {
   logger: Logger;
   // Injectable for tests; otherwise dialled from config.applicationsGrpcUrl.
   applicationsClient?: ApplicationsClient;
+  // Injectable for tests; otherwise dialled from config.rescueGrpcUrl.
+  rescueClient?: RescueClient;
 };
 
 export type { RunningGrpcServer };
@@ -106,6 +110,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, passwordHasher, tokenIssuer, logger } = opts;
   const applicationsClient =
     opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
+  const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
   const deps: HandlerDeps = {
     pool,
     nats,
@@ -159,6 +164,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     adminGetUser: adapt(adminGetUser, { deps, logger }),
     // Rescue-staff view of who applied â€” scoped through service.applications.
     getApplicantProfile: adapt(makeGetApplicantProfile(applicationsClient), { deps, logger }),
+    // Rescue-staff view of their colleagues — scoped through service.rescue.
+    listColleagueProfiles: adapt(makeListColleagueProfiles(rescueClient), { deps, logger }),
     // Plain display-name lookup for a caller's own enrichment (e.g. the
     // gateway resolving chat participant names, ADS-1408).
     getUserName: adapt(getUserName, { deps, logger }),
@@ -223,6 +230,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'searchUsers',
       'adminGetUser',
       'getApplicantProfile',
+      'listColleagueProfiles',
       'getUserName',
       'adminCreateUser',
       'adminUpdateUser',
@@ -265,7 +273,8 @@ export const startGrpcServer = async (
   // (mirrors services/chat/src/grpc/server.ts).
   const applicationsClient =
     opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
-  const server = createGrpcServer({ ...opts, applicationsClient });
+  const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
+  const server = createGrpcServer({ ...opts, applicationsClient, rescueClient });
   const running = await startGrpcServerShared(server, config, logger);
 
   return {
@@ -278,6 +287,7 @@ export const startGrpcServer = async (
           }
           try {
             applicationsClient.close();
+            rescueClient.close();
           } catch (closeErr) {
             logger.error('cross-service client close error', { err: closeErr });
           }

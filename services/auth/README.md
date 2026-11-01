@@ -91,6 +91,10 @@ email to a caller who can read the application (via
 `ApplicationService.Get`) and holds `applications.read` for its rescue, or who
 holds `admin.users.read`.
 
+**Rescue-scoped:** `ListColleagueProfiles` (`staff.read`, max 100 ids) returns
+userId, name and email only for requested ids that are staff of the caller's own
+rescue; other ids are silently omitted.
+
 **Admin-gated:**
 
 | RPC                                                                                                                               | Permission                      |

@@ -969,6 +969,22 @@ export interface GetApplicantProfileResponse {
   email: string;
 }
 
+export interface ListColleagueProfilesRequest {
+  /** User ids as ListStaffMembers reported them. Max 100. */
+  userIds: string[];
+}
+
+export interface ColleagueProfile {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface ListColleagueProfilesResponse {
+  profiles: ColleagueProfile[];
+}
+
 export interface GetUserNameRequest {
   userId: string;
 }
@@ -7592,6 +7608,254 @@ export const GetApplicantProfileResponse: MessageFns<GetApplicantProfileResponse
   },
 };
 
+function createBaseListColleagueProfilesRequest(): ListColleagueProfilesRequest {
+  return { userIds: [] };
+}
+
+export const ListColleagueProfilesRequest: MessageFns<ListColleagueProfilesRequest> = {
+  encode(message: ListColleagueProfilesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.userIds) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListColleagueProfilesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListColleagueProfilesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListColleagueProfilesRequest {
+    return {
+      userIds: globalThis.Array.isArray(object?.userIds)
+        ? object.userIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.user_ids)
+        ? object.user_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListColleagueProfilesRequest): unknown {
+    const obj: any = {};
+    if (message.userIds?.length) {
+      obj.userIds = message.userIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListColleagueProfilesRequest>, I>>(base?: I): ListColleagueProfilesRequest {
+    return ListColleagueProfilesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListColleagueProfilesRequest>, I>>(object: I): ListColleagueProfilesRequest {
+    const message = createBaseListColleagueProfilesRequest();
+    message.userIds = object.userIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseColleagueProfile(): ColleagueProfile {
+  return { userId: "", firstName: "", lastName: "", email: "" };
+}
+
+export const ColleagueProfile: MessageFns<ColleagueProfile> = {
+  encode(message: ColleagueProfile, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.firstName !== "") {
+      writer.uint32(18).string(message.firstName);
+    }
+    if (message.lastName !== "") {
+      writer.uint32(26).string(message.lastName);
+    }
+    if (message.email !== "") {
+      writer.uint32(34).string(message.email);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ColleagueProfile {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseColleagueProfile();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ColleagueProfile {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+        ? globalThis.String(object.first_name)
+        : "",
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+        ? globalThis.String(object.last_name)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+    };
+  },
+
+  toJSON(message: ColleagueProfile): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.firstName !== "") {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== "") {
+      obj.lastName = message.lastName;
+    }
+    if (message.email !== "") {
+      obj.email = message.email;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ColleagueProfile>, I>>(base?: I): ColleagueProfile {
+    return ColleagueProfile.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ColleagueProfile>, I>>(object: I): ColleagueProfile {
+    const message = createBaseColleagueProfile();
+    message.userId = object.userId ?? "";
+    message.firstName = object.firstName ?? "";
+    message.lastName = object.lastName ?? "";
+    message.email = object.email ?? "";
+    return message;
+  },
+};
+
+function createBaseListColleagueProfilesResponse(): ListColleagueProfilesResponse {
+  return { profiles: [] };
+}
+
+export const ListColleagueProfilesResponse: MessageFns<ListColleagueProfilesResponse> = {
+  encode(message: ListColleagueProfilesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.profiles) {
+      ColleagueProfile.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListColleagueProfilesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListColleagueProfilesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.profiles.push(ColleagueProfile.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListColleagueProfilesResponse {
+    return {
+      profiles: globalThis.Array.isArray(object?.profiles)
+        ? object.profiles.map((e: any) => ColleagueProfile.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListColleagueProfilesResponse): unknown {
+    const obj: any = {};
+    if (message.profiles?.length) {
+      obj.profiles = message.profiles.map((e) => ColleagueProfile.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListColleagueProfilesResponse>, I>>(base?: I): ListColleagueProfilesResponse {
+    return ListColleagueProfilesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListColleagueProfilesResponse>, I>>(
+    object: I,
+  ): ListColleagueProfilesResponse {
+    const message = createBaseListColleagueProfilesResponse();
+    message.profiles = object.profiles?.map((e) => ColleagueProfile.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 function createBaseGetUserNameRequest(): GetUserNameRequest {
   return { userId: "" };
 }
@@ -13228,6 +13492,26 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): GetApplicantProfileResponse => GetApplicantProfileResponse.decode(value),
   },
   /**
+   * Names and emails for rescue colleagues, for the rescue staff list.
+   * Requires staff.read. The caller's rescue is never taken from the
+   * request: auth asks service.rescue ListStaffMembers under the caller's
+   * own principal (which resolves the caller's own rescue) and returns only
+   * requested ids that are staff of that rescue. Other ids are silently
+   * omitted. At most 100 ids per call. Narrower than AdminGetUser, which
+   * staff can't call.
+   */
+  listColleagueProfiles: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/ListColleagueProfiles" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListColleagueProfilesRequest): Buffer =>
+      Buffer.from(ListColleagueProfilesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListColleagueProfilesRequest => ListColleagueProfilesRequest.decode(value),
+    responseSerialize: (value: ListColleagueProfilesResponse): Buffer =>
+      Buffer.from(ListColleagueProfilesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListColleagueProfilesResponse => ListColleagueProfilesResponse.decode(value),
+  },
+  /**
    * Display-name lookup by user id, for a caller's own inter-service
    * enrichment — e.g. the gateway resolving chat participant/sender
    * names (ADS-1408) the same way it already resolves pets/rescues via
@@ -13811,6 +14095,16 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * admins out). Narrower than AdminGetUser, which staff can't call.
    */
   getApplicantProfile: handleUnaryCall<GetApplicantProfileRequest, GetApplicantProfileResponse>;
+  /**
+   * Names and emails for rescue colleagues, for the rescue staff list.
+   * Requires staff.read. The caller's rescue is never taken from the
+   * request: auth asks service.rescue ListStaffMembers under the caller's
+   * own principal (which resolves the caller's own rescue) and returns only
+   * requested ids that are staff of that rescue. Other ids are silently
+   * omitted. At most 100 ids per call. Narrower than AdminGetUser, which
+   * staff can't call.
+   */
+  listColleagueProfiles: handleUnaryCall<ListColleagueProfilesRequest, ListColleagueProfilesResponse>;
   /**
    * Display-name lookup by user id, for a caller's own inter-service
    * enrichment — e.g. the gateway resolving chat participant/sender
@@ -14546,6 +14840,30 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetApplicantProfileResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Names and emails for rescue colleagues, for the rescue staff list.
+   * Requires staff.read. The caller's rescue is never taken from the
+   * request: auth asks service.rescue ListStaffMembers under the caller's
+   * own principal (which resolves the caller's own rescue) and returns only
+   * requested ids that are staff of that rescue. Other ids are silently
+   * omitted. At most 100 ids per call. Narrower than AdminGetUser, which
+   * staff can't call.
+   */
+  listColleagueProfiles(
+    request: ListColleagueProfilesRequest,
+    callback: (error: ServiceError | null, response: ListColleagueProfilesResponse) => void,
+  ): ClientUnaryCall;
+  listColleagueProfiles(
+    request: ListColleagueProfilesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListColleagueProfilesResponse) => void,
+  ): ClientUnaryCall;
+  listColleagueProfiles(
+    request: ListColleagueProfilesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListColleagueProfilesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Display-name lookup by user id, for a caller's own inter-service
