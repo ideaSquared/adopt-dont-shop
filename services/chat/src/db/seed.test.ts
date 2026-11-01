@@ -29,6 +29,23 @@ describe('chat seed', () => {
     expect(seeded).toEqual([chat.chatId]);
   });
 
+  it('seeds a conversation between both participants after the participants exist', async () => {
+    const { query, calls } = recordingQuery();
+
+    await seedChats({ query });
+
+    const chat = SEED_CHATS[0];
+    const messageCalls = calls.filter(c => /INSERT INTO chat\.messages/.test(c.text));
+    expect(messageCalls.length).toBeGreaterThan(1);
+    const lastParticipantIdx = calls.map(c => /chat_participants/.test(c.text)).lastIndexOf(true);
+    expect(calls.indexOf(messageCalls[0])).toBeGreaterThan(lastParticipantIdx);
+    for (const call of messageCalls) {
+      expect(call.values[1]).toBe(chat.chatId); // chat_id
+    }
+    const senders = new Set(messageCalls.map(c => c.values[2]));
+    expect(senders).toEqual(new Set(chat.participants.map(p => p.participantId)));
+  });
+
   it('seeds both the adopter (user) and the rescue manager (rescue) as participants', async () => {
     const { query, calls } = recordingQuery();
 

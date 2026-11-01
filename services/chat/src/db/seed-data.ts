@@ -21,11 +21,19 @@ export type SeedParticipant = {
   rescueId: string | null;
 };
 
+export type SeedMessage = {
+  messageId: string;
+  senderId: string;
+  content: string;
+  minutesAgo: number;
+};
+
 export type SeedChat = {
   chatId: string;
   rescueId: string;
   createdBy: string;
   participants: readonly SeedParticipant[];
+  messages: readonly SeedMessage[];
 };
 
 export const SEED_CHATS: readonly SeedChat[] = [
@@ -45,6 +53,32 @@ export const SEED_CHATS: readonly SeedChat[] = [
         participantId: PAWS_MANAGER_USER_ID,
         role: 'rescue',
         rescueId: PAWS_RESCUE_ID,
+      },
+    ],
+    messages: [
+      {
+        messageId: 'e0000000-0000-4000-8000-000000000001',
+        senderId: JOHN_SMITH_USER_ID,
+        content: "Hi! I'd love to find out more about adopting one of your dogs.",
+        minutesAgo: 120,
+      },
+      {
+        messageId: 'e0000000-0000-4000-8000-000000000002',
+        senderId: PAWS_MANAGER_USER_ID,
+        content: 'Hello John, thanks for getting in touch. Do you have any pets at home already?',
+        minutesAgo: 110,
+      },
+      {
+        messageId: 'e0000000-0000-4000-8000-000000000003',
+        senderId: JOHN_SMITH_USER_ID,
+        content: 'No, just me and a secure garden. I work from home most days.',
+        minutesAgo: 95,
+      },
+      {
+        messageId: 'e0000000-0000-4000-8000-000000000004',
+        senderId: PAWS_MANAGER_USER_ID,
+        content: 'That sounds ideal. Would you like to arrange a meet this weekend?',
+        minutesAgo: 80,
       },
     ],
   },

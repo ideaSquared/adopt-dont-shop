@@ -5,7 +5,7 @@
 // createDbClient. References user/rescue ids owned by the auth/rescue seeds,
 // but carries no cross-schema FK so insert order across services doesn't
 // matter — the root orchestrator runs chat last. The chat row is inserted
-// before its participants (intra-schema FK chat_participants → chats).
+// before its participants and messages (intra-schema FKs → chats).
 //
 // Idempotent: every INSERT is ON CONFLICT (<pk>) DO UPDATE.
 
@@ -37,6 +37,14 @@ const UPSERT_PARTICIPANT = `
     updated_at = now()
 `;
 
+const UPSERT_MESSAGE = `
+  INSERT INTO chat.messages (message_id, chat_id, sender_id, content, created_at, updated_at)
+  VALUES ($1, $2, $3, $4, now() - make_interval(mins => $5::int), now() - make_interval(mins => $5::int))
+  ON CONFLICT (message_id) DO UPDATE SET
+    content = EXCLUDED.content,
+    updated_at = now()
+`;
+
 export type SeedDeps = {
   query: QueryFn;
 };
@@ -52,6 +60,15 @@ export const seedChats = async (deps: SeedDeps): Promise<string[]> => {
         p.participantId,
         p.role,
         p.rescueId,
+      ]);
+    }
+    for (const m of chat.messages) {
+      await deps.query(UPSERT_MESSAGE, [
+        m.messageId,
+        chat.chatId,
+        m.senderId,
+        m.content,
+        m.minutesAgo,
       ]);
     }
     seeded.push(chat.chatId);
