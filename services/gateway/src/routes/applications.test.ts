@@ -374,6 +374,39 @@ describe('applications routes', () => {
     expect(mocks.startDraft.mock.calls[0][0]).toEqual({ adopterId: 'usr-1', petId: 'pet-1' });
   });
 
+  // A failure after StartDraft leaves a draft behind. StartDraft hands that
+  // same draft back on the retry (it is the applications service that resumes
+  // it), so the gateway's unchanged Start → Save → Submit sequence completes.
+  it('POST retried after an interrupted attempt resumes the stranded draft and submits it', async () => {
+    const stranded = { ...APP, version: 1 };
+    mocks.startDraft.mockResolvedValue({ application: stranded });
+    mocks.saveDraftAnswers
+      .mockRejectedValueOnce({ code: grpcStatus.UNAVAILABLE, details: 'connection reset' })
+      .mockResolvedValue({ application: { ...stranded, version: 2 } });
+    mocks.submitDraft.mockResolvedValue({ application: SUBMITTED });
+    const send = () =>
+      app.inject({
+        method: 'POST',
+        url: '/api/v1/applications',
+        headers: ADOPTER,
+        payload: { petId: 'pet-1' },
+      });
+
+    const interrupted = await send();
+    const retry = await send();
+
+    expect(interrupted.statusCode).toBe(503);
+    expect(mocks.submitDraft).toHaveBeenCalledTimes(1);
+    expect(retry.statusCode).toBe(201);
+    expect((retry.json() as { data: { status: string } }).data).toMatchObject({
+      status: 'submitted',
+    });
+    expect(mocks.submitDraft.mock.calls[0][0]).toEqual({
+      applicationId: stranded.applicationId,
+      expectedVersion: 2,
+    });
+  });
+
   it('PATCH /:id/status approved → Approve, returns the view', async () => {
     mocks.approve.mockResolvedValue({ application: SUBMITTED });
     const res = await app.inject({

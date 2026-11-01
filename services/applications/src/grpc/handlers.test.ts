@@ -369,6 +369,57 @@ describe('makeStartDraft', () => {
       startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' })
     ).rejects.not.toMatchObject({ code: 'ALREADY_EXISTS' });
   });
+
+  // A previous POST /applications that died after StartDraft strands a draft
+  // the adopter can't see or finish. Starting again for the same pet must
+  // hand that draft back instead of failing on the one-open-application rule.
+  it('returns the existing draft for the same adopter and pet without creating a new aggregate', async () => {
+    const getPet = vi.fn().mockResolvedValue({ pet: { petId: 'pet-1', rescueId: 'rsc-1' } });
+    const query = vi.fn().mockImplementation((sql: string) => {
+      if (sql.includes('FROM applications') && sql.includes("status = 'draft'")) {
+        return Promise.resolve({ rows: [{ application_id: 'app-stranded' }] });
+      }
+      if (sql.includes('FROM application_events')) {
+        return Promise.resolve({ rows: [draftCreatedRow('app-stranded', 'usr-1', 'rsc-1')] });
+      }
+      return Promise.resolve({ rows: [] });
+    });
+    const deps = { pool: { query }, nats: {} } as unknown as HandlerDeps;
+    const startDraft = makeStartDraft(makePetsClient(getPet));
+
+    const res = await startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' });
+
+    expect(res.application.applicationId).toBe('app-stranded');
+    expect(res.application.status).toBe(ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_DRAFT);
+    expect(res.application.version).toBe(1);
+    const writes = query.mock.calls.filter(([sql]) => /^\s*(INSERT|UPDATE)/i.test(String(sql)));
+    expect(writes).toEqual([]);
+    expect((deps as { _publish?: ReturnType<typeof vi.fn> })._publish).toBeUndefined();
+  });
+
+  it('still refuses with ALREADY_EXISTS when the open application is not a draft', async () => {
+    const getPet = vi.fn().mockResolvedValue({ pet: { petId: 'pet-1', rescueId: 'rsc-1' } });
+    // No draft row matches (the existing application is submitted), so the
+    // handler falls through to creating one and the partial unique index
+    // refuses it exactly as before.
+    const query = vi.fn().mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO applications (')) {
+        return Promise.reject(
+          Object.assign(new Error('dup'), {
+            code: '23505',
+            constraint: 'applications_user_pet_unique',
+          })
+        );
+      }
+      return Promise.resolve({ rows: [] });
+    });
+    const deps = { pool: { query }, nats: {} } as unknown as HandlerDeps;
+    const startDraft = makeStartDraft(makePetsClient(getPet));
+
+    await expect(
+      startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' })
+    ).rejects.toMatchObject({ code: 'ALREADY_EXISTS' });
+  });
 });
 
 describe('submitDraft', () => {
