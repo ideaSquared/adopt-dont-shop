@@ -106,25 +106,35 @@ describe('InvitationsService', () => {
   });
 
   describe('getPendingInvitations', () => {
-    it('should get pending invitations successfully', async () => {
-      const mockInvitations = [
-        {
-          invitation_id: 1,
-          email: 'test@example.com',
-          title: 'Volunteer',
-          created_at: '2025-01-01',
-          expiration: '2025-01-08',
-        },
-      ];
-
+    it('maps the gateway { success, data } camelCase invitations', async () => {
       mockApiService.get = vi.fn().mockResolvedValue({
         success: true,
-        invitations: mockInvitations,
+        data: [
+          {
+            invitationId: 1,
+            rescueId: 'rescue-1',
+            email: 'test@example.com',
+            title: 'Volunteer',
+            status: 'pending',
+            invitedBy: 'user-1',
+            createdAt: '2025-01-01',
+            expiresAt: '2025-01-08',
+          },
+        ],
       });
 
       const result = await service.getPendingInvitations('rescue-1');
 
-      expect(result).toEqual(mockInvitations);
+      expect(result).toEqual([
+        {
+          invitation_id: 1,
+          email: 'test@example.com',
+          title: 'Volunteer',
+          invited_by: 'user-1',
+          created_at: '2025-01-01',
+          expiration: '2025-01-08',
+        },
+      ]);
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/rescues/rescue-1/invitations');
     });
 
@@ -155,7 +165,7 @@ describe('InvitationsService', () => {
     });
 
     it('should return an empty array when success is true but invitations is not an array', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ success: true, invitations: null });
+      mockApiService.get = vi.fn().mockResolvedValue({ success: true, data: null });
 
       const result = await service.getPendingInvitations('rescue-1');
 
