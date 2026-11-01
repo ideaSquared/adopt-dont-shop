@@ -1,5 +1,5 @@
 import { test, expect } from '../../fixtures';
-import { SEEDED_PET_IDS } from '../../helpers/seeds';
+import { seededPetId } from '../../helpers/seeds';
 
 /**
  * Behaviourally: a pet that is viewable but NOT available for adoption must
@@ -17,8 +17,10 @@ import { SEEDED_PET_IDS } from '../../helpers/seeds';
 test.describe('availability gating', () => {
   test('the apply CTA is absent or disabled for a viewable but unavailable (pending) pet', async ({
     page,
+    apiAs,
   }) => {
-    await page.goto(`/pets/${SEEDED_PET_IDS.pending}`);
+    const pendingPetId = await seededPetId(await apiAs('rescue'), 'pending');
+    await page.goto(`/pets/${pendingPetId}`);
     // The pending pet is viewable, so its detail page renders the name as <h1>.
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15_000 });
 

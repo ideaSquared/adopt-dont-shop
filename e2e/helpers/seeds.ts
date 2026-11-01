@@ -69,31 +69,51 @@ export const deleteWithCsrf = (
 // -----------------------------------------------------------------------
 // SEED FIXTURE ACCESSORS
 //
-// The backend seeders (see service.backend/src/seeders/) populate the DB
-// with deterministic test data:
-//   - John Smith (adopter) has 3 applications, a chat thread with the
-//     Pawsitive Rescue, notifications, a favourite pet, and notification
-//     preferences (the latter two added in 31-e2e-fixtures.ts).
-//   - The pet catalogue includes 4 'available' + 1 'pending' pets, plus
-//     dedicated 'adopted' and 'on_hold' fixtures from 31-e2e-fixtures.ts.
+// `pnpm db:seed` (scripts/seed.mjs) generates the dev/e2e personas through the
+// API, so nothing it creates has a fixed id. The data is defined in
+// scripts/lib/seed-personas.mjs:
+//   - John Smith (adopter) has an under-review application for Luna, an
+//     enquiry chat with Paws Rescue about Buddy, and favourites (Buddy, Luna).
+//     Buddy has no application from him, so the /apply form for Buddy opens.
+//   - Paws Rescue (the `rescue` persona's rescue) owns Buddy (available),
+//     Luna (pending) and Max (adopted).
 //
 // Tests should READ these fixtures rather than create their own per-test
 // data; the helpers below are thin lookups, not factories.
 // -----------------------------------------------------------------------
 
-/** Pet IDs hard-coded by the seeders (08-pets.ts + 31-e2e-fixtures.ts). */
-export const SEEDED_PET_IDS = {
-  available: '9ff53898-c5c6-4422-a245-54e52d4c4b78',
-  pending: 'a1d109eb-e717-44a0-aed7-c7c0af6c152f',
-  adopted: 'e2e0a000-0000-4000-8000-000000000001',
-  onHold: 'e2e0a000-0000-4000-8000-000000000002',
+/** Names of the seeded Paws Rescue pets, by the status each is seeded in. */
+export const SEEDED_PETS = {
+  available: 'Buddy',
+  pending: 'Luna',
+  adopted: 'Max',
 } as const;
 
-/** John Smith's chat with Pawsitive Rescue (10-chats.ts). */
-export const SEEDED_CHAT_ID_FOR_ADOPTER = '7dfe4c51-930a-443b-aac5-3e42750a2f1a';
-
-/** John Smith user id (04-users.ts). */
-export const SEEDED_ADOPTER_USER_ID = '98915d9e-69ed-46b2-a897-57d8469ff360';
+/**
+ * Look up a seeded pet's id by name. Uses the rescue-staff client because
+ * the pets are Paws Rescue's, and adopted pets are hidden from everyone but
+ * their own rescue.
+ */
+export async function seededPetId(
+  rescueApi: ApiClient,
+  status: keyof typeof SEEDED_PETS
+): Promise<string> {
+  const name = SEEDED_PETS[status];
+  const rescueId = await getMyRescueId(rescueApi);
+  if (!rescueId) {
+    throw new Error('could not resolve the rescue staff persona’s rescueId');
+  }
+  const res = await rescueApi.context.get('/api/v1/pets', {
+    params: { rescueId, search: name, status: 'all', limit: 100 },
+  });
+  await expectOk(res, `GET /pets?search=${name}`);
+  const body = (await res.json()) as { data?: Array<{ pet_id?: string; name?: string }> };
+  const petId = body.data?.find(p => p.name === name)?.pet_id;
+  if (!petId) {
+    throw new Error(`seeded pet ${name} not found — run \`pnpm db:seed\` first`);
+  }
+  return petId;
+}
 
 /**
  * Resolve the rescue ID associated with a rescue-staff API client.  The
@@ -139,7 +159,7 @@ export async function getMyRescueId(rescueApi: ApiClient): Promise<string | null
  * Create a brand-new available pet attached to the rescue user's rescue.
  * Used by tests that legitimately need uniqueness (rescue publishes a
  * pet → adopter sees it in search).  Read-side tests should use
- * SEEDED_PET_IDS.available instead.
+ * seededPetId(rescueApi, 'available') instead.
  *
  * Notes on the body shape:
  *   - The pets service requires rescue_id on create (handlers.ts:
@@ -343,8 +363,7 @@ export async function createAdopterApplication(
 
 /**
  * Pick the first chat conversation the seeded adopter participates in.
- * The seeders guarantee at least one chat for John Smith via the
- * application_id linkage and chat_participants table.
+ * The seed guarantees at least one: John Smith's enquiry about Buddy.
  */
 export async function getFirstAdopterChat(adopterApi: ApiClient): Promise<{ chatId: string }> {
   // The chat router is mounted at /api/v1/chats AND /api/v1/conversations.
@@ -360,15 +379,11 @@ export async function getFirstAdopterChat(adopterApi: ApiClient): Promise<{ chat
   };
   const list = body.data ?? body.chats ?? body.conversations ?? [];
   const first = list[0];
-  if (first) {
-    const chatId = first.chatId ?? first.id ?? first.chat_id;
-    if (chatId) {
-      return { chatId };
-    }
+  const chatId = first?.chatId ?? first?.id ?? first?.chat_id;
+  if (!chatId) {
+    throw new Error('the seeded adopter has no chats — run `pnpm db:seed` first');
   }
-  // Fallback to the known seeded chat id — proves the seed has the row,
-  // even if the list endpoint shape changes.
-  return { chatId: SEEDED_CHAT_ID_FOR_ADOPTER };
+  return { chatId };
 }
 
 /**

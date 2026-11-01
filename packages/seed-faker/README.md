@@ -35,8 +35,8 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 
 - `assertSpamAllowed()` — throws unless the spam env guard is satisfied (see
   below), so `db:spam` can never run against a non-dev database.
-- `assertNotProduction()` — the one `db:seed` guard shared by `auth`,
-  `applications`, `chat`, `pets` and `rescue`: throws in `production` or
+- `assertNotProduction()` — the one `db:seed` guard shared by `auth` and
+  `pets` (the SQL bootstrap rows; the dev personas come from the API): throws in `production` or
   `staging` unless `ALLOW_PROD_SEED=true`.
 - `createSpamFaker()` / `DEFAULT_FAKER_SEED` — a UK-locale Faker seeded for
   reproducible runs.

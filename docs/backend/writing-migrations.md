@@ -210,9 +210,10 @@ comment saying why it's safe:
 ```
 
 `schema-equivalence.yml` also re-runs every service's migrations a second
-time (idempotency) and, for the services with a `db:seed`
-(auth, rescue, pets, applications, chat), replays each branch's newly-added
-migrations against a database already populated by that seed — so a `NOT
+time (idempotency) and, for the services with dev data (auth, rescue, pets,
+applications, chat), replays each branch's newly-added migrations against a
+database already populated by that service's `db:seed` (where it has one) and
+a small `db:spam` run — so a `NOT
 NULL` add that's invisible against CI's fresh, empty database fails there
 instead of in production. See [ADR
 0008](../adr/0008-pre-deploy-migration-strategy.md) for the full policy.

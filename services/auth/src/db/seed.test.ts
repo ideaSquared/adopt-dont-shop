@@ -18,7 +18,7 @@ function recordingQuery(): { query: QueryFn; calls: Array<{ text: string; values
 const fakeHash = vi.fn(async (password: string) => `hashed:${password}`);
 
 describe('auth seed', () => {
-  it('seeds every canonical persona exactly once', async () => {
+  it('seeds every bootstrap account exactly once', async () => {
     const { query, calls } = recordingQuery();
 
     const seeded = await seedUsers({ query, hash: fakeHash });
@@ -27,27 +27,15 @@ describe('auth seed', () => {
     expect(seeded).toEqual(SEED_USERS.map(u => u.email));
   });
 
-  it('includes the e2e adopter john.smith with the pinned user id', async () => {
+  it('seeds only the bootstrap super_admin — every other persona comes from the API', async () => {
     const { query, calls } = recordingQuery();
 
     await seedUsers({ query, hash: fakeHash });
 
-    const johnRow = calls.find(c => c.values.includes('john.smith@gmail.com'));
-    expect(johnRow).toBeDefined();
-    // Pinned to e2e/helpers/seeds.ts SEEDED_ADOPTER_USER_ID.
-    expect(johnRow?.values[0]).toBe('98915d9e-69ed-46b2-a897-57d8469ff360');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].values).toContain('superadmin@adoptdontshop.dev');
     // user_type is the last param.
-    expect(johnRow?.values.at(-1)).toBe('adopter');
-  });
-
-  it('seeds the admin + rescue-staff personas the e2e suite logs in as', async () => {
-    const { query, calls } = recordingQuery();
-
-    await seedUsers({ query, hash: fakeHash });
-
-    const emails = calls.flatMap(c => c.values).filter(v => typeof v === 'string');
-    expect(emails).toContain('superadmin@adoptdontshop.dev');
-    expect(emails).toContain('rescue.manager@pawsrescue.dev');
+    expect(calls[0].values.at(-1)).toBe('super_admin');
   });
 
   it('hashes the shared dev password once and stores the hash, never the plaintext', async () => {
@@ -56,7 +44,6 @@ describe('auth seed', () => {
 
     await seedUsers({ query, hash });
 
-    // One hash call regardless of persona count (all share SEED_PASSWORD).
     expect(hash).toHaveBeenCalledTimes(1);
     expect(hash).toHaveBeenCalledWith(SEED_PASSWORD);
     for (const call of calls) {

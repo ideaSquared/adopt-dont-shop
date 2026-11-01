@@ -178,6 +178,7 @@ services:
   # =========================================================================
   # Microservices. Each: shared dev image, source mount, node_modules anon
   # volumes, then migrate (+ seed if present) and start watch.
+  # seed-personas (at the end) then generates the dev personas through the API.
   # =========================================================================
   service-gateway:
     <<: *dev-build
@@ -188,6 +189,15 @@ services:
       # services/gateway/docs/legal — which doesn't exist. The .:/app bind
       # mount puts the repo's real docs/legal at /app/docs/legal.
       LEGAL_DOCS_DIR: /app/docs/legal
+      # The persona seed (scripts/seed.mjs, the seed-personas container below)
+      # creates every dev account through the API, completing sign-ups and
+      # invitations with the test-only token-peek routes, and makes a few
+      # dozen logins in a burst. Dev defaults both on; set them in .env to
+      # restore the production-like values. The gateway refuses to boot with
+      # E2E_TOKEN_PEEK=true under NODE_ENV=production.
+      E2E_TOKEN_PEEK: ${E2E_TOKEN_PEEK:-true}
+      GATEWAY_RATE_LIMIT_MAX: ${GATEWAY_RATE_LIMIT_MAX:-1000}
+      GATEWAY_AUTH_RATE_LIMIT_MAX: ${GATEWAY_AUTH_RATE_LIMIT_MAX:-100}
     volumes: *dev-volumes
     command: sh -c "pnpm --filter @adopt-dont-shop/service.gateway run dev"
 
@@ -196,9 +206,11 @@ services:
     environment:
       <<: *dev-env
     volumes: *dev-volumes
-    # db:seed plants the fixed personas; db:spam plants the realistic synthetic
-    # population but only on a FRESH db (SEED_ONLY_IF_EMPTY) so a reboot never
-    # re-seeds over an existing one. To (re)populate on demand: `pnpm db:seed:dev`.
+    # db:seed plants the bootstrap super_admin (the other personas come from the
+    # seed-personas container, through the API); db:spam plants the realistic
+    # synthetic population but only on a FRESH db (SEED_ONLY_IF_EMPTY) so a
+    # reboot never re-seeds over an existing one. To (re)populate on demand:
+    # `pnpm db:seed:dev`.
     command: sh -c "pnpm --filter @adopt-dont-shop/service.auth run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.auth run --if-present db:seed && ALLOW_SPAM=true SEED_ONLY_IF_EMPTY=true pnpm --filter @adopt-dont-shop/service.auth run --if-present db:spam && pnpm --filter @adopt-dont-shop/service.auth run dev"
 
   service-pets:
@@ -213,14 +225,14 @@ services:
     environment:
       <<: *dev-env
     volumes: *dev-volumes
-    command: sh -c "pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:seed && ALLOW_SPAM=true SEED_ONLY_IF_EMPTY=true pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:spam && pnpm --filter @adopt-dont-shop/service.rescue run dev"
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:migrate && ALLOW_SPAM=true SEED_ONLY_IF_EMPTY=true pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:spam && pnpm --filter @adopt-dont-shop/service.rescue run dev"
 
   service-applications:
     <<: *dev-build
     environment:
       <<: *dev-env
     volumes: *dev-volumes
-    command: sh -c "pnpm --filter @adopt-dont-shop/service.applications run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.applications run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.applications run dev"
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.applications run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.applications run dev"
 
   service-notifications:
     <<: *dev-build
@@ -255,7 +267,7 @@ services:
     environment:
       <<: *dev-env
     volumes: *dev-volumes
-    command: sh -c "pnpm --filter @adopt-dont-shop/service.chat run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.chat run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.chat run dev"
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.chat run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.chat run dev"
 
   # service-cms was previously absent here, so under the default full-stack boot
   # it fell back to the base file's heavy per-service Dockerfile.service build
@@ -268,3 +280,32 @@ services:
       <<: *dev-env
     volumes: *dev-volumes
     command: sh -c "pnpm --filter @adopt-dont-shop/service.cms run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.cms run dev"
+
+  # One-shot: generates the fixed dev personas (admins, rescues + staff,
+  # adopters, pets, an application, a chat) THROUGH THE GATEWAY once the
+  # services are up — scripts/seed.mjs --api-only. The SQL-only rows it needs
+  # (super_admin, breeds) are planted by service-auth / service-pets on boot.
+  # Idempotent, so it runs on every `pnpm docker:dev` and exits; `pnpm db:seed`
+  # re-runs it from the host.
+  seed-personas:
+    <<: *dev-build
+    profiles: ['services', 'full']
+    environment:
+      <<: *dev-env
+      SEED_API_URL: http://service-gateway:4000
+    volumes: *dev-volumes
+    depends_on:
+      service-gateway:
+        condition: service_healthy
+      service-auth:
+        condition: service_healthy
+      service-rescue:
+        condition: service_healthy
+      service-pets:
+        condition: service_healthy
+      service-applications:
+        condition: service_healthy
+      service-chat:
+        condition: service_healthy
+    restart: 'no'
+    command: node scripts/seed.mjs --api-only
