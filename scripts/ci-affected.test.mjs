@@ -99,6 +99,8 @@ describe('classifyAffected', () => {
     'turbo.json',
     'tsconfig.base.json',
     'eslint.config.js',
+    '.nvmrc',
+    '.npmrc',
   ])('treats a root config change (%s) as affecting everything', file => {
     const result = classify({ files: [file] });
 

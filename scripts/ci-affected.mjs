@@ -31,6 +31,8 @@ const GLOBAL_FILES = [
   /^vitest\.(shared\.config|workspace)\.ts$/,
   /^eslint\.config\.js$/,
   /^\.prettierrc$/,
+  /^\.nvmrc$/,
+  /^\.npmrc$/,
   /^\.github\/workflows\/ci\.yml$/,
   /^\.github\/actions\//,
 ];
