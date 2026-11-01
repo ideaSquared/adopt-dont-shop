@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '../../../styles/theme.css';
 
 export const panel = style({
@@ -51,16 +51,18 @@ export const tabs = style({
   minHeight: 0,
   display: 'flex',
   flexDirection: 'column',
-  selectors: {
-    '& > [role="tablist"]': {
-      padding: '0 1.25rem',
-      marginBottom: 0,
-      overflowX: 'auto',
-    },
-    '& > [role="tabpanel"]': {
-      flex: 1,
-      overflowY: 'auto',
-      padding: '1.25rem',
-    },
-  },
+});
+
+// Child selectors can't live in style({ selectors }) — vanilla-extract requires them to target
+// the element itself — so style Tabs' tablist and panel through globalStyle.
+globalStyle(`${tabs} > [role="tablist"]`, {
+  padding: '0 1.25rem',
+  marginBottom: 0,
+  overflowX: 'auto',
+});
+
+globalStyle(`${tabs} > [role="tabpanel"]`, {
+  flex: 1,
+  overflowY: 'auto',
+  padding: '1.25rem',
 });
