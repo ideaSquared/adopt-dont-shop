@@ -192,9 +192,38 @@ describe('createGenerator', () => {
       name: 'Max',
       rescue_id: 'rescue-Paws Rescue',
       type: 'dog',
+      breed: 'Jack Russell Terrier',
     });
     const hops = calls.filter(c => c.path === '/api/v1/pets/pet-Max/status').map(c => c.body);
     expect(hops.map(h => h.toStatus)).toEqual(['pending', 'adopted']);
+  });
+
+  it('sends each seeded pet its breed by name, as the rescue app does', async () => {
+    const routes = {
+      ...fullySeededRoutes(),
+      'GET /api/v1/pets': () => [200, { data: [] }],
+      'POST /api/v1/pets': ({ body }) => [
+        201,
+        { data: { pet_id: `pet-${body.name}`, status: 'available' } },
+      ],
+      ...Object.fromEntries(
+        personas.PETS.map(p => [`POST /api/v1/pets/pet-${p.name}/status`, () => [200, {}]])
+      ),
+    };
+    const { fetchImpl, calls } = fakeGateway(routes);
+    const generator = createGenerator({ baseUrl: BASE, password: 'pw', fetchImpl });
+
+    await generator.run(personas);
+
+    const breeds = calls
+      .filter(c => c.method === 'POST' && c.path === '/api/v1/pets')
+      .map(c => [c.body.name, c.body.breed]);
+    expect(breeds).toEqual([
+      ['Buddy', 'Labrador Retriever'],
+      ['Luna', 'Domestic Shorthair'],
+      ['Max', 'Jack Russell Terrier'],
+      ['Bella', 'Staffordshire Bull Terrier'],
+    ]);
   });
 
   it('starts the review of a freshly submitted application as the rescue reviewer', async () => {

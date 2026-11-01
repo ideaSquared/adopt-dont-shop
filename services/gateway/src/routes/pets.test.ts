@@ -467,6 +467,26 @@ describe('POST /api/v1/pets', () => {
     }
   });
 
+  it('forwards the breed name the rescue app sends to the pets service', async () => {
+    const { client, createMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      createMock.mockResolvedValueOnce({ pet: PET_FIXTURE } satisfies CreatePetResponse);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets',
+        payload: { name: 'Buddy', rescue_id: 'rsc-1', type: 'dog', breed: 'Labrador Retriever' },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const [req] = createMock.mock.calls[0];
+      expect(req.breedName).toBe('Labrador Retriever');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('maps PERMISSION_DENIED → 403', async () => {
     const { client, createMock } = makeClient();
     const app = await makeApp(client);
@@ -508,6 +528,24 @@ describe('PATCH /api/v1/pets/:id', () => {
       const [req] = updateMock.mock.calls[0];
       expect(req.petId).toBe('pet-1');
       expect(req.name).toBe('Rexy');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('forwards an edited breed name to the pets service', async () => {
+    const { client, updateMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      updateMock.mockResolvedValueOnce({ pet: PET_FIXTURE } satisfies UpdatePetResponse);
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/pets/pet-1',
+        payload: { breed: 'Beagle' },
+      });
+      expect(res.statusCode).toBe(200);
+      const [req] = updateMock.mock.calls[0];
+      expect(req.breedName).toBe('Beagle');
     } finally {
       await app.close();
     }

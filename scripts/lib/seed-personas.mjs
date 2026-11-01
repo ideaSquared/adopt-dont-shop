@@ -109,13 +109,16 @@ export const ADOPTERS = [
 ];
 
 // Created by a staff member of `rescue` (`createdBy`), then moved to `status`
-// through the pet status machine. Pets always start 'available'.
+// through the pet status machine. Pets always start 'available'. `breed` is a
+// breed NAME from the pets service's catalogue for the pet's `type`; the
+// service resolves it to a breed id.
 export const PETS = [
   {
     name: 'Buddy',
     rescue: 'paws',
     createdBy: 'rescue.manager@pawsrescue.dev',
     type: 'dog',
+    breed: 'Labrador Retriever',
     gender: 'male',
     size: 'large',
     ageGroup: 'adult',
@@ -127,6 +130,7 @@ export const PETS = [
     rescue: 'paws',
     createdBy: 'rescue.manager@pawsrescue.dev',
     type: 'cat',
+    breed: 'Domestic Shorthair',
     gender: 'female',
     size: 'small',
     ageGroup: 'young',
@@ -140,6 +144,7 @@ export const PETS = [
     rescue: 'paws',
     createdBy: 'rescue.manager@pawsrescue.dev',
     type: 'dog',
+    breed: 'Jack Russell Terrier',
     gender: 'male',
     size: 'medium',
     ageGroup: 'senior',
@@ -151,6 +156,7 @@ export const PETS = [
     rescue: 'happyTails',
     createdBy: 'maria@happytailsrescue.dev',
     type: 'dog',
+    breed: 'Staffordshire Bull Terrier',
     gender: 'female',
     size: 'medium',
     ageGroup: 'adult',

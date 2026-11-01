@@ -262,6 +262,12 @@ message CreatePetRequest {
   string temperament_json = 17;
   string tags_json = 18;
   string extra_json = 19;
+  // Breed NAME, resolved to a breed_id by the service against pets.breeds
+  // (matched on the pet's type + name, case-insensitive). Used when the
+  // caller (the rescue app) only knows the name; an explicit breed_id /
+  // secondary_breed_id wins. An unknown name is INVALID_ARGUMENT.
+  optional string breed_name = 20;
+  optional string secondary_breed_name = 21;
 }
 
 message CreatePetResponse {
@@ -373,6 +379,10 @@ message UpdatePetRequest {
   // Off-market archive flag (distinct from status + from soft Delete).
   // Mutating it platform-wide requires `pets.manage:any`.
   optional bool archived = 19;
+  // Breed NAME, resolved against the pet's type; same rules as
+  // CreatePetRequest.breed_name. An explicit breed_id wins.
+  optional string breed_name = 20;
+  optional string secondary_breed_name = 21;
 }
 
 message UpdatePetResponse {
