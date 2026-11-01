@@ -1,27 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Navigate, useLocation, useNavigate } from 'react-router';
 import clsx from 'clsx';
-import { useAuth, useHasPermission, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
-import { ThemeToggle, toast } from '@adopt-dont-shop/lib.components';
+import { useAuth, useHasPermission } from '@adopt-dont-shop/lib.auth';
+import { toast } from '@adopt-dont-shop/lib.components';
 import { SettingsFormSkeleton } from '../components/skeletons';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import RescueProfileForm from '../components/rescue/RescueProfileForm';
 import AdoptionPolicyForm from '../components/rescue/AdoptionPolicyForm';
-import NotificationPreferencesForm from '../components/rescue/NotificationPreferencesForm';
 import QuestionsBuilder from '../components/rescue/QuestionsBuilder';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
 import * as styles from './RescueSettings.css';
 
-type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security' | 'appearance';
+type TabType = 'profile' | 'policies' | 'questions';
 
-const VALID_TABS: ReadonlySet<string> = new Set<TabType>([
-  'profile',
-  'policies',
-  'questions',
-  'preferences',
-  'security',
-  'appearance',
+const VALID_TABS: ReadonlySet<string> = new Set<TabType>(['profile', 'policies', 'questions']);
+
+// Personal settings moved to /user-settings; keep old links and bookmarks working.
+const USER_SETTINGS_HASHES: ReadonlySet<string> = new Set([
+  '#preferences',
+  '#security',
+  '#appearance',
 ]);
 
 const parseTabFromHash = (hash: string): TabType => {
@@ -168,6 +167,10 @@ const RescueSettings: React.FC = () => {
     await loadRescueData();
   };
 
+  if (USER_SETTINGS_HASHES.has(location.hash)) {
+    return <Navigate to={`/user-settings${location.hash}`} replace />;
+  }
+
   if (loading) {
     return (
       <div className={styles.pageContainer}>
@@ -251,30 +254,6 @@ const RescueSettings: React.FC = () => {
           >
             Application Questions
           </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'preferences' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'preferences'}
-            onClick={() => setActiveTab('preferences')}
-          >
-            Preferences
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'security' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'security'}
-            onClick={() => setActiveTab('security')}
-          >
-            Security
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'appearance' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'appearance'}
-            onClick={() => setActiveTab('appearance')}
-          >
-            Appearance
-          </button>
         </div>
       </div>
 
@@ -299,29 +278,6 @@ const RescueSettings: React.FC = () => {
             <p>Loading rescue information...</p>
           </div>
         )}
-      </div>
-
-      <div className={clsx(activeTab === 'preferences' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <NotificationPreferencesForm />
-      </div>
-
-      <div className={clsx(activeTab === 'security' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <div className={styles.securitySection}>
-          <h2>Two-Factor Authentication</h2>
-          <p>
-            Add an extra layer of security to your account by requiring a verification code when you
-            sign in.
-          </p>
-          <TwoFactorSettings />
-        </div>
-      </div>
-
-      <div className={clsx(activeTab === 'appearance' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <div className={styles.securitySection}>
-          <h2>Theme</h2>
-          <p>Choose how the rescue tools look — light, cosy (warm cream), or dark.</p>
-          <ThemeToggle />
-        </div>
       </div>
     </div>
   );

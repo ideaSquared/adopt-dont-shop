@@ -190,9 +190,18 @@ describe('rescue Navigation [ADS-645 / A7 ADS-1077]', () => {
       'href',
       '/reports'
     );
-    expect(within(admin).getByRole('link', { name: /Settings/ })).toHaveAttribute(
+    expect(within(admin).getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/settings'
+    );
+  });
+
+  it('shows My Settings to every signed-in user, even with no permissions', () => {
+    renderNav({ permissions: [] });
+
+    expect(screen.getByRole('link', { name: 'My Settings' })).toHaveAttribute(
+      'href',
+      '/user-settings'
     );
   });
 

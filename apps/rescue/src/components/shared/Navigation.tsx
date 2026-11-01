@@ -70,6 +70,7 @@ const Navigation: React.FC = () => {
         },
         { path: '/reports', label: 'Reports', icon: '📑' },
         { path: '/settings', label: 'Settings', icon: '⚙️' },
+        { path: '/user-settings', label: 'My Settings', icon: '👤' },
       ],
     },
   ];
