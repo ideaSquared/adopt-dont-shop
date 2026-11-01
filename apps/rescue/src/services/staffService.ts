@@ -16,6 +16,7 @@ export interface StaffMember {
 type RawStaffMember = {
   id?: string;
   staffId?: string;
+  staffMemberId?: string;
   userId?: string;
   user_id?: string;
   rescueId?: string;
@@ -81,7 +82,7 @@ export class RescueStaffService {
    */
   private transformStaffMember = (staff: RawStaffMember): StaffMember => {
     return {
-      id: staff.id || staff.staffId || '',
+      id: staff.id || staff.staffId || staff.staffMemberId || '',
       userId: staff.userId || staff.user_id || '',
       rescueId: staff.rescueId || staff.rescue_id || '',
       firstName: staff.firstName || staff.first_name || staff.user?.firstName || 'Unknown',

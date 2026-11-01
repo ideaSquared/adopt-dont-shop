@@ -27,6 +27,26 @@ describe('RescueStaffService', () => {
   });
 
   describe('getRescueStaff', () => {
+    it('uses the gateway staffMemberId as the member id', async () => {
+      apiServiceMock.get.mockResolvedValue({
+        success: true,
+        data: [
+          {
+            staffMemberId: 'sm-1',
+            userId: 'u1',
+            rescueId: 'r1',
+            title: 'Manager',
+            isVerified: true,
+            addedAt: '2024-01-01T00:00:00Z',
+          },
+        ],
+      });
+
+      const [member] = await service.getRescueStaff();
+
+      expect(member.id).toBe('sm-1');
+    });
+
     it('requests colleagues for the current rescue and normalises camelCase rows', async () => {
       apiServiceMock.get.mockResolvedValue({
         success: true,
