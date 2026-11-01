@@ -38,6 +38,7 @@ import type { ApplicationCommand, Reference } from '../domain/index.js';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import { requireDraftScope, runCommand, runCreateCommand } from './command-runner.js';
+import { loadAggregate } from './event-store.js';
 import type { PetsClient } from './pets-client.js';
 import { principalToMetadata } from './principal.js';
 import { stateToProto } from './state-mapper.js';
@@ -79,6 +80,16 @@ export function makeStartDraft(
 
     const rescueId = await resolveRescueId(petsClient, principal, req.petId);
 
+    // A POST /applications that died after StartDraft strands a draft the
+    // adopter can't list. Resume it rather than trip the one-open-application
+    // rule (applications_user_pet_unique) on every retry. Any other open
+    // status (submitted, under review, ...) is not matched and is still
+    // refused by that index.
+    const strandedDraftId = await findOpenDraftId(deps, req.adopterId, req.petId);
+    if (strandedDraftId !== undefined) {
+      return { application: stateToProto(await loadAggregate(deps.pool, strandedDraftId)) };
+    }
+
     const command: ApplicationCommand = {
       type: 'startDraft',
       adopterId: req.adopterId,
@@ -100,6 +111,20 @@ export function makeStartDraft(
 
     return { application: stateToProto(state) };
   };
+}
+
+async function findOpenDraftId(
+  deps: HandlerDeps,
+  adopterId: string,
+  petId: string
+): Promise<string | undefined> {
+  const { rows } = await deps.pool.query<{ application_id: string }>(
+    `SELECT application_id
+       FROM applications
+      WHERE user_id = $1 AND pet_id = $2 AND status = 'draft' AND deleted_at IS NULL`,
+    [adopterId, petId]
+  );
+  return rows[0]?.application_id;
 }
 
 async function resolveRescueId(
