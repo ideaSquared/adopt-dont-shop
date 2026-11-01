@@ -157,6 +157,19 @@ describe('createRescue', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it.each(['United Kingdom', 'gb', 'G', 'GBR'])(
+    'rejects country %j that is not an ISO 3166-1 alpha-2 code',
+    async country => {
+      await expect(
+        createRescue(mocks.deps, ADMIN, { ...BASE_CREATE, country })
+      ).rejects.toMatchObject({
+        code: 'INVALID_ARGUMENT',
+        message: expect.stringMatching(/country/),
+      });
+      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    }
+  );
+
   it('PERMISSION_DENIED when caller lacks rescues.create', async () => {
     await expect(createRescue(mocks.deps, ADOPTER, BASE_CREATE)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
@@ -621,6 +634,19 @@ describe('updateRescue', () => {
       updateRescue(mocks.deps, STAFF, { rescueId: 'ghost', name: 'x' } as never)
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
+
+  it.each(['United Kingdom', 'gb', 'G', 'GBR'])(
+    'rejects country %j that is not an ISO 3166-1 alpha-2 code',
+    async country => {
+      await expect(
+        updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1', country } as never)
+      ).rejects.toMatchObject({
+        code: 'INVALID_ARGUMENT',
+        message: expect.stringMatching(/country/),
+      });
+      expect(mocks.poolMock.query).not.toHaveBeenCalled();
+    }
+  );
 
   it('PERMISSION_DENIED for staff at a different rescue', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });

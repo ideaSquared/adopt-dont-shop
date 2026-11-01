@@ -280,6 +280,19 @@ const DEFAULT_INVITATION_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 // --- Create ----------------------------------------------------------
 
+// rescues.country is char(2): reject anything else up front instead of
+// letting Postgres fail with an opaque "value too long" internal error.
+const ISO_COUNTRY_CODE = /^[A-Z]{2}$/;
+
+function assertValidCountry(country: string | undefined): void {
+  if (country && !ISO_COUNTRY_CODE.test(country)) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'country must be a two-letter ISO 3166-1 alpha-2 code (e.g. GB)'
+    );
+  }
+}
+
 export async function createRescue(
   deps: HandlerDeps,
   principal: Principal,
@@ -297,6 +310,7 @@ export async function createRescue(
   if (!req.contactPerson) {
     throw new HandlerError('INVALID_ARGUMENT', 'contact_person is required');
   }
+  assertValidCountry(req.country);
   if (!hasPermission(principal, RESCUES_CREATE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_CREATE}' required`);
   }
@@ -591,6 +605,7 @@ export async function updateRescue(
   if (!req.rescueId) {
     throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
   }
+  assertValidCountry(req.country);
 
   const existing = await fetchRescue(deps, req.rescueId);
   if (!existing) {
