@@ -109,6 +109,8 @@ runs:
               `${process.env.GITHUB_WORKSPACE}/scripts/lib/ratchet-coverage-core.mjs`
             );
 
+            // Keyed by `<family>/<dir>`: apps/rescue and services/rescue share
+            // a directory name, and a bare-name key let one overwrite the other.
             function collectCoverage(root) {
               const byPackage = {};
               for (const family of ['apps', 'packages', 'services']) {
@@ -119,7 +121,7 @@ runs:
                   if (!fs.existsSync(summaryPath)) continue;
                   try {
                     const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
-                    byPackage[pkg] = ratchetCore.measuredFromSummaryTotal(summary.total ?? {});
+                    byPackage[`${family}/${pkg}`] = ratchetCore.measuredFromSummaryTotal(summary.total ?? {});
                   } catch (parseError) {
                     core.warning(`Skipping unreadable coverage summary at ${summaryPath}: ${parseError.message}`);
                   }
