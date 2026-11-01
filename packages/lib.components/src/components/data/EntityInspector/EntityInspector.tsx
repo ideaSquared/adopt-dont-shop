@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import React, { useEffect, useState } from 'react';
 
+import { Tabs } from '../../ui/Tabs';
 import * as styles from './EntityInspector.css';
 
 export type EntityInspectorTab = {
@@ -85,34 +86,14 @@ export const EntityInspector: React.FC<EntityInspectorProps> = ({
         )}
       </div>
 
-      <div className={styles.tabBar} role='tablist'>
-        {tabs.map(tab => {
-          const isActive = tab.id === activeTabId;
-          return (
-            <button
-              key={tab.id}
-              type='button'
-              role='tab'
-              aria-selected={isActive}
-              aria-controls={`entity-inspector-panel-${tab.id}`}
-              id={`entity-inspector-tab-${tab.id}`}
-              className={clsx(styles.tab, isActive && styles.tabActive)}
-              onClick={() => setActiveTabId(tab.id)}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div
-        className={styles.tabContent}
-        role='tabpanel'
-        id={activeTab ? `entity-inspector-panel-${activeTab.id}` : undefined}
-        aria-labelledby={activeTab ? `entity-inspector-tab-${activeTab.id}` : undefined}
-      >
-        {activeTab?.content ?? null}
-      </div>
+      <Tabs
+        className={styles.tabs}
+        aria-label='Details'
+        value={activeTab?.id ?? ''}
+        onChange={setActiveTabId}
+        // Tabs keeps panels mounted; only hand it the active content so hidden tabs never mount.
+        tabs={tabs.map(tab => ({ ...tab, content: tab.id === activeTab?.id ? tab.content : null }))}
+      />
     </div>
   );
 };

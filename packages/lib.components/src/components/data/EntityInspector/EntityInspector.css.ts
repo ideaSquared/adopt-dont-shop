@@ -46,37 +46,21 @@ export const closeButton = style({
   },
 });
 
-export const tabBar = style({
-  display: 'flex',
-  gap: 0,
-  borderBottom: `1px solid ${vars.border.color.default}`,
-  padding: '0 1.25rem',
-  overflowX: 'auto',
-});
-
-export const tab = style({
-  padding: '0.625rem 1rem',
-  border: 'none',
-  borderBottom: '2px solid transparent',
-  background: 'transparent',
-  color: vars.text.tertiary,
-  fontSize: '0.8125rem',
-  fontWeight: '500',
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-  transition: 'all 0.15s ease',
-  ':hover': {
-    color: vars.text.primary,
-  },
-});
-
-export const tabActive = style({
-  color: vars.colors.primary,
-  borderBottomColor: vars.colors.primary,
-});
-
-export const tabContent = style({
+export const tabs = style({
   flex: 1,
-  overflowY: 'auto',
-  padding: '1.25rem',
+  minHeight: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  selectors: {
+    '& > [role="tablist"]': {
+      padding: '0 1.25rem',
+      marginBottom: 0,
+      overflowX: 'auto',
+    },
+    '& > [role="tabpanel"]': {
+      flex: 1,
+      overflowY: 'auto',
+      padding: '1.25rem',
+    },
+  },
 });
