@@ -2,7 +2,7 @@ name: 'Coverage & Timing Report'
 description: >-
   ci.yml's coverage-report job body (ADS-947). On a pull_request run: restores
   this run's coverage (saved by run-package-tests via its coverage-cache-key
-  input) and the main-branch baseline (an actions/cache snapshot), computes
+  input) and the main-branch baseline (a workflow artifact saved from main), computes
   the per-package coverage delta, fetches this run's job timings from the
   Actions API, and posts/updates a single sticky PR comment. On a push to
   main: layers this run's coverage over the previous baseline as the new
@@ -70,21 +70,63 @@ runs:
           services/*/coverage/coverage-summary.json
         key: coverage-current-${{ github.run_id }}-services
 
-    # ADS-947: the main-branch snapshot to diff against. restore-keys prefix
-    # match returns the most recently saved entry — GitHub's cross-branch
-    # cache fallback lets a PR branch read a cache saved from main natively.
+    # ADS-947: the main-branch snapshot to diff against, stored as a workflow
+    # artifact (not an actions/cache entry: the repo's 10 GB cache quota is
+    # dominated by buildkit blobs, and LRU eviction kept dropping this tiny,
+    # rarely-read entry, leaving every PR report showing "(new)"). Finds the
+    # newest unexpired `coverage-baseline` artifact produced by a main run.
     # Also restored on a push to main, so the new baseline below carries
     # forward the packages that push didn't test.
     - name: Restore main coverage baseline
       if: >-
         github.event_name == 'pull_request' ||
         (github.event_name == 'push' && github.ref == 'refs/heads/main')
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
-        path: coverage-baseline
-        key: coverage-baseline-main-unused
-        restore-keys: |
-          coverage-baseline-main-
+        script: |
+          const fs = require('fs');
+          const { execFileSync } = require('child_process');
+          try {
+            const { data } = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'coverage-baseline',
+              per_page: 100,
+            });
+            let latest;
+            for (const artifact of data.artifacts) {
+              if (
+                artifact.expired ||
+                artifact.workflow_run?.head_branch !== 'main' ||
+                artifact.workflow_run?.head_repository_id !== context.payload.repository.id
+              ) continue;
+              const { data: run } = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: artifact.workflow_run.id,
+              });
+              if (run.event === 'push' && run.path === '.github/workflows/ci.yml') {
+                latest = artifact;
+                break;
+              }
+            }
+            if (!latest) {
+              core.warning('No coverage-baseline artifact from main found; deltas will show as new.');
+              return;
+            }
+            const { data: zip } = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: latest.id,
+              archive_format: 'zip',
+            });
+            const zipPath = `${process.env.RUNNER_TEMP}/coverage-baseline.zip`;
+            fs.writeFileSync(zipPath, Buffer.from(zip));
+            execFileSync('unzip', ['-q', '-o', zipPath, '-d', 'coverage-baseline']);
+            core.info(`Restored coverage baseline from artifact ${latest.id} (run ${latest.workflow_run.id}).`);
+          } catch (error) {
+            core.warning(`Skipping coverage baseline restore: ${error.message}`);
+          }
 
     - name: Post/update coverage report comment
       if: github.event_name == 'pull_request'
@@ -211,7 +253,9 @@ runs:
 
     - name: Save coverage baseline for main
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
+        name: coverage-baseline
         path: coverage-baseline
-        key: coverage-baseline-main-${{ github.sha }}
+        retention-days: 30
+        if-no-files-found: warn
