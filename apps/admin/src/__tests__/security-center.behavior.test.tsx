@@ -21,6 +21,13 @@ import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
+// The global setup mock of lib.components has no Tabs; use the real library so
+// the tablist, roving tabindex and arrow-key behaviour are exercised.
+vi.mock('@adopt-dont-shop/lib.components', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@adopt-dont-shop/lib.components');
+  return { ...actual };
+});
+
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   TwoFactorSettings: () => <div data-testid='two-factor-settings'>2FA Settings</div>,
 }));
@@ -347,5 +354,45 @@ describe('SecurityCenter drill-down navigation', () => {
 
     // Suspicious tab content reappears
     expect(await screen.findByText('dave@example.com')).toBeInTheDocument();
+  });
+});
+
+// ── Tabs semantics ───────────────────────────────────────────────────────────
+
+describe('SecurityCenter tabs accessibility', () => {
+  it('exposes a named tablist with the active tab linked to a visible tabpanel', () => {
+    renderRouted('/security/mfa');
+
+    expect(screen.getByRole('tablist', { name: 'Security center tabs' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Two-Factor Auth/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tabpanel', { name: /Two-Factor Auth/i })).toContainElement(
+      screen.getByTestId('two-factor-settings')
+    );
+  });
+
+  it('moves between tabs with the arrow keys and updates the URL-driven tab', async () => {
+    const user = userEvent.setup();
+    renderRouted('/security/mfa');
+
+    screen.getByRole('tab', { name: /Two-Factor Auth/i }).focus();
+    await user.keyboard('{ArrowRight}');
+
+    const sessionsTab = screen.getByRole('tab', { name: /Active Sessions/i });
+    expect(sessionsTab).toHaveAttribute('aria-selected', 'true');
+    expect(sessionsTab).toHaveFocus();
+    expect(await screen.findByText(/No active sessions/i)).toBeInTheDocument();
+  });
+
+  it('does not fetch data for tabs that are not active', async () => {
+    renderRouted('/security/mfa');
+
+    await screen.findByTestId('two-factor-settings');
+    expect(listSessions).not.toHaveBeenCalled();
+    expect(listIpRules).not.toHaveBeenCalled();
+    expect(getLoginHistory).not.toHaveBeenCalled();
+    expect(getSuspiciousActivity).not.toHaveBeenCalled();
   });
 });
