@@ -220,7 +220,10 @@ export const createGenerator = ({ baseUrl, password, fetchImpl, log = () => {} }
     const existing = (mine.body.data ?? []).find(a => a.petId === petId || a.pet_id === petId);
     const submitted = existing ?? (await adopter.post('/api/v1/applications', { petId })).body.data;
     const applicationId = submitted.id ?? submitted.applicationId ?? submitted.application_id;
-    if (submitted.status === 'submitted') {
+    // The gateway reports every in-flight state as status 'submitted' and tells
+    // them apart by stage; only a freshly submitted one ('pending') can start
+    // its review.
+    if (submitted.stage === 'pending') {
       const reviewer = await as(application.reviewedBy);
       await reviewer.post(`/api/v1/applications/${applicationId}/review`, {
         expectedVersion: submitted.version,

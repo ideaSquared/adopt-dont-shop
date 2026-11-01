@@ -47,7 +47,13 @@ const fullySeededRoutes = () => ({
   'POST /api/v1/pets/pet-Luna/favorite': () => [409, { error: 'already favourited' }],
   'GET /api/v1/applications': () => [
     200,
-    { data: [{ id: 'app-1', petId: 'pet-Luna', status: 'under_review', version: 4 }] },
+    // The gateway reports an under-review application as status 'submitted'
+    // with stage 'reviewing' (applications-view.ts STATUS_VIEW).
+    {
+      data: [
+        { id: 'app-1', petId: 'pet-Luna', status: 'submitted', stage: 'reviewing', version: 3 },
+      ],
+    },
   ],
   'POST /api/v1/chats/enquiries': () => [200, { chat: { chatId: 'chat-1' } }],
   'GET /api/v1/chats/chat-1/messages': () => [200, { data: [{ messageId: 'm-1' }] }],
@@ -197,7 +203,15 @@ describe('createGenerator', () => {
       'GET /api/v1/applications': () => [200, { data: [] }],
       'POST /api/v1/applications': ({ body }) => [
         201,
-        { data: { id: 'app-9', petId: body.petId, status: 'submitted', version: 2 } },
+        {
+          data: {
+            id: 'app-9',
+            petId: body.petId,
+            status: 'submitted',
+            stage: 'pending',
+            version: 2,
+          },
+        },
       ],
       'POST /api/v1/applications/app-9/review': () => [200, {}],
     };

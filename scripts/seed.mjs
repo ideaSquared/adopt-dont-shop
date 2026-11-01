@@ -37,6 +37,7 @@
  * container's module graph).
  */
 import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 import { createGenerator } from './lib/seed-generate.mjs';
 import * as personas from './lib/seed-personas.mjs';
@@ -54,13 +55,31 @@ const BOOTSTRAP_TARGETS = [
   ['service-pets', '@adopt-dont-shop/service.pets', 'breed reference data'],
 ];
 
+// The SQL bootstrap must hash the same password the API phase logs in with,
+// and no compose file passes SEED_PASSWORD to the containers — so forward it.
+export function bootstrapExec(service, pkg, password) {
+  return {
+    args: [
+      'compose',
+      'exec',
+      '-T',
+      '-e',
+      'SEED_PASSWORD',
+      service,
+      'pnpm',
+      '--filter',
+      pkg,
+      'run',
+      'db:seed',
+    ],
+    env: { ...process.env, SEED_PASSWORD: password },
+  };
+}
+
 function runBootstrap(service, pkg, label) {
   process.stdout.write(`\n→ bootstrapping ${label} (${service})...\n`);
-  const result = spawnSync(
-    DOCKER,
-    ['compose', 'exec', '-T', service, 'pnpm', '--filter', pkg, 'run', 'db:seed'],
-    { stdio: 'inherit' }
-  );
+  const { args, env } = bootstrapExec(service, pkg, PASSWORD);
+  const result = spawnSync(DOCKER, args, { stdio: 'inherit', env });
   if (result.error) {
     throw new Error(
       `failed to exec into ${service}: ${result.error.message}. ` +
@@ -122,7 +141,9 @@ async function main() {
   );
 }
 
-main().catch(err => {
-  process.stderr.write(`\n✗ seed failed: ${err.message}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(err => {
+    process.stderr.write(`\n✗ seed failed: ${err.message}\n`);
+    process.exitCode = 1;
+  });
+}
