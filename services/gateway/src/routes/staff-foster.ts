@@ -9,17 +9,22 @@ import type { FastifyInstance } from 'fastify';
 
 import {
   RescueV1,
+  type ColleagueProfile,
   type CreateFosterPlacementRequest,
   type EndFosterPlacementRequest,
   type ListFosterPlacementsRequest,
 } from '@adopt-dont-shop/proto';
 
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 
 export type StaffFosterRoutesOptions = {
   client: RescueClient;
+  // Optional: enriches /staff/colleagues with each colleague's name and
+  // email. Absent, colleagues come back with blank names.
+  authClient?: AuthClient;
 };
 
 // Per-IP cap on the unauthenticated invitation lookup (ADS-1380) — mirrors the
@@ -53,11 +58,30 @@ const endOutcomeFromString = (raw: string | undefined): RescueV1.FosterEndOutcom
   }
 };
 
+const fetchColleagueProfiles = async (
+  authClient: AuthClient | undefined,
+  staffMembers: ReadonlyArray<{ userId: string }>,
+  metadata: ReturnType<typeof buildMetadata>
+): Promise<ReadonlyMap<string, ColleagueProfile>> => {
+  if (!authClient || staffMembers.length === 0) {
+    return new Map();
+  }
+  try {
+    const res = await authClient.listColleagueProfiles(
+      { userIds: staffMembers.map(member => member.userId) },
+      metadata
+    );
+    return new Map(res.profiles.map(profile => [profile.userId, profile]));
+  } catch {
+    return new Map();
+  }
+};
+
 export const registerStaffFosterRoutes = async (
   app: FastifyInstance,
   opts: StaffFosterRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, authClient } = opts;
 
   // ---- GET /api/v1/staff/me ----------------------------------------
   app.get(
@@ -108,8 +132,21 @@ export const registerStaffFosterRoutes = async (
     async (req, reply) => {
       try {
         // Empty rescue_id → service resolves the caller's own rescue.
-        const res = await client.listStaffMembers({ rescueId: undefined }, buildMetadata(req));
-        return reply.send({ success: true, data: res.staffMembers ?? [] });
+        const metadata = buildMetadata(req);
+        const res = await client.listStaffMembers({ rescueId: undefined }, metadata);
+        const staffMembers = res.staffMembers ?? [];
+        // Auth only reveals profiles of the caller's own rescue colleagues, so
+        // a failed or partial lookup just leaves names blank.
+        const profiles = await fetchColleagueProfiles(authClient, staffMembers, metadata);
+        return reply.send({
+          success: true,
+          data: staffMembers.map(member => ({
+            ...member,
+            firstName: profiles.get(member.userId)?.firstName ?? '',
+            lastName: profiles.get(member.userId)?.lastName ?? '',
+            email: profiles.get(member.userId)?.email ?? '',
+          })),
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

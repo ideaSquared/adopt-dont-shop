@@ -21,6 +21,7 @@ const baseConfig: AuthConfig = {
   schema: 'auth',
   natsUrl: 'nats://localhost:4222',
   applicationsGrpcUrl: 'localhost:6005',
+  rescueGrpcUrl: 'localhost:6004',
   jwtSecret: 'test-access',
   jwtRefreshSecret: 'test-refresh',
 };
