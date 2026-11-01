@@ -1039,25 +1039,31 @@ export function filterMatches(filter, pkg) {
 }
 
 // Expand a `${{ matrix.<key> }}` reference in a filter into the concrete values
-// declared by that job's `matrix.<key>: [a, b, c]` list.
-function expandMatrix(filter, ciYaml) {
+// declared by that job's `matrix.<key>: [a, b, c]` list. A matrix fed by the
+// changes job (`<key>: ${{ fromJSON(needs.changes.outputs.apps) }}`) can hold
+// any workspace app, so it expands to all of `appNames`.
+function expandMatrix(filter, ciYaml, appNames) {
   const ref = filter.match(/\$\{\{\s*matrix\.(\w+)\s*\}\}/);
   if (!ref) return [filter];
   const list = ciYaml.match(new RegExp(`${ref[1]}:\\s*\\[([^\\]]+)\\]`));
-  if (!list) return [filter];
-  return list[1].split(',').map(v => filter.replace(ref[0], v.trim()));
+  if (list) return list[1].split(',').map(v => filter.replace(ref[0], v.trim()));
+  const dynamic = new RegExp(
+    `${ref[1]}:\\s*\\$\\{\\{\\s*fromJSON\\(needs\\.changes\\.outputs\\.apps\\)`
+  );
+  if (dynamic.test(ciYaml)) return appNames.map(v => filter.replace(ref[0], v));
+  return [filter];
 }
 
 // Parse ci.yml into per-job filter groups. Each run-package-tests usage
 // contributes one group: its `filter:` (plus a non-negated `additional-filter:`)
 // are includes; a `!`-prefixed `additional-filter:` is an exclude.
-export function extractCiFilterGroups(ciYaml) {
+export function extractCiFilterGroups(ciYaml, appNames = []) {
   const groups = [];
   let current = null;
   for (const line of ciYaml.split('\n')) {
     const f = line.match(/^\s*filter:\s*'([^']+)'/);
     if (f) {
-      current = { includes: [...expandMatrix(f[1], ciYaml)], excludes: [] };
+      current = { includes: [...expandMatrix(f[1], ciYaml, appNames)], excludes: [] };
       groups.push(current);
       continue;
     }
@@ -1065,7 +1071,7 @@ export function extractCiFilterGroups(ciYaml) {
     if (af && current) {
       const value = af[1];
       const bucket = value.startsWith('!') ? current.excludes : current.includes;
-      bucket.push(...expandMatrix(value.replace(/^!/, ''), ciYaml));
+      bucket.push(...expandMatrix(value.replace(/^!/, ''), ciYaml, appNames));
     }
   }
   return groups;
@@ -1103,7 +1109,10 @@ function listTestablePackages() {
 
 function checkCiFilterReachability() {
   const ciYaml = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
-  const groups = extractCiFilterGroups(ciYaml);
+  const appNames = readdirSync(join(ROOT, 'apps'), { withFileTypes: true })
+    .filter(e => e.isDirectory())
+    .map(e => e.name);
+  const groups = extractCiFilterGroups(ciYaml, appNames);
   return findUncoveredPackages(listTestablePackages(), groups).map(
     pkg =>
       `[ci.yml] ${pkg.name} (${pkg.dir}) ships tests but matches no CI test filter — ` +
