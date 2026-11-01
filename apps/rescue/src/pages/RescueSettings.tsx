@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
-import clsx from 'clsx';
 import { useAuth, useHasPermission } from '@adopt-dont-shop/lib.auth';
-import { toast } from '@adopt-dont-shop/lib.components';
+import { Tabs, toast } from '@adopt-dont-shop/lib.components';
 import { SettingsFormSkeleton } from '../components/skeletons';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
@@ -228,57 +227,43 @@ const RescueSettings: React.FC = () => {
         <p>Configure your rescue profile, adoption policies, and application questions.</p>
       </div>
 
-      <div className={styles.tabContainer}>
-        <div className={styles.tabList} role="tablist">
-          <button
-            className={clsx(styles.tab, activeTab === 'profile' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'profile'}
-            onClick={() => setActiveTab('profile')}
-          >
-            Rescue Profile
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'policies' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'policies'}
-            onClick={() => setActiveTab('policies')}
-          >
-            Adoption Policies
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'questions' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'questions'}
-            onClick={() => setActiveTab('questions')}
-          >
-            Application Questions
-          </button>
-        </div>
-      </div>
-
-      <div className={clsx(activeTab === 'profile' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <RescueProfileForm rescue={rescue} onSave={handleSaveProfile} loading={loading} />
-      </div>
-
-      <div className={clsx(activeTab === 'policies' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <AdoptionPolicyForm
-          policy={rescue?.adoptionPolicies || null}
-          onSave={handleSavePolicies}
-          loading={loading}
-        />
-      </div>
-
-      <div className={clsx(activeTab === 'questions' ? styles.tabPanel : styles.tabPanelHidden)}>
-        {rescue?.rescueId ? (
-          <QuestionsBuilder rescueId={rescue.rescueId} />
-        ) : (
-          <div className={styles.placeholderSection}>
-            <h2>Custom Application Questions</h2>
-            <p>Loading rescue information...</p>
-          </div>
-        )}
-      </div>
+      <Tabs
+        value={activeTab}
+        onChange={id => setActiveTab(parseTabFromHash(id))}
+        aria-label="Rescue settings sections"
+        tabs={[
+          {
+            id: 'profile',
+            label: 'Rescue Profile',
+            content: (
+              <RescueProfileForm rescue={rescue} onSave={handleSaveProfile} loading={loading} />
+            ),
+          },
+          {
+            id: 'policies',
+            label: 'Adoption Policies',
+            content: (
+              <AdoptionPolicyForm
+                policy={rescue?.adoptionPolicies || null}
+                onSave={handleSavePolicies}
+                loading={loading}
+              />
+            ),
+          },
+          {
+            id: 'questions',
+            label: 'Application Questions',
+            content: rescue?.rescueId ? (
+              <QuestionsBuilder rescueId={rescue.rescueId} />
+            ) : (
+              <div className={styles.placeholderSection}>
+                <h2>Custom Application Questions</h2>
+                <p>Loading rescue information...</p>
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 };

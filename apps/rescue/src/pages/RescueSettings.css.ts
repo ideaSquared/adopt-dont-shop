@@ -25,48 +25,6 @@ globalStyle(`${pageHeader} p`, {
   margin: 0,
 });
 
-export const tabContainer = style({
-  borderBottom: `2px solid ${vars.border.color.default}`,
-  marginBottom: '2rem',
-});
-
-export const tabList = style({
-  display: 'flex',
-  gap: '0.5rem',
-});
-
-export const tab = style({
-  padding: '1rem 1.5rem',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  border: 'none',
-  background: 'none',
-  cursor: 'pointer',
-  borderBottom: '2px solid transparent',
-  color: vars.text.tertiary,
-  transition: 'all 0.2s',
-  position: 'relative',
-  bottom: '-2px',
-  selectors: {
-    '&:hover': {
-      color: vars.colors.info,
-    },
-  },
-});
-
-export const tabActive = style({
-  color: vars.colors.info,
-  borderBottomColor: vars.colors.info,
-});
-
-export const tabPanel = style({
-  display: 'block',
-});
-
-export const tabPanelHidden = style({
-  display: 'none',
-});
-
 export const errorContainer = style({
   backgroundColor: vars.colors.dangerBgSubtle,
   color: vars.colors.dangerTextEmphasis,
