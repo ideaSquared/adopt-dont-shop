@@ -567,7 +567,11 @@ export interface UpdateRescueRequest {
    * moved beyond this version. Unset = no check (last-write-wins,
    * the pre-existing behaviour).
    */
-  expectedVersion?: number | undefined;
+  expectedVersion?:
+    | number
+    | undefined;
+  /** The rescue's primary email (rescue.rescues.email, unique). */
+  email?: string | undefined;
 }
 
 export interface UpdateRescueResponse {
@@ -2818,6 +2822,7 @@ function createBaseUpdateRescueRequest(): UpdateRescueRequest {
     contactPhone: undefined,
     settingsJson: undefined,
     expectedVersion: undefined,
+    email: undefined,
   };
 }
 
@@ -2873,6 +2878,9 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
     }
     if (message.expectedVersion !== undefined) {
       writer.uint32(136).uint32(message.expectedVersion);
+    }
+    if (message.email !== undefined) {
+      writer.uint32(146).string(message.email);
     }
     return writer;
   },
@@ -3020,6 +3028,14 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
           message.expectedVersion = reader.uint32();
           continue;
         }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3076,6 +3092,7 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
         : isSet(object.expected_version)
         ? globalThis.Number(object.expected_version)
         : undefined,
+      email: isSet(object.email) ? globalThis.String(object.email) : undefined,
     };
   },
 
@@ -3132,6 +3149,9 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
     if (message.expectedVersion !== undefined) {
       obj.expectedVersion = Math.round(message.expectedVersion);
     }
+    if (message.email !== undefined) {
+      obj.email = message.email;
+    }
     return obj;
   },
 
@@ -3157,6 +3177,7 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
     message.contactPhone = object.contactPhone ?? undefined;
     message.settingsJson = object.settingsJson ?? undefined;
     message.expectedVersion = object.expectedVersion ?? undefined;
+    message.email = object.email ?? undefined;
     return message;
   },
 };
