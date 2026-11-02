@@ -4,6 +4,7 @@ import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { petService, Pet } from '@/services';
 import { Badge, Button, Card, toast } from '@adopt-dont-shop/lib.components';
+import { hasAnalyticsConsent } from '@adopt-dont-shop/lib.observability';
 import { PetDetailSkeleton } from '@/components/skeletons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -196,6 +197,14 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
           image_count: (petData.images?.length || 0).toString(),
           user_authenticated: isAuthenticated.toString(),
         });
+
+        // Count this as a genuine detail-page view (drives the swipe card's
+        // "views today" label). Gated like the rest of our analytics: only
+        // with the user's analytics consent and never under Do Not Track.
+        // Best-effort — a failure must not affect the page.
+        if (isAuthenticated && hasAnalyticsConsent() && navigator.doNotTrack !== '1') {
+          void petService.recordView(id).catch(() => {});
+        }
 
         // Check if pet is in favorites
         if (isAuthenticated) {

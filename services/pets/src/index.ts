@@ -2,6 +2,7 @@ import type { NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
+import { startScheduler, type RunningScheduler } from '@adopt-dont-shop/scheduler';
 import {
   connectNats,
   installProcessErrorHandlers,
@@ -10,7 +11,10 @@ import {
 
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
+import { prunePetViews } from './jobs/prune-pet-views.js';
 import { createServer } from './server.js';
+
+const PRUNE_PET_VIEWS_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.pets' });
@@ -19,6 +23,7 @@ const main = async (): Promise<void> => {
   let pool: ReturnType<typeof createDbClient> | undefined;
   let grpc: RunningGrpcServer | undefined;
   let grpcReady = false;
+  let scheduler: RunningScheduler | undefined;
 
   try {
     const config = loadConfig();
@@ -57,6 +62,23 @@ const main = async (): Promise<void> => {
       onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
     });
 
+    // Retention for pet_views: it is user-linked activity that is only
+    // needed for 24 hours. The DELETE is idempotent, so no replica claim.
+    const dbPool = pool;
+    scheduler = startScheduler(
+      [
+        {
+          name: 'prune-pet-views',
+          intervalMs: PRUNE_PET_VIEWS_INTERVAL_MS,
+          run: async () => {
+            const deleted = await prunePetViews(dbPool);
+            logger.info('pruned old pet views', { deleted });
+          },
+        },
+      ],
+      { logger }
+    );
+
     const httpServer = createServer({
       config,
       logger,
@@ -73,9 +95,10 @@ const main = async (): Promise<void> => {
       environment: config.environment,
     });
 
-    const teardown = (): Promise<void> => {
+    const teardown = async (): Promise<void> => {
       outboxRelay.stop();
-      return runServiceShutdown({ httpServer, grpc, nats, pool, logger });
+      await scheduler?.stop();
+      await runServiceShutdown({ httpServer, grpc, nats, pool, logger });
     };
 
     const shutdown = async (signal: string): Promise<void> => {

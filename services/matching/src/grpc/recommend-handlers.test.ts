@@ -43,9 +43,10 @@ const recommendDeps = depsWithSwipes([]);
 
 function makePetsClient(
   listPets: ReturnType<typeof vi.fn>,
-  getAdoptionStats: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue({ stats: [] })
+  getAdoptionStats: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue({ stats: [] }),
+  getViewsToday: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue({ counts: [] })
 ): PetsClient {
-  return { listPets, getAdoptionStats, close: vi.fn() } as unknown as PetsClient;
+  return { listPets, getAdoptionStats, getViewsToday, close: vi.fn() } as unknown as PetsClient;
 }
 
 function makePet(overrides: Partial<Pet> & { petId: string }): Pet {
@@ -145,6 +146,49 @@ describe('makeRecommend distance', () => {
     expect(res.candidates[0].activityLabel?.kind).toBe('similar_adopted_fast');
   });
 
+  it('carries distance and a views_today label that outranks days_waiting and similar-adopted on one card', async () => {
+    vi.useFakeTimers({ now: new Date('2026-11-01T12:00:00.000Z') });
+    try {
+      const dog = {
+        type: PetsV1.PetType.PET_TYPE_DOG,
+        size: PetsV1.PetSize.PET_SIZE_SMALL,
+        ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_YOUNG,
+      };
+      const listPets = vi.fn().mockResolvedValue(
+        listResponse([
+          makePet({
+            petId: 'p-1',
+            rescueId: 'rsc-1',
+            availableSince: '2026-08-03T00:00:00.000Z',
+            ...dog,
+          }),
+        ])
+      );
+      const getAdoptionStats = vi
+        .fn()
+        .mockResolvedValue({ stats: [{ cohort: dog, sampleCount: 9, medianDays: 5 }] });
+      const getViewsToday = vi.fn().mockResolvedValue({ counts: [{ petId: 'p-1', views: 12 }] });
+      const getRescueLocations = vi.fn().mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
+      const recommend = makeRecommend(makePetsClient(listPets, getAdoptionStats, getViewsToday), {
+        getRescueLocations,
+      });
+
+      const res = await recommend(recommendDeps, makePrincipal(), {
+        sessionId: 's-1',
+        limit: 10,
+        filtersJsonOverride: LONDON_FILTERS,
+      } as RecommendRequest);
+
+      expect(res.candidates[0].distanceMiles).toBeGreaterThan(160);
+      expect(res.candidates[0].activityLabel).toMatchObject({
+        kind: 'views_today',
+        text: '12 views today',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('skips the lookup when the caller sent no usable coordinates', async () => {
     const getRescueLocations = vi.fn();
 
@@ -169,6 +213,87 @@ describe('makeRecommend distance', () => {
 });
 
 describe('makeRecommend', () => {
+  describe('views_today label', () => {
+    const VIEWS_ICON = '\u{1F440}';
+
+    const recommendWithViews = async (
+      pet: Pet,
+      getViewsToday: ReturnType<typeof vi.fn>
+    ): Promise<{ label: unknown }> => {
+      const listPets = vi.fn().mockResolvedValue(listResponse([pet]));
+      const recommend = makeRecommend(
+        makePetsClient(listPets, vi.fn().mockResolvedValue({ stats: [] }), getViewsToday)
+      );
+      const res = await recommend(recommendDeps, makePrincipal(), {
+        sessionId: 's-1',
+        limit: 10,
+      } as RecommendRequest);
+      return { label: res.candidates[0].activityLabel };
+    };
+
+    it('labels a pet with 5 or more views today', async () => {
+      const { label } = await recommendWithViews(
+        makePet({ petId: 'p-1' }),
+        vi.fn().mockResolvedValue({ counts: [{ petId: 'p-1', views: 5 }] })
+      );
+      expect(label).toEqual({ kind: 'views_today', text: '5 views today', icon: VIEWS_ICON });
+    });
+
+    it('shows no views label below the minimum', async () => {
+      const { label } = await recommendWithViews(
+        makePet({ petId: 'p-1' }),
+        vi.fn().mockResolvedValue({ counts: [{ petId: 'p-1', views: 4 }] })
+      );
+      expect(label).toBeUndefined();
+    });
+
+    it('prefers views_today over days_waiting', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-01T12:00:00.000Z') });
+      try {
+        const { label } = await recommendWithViews(
+          makePet({ petId: 'p-1', availableSince: '2026-08-03T00:00:00.000Z' }),
+          vi.fn().mockResolvedValue({ counts: [{ petId: 'p-1', views: 12 }] })
+        );
+        expect(label).toMatchObject({ kind: 'views_today', text: '12 views today' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('asks for the ranked pets in a single batch call with a short no-retry budget', async () => {
+      const getViewsToday = vi.fn().mockResolvedValue({ counts: [] });
+      const listPets = vi
+        .fn()
+        .mockResolvedValue(listResponse([makePet({ petId: 'p-1' }), makePet({ petId: 'p-2' })]));
+      const recommend = makeRecommend(
+        makePetsClient(listPets, vi.fn().mockResolvedValue({ stats: [] }), getViewsToday)
+      );
+
+      await recommend(recommendDeps, makePrincipal(), {
+        sessionId: 's-1',
+        limit: 10,
+      } as RecommendRequest);
+
+      expect(getViewsToday).toHaveBeenCalledTimes(1);
+      const [req, , budget] = getViewsToday.mock.calls[0];
+      expect(req.petIds.sort()).toEqual(['p-1', 'p-2']);
+      expect(budget).toEqual({ deadlineMs: 1000, maxRetries: 0 });
+    });
+
+    it('still recommends, without the label, when the views lookup fails', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-01T12:00:00.000Z') });
+      try {
+        const { label } = await recommendWithViews(
+          makePet({ petId: 'p-1', availableSince: '2026-08-03T00:00:00.000Z' }),
+          vi.fn().mockRejectedValue(new Error('pets down'))
+        );
+        expect(label).toMatchObject({ kind: 'days_waiting' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('similar-adopted label', () => {
     const DOG = {
       type: PetsV1.PetType.PET_TYPE_DOG,

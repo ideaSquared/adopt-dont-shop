@@ -34,6 +34,7 @@ const nats = {} as unknown as NatsConnection;
 // channels just to assert handler registration.
 const petsClient = {
   listPets: () => Promise.reject(new Error('not used')),
+  getViewsToday: () => Promise.reject(new Error('not used')),
   close: () => undefined,
 } as unknown as Parameters<typeof createGrpcServer>[0]['petsClient'];
 const rescueClient = {

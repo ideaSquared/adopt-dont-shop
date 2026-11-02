@@ -313,6 +313,15 @@ export class PetsService {
   }
 
   /**
+   * Report that the user opened this pet's detail page (requires
+   * authentication). Call only for a genuine detail-page view — plain
+   * pet lookups must not count.
+   */
+  async recordView(petId: string): Promise<void> {
+    await this.apiService.post(PETS_ENDPOINTS.RECORD_VIEW(petId));
+  }
+
+  /**
    * Remove pet from favorites (requires authentication)
    */
   async removeFromFavorites(petId: string): Promise<void> {

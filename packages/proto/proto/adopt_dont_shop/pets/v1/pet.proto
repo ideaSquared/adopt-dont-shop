@@ -138,6 +138,17 @@ service PetService {
   // rescue scope): it returns aggregates only, never pet rows. Backs the
   // swipe card's `similar_adopted_fast` activity label. `pets.read`.
   rpc GetAdoptionStats(GetAdoptionStatsRequest) returns (GetAdoptionStatsResponse);
+
+  // Record that the calling (authenticated) principal viewed a pet's
+  // detail page. Deduped per user + pet inside a rolling hour, so
+  // refreshes don't inflate the count. Anonymous callers are rejected
+  // (anonymous views are deliberately not counted). `pets.read`.
+  rpc RecordPetView(RecordPetViewRequest) returns (RecordPetViewResponse);
+
+  // Batch read of how many recorded views each pet got in the last 24
+  // hours — feeds the swipe card's `views_today` activity label. Pets
+  // with no views are omitted. `pets.read`.
+  rpc GetViewsToday(GetViewsTodayRequest) returns (GetViewsTodayResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -657,4 +668,29 @@ message AdoptionCohortStats {
 
 message GetAdoptionStatsResponse {
   repeated AdoptionCohortStats stats = 1;
+}
+
+// --- Pet views --------------------------------------------------------
+
+message RecordPetViewRequest {
+  string pet_id = 1;
+}
+
+message RecordPetViewResponse {
+  // False when the view fell inside the dedupe window and was not stored.
+  bool recorded = 1;
+}
+
+message GetViewsTodayRequest {
+  // At most 100 ids per call.
+  repeated string pet_ids = 1;
+}
+
+message PetViewCount {
+  string pet_id = 1;
+  uint32 views = 2;
+}
+
+message GetViewsTodayResponse {
+  repeated PetViewCount counts = 1;
 }

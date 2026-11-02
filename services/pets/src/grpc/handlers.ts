@@ -236,7 +236,7 @@ const PUBLIC_HIDDEN_STATUSES = ['adopted', 'deceased', 'not_available'];
 // A reader is "privileged" for a pet when they may see its internal notes
 // and non-public statuses: platform admins (pets.read:any) and rescue staff
 // viewing their OWN rescue's pet. Everyone else gets the public projection.
-function isPrivilegedReader(principal: Principal, rescueId: string | null): boolean {
+export function isPrivilegedReader(principal: Principal, rescueId: string | null): boolean {
   if (hasPermission(principal, PETS_READ_ANY)) {
     return true;
   }
@@ -247,7 +247,7 @@ function isPrivilegedReader(principal: Principal, rescueId: string | null): bool
 // be able to tell a pet in a hidden status or an archived pet apart from one
 // that never existed. getPet and getSimilarPets share this gate so their
 // source-pet visibility can't drift into an existence oracle (ADS-1210).
-function isPetHiddenFrom(row: PetRow, privileged: boolean): boolean {
+export function isPetHiddenFrom(row: PetRow, privileged: boolean): boolean {
   return !privileged && (PUBLIC_HIDDEN_STATUSES.includes(row.status) || row.archived);
 }
 
@@ -978,7 +978,7 @@ export async function deletePet(
 
 // --- Helpers ---------------------------------------------------------
 
-async function fetchPet(deps: HandlerDeps, petId: string): Promise<PetRow | undefined> {
+export async function fetchPet(deps: HandlerDeps, petId: string): Promise<PetRow | undefined> {
   const result = await deps.pool.query<PetRow>(
     `SELECT ${PETS_SELECT} FROM pets.pets WHERE pet_id = $1 AND deleted_at IS NULL`,
     [petId]
