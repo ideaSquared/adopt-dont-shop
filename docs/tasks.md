@@ -218,6 +218,6 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/service.moderation` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.notifications` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:consumer`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.pets` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.rescue` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.rescue` | `backfill:coordinates`, `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/storage` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/test-utils` | `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
