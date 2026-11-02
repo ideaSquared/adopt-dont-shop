@@ -16,6 +16,11 @@ export const header = style({
   padding: '0 1rem',
 });
 
+export const locationRow = style({
+  padding: '0 1rem',
+  marginBottom: '1.5rem',
+});
+
 export const title = style({
   fontSize: '2rem',
   fontWeight: 700,
