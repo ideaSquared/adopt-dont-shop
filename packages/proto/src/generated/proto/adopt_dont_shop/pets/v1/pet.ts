@@ -803,6 +803,31 @@ export interface GetTopBreedsByAdoptionsResponse {
   breeds: BreedAdoptionCount[];
 }
 
+export interface AdoptionCohort {
+  type: PetType;
+  size: PetSize;
+  ageGroup: PetAgeGroup;
+}
+
+export interface GetAdoptionStatsRequest {
+  /** At most 50 cohorts per call. */
+  cohorts: AdoptionCohort[];
+}
+
+export interface AdoptionCohortStats {
+  cohort?: AdoptionCohort | undefined;
+  sampleCount: number;
+  /**
+   * Median days from available_since to adopted_date; 0 when
+   * sample_count is 0.
+   */
+  medianDays: number;
+}
+
+export interface GetAdoptionStatsResponse {
+  stats: AdoptionCohortStats[];
+}
+
 function createBasePet(): Pet {
   return {
     petId: "",
@@ -6460,6 +6485,328 @@ export const GetTopBreedsByAdoptionsResponse: MessageFns<GetTopBreedsByAdoptions
   },
 };
 
+function createBaseAdoptionCohort(): AdoptionCohort {
+  return { type: 0, size: 0, ageGroup: 0 };
+}
+
+export const AdoptionCohort: MessageFns<AdoptionCohort> = {
+  encode(message: AdoptionCohort, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.type !== 0) {
+      writer.uint32(8).int32(message.type);
+    }
+    if (message.size !== 0) {
+      writer.uint32(16).int32(message.size);
+    }
+    if (message.ageGroup !== 0) {
+      writer.uint32(24).int32(message.ageGroup);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdoptionCohort {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdoptionCohort();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.size = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.ageGroup = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdoptionCohort {
+    return {
+      type: isSet(object.type) ? petTypeFromJSON(object.type) : 0,
+      size: isSet(object.size) ? petSizeFromJSON(object.size) : 0,
+      ageGroup: isSet(object.ageGroup)
+        ? petAgeGroupFromJSON(object.ageGroup)
+        : isSet(object.age_group)
+        ? petAgeGroupFromJSON(object.age_group)
+        : 0,
+    };
+  },
+
+  toJSON(message: AdoptionCohort): unknown {
+    const obj: any = {};
+    if (message.type !== 0) {
+      obj.type = petTypeToJSON(message.type);
+    }
+    if (message.size !== 0) {
+      obj.size = petSizeToJSON(message.size);
+    }
+    if (message.ageGroup !== 0) {
+      obj.ageGroup = petAgeGroupToJSON(message.ageGroup);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdoptionCohort>, I>>(base?: I): AdoptionCohort {
+    return AdoptionCohort.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdoptionCohort>, I>>(object: I): AdoptionCohort {
+    const message = createBaseAdoptionCohort();
+    message.type = object.type ?? 0;
+    message.size = object.size ?? 0;
+    message.ageGroup = object.ageGroup ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetAdoptionStatsRequest(): GetAdoptionStatsRequest {
+  return { cohorts: [] };
+}
+
+export const GetAdoptionStatsRequest: MessageFns<GetAdoptionStatsRequest> = {
+  encode(message: GetAdoptionStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.cohorts) {
+      AdoptionCohort.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAdoptionStatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAdoptionStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.cohorts.push(AdoptionCohort.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAdoptionStatsRequest {
+    return {
+      cohorts: globalThis.Array.isArray(object?.cohorts)
+        ? object.cohorts.map((e: any) => AdoptionCohort.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetAdoptionStatsRequest): unknown {
+    const obj: any = {};
+    if (message.cohorts?.length) {
+      obj.cohorts = message.cohorts.map((e) => AdoptionCohort.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAdoptionStatsRequest>, I>>(base?: I): GetAdoptionStatsRequest {
+    return GetAdoptionStatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAdoptionStatsRequest>, I>>(object: I): GetAdoptionStatsRequest {
+    const message = createBaseGetAdoptionStatsRequest();
+    message.cohorts = object.cohorts?.map((e) => AdoptionCohort.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseAdoptionCohortStats(): AdoptionCohortStats {
+  return { cohort: undefined, sampleCount: 0, medianDays: 0 };
+}
+
+export const AdoptionCohortStats: MessageFns<AdoptionCohortStats> = {
+  encode(message: AdoptionCohortStats, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.cohort !== undefined) {
+      AdoptionCohort.encode(message.cohort, writer.uint32(10).fork()).join();
+    }
+    if (message.sampleCount !== 0) {
+      writer.uint32(16).uint32(message.sampleCount);
+    }
+    if (message.medianDays !== 0) {
+      writer.uint32(25).double(message.medianDays);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdoptionCohortStats {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdoptionCohortStats();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.cohort = AdoptionCohort.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.sampleCount = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 25) {
+            break;
+          }
+
+          message.medianDays = reader.double();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdoptionCohortStats {
+    return {
+      cohort: isSet(object.cohort) ? AdoptionCohort.fromJSON(object.cohort) : undefined,
+      sampleCount: isSet(object.sampleCount)
+        ? globalThis.Number(object.sampleCount)
+        : isSet(object.sample_count)
+        ? globalThis.Number(object.sample_count)
+        : 0,
+      medianDays: isSet(object.medianDays)
+        ? globalThis.Number(object.medianDays)
+        : isSet(object.median_days)
+        ? globalThis.Number(object.median_days)
+        : 0,
+    };
+  },
+
+  toJSON(message: AdoptionCohortStats): unknown {
+    const obj: any = {};
+    if (message.cohort !== undefined) {
+      obj.cohort = AdoptionCohort.toJSON(message.cohort);
+    }
+    if (message.sampleCount !== 0) {
+      obj.sampleCount = Math.round(message.sampleCount);
+    }
+    if (message.medianDays !== 0) {
+      obj.medianDays = message.medianDays;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdoptionCohortStats>, I>>(base?: I): AdoptionCohortStats {
+    return AdoptionCohortStats.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdoptionCohortStats>, I>>(object: I): AdoptionCohortStats {
+    const message = createBaseAdoptionCohortStats();
+    message.cohort = (object.cohort !== undefined && object.cohort !== null)
+      ? AdoptionCohort.fromPartial(object.cohort)
+      : undefined;
+    message.sampleCount = object.sampleCount ?? 0;
+    message.medianDays = object.medianDays ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetAdoptionStatsResponse(): GetAdoptionStatsResponse {
+  return { stats: [] };
+}
+
+export const GetAdoptionStatsResponse: MessageFns<GetAdoptionStatsResponse> = {
+  encode(message: GetAdoptionStatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.stats) {
+      AdoptionCohortStats.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAdoptionStatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAdoptionStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.stats.push(AdoptionCohortStats.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAdoptionStatsResponse {
+    return {
+      stats: globalThis.Array.isArray(object?.stats)
+        ? object.stats.map((e: any) => AdoptionCohortStats.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetAdoptionStatsResponse): unknown {
+    const obj: any = {};
+    if (message.stats?.length) {
+      obj.stats = message.stats.map((e) => AdoptionCohortStats.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAdoptionStatsResponse>, I>>(base?: I): GetAdoptionStatsResponse {
+    return GetAdoptionStatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAdoptionStatsResponse>, I>>(object: I): GetAdoptionStatsResponse {
+    const message = createBaseGetAdoptionStatsResponse();
+    message.stats = object.stats?.map((e) => AdoptionCohortStats.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * PetService is the gRPC contract for the pets vertical. It owns the
  * `pets.*` schema (Pet, PetMedia, Breed, UserFavorite, Rating,
@@ -6794,6 +7141,25 @@ export const PetServiceService = {
       Buffer.from(GetPetFacetsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetPetFacetsResponse => GetPetFacetsResponse.decode(value),
   },
+  /**
+   * Time-to-adoption for "pets like this" cohorts (type + size + age
+   * group), over adoptions in the last 365 days. One entry per requested
+   * cohort, in request order, with the sample count and the median days
+   * from available_since to adopted_date. Platform-wide by design (no
+   * rescue scope): it returns aggregates only, never pet rows. Backs the
+   * swipe card's `similar_adopted_fast` activity label. `pets.read`.
+   */
+  getAdoptionStats: {
+    path: "/adopt_dont_shop.pets.v1.PetService/GetAdoptionStats" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetAdoptionStatsRequest): Buffer =>
+      Buffer.from(GetAdoptionStatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetAdoptionStatsRequest => GetAdoptionStatsRequest.decode(value),
+    responseSerialize: (value: GetAdoptionStatsResponse): Buffer =>
+      Buffer.from(GetAdoptionStatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetAdoptionStatsResponse => GetAdoptionStatsResponse.decode(value),
+  },
 } as const;
 
 export interface PetServiceServer extends UntypedServiceImplementation {
@@ -6916,6 +7282,15 @@ export interface PetServiceServer extends UntypedServiceImplementation {
    * platform). `pets.read`.
    */
   getPetFacets: handleUnaryCall<GetPetFacetsRequest, GetPetFacetsResponse>;
+  /**
+   * Time-to-adoption for "pets like this" cohorts (type + size + age
+   * group), over adoptions in the last 365 days. One entry per requested
+   * cohort, in request order, with the sample count and the median days
+   * from available_since to adopted_date. Platform-wide by design (no
+   * rescue scope): it returns aggregates only, never pet rows. Backs the
+   * swipe card's `similar_adopted_fast` activity label. `pets.read`.
+   */
+  getAdoptionStats: handleUnaryCall<GetAdoptionStatsRequest, GetAdoptionStatsResponse>;
 }
 
 export interface PetServiceClient extends Client {
@@ -7331,6 +7706,29 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetPetFacetsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Time-to-adoption for "pets like this" cohorts (type + size + age
+   * group), over adoptions in the last 365 days. One entry per requested
+   * cohort, in request order, with the sample count and the median days
+   * from available_since to adopted_date. Platform-wide by design (no
+   * rescue scope): it returns aggregates only, never pet rows. Backs the
+   * swipe card's `similar_adopted_fast` activity label. `pets.read`.
+   */
+  getAdoptionStats(
+    request: GetAdoptionStatsRequest,
+    callback: (error: ServiceError | null, response: GetAdoptionStatsResponse) => void,
+  ): ClientUnaryCall;
+  getAdoptionStats(
+    request: GetAdoptionStatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetAdoptionStatsResponse) => void,
+  ): ClientUnaryCall;
+  getAdoptionStats(
+    request: GetAdoptionStatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetAdoptionStatsResponse) => void,
   ): ClientUnaryCall;
 }
 

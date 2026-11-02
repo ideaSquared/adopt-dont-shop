@@ -20,6 +20,7 @@ import { adapt, adaptUnauth } from './adapter.js';
 import {
   createPet,
   deletePet,
+  getAdoptionStats,
   getAdoptionsByType,
   getAdoptionTrend,
   getPet,
@@ -80,6 +81,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     listFavoritesForUser: adapt(listFavoritesForUser, { deps, logger }),
     getSearchSuggestions: adapt(getSearchSuggestions, { deps, logger }),
     getPetFacets: adapt(getPetFacets, { deps, logger }),
+    getAdoptionStats: adapt(getAdoptionStats, { deps, logger }),
   });
 
   logger.info('gRPC PetService registered', {
@@ -103,6 +105,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'listFavoritesForUser',
       'getSearchSuggestions',
       'getPetFacets',
+      'getAdoptionStats',
     ],
     grpcPort: config.grpcPort,
   });

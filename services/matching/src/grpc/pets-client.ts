@@ -2,8 +2,8 @@
 //
 // MatchingService is stateless compute: Recommend + SearchPets read
 // candidate pets from the pets vertical over gRPC, then rank / filter
-// them. Only PetService.List is wrapped — that's all matching needs
-// (both RPCs fetch a candidate set; neither does a single-pet Get).
+// them. Only PetService.List (candidate set) and GetAdoptionStats (the
+// similar_adopted_fast label) are wrapped — neither RPC does a single-pet Get.
 //
 // The interface is exported so the gRPC server boot can inject a real
 // client and tests can substitute a stub. Direct port of
@@ -11,10 +11,20 @@
 
 import { credentials, status, type CallOptions, type Metadata } from '@grpc/grpc-js';
 
-import { PetsV1, type ListPetsRequest, type ListPetsResponse } from '@adopt-dont-shop/proto';
+import {
+  PetsV1,
+  type GetAdoptionStatsRequest,
+  type GetAdoptionStatsResponse,
+  type ListPetsRequest,
+  type ListPetsResponse,
+} from '@adopt-dont-shop/proto';
 
 export type PetsClient = {
   listPets(req: ListPetsRequest, metadata: Metadata): Promise<ListPetsResponse>;
+  getAdoptionStats(
+    req: GetAdoptionStatsRequest,
+    metadata: Metadata
+  ): Promise<GetAdoptionStatsResponse>;
   close(): void;
 };
 
@@ -92,6 +102,7 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
 
   return {
     listPets: (req, metadata) => callWithRetry(stub.list, req, metadata),
+    getAdoptionStats: (req, metadata) => callWithRetry(stub.getAdoptionStats, req, metadata),
     close: () => stub.close(),
   };
 };

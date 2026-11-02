@@ -43,6 +43,8 @@ import {
   type GetAdoptionsByTypeResponse,
   type GetAdoptionTrendRequest,
   type GetAdoptionTrendResponse,
+  type GetAdoptionStatsRequest,
+  type GetAdoptionStatsResponse,
   type GetPetFacetsRequest,
   type GetPetFacetsResponse,
   type GetPetRequest,
@@ -1697,5 +1699,78 @@ export async function getPetFacets(
       { name: 'type', values: typeValues },
       { name: 'size', values: sizeValues },
     ],
+  };
+}
+
+// --- GetAdoptionStats ----------------------------------------------------
+
+const MAX_ADOPTION_COHORTS = 50;
+
+// Median time-to-adoption per "pets like this" cohort over the last 365
+// days. Aggregates only (no pet rows), so it is platform-wide rather than
+// rescue-scoped. Cohorts are matched through unnest(...) WITH ORDINALITY so
+// results come back in request order even for cohorts with no adoptions.
+export async function getAdoptionStats(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetAdoptionStatsRequest
+): Promise<GetAdoptionStatsResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+  if (req.cohorts.length > MAX_ADOPTION_COHORTS) {
+    throw new HandlerError('INVALID_ARGUMENT', `cohorts must be <= ${MAX_ADOPTION_COHORTS}`);
+  }
+  if (req.cohorts.length === 0) {
+    return { stats: [] };
+  }
+  const cohortIsComplete = (c: GetAdoptionStatsRequest['cohorts'][number]): boolean =>
+    c.type !== PetsV1.PetType.PET_TYPE_UNSPECIFIED &&
+    c.size !== PetsV1.PetSize.PET_SIZE_UNSPECIFIED &&
+    c.ageGroup !== PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED;
+  if (!req.cohorts.every(cohortIsComplete)) {
+    throw new HandlerError('INVALID_ARGUMENT', 'each cohort needs a type, size and age_group');
+  }
+
+  const { rows } = await deps.pool.query<{
+    ord: number;
+    sample_count: string;
+    median_days: string;
+  }>(
+    `
+    SELECT c.ord::int AS ord,
+           COUNT(p.pet_id)::text AS sample_count,
+           COALESCE(
+             percentile_cont(0.5) WITHIN GROUP (
+               ORDER BY EXTRACT(epoch FROM (p.adopted_date - p.available_since)) / 86400
+             ),
+             0
+           )::text AS median_days
+      FROM unnest($1::pet_type[], $2::pet_size[], $3::pet_age_group[])
+           WITH ORDINALITY AS c(type, size, age_group, ord)
+      LEFT JOIN pets.pets p
+        ON p.type = c.type AND p.size = c.size AND p.age_group = c.age_group
+       AND p.deleted_at IS NULL
+       AND p.status = 'adopted'
+       AND p.available_since IS NOT NULL
+       AND p.adopted_date IS NOT NULL
+       AND p.adopted_date >= p.available_since
+       AND p.adopted_date >= now() - interval '365 days'
+     GROUP BY c.ord
+     ORDER BY c.ord
+    `,
+    [
+      req.cohorts.map(c => typeToDb(c.type)),
+      req.cohorts.map(c => sizeToDb(c.size)),
+      req.cohorts.map(c => ageGroupToDb(c.ageGroup)),
+    ]
+  );
+
+  return {
+    stats: rows.map(row => ({
+      cohort: req.cohorts[row.ord - 1],
+      sampleCount: Number.parseInt(row.sample_count, 10),
+      medianDays: Number.parseFloat(row.median_days),
+    })),
   };
 }

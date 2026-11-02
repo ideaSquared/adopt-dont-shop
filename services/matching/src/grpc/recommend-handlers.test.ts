@@ -41,8 +41,11 @@ function depsWithSwipes(petIds: string[]): HandlerDeps {
 // the exclusion query returns no rows (user has swiped nothing).
 const recommendDeps = depsWithSwipes([]);
 
-function makePetsClient(listPets: ReturnType<typeof vi.fn>): PetsClient {
-  return { listPets, close: vi.fn() } as unknown as PetsClient;
+function makePetsClient(
+  listPets: ReturnType<typeof vi.fn>,
+  getAdoptionStats: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue({ stats: [] })
+): PetsClient {
+  return { listPets, getAdoptionStats, close: vi.fn() } as unknown as PetsClient;
 }
 
 function makePet(overrides: Partial<Pet> & { petId: string }): Pet {
@@ -139,6 +142,78 @@ describe('makeRecommend distance', () => {
 });
 
 describe('makeRecommend', () => {
+  describe('similar-adopted label', () => {
+    const DOG = {
+      type: PetsV1.PetType.PET_TYPE_DOG,
+      size: PetsV1.PetSize.PET_SIZE_SMALL,
+      ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_YOUNG,
+    };
+    const dogPet = (petId: string, overrides: Partial<Pet> = {}) =>
+      makePet({ petId, name: 'Buddy', ...DOG, ...overrides });
+
+    const recommendWith = async (
+      pets: Pet[],
+      stats: { sampleCount: number; medianDays: number } | Error
+    ) => {
+      const getAdoptionStats =
+        stats instanceof Error
+          ? vi.fn().mockRejectedValue(stats)
+          : vi.fn().mockResolvedValue({ stats: [{ cohort: DOG, ...stats }] });
+      const recommend = makeRecommend(
+        makePetsClient(vi.fn().mockResolvedValue(listResponse(pets)), getAdoptionStats)
+      );
+      const res = await recommend(recommendDeps, makePrincipal(), {
+        sessionId: 's-1',
+        limit: 10,
+      } as RecommendRequest);
+      return { res, getAdoptionStats };
+    };
+
+    it('labels pets whose cohort was adopted quickly by enough similar pets', async () => {
+      const { res } = await recommendWith([dogPet('p-1')], { sampleCount: 5, medianDays: 12 });
+      expect(res.candidates[0].activityLabel).toEqual({
+        kind: 'similar_adopted_fast',
+        text: 'Pets like Buddy adopted in <30 days',
+      });
+    });
+
+    it('asks for each distinct cohort once per page', async () => {
+      const { getAdoptionStats } = await recommendWith([dogPet('p-1'), dogPet('p-2')], {
+        sampleCount: 5,
+        medianDays: 12,
+      });
+      expect(getAdoptionStats).toHaveBeenCalledTimes(1);
+      expect(getAdoptionStats.mock.calls[0][0]).toEqual({ cohorts: [DOG] });
+    });
+
+    it.each([
+      ['too few samples', { sampleCount: 4, medianDays: 5 }],
+      ['a slow median', { sampleCount: 20, medianDays: 30 }],
+    ])('shows nothing for %s', async (_name, stats) => {
+      const { res } = await recommendWith([dogPet('p-1')], stats);
+      expect(res.candidates[0].activityLabel).toBeUndefined();
+    });
+
+    it('keeps the days-waiting label ahead of the similar-adopted one', async () => {
+      vi.useFakeTimers({ now: new Date('2026-11-01T12:00:00.000Z') });
+      try {
+        const { res } = await recommendWith(
+          [dogPet('p-1', { availableSince: '2026-08-03T00:00:00.000Z' })],
+          { sampleCount: 9, medianDays: 10 }
+        );
+        expect(res.candidates[0].activityLabel?.kind).toBe('days_waiting');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('still recommends, without the label, when the stats call fails', async () => {
+      const { res } = await recommendWith([dogPet('p-1')], new Error('pets unavailable'));
+      expect(res.candidates).toHaveLength(1);
+      expect(res.candidates[0].activityLabel).toBeUndefined();
+    });
+  });
+
   describe('activity label', () => {
     const recommendOne = async (pet: Pet) => {
       const listPets = vi.fn().mockResolvedValue(listResponse([pet]));

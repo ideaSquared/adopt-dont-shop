@@ -281,6 +281,10 @@ export type {
   GetTopBreedsByAdoptionsRequest,
   BreedAdoptionCount,
   GetTopBreedsByAdoptionsResponse,
+  AdoptionCohort,
+  GetAdoptionStatsRequest,
+  AdoptionCohortStats,
+  GetAdoptionStatsResponse,
   PetServiceServer,
   PetServiceClient,
 } from './generated/proto/adopt_dont_shop/pets/v1/pet.js';

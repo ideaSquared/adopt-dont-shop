@@ -130,6 +130,14 @@ service PetService {
   // own rescue; pets.read:any may target any rescue or the whole
   // platform). `pets.read`.
   rpc GetPetFacets(GetPetFacetsRequest) returns (GetPetFacetsResponse);
+
+  // Time-to-adoption for "pets like this" cohorts (type + size + age
+  // group), over adoptions in the last 365 days. One entry per requested
+  // cohort, in request order, with the sample count and the median days
+  // from available_since to adopted_date. Platform-wide by design (no
+  // rescue scope): it returns aggregates only, never pet rows. Backs the
+  // swipe card's `similar_adopted_fast` activity label. `pets.read`.
+  rpc GetAdoptionStats(GetAdoptionStatsRequest) returns (GetAdoptionStatsResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -624,4 +632,29 @@ message BreedAdoptionCount {
 
 message GetTopBreedsByAdoptionsResponse {
   repeated BreedAdoptionCount breeds = 1;
+}
+
+// --- GetAdoptionStats ----------------------------------------------------
+
+message AdoptionCohort {
+  PetType type = 1;
+  PetSize size = 2;
+  PetAgeGroup age_group = 3;
+}
+
+message GetAdoptionStatsRequest {
+  // At most 50 cohorts per call.
+  repeated AdoptionCohort cohorts = 1;
+}
+
+message AdoptionCohortStats {
+  AdoptionCohort cohort = 1;
+  uint32 sample_count = 2;
+  // Median days from available_since to adopted_date; 0 when
+  // sample_count is 0.
+  double median_days = 3;
+}
+
+message GetAdoptionStatsResponse {
+  repeated AdoptionCohortStats stats = 1;
 }
