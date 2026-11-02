@@ -1724,12 +1724,20 @@ export async function getAdoptionStats(
   if (req.cohorts.length === 0) {
     return { stats: [] };
   }
-  const cohortIsComplete = (c: GetAdoptionStatsRequest['cohorts'][number]): boolean =>
-    c.type !== PetsV1.PetType.PET_TYPE_UNSPECIFIED &&
-    c.size !== PetsV1.PetSize.PET_SIZE_UNSPECIFIED &&
-    c.ageGroup !== PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED;
-  if (!req.cohorts.every(cohortIsComplete)) {
-    throw new HandlerError('INVALID_ARGUMENT', 'each cohort needs a type, size and age_group');
+  // Protobuf decoding keeps UNRECOGNIZED (-1) and any other numeric value, and
+  // the *ToDb maps would turn those into a different cohort or an untyped
+  // throw, so accept only real, non-sentinel enum members.
+  const isConcrete = (members: object, value: number): boolean =>
+    value > 0 && Object.values(members).includes(value);
+  const cohortIsValid = (c: GetAdoptionStatsRequest['cohorts'][number]): boolean =>
+    isConcrete(PetsV1.PetType, c.type) &&
+    isConcrete(PetsV1.PetSize, c.size) &&
+    isConcrete(PetsV1.PetAgeGroup, c.ageGroup);
+  if (!req.cohorts.every(cohortIsValid)) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'each cohort needs a valid type, size and age_group'
+    );
   }
 
   const { rows } = await deps.pool.query<{

@@ -2126,6 +2126,22 @@ describe('getAdoptionStats', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it.each([
+    ['type', PetsV1.PetType.UNRECOGNIZED],
+    ['type', 999],
+    ['size', PetsV1.PetSize.UNRECOGNIZED],
+    ['size', 999],
+    ['ageGroup', PetsV1.PetAgeGroup.UNRECOGNIZED],
+    ['ageGroup', 999],
+  ])('rejects an unrecognised %s value (%i) without querying', async (dimension, value) => {
+    await expect(
+      getAdoptionStats(mocks.deps, ADOPTER, {
+        cohorts: [{ ...SMALL_YOUNG_DOGS, [dimension]: value }],
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
   it('rejects more than 50 cohorts', async () => {
     await expect(
       getAdoptionStats(mocks.deps, ADOPTER, {
