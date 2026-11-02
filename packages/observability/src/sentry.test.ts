@@ -94,6 +94,42 @@ describe('redactSentryEvent', () => {
     expect(out.transaction).toBe('/api/v1/users/:id');
   });
 
+  it('strips the caller coordinates (lat/lng/latitude/longitude) from request URLs and query strings', () => {
+    const event = {
+      request: {
+        url: 'https://api.example.com/api/v1/pets?type=dog&lat=51.5&lng=-0.12&page=2',
+        query_string: 'latitude=51.5&limit=5&longitude=-0.12',
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const out = redactSentryEvent(event);
+
+    expect(out.request!.url).toBe('https://api.example.com/api/v1/pets?type=dog&page=2');
+    expect(out.request!.query_string).toBe('limit=5');
+  });
+
+  it('strips coordinates from an object-shaped query string and drops an emptied query', () => {
+    const event = {
+      request: {
+        url: '/api/v1/pets/abc?lat=1&lng=2',
+        query_string: { lat: '1', lng: '2', limit: '5' },
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const out = redactSentryEvent(event);
+
+    expect(out.request!.url).toBe('/api/v1/pets/abc');
+    expect(out.request!.query_string).toEqual({ limit: '5' });
+  });
+
+  it('leaves look-alike params untouched', () => {
+    const event = {
+      request: { url: '/api/v1/pets?flat=1&platform=x' },
+    } as unknown as Sentry.ErrorEvent;
+
+    expect(redactSentryEvent(event).request!.url).toBe('/api/v1/pets?flat=1&platform=x');
+  });
+
   it('applies the same secret-key redaction to breadcrumb data', () => {
     const event = {
       breadcrumbs: [
