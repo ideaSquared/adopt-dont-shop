@@ -153,13 +153,19 @@ describe('makeRecommend', () => {
     });
   });
 
-  it('drops image urls that are not same-origin paths or https', async () => {
+  it('keeps only same-origin paths and https urls on the platform storage host', async () => {
+    vi.stubEnv('CLOUDFRONT_DOMAIN', 'cdn.example');
     const listPets = vi.fn().mockResolvedValue(
       listResponse([
         makePet({
           petId: 'p-1',
           extraJson: JSON.stringify({
-            image_urls: ['/ok.jpg', 'http://insecure.example/a.jpg', 'javascript:alert(1)'],
+            image_urls: [
+              '/ok.jpg',
+              'http://cdn.example/a.jpg',
+              'javascript:alert(1)',
+              'https://evil.example/d.jpg',
+            ],
             images: ['//evil.example/b.jpg', 'https://cdn.example/c.jpg'],
           }),
         }),
@@ -173,6 +179,7 @@ describe('makeRecommend', () => {
     } as RecommendRequest);
 
     expect(res.candidates[0].images).toEqual(['/ok.jpg', 'https://cdn.example/c.jpg']);
+    vi.unstubAllEnvs();
   });
 
   it('throws PERMISSION_DENIED without pets.read', async () => {

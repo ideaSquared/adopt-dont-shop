@@ -70,6 +70,7 @@ import {
   type UpdatePetStatusRequest,
   type UpdatePetStatusResponse,
 } from '@adopt-dont-shop/proto';
+import { isSafeImageUrl } from '@adopt-dont-shop/service-bootstrap';
 
 import {
   ALL_PET_TYPES,
@@ -1080,44 +1081,11 @@ function parseExtraObject(raw: string | undefined): Record<string, unknown> {
   }
 }
 
-// ADS-1343: extra_json.image_urls is where the gateway's pet-images route
-// (services/gateway/src/routes/pets.ts) stores the URLs it validates with
-// isSafeImageUrl at the write boundary. That gateway check is the only
-// guard today — CreatePet/UpdatePet forward req.extraJson to this handler
-// unchecked, so any other caller of this gRPC method (present or future)
-// could smuggle in a javascript:/data:/arbitrary-host URL. This mirrors
-// isSafeImageUrl (services/gateway/src/routes/events.schemas.ts) and
-// assertValidDocumentUrl (services/applications/src/grpc/document-handlers.ts)
-// as defense-in-depth at this handler's own write boundary.
-function allowedImageHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
-  const hosts = new Set<string>();
-  const cloudFrontDomain = env.CLOUDFRONT_DOMAIN?.trim();
-  if (cloudFrontDomain) {
-    hosts.add(cloudFrontDomain);
-  }
-  const bucket = env.S3_BUCKET_NAME?.trim();
-  if (bucket) {
-    const region = env.S3_REGION?.trim() || 'us-east-1';
-    hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
-  }
-  return hosts;
-}
-
-function isSafeImageUrl(value: string): boolean {
-  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
-  // it's excluded from the same-origin relative-path allowance below.
-  if (value.startsWith('/') && !value.startsWith('//')) {
-    return true;
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return false;
-  }
-  return parsed.protocol === 'https:' && allowedImageHosts().has(parsed.host);
-}
-
+// ADS-1343: CreatePet/UpdatePet forward req.extraJson to this handler, so
+// any caller of this gRPC method could smuggle in a javascript:/data:/
+// arbitrary-host URL. The shared image-url-policy (service-bootstrap, also
+// applied by service.matching when it renders cards) is the guard at this
+// handler's own write boundary.
 // Photos arrive under `image_urls` (image routes) and the legacy `images`
 // key (create/update body); both are rendered to other users, so both are
 // held to the same policy.
