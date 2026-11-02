@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Cross-domain search client for the frontend apps — pets, messages, faceted
-search, and typeahead suggestions.
+Cross-domain search client for the frontend apps — pets, messages, and
+typeahead suggestions.
 
 ## Location in the architecture
 
@@ -27,8 +27,7 @@ pnpm type-check   # TypeScript type-check
 The canonical list lives in [`src/index.ts`](src/index.ts):
 
 - `SearchService` — class client constructed with `SearchServiceConfig`
-  (`apiUrl`, …): `searchPets`, `searchMessages`, `getSearchSuggestions`,
-  `facetedSearch`.
+  (`apiUrl`, …): `searchPets`, `searchMessages`, `getSearchSuggestions`.
 - Types: `SearchServiceConfig`, `SearchServiceOptions`, plus the domain types
   re-exported from `./types`.
 
@@ -40,7 +39,7 @@ None read directly — the `apiUrl` (typically `VITE_API_BASE_URL`) is passed in
 
 ## Testing notes
 
-Vitest — the search/suggestion/faceted methods are tested against a mocked API.
+Vitest — the search and suggestion methods are tested against a mocked API.
 See [`docs/testing.md`](../../docs/testing.md) for anything not
 library-specific.
 
