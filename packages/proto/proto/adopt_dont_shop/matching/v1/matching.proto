@@ -166,6 +166,9 @@ message PetCandidate {
   repeated string images = 15;
   // Server-driven badge for the card; at most one per pet.
   optional ActivityLabel activity_label = 16;
+  // Straight-line miles from the caller's coordinates (filters_json
+  // latitude/longitude) to the pet's rescue; unset when either is unknown.
+  optional double distance_miles = 17;
 }
 
 // ActivityLabel kinds: 'views_today' | 'days_waiting' | 'similar_adopted_fast'.

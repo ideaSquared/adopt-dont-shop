@@ -208,14 +208,20 @@ export class DiscoveryService {
    *
    * @param sessionId - Current swipe session ID
    * @param lastPetId - ID of the last pet shown
+   * @param filters - Optional filters (incl. the adopter's coordinates for card distances)
    * @returns Promise<DiscoveryPet[]> - Array of additional pets
    */
-  async loadMorePets(sessionId: string, lastPetId: string): Promise<DiscoveryPet[]> {
+  async loadMorePets(
+    sessionId: string,
+    lastPetId: string,
+    filters?: PetSearchFilters
+  ): Promise<DiscoveryPet[]> {
     try {
       const requestBody = {
         sessionId,
         lastPetId,
         limit: 10,
+        ...(filters ? { filters: this.buildFilterParams(filters) } : {}),
       };
 
       const data = await this.apiService.post<LoadMorePetsResponse>(
@@ -396,6 +402,10 @@ export class DiscoveryService {
     }
     if (filters.maxDistance !== undefined) {
       params.maxDistance = filters.maxDistance.toString();
+    }
+    if (filters.latitude !== undefined && filters.longitude !== undefined) {
+      params.latitude = filters.latitude.toString();
+      params.longitude = filters.longitude.toString();
     }
     if (filters.search) {
       params.search = filters.search;

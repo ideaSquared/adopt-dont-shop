@@ -194,7 +194,14 @@ export interface PetCandidate {
   /** Every image URL for the pet, primary first. */
   images: string[];
   /** Server-driven badge for the card; at most one per pet. */
-  activityLabel?: ActivityLabel | undefined;
+  activityLabel?:
+    | ActivityLabel
+    | undefined;
+  /**
+   * Straight-line miles from the caller's coordinates (filters_json
+   * latitude/longitude) to the pet's rescue; unset when either is unknown.
+   */
+  distanceMiles?: number | undefined;
 }
 
 /** ActivityLabel kinds: 'views_today' | 'days_waiting' | 'similar_adopted_fast'. */
@@ -849,6 +856,7 @@ function createBasePetCandidate(): PetCandidate {
     ageMonths: undefined,
     images: [],
     activityLabel: undefined,
+    distanceMiles: undefined,
   };
 }
 
@@ -901,6 +909,9 @@ export const PetCandidate: MessageFns<PetCandidate> = {
     }
     if (message.activityLabel !== undefined) {
       ActivityLabel.encode(message.activityLabel, writer.uint32(130).fork()).join();
+    }
+    if (message.distanceMiles !== undefined) {
+      writer.uint32(137).double(message.distanceMiles);
     }
     return writer;
   },
@@ -1040,6 +1051,14 @@ export const PetCandidate: MessageFns<PetCandidate> = {
           message.activityLabel = ActivityLabel.decode(reader, reader.uint32());
           continue;
         }
+        case 17: {
+          if (tag !== 137) {
+            break;
+          }
+
+          message.distanceMiles = reader.double();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1101,6 +1120,11 @@ export const PetCandidate: MessageFns<PetCandidate> = {
         : isSet(object.activity_label)
         ? ActivityLabel.fromJSON(object.activity_label)
         : undefined,
+      distanceMiles: isSet(object.distanceMiles)
+        ? globalThis.Number(object.distanceMiles)
+        : isSet(object.distance_miles)
+        ? globalThis.Number(object.distance_miles)
+        : undefined,
     };
   },
 
@@ -1154,6 +1178,9 @@ export const PetCandidate: MessageFns<PetCandidate> = {
     if (message.activityLabel !== undefined) {
       obj.activityLabel = ActivityLabel.toJSON(message.activityLabel);
     }
+    if (message.distanceMiles !== undefined) {
+      obj.distanceMiles = message.distanceMiles;
+    }
     return obj;
   },
 
@@ -1180,6 +1207,7 @@ export const PetCandidate: MessageFns<PetCandidate> = {
     message.activityLabel = (object.activityLabel !== undefined && object.activityLabel !== null)
       ? ActivityLabel.fromPartial(object.activityLabel)
       : undefined;
+    message.distanceMiles = object.distanceMiles ?? undefined;
     return message;
   },
 };

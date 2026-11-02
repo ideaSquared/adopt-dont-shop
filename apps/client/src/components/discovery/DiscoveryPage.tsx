@@ -15,6 +15,7 @@ import {
   incrementAnonSwipeCount,
   resetAnonSwipeBudget,
 } from '@/utils/anonSwipeBudget';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { useStatsig } from '@/hooks/useStatsig';
 import { TriangleAlert } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
@@ -34,6 +35,17 @@ export const DiscoveryPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<PetSearchFilters>({});
+  // Reuses the location the adopter already shared (cached by useGeolocation,
+  // e.g. from nearby search). Discovery never prompts for it: without one, cards
+  // simply show no distance.
+  const { latitude, longitude } = useGeolocation();
+  const requestFilters = useMemo<PetSearchFilters>(
+    () =>
+      latitude !== undefined && longitude !== undefined
+        ? { ...filters, latitude, longitude }
+        : filters,
+    [filters, latitude, longitude]
+  );
   const persistedState = useMemo(() => loadDiscoveryState(), []);
   const [session, setSession] = useState<SwipeSession>({
     sessionId: persistedState.sessionId,
@@ -82,7 +94,7 @@ export const DiscoveryPage: React.FC = () => {
         setError(null);
         // New filter set → assume there's more until proven otherwise.
         setHasMore(true);
-        const discoveryQueue = await discoveryService.getDiscoveryQueue(filters);
+        const discoveryQueue = await discoveryService.getDiscoveryQueue(requestFilters);
         if (cancelled) {
           return;
         }
@@ -111,7 +123,7 @@ export const DiscoveryPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [filters]);
+  }, [requestFilters]);
 
   // Handle filter changes
   const handleFilterChange = useCallback((newFilters: Partial<PetSearchFilters>) => {
@@ -201,7 +213,11 @@ export const DiscoveryPage: React.FC = () => {
     try {
       const lastPet = pets[pets.length - 1];
       if (lastPet) {
-        const morePets = await discoveryService.loadMorePets(session.sessionId, lastPet.petId);
+        const morePets = await discoveryService.loadMorePets(
+          session.sessionId,
+          lastPet.petId,
+          requestFilters
+        );
         if (morePets.length > 0) {
           setPets(prev => [...prev, ...morePets]);
         } else {
@@ -214,7 +230,7 @@ export const DiscoveryPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load more pets:', error);
     }
-  }, [pets, session.sessionId]);
+  }, [pets, session.sessionId, requestFilters]);
 
   const handleUndo = useCallback(() => {
     setUndoStack(prev => {

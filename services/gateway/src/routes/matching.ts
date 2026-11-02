@@ -328,7 +328,12 @@ export const registerMatchingRoutes = async (
       const body = (req.body ?? {}) as DiscoveryQueueBody;
       const filtersJson = body.filters !== undefined ? JSON.stringify(body.filters) : '';
       try {
-        const sessionId = body.sessionId ?? (await openSession(client, req, filtersJson));
+        // The implicit session persists its filters, so it gets them without
+        // the adopter's coordinates; only the Recommend override below carries
+        // them (request-scoped, for card distances).
+        const sessionId =
+          body.sessionId ??
+          (await openSession(client, req, JSON.stringify(withoutLocation(body.filters))));
         const grpcReq: RecommendRequest = {
           sessionId,
           limit: clampLimit(body.limit),
@@ -692,6 +697,14 @@ type DiscoveryQueueBody = {
   userId?: string;
   limit?: number;
 };
+
+// The adopter's coordinates are request-scoped (card distances); anything that
+// is stored with a session must not include them.
+function withoutLocation(filters: Record<string, unknown> | undefined): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(filters ?? {}).filter(([key]) => key !== 'latitude' && key !== 'longitude')
+  );
+}
 
 function clampLimit(raw: number | undefined): number {
   if (raw === undefined || !Number.isFinite(raw)) {

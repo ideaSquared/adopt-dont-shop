@@ -15,6 +15,7 @@ import {
 import { RescueV1 } from '@adopt-dont-shop/proto';
 
 import type { RescueConfig } from '../config.js';
+import { createPostcodesIoGeocoder, type Geocoder } from '../geocode.js';
 
 import { adapt, adaptUnauth } from './adapter.js';
 import {
@@ -23,6 +24,7 @@ import {
   deleteRescue,
   getRescue,
   getRescueNames,
+  getRescueLocations,
   getRescueStatistics,
   inviteStaff,
   listRescues,
@@ -78,13 +80,16 @@ export type CreateGrpcServerOptions = {
   // config.applicationsGrpcUrl. getEventAnalytics uses this for the
   // registered-then-adopted attribution count (ADS-941).
   applicationsClient?: ApplicationsClient;
+  // Injectable for tests; defaults to postcodes.io. Geocodes rescue
+  // postcodes on create/update for the swipe card's distance badge.
+  geocoder?: Geocoder;
 };
 
 export type { RunningGrpcServer };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
-  const deps = { pool, nats };
+  const deps = { pool, nats, geocode: opts.geocoder ?? createPostcodesIoGeocoder() };
   const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
   const applicationsClient =
     opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
@@ -96,6 +101,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // (basic, field-masked details) so they can browse before registering.
     get: adaptUnauth(getRescue, { deps, logger }),
     list: adaptUnauth(listRescues, { deps, logger }),
+    getRescueLocations: adapt(getRescueLocations, { deps, logger }),
     update: adapt(updateRescue, { deps, logger }),
     verify: adapt(verifyRescue, { deps, logger }),
     delete: adapt(deleteRescue, { deps, logger }),
@@ -141,6 +147,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'create',
       'get',
       'list',
+      'getRescueLocations',
       'update',
       'verify',
       'delete',

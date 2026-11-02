@@ -392,6 +392,35 @@ describe('DiscoveryService', () => {
   });
 
   describe('filter handling', () => {
+    it('sends the adopter coordinates as filters so cards can show distance', async () => {
+      mockApiService.post.mockResolvedValue(mockResponse);
+
+      await service.getDiscoveryQueue({ latitude: 51.5, longitude: -0.12 });
+      await service.loadMorePets('session-456', 'pet-123', { latitude: 51.5, longitude: -0.12 });
+
+      expect(mockApiService.post).toHaveBeenNthCalledWith(
+        1,
+        '/api/v1/discovery/queue',
+        expect.objectContaining({ filters: { latitude: '51.5', longitude: '-0.12' } })
+      );
+      expect(mockApiService.post).toHaveBeenNthCalledWith(
+        2,
+        '/api/v1/discovery/pets/more',
+        expect.objectContaining({ filters: { latitude: '51.5', longitude: '-0.12' } })
+      );
+    });
+
+    it('omits coordinates unless both are known', async () => {
+      mockApiService.post.mockResolvedValue(mockResponse);
+
+      await service.getDiscoveryQueue({ latitude: 51.5 });
+
+      expect(mockApiService.post).toHaveBeenCalledWith(
+        '/api/v1/discovery/queue',
+        expect.objectContaining({ filters: {} })
+      );
+    });
+
     it('should build filter parameters correctly', async () => {
       const filters: PetSearchFilters = {
         type: 'cat',

@@ -523,6 +523,29 @@ describe('POST /api/v1/discovery/queue (Recommend)', () => {
     });
   });
 
+  it('keeps the adopter coordinates out of the persisted session filters', async () => {
+    startSessionMock.mockResolvedValueOnce({
+      session: SESSION_FIXTURE,
+      created: true,
+    } satisfies StartSessionResponse);
+    recommendMock.mockResolvedValueOnce({ candidates: [], exhausted: true });
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/discovery/queue',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      payload: { filters: { species: 'dog', latitude: '51.5', longitude: '-0.12' } },
+    });
+
+    // The session is stored without coordinates...
+    expect(startSessionMock.mock.calls[0][0].filtersJson).toBe('{"species":"dog"}');
+    // ...but the request itself still carries them for card distances.
+    expect(JSON.parse(recommendMock.mock.calls[0][0].filtersJsonOverride)).toMatchObject({
+      latitude: '51.5',
+      longitude: '-0.12',
+    });
+  });
+
   it('uses the supplied sessionId without opening a new one', async () => {
     recommendMock.mockResolvedValueOnce({ candidates: [], exhausted: true });
     await app.inject({

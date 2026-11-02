@@ -451,6 +451,11 @@ export async function listSwipeHistory(
 
 // --- Helpers ---------------------------------------------------------
 
+// The adopter's coordinates ride in the filters blob only so Recommend can
+// compute card distances for that one request. They must never be stored with
+// the session, so they are dropped before the blob is persisted.
+const REQUEST_ONLY_FILTER_KEYS = new Set(['latitude', 'longitude']);
+
 function parseFiltersJson(raw: string | undefined): string {
   if (raw === undefined || raw === '') {
     return '{}';
@@ -462,7 +467,9 @@ function parseFiltersJson(raw: string | undefined): string {
     if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
       throw new Error('filters_json must encode a JSON object');
     }
-    return JSON.stringify(obj);
+    return JSON.stringify(
+      Object.fromEntries(Object.entries(obj).filter(([key]) => !REQUEST_ONLY_FILTER_KEYS.has(key)))
+    );
   } catch (err) {
     throw new HandlerError('INVALID_ARGUMENT', `filters_json invalid: ${(err as Error).message}`);
   }

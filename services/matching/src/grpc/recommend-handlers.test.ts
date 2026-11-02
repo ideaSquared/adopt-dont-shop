@@ -74,6 +74,70 @@ function listResponse(pets: Pet[], nextCursor?: string): ListPetsResponse {
   return nextCursor === undefined ? { pets } : { pets, nextCursor };
 }
 
+describe('makeRecommend distance', () => {
+  const LONDON_FILTERS = JSON.stringify({ latitude: 51.5074, longitude: -0.1278 });
+  const MANCHESTER = { latitude: 53.4808, longitude: -2.2426 };
+
+  const recommendWith = async (
+    filtersJsonOverride: string | undefined,
+    rescueLocations: { getRescueLocations: ReturnType<typeof vi.fn> } | undefined
+  ) => {
+    const listPets = vi
+      .fn()
+      .mockResolvedValue(
+        listResponse([
+          makePet({ petId: 'p-1', rescueId: 'rsc-1' }),
+          makePet({ petId: 'p-2', rescueId: 'rsc-2' }),
+        ])
+      );
+    const recommend = makeRecommend(makePetsClient(listPets), rescueLocations);
+    const res = await recommend(recommendDeps, makePrincipal(), {
+      sessionId: 's-1',
+      limit: 10,
+      filtersJsonOverride,
+    } as RecommendRequest);
+    return new Map(res.candidates.map(c => [c.petId, c]));
+  };
+
+  it('adds miles from the caller to each pet whose rescue has coordinates', async () => {
+    const getRescueLocations = vi.fn().mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
+
+    const candidates = await recommendWith(LONDON_FILTERS, { getRescueLocations });
+
+    // Optional lookup: short deadline, no retries, so it can't eat the
+    // Recommend budget.
+    expect(getRescueLocations).toHaveBeenCalledWith(['rsc-1', 'rsc-2'], {
+      deadlineMs: 750,
+      maxRetries: 0,
+    });
+    expect(candidates.get('p-1')?.distanceMiles).toBeGreaterThan(160);
+    expect(candidates.get('p-1')?.distanceMiles).toBeLessThan(166);
+    expect(candidates.get('p-2')?.distanceMiles).toBeUndefined();
+  });
+
+  it('skips the lookup when the caller sent no usable coordinates', async () => {
+    const getRescueLocations = vi.fn();
+
+    const none = await recommendWith(undefined, { getRescueLocations });
+    const bad = await recommendWith(JSON.stringify({ latitude: 'x', longitude: 200 }), {
+      getRescueLocations,
+    });
+
+    expect(getRescueLocations).not.toHaveBeenCalled();
+    expect(none.get('p-1')?.distanceMiles).toBeUndefined();
+    expect(bad.get('p-1')?.distanceMiles).toBeUndefined();
+  });
+
+  it('still returns the deck, without distances, when the rescue lookup fails', async () => {
+    const getRescueLocations = vi.fn().mockRejectedValue(new Error('rescue down'));
+
+    const candidates = await recommendWith(LONDON_FILTERS, { getRescueLocations });
+
+    expect([...candidates.keys()].sort()).toEqual(['p-1', 'p-2']);
+    expect(candidates.get('p-1')?.distanceMiles).toBeUndefined();
+  });
+});
+
 describe('makeRecommend', () => {
   describe('activity label', () => {
     const recommendOne = async (pet: Pet) => {

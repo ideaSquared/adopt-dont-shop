@@ -39,7 +39,9 @@ import {
   SPECIES_TO_TYPE,
   TYPE_TO_SPECIES,
 } from './pet-tokens.js';
+import { haversineMiles, parseUserLocation, type LatLng } from './distance.js';
 import type { PetsClient } from './pets-client.js';
+import type { RescueCoordinates, RescueLocationClient } from './rescue-client.js';
 import { principalToMetadata } from './principal.js';
 import { scoreCandidates, type RecommendPreferences } from './recommend-scoring.js';
 
@@ -64,7 +66,8 @@ const MAX_SEARCH_LIMIT = 100;
 // --- Recommend -------------------------------------------------------
 
 export function makeRecommend(
-  petsClient: PetsClient
+  petsClient: PetsClient,
+  rescueLocations?: RescueLocationClient
 ): (deps: HandlerDeps, principal: Principal, req: RecommendRequest) => Promise<RecommendResponse> {
   return async (deps, principal, req) => {
     ensureSwipePermission(principal);
@@ -100,7 +103,11 @@ export function makeRecommend(
       : {};
     const ranked = scoreCandidates(fresh, preferences).slice(0, limit);
 
-    const candidates = ranked.map(({ pet, score }) => petToCandidate(pet, score));
+    const candidates = await withDistances(
+      ranked.map(({ pet, score }) => petToCandidate(pet, score)),
+      filters.userLocation,
+      rescueLocations
+    );
 
     return {
       candidates,
@@ -253,7 +260,38 @@ type ParsedFilters = {
   type?: PetsV1.PetType;
   size?: PetsV1.PetSize;
   ageGroup?: PetsV1.PetAgeGroup;
+  // The caller's coordinates, used only to compute card distances; never
+  // logged or persisted.
+  userLocation?: LatLng;
 };
+
+// Adds distance_miles to candidates whose rescue has coordinates. Best
+// effort: without the caller's location, a client, or a successful lookup,
+// candidates come back unchanged — a distance is never worth failing the deck.
+// The gateway gives the whole Recommend call 5s and then spends another short
+// budget on rescue names, so this optional lookup gets one short attempt: no
+// retries, and the gRPC deadline cancels it on the wire.
+const RESCUE_LOCATION_BUDGET = { deadlineMs: 750, maxRetries: 0 };
+
+async function withDistances(
+  candidates: PetCandidate[],
+  userLocation: LatLng | undefined,
+  rescueLocations: RescueLocationClient | undefined
+): Promise<PetCandidate[]> {
+  if (userLocation === undefined || rescueLocations === undefined) {
+    return candidates;
+  }
+  const rescueIds = [...new Set(candidates.map(c => c.rescueId).filter(id => id !== ''))];
+  const locations = await rescueLocations
+    .getRescueLocations(rescueIds, RESCUE_LOCATION_BUDGET)
+    .catch(() => new Map<string, RescueCoordinates>());
+  return candidates.map(candidate => {
+    const rescue = locations.get(candidate.rescueId);
+    return rescue === undefined
+      ? candidate
+      : { ...candidate, distanceMiles: haversineMiles(userLocation, rescue) };
+  });
+}
 
 // Translate the SPA's JSONB filter blob into the typed pet filters the
 // List call + scorer understand. Unknown / absent keys are ignored —
@@ -277,6 +315,7 @@ function parseFilters(raw: string | undefined): ParsedFilters {
     type: mapSpecies(readField(obj, 'species')),
     size: mapSize(readField(obj, 'size')),
     ageGroup: mapAgeGroup(readField(obj, 'ageGroup') ?? readField(obj, 'age_group')),
+    userLocation: parseUserLocation(readField(obj, 'latitude'), readField(obj, 'longitude')),
   };
 }
 

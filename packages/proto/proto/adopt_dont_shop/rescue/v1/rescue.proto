@@ -32,6 +32,11 @@ service RescueService {
   // by default; admins can filter on the other statuses.
   rpc List(ListRescuesRequest) returns (ListRescuesResponse);
 
+  // Batch read of rescue coordinates (geocoded from the postcode) for the
+  // swipe card's distance badge. Verified rescues only; rescues without
+  // coordinates are omitted. `rescues.read`.
+  rpc GetRescueLocations(GetRescueLocationsRequest) returns (GetRescueLocationsResponse);
+
   // Update mutable rescue fields. Does NOT change verification status
   // — that's Verify's job. Caller MUST have `rescues.update` scoped to
   // the rescue. Publishes `rescue.updated` on NATS after commit.
@@ -369,6 +374,20 @@ message GetRescueRequest {
 
 message GetRescueResponse {
   Rescue rescue = 1;
+}
+
+message GetRescueLocationsRequest {
+  repeated string rescue_ids = 1;
+}
+
+message RescueLocation {
+  string rescue_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message GetRescueLocationsResponse {
+  repeated RescueLocation locations = 1;
 }
 
 // --- List -------------------------------------------------------------
