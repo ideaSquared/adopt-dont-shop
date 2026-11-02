@@ -76,6 +76,44 @@ export function bootstrapExec(service, pkg, password) {
   };
 }
 
+// Geocodes any rescue still missing coordinates (e.g. created while the
+// geocoder was unreachable). Idempotent and a no-op once everything has them.
+export function backfillExec() {
+  return {
+    args: [
+      'compose',
+      'exec',
+      '-T',
+      'service-rescue',
+      'pnpm',
+      '--filter',
+      '@adopt-dont-shop/service.rescue',
+      'run',
+      'backfill:coordinates',
+    ],
+  };
+}
+
+// Only for when the backfill could not RUN (container down, script crashed).
+// Being offline is not that case: the geocoder swallows network errors, so the
+// backfill exits 0 and prints its own skipped count and retry hint, which the
+// inherited stdio below passes straight through.
+export function backfillFailureMessage() {
+  return (
+    '  ! could not run the coordinate backfill (is service-rescue up?). Distance badges stay ' +
+    'hidden until you run: pnpm --filter @adopt-dont-shop/service.rescue backfill:coordinates\n'
+  );
+}
+
+// Best-effort: a seed that otherwise worked must not fail because of it.
+function runCoordinateBackfill() {
+  process.stdout.write('\n→ geocoding rescue postcodes (service-rescue)...\n');
+  const result = spawnSync(DOCKER, backfillExec().args, { stdio: 'inherit' });
+  if (result.error || result.status !== 0) {
+    process.stdout.write(backfillFailureMessage());
+  }
+}
+
 function runBootstrap(service, pkg, label) {
   process.stdout.write(`\n→ bootstrapping ${label} (${service})...\n`);
   const { args, env } = bootstrapExec(service, pkg, PASSWORD);
@@ -136,6 +174,9 @@ async function main() {
     log: line => process.stdout.write(`${line}\n`),
   });
   await generator.run(personas);
+  if (!process.argv.includes('--api-only')) {
+    runCoordinateBackfill();
+  }
   process.stdout.write(
     '\n✓ seed complete — login as john.smith@gmail.com / DevPassword123! (or your SEED_PASSWORD)\n'
   );

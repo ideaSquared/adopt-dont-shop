@@ -32,7 +32,10 @@ export const ADMINS = [
 ];
 
 // Created and verified by the super_admin. `key` is only a local handle the
-// staff and pets below use to point at their rescue.
+// staff and pets below use to point at their rescue. Postcodes are real, active
+// UK postcodes (checked against api.postcodes.io): the rescue service geocodes
+// them on create/update, and a made-up or terminated one leaves the rescue
+// without coordinates, so no distance on the swipe cards.
 export const RESCUES = [
   {
     key: 'paws',
@@ -41,7 +44,7 @@ export const RESCUES = [
     phone: '+441612345678',
     address: '1 Piccadilly Gardens',
     city: 'Manchester',
-    postcode: 'M1 1AA',
+    postcode: 'M1 2WD',
     country: 'GB',
     contactPerson: 'Rescue Manager',
     description: 'A community rescue rehoming dogs and cats across the North West.',

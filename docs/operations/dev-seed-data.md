@@ -22,6 +22,11 @@ The synthetic tier is still SQL (`services/<name>/src/db/spam.ts`) because it ne
 
 **A fresh stack seeds itself.** On boot, `service-auth` and `service-pets` run their SQL `db:seed`, auth, pets and rescue run `db:spam` (with `SEED_ONLY_IF_EMPTY=true`), and the one-shot `seed-personas` container runs `scripts/seed.mjs --api-only` once the services are healthy. You only need the commands below to re-seed after an e2e run has changed the data, to add the applications/chat/notifications spam tier, or to raise the volume.
 
+**Rescue postcodes are real, so distance works in dev.** The swipe card's distance badge needs each rescue's coordinates. Both tiers use real, active UK postcodes spread from Inverness to Exeter, checked against api.postcodes.io:
+
+- The two persona rescues (`seed-personas.mjs`) are geocoded by the rescue service when the API creates them. Re-running `pnpm db:seed` PATCHes an existing rescue whose postcode differs, which re-geocodes it, and then runs `backfill:coordinates` in `service-rescue` for any rescue still missing coordinates. That last step is best-effort and never fails the seed. The geocoder swallows network errors, so being offline shows up as a count of skipped rescues in the backfill's own summary line, which includes the command to re-run once you are online.
+- The synthetic rescues (`services/rescue/src/db/seed-locations.ts`) are inserted by SQL, which skips the create RPC, so their coordinates are stored with the postcode and seeding needs no network. On every run, `db:spam` first repairs any existing synthetic rescue (matched by its deterministic id and `rescueN@example.test` email, however many exist) whose postcode differs from the table; only city, postcode and coordinates are rewritten.
+
 ## Steps
 
 1. Start the stack and wait for the gateway to be healthy.

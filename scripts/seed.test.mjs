@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bootstrapExec } from './seed.mjs';
+import { backfillExec, backfillFailureMessage, bootstrapExec } from './seed.mjs';
 
 describe('bootstrapExec', () => {
   it('passes the seed password into the container, so the super_admin gets the password the API phase logs in with', () => {
@@ -26,5 +26,31 @@ describe('bootstrapExec', () => {
       'db:seed',
     ]);
     expect(env.SEED_PASSWORD).toBe('AlternatePassword123!');
+  });
+});
+
+describe('backfillFailureMessage', () => {
+  it('blames the backfill not running, not being offline (offline is reported by the backfill itself)', () => {
+    const message = backfillFailureMessage();
+
+    expect(message).toContain('could not run the coordinate backfill');
+    expect(message).not.toMatch(/offline/i);
+    expect(message).toContain('pnpm --filter @adopt-dont-shop/service.rescue backfill:coordinates');
+  });
+});
+
+describe('backfillExec', () => {
+  it('runs the rescue service backfill inside its container, so reseeding geocodes any rescue still missing coordinates', () => {
+    expect(backfillExec().args).toEqual([
+      'compose',
+      'exec',
+      '-T',
+      'service-rescue',
+      'pnpm',
+      '--filter',
+      '@adopt-dont-shop/service.rescue',
+      'run',
+      'backfill:coordinates',
+    ]);
   });
 });
