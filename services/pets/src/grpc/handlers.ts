@@ -70,6 +70,7 @@ import {
   type UpdatePetStatusRequest,
   type UpdatePetStatusResponse,
 } from '@adopt-dont-shop/proto';
+import { isSafeImageUrl } from '@adopt-dont-shop/service-bootstrap';
 
 import {
   ALL_PET_TYPES,
@@ -310,7 +311,7 @@ export async function createPet(
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_CREATE}' required for this rescue`);
   }
 
-  const extra = parseExtraObject(req.extraJson);
+  const extra = canonicalImageList(parseExtraObject(req.extraJson));
   assertSafeImageUrls(extra);
 
   const species = typeToDb(req.type);
@@ -782,7 +783,7 @@ export async function updatePet(
     // The gateway sends the whole (read-merged) blob, so replace wholesale
     // — mirroring the proto's "JSON blobs replace wholesale when present".
     // ::jsonb keeps the text param out of pg's array-literal path (ADS-1155).
-    const extra = parseExtraObject(req.extraJson);
+    const extra = canonicalImageList(parseExtraObject(req.extraJson));
     assertSafeImageUrls(extra);
     sets.push(`extra_json = $${n}::jsonb`);
     params.push(JSON.stringify(extra));
@@ -1080,44 +1081,26 @@ function parseExtraObject(raw: string | undefined): Record<string, unknown> {
   }
 }
 
-// ADS-1343: extra_json.image_urls is where the gateway's pet-images route
-// (services/gateway/src/routes/pets.ts) stores the URLs it validates with
-// isSafeImageUrl at the write boundary. That gateway check is the only
-// guard today — CreatePet/UpdatePet forward req.extraJson to this handler
-// unchecked, so any other caller of this gRPC method (present or future)
-// could smuggle in a javascript:/data:/arbitrary-host URL. This mirrors
-// isSafeImageUrl (services/gateway/src/routes/events.schemas.ts) and
-// assertValidDocumentUrl (services/applications/src/grpc/document-handlers.ts)
-// as defense-in-depth at this handler's own write boundary.
-function allowedImageHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
-  const hosts = new Set<string>();
-  const cloudFrontDomain = env.CLOUDFRONT_DOMAIN?.trim();
-  if (cloudFrontDomain) {
-    hosts.add(cloudFrontDomain);
+// ADS-1343: CreatePet/UpdatePet forward req.extraJson to this handler, so
+// any caller of this gRPC method could smuggle in a javascript:/data:/
+// arbitrary-host URL. The shared image-url-policy (service-bootstrap, also
+// applied by service.matching when it renders cards) is the guard at this
+// handler's own write boundary.
+// Photos live in extra_json.image_urls, the single authoritative list. A
+// caller may still send them as the bare `images` key (the rescue form
+// does); fold that into image_urls (existing first, deduped, order kept) so
+// the bare key is never stored.
+function canonicalImageList(extra: Record<string, unknown>): Record<string, unknown> {
+  if (!('images' in extra)) {
+    return extra;
   }
-  const bucket = env.S3_BUCKET_NAME?.trim();
-  if (bucket) {
-    const region = env.S3_REGION?.trim() || 'us-east-1';
-    hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
-  }
-  return hosts;
+  const { images, ...rest } = extra;
+  const urls = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+  return { ...rest, image_urls: [...new Set([...urls(rest.image_urls), ...urls(images)])] };
 }
 
-function isSafeImageUrl(value: string): boolean {
-  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
-  // it's excluded from the same-origin relative-path allowance below.
-  if (value.startsWith('/') && !value.startsWith('//')) {
-    return true;
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return false;
-  }
-  return parsed.protocol === 'https:' && allowedImageHosts().has(parsed.host);
-}
-
+// Photos are rendered to other users, so every stored URL must pass the
+// shared image-url-policy.
 function assertSafeImageUrls(extra: Record<string, unknown>): void {
   const urls = extra.image_urls;
   if (!Array.isArray(urls)) {

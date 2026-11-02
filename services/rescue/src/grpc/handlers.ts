@@ -47,6 +47,8 @@ import {
   type CreateRescueResponse,
   type DeleteRescueRequest,
   type DeleteRescueResponse,
+  type GetRescueNamesRequest,
+  type GetRescueNamesResponse,
   type GetRescueRequest,
   type GetRescueResponse,
   type GetRescueStatisticsRequest,
@@ -397,6 +399,43 @@ export async function getRescue(
     throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
   }
   return { rescue: maskRescueWithAccessMap(rowToProto(row), rescueAccessMapFor(principal)) };
+}
+
+// --- GetRescueNames ---------------------------------------------------
+
+const MAX_RESCUE_NAME_IDS = 100;
+
+// Batch id -> name for decorating lists with rescue names in one query.
+// Same visibility rule as getRescue (ADS-1168): only a caller WITH
+// rescues.read may resolve a rescue in any status; everyone else (adopters,
+// anonymous) resolves verified rescues only. Ids that don't resolve — unknown,
+// soft-deleted or hidden — are simply absent, so existence isn't leaked.
+// Only the name is returned, which is in the public allowlist.
+export async function getRescueNames(
+  deps: HandlerDeps,
+  principal: Principal | null,
+  req: GetRescueNamesRequest
+): Promise<GetRescueNamesResponse> {
+  const rescueIds = [...new Set(req.rescueIds)];
+  if (rescueIds.length > MAX_RESCUE_NAME_IDS) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `at most ${MAX_RESCUE_NAME_IDS} rescue_ids per request`
+    );
+  }
+  if (rescueIds.length === 0) {
+    return { names: [] };
+  }
+
+  const canReadAnyStatus = principal !== null && requirePermission(principal, RESCUES_READ);
+  const { rows } = await deps.pool.query<{ rescue_id: string; name: string }>(
+    `SELECT rescue_id, name FROM rescue.rescues
+     WHERE rescue_id::text = ANY($1::text[]) AND deleted_at IS NULL${
+       canReadAnyStatus ? '' : " AND status = 'verified'"
+     }`,
+    [rescueIds]
+  );
+  return { names: rows.map(row => ({ rescueId: row.rescue_id, name: row.name })) };
 }
 
 // --- List ------------------------------------------------------------

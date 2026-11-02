@@ -186,6 +186,13 @@ service RescueService {
   // MUST have `rescues.read`.
   rpc CountRescues(CountRescuesRequest) returns (CountRescuesResponse);
 
+  // Batch id -> name lookup for decorating lists (e.g. the swipe deck) with
+  // rescue names in ONE call instead of one Get per rescue. Public like Get:
+  // a caller without `rescues.read` (or anonymous) only resolves VERIFIED
+  // rescues; unknown / soft-deleted / hidden ids are simply absent from the
+  // response. At most 100 ids per call.
+  rpc GetRescueNames(GetRescueNamesRequest) returns (GetRescueNamesResponse);
+
   // Validate + enqueue an admin email to a rescue's contact address.
   // Admin-only — caller MUST have `admin.security.manage`. Confirms the
   // rescue exists, then publishes `rescue.adminEmailRequested` for the
@@ -815,6 +822,21 @@ message CountRescuesResponse {
   uint32 rejected = 5;
   // Sum across every status (includes any not broken out above).
   uint32 total = 6;
+}
+
+// --- GetRescueNames ---------------------------------------------------
+
+message GetRescueNamesRequest {
+  repeated string rescue_ids = 1;
+}
+
+message RescueName {
+  string rescue_id = 1;
+  string name = 2;
+}
+
+message GetRescueNamesResponse {
+  repeated RescueName names = 1;
 }
 
 message SendRescueEmailRequest {

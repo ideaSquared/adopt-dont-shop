@@ -944,6 +944,19 @@ export interface CountRescuesResponse {
   total: number;
 }
 
+export interface GetRescueNamesRequest {
+  rescueIds: string[];
+}
+
+export interface RescueName {
+  rescueId: string;
+  name: string;
+}
+
+export interface GetRescueNamesResponse {
+  names: RescueName[];
+}
+
 export interface SendRescueEmailRequest {
   rescueId: string;
   /** Either a predefined template id, OR a custom subject + body. */
@@ -8285,6 +8298,210 @@ export const CountRescuesResponse: MessageFns<CountRescuesResponse> = {
   },
 };
 
+function createBaseGetRescueNamesRequest(): GetRescueNamesRequest {
+  return { rescueIds: [] };
+}
+
+export const GetRescueNamesRequest: MessageFns<GetRescueNamesRequest> = {
+  encode(message: GetRescueNamesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.rescueIds) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetRescueNamesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetRescueNamesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetRescueNamesRequest {
+    return {
+      rescueIds: globalThis.Array.isArray(object?.rescueIds)
+        ? object.rescueIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.rescue_ids)
+        ? object.rescue_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetRescueNamesRequest): unknown {
+    const obj: any = {};
+    if (message.rescueIds?.length) {
+      obj.rescueIds = message.rescueIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetRescueNamesRequest>, I>>(base?: I): GetRescueNamesRequest {
+    return GetRescueNamesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetRescueNamesRequest>, I>>(object: I): GetRescueNamesRequest {
+    const message = createBaseGetRescueNamesRequest();
+    message.rescueIds = object.rescueIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseRescueName(): RescueName {
+  return { rescueId: "", name: "" };
+}
+
+export const RescueName: MessageFns<RescueName> = {
+  encode(message: RescueName, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.name !== "") {
+      writer.uint32(18).string(message.name);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RescueName {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRescueName();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RescueName {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+    };
+  },
+
+  toJSON(message: RescueName): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RescueName>, I>>(base?: I): RescueName {
+    return RescueName.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RescueName>, I>>(object: I): RescueName {
+    const message = createBaseRescueName();
+    message.rescueId = object.rescueId ?? "";
+    message.name = object.name ?? "";
+    return message;
+  },
+};
+
+function createBaseGetRescueNamesResponse(): GetRescueNamesResponse {
+  return { names: [] };
+}
+
+export const GetRescueNamesResponse: MessageFns<GetRescueNamesResponse> = {
+  encode(message: GetRescueNamesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.names) {
+      RescueName.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetRescueNamesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetRescueNamesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.names.push(RescueName.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetRescueNamesResponse {
+    return {
+      names: globalThis.Array.isArray(object?.names) ? object.names.map((e: any) => RescueName.fromJSON(e)) : [],
+    };
+  },
+
+  toJSON(message: GetRescueNamesResponse): unknown {
+    const obj: any = {};
+    if (message.names?.length) {
+      obj.names = message.names.map((e) => RescueName.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetRescueNamesResponse>, I>>(base?: I): GetRescueNamesResponse {
+    return GetRescueNamesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetRescueNamesResponse>, I>>(object: I): GetRescueNamesResponse {
+    const message = createBaseGetRescueNamesResponse();
+    message.names = object.names?.map((e) => RescueName.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 function createBaseSendRescueEmailRequest(): SendRescueEmailRequest {
   return { rescueId: "", templateId: undefined, subject: undefined, body: undefined };
 }
@@ -11596,6 +11813,24 @@ export const RescueServiceService = {
     responseDeserialize: (value: Buffer): CountRescuesResponse => CountRescuesResponse.decode(value),
   },
   /**
+   * Batch id -> name lookup for decorating lists (e.g. the swipe deck) with
+   * rescue names in ONE call instead of one Get per rescue. Public like Get:
+   * a caller without `rescues.read` (or anonymous) only resolves VERIFIED
+   * rescues; unknown / soft-deleted / hidden ids are simply absent from the
+   * response. At most 100 ids per call.
+   */
+  getRescueNames: {
+    path: "/adopt_dont_shop.rescue.v1.RescueService/GetRescueNames" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetRescueNamesRequest): Buffer =>
+      Buffer.from(GetRescueNamesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetRescueNamesRequest => GetRescueNamesRequest.decode(value),
+    responseSerialize: (value: GetRescueNamesResponse): Buffer =>
+      Buffer.from(GetRescueNamesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetRescueNamesResponse => GetRescueNamesResponse.decode(value),
+  },
+  /**
    * Validate + enqueue an admin email to a rescue's contact address.
    * Admin-only — caller MUST have `admin.security.manage`. Confirms the
    * rescue exists, then publishes `rescue.adminEmailRequested` for the
@@ -11926,6 +12161,14 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    * MUST have `rescues.read`.
    */
   countRescues: handleUnaryCall<CountRescuesRequest, CountRescuesResponse>;
+  /**
+   * Batch id -> name lookup for decorating lists (e.g. the swipe deck) with
+   * rescue names in ONE call instead of one Get per rescue. Public like Get:
+   * a caller without `rescues.read` (or anonymous) only resolves VERIFIED
+   * rescues; unknown / soft-deleted / hidden ids are simply absent from the
+   * response. At most 100 ids per call.
+   */
+  getRescueNames: handleUnaryCall<GetRescueNamesRequest, GetRescueNamesResponse>;
   /**
    * Validate + enqueue an admin email to a rescue's contact address.
    * Admin-only — caller MUST have `admin.security.manage`. Confirms the
@@ -12509,6 +12752,28 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CountRescuesResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Batch id -> name lookup for decorating lists (e.g. the swipe deck) with
+   * rescue names in ONE call instead of one Get per rescue. Public like Get:
+   * a caller without `rescues.read` (or anonymous) only resolves VERIFIED
+   * rescues; unknown / soft-deleted / hidden ids are simply absent from the
+   * response. At most 100 ids per call.
+   */
+  getRescueNames(
+    request: GetRescueNamesRequest,
+    callback: (error: ServiceError | null, response: GetRescueNamesResponse) => void,
+  ): ClientUnaryCall;
+  getRescueNames(
+    request: GetRescueNamesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetRescueNamesResponse) => void,
+  ): ClientUnaryCall;
+  getRescueNames(
+    request: GetRescueNamesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetRescueNamesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Validate + enqueue an admin email to a rescue's contact address.

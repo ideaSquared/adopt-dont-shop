@@ -34,6 +34,11 @@ x-service-env: &ms-env
   # LOKI_URL=http://loki:3100 / OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318.
   LOKI_URL: ${LOKI_URL:-}
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  # Hosts pet/CMS image URLs may point at (see service-bootstrap's
+  # image-url-policy). Empty means same-origin upload paths only.
+  CLOUDFRONT_DOMAIN: ${CLOUDFRONT_DOMAIN:-}
+  S3_BUCKET_NAME: ${S3_BUCKET_NAME:-}
+  S3_REGION: ${S3_REGION:-}
 
 x-service-deps: &ms-deps
   database:

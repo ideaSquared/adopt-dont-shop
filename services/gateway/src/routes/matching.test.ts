@@ -14,6 +14,7 @@ import {
 
 import type { MatchingClient } from '../grpc-clients/matching-client.js';
 
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { registerMatchingRoutes } from './matching.js';
 
 function makeClient(): {
@@ -406,6 +407,7 @@ describe('POST /api/v1/discovery/queue (Recommend)', () => {
           species: 'dog',
           rescueId: 'rsc-1',
           score: 0.9,
+          images: [],
         },
       ],
       exhausted: false,
@@ -419,7 +421,7 @@ describe('POST /api/v1/discovery/queue (Recommend)', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({
-      pets: [{ pet_id: 'pet-1', type: 'dog', score: 0.9 }],
+      pets: [{ petId: 'pet-1', type: 'dog', compatibilityScore: 90 }],
       currentIndex: 0,
       hasMore: true,
       nextBatchSize: 20,
@@ -430,6 +432,94 @@ describe('POST /api/v1/discovery/queue (Recommend)', () => {
       sessionId: 'sess-1',
       limit: 10,
       filtersJsonOverride: '{"species":"dog"}',
+    });
+  });
+
+  describe('rescue names', () => {
+    const candidates = [
+      { petId: 'pet-1', name: 'Rex', species: 'dog', rescueId: 'rsc-1', score: 0.9, images: [] },
+      { petId: 'pet-2', name: 'Sam', species: 'cat', rescueId: 'rsc-2', score: 0.4, images: [] },
+      { petId: 'pet-3', name: 'Kit', species: 'cat', rescueId: 'rsc-1', score: 0.3, images: [] },
+    ];
+
+    const queueWith = async (getRescueNames: ReturnType<typeof vi.fn>) => {
+      const m = makeClient();
+      m.recommendMock.mockResolvedValueOnce({ candidates, exhausted: false });
+      const named = Fastify({ logger: false });
+      await registerMatchingRoutes(named, {
+        client: m.client,
+        rescueClient: { getRescueNames } as unknown as RescueClient,
+      });
+      try {
+        return await named.inject({
+          method: 'POST',
+          url: '/api/v1/discovery/queue',
+          payload: { sessionId: 'sess-9' },
+        });
+      } finally {
+        await named.close();
+      }
+    };
+
+    it('names every card with ONE batch lookup under a short gRPC deadline, no retries', async () => {
+      const getRescueNames = vi.fn().mockResolvedValue({
+        names: [
+          { rescueId: 'rsc-1', name: 'Happy Paws' },
+          { rescueId: 'rsc-2', name: 'Tail Waggers' },
+        ],
+      });
+
+      const res = await queueWith(getRescueNames);
+
+      expect(res.json().pets).toMatchObject([
+        { petId: 'pet-1', rescueName: 'Happy Paws' },
+        { petId: 'pet-2', rescueName: 'Tail Waggers' },
+        { petId: 'pet-3', rescueName: 'Happy Paws' },
+      ]);
+      expect(getRescueNames).toHaveBeenCalledTimes(1);
+      const [req, , budget] = getRescueNames.mock.calls[0];
+      expect(req).toEqual({ rescueIds: ['rsc-1', 'rsc-2'] });
+      expect(budget).toEqual({ deadlineMs: 750, maxRetries: 0 });
+    });
+
+    it('returns the deck without names when the lookup fails or times out', async () => {
+      const getRescueNames = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('deadline'), { code: 4 }));
+
+      const res = await queueWith(getRescueNames);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().pets).toMatchObject([
+        { petId: 'pet-1', rescueName: '' },
+        { petId: 'pet-2', rescueName: '' },
+        { petId: 'pet-3', rescueName: '' },
+      ]);
+    });
+
+    it('skips the lookup when no card has a rescue', async () => {
+      const m = makeClient();
+      m.recommendMock.mockResolvedValueOnce({
+        candidates: [{ ...candidates[0], rescueId: '' }],
+        exhausted: false,
+      });
+      const getRescueNames = vi.fn();
+      const named = Fastify({ logger: false });
+      await registerMatchingRoutes(named, {
+        client: m.client,
+        rescueClient: { getRescueNames } as unknown as RescueClient,
+      });
+      try {
+        const res = await named.inject({
+          method: 'POST',
+          url: '/api/v1/discovery/queue',
+          payload: { sessionId: 'sess-9' },
+        });
+        expect(res.statusCode).toBe(200);
+        expect(getRescueNames).not.toHaveBeenCalled();
+      } finally {
+        await named.close();
+      }
     });
   });
 
@@ -465,7 +555,9 @@ describe('POST /api/v1/discovery/pets/more (Recommend, paged)', () => {
   it('forwards the sessionId + limit', async () => {
     const m = makeClient();
     m.recommendMock.mockResolvedValueOnce({
-      candidates: [{ petId: 'pet-2', name: 'Sam', species: 'cat', rescueId: 'rsc-1', score: 0.4 }],
+      candidates: [
+        { petId: 'pet-2', name: 'Sam', species: 'cat', rescueId: 'rsc-1', score: 0.4, images: [] },
+      ],
       exhausted: false,
     });
     const app = await makeApp(m.client);

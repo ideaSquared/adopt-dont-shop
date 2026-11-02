@@ -50,6 +50,7 @@ describe('pets migrations', () => {
     '008_create_event_outbox.ts',
     '009_add_pets_extra_json.ts',
     '010_pets_search_vector_generated.ts',
+    '011_backfill_images_into_image_urls.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;
@@ -91,5 +92,44 @@ describe('pets migrations', () => {
       'search_vector',
       expect.objectContaining({ method: 'gin' })
     );
+  });
+
+  describe('011 backfills the legacy extra_json.images key into image_urls', () => {
+    const upSql = async (): Promise<string> => {
+      const sql = vi.fn();
+      const pgm = { sql } as unknown as MigrationBuilder;
+      const mod = await import('./011_backfill_images_into_image_urls.js');
+      await mod.up(pgm);
+      expect(sql).toHaveBeenCalledTimes(1);
+      return String(sql.mock.calls[0][0]);
+    };
+
+    it('only touches rows that still carry the legacy key, so re-running is a no-op', async () => {
+      const sql = await upSql();
+      expect(sql).toMatch(/UPDATE pets\.pets/);
+      expect(sql).toMatch(/WHERE extra_json \? 'images'/);
+    });
+
+    it('removes the images key and rewrites image_urls', async () => {
+      const sql = await upSql();
+      expect(sql).toMatch(/extra_json - 'images'/);
+      expect(sql).toMatch(/'image_urls'/);
+    });
+
+    it('keeps image_urls entries first, then images, deduped in first-seen order', async () => {
+      const sql = await upSql();
+      // image_urls ranks before images; each url keeps its earliest position.
+      expect(sql).toMatch(/jsonb_agg\(url ORDER BY first_pos\)/);
+      expect(sql).toMatch(/MIN\(pos\)/);
+      expect(sql).toMatch(/1000000 \+/);
+    });
+
+    it('is irreversible by design: down is a no-op', async () => {
+      const sql = vi.fn();
+      const pgm = { sql } as unknown as MigrationBuilder;
+      const mod = await import('./011_backfill_images_into_image_urls.js');
+      await mod.down(pgm);
+      expect(sql).not.toHaveBeenCalled();
+    });
   });
 });

@@ -11,6 +11,7 @@ import {
   createRescue,
   deleteRescue,
   getRescue,
+  getRescueNames,
   getRescueStatistics,
   HandlerError,
   inviteStaff,
@@ -1312,6 +1313,66 @@ describe('getRescueStatistics', () => {
     const res = await getRescueStatistics(mocks.deps, ADMIN, { rescueId: 'rsc-1' } as never);
 
     expect(res.statistics.staffCount).toBe(4);
+  });
+});
+
+// --- getRescueNames --------------------------------------------------
+
+describe('getRescueNames', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const rows = [
+    { rescue_id: 'rsc-1', name: 'Paws' },
+    { rescue_id: 'rsc-2', name: 'Happy Tails' },
+  ];
+
+  it('returns id/name pairs from a single query', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows });
+    const res = await getRescueNames(mocks.deps, PUBLIC_ADOPTER, {
+      rescueIds: ['rsc-1', 'rsc-2', 'rsc-1'],
+    });
+    expect(res.names).toEqual([
+      { rescueId: 'rsc-1', name: 'Paws' },
+      { rescueId: 'rsc-2', name: 'Happy Tails' },
+    ]);
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    expect(mocks.poolMock.query.mock.calls[0][1]).toEqual([['rsc-1', 'rsc-2']]);
+  });
+
+  it('resolves verified rescues only for callers without rescues.read, and anonymous visitors', async () => {
+    mocks.poolMock.query.mockResolvedValue({ rows });
+    await getRescueNames(mocks.deps, PUBLIC_ADOPTER, { rescueIds: ['rsc-1'] });
+    await getRescueNames(mocks.deps, null, { rescueIds: ['rsc-1'] });
+    for (const [sql] of mocks.poolMock.query.mock.calls) {
+      expect(sql).toContain("status = 'verified'");
+      expect(sql).toContain('deleted_at IS NULL');
+    }
+  });
+
+  it('lets rescues.read holders resolve a rescue in any status', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows });
+    await getRescueNames(mocks.deps, ADOPTER, { rescueIds: ['rsc-1'] });
+    expect(mocks.poolMock.query.mock.calls[0][0]).not.toContain("status = 'verified'");
+  });
+
+  it('returns nothing without querying when no ids are given', async () => {
+    const res = await getRescueNames(mocks.deps, ADOPTER, { rescueIds: [] });
+    expect(res.names).toEqual([]);
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('INVALID_ARGUMENT above 100 distinct ids', async () => {
+    const rescueIds = Array.from({ length: 101 }, (_, i) => `rsc-${i}`);
+    await expect(getRescueNames(mocks.deps, ADOPTER, { rescueIds })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
   });
 });
 

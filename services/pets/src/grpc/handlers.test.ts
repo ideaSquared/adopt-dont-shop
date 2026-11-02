@@ -270,6 +270,41 @@ describe('createPet', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('folds a bare `images` list into image_urls (image_urls first, deduped) and never stores it', async () => {
+    let storedExtra = '';
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[]) => {
+      if (sql.includes('INSERT INTO pets.pets')) {
+        storedExtra = params.find(p => typeof p === 'string' && p.includes('image_urls')) as string;
+      }
+      return { rows: [petRow()] };
+    });
+
+    await createPet(mocks.deps, STAFF, {
+      ...BASE_CREATE,
+      extraJson: JSON.stringify({ image_urls: ['/a.jpg'], images: ['/a.jpg', '/b.jpg'] }),
+    });
+
+    const extra = JSON.parse(storedExtra) as Record<string, unknown>;
+    expect(extra.image_urls).toEqual(['/a.jpg', '/b.jpg']);
+    expect('images' in extra).toBe(false);
+  });
+
+  it('rejects an unsafe image url in extra_json.images too', async () => {
+    await expect(
+      createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        extraJson: JSON.stringify({ images: ['https://evil.example.com/a.jpg'] }),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    await expect(
+      createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        extraJson: JSON.stringify({ images: ['//evil.example.com/a.jpg'] }),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
   describe('breed names', () => {
     const BREED_ID = '11111111-1111-4111-8111-111111111111';
     const SECOND_BREED_ID = '22222222-2222-4222-8222-222222222222';
@@ -959,6 +994,24 @@ describe('updatePet', () => {
     // The DomainEvent.id is passed via the publish options (3rd arg).
     const opts = mocks.natsMock.publish.mock.calls[0][2] as { msgID?: string } | undefined;
     expect(opts?.msgID).toBe('pets.updated.pet-1.5');
+  });
+
+  it('stores the canonical image list on update: bare `images` folded into image_urls', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] }); // fetchPet
+    let storedExtra = '';
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[]) => {
+      if (sql.includes('UPDATE pets.pets')) {
+        storedExtra = params[0] as string;
+      }
+      return { rows: [petRow()] };
+    });
+
+    await updatePet(mocks.deps, STAFF, {
+      petId: 'pet-1',
+      extraJson: JSON.stringify({ images: ['/b.jpg'], color: 'brown' }),
+    } as never);
+
+    expect(JSON.parse(storedExtra)).toEqual({ image_urls: ['/b.jpg'], color: 'brown' });
   });
 
   it('writes + publishes pets.updated for an extraJson-only update (image add) (ADS-1155)', async () => {

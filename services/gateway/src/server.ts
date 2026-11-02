@@ -746,7 +746,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
   if (opts.matchingClient) {
-    await registerMatchingRoutes(server, { client: opts.matchingClient });
+    await registerMatchingRoutes(server, {
+      client: opts.matchingClient,
+      rescueClient: opts.rescueClient,
+    });
   }
   if (opts.moderationClient) {
     // Per-principal report-filing cap (ADS-1421) — enforced as a route

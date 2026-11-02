@@ -349,6 +349,9 @@ export type {
   RescueStatistics,
   CountRescuesRequest,
   CountRescuesResponse,
+  GetRescueNamesRequest,
+  GetRescueNamesResponse,
+  RescueName,
   SendRescueEmailRequest,
   SendRescueEmailResponse,
   EventType,
@@ -493,6 +496,7 @@ export * as MatchingV1 from './generated/proto/adopt_dont_shop/matching/v1/match
 export type {
   SwipeSession,
   PetCandidate,
+  ActivityLabel,
   SwipeActionRecord,
   StartSessionRequest,
   StartSessionResponse,
