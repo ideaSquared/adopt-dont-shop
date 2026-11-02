@@ -2,8 +2,8 @@
 //
 // MatchingService is stateless compute: Recommend + SearchPets read
 // candidate pets from the pets vertical over gRPC, then rank / filter
-// them. Only PetService.List is wrapped — that's all matching needs
-// (both RPCs fetch a candidate set; neither does a single-pet Get).
+// them. Only PetService.List (candidate set) and GetAdoptionStats (the
+// similar_adopted_fast label) are wrapped — neither RPC does a single-pet Get.
 //
 // The interface is exported so the gRPC server boot can inject a real
 // client and tests can substitute a stub. Direct port of
@@ -11,10 +11,25 @@
 
 import { credentials, status, type CallOptions, type Metadata } from '@grpc/grpc-js';
 
-import { PetsV1, type ListPetsRequest, type ListPetsResponse } from '@adopt-dont-shop/proto';
+import {
+  PetsV1,
+  type GetAdoptionStatsRequest,
+  type GetAdoptionStatsResponse,
+  type ListPetsRequest,
+  type ListPetsResponse,
+} from '@adopt-dont-shop/proto';
+
+// Per-call override of the client-wide deadline/retry policy, for optional
+// lookups that must fail fast instead of eating the caller's budget.
+export type CallBudget = { deadlineMs: number; maxRetries?: number };
 
 export type PetsClient = {
   listPets(req: ListPetsRequest, metadata: Metadata): Promise<ListPetsResponse>;
+  getAdoptionStats(
+    req: GetAdoptionStatsRequest,
+    metadata: Metadata,
+    budget?: CallBudget
+  ): Promise<GetAdoptionStatsResponse>;
   close(): void;
 };
 
@@ -64,17 +79,20 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    budget?: CallBudget
   ): Promise<Res> => {
+    const callDeadlineMs = budget?.deadlineMs ?? deadlineMs;
+    const callMaxRetries = budget?.maxRetries ?? maxRetries;
     const attempt = (remaining: number): Promise<Res> =>
       new Promise<Res>((resolve, reject) => {
         const options: Partial<CallOptions> = {
-          deadline: new Date(Date.now() + deadlineMs),
+          deadline: new Date(Date.now() + callDeadlineMs),
         };
         fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
           if (err) {
             if (remaining > 0 && isRetryableError(err)) {
-              const retryIndex = maxRetries - remaining + 1;
+              const retryIndex = callMaxRetries - remaining + 1;
               sleep(jitteredBackoff(retryIndex, 100))
                 .then(() => attempt(remaining - 1))
                 .then(resolve, reject);
@@ -87,11 +105,13 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
         });
       });
 
-    return attempt(maxRetries);
+    return attempt(callMaxRetries);
   };
 
   return {
     listPets: (req, metadata) => callWithRetry(stub.list, req, metadata),
+    getAdoptionStats: (req, metadata, budget) =>
+      callWithRetry(stub.getAdoptionStats, req, metadata, budget),
     close: () => stub.close(),
   };
 };

@@ -18,6 +18,7 @@ import { PETS_VIEW } from '@adopt-dont-shop/lib.types';
 import {
   PetsV1,
   type ActivityLabel,
+  type AdoptionCohort,
   type ListPetsRequest,
   type Pet,
   type PetCandidate,
@@ -103,10 +104,22 @@ export function makeRecommend(
       : {};
     const ranked = scoreCandidates(fresh, preferences).slice(0, limit);
 
-    const candidates = await withDistances(
-      ranked.map(({ pet, score }) => petToCandidate(pet, score)),
-      filters.userLocation,
-      rescueLocations
+    // Both lookups are optional and independent (each has its own short,
+    // no-retry budget), so run them side by side.
+    const [withDistance, similarAdopted] = await Promise.all([
+      withDistances(
+        ranked.map(({ pet, score }) => petToCandidate(pet, score)),
+        filters.userLocation,
+        rescueLocations
+      ),
+      similarAdoptedLabels(
+        petsClient,
+        principal,
+        ranked.map(({ pet }) => pet)
+      ),
+    ]);
+    const candidates = withDistance.map((candidate, i) =>
+      withFallbackLabel(candidate, similarAdopted.get(ranked[i].pet.petId))
     );
 
     return {
@@ -403,6 +416,110 @@ function daysWaitingLabel(availableSince: string | undefined): ActivityLabel | u
   return days >= MIN_WAITING_DAYS
     ? { kind: 'days_waiting', text: `Waiting ${days} days`, icon: '🕒' }
     : undefined;
+}
+
+// `similar_adopted_fast`: social proof from pets like this one (same type,
+// size and age group). Lowest precedence — views_today > days_waiting >
+// this — so it only fills a card that has no label yet. The stats call is
+// best-effort: a failure costs the label, never the recommendations.
+// The lookup is optional garnish, so it gets a short budget with no retries
+// (same 750ms the gateway gives its other optional lookup) instead of the
+// client-wide 5s x 3 attempts: a stalled pets call must not push this
+// Recommend past the gateway's own deadline and lose the recommendations
+// too. The Promise.race backs the gRPC deadline for any client that does not
+// enforce it. Cohorts go out in chunks of the pets handler's per-call
+// limit, so a full page (up to 100 pets) never has a cohort skipped.
+const ADOPTION_STATS_BUDGET = { deadlineMs: 750, maxRetries: 0 };
+const MAX_COHORTS_PER_STATS_CALL = 50;
+const SIMILAR_ADOPTED_MIN_SAMPLES = 5;
+const SIMILAR_ADOPTED_MAX_MEDIAN_DAYS = 30;
+
+const cohortKey = (c: AdoptionCohort): string => `${c.type}|${c.size}|${c.ageGroup}`;
+
+const chunk = <T>(items: ReadonlyArray<T>, size: number): T[][] =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
+    items.slice(i * size, (i + 1) * size)
+  );
+
+async function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function similarAdoptedLabels(
+  petsClient: PetsClient,
+  principal: Principal,
+  pets: ReadonlyArray<Pet>
+): Promise<Map<string, ActivityLabel>> {
+  const cohorts = new Map<string, AdoptionCohort>();
+  for (const { type, size, ageGroup } of pets) {
+    const cohort = { type, size, ageGroup };
+    const known =
+      type !== PetsV1.PetType.PET_TYPE_UNSPECIFIED &&
+      size !== PetsV1.PetSize.PET_SIZE_UNSPECIFIED &&
+      ageGroup !== PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED;
+    if (known) {
+      cohorts.set(cohortKey(cohort), cohort);
+    }
+  }
+  if (cohorts.size === 0) {
+    return new Map();
+  }
+
+  // Each chunk fails open on its own, so one bad chunk only costs its own
+  // cohorts' labels.
+  const statsFor = async (cohortChunk: AdoptionCohort[]) => {
+    try {
+      const res = await withTimeout(
+        petsClient.getAdoptionStats(
+          { cohorts: cohortChunk },
+          principalToMetadata(principal),
+          ADOPTION_STATS_BUDGET
+        ),
+        ADOPTION_STATS_BUDGET.deadlineMs
+      );
+      return res.stats;
+    } catch {
+      return [];
+    }
+  };
+  const stats = (
+    await Promise.all(chunk([...cohorts.values()], MAX_COHORTS_PER_STATS_CALL).map(statsFor))
+  ).flat();
+
+  const fast = new Set(
+    stats
+      .filter(
+        s =>
+          s.cohort !== undefined &&
+          s.sampleCount >= SIMILAR_ADOPTED_MIN_SAMPLES &&
+          s.medianDays < SIMILAR_ADOPTED_MAX_MEDIAN_DAYS
+      )
+      .map(s => (s.cohort ? cohortKey(s.cohort) : ''))
+  );
+  return new Map(
+    pets
+      .filter(pet => fast.has(cohortKey(pet)))
+      .map(pet => [
+        pet.petId,
+        {
+          kind: 'similar_adopted_fast',
+          text: `Pets like ${pet.name} adopted in <${SIMILAR_ADOPTED_MAX_MEDIAN_DAYS} days`,
+        },
+      ])
+  );
+}
+
+function withFallbackLabel(candidate: PetCandidate, fallback: ActivityLabel | undefined) {
+  const activityLabel = candidate.activityLabel ?? fallback;
+  return activityLabel === undefined ? candidate : { ...candidate, activityLabel };
 }
 
 function parseExtra(json: string): Record<string, unknown> {

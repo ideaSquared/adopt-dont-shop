@@ -9,6 +9,7 @@ import { PetsV1, type CreatePetRequest } from '@adopt-dont-shop/proto';
 import {
   createPet,
   deletePet,
+  getAdoptionStats,
   getAdoptionsByType,
   getAdoptionTrend,
   getPet,
@@ -2052,5 +2053,100 @@ describe('getPetFacets', () => {
 describe('HandlerError', () => {
   it('carries the code', () => {
     expect(new HandlerError('NOT_FOUND', 'x').code).toBe('NOT_FOUND');
+  });
+});
+
+describe('getAdoptionStats', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const SMALL_YOUNG_DOGS = {
+    type: PetsV1.PetType.PET_TYPE_DOG,
+    size: PetsV1.PetSize.PET_SIZE_SMALL,
+    ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_YOUNG,
+  };
+  const LARGE_ADULT_CATS = {
+    type: PetsV1.PetType.PET_TYPE_CAT,
+    size: PetsV1.PetSize.PET_SIZE_LARGE,
+    ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
+  };
+
+  it('rejects a principal without pets.read', async () => {
+    const noPerms: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(
+      getAdoptionStats(mocks.deps, noPerms, { cohorts: [SMALL_YOUNG_DOGS] })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('returns sample counts and median days per cohort, in request order', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { ord: 1, sample_count: '7', median_days: '12.5' },
+        { ord: 2, sample_count: '0', median_days: '0' },
+      ],
+    });
+
+    const res = await getAdoptionStats(mocks.deps, ADOPTER, {
+      cohorts: [SMALL_YOUNG_DOGS, LARGE_ADULT_CATS],
+    });
+
+    expect(res.stats).toEqual([
+      { cohort: SMALL_YOUNG_DOGS, sampleCount: 7, medianDays: 12.5 },
+      { cohort: LARGE_ADULT_CATS, sampleCount: 0, medianDays: 0 },
+    ]);
+    expect(mocks.poolMock.query.mock.calls[0][1]).toEqual([
+      ['dog', 'cat'],
+      ['small', 'large'],
+      ['young', 'adult'],
+    ]);
+  });
+
+  it('returns nothing without touching the database when no cohorts are asked for', async () => {
+    await expect(getAdoptionStats(mocks.deps, ADOPTER, { cohorts: [] })).resolves.toEqual({
+      stats: [],
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a cohort with an unspecified dimension', async () => {
+    await expect(
+      getAdoptionStats(mocks.deps, ADOPTER, {
+        cohorts: [{ ...SMALL_YOUNG_DOGS, size: PetsV1.PetSize.PET_SIZE_UNSPECIFIED }],
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it.each([
+    ['type', PetsV1.PetType.UNRECOGNIZED],
+    ['type', 999],
+    ['size', PetsV1.PetSize.UNRECOGNIZED],
+    ['size', 999],
+    ['ageGroup', PetsV1.PetAgeGroup.UNRECOGNIZED],
+    ['ageGroup', 999],
+  ])('rejects an unrecognised %s value (%i) without querying', async (dimension, value) => {
+    await expect(
+      getAdoptionStats(mocks.deps, ADOPTER, {
+        cohorts: [{ ...SMALL_YOUNG_DOGS, [dimension]: value }],
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects more than 50 cohorts', async () => {
+    await expect(
+      getAdoptionStats(mocks.deps, ADOPTER, {
+        cohorts: Array.from({ length: 51 }, () => SMALL_YOUNG_DOGS),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });

@@ -19,7 +19,13 @@ import {
   status,
 } from '@grpc/grpc-js';
 
-import { PetsV1, type ListPetsRequest, type ListPetsResponse } from '@adopt-dont-shop/proto';
+import {
+  PetsV1,
+  type GetAdoptionStatsRequest,
+  type GetAdoptionStatsResponse,
+  type ListPetsRequest,
+  type ListPetsResponse,
+} from '@adopt-dont-shop/proto';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -197,6 +203,95 @@ describe('createPetsClient (matching) — deadline + retry behaviour', () => {
       expect.fail('expected rejection');
     } catch (err: unknown) {
       expect((err as { code?: number }).code).toBe(status.INVALID_ARGUMENT);
+      expect(callCount).toBe(1);
+    } finally {
+      client.close();
+    }
+  });
+});
+
+describe('createPetsClient (matching) — getAdoptionStats call budget', () => {
+  let server: Server;
+
+  beforeEach(() => {
+    server = new Server();
+  });
+
+  afterEach(async () => {
+    await new Promise<void>(resolve => server.tryShutdown(() => resolve()));
+  });
+
+  const unused = (_call: unknown, cb: sendUnaryData<unknown>) =>
+    cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null);
+
+  const startWith = async (
+    getAdoptionStats: (
+      call: ServerUnaryCall<GetAdoptionStatsRequest, GetAdoptionStatsResponse>,
+      cb: sendUnaryData<GetAdoptionStatsResponse>
+    ) => void
+  ): Promise<number> => {
+    server.addService(PetsV1.PetServiceService, {
+      getAdoptionStats,
+      list: unused,
+      create: unused,
+      get: unused,
+      update: unused,
+      updateStatus: unused,
+      delete: unused,
+      getStats: unused,
+    });
+    return new Promise<number>((resolve, reject) => {
+      server.bindAsync('127.0.0.1:0', ServerCredentials.createInsecure(), (err, port) =>
+        err ? reject(err) : resolve(port)
+      );
+    });
+  };
+
+  it('gives up on a stalled lookup at the per-call deadline, not the client-wide one', async () => {
+    const port = await startWith(() => {
+      // Never respond — simulates a hung pets service.
+    });
+    const client = createPetsClient({
+      address: `127.0.0.1:${port}`,
+      deadlineMs: 5_000,
+      maxRetries: 2,
+    });
+
+    const start = Date.now();
+    try {
+      await client.getAdoptionStats({ cohorts: [] }, emptyMetadata, {
+        deadlineMs: 150,
+        maxRetries: 0,
+      });
+      expect.fail('expected rejection');
+    } catch (err: unknown) {
+      expect((err as { code?: number }).code).toBe(status.DEADLINE_EXCEEDED);
+      expect(Date.now() - start).toBeLessThan(2_000);
+    } finally {
+      client.close();
+    }
+  });
+
+  it('does not retry a retryable failure when the budget allows no retries', async () => {
+    let callCount = 0;
+    const port = await startWith((_call, cb) => {
+      callCount += 1;
+      cb(makeServiceError(status.UNAVAILABLE, 'service unavailable'), null);
+    });
+    const client = createPetsClient({
+      address: `127.0.0.1:${port}`,
+      deadlineMs: 2_000,
+      maxRetries: 2,
+    });
+
+    try {
+      await client.getAdoptionStats({ cohorts: [] }, emptyMetadata, {
+        deadlineMs: 500,
+        maxRetries: 0,
+      });
+      expect.fail('expected rejection');
+    } catch (err: unknown) {
+      expect((err as { code?: number }).code).toBe(status.UNAVAILABLE);
       expect(callCount).toBe(1);
     } finally {
       client.close();
