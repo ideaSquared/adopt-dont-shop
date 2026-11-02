@@ -377,16 +377,15 @@ function parseExtra(json: string): Record<string, unknown> {
   }
 }
 
-// `image_urls` (image routes) and bare `images` (create/update body) are
-// both plain URL lists; merge and dedupe, first wins as primary. Cards render
-// these in every viewer's browser, so they are held to the same policy
-// service.pets enforces at write time (older rows may predate it).
+// `image_urls` is the single authoritative photo list (first is primary).
+// Cards render these in every viewer's browser, so they are held to the same
+// policy service.pets enforces at write time (older rows may predate it).
 function imageUrls(extra: Record<string, unknown>): string[] {
-  const collect = (v: unknown): string[] =>
-    Array.isArray(v)
-      ? v.filter((u): u is string => typeof u === 'string' && isSafeImageUrl(u))
-      : [];
-  return [...new Set([...collect(extra.image_urls), ...collect(extra.images)])];
+  const urls = extra.image_urls;
+  if (!Array.isArray(urls)) {
+    return [];
+  }
+  return [...new Set(urls.filter((u): u is string => typeof u === 'string' && isSafeImageUrl(u)))];
 }
 
 function formatAge(years: number | undefined, months: number | undefined): string | undefined {

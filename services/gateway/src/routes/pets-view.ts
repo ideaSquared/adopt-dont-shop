@@ -69,18 +69,18 @@ function prune(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
 }
 
-// Pet images ride in extra_json — as `image_urls` (the /pets/:id/images
-// append/remove routes and lib.pets' image manager write this key) or as a
-// bare `images` string[] (the create/update body packs it there via
-// pickExtra). Both are just URL lists; lib.pets renders `{ url, is_primary }`
-// objects. Normalise either source into that shape, dedupe by URL, and mark
-// the first as primary so PetCard has a cover photo.
+// Pet images ride in extra_json under `image_urls`, the single authoritative
+// list (the /pets/:id/images routes, the create/update body and the pets
+// service all write it). lib.pets renders `{ url, is_primary }` objects, so
+// map it into that shape and mark the first as primary so PetCard has a cover
+// photo.
 type ImageView = { url: string; is_primary: boolean; order_index: number };
 
+const stringList = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u !== '') : [];
+
 function imagesFromExtra(extra: Record<string, unknown>): ImageView[] | undefined {
-  const collect = (v: unknown): string[] =>
-    Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u !== '') : [];
-  const urls = [...new Set([...collect(extra.image_urls), ...collect(extra.images)])];
+  const urls = [...new Set(stringList(extra.image_urls))];
   if (urls.length === 0) {
     return undefined;
   }
@@ -269,8 +269,15 @@ function tokenToEnum(
   }
 }
 
+// The form posts photos as `images`; fold them into the canonical
+// `image_urls` (existing image_urls first, deduped) so the bare key is never
+// stored.
 function pickExtra(b: Record<string, unknown>): string {
-  const extra = Object.fromEntries(Object.entries(b).filter(([k]) => !CORE_KEYS.has(k)));
+  const { images, ...rest } = Object.fromEntries(
+    Object.entries(b).filter(([k]) => !CORE_KEYS.has(k))
+  );
+  const urls = [...new Set([...stringList(rest.image_urls), ...stringList(images)])];
+  const extra = urls.length > 0 || images !== undefined ? { ...rest, image_urls: urls } : rest;
   return JSON.stringify(extra);
 }
 

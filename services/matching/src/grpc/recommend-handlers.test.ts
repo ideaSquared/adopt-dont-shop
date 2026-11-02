@@ -165,8 +165,11 @@ describe('makeRecommend', () => {
               'http://cdn.example/a.jpg',
               'javascript:alert(1)',
               'https://evil.example/d.jpg',
+              '//evil.example/b.jpg',
+              'https://cdn.example/c.jpg',
             ],
-            images: ['//evil.example/b.jpg', 'https://cdn.example/c.jpg'],
+            // Legacy key: image_urls is the single list, so this is ignored.
+            images: ['/legacy.jpg'],
           }),
         }),
       ])

@@ -98,17 +98,13 @@ describe('petToView', () => {
     ]);
   });
 
-  it('also reads the bare `images` string[] the create body packs, deduping by url', () => {
+  it('reads image_urls only: a legacy bare `images` list is not a second source', () => {
     const v = petToView(
       makePet({
-        extraJson:
-          '{"image_urls":["https://cdn/a.jpg"],"images":["https://cdn/a.jpg","https://cdn/c.jpg"]}',
+        extraJson: '{"image_urls":["https://cdn/a.jpg"],"images":["https://cdn/c.jpg"]}',
       })
     );
-    expect(v.images).toEqual([
-      { url: 'https://cdn/a.jpg', is_primary: true, order_index: 0 },
-      { url: 'https://cdn/c.jpg', is_primary: false, order_index: 1 },
-    ]);
+    expect(v.images).toEqual([{ url: 'https://cdn/a.jpg', is_primary: true, order_index: 0 }]);
   });
 
   it('omits images entirely when the pet has none', () => {
@@ -208,6 +204,34 @@ describe('viewToCreateRequest breed names', () => {
     const req = viewToCreateRequest({ breed_id: 'b-1', secondary_breed_id: 'b-2' });
     expect(req.breedId).toBe('b-1');
     expect(req.secondaryBreedId).toBe('b-2');
+  });
+});
+
+describe('image list normalisation on write', () => {
+  const extraOf = (req: { extraJson?: string }): Record<string, unknown> =>
+    JSON.parse(req.extraJson ?? '{}');
+
+  it('packs the create body `images` into image_urls and never writes a bare `images` key', () => {
+    const extra = extraOf(viewToCreateRequest({ name: 'Rex', images: ['/a.jpg', '/b.jpg'] }));
+    expect(extra.image_urls).toEqual(['/a.jpg', '/b.jpg']);
+    expect('images' in extra).toBe(false);
+  });
+
+  it('merges image_urls first, then images, deduped, on update', () => {
+    const extra = extraOf(
+      viewToUpdateRequest('pet-1', {
+        image_urls: ['/a.jpg', '/b.jpg'],
+        images: ['/b.jpg', '/c.jpg'],
+      })
+    );
+    expect(extra.image_urls).toEqual(['/a.jpg', '/b.jpg', '/c.jpg']);
+    expect('images' in extra).toBe(false);
+  });
+
+  it('leaves extra_json without any image key when the body has neither', () => {
+    const extra = extraOf(viewToUpdateRequest('pet-1', { color: 'brown' }));
+    expect('images' in extra).toBe(false);
+    expect('image_urls' in extra).toBe(false);
   });
 });
 

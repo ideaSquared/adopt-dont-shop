@@ -311,7 +311,7 @@ export async function createPet(
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_CREATE}' required for this rescue`);
   }
 
-  const extra = parseExtraObject(req.extraJson);
+  const extra = canonicalImageList(parseExtraObject(req.extraJson));
   assertSafeImageUrls(extra);
 
   const species = typeToDb(req.type);
@@ -783,7 +783,7 @@ export async function updatePet(
     // The gateway sends the whole (read-merged) blob, so replace wholesale
     // — mirroring the proto's "JSON blobs replace wholesale when present".
     // ::jsonb keeps the text param out of pg's array-literal path (ADS-1155).
-    const extra = parseExtraObject(req.extraJson);
+    const extra = canonicalImageList(parseExtraObject(req.extraJson));
     assertSafeImageUrls(extra);
     sets.push(`extra_json = $${n}::jsonb`);
     params.push(JSON.stringify(extra));
@@ -1086,23 +1086,31 @@ function parseExtraObject(raw: string | undefined): Record<string, unknown> {
 // arbitrary-host URL. The shared image-url-policy (service-bootstrap, also
 // applied by service.matching when it renders cards) is the guard at this
 // handler's own write boundary.
-// Photos arrive under `image_urls` (image routes) and the legacy `images`
-// key (create/update body); both are rendered to other users, so both are
-// held to the same policy.
-const IMAGE_URL_KEYS = ['image_urls', 'images'] as const;
+// Photos live in extra_json.image_urls, the single authoritative list. A
+// caller may still send them as the bare `images` key (the rescue form
+// does); fold that into image_urls (existing first, deduped, order kept) so
+// the bare key is never stored.
+function canonicalImageList(extra: Record<string, unknown>): Record<string, unknown> {
+  if (!('images' in extra)) {
+    return extra;
+  }
+  const { images, ...rest } = extra;
+  const urls = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+  return { ...rest, image_urls: [...new Set([...urls(rest.image_urls), ...urls(images)])] };
+}
 
+// Photos are rendered to other users, so every stored URL must pass the
+// shared image-url-policy.
 function assertSafeImageUrls(extra: Record<string, unknown>): void {
-  for (const key of IMAGE_URL_KEYS) {
-    const urls = extra[key];
-    if (!Array.isArray(urls)) {
-      continue;
-    }
-    if (urls.some(url => typeof url !== 'string' || !isSafeImageUrl(url))) {
-      throw new HandlerError(
-        'INVALID_ARGUMENT',
-        `extra_json.${key} must be same-origin paths or https platform URLs`
-      );
-    }
+  const urls = extra.image_urls;
+  if (!Array.isArray(urls)) {
+    return;
+  }
+  if (urls.some(url => typeof url !== 'string' || !isSafeImageUrl(url))) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'extra_json.image_urls must be same-origin paths or https platform URLs'
+    );
   }
 }
 
