@@ -2,7 +2,14 @@ import { createSpamFaker, seededUuid } from '@adopt-dont-shop/seed-faker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SEED_LOCATIONS } from './seed-locations.js';
-import { buildRescueRows, buildStaffRows, runSpam, spamRescues, type QueryFn } from './spam.js';
+import {
+  buildRescueRows,
+  buildStaffRows,
+  repairSeededLocations,
+  runSpam,
+  spamRescues,
+  type QueryFn,
+} from './spam.js';
 
 const RESCUE = { rescue_id: 0, name: 1, email: 2 } as const;
 const STAFF = { staff_member_id: 0, rescue_id: 1, user_id: 2 } as const;
@@ -72,7 +79,7 @@ describe('buildStaffRows', () => {
 });
 
 describe('spamRescues', () => {
-  it('upserts rescues (refreshing only their location) and inserts staff idempotently', async () => {
+  it('inserts rescues and staff idempotently (ON CONFLICT DO NOTHING)', async () => {
     const calls: Array<{ text: string }> = [];
     const query: QueryFn = async text => {
       calls.push({ text });
@@ -84,17 +91,70 @@ describe('spamRescues', () => {
     expect(result).toEqual({ rescues: 3, staff: 4 });
     const rescueInsert = calls.find(c => c.text.includes('INTO rescue.rescues'));
     const staffInsert = calls.find(c => c.text.includes('INTO rescue.staff_members'));
-    expect(rescueInsert?.text).toMatch(/ON CONFLICT \(rescue_id\) DO UPDATE SET/);
-    // Only location columns are refreshed — names, emails and status stay put.
-    const updateClause = rescueInsert?.text.split('DO UPDATE SET')[1] ?? '';
-    expect(updateClause.match(/(\w+) = EXCLUDED/g)).toEqual([
-      'address = EXCLUDED',
-      'city = EXCLUDED',
-      'zip_code = EXCLUDED',
-      'latitude = EXCLUDED',
-      'longitude = EXCLUDED',
-    ]);
+    expect(rescueInsert?.text).toMatch(/ON CONFLICT \(rescue_id\) DO NOTHING/);
     expect(staffInsert?.text).toMatch(/ON CONFLICT \(staff_member_id\) DO NOTHING/);
+  });
+});
+
+// A synthetic rescue as an older seed left it: right id/email, faker postcode.
+const oldRescueRow = (index: number, zip_code = 'RG50 83E') => ({
+  rescue_id: seededUuid(`rescue-${index}`),
+  email: `rescue${index}@example.test`,
+  zip_code,
+});
+
+describe('repairSeededLocations', () => {
+  const run = async (rows: ReturnType<typeof oldRescueRow>[]) => {
+    const updates: Array<readonly unknown[]> = [];
+    const query: QueryFn = async (text, values) => {
+      if (text.includes('UPDATE rescue.rescues')) {
+        updates.push(values);
+      }
+      return { rows };
+    };
+    const repaired = await repairSeededLocations(query);
+    return { repaired, updates };
+  };
+
+  it('fixes every old synthetic rescue, including ones past the current default count of 8', async () => {
+    // A DB once seeded with 16 rescues, booted with the default 8.
+    const rows = Array.from({ length: 16 }, (_, i) => oldRescueRow(i));
+
+    const { repaired, updates } = await run(rows);
+
+    expect(repaired).toBe(16);
+    expect(updates).toHaveLength(16);
+    SEED_LOCATIONS.forEach((location, i) => {
+      expect(updates[i]).toEqual([
+        seededUuid(`rescue-${i}`),
+        location.city,
+        location.postcode,
+        location.latitude,
+        location.longitude,
+      ]);
+    });
+  });
+
+  it('leaves rescues that already have their table postcode alone', async () => {
+    const { repaired, updates } = await run([oldRescueRow(2, SEED_LOCATIONS[2].postcode)]);
+
+    expect(repaired).toBe(0);
+    expect(updates).toHaveLength(0);
+  });
+
+  it('never touches a rescue that merely looks synthetic (id does not match its email)', async () => {
+    const { repaired } = await run([
+      { rescue_id: seededUuid('rescue-9'), email: 'rescue3@example.test', zip_code: 'AB1 2CD' },
+      { rescue_id: seededUuid('rescue-1'), email: 'rescue1x@example.test', zip_code: 'AB1 2CD' },
+    ]);
+
+    expect(repaired).toBe(0);
+  });
+
+  it('wraps past the end of the table like the planter does', async () => {
+    const { updates } = await run([oldRescueRow(17)]);
+
+    expect(updates[0]?.[2]).toBe(SEED_LOCATIONS[1].postcode);
   });
 });
 
@@ -117,23 +177,26 @@ describe('runSpam', () => {
     expect(inserts.some(t => t.includes('INTO rescue.rescues'))).toBe(true);
   });
 
-  it('checks the anchor against its current postcode, so an old-postcode DB is re-planted', async () => {
+  it('repairs old postcodes even when the DB is already populated and boot skips planting', async () => {
     vi.stubEnv('SEED_ONLY_IF_EMPTY', 'true');
-    const anchorQueries: Array<{ text: string; values: readonly unknown[] }> = [];
+    const updates: Array<{ text: string; values: readonly unknown[] }> = [];
     const query: QueryFn = async (text, values) => {
       if (text.includes('SELECT 1 FROM rescue.rescues')) {
-        anchorQueries.push({ text, values });
-        // No row matches rescue-0 WITH the new postcode: the DB holds an old one.
-        return { rows: [] };
+        return { rows: [{ '?column?': 1 }] };
+      }
+      if (text.includes('SELECT rescue_id, email, zip_code')) {
+        return { rows: [oldRescueRow(0)] };
+      }
+      if (text.includes('UPDATE rescue.rescues')) {
+        updates.push({ text, values });
       }
       return { rows: [] };
     };
 
     const result = await runSpam({ query, faker: createSpamFaker() });
 
-    expect(result.seeded).toBe(true);
-    expect(anchorQueries[0].text).toMatch(/rescue_id = \$1 AND zip_code = \$2/);
-    expect(anchorQueries[0].values).toEqual([seededUuid('rescue-0'), SEED_LOCATIONS[0].postcode]);
+    expect(result.seeded).toBe(false);
+    expect(updates).toHaveLength(1);
   });
 
   it('skips on boot when the anchor rescue already exists', async () => {

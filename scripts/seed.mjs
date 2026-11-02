@@ -94,17 +94,23 @@ export function backfillExec() {
   };
 }
 
-// Best-effort: the backfill needs the internet (postcodes.io), and a seed that
-// otherwise worked must not fail because the machine is offline. Distance just
-// stays hidden on the cards until it is re-run.
+// Only for when the backfill could not RUN (container down, script crashed).
+// Being offline is not that case: the geocoder swallows network errors, so the
+// backfill exits 0 and prints its own skipped count and retry hint, which the
+// inherited stdio below passes straight through.
+export function backfillFailureMessage() {
+  return (
+    '  ! could not run the coordinate backfill (is service-rescue up?). Distance badges stay ' +
+    'hidden until you run: pnpm --filter @adopt-dont-shop/service.rescue backfill:coordinates\n'
+  );
+}
+
+// Best-effort: a seed that otherwise worked must not fail because of it.
 function runCoordinateBackfill() {
   process.stdout.write('\n→ geocoding rescue postcodes (service-rescue)...\n');
   const result = spawnSync(DOCKER, backfillExec().args, { stdio: 'inherit' });
   if (result.error || result.status !== 0) {
-    process.stdout.write(
-      '  ! could not geocode rescues (offline?). Distance badges stay hidden until you run: ' +
-        'pnpm --filter @adopt-dont-shop/service.rescue backfill:coordinates\n'
-    );
+    process.stdout.write(backfillFailureMessage());
   }
 }
 

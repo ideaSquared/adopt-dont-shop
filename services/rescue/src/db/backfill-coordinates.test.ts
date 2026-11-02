@@ -1,6 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { backfillRescueCoordinates } from './backfill-coordinates.js';
+import { backfillRescueCoordinates, formatBackfillSummary } from './backfill-coordinates.js';
+
+describe('formatBackfillSummary', () => {
+  it('says everything was geocoded when nothing was skipped', () => {
+    expect(formatBackfillSummary({ updated: 3, skipped: 0 })).toBe(
+      'Geocoded 3 rescue(s); none left without coordinates.'
+    );
+  });
+
+  it('tells the user how many were skipped and how to retry, since offline looks like skipped', () => {
+    const message = formatBackfillSummary({ updated: 1, skipped: 4 });
+
+    expect(message).toContain('4 could not be geocoded');
+    expect(message).toContain('offline');
+    expect(message).toContain('pnpm --filter @adopt-dont-shop/service.rescue backfill:coordinates');
+  });
+});
 
 describe('backfillRescueCoordinates', () => {
   it('geocodes rescues missing coordinates and leaves unresolvable ones for the next run', async () => {

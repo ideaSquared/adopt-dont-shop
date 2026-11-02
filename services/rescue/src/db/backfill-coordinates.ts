@@ -53,6 +53,21 @@ export async function backfillRescueCoordinates(
   return { updated, skipped: rows.length - updated };
 }
 
+// The geocoder swallows network errors, so an offline run looks like skipped
+// rows rather than a failure; this is the only place that can say so.
+export const formatBackfillSummary = ({
+  updated,
+  skipped,
+}: {
+  updated: number;
+  skipped: number;
+}): string =>
+  skipped === 0
+    ? `Geocoded ${updated} rescue(s); none left without coordinates.`
+    : `Geocoded ${updated} rescue(s); ${skipped} could not be geocoded (offline, or an unknown ` +
+      'postcode) and have no distance yet. Re-run when online: ' +
+      'pnpm --filter @adopt-dont-shop/service.rescue backfill:coordinates';
+
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.rescue' });
   const config = loadConfig();
@@ -60,6 +75,7 @@ const main = async (): Promise<void> => {
   try {
     const result = await backfillRescueCoordinates(pool, createPostcodesIoGeocoder());
     logger.info('rescue coordinates backfill complete', result);
+    process.stdout.write(`${formatBackfillSummary(result)}\n`);
   } finally {
     await pool.end();
   }
