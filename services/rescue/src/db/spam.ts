@@ -26,6 +26,7 @@ import {
 } from '@adopt-dont-shop/seed-faker';
 
 import { loadConfig } from '../config.js';
+import { seedLocation } from './seed-locations.js';
 
 type Faker = ReturnType<typeof createSpamFaker>;
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
@@ -73,6 +74,8 @@ const RESCUE_COLUMNS = [
   'address',
   'city',
   'zip_code',
+  'latitude',
+  'longitude',
   'country',
   'contact_person',
   'description',
@@ -94,21 +97,26 @@ const STAFF_COLUMNS = [
   'updated_at',
 ] as const;
 
-const rescueRow = (faker: Faker, index: number, now: Date): readonly unknown[] => [
-  seededUuid(`rescue-${index}`),
-  rescueName(index),
-  `rescue${index}@example.test`,
-  faker.location.streetAddress(),
-  faker.location.city(),
-  faker.location.zipCode(),
-  'GB',
-  faker.person.fullName(),
-  faker.helpers.arrayElement(BLURBS),
-  'verified',
-  now,
-  now,
-  now,
-];
+const rescueRow = (faker: Faker, index: number, now: Date): readonly unknown[] => {
+  const location = seedLocation(index);
+  return [
+    seededUuid(`rescue-${index}`),
+    rescueName(index),
+    `rescue${index}@example.test`,
+    faker.location.streetAddress(),
+    location.city,
+    location.postcode,
+    location.latitude,
+    location.longitude,
+    'GB',
+    faker.person.fullName(),
+    faker.helpers.arrayElement(BLURBS),
+    'verified',
+    now,
+    now,
+    now,
+  ];
+};
 
 const staffRow = (
   faker: Faker,
@@ -184,6 +192,41 @@ const anchorExists = async (query: QueryFn): Promise<boolean> => {
   return res.rows.length > 0;
 };
 
+// Dev DBs seeded before the real-postcode table hold random faker postcodes
+// that can't be geocoded. Every synthetic rescue is recognisable by its
+// deterministic id (rescue-N <-> rescueN@example.test), so this upgrades all
+// of them, however many exist now — a DB once seeded with 16 rescues and
+// booted with the default 8 must not keep stale postcodes on rescues 8-15.
+// It runs on every boot (cheap, idempotent) and only touches location
+// columns of rows whose postcode differs from the table.
+const SYNTHETIC_EMAIL = /^rescue(\d+)@example\.test$/;
+
+export const repairSeededLocations = async (query: QueryFn): Promise<number> => {
+  const res = (await query(
+    `SELECT rescue_id, email, zip_code FROM rescue.rescues WHERE email LIKE 'rescue%@example.test'`,
+    []
+  )) as { rows: { rescue_id: string; email: string; zip_code: string }[] };
+
+  const stale = res.rows.flatMap(row => {
+    const index = SYNTHETIC_EMAIL.exec(row.email)?.[1];
+    if (index === undefined || row.rescue_id !== seededUuid(`rescue-${index}`)) {
+      return [];
+    }
+    const location = seedLocation(Number(index));
+    return row.zip_code === location.postcode ? [] : [{ rescueId: row.rescue_id, location }];
+  });
+
+  for (const { rescueId, location } of stale) {
+    await query(
+      `UPDATE rescue.rescues
+          SET city = $2, zip_code = $3, latitude = $4, longitude = $5, updated_at = now()
+        WHERE rescue_id = $1`,
+      [rescueId, location.city, location.postcode, location.latitude, location.longitude]
+    );
+  }
+  return stale.length;
+};
+
 // Orchestration over injected seams so the seed-if-empty guard + count logic is
 // testable without a real pool.
 export const runSpam = async (deps: {
@@ -191,6 +234,10 @@ export const runSpam = async (deps: {
   faker: Faker;
   log?: (message: string, meta?: Record<string, unknown>) => void;
 }): Promise<{ seeded: boolean; rescues: number; staff: number }> => {
+  const repaired = await repairSeededLocations(deps.query);
+  if (repaired > 0) {
+    deps.log?.('repaired old rescue postcodes', { repaired });
+  }
   if (!(await shouldSeed(() => anchorExists(deps.query)))) {
     deps.log?.('rescues already populated — skipping (SEED_ONLY_IF_EMPTY)');
     return { seeded: false, rescues: 0, staff: 0 };

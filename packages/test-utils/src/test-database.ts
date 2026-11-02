@@ -16,6 +16,7 @@
 import { randomBytes } from 'node:crypto';
 
 import { createDbClient, runMigrations, type DbClient } from '@adopt-dont-shop/db';
+import { Client } from 'pg';
 import { register as registerTsxLoader } from 'tsx/esm/api';
 
 // node-pg-migrate dynamically loads each migration file by path. A plain
@@ -83,6 +84,26 @@ export type WithTestDatabaseOptions = {
 // that silently does the wrong thing.
 const SAFE_PREFIX = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+// An exact schema name is a real service schema name ("pets", "auth"), and
+// the cleanup below drops it with CASCADE. If DATABASE_URL points at a
+// populated database (a dev stack), that would wipe real data — so refuse
+// a schema that already exists instead of migrating into it.
+async function assertSchemaAbsent(databaseUrl: string, schema: string): Promise<void> {
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    const { rows } = await client.query('SELECT 1 FROM pg_namespace WHERE nspname = $1', [schema]);
+    if (rows.length > 0) {
+      throw new Error(
+        `withTestDatabase: schema "${schema}" already exists. exactSchemaName drops the schema ` +
+          'after the test, so point DATABASE_URL at a disposable database, not one with real data.'
+      );
+    }
+  } finally {
+    await client.end();
+  }
+}
+
 /**
  * Run `fn` against a real, migrated, throwaway Postgres schema, then drop it.
  *
@@ -116,6 +137,10 @@ export async function withTestDatabase<T>(
   const schema = options.exactSchemaName
     ? options.schemaPrefix
     : `${options.schemaPrefix}_test_${randomBytes(4).toString('hex')}`;
+
+  if (options.exactSchemaName) {
+    await assertSchemaAbsent(databaseUrl, schema);
+  }
 
   await runMigrations({ databaseUrl, schema, migrationsDir: options.migrationsDir });
 

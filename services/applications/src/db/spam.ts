@@ -3,6 +3,12 @@
 // Floods applications.applications with rows wiring a spam adopter to a spam
 // pet (and that pet's rescue). Gated via assertSpamAllowed.
 //
+// The service is event-sourced: list/detail reads fold application_events, and
+// a projection row with no events loads as an empty aggregate and is dropped.
+// So every row is written with the event chain the live write path would have
+// produced (draftCreated → draftSubmitted → review / decision / withdrawal),
+// reviewed by a staff member of the pet's rescue.
+//
 // Idempotent: application_id is deterministic (derived from the user/pet pair)
 // and the INSERT is ON CONFLICT DO NOTHING, so a re-run converges instead of
 // piling on. Reads the (now deterministic) spam adopters + pets cross-schema;
@@ -24,6 +30,7 @@ import {
 } from '@adopt-dont-shop/seed-faker';
 
 import { loadConfig } from '../config.js';
+import type { ApplicationEvent } from '../domain/index.js';
 
 type Faker = ReturnType<typeof createSpamFaker>;
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
@@ -63,16 +70,88 @@ const APP_COLUMNS = [
   'created_by',
   'created_at',
   'updated_at',
+  'version',
 ] as const;
 
-type Pet = { pet_id: string; rescue_id: string };
+const EVENT_COLUMNS = [
+  'event_id',
+  'aggregate_id',
+  'version',
+  'event_type',
+  'event_data',
+  'occurred_at',
+  'actor_user_id',
+] as const;
 
-const appRow = (faker: Faker, userId: string, pet: Pet, now: Date): readonly unknown[] => {
+// reviewer_id: a staff member of the pet's rescue, who reviews and decides.
+type Pet = { pet_id: string; rescue_id: string; reviewer_id: string };
+
+const MINUTE_MS = 60_000;
+
+// The events that take a new application to `status`, one minute apart and
+// ending at `decidedAt`.
+const eventsFor = (
+  status: string,
+  ids: { applicationId: string; userId: string; pet: Pet },
+  decidedAt: Date
+): ApplicationEvent[] => {
+  const { applicationId, userId, pet } = ids;
+  const reviewer = pet.reviewer_id;
+  const head: Array<(at: string) => ApplicationEvent> = [
+    at => ({
+      type: 'draftCreated',
+      applicationId,
+      adopterId: userId,
+      petId: pet.pet_id,
+      rescueId: pet.rescue_id,
+      at,
+    }),
+    at => ({ type: 'draftSubmitted', applicationId, at }),
+  ];
+  const review = (at: string): ApplicationEvent => ({
+    type: 'reviewStarted',
+    applicationId,
+    actorUserId: reviewer,
+    note: null,
+    at,
+  });
+  const tail: Record<string, Array<(at: string) => ApplicationEvent>> = {
+    submitted: [],
+    under_review: [review],
+    approved: [
+      review,
+      at => ({ type: 'approved', applicationId, actorUserId: reviewer, notes: null, at }),
+    ],
+    rejected: [
+      review,
+      at => ({
+        type: 'rejected',
+        applicationId,
+        actorUserId: reviewer,
+        reason: 'Not the right match for this pet.',
+        at,
+      }),
+    ],
+    withdrawn: [
+      at => ({ type: 'withdrawn', applicationId, actorUserId: userId, reason: null, at }),
+    ],
+  };
+  const builders = [...head, ...tail[status]];
+  return builders.map((build, i) =>
+    build(new Date(decidedAt.getTime() - (builders.length - 1 - i) * MINUTE_MS).toISOString())
+  );
+};
+
+const actorOf = (event: ApplicationEvent, userId: string): string =>
+  'actorUserId' in event ? event.actorUserId : userId;
+
+const projectionRow = (faker: Faker, userId: string, pet: Pet, now: Date): unknown[] => {
   const status = faker.helpers.arrayElement(STATUS_BAG);
+  // Deterministic per (adopter, pet) pair — the pair is unique, so a re-run
+  // regenerates the same id and ON CONFLICT skips it.
+  const applicationId = seededUuid(`app-${userId}-${pet.pet_id}`);
   return [
-    // Deterministic per (adopter, pet) pair — the pair is unique, so a re-run
-    // regenerates the same id and ON CONFLICT skips it.
-    seededUuid(`app-${userId}-${pet.pet_id}`),
+    applicationId,
     userId,
     pet.pet_id,
     pet.rescue_id,
@@ -83,8 +162,22 @@ const appRow = (faker: Faker, userId: string, pet: Pet, now: Date): readonly unk
     userId,
     now,
     now,
+    eventsFor(status, { applicationId, userId, pet }, now).length,
   ];
 };
+
+type StreamlessRow = { application_id: string; user_id: string; pet_id: string; status: string };
+
+const eventRows = (applicationId: string, userId: string, events: ApplicationEvent[]) =>
+  events.map((event, i) => [
+    seededUuid(`app-event-${applicationId}-${i + 1}`),
+    applicationId,
+    i + 1,
+    event.type,
+    JSON.stringify(event),
+    event.at,
+    actorOf(event, userId),
+  ]);
 
 export const spamApplications = async (deps: {
   query: QueryFn;
@@ -102,7 +195,7 @@ export const spamApplications = async (deps: {
   const target = Math.min(deps.applications, shuffled.length);
   const rows = shuffled
     .slice(0, target)
-    .map(({ userId, pet }) => appRow(deps.faker, userId, pet, now));
+    .map(({ userId, pet }) => projectionRow(deps.faker, userId, pet, now));
   // Deterministic application_id means a re-run regenerates the same PK, so
   // conflicting on the primary key skips already-seeded rows (this also covers
   // the rejected/withdrawn tail the partial (user_id, pet_id) index misses).
@@ -114,6 +207,51 @@ export const spamApplications = async (deps: {
     500,
     'ON CONFLICT (application_id) DO NOTHING'
   );
+
+  // Give every row without an event stream the chain for the status it
+  // actually holds. A re-run can draw a different status for an existing row
+  // (a changed FAKER_SEED or SPAM_* count reshuffles the draws), so the chain
+  // is built from the stored status, and an existing stream is never touched:
+  // appending to it would contradict the projection. This also backfills rows
+  // written before the seeder wrote events.
+  const streamless = (await deps.query(
+    `SELECT a.application_id, a.user_id, a.pet_id, a.status
+       FROM applications.applications a
+      WHERE a.application_id = ANY($1::uuid[])
+        AND NOT EXISTS (
+          SELECT 1 FROM applications.application_events e WHERE e.aggregate_id = a.application_id
+        )`,
+    [rows.map(row => row[0])]
+  )) as { rows: StreamlessRow[] };
+  const petsById = new Map(deps.pets.map(pet => [pet.pet_id, pet]));
+  const streams = streamless.rows.flatMap(row => {
+    const pet = petsById.get(row.pet_id);
+    if (!pet || !(row.status in STAGE_FOR)) {
+      return [];
+    }
+    const ids = { applicationId: row.application_id, userId: row.user_id, pet };
+    return [{ row, events: eventsFor(row.status, ids, now) }];
+  });
+  // Events are immutable (a trigger rejects UPDATE/DELETE); the conflict
+  // clause only guards a concurrent run.
+  await bulkInsert(
+    { query: deps.query },
+    'applications.application_events',
+    EVENT_COLUMNS,
+    streams.flatMap(({ row, events }) => eventRows(row.application_id, row.user_id, events)),
+    500,
+    'ON CONFLICT (aggregate_id, version) DO NOTHING'
+  );
+  if (streams.length > 0) {
+    // version is the event count, as the live write path projects it.
+    await deps.query(
+      `UPDATE applications.applications a
+          SET version = v.version
+         FROM unnest($1::uuid[], $2::int[]) AS v(application_id, version)
+        WHERE a.application_id = v.application_id`,
+      [streams.map(s => s.row.application_id), streams.map(s => s.events.length)]
+    );
+  }
   return { applications: rows.length };
 };
 
@@ -130,9 +268,15 @@ export const runSpam = async (deps: {
   )) as { rows: { user_id: string }[] };
   const adopterIds = adopters.rows.map(r => r.user_id);
   const pets = (await deps.query(
-    `SELECT p.pet_id, p.rescue_id FROM pets.pets p
-     JOIN rescue.rescues r ON r.rescue_id = p.rescue_id
-     WHERE r.email LIKE '%@example.test'`,
+    `SELECT p.pet_id, p.rescue_id,
+            COALESCE(
+              (SELECT s.user_id FROM rescue.staff_members s
+                WHERE s.rescue_id = p.rescue_id ORDER BY s.added_at LIMIT 1),
+              p.created_by
+            ) AS reviewer_id
+       FROM pets.pets p
+       JOIN rescue.rescues r ON r.rescue_id = p.rescue_id
+      WHERE r.email LIKE '%@example.test'`,
     []
   )) as { rows: Pet[] };
 

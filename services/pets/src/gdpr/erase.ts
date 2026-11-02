@@ -1,6 +1,6 @@
 // GDPR erasure for the pets schema. Pet rows are rescue-owned (the
 // rescue lists the pet, not the user); the only user-keyed tables here
-// are favourites and ratings.
+// are favourites, ratings and pet views.
 
 import type { PoolClient } from 'pg';
 
@@ -16,6 +16,8 @@ export async function erasePets(
     // The ratings author column is `reviewer_id` (there is no `user_id`
     // column on pets.ratings — keying on it would throw at runtime).
     `DELETE FROM pets.ratings WHERE reviewer_id = $1`,
+    // Detail-page view history behind the views_today label.
+    `DELETE FROM pets.pet_views WHERE viewer_id = $1`,
   ]) {
     const res = await client.query(sql, [payload.userId]);
     total += res.rowCount ?? 0;

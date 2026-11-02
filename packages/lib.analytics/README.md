@@ -3,14 +3,15 @@
 ## Purpose
 
 User-engagement tracking and reporting for the frontend apps. Wraps the backend
-analytics API with a queued, batched event sink plus helpers for engagement
-metrics, reports, conversion funnels, and A/B-test results.
+analytics API with a queued, batched event sink (`AnalyticsService`) plus a
+saved-report data layer (`ReportService` and React Query hooks) for report
+templates, execution, scheduling, and sharing.
 
 ## Location in the architecture
 
 See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
 libraries sit. Events flush to the gateway's in-process `/api/v1/analytics`
-ingestion surface; reporting reads the analytics-metrics routes. For the report
+ingestion surface; reporting reads the `/api/v1/reports` routes. For the report
 model (saved reports, schedules, sharing) see
 [`docs/ANALYTICS-REPORTS.md`](../../docs/ANALYTICS-REPORTS.md).
 
@@ -30,10 +31,8 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 
 - `AnalyticsService` — configurable class (`Partial<AnalyticsServiceConfig>` +
   optional injected `ApiService`). Tracking (queued + batch-flushed):
-  `trackEvent`, `trackPageView`, `trackUserJourney`, `trackConversion`,
-  `trackError`, `trackTiming`. Reporting: `getEngagementMetrics`,
-  `getSystemPerformance`, `generateReport`, `getConversionFunnel`,
-  `getABTestResults`. Lifecycle: `getConfig` / `updateConfig`, `getSessionId` /
+  `trackEvent`, `trackPageView`, `trackConversion`, `trackError`,
+  `trackTiming`. Lifecycle: `getConfig` / `updateConfig`, `getSessionId` /
   `startNewSession`, `healthCheck`, `destroy` (flush + stop timer).
 - `ReportService` + `reportService` — saved-report CRUD, execution, scheduling
   and sharing client (`./services/report-service`).
@@ -44,9 +43,8 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `useRevokeShare`.
 - Report schemas + constants re-exported from `./schemas/reports` and
   `./constants`.
-- Types: `AnalyticsServiceConfig`, `UserEngagementEvent`, `PageViewEvent`,
-  `EngagementMetrics`, `AnalyticsReport`, `ConversionFunnel`, `ABTestResults`,
-  `TimeRange`, …
+- Types: `AnalyticsServiceConfig`, `UserEngagementEvent`, `PageViewEvent`. (The
+  report types are inferred from the `./schemas/reports` schemas noted above.)
 
 The report **UI** (builder + renderer) lives in `lib.components`
 (`ReportBuilder`, `ReportRenderer`); this library owns the data layer.

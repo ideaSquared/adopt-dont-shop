@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
-import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
+import { ConfirmDialog, Tabs, useConfirm } from '@adopt-dont-shop/lib.components';
 import {
   securityService,
   type IpRule,
@@ -54,6 +54,23 @@ const SecurityCenter: React.FC = () => {
   const userIdParam = searchParams.get('userId') ?? '';
   const ipParam = searchParams.get('ip') ?? '';
 
+  const renderTab = (key: TabKey) => {
+    switch (key) {
+      case 'mfa':
+        return <MfaTab />;
+      case 'sessions':
+        return <SessionsTab initialUserId={userIdParam} />;
+      case 'ip-rules':
+        return <IpRulesTab initialIp={ipParam} />;
+      case 'login-history':
+        return <LoginHistoryTab initialUserId={userIdParam} />;
+      case 'suspicious':
+        return <SuspiciousTab />;
+      case 'recovery':
+        return <RecoveryTab />;
+    }
+  };
+
   return (
     <div className={styles.pageContainer}>
       <div className={styles.pageHeader}>
@@ -64,27 +81,18 @@ const SecurityCenter: React.FC = () => {
         </p>
       </div>
 
-      <div className={styles.tabBar} role='tablist' aria-label='Security center tabs'>
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            type='button'
-            role='tab'
-            aria-selected={tab === t.key}
-            className={styles.tabButton}
-            onClick={() => handleTabChange(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'mfa' && <MfaTab />}
-      {tab === 'sessions' && <SessionsTab initialUserId={userIdParam} />}
-      {tab === 'ip-rules' && <IpRulesTab initialIp={ipParam} />}
-      {tab === 'login-history' && <LoginHistoryTab initialUserId={userIdParam} />}
-      {tab === 'suspicious' && <SuspiciousTab />}
-      {tab === 'recovery' && <RecoveryTab />}
+      <Tabs
+        aria-label='Security center tabs'
+        value={tab}
+        onChange={id => isTabKey(id) && handleTabChange(id)}
+        tabs={TABS.map(t => ({
+          id: t.key,
+          label: t.label,
+          // Inactive panels stay mounted inside Tabs, so only render the active
+          // tab's content to avoid fetching for hidden tabs.
+          content: tab === t.key ? renderTab(t.key) : null,
+        }))}
+      />
     </div>
   );
 };

@@ -157,6 +157,15 @@ describe('startSession', () => {
     expect(insertCall.mock.calls[1][1][2]).toBe('{}');
   });
 
+  it('never persists the adopter coordinates with the session filters', async () => {
+    const { deps } = makeDeps([{ rows: [] }, { rows: [sessionRow()] }]);
+    await startSession(deps, makePrincipal(), {
+      filtersJson: '{"species":"dog","latitude":51.5,"longitude":-0.12}',
+    } as StartSessionRequest);
+    const insertCall = deps.pool.query as unknown as ReturnType<typeof vi.fn>;
+    expect(insertCall.mock.calls[1][1][2]).toBe('{"species":"dog"}');
+  });
+
   // ADS-931: ip_address / user_agent are forensic columns. They must come
   // from the gateway-stamped call metadata (connection origin), never from
   // the caller-controlled request body — otherwise any adopter can forge

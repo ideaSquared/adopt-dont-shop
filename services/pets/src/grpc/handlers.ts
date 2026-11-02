@@ -43,6 +43,8 @@ import {
   type GetAdoptionsByTypeResponse,
   type GetAdoptionTrendRequest,
   type GetAdoptionTrendResponse,
+  type GetAdoptionStatsRequest,
+  type GetAdoptionStatsResponse,
   type GetPetFacetsRequest,
   type GetPetFacetsResponse,
   type GetPetRequest,
@@ -70,6 +72,7 @@ import {
   type UpdatePetStatusRequest,
   type UpdatePetStatusResponse,
 } from '@adopt-dont-shop/proto';
+import { isSafeImageUrl } from '@adopt-dont-shop/service-bootstrap';
 
 import {
   ALL_PET_TYPES,
@@ -233,7 +236,7 @@ const PUBLIC_HIDDEN_STATUSES = ['adopted', 'deceased', 'not_available'];
 // A reader is "privileged" for a pet when they may see its internal notes
 // and non-public statuses: platform admins (pets.read:any) and rescue staff
 // viewing their OWN rescue's pet. Everyone else gets the public projection.
-function isPrivilegedReader(principal: Principal, rescueId: string | null): boolean {
+export function isPrivilegedReader(principal: Principal, rescueId: string | null): boolean {
   if (hasPermission(principal, PETS_READ_ANY)) {
     return true;
   }
@@ -244,8 +247,45 @@ function isPrivilegedReader(principal: Principal, rescueId: string | null): bool
 // be able to tell a pet in a hidden status or an archived pet apart from one
 // that never existed. getPet and getSimilarPets share this gate so their
 // source-pet visibility can't drift into an existence oracle (ADS-1210).
-function isPetHiddenFrom(row: PetRow, privileged: boolean): boolean {
+export function isPetHiddenFrom(row: PetRow, privileged: boolean): boolean {
   return !privileged && (PUBLIC_HIDDEN_STATUSES.includes(row.status) || row.archived);
+}
+
+// --- Breed name resolution -------------------------------------------
+
+// The rescue app knows a breed by NAME, but pets.pets stores breed_id. The
+// service owns pets.breeds, so it resolves the name here, matched on the
+// pet's species (the same name can exist for several species) and
+// case-insensitively. An explicit id wins and skips the lookup. A name that
+// matches no breed is the caller's mistake, so it is INVALID_ARGUMENT rather
+// than a silently-null breed. Returns undefined when neither is supplied.
+//
+// `storedName` is the free-text breed already saved on the pet (extra_json).
+// Pets saved before names were validated can hold one that is not in the
+// catalogue, and the rescue app re-sends it on every save. Re-sending exactly
+// what is already stored is not a change, so it is accepted and the breed
+// column is left alone (undefined) instead of failing the whole edit.
+async function resolveBreedId(
+  deps: HandlerDeps,
+  species: PetTypeDb,
+  id: string | undefined,
+  name: string | undefined,
+  storedName?: unknown
+): Promise<string | undefined> {
+  if (id !== undefined || name === undefined) {
+    return id;
+  }
+  const { rows } = await deps.pool.query<{ breed_id: string }>(
+    `SELECT breed_id FROM pets.breeds WHERE species = $1 AND lower(name) = lower($2)`,
+    [species, name]
+  );
+  if (rows[0]) {
+    return rows[0].breed_id;
+  }
+  if (typeof storedName === 'string' && storedName.toLowerCase() === name.toLowerCase()) {
+    return undefined;
+  }
+  throw new HandlerError('INVALID_ARGUMENT', `unknown breed '${name}' for species '${species}'`);
 }
 
 // --- Create ----------------------------------------------------------
@@ -273,8 +313,17 @@ export async function createPet(
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_CREATE}' required for this rescue`);
   }
 
-  const extra = parseExtraObject(req.extraJson);
+  const extra = canonicalImageList(parseExtraObject(req.extraJson));
   assertSafeImageUrls(extra);
+
+  const species = typeToDb(req.type);
+  const breedId = await resolveBreedId(deps, species, req.breedId, req.breedName);
+  const secondaryBreedId = await resolveBreedId(
+    deps,
+    species,
+    req.secondaryBreedId,
+    req.secondaryBreedName
+  );
 
   const petId = randomUUID();
   let inserted: PetRow | undefined;
@@ -308,8 +357,8 @@ export async function createPet(
         genderToDb(req.gender),
         sizeToDb(req.size),
         ageGroupToDb(req.ageGroup),
-        req.breedId ?? null,
-        req.secondaryBreedId ?? null,
+        breedId ?? null,
+        secondaryBreedId ?? null,
         req.shortDescription ?? null,
         req.longDescription ?? null,
         req.ageYears ?? null,
@@ -684,11 +733,26 @@ export async function updatePet(
   if (req.ageGroup !== undefined) {
     set('age_group', ageGroupToDb(req.ageGroup));
   }
-  if (req.breedId !== undefined) {
-    set('breed_id', req.breedId);
+  const storedExtra = isRecord(existing.extra_json) ? existing.extra_json : {};
+  const breedId = await resolveBreedId(
+    deps,
+    existing.type,
+    req.breedId,
+    req.breedName,
+    storedExtra.breed
+  );
+  if (breedId !== undefined) {
+    set('breed_id', breedId);
   }
-  if (req.secondaryBreedId !== undefined) {
-    set('secondary_breed_id', req.secondaryBreedId);
+  const secondaryBreedId = await resolveBreedId(
+    deps,
+    existing.type,
+    req.secondaryBreedId,
+    req.secondaryBreedName,
+    storedExtra.secondary_breed ?? storedExtra.secondaryBreed
+  );
+  if (secondaryBreedId !== undefined) {
+    set('secondary_breed_id', secondaryBreedId);
   }
   if (req.adoptionFeeMinor !== undefined) {
     set('adoption_fee_minor', req.adoptionFeeMinor);
@@ -721,7 +785,7 @@ export async function updatePet(
     // The gateway sends the whole (read-merged) blob, so replace wholesale
     // — mirroring the proto's "JSON blobs replace wholesale when present".
     // ::jsonb keeps the text param out of pg's array-literal path (ADS-1155).
-    const extra = parseExtraObject(req.extraJson);
+    const extra = canonicalImageList(parseExtraObject(req.extraJson));
     assertSafeImageUrls(extra);
     sets.push(`extra_json = $${n}::jsonb`);
     params.push(JSON.stringify(extra));
@@ -838,9 +902,9 @@ export async function updatePetStatus(
     const result = await client.query<PetRow>(
       `
       UPDATE pets.pets
-      SET status = $1,
-          adopted_date = CASE WHEN $1 = 'adopted' THEN now() ELSE adopted_date END,
-          available_since = CASE WHEN $1 = 'available' THEN now() ELSE available_since END,
+      SET status = $1::pet_status,
+          adopted_date = CASE WHEN $1::pet_status = 'adopted' THEN now() ELSE adopted_date END,
+          available_since = CASE WHEN $1::pet_status = 'available' THEN now() ELSE available_since END,
           updated_at = now(), updated_by = $2, version = version + 1
       WHERE pet_id = $3
       RETURNING ${PETS_SELECT}
@@ -914,7 +978,7 @@ export async function deletePet(
 
 // --- Helpers ---------------------------------------------------------
 
-async function fetchPet(deps: HandlerDeps, petId: string): Promise<PetRow | undefined> {
+export async function fetchPet(deps: HandlerDeps, petId: string): Promise<PetRow | undefined> {
   const result = await deps.pool.query<PetRow>(
     `SELECT ${PETS_SELECT} FROM pets.pets WHERE pet_id = $1 AND deleted_at IS NULL`,
     [petId]
@@ -1019,44 +1083,26 @@ function parseExtraObject(raw: string | undefined): Record<string, unknown> {
   }
 }
 
-// ADS-1343: extra_json.image_urls is where the gateway's pet-images route
-// (services/gateway/src/routes/pets.ts) stores the URLs it validates with
-// isSafeImageUrl at the write boundary. That gateway check is the only
-// guard today — CreatePet/UpdatePet forward req.extraJson to this handler
-// unchecked, so any other caller of this gRPC method (present or future)
-// could smuggle in a javascript:/data:/arbitrary-host URL. This mirrors
-// isSafeImageUrl (services/gateway/src/routes/events.schemas.ts) and
-// assertValidDocumentUrl (services/applications/src/grpc/document-handlers.ts)
-// as defense-in-depth at this handler's own write boundary.
-function allowedImageHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
-  const hosts = new Set<string>();
-  const cloudFrontDomain = env.CLOUDFRONT_DOMAIN?.trim();
-  if (cloudFrontDomain) {
-    hosts.add(cloudFrontDomain);
+// ADS-1343: CreatePet/UpdatePet forward req.extraJson to this handler, so
+// any caller of this gRPC method could smuggle in a javascript:/data:/
+// arbitrary-host URL. The shared image-url-policy (service-bootstrap, also
+// applied by service.matching when it renders cards) is the guard at this
+// handler's own write boundary.
+// Photos live in extra_json.image_urls, the single authoritative list. A
+// caller may still send them as the bare `images` key (the rescue form
+// does); fold that into image_urls (existing first, deduped, order kept) so
+// the bare key is never stored.
+function canonicalImageList(extra: Record<string, unknown>): Record<string, unknown> {
+  if (!('images' in extra)) {
+    return extra;
   }
-  const bucket = env.S3_BUCKET_NAME?.trim();
-  if (bucket) {
-    const region = env.S3_REGION?.trim() || 'us-east-1';
-    hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
-  }
-  return hosts;
+  const { images, ...rest } = extra;
+  const urls = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+  return { ...rest, image_urls: [...new Set([...urls(rest.image_urls), ...urls(images)])] };
 }
 
-function isSafeImageUrl(value: string): boolean {
-  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
-  // it's excluded from the same-origin relative-path allowance below.
-  if (value.startsWith('/') && !value.startsWith('//')) {
-    return true;
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return false;
-  }
-  return parsed.protocol === 'https:' && allowedImageHosts().has(parsed.host);
-}
-
+// Photos are rendered to other users, so every stored URL must pass the
+// shared image-url-policy.
 function assertSafeImageUrls(extra: Record<string, unknown>): void {
   const urls = extra.image_urls;
   if (!Array.isArray(urls)) {
@@ -1653,5 +1699,86 @@ export async function getPetFacets(
       { name: 'type', values: typeValues },
       { name: 'size', values: sizeValues },
     ],
+  };
+}
+
+// --- GetAdoptionStats ----------------------------------------------------
+
+const MAX_ADOPTION_COHORTS = 50;
+
+// Median time-to-adoption per "pets like this" cohort over the last 365
+// days. Aggregates only (no pet rows), so it is platform-wide rather than
+// rescue-scoped. Cohorts are matched through unnest(...) WITH ORDINALITY so
+// results come back in request order even for cohorts with no adoptions.
+export async function getAdoptionStats(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetAdoptionStatsRequest
+): Promise<GetAdoptionStatsResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+  if (req.cohorts.length > MAX_ADOPTION_COHORTS) {
+    throw new HandlerError('INVALID_ARGUMENT', `cohorts must be <= ${MAX_ADOPTION_COHORTS}`);
+  }
+  if (req.cohorts.length === 0) {
+    return { stats: [] };
+  }
+  // Protobuf decoding keeps UNRECOGNIZED (-1) and any other numeric value, and
+  // the *ToDb maps would turn those into a different cohort or an untyped
+  // throw, so accept only real, non-sentinel enum members.
+  const isConcrete = (members: object, value: number): boolean =>
+    value > 0 && Object.values(members).includes(value);
+  const cohortIsValid = (c: GetAdoptionStatsRequest['cohorts'][number]): boolean =>
+    isConcrete(PetsV1.PetType, c.type) &&
+    isConcrete(PetsV1.PetSize, c.size) &&
+    isConcrete(PetsV1.PetAgeGroup, c.ageGroup);
+  if (!req.cohorts.every(cohortIsValid)) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'each cohort needs a valid type, size and age_group'
+    );
+  }
+
+  const { rows } = await deps.pool.query<{
+    ord: number;
+    sample_count: string;
+    median_days: string;
+  }>(
+    `
+    SELECT c.ord::int AS ord,
+           COUNT(p.pet_id)::text AS sample_count,
+           COALESCE(
+             percentile_cont(0.5) WITHIN GROUP (
+               ORDER BY EXTRACT(epoch FROM (p.adopted_date - p.available_since)) / 86400
+             ),
+             0
+           )::text AS median_days
+      FROM unnest($1::pet_type[], $2::pet_size[], $3::pet_age_group[])
+           WITH ORDINALITY AS c(type, size, age_group, ord)
+      LEFT JOIN pets.pets p
+        ON p.type = c.type AND p.size = c.size AND p.age_group = c.age_group
+       AND p.deleted_at IS NULL
+       AND p.status = 'adopted'
+       AND p.available_since IS NOT NULL
+       AND p.adopted_date IS NOT NULL
+       AND p.adopted_date >= p.available_since
+       AND p.adopted_date >= now() - interval '365 days'
+     GROUP BY c.ord
+     ORDER BY c.ord
+    `,
+    [
+      req.cohorts.map(c => typeToDb(c.type)),
+      req.cohorts.map(c => sizeToDb(c.size)),
+      req.cohorts.map(c => ageGroupToDb(c.ageGroup)),
+    ]
+  );
+
+  return {
+    stats: rows.map(row => ({
+      cohort: req.cohorts[row.ord - 1],
+      sampleCount: Number.parseInt(row.sample_count, 10),
+      medianDays: Number.parseFloat(row.median_days),
+    })),
   };
 }

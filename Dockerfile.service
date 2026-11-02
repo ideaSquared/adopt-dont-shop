@@ -86,9 +86,10 @@ ENV NODE_ENV=development
 WORKDIR /app/${SERVICE_DIR}
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 # Migrate the service's own schema (only services that own a schema define
-# db:migrate — the gateway doesn't, hence --if-present), then seed the
-# canonical dev/e2e fixtures (auth/rescue/pets define db:seed; idempotent
-# ON CONFLICT upserts make re-runs safe), then start with watch-reload.
+# db:migrate — the gateway doesn't, hence --if-present), then plant the SQL
+# bootstrap rows (auth's super_admin and pets' breeds define db:seed;
+# idempotent upserts make re-runs safe), then start with watch-reload. The
+# dev personas are generated through the API afterwards by scripts/seed.mjs.
 # Seeding is dev-only — the production CMD below deliberately omits it.
 CMD ["sh", "-c", "pnpm run --if-present db:migrate && pnpm run --if-present db:seed && pnpm run dev"]
 

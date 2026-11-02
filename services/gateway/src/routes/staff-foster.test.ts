@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RescueV1 } from '@adopt-dont-shop/proto';
 
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerStaffFosterRoutes } from './staff-foster.js';
@@ -131,6 +132,102 @@ describe('GET /api/v1/staff/colleagues', () => {
     expect(JSON.parse(res.body).data).toHaveLength(2);
     // rescue_id passed as undefined → service resolves own rescue.
     expect(m.listStaffMembersMock.mock.calls[0][0]).toEqual({ rescueId: undefined });
+  });
+
+  describe('with auth enrichment', () => {
+    const makeAuthApp = async (listColleagueProfiles: ReturnType<typeof vi.fn>) => {
+      const authApp = Fastify({ logger: false });
+      const authClient = { listColleagueProfiles } as unknown as AuthClient;
+      await registerStaffFosterRoutes(authApp, { client: m.client, authClient });
+      return authApp;
+    };
+    const getColleagues = (a: FastifyInstance) =>
+      a.inject({ method: 'GET', url: '/api/v1/staff/colleagues', headers: ADOPTER_HEADERS });
+
+    beforeEach(() => {
+      m.listStaffMembersMock.mockResolvedValueOnce({
+        staffMembers: [
+          STAFF_FIXTURE,
+          { ...STAFF_FIXTURE, staffMemberId: 'stf-2', userId: 'usr-2' },
+        ],
+      });
+    });
+
+    it('merges firstName, lastName and email into each colleague with one batched call', async () => {
+      const listColleagueProfiles = vi.fn().mockResolvedValue({
+        profiles: [
+          { userId: 'usr-1', firstName: 'Ann', lastName: 'Lee', email: 'ann@x.test' },
+          { userId: 'usr-2', firstName: 'Bo', lastName: 'Ray', email: 'bo@x.test' },
+        ],
+      });
+      const authApp = await makeAuthApp(listColleagueProfiles);
+
+      const res = await getColleagues(authApp);
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).data).toEqual([
+        expect.objectContaining({
+          staffMemberId: 'stf-1',
+          userId: 'usr-1',
+          firstName: 'Ann',
+          lastName: 'Lee',
+          email: 'ann@x.test',
+        }),
+        expect.objectContaining({
+          staffMemberId: 'stf-2',
+          userId: 'usr-2',
+          firstName: 'Bo',
+          lastName: 'Ray',
+          email: 'bo@x.test',
+        }),
+      ]);
+      expect(listColleagueProfiles).toHaveBeenCalledTimes(1);
+      expect(listColleagueProfiles.mock.calls[0][0]).toEqual({ userIds: ['usr-1', 'usr-2'] });
+      await authApp.close();
+    });
+
+    it('keeps a colleague with blank names when auth omitted their profile', async () => {
+      const listColleagueProfiles = vi.fn().mockResolvedValue({
+        profiles: [{ userId: 'usr-1', firstName: 'Ann', lastName: 'Lee', email: 'ann@x.test' }],
+      });
+      const authApp = await makeAuthApp(listColleagueProfiles);
+
+      const body = JSON.parse((await getColleagues(authApp)).body);
+
+      expect(body.data).toHaveLength(2);
+      expect(body.data[1]).toMatchObject({
+        userId: 'usr-2',
+        firstName: '',
+        lastName: '',
+        email: '',
+      });
+      await authApp.close();
+    });
+
+    it('still returns the colleagues, with blank names, when the profile lookup fails', async () => {
+      const listColleagueProfiles = vi.fn().mockRejectedValue({ code: status.UNAVAILABLE });
+      const authApp = await makeAuthApp(listColleagueProfiles);
+
+      const res = await getColleagues(authApp);
+
+      expect(res.statusCode).toBe(200);
+      const { data } = JSON.parse(res.body);
+      expect(data).toHaveLength(2);
+      expect(data[0]).toMatchObject({ staffMemberId: 'stf-1', firstName: '', email: '' });
+      await authApp.close();
+    });
+
+    it('skips the lookup when there are no colleagues', async () => {
+      m.listStaffMembersMock.mockReset().mockResolvedValueOnce({ staffMembers: [] });
+      const listColleagueProfiles = vi.fn();
+      const authApp = await makeAuthApp(listColleagueProfiles);
+
+      const res = await getColleagues(authApp);
+
+      expect(JSON.parse(res.body).data).toEqual([]);
+      expect(listColleagueProfiles).not.toHaveBeenCalled();
+      await authApp.close();
+    });
   });
 });
 

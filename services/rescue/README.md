@@ -31,7 +31,7 @@ pnpm build        # tsc build
 pnpm start        # run the built server
 pnpm test         # Vitest (run mode)
 pnpm db:migrate   # run pending migrations (node-pg-migrate)
-pnpm db:seed      # seed dev data
+pnpm db:spam      # bulk synthetic dev data (dev personas: root `pnpm db:seed`)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```

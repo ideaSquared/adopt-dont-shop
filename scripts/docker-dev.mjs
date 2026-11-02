@@ -125,13 +125,23 @@ function promptYesNo(question, defaultYes) {
 // Dockerfile.dev's entrypoint (scripts/docker-dev-entrypoint.sh) renumbers
 // its baked dev user to HOST_UID/HOST_GID before dropping root, so the
 // container's writes into the bind-mounted source (`.:/app`) behave exactly
-// like the host developer's own. process.getuid/getgid are POSIX-only
-// (undefined on Windows) — leaving them unset there falls back to the
-// compose file's default of 1000, which matches the image's baked dev user.
+// like the host developer's own. Docker Desktop on Windows presents
+// bind-mounted files as root-owned 0644, so a non-root uid there gets EACCES
+// writing them (e.g. lib.types' `tsc --watch` dist/ output); on Windows the
+// containers stay root (uid 0 makes the entrypoint skip the step-down).
+export function resolveHostIds({
+  platform = process.platform,
+  getuid = () => process.getuid(),
+  getgid = () => process.getgid(),
+} = {}) {
+  if (platform === 'win32') return { uid: '0', gid: '0' };
+  return { uid: String(getuid()), gid: String(getgid()) };
+}
+
 function setHostUidGid() {
-  if (typeof process.getuid !== 'function') return;
-  process.env.HOST_UID = String(process.getuid());
-  process.env.HOST_GID = String(process.getgid());
+  const { uid, gid } = resolveHostIds();
+  process.env.HOST_UID = uid;
+  process.env.HOST_GID = gid;
 }
 
 // --- 1. Docker daemon ------------------------------------------------------

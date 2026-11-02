@@ -27,9 +27,10 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 
 - `PetsService` + `petsService` (singleton) — adopter read-side client
   (`searchPets`, `getPetById`, `getFeaturedPets`, `getRecentPets`,
-  `getPetsByRescue`, `getSimilarPets`, `getPetBreeds` / `getPetTypes`,
+  `getPetsByRescue`, `getSimilarPets`, `getPetBreeds`,
   favourites `addToFavorites` / `removeFromFavorites` / `getFavorites` /
-  `isFavorite`, `reportPet`, `getPetStats`).
+  `isFavorite`, `recordView` (detail-page view beacon), `reportPet`,
+  `getPetStats`).
 - `PetManagementService` + `petManagementService` — rescue write-side client
   (`createPet`, … — see `src/services/pets-management-service.ts`).
 - **CSV import** (ADS-133, from `./csv-import`): `parseCsv`, `autoMapColumns`,
@@ -62,4 +63,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.pets-consumers.md](../../docs/libraries/lib.pets-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

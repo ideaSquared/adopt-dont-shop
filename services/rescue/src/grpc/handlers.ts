@@ -47,8 +47,12 @@ import {
   type CreateRescueResponse,
   type DeleteRescueRequest,
   type DeleteRescueResponse,
+  type GetRescueNamesRequest,
+  type GetRescueNamesResponse,
   type GetRescueRequest,
   type GetRescueResponse,
+  type GetRescueLocationsRequest,
+  type GetRescueLocationsResponse,
   type GetRescueStatisticsRequest,
   type GetRescueStatisticsResponse,
   type InviteStaffRequest,
@@ -76,8 +80,26 @@ import {
   type RescueVerificationSourceDb,
 } from './enum-map.js';
 import { isLegalTransition } from './status-machine.js';
+import type { Coordinates, Geocoder } from '../geocode.js';
 
-export type HandlerDeps = WithTransactionDeps;
+export type HandlerDeps = WithTransactionDeps & {
+  // Optional: postcode → coordinates for new/updated rescues. Omitted in
+  // tests and wherever geocoding isn't wired; rescues then have no coordinates.
+  geocode?: Geocoder;
+};
+
+// postcodes.io only knows UK postcodes, so other countries skip geocoding.
+// Never throws: a missing geocoder or a failed lookup yields undefined.
+async function geocodeRescue(
+  deps: HandlerDeps,
+  postcode: string,
+  country: string | undefined
+): Promise<Coordinates | undefined> {
+  if (!deps.geocode || (country && country !== 'GB')) {
+    return undefined;
+  }
+  return deps.geocode(postcode);
+}
 
 export type HandlerErrorCode =
   | 'INVALID_ARGUMENT'
@@ -280,6 +302,19 @@ const DEFAULT_INVITATION_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 // --- Create ----------------------------------------------------------
 
+// rescues.country is char(2): reject anything else up front instead of
+// letting Postgres fail with an opaque "value too long" internal error.
+const ISO_COUNTRY_CODE = /^[A-Z]{2}$/;
+
+function assertValidCountry(country: string | undefined): void {
+  if (country && !ISO_COUNTRY_CODE.test(country)) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'country must be a two-letter ISO 3166-1 alpha-2 code (e.g. GB)'
+    );
+  }
+}
+
 export async function createRescue(
   deps: HandlerDeps,
   principal: Principal,
@@ -297,12 +332,15 @@ export async function createRescue(
   if (!req.contactPerson) {
     throw new HandlerError('INVALID_ARGUMENT', 'contact_person is required');
   }
+  assertValidCountry(req.country);
   if (!hasPermission(principal, RESCUES_CREATE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_CREATE}' required`);
   }
 
   const rescueId = randomUUID();
   let inserted: RescueRow | undefined;
+  // Outside the transaction: a slow geocoder must not hold a connection open.
+  const coordinates = await geocodeRescue(deps, req.postcode, req.country);
 
   await withTransaction(deps, async ({ client, publish }) => {
     const result = await client.query<RescueRow>(
@@ -311,13 +349,13 @@ export async function createRescue(
         rescue_id, name, email, phone, address, city, state, zip_code, country,
         website, description, mission, companies_house_number, charity_registration_number,
         contact_person, contact_title, contact_email, contact_phone,
-        status, settings, created_by, version, created_at, updated_at
+        status, settings, created_by, latitude, longitude, version, created_at, updated_at
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14,
         $15, $16, $17, $18,
-        'pending', '{}'::jsonb, $19, 0, now(), now()
+        'pending', '{}'::jsonb, $19, $20, $21, 0, now(), now()
       )
       RETURNING ${RESCUES_SELECT}
       `,
@@ -341,6 +379,8 @@ export async function createRescue(
         req.contactEmail ?? null,
         req.contactPhone ?? null,
         principal.userId,
+        coordinates?.latitude ?? null,
+        coordinates?.longitude ?? null,
       ]
     );
     inserted = result.rows[0];
@@ -383,6 +423,90 @@ export async function getRescue(
     throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
   }
   return { rescue: maskRescueWithAccessMap(rowToProto(row), rescueAccessMapFor(principal)) };
+}
+
+// --- GetRescueNames ---------------------------------------------------
+
+const MAX_RESCUE_NAME_IDS = 100;
+
+// Batch id -> name for decorating lists with rescue names in one query.
+// Same visibility rule as getRescue (ADS-1168): only a caller WITH
+// rescues.read may resolve a rescue in any status; everyone else (adopters,
+// anonymous) resolves verified rescues only. Ids that don't resolve — unknown,
+// soft-deleted or hidden — are simply absent, so existence isn't leaked.
+// Only the name is returned, which is in the public allowlist.
+export async function getRescueNames(
+  deps: HandlerDeps,
+  principal: Principal | null,
+  req: GetRescueNamesRequest
+): Promise<GetRescueNamesResponse> {
+  const rescueIds = [...new Set(req.rescueIds)];
+  if (rescueIds.length > MAX_RESCUE_NAME_IDS) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `at most ${MAX_RESCUE_NAME_IDS} rescue_ids per request`
+    );
+  }
+  if (rescueIds.length === 0) {
+    return { names: [] };
+  }
+
+  const canReadAnyStatus = principal !== null && requirePermission(principal, RESCUES_READ);
+  const { rows } = await deps.pool.query<{ rescue_id: string; name: string }>(
+    `SELECT rescue_id, name FROM rescue.rescues
+     WHERE rescue_id::text = ANY($1::text[]) AND deleted_at IS NULL${
+       canReadAnyStatus ? '' : " AND status = 'verified'"
+     }`,
+    [rescueIds]
+  );
+  return { names: rows.map(row => ({ rescueId: row.rescue_id, name: row.name })) };
+}
+
+// --- GetRescueLocations ----------------------------------------------
+
+const MAX_LOCATION_IDS = 100;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getRescueLocations(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetRescueLocationsRequest
+): Promise<GetRescueLocationsResponse> {
+  if (!hasPermission(principal, RESCUES_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required`);
+  }
+  const rescueIds = [...new Set(req.rescueIds)];
+  if (rescueIds.length > MAX_LOCATION_IDS) {
+    throw new HandlerError('INVALID_ARGUMENT', `at most ${MAX_LOCATION_IDS} rescue_ids`);
+  }
+  const validIds = rescueIds.filter(id => UUID_PATTERN.test(id));
+  if (validIds.length === 0) {
+    return { locations: [] };
+  }
+
+  // Verified only (same visibility as the public Get) and only rows that
+  // were successfully geocoded.
+  const { rows } = await deps.pool.query<{
+    rescue_id: string;
+    latitude: number;
+    longitude: number;
+  }>(
+    `SELECT rescue_id, latitude, longitude
+       FROM rescue.rescues
+      WHERE rescue_id = ANY($1::uuid[])
+        AND status = 'verified'
+        AND deleted_at IS NULL
+        AND latitude IS NOT NULL
+        AND longitude IS NOT NULL`,
+    [validIds]
+  );
+  return {
+    locations: rows.map(r => ({
+      rescueId: r.rescue_id,
+      latitude: r.latitude,
+      longitude: r.longitude,
+    })),
+  };
 }
 
 // --- List ------------------------------------------------------------
@@ -546,6 +670,7 @@ export async function listRescues(
 // column each one maps to, so the two can't silently drift apart.
 const UPDATABLE_RESCUE_FIELDS = [
   'name',
+  'email',
   'phone',
   'address',
   'city',
@@ -565,6 +690,7 @@ const UPDATABLE_RESCUE_FIELDS = [
 // The rescue.rescues column each UPDATABLE_RESCUE_FIELDS entry writes to.
 const RESCUE_FIELD_COLUMNS: Record<(typeof UPDATABLE_RESCUE_FIELDS)[number], string> = {
   name: 'name',
+  email: 'email',
   phone: 'phone',
   address: 'address',
   city: 'city',
@@ -589,6 +715,7 @@ export async function updateRescue(
   if (!req.rescueId) {
     throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
   }
+  assertValidCountry(req.country);
 
   const existing = await fetchRescue(deps, req.rescueId);
   if (!existing) {
@@ -610,7 +737,8 @@ export async function updateRescue(
   const requestedFields: Partial<Record<(typeof UPDATABLE_RESCUE_FIELDS)[number], unknown>> = {};
   for (const field of UPDATABLE_RESCUE_FIELDS) {
     const value = req[field];
-    if (value !== undefined) {
+    // An empty country means "not supplied", not "blank the column".
+    if (value !== undefined && !(field === 'country' && value === '')) {
       requestedFields[field] = value;
     }
   }
@@ -640,6 +768,19 @@ export async function updateRescue(
       continue;
     }
     set(RESCUE_FIELD_COLUMNS[field], field === 'settingsJson' ? value || '{}' : value);
+  }
+
+  // A CHANGED postcode (or country) invalidates the stored coordinates:
+  // re-geocode, and clear them if the lookup fails rather than keep a stale
+  // location. Resubmitting the stored values (e.g. saving the whole profile)
+  // leaves valid coordinates alone, so a geocoder outage can't wipe them.
+  // An empty country means "not supplied" (see requestedFields above).
+  const postcode = req.postcode ?? existing.zip_code;
+  const country = req.country || existing.country;
+  if (postcode !== existing.zip_code || country !== existing.country) {
+    const coordinates = await geocodeRescue(deps, postcode, country);
+    set('latitude', coordinates?.latitude ?? null);
+    set('longitude', coordinates?.longitude ?? null);
   }
 
   if (sets.length === 0) {
@@ -732,11 +873,11 @@ export async function verifyRescue(
     const result = await client.query<RescueRow>(
       `
       UPDATE rescue.rescues
-      SET status = $1,
-          verified_at = CASE WHEN $1 = 'verified' THEN now() ELSE verified_at END,
-          verified_by = CASE WHEN $1 = 'verified' THEN $2 ELSE verified_by END,
-          verification_source = CASE WHEN $1 = 'verified' THEN $3::rescue_verification_source ELSE verification_source END,
-          verification_failure_reason = CASE WHEN $1 = 'rejected' THEN $4 ELSE verification_failure_reason END,
+      SET status = $1::rescue_status,
+          verified_at = CASE WHEN $1::rescue_status = 'verified' THEN now() ELSE verified_at END,
+          verified_by = CASE WHEN $1::rescue_status = 'verified' THEN $2 ELSE verified_by END,
+          verification_source = CASE WHEN $1::rescue_status = 'verified' THEN $3::rescue_verification_source ELSE verification_source END,
+          verification_failure_reason = CASE WHEN $1::rescue_status = 'rejected' THEN $4 ELSE verification_failure_reason END,
           updated_at = now(), updated_by = $2, version = version + 1
       WHERE rescue_id = $5
       RETURNING ${RESCUES_SELECT}

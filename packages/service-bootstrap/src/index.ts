@@ -72,6 +72,8 @@ export type {
   SignPrincipalTokenOptions,
 } from './principal-token.js';
 
+export { allowedImageHosts, isSafeImageUrl } from './image-url-policy.js';
+
 export { runServiceShutdown, withShutdownDeadline } from './shutdown.js';
 export type { ShutdownDeps, ShutdownDeadlineOptions } from './shutdown.js';
 

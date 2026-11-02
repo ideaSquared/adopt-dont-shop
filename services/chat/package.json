@@ -24,7 +24,6 @@
     "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
     "start": "node --import ./dist/instrumentation.js ./dist/index.js",
     "db:migrate": "tsx ./src/db/migrate.ts",
-    "db:seed": "tsx ./src/db/seed.ts",
     "db:spam": "tsx ./src/db/spam.ts",
     "build": "tsc",
     "clean": "rimraf dist",

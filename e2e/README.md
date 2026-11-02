@@ -82,7 +82,7 @@ This keeps tests resilient to markup changes and surfaces accessibility regressi
 - `e2e/.auth/rescue.json` — `rescue.manager@pawsrescue.dev`
 - `e2e/.auth/admin.json` — `superadmin@adoptdontshop.dev`
 
-All seeded users use the password `DevPassword123!`. The personas are defined in `services/auth/src/db/seed-data.ts` (with matching rescue/pet fixtures in `services/rescue/src/db/seed-data.ts` and `services/pets/src/db/seed-data.ts`) and inserted by the per-service `db:seed` scripts — see [Seeding the stack](#seeding-the-stack) below.
+All seeded users use the password `DevPassword123!`. The personas are defined in `scripts/lib/seed-personas.mjs` and generated through the API by `pnpm db:seed` — see [Seeding the stack](#seeding-the-stack) below.
 
 Each project (`client`, `rescue`, `admin`) reuses its role's storageState. Specs that need to test login/registration itself live in the `*-anon` projects with no storageState. Cross-app journeys use the `asRole(...)` fixture to spin up a second authenticated context for a different role.
 
@@ -111,10 +111,10 @@ for url in \
 done
 
 # 4. Seed the database with the canonical personas + reference data.
-#    Each microservice migrates its own schema on boot; `db:seed` populates
-#    the dev/e2e fixtures (idempotent — safe to re-run). See "Seeding the
-#    stack" below. The dev Docker image also runs this automatically on
-#    container start, so step 4 is only needed if you bypass that.
+#    Each microservice migrates its own schema on boot and the one-shot
+#    seed-personas container generates the fixtures, so step 4 is only needed
+#    to restore them after an earlier run changed them (idempotent — safe to
+#    re-run). See "Seeding the stack" below.
 pnpm db:seed
 
 # 5. Run the suite
@@ -135,16 +135,17 @@ E2E_SKIP_HEALTH=1 E2E_SKIP_AUTH=1 pnpm test:e2e
 
 The microservice stack ships no data on a fresh boot. The dev/e2e seed recreates the canonical personas (so the suite can log in) plus enough reference data to exercise the golden path (browse a pet, view a rescue).
 
-**How it runs:** each schema-owning service exposes a `db:seed` script (`tsx ./src/db/seed.ts`) that inserts directly into its own Postgres schema with idempotent `ON CONFLICT DO UPDATE` upserts. The dev Docker image runs `db:migrate` then `db:seed` on container start, so `pnpm docker:dev:detach` already produces a seeded stack. To (re-)seed an already-running stack by hand:
+**How it runs:** the personas are generated **through the gateway API**, the way real users create them, so the fixtures always match what the API accepts (`scripts/seed.mjs`; data in `scripts/lib/seed-personas.mjs`). Only the bootstrap super_admin (`services/auth`) and the breed list (`services/pets`) are written with SQL `db:seed`, because no API can create them. Sign-ups and invitations are completed with the token-peek routes, so the gateway needs `E2E_TOKEN_PEEK=true` (the dev compose file defaults it on). `pnpm docker:dev:detach` already produces a seeded stack. To (re-)seed an already-running stack by hand:
 
 ```bash
-pnpm db:seed        # root orchestrator: docker compose exec into
-                       # service-auth → service-rescue → service-pets →
-                       # service-applications → service-chat, running each
-                       # service's db:seed in dependency order
+pnpm db:seed        # SQL bootstrap via docker compose exec, then
+                    # admins → rescues → staff → adopters → pets →
+                    # favourites → application → chat, via the API
 ```
 
-`pnpm db:seed` is safe to re-run at any time. Per-service overrides are available too (`docker compose exec service-auth pnpm db:seed`).
+`pnpm db:seed` is safe to re-run at any time: every step looks before it creates.
+
+**Ids are not fixed.** The API assigns them, so specs look seeded rows up by name — `seededPetId(rescueApi, 'available')` in `helpers/seeds.ts` returns Buddy's id.
 
 ### Spamming the stack (dev-only bulk data)
 

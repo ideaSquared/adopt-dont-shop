@@ -94,6 +94,8 @@ import {
   type AdminGetUserRequest,
   type AdminGetUserResponse,
   type GetApplicantProfileRequest,
+  type ListColleagueProfilesRequest,
+  type ListColleagueProfilesResponse,
   type GetApplicantProfileResponse,
   type GetUserNameRequest,
   type GetUserNameResponse,
@@ -221,6 +223,10 @@ export type AuthClient = {
     req: GetApplicantProfileRequest,
     metadata: Metadata
   ): Promise<GetApplicantProfileResponse>;
+  listColleagueProfiles(
+    req: ListColleagueProfilesRequest,
+    metadata: Metadata
+  ): Promise<ListColleagueProfilesResponse>;
   getUserName(req: GetUserNameRequest, metadata: Metadata): Promise<GetUserNameResponse>;
   adminCreateUser(
     req: AdminCreateUserRequest,
@@ -302,6 +308,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
   // their own breaker so an applications outage can't open the one that
   // guards ValidateToken / Login.
   const applicantProfileBreaker = getOrCreateCircuitBreaker(`${SERVICE_NAME}:applicant-profile`);
+  // Likewise ListColleagueProfiles, which depends on service.rescue.
+  const colleagueProfilesBreaker = getOrCreateCircuitBreaker(`${SERVICE_NAME}:colleague-profiles`);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -412,6 +420,9 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     // Not retried here: auth already retries its call to service.applications.
     getApplicantProfile: (req, metadata) =>
       callUnary(stub.getApplicantProfile, req, metadata, false, applicantProfileBreaker),
+    // Not retried here: auth already retries its call to service.rescue.
+    listColleagueProfiles: (req, metadata) =>
+      callUnary(stub.listColleagueProfiles, req, metadata, false, colleagueProfilesBreaker),
     getUserName: (req, metadata) => callUnary(stub.getUserName, req, metadata, true),
     exportUserData: (req, metadata) => callUnary(stub.exportUserData, req, metadata, true),
     getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata, true),

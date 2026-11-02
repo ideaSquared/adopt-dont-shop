@@ -35,6 +35,7 @@ function makeClient(): {
   listUserFavoritesMock: ReturnType<typeof vi.fn>;
   getSearchSuggestionsMock: ReturnType<typeof vi.fn>;
   getPetFacetsMock: ReturnType<typeof vi.fn>;
+  recordPetViewMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const getMock = vi.fn();
@@ -51,6 +52,7 @@ function makeClient(): {
   const listUserFavoritesMock = vi.fn();
   const getSearchSuggestionsMock = vi.fn();
   const getPetFacetsMock = vi.fn();
+  const recordPetViewMock = vi.fn().mockResolvedValue({ recorded: true });
   const client: PetsClient = {
     create: createMock,
     get: getMock,
@@ -67,6 +69,7 @@ function makeClient(): {
     listUserFavorites: listUserFavoritesMock,
     getSearchSuggestions: getSearchSuggestionsMock,
     getPetFacets: getPetFacetsMock,
+    recordPetView: recordPetViewMock,
     close: vi.fn(),
   };
   return {
@@ -86,6 +89,7 @@ function makeClient(): {
     listUserFavoritesMock,
     getSearchSuggestionsMock,
     getPetFacetsMock,
+    recordPetViewMock,
   };
 }
 
@@ -274,6 +278,23 @@ describe('GET /api/v1/pets', () => {
 });
 
 describe('GET /api/v1/pets/:id', () => {
+  it('does not record a view: background lookups also read this route', async () => {
+    const { client, getMock, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/pet-1',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(recordPetViewMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
   it('forwards the path param + x-user-* metadata and returns the pet', async () => {
     const { client, getMock } = makeClient();
     const app = await makeApp(client);
@@ -338,6 +359,46 @@ describe('GET /api/v1/pets/:id', () => {
         })
       );
       const res = await app.inject({ method: 'GET', url: '/api/v1/pets/ghost' });
+      expect(res.statusCode).toBe(404);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('POST /api/v1/pets/:id/view', () => {
+  it('records the view for the calling user and reports whether it was stored', async () => {
+    const { client, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      recordPetViewMock.mockResolvedValueOnce({ recorded: true });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/view',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ success: true, data: { recorded: true } });
+      const [req, metadata] = recordPetViewMock.mock.calls[0];
+      expect(req).toEqual({ petId: 'pet-1' });
+      expect(metadata.get('x-user-id')[0]).toBe('usr-1');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps a not-found pet from the service to a 404', async () => {
+    const { client, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      recordPetViewMock.mockRejectedValueOnce(
+        Object.assign(new Error('pet not found'), { code: 5 })
+      );
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-gone/view',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
       expect(res.statusCode).toBe(404);
     } finally {
       await app.close();
@@ -467,6 +528,26 @@ describe('POST /api/v1/pets', () => {
     }
   });
 
+  it('forwards the breed name the rescue app sends to the pets service', async () => {
+    const { client, createMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      createMock.mockResolvedValueOnce({ pet: PET_FIXTURE } satisfies CreatePetResponse);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets',
+        payload: { name: 'Buddy', rescue_id: 'rsc-1', type: 'dog', breed: 'Labrador Retriever' },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const [req] = createMock.mock.calls[0];
+      expect(req.breedName).toBe('Labrador Retriever');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('maps PERMISSION_DENIED → 403', async () => {
     const { client, createMock } = makeClient();
     const app = await makeApp(client);
@@ -508,6 +589,24 @@ describe('PATCH /api/v1/pets/:id', () => {
       const [req] = updateMock.mock.calls[0];
       expect(req.petId).toBe('pet-1');
       expect(req.name).toBe('Rexy');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('forwards an edited breed name to the pets service', async () => {
+    const { client, updateMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      updateMock.mockResolvedValueOnce({ pet: PET_FIXTURE } satisfies UpdatePetResponse);
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/pets/pet-1',
+        payload: { breed: 'Beagle' },
+      });
+      expect(res.statusCode).toBe(200);
+      const [req] = updateMock.mock.calls[0];
+      expect(req.breedName).toBe('Beagle');
     } finally {
       await app.close();
     }

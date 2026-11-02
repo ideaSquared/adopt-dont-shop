@@ -7,7 +7,6 @@ import {
   SelectInput,
   TextArea as LibTextArea,
   Alert,
-  type SelectOption,
 } from '@adopt-dont-shop/lib.components';
 import { validatePostcode, validatePhoneNumber } from '@adopt-dont-shop/lib.utils';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
@@ -22,31 +21,12 @@ interface RescueProfileFormProps {
 type ProfileErrorField = 'name' | 'email' | 'phone' | 'website' | 'street' | 'city' | 'postcode';
 type ProfileErrors = Partial<Record<ProfileErrorField, string>>;
 
-// SelectOption arrays for dropdowns
-const rescueTypeOptions: SelectOption[] = [
-  { value: 'animal_shelter', label: 'Animal Shelter' },
-  { value: 'rescue_organization', label: 'Rescue Organisation' },
-  { value: 'foster_network', label: 'Foster Network' },
-  { value: 'breed_specific', label: 'Breed-Specific Rescue' },
-  { value: 'sanctuary', label: 'Animal Sanctuary' },
-  { value: 'other', label: 'Other' },
-];
-
-const countryOptions: SelectOption[] = [
-  { value: 'United Kingdom', label: 'United Kingdom' },
-  { value: 'Ireland', label: 'Ireland' },
-  { value: 'United States', label: 'United States' },
-  { value: 'Canada', label: 'Canada' },
-  { value: 'Australia', label: 'Australia' },
-  { value: 'Other', label: 'Other' },
-];
-
 const emptyAddress: RescueAddress = {
   street: '',
   city: '',
   county: '',
   postcode: '',
-  country: 'United Kingdom',
+  country: 'GB',
 };
 
 const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -96,7 +76,6 @@ const validateProfile = (data: Partial<RescueProfile>): ProfileErrors => {
 
 const buildFormData = (rescue: RescueProfile | null): Partial<RescueProfile> => ({
   name: rescue?.name ?? '',
-  rescue_type: rescue?.rescue_type ?? 'animal_shelter',
   email: rescue?.email ?? '',
   phone: rescue?.phone ?? '',
   website: rescue?.website ?? '',
@@ -152,18 +131,14 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
     }
   };
 
-  const handleSelect = (field: 'rescue_type' | 'country', selected: string | string[]) => {
+  const handleCountrySelect = (selected: string | string[]) => {
     const value = Array.isArray(selected) ? (selected[0] ?? '') : selected;
     setHasChanges(true);
     clearFeedback();
-    if (field === 'country') {
-      setFormData(prev => ({
-        ...prev,
-        address: { ...(prev.address ?? emptyAddress), country: value },
-      }));
-      return;
-    }
-    setFormData(prev => ({ ...prev, rescue_type: value }));
+    setFormData(prev => ({
+      ...prev,
+      address: { ...(prev.address ?? emptyAddress), country: value },
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -219,17 +194,6 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 aria-invalid={!!errors.name}
               />
             </FormField>
-
-            <div className={styles.formGroup}>
-              <SelectInput
-                label="Rescue Type *"
-                value={formData.rescue_type || 'animal_shelter'}
-                onChange={value => handleSelect('rescue_type', value)}
-                options={rescueTypeOptions}
-                required
-                fullWidth
-              />
-            </div>
           </div>
 
           <div className={styles.formRow}>
@@ -351,9 +315,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
             <div className={styles.formGroup}>
               <SelectInput
                 label="Country *"
-                value={formData.address?.country || 'United Kingdom'}
-                onChange={value => handleSelect('country', value)}
-                options={countryOptions}
+                value={formData.address?.country || 'GB'}
+                onChange={handleCountrySelect}
+                options={[]}
+                isCountrySelect
+                searchable
                 required
                 fullWidth
               />

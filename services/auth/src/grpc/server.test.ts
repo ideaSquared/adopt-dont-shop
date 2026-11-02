@@ -26,6 +26,7 @@ const config: AuthConfig = {
   schema: 'auth',
   natsUrl: 'nats://localhost:4222',
   applicationsGrpcUrl: 'localhost:6005',
+  rescueGrpcUrl: 'localhost:6004',
   jwtSecret: 'access-secret',
   jwtRefreshSecret: 'refresh-secret',
   encryptionKey: 'a'.repeat(64),

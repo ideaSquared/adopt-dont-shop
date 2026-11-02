@@ -37,7 +37,8 @@ import { EntityInspector } from '@adopt-dont-shop/lib.components';
 
 ## Accessibility
 
-The tab strip renders as a `role="tablist"` of `role="tab"` buttons with
-`aria-selected` and `aria-controls`; the body is a `role="tabpanel"` labelled by
-its tab. Give the close button a meaningful `closeLabel`. Tab `label`s are the
+The tab strip is the shared `Tabs` component: a `role="tablist"` of `role="tab"`
+buttons with `aria-selected` and `aria-controls`, arrow/Home/End keyboard
+navigation and a roving tab stop; the body is a `role="tabpanel"` labelled by
+its tab. Only the active tab's content is mounted. Give the close button a meaningful `closeLabel`. Tab `label`s are the
 accessible names, so keep them concise and unique within the panel.

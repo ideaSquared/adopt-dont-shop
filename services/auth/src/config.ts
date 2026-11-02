@@ -31,6 +31,9 @@ export type AuthConfig = {
   // application there (under the caller's principal) before revealing who
   // applied.
   applicationsGrpcUrl: string;
+  // service.rescue gRPC address. ListColleagueProfiles asks it who the
+  // caller's rescue colleagues are (under the caller's principal).
+  rescueGrpcUrl: string;
   // JWT signing secret for short-lived access tokens. Required at
   // boot — a misconfigured deploy must fail fast, not at first
   // login attempt.
@@ -49,6 +52,7 @@ const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'auth';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_APPLICATIONS_GRPC_URL = 'service-applications:6005';
+const DEFAULT_RESCUE_GRPC_URL = 'service-rescue:6004';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => {
   const port = parsePort(env.AUTH_PORT, DEFAULT_PORT, 'AUTH_PORT');
@@ -91,6 +95,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
     schema: env.AUTH_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     applicationsGrpcUrl: env.APPLICATIONS_GRPC_URL?.trim() || DEFAULT_APPLICATIONS_GRPC_URL,
+    rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || DEFAULT_RESCUE_GRPC_URL,
     jwtSecret,
     jwtRefreshSecret,
     encryptionKey,

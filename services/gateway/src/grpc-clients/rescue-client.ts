@@ -23,6 +23,8 @@ import {
   type CheckInAttendeeResponse,
   type CountRescuesRequest,
   type CountRescuesResponse,
+  type GetRescueNamesRequest,
+  type GetRescueNamesResponse,
   type CreateApplicationQuestionRequest,
   type CreateApplicationQuestionResponse,
   type CreateEventRequest,
@@ -95,6 +97,8 @@ import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
 import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
 
+export type CallBudget = { deadlineMs: number; maxRetries?: number };
+
 export type RescueClient = {
   create(req: CreateRescueRequest, metadata: Metadata): Promise<CreateRescueResponse>;
   get(req: GetRescueRequest, metadata: Metadata): Promise<GetRescueResponse>;
@@ -109,6 +113,17 @@ export type RescueClient = {
     metadata: Metadata
   ): Promise<GetRescueStatisticsResponse>;
   countRescues(req: CountRescuesRequest, metadata: Metadata): Promise<CountRescuesResponse>;
+  /**
+   * Batch id -> name lookup. Takes an optional per-call budget: the gRPC
+   * deadline is enforced on the wire (the call is cancelled when it expires)
+   * and `maxRetries: 0` turns the default retries off, for callers that treat
+   * the result as optional decoration.
+   */
+  getRescueNames(
+    req: GetRescueNamesRequest,
+    metadata: Metadata,
+    budget?: CallBudget
+  ): Promise<GetRescueNamesResponse>;
   sendRescueEmail(
     req: SendRescueEmailRequest,
     metadata: Metadata
@@ -236,7 +251,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     ) => unknown,
     req: Req,
     metadata: Metadata,
-    idempotent: boolean
+    idempotent: boolean,
+    budget?: CallBudget
   ): Promise<Res> =>
     callWithResilience<Res>(
       deadline =>
@@ -264,7 +280,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
         }),
       {
         service: SERVICE_NAME,
-        deadlineMs: DEFAULT_DEADLINE_MS,
+        deadlineMs: budget?.deadlineMs ?? DEFAULT_DEADLINE_MS,
+        ...(budget?.maxRetries !== undefined && { maxRetries: budget.maxRetries }),
         idempotent,
         circuitBreaker: breaker,
       }
@@ -307,6 +324,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     getRescueStatistics: (req, metadata) =>
       callUnary(stub.getRescueStatistics, req, metadata, true),
     countRescues: (req, metadata) => callUnary(stub.countRescues, req, metadata, true),
+    getRescueNames: (req, metadata, budget) =>
+      callUnary(stub.getRescueNames, req, metadata, true, budget),
     getMyStaffMembership: (req, metadata) =>
       callUnary(stub.getMyStaffMembership, req, metadata, true),
     listStaffMembers: (req, metadata) => callUnary(stub.listStaffMembers, req, metadata, true),

@@ -32,7 +32,7 @@ pnpm build        # tsc build
 pnpm start        # run the built server
 pnpm test         # Vitest (run mode)
 pnpm db:migrate   # run pending migrations (node-pg-migrate)
-pnpm db:seed      # seed reference/dev data
+pnpm db:seed      # bootstrap super_admin (other personas: root `pnpm db:seed`)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
@@ -90,6 +90,10 @@ permission checks.
 email to a caller who can read the application (via
 `ApplicationService.Get`) and holds `applications.read` for its rescue, or who
 holds `admin.users.read`.
+
+**Rescue-scoped:** `ListColleagueProfiles` (`staff.read`, max 100 ids) returns
+userId, name and email only for requested ids that are staff of the caller's own
+rescue; other ids are silently omitted.
 
 **Admin-gated:**
 

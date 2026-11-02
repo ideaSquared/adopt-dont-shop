@@ -701,6 +701,7 @@ function buildUpdateRequest(rescueId: string, body: unknown): UpdateRescueReques
   return {
     rescueId,
     name: str(b.name),
+    email: str(b.email),
     phone: str(b.phone),
     address: str(address.street) ?? str(b.address),
     city: str(address.city) ?? str(b.city),

@@ -1,5 +1,6 @@
-// Seed entry point — populates the auth.* schema with the canonical
-// dev/e2e personas (see seed-data.ts).
+// Seed entry point — writes the bootstrap super_admin into auth.* (see
+// seed-data.ts). The other personas are generated through the API by
+// scripts/seed.mjs once this account exists.
 //
 // Mirrors migrate.ts: invoked by `pnpm db:seed`, reuses loadConfig()
 // + createDbClient from @adopt-dont-shop/db. Runs AFTER migrations.
@@ -81,7 +82,10 @@ const main = async (): Promise<void> => {
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
   try {
-    logger.info('seeding auth personas', { schema: config.schema, count: SEED_USERS.length });
+    logger.info('seeding bootstrap super_admin', {
+      schema: config.schema,
+      count: SEED_USERS.length,
+    });
     const seeded = await seedUsers({
       query: (text, values) => pool.query(text, values as unknown[]),
       hash: password => bcrypt.hash(password, BCRYPT_ROUNDS),

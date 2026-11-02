@@ -49,7 +49,7 @@ The canonical list lives in [`src/index.ts`](src/index.ts), grouped:
 - **Feedback**: `Alert`, `Modal`, `ConfirmDialog`, `EmptyState`, `ErrorState`,
   `Stepper`. `Toaster` / `toast` (sonner-based, ADS-125) is the current toast
   system; the legacy `Toast` / `ToastContainer` remain for existing call sites.
-- **Navigation**: `Breadcrumbs`, `Footer`, `Header`, `Navbar`, `NavSidebar` (+
+- **Navigation**: `Breadcrumbs`, `Footer`, `Header`, `Navbar`, `NavSidebar`, `Tabs` (+
   `SIDEBAR_COLLAPSED_WIDTH` / `SIDEBAR_EXPANDED_WIDTH` /
   `SIDEBAR_MOBILE_MAX_WIDTH`).
 - **Charts** (ADS-105): `ChartFrame`, `LineChart`, `BarChart`, `PieChart`,

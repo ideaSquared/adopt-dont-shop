@@ -1,11 +1,11 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
 import {
-  SEEDED_PET_IDS,
   deleteWithCsrf,
   expectOk,
   getMyRescueId,
   postWithCsrf,
+  seededPetId,
 } from '../../helpers/seeds';
 
 /**
@@ -37,8 +37,9 @@ test.describe('custom application question on the adopter form', () => {
     // (Paws). Confirm that before relying on its /apply form to fetch the
     // rescue's questions — otherwise the question would render on a different
     // rescue's form.
-    const petRes = await rescueApi.context.get(`/api/v1/pets/${SEEDED_PET_IDS.available}`);
-    await expectOk(petRes, `GET /pets/${SEEDED_PET_IDS.available}`);
+    const availablePetId = await seededPetId(rescueApi, 'available');
+    const petRes = await rescueApi.context.get(`/api/v1/pets/${availablePetId}`);
+    await expectOk(petRes, `GET /pets/${availablePetId}`);
     const petBody = (await petRes.json()) as {
       rescueId?: string;
       rescue_id?: string;
@@ -70,7 +71,7 @@ test.describe('custom application question on the adopter form', () => {
     try {
       // The adopter opens the application form for that pet and sees the
       // rescue's custom question rendered as a field.
-      await page.goto(`/apply/${SEEDED_PET_IDS.available}`, {
+      await page.goto(`/apply/${availablePetId}`, {
         waitUntil: 'domcontentloaded',
         timeout: 60_000,
       });

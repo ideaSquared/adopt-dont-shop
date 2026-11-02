@@ -10,12 +10,8 @@ export default defineServiceConfig({
         'src/**/*.test.ts',
         'src/**/*.d.ts',
         'src/migrations/**',
-        // DB seed CLI: its logic (seedChats) is exercised by seed.test.ts, but
-        // the `main()` entrypoint wrapper isn't — exclude it like migrations so
-        // it doesn't drag the ratcheted floor.
-        'src/db/seed.ts',
         // Dev-only bulk-data ('spam') seeder — a manual, env-gated CLI that
-        // never runs in production. Excluded like the seed CLI above.
+        // never runs in production.
         'src/db/spam.ts',
         'src/**/index.ts',
       ],

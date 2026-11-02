@@ -130,6 +130,25 @@ service PetService {
   // own rescue; pets.read:any may target any rescue or the whole
   // platform). `pets.read`.
   rpc GetPetFacets(GetPetFacetsRequest) returns (GetPetFacetsResponse);
+
+  // Time-to-adoption for "pets like this" cohorts (type + size + age
+  // group), over adoptions in the last 365 days. One entry per requested
+  // cohort, in request order, with the sample count and the median days
+  // from available_since to adopted_date. Platform-wide by design (no
+  // rescue scope): it returns aggregates only, never pet rows. Backs the
+  // swipe card's `similar_adopted_fast` activity label. `pets.read`.
+  rpc GetAdoptionStats(GetAdoptionStatsRequest) returns (GetAdoptionStatsResponse);
+
+  // Record that the calling (authenticated) principal viewed a pet's
+  // detail page. Deduped per user + pet inside a rolling hour, so
+  // refreshes don't inflate the count. Anonymous callers are rejected
+  // (anonymous views are deliberately not counted). `pets.read`.
+  rpc RecordPetView(RecordPetViewRequest) returns (RecordPetViewResponse);
+
+  // Batch read of how many recorded views each pet got in the last 24
+  // hours — feeds the swipe card's `views_today` activity label. Pets
+  // with no views are omitted. `pets.read`.
+  rpc GetViewsToday(GetViewsTodayRequest) returns (GetViewsTodayResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -262,6 +281,12 @@ message CreatePetRequest {
   string temperament_json = 17;
   string tags_json = 18;
   string extra_json = 19;
+  // Breed NAME, resolved to a breed_id by the service against pets.breeds
+  // (matched on the pet's type + name, case-insensitive). Used when the
+  // caller (the rescue app) only knows the name; an explicit breed_id /
+  // secondary_breed_id wins. An unknown name is INVALID_ARGUMENT.
+  optional string breed_name = 20;
+  optional string secondary_breed_name = 21;
 }
 
 message CreatePetResponse {
@@ -373,6 +398,10 @@ message UpdatePetRequest {
   // Off-market archive flag (distinct from status + from soft Delete).
   // Mutating it platform-wide requires `pets.manage:any`.
   optional bool archived = 19;
+  // Breed NAME, resolved against the pet's type; same rules as
+  // CreatePetRequest.breed_name. An explicit breed_id wins.
+  optional string breed_name = 20;
+  optional string secondary_breed_name = 21;
 }
 
 message UpdatePetResponse {
@@ -614,4 +643,54 @@ message BreedAdoptionCount {
 
 message GetTopBreedsByAdoptionsResponse {
   repeated BreedAdoptionCount breeds = 1;
+}
+
+// --- GetAdoptionStats ----------------------------------------------------
+
+message AdoptionCohort {
+  PetType type = 1;
+  PetSize size = 2;
+  PetAgeGroup age_group = 3;
+}
+
+message GetAdoptionStatsRequest {
+  // At most 50 cohorts per call.
+  repeated AdoptionCohort cohorts = 1;
+}
+
+message AdoptionCohortStats {
+  AdoptionCohort cohort = 1;
+  uint32 sample_count = 2;
+  // Median days from available_since to adopted_date; 0 when
+  // sample_count is 0.
+  double median_days = 3;
+}
+
+message GetAdoptionStatsResponse {
+  repeated AdoptionCohortStats stats = 1;
+}
+
+// --- Pet views --------------------------------------------------------
+
+message RecordPetViewRequest {
+  string pet_id = 1;
+}
+
+message RecordPetViewResponse {
+  // False when the view fell inside the dedupe window and was not stored.
+  bool recorded = 1;
+}
+
+message GetViewsTodayRequest {
+  // At most 100 ids per call.
+  repeated string pet_ids = 1;
+}
+
+message PetViewCount {
+  string pet_id = 1;
+  uint32 views = 2;
+}
+
+message GetViewsTodayResponse {
+  repeated PetViewCount counts = 1;
 }

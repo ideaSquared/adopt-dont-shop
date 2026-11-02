@@ -49,7 +49,7 @@ export interface SwipeStats {
 export interface DiscoveryPet {
   petId: string;
   name: string;
-  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
+  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'reptile' | 'small_mammal' | 'fish' | 'other';
   breed?: string;
   ageGroup: 'baby' | 'young' | 'adult' | 'senior';
   ageYears?: number;
@@ -91,6 +91,10 @@ export interface PetSearchFilters {
   gender?: string;
   location?: string;
   maxDistance?: number;
+  // The adopter's coordinates, sent so the backend can attach each card's
+  // distance. Request-scoped; the backend never stores them.
+  latitude?: number;
+  longitude?: number;
   search?: string;
 }
 

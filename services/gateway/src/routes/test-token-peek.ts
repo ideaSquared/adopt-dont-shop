@@ -1,8 +1,9 @@
 // TEST-ONLY one-time-token peek seam (ADS-871).
 //
-// Password-reset, email-verification and staff-invitation tokens are
-// normally only delivered by email, so the Playwright e2e suite can't read
-// them to drive the FULL auth round-trips (request reset → read token →
+// Password-reset, email-verification, staff-invitation and admin-issued
+// user-invitation tokens are normally only delivered by email, so the
+// Playwright e2e suite and the dev seed (scripts/seed.mjs) can't read them to
+// drive the FULL auth round-trips (request reset → read token →
 // reset → log in; register → read token → verify → log in; invite →
 // read token → accept). This endpoint reads those one-time tokens straight
 // from the shared Postgres so the suite can complete each journey.
@@ -24,8 +25,9 @@
 // so this seam does not trip that check.
 //
 // All tokens live in ONE Postgres instance (schema-per-service): the auth
-// tokens in auth.users, invitation tokens in rescue.invitations. A single
-// pool with fully-qualified table names reads both.
+// tokens in auth.users and auth.user_invitations, staff invitations in
+// rescue.invitations. A single pool with fully-qualified table names reads all
+// of them.
 
 import { createHash, randomBytes } from 'node:crypto';
 
@@ -193,6 +195,48 @@ export const registerTestTokenPeekRoutes = async (
       );
       const row = res.rows[0];
       if (!row) {
+        return reply.code(404).send({ error: 'no pending invitation found' });
+      }
+      return reply.send({ token: invitationToken });
+    }
+  );
+
+  // GET /api/v1/test/user-invitation-token?email=…
+  // The admin-console counterpart of the route above: POST /api/v1/admin/users
+  // creates a credential-less user plus an auth.user_invitations row whose
+  // token is only ever emailed. Mints a fresh token for the latest PENDING,
+  // unexpired invitation of the user with that email and stores its hash, so
+  // POST /api/v1/auth/redeem-invitation accepts it. Token format matches
+  // AdminCreateUser's randomBytes(32).toString('base64url').
+  app.get(
+    '/api/v1/test/user-invitation-token',
+    { schema: { hide: true }, config: { public: true, rateLimit: TEST_PEEK_RATE_LIMIT } },
+    async (req, reply) => {
+      const query = (req.query ?? {}) as Record<string, unknown>;
+      const email = asString(query.email);
+      if (!email) {
+        return reply.code(400).send({ error: 'email query param is required' });
+      }
+
+      const invitationToken = mintToken();
+      const res = await pool.query<InvitationTokenRow>(
+        `UPDATE auth.user_invitations
+            SET token_hash = $2, updated_at = now()
+          WHERE invitation_id = (
+            SELECT i.invitation_id
+              FROM auth.user_invitations i
+              JOIN auth.users u ON u.user_id = i.user_id
+             WHERE u.email = $1
+               AND u.deleted_at IS NULL
+               AND i.status = 'pending'
+               AND i.expires_at > now()
+             ORDER BY i.created_at DESC
+             LIMIT 1
+          )
+          RETURNING invitation_id`,
+        [email, hashToken(invitationToken)]
+      );
+      if (!res.rows[0]) {
         return reply.code(404).send({ error: 'no pending invitation found' });
       }
       return reply.send({ token: invitationToken });

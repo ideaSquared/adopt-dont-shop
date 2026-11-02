@@ -2,6 +2,7 @@ import { keyframes, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 import { vars } from '../../../styles/theme.css';
+import { control } from '../control.css';
 
 const slideUpAndFade = keyframes({
   from: { opacity: 0, transform: 'translateY(2px)' },
@@ -78,10 +79,11 @@ export const trigger = recipe({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    boxSizing: 'border-box',
     minWidth: '200px',
     border: '1px solid',
-    borderRadius: vars.spacing['1'],
-    backgroundColor: vars.background.body,
+    borderRadius: control.radius,
+    backgroundColor: control.background,
     transition: `all ${vars.transitions.fast}`,
     gap: vars.spacing['1'],
     selectors: {
@@ -93,31 +95,31 @@ export const trigger = recipe({
   variants: {
     size: {
       sm: {
-        minHeight: '32px',
-        fontSize: '14px',
-        paddingLeft: vars.spacing['1'],
-        paddingRight: vars.spacing['1'],
+        minHeight: control.height.sm,
+        fontSize: control.fontSize.sm,
+        paddingLeft: control.paddingX,
+        paddingRight: control.paddingX,
       },
       md: {
-        minHeight: '40px',
-        fontSize: '16px',
-        paddingLeft: vars.spacing['2'],
-        paddingRight: vars.spacing['2'],
+        minHeight: control.height.md,
+        fontSize: control.fontSize.md,
+        paddingLeft: control.paddingX,
+        paddingRight: control.paddingX,
       },
       lg: {
-        minHeight: '48px',
-        fontSize: '18px',
-        paddingLeft: vars.spacing['3'],
-        paddingRight: vars.spacing['3'],
+        minHeight: control.height.lg,
+        fontSize: control.fontSize.lg,
+        paddingLeft: control.paddingX,
+        paddingRight: control.paddingX,
       },
     },
     state: {
       default: {
-        borderColor: vars.border.color.default,
+        borderColor: control.borderColor,
         selectors: {
           '&:focus-within': {
             borderColor: vars.colors.primary,
-            boxShadow: `0 0 0 3px ${vars.colors.primaryBorderSubtle}`,
+            boxShadow: control.focusRing,
           },
         },
       },
@@ -126,7 +128,7 @@ export const trigger = recipe({
         selectors: {
           '&:focus-within': {
             borderColor: vars.colors.danger,
-            boxShadow: `0 0 0 3px ${vars.colors.dangerBorderSubtle}`,
+            boxShadow: control.focusRingDanger,
           },
         },
       },

@@ -203,6 +203,15 @@ service AuthService {
   // admins out). Narrower than AdminGetUser, which staff can't call.
   rpc GetApplicantProfile(GetApplicantProfileRequest) returns (GetApplicantProfileResponse);
 
+  // Names and emails for rescue colleagues, for the rescue staff list.
+  // Requires staff.read. The caller's rescue is never taken from the
+  // request: auth asks service.rescue ListStaffMembers under the caller's
+  // own principal (which resolves the caller's own rescue) and returns only
+  // requested ids that are staff of that rescue. Other ids are silently
+  // omitted. At most 100 ids per call. Narrower than AdminGetUser, which
+  // staff can't call.
+  rpc ListColleagueProfiles(ListColleagueProfilesRequest) returns (ListColleagueProfilesResponse);
+
   // Display-name lookup by user id, for a caller's own inter-service
   // enrichment — e.g. the gateway resolving chat participant/sender
   // names (ADS-1408) the same way it already resolves pets/rescues via
@@ -930,6 +939,22 @@ message GetApplicantProfileResponse {
   string first_name = 2;
   string last_name = 3;
   string email = 4;
+}
+
+message ListColleagueProfilesRequest {
+  // User ids as ListStaffMembers reported them. Max 100.
+  repeated string user_ids = 1;
+}
+
+message ColleagueProfile {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string email = 4;
+}
+
+message ListColleagueProfilesResponse {
+  repeated ColleagueProfile profiles = 1;
 }
 
 message GetUserNameRequest {

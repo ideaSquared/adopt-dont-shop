@@ -9,6 +9,7 @@ import { PetsV1, type CreatePetRequest } from '@adopt-dont-shop/proto';
 import {
   createPet,
   deletePet,
+  getAdoptionStats,
   getAdoptionsByType,
   getAdoptionTrend,
   getPet,
@@ -268,6 +269,126 @@ describe('createPet', () => {
         extraJson: JSON.stringify({ image_urls: ['https://evil.example.com/a.jpg'] }),
       })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('folds a bare `images` list into image_urls (image_urls first, deduped) and never stores it', async () => {
+    let storedExtra = '';
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[]) => {
+      if (sql.includes('INSERT INTO pets.pets')) {
+        storedExtra = params.find(p => typeof p === 'string' && p.includes('image_urls')) as string;
+      }
+      return { rows: [petRow()] };
+    });
+
+    await createPet(mocks.deps, STAFF, {
+      ...BASE_CREATE,
+      extraJson: JSON.stringify({ image_urls: ['/a.jpg'], images: ['/a.jpg', '/b.jpg'] }),
+    });
+
+    const extra = JSON.parse(storedExtra) as Record<string, unknown>;
+    expect(extra.image_urls).toEqual(['/a.jpg', '/b.jpg']);
+    expect('images' in extra).toBe(false);
+  });
+
+  it('rejects an unsafe image url in extra_json.images too', async () => {
+    await expect(
+      createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        extraJson: JSON.stringify({ images: ['https://evil.example.com/a.jpg'] }),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+
+    await expect(
+      createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        extraJson: JSON.stringify({ images: ['//evil.example.com/a.jpg'] }),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  describe('breed names', () => {
+    const BREED_ID = '11111111-1111-4111-8111-111111111111';
+    const SECOND_BREED_ID = '22222222-2222-4222-8222-222222222222';
+
+    // pool.query answers the breed lookup; clientMock answers the insert.
+    const mockBreeds = (byName: Record<string, string>) =>
+      mocks.poolMock.query.mockImplementation(async (_sql: string, params: unknown[]) => {
+        const id = byName[String(params[1]).toLowerCase()];
+        return { rows: id ? [{ breed_id: id }] : [] };
+      });
+
+    const captureInsert = () => {
+      const captured: { params: unknown[] } = { params: [] };
+      mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[]) => {
+        if (sql.includes('INSERT INTO pets.pets')) {
+          captured.params = params;
+        }
+        return { rows: [petRow()] };
+      });
+      return captured;
+    };
+
+    it('stores the breed_id that the breed name resolves to, matched on the pet type', async () => {
+      mockBreeds({ 'labrador retriever': BREED_ID, poodle: SECOND_BREED_ID });
+      const insert = captureInsert();
+
+      await createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        breedName: 'Labrador Retriever',
+        secondaryBreedName: 'Poodle',
+      });
+
+      // $8 / $9 are breed_id / secondary_breed_id.
+      expect(insert.params[7]).toBe(BREED_ID);
+      expect(insert.params[8]).toBe(SECOND_BREED_ID);
+      expect(mocks.poolMock.query).toHaveBeenCalledWith(expect.stringContaining('pets.breeds'), [
+        'dog',
+        'Labrador Retriever',
+      ]);
+    });
+
+    it('matches the name case-insensitively', async () => {
+      mockBreeds({ 'labrador retriever': BREED_ID });
+      const insert = captureInsert();
+
+      await createPet(mocks.deps, STAFF, { ...BASE_CREATE, breedName: 'labrador RETRIEVER' });
+
+      expect(insert.params[7]).toBe(BREED_ID);
+    });
+
+    it('rejects an unknown breed name with INVALID_ARGUMENT and writes nothing', async () => {
+      mockBreeds({});
+
+      await expect(
+        createPet(mocks.deps, STAFF, { ...BASE_CREATE, breedName: 'Space Dog' })
+      ).rejects.toMatchObject({
+        code: 'INVALID_ARGUMENT',
+        message: expect.stringContaining('Space Dog'),
+      });
+      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    });
+
+    it('lets an explicit breed_id win over a name, without a lookup', async () => {
+      const insert = captureInsert();
+
+      await createPet(mocks.deps, STAFF, {
+        ...BASE_CREATE,
+        breedId: BREED_ID,
+        breedName: 'Something Else',
+      });
+
+      expect(insert.params[7]).toBe(BREED_ID);
+      expect(mocks.poolMock.query).not.toHaveBeenCalled();
+    });
+
+    it('leaves the breed null when no breed is sent', async () => {
+      const insert = captureInsert();
+
+      await createPet(mocks.deps, STAFF, BASE_CREATE);
+
+      expect(insert.params[7]).toBeNull();
+      expect(mocks.poolMock.query).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -876,6 +997,24 @@ describe('updatePet', () => {
     expect(opts?.msgID).toBe('pets.updated.pet-1.5');
   });
 
+  it('stores the canonical image list on update: bare `images` folded into image_urls', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] }); // fetchPet
+    let storedExtra = '';
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[]) => {
+      if (sql.includes('UPDATE pets.pets')) {
+        storedExtra = params[0] as string;
+      }
+      return { rows: [petRow()] };
+    });
+
+    await updatePet(mocks.deps, STAFF, {
+      petId: 'pet-1',
+      extraJson: JSON.stringify({ images: ['/b.jpg'], color: 'brown' }),
+    } as never);
+
+    expect(JSON.parse(storedExtra)).toEqual({ image_urls: ['/b.jpg'], color: 'brown' });
+  });
+
   it('writes + publishes pets.updated for an extraJson-only update (image add) (ADS-1155)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] }); // fetchPet
     const order: string[] = [];
@@ -909,6 +1048,134 @@ describe('updatePet', () => {
         extraJson: JSON.stringify({ image_urls: ['javascript:alert(1)'] }),
       } as never)
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  describe('breed names', () => {
+    const BREED_ID = '11111111-1111-4111-8111-111111111111';
+
+    it('writes the breed_id the name resolves to, matched on the existing pet type', async () => {
+      mocks.poolMock.query
+        .mockResolvedValueOnce({ rows: [petRow({ type: 'cat' })] }) // fetchPet
+        .mockResolvedValueOnce({ rows: [{ breed_id: BREED_ID }] }); // breed lookup
+      mocks.clientMock.query.mockResolvedValue({ rows: [petRow({ breed_id: BREED_ID })] });
+
+      const res = await updatePet(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        breedName: 'Domestic Shorthair',
+      } as never);
+
+      expect(res.pet.breedId).toBe(BREED_ID);
+      expect(mocks.poolMock.query).toHaveBeenLastCalledWith(
+        expect.stringContaining('pets.breeds'),
+        ['cat', 'Domestic Shorthair']
+      );
+      const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
+      const updateParams = mocks.clientMock.query.mock.calls[1][1] as unknown[];
+      expect(updateSql).toMatch(/breed_id = \$1/);
+      expect(updateParams[0]).toBe(BREED_ID);
+    });
+
+    it('resolves the secondary breed name too', async () => {
+      mocks.poolMock.query
+        .mockResolvedValueOnce({ rows: [petRow()] })
+        .mockResolvedValueOnce({ rows: [{ breed_id: BREED_ID }] });
+      mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
+
+      await updatePet(mocks.deps, STAFF, { petId: 'pet-1', secondaryBreedName: 'Poodle' } as never);
+
+      const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
+      expect(updateSql).toMatch(/secondary_breed_id = \$1/);
+      expect((mocks.clientMock.query.mock.calls[1][1] as unknown[])[0]).toBe(BREED_ID);
+    });
+
+    it('rejects an unknown breed name with INVALID_ARGUMENT and writes nothing', async () => {
+      mocks.poolMock.query
+        .mockResolvedValueOnce({ rows: [petRow()] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      await expect(
+        updatePet(mocks.deps, STAFF, { petId: 'pet-1', breedName: 'Space Dog' } as never)
+      ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    });
+
+    // A pet saved before breed names were validated can carry a free-text
+    // breed ("Lab cross") that is not in pets.breeds. The rescue app re-sends
+    // the stored name on every save, so an edit that does not touch the breed
+    // must not start failing.
+    describe('a free-text breed stored before names were validated', () => {
+      const legacyPet = (extra: Record<string, unknown>) =>
+        petRow({ extra_json: extra, breed_id: null });
+
+      it('lets the unchanged name through and leaves the breed columns alone', async () => {
+        mocks.poolMock.query
+          .mockResolvedValueOnce({ rows: [legacyPet({ breed: 'Lab cross' })] }) // fetchPet
+          .mockResolvedValueOnce({ rows: [] }); // breed lookup: not in the catalogue
+        mocks.clientMock.query.mockResolvedValue({ rows: [petRow({ name: 'Rexy' })] });
+
+        const res = await updatePet(mocks.deps, STAFF, {
+          petId: 'pet-1',
+          name: 'Rexy',
+          breedName: 'lab CROSS',
+        } as never);
+
+        expect(res.pet.name).toBe('Rexy');
+        const updateSql = mocks.clientMock.query.mock.calls[1][0] as string;
+        const setClause = updateSql.slice(0, updateSql.indexOf('WHERE'));
+        expect(setClause).not.toMatch(/breed_id/);
+      });
+
+      it('does the same for a legacy secondary breed sent under either key', async () => {
+        mocks.poolMock.query
+          .mockResolvedValueOnce({ rows: [legacyPet({ secondaryBreed: 'Mix' })] })
+          .mockResolvedValueOnce({ rows: [] });
+        mocks.clientMock.query.mockResolvedValue({ rows: [petRow({ name: 'Rexy' })] });
+
+        await expect(
+          updatePet(mocks.deps, STAFF, {
+            petId: 'pet-1',
+            name: 'Rexy',
+            secondaryBreedName: 'Mix',
+          } as never)
+        ).resolves.toBeDefined();
+      });
+
+      it('still rejects a different unknown name', async () => {
+        mocks.poolMock.query
+          .mockResolvedValueOnce({ rows: [legacyPet({ breed: 'Lab cross' })] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        await expect(
+          updatePet(mocks.deps, STAFF, { petId: 'pet-1', breedName: 'Space Dog' } as never)
+        ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+        expect(mocks.clientMock.query).not.toHaveBeenCalled();
+      });
+
+      it('still backfills the breed_id when the stored name is in the catalogue', async () => {
+        mocks.poolMock.query
+          .mockResolvedValueOnce({ rows: [legacyPet({ breed: 'Poodle' })] })
+          .mockResolvedValueOnce({ rows: [{ breed_id: BREED_ID }] });
+        mocks.clientMock.query.mockResolvedValue({ rows: [petRow({ breed_id: BREED_ID })] });
+
+        await updatePet(mocks.deps, STAFF, { petId: 'pet-1', breedName: 'Poodle' } as never);
+
+        expect((mocks.clientMock.query.mock.calls[1][1] as unknown[])[0]).toBe(BREED_ID);
+      });
+    });
+
+    it('lets an explicit breed_id win over a name, without a lookup', async () => {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+      mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
+
+      await updatePet(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        breedId: BREED_ID,
+        breedName: 'Something Else',
+      } as never);
+
+      expect(mocks.poolMock.query).toHaveBeenCalledTimes(1); // fetchPet only
+      expect((mocks.clientMock.query.mock.calls[1][1] as unknown[])[0]).toBe(BREED_ID);
+    });
   });
 });
 
@@ -1786,5 +2053,100 @@ describe('getPetFacets', () => {
 describe('HandlerError', () => {
   it('carries the code', () => {
     expect(new HandlerError('NOT_FOUND', 'x').code).toBe('NOT_FOUND');
+  });
+});
+
+describe('getAdoptionStats', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const SMALL_YOUNG_DOGS = {
+    type: PetsV1.PetType.PET_TYPE_DOG,
+    size: PetsV1.PetSize.PET_SIZE_SMALL,
+    ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_YOUNG,
+  };
+  const LARGE_ADULT_CATS = {
+    type: PetsV1.PetType.PET_TYPE_CAT,
+    size: PetsV1.PetSize.PET_SIZE_LARGE,
+    ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
+  };
+
+  it('rejects a principal without pets.read', async () => {
+    const noPerms: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(
+      getAdoptionStats(mocks.deps, noPerms, { cohorts: [SMALL_YOUNG_DOGS] })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('returns sample counts and median days per cohort, in request order', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { ord: 1, sample_count: '7', median_days: '12.5' },
+        { ord: 2, sample_count: '0', median_days: '0' },
+      ],
+    });
+
+    const res = await getAdoptionStats(mocks.deps, ADOPTER, {
+      cohorts: [SMALL_YOUNG_DOGS, LARGE_ADULT_CATS],
+    });
+
+    expect(res.stats).toEqual([
+      { cohort: SMALL_YOUNG_DOGS, sampleCount: 7, medianDays: 12.5 },
+      { cohort: LARGE_ADULT_CATS, sampleCount: 0, medianDays: 0 },
+    ]);
+    expect(mocks.poolMock.query.mock.calls[0][1]).toEqual([
+      ['dog', 'cat'],
+      ['small', 'large'],
+      ['young', 'adult'],
+    ]);
+  });
+
+  it('returns nothing without touching the database when no cohorts are asked for', async () => {
+    await expect(getAdoptionStats(mocks.deps, ADOPTER, { cohorts: [] })).resolves.toEqual({
+      stats: [],
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a cohort with an unspecified dimension', async () => {
+    await expect(
+      getAdoptionStats(mocks.deps, ADOPTER, {
+        cohorts: [{ ...SMALL_YOUNG_DOGS, size: PetsV1.PetSize.PET_SIZE_UNSPECIFIED }],
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it.each([
+    ['type', PetsV1.PetType.UNRECOGNIZED],
+    ['type', 999],
+    ['size', PetsV1.PetSize.UNRECOGNIZED],
+    ['size', 999],
+    ['ageGroup', PetsV1.PetAgeGroup.UNRECOGNIZED],
+    ['ageGroup', 999],
+  ])('rejects an unrecognised %s value (%i) without querying', async (dimension, value) => {
+    await expect(
+      getAdoptionStats(mocks.deps, ADOPTER, {
+        cohorts: [{ ...SMALL_YOUNG_DOGS, [dimension]: value }],
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects more than 50 cohorts', async () => {
+    await expect(
+      getAdoptionStats(mocks.deps, ADOPTER, {
+        cohorts: Array.from({ length: 51 }, () => SMALL_YOUNG_DOGS),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });

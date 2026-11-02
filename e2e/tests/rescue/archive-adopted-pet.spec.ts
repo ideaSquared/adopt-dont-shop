@@ -1,5 +1,5 @@
 import { test, expect } from '../../fixtures';
-import { SEEDED_PET_IDS, expectOk, setPetStatus } from '../../helpers/seeds';
+import { expectOk, seededPetId, setPetStatus } from '../../helpers/seeds';
 
 /**
  * Archiving means moving a pet from 'available' → 'adopted'.  We use
@@ -12,13 +12,14 @@ import { SEEDED_PET_IDS, expectOk, setPetStatus } from '../../helpers/seeds';
 test.describe('archiving an adopted pet', () => {
   test('the seeded adopted pet reads back with status=adopted', async ({ apiAs }) => {
     const rescueApi = await apiAs('rescue');
+    const adoptedPetId = await seededPetId(rescueApi, 'adopted');
 
     // Best-effort: try setting status (idempotent — already adopted).
     // Don't fail the test if the transition log path 500s.
-    await setPetStatus(rescueApi, SEEDED_PET_IDS.adopted, 'adopted').catch(() => undefined);
+    await setPetStatus(rescueApi, adoptedPetId, 'adopted').catch(() => undefined);
 
-    const res = await rescueApi.context.get(`/api/v1/pets/${SEEDED_PET_IDS.adopted}`);
-    await expectOk(res, `GET /pets/${SEEDED_PET_IDS.adopted}`);
+    const res = await rescueApi.context.get(`/api/v1/pets/${adoptedPetId}`);
+    await expectOk(res, `GET /pets/${adoptedPetId}`);
     const body = (await res.json()) as {
       status?: string;
       data?: { status?: string };

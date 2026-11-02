@@ -34,7 +34,7 @@ pnpm build        # tsc build
 pnpm start        # run the built server
 pnpm test         # Vitest (run mode)
 pnpm db:migrate   # run pending migrations (node-pg-migrate)
-pnpm db:seed      # seed dev data
+pnpm db:spam      # bulk synthetic dev data (dev personas: root `pnpm db:seed`)
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
@@ -76,16 +76,16 @@ application) is a shared rescue inbox: any staff member of the pet's rescue
 counts as a participant, `ListChats` lists the rescue's enquiries to its staff,
 and their messages fan out to all of that rescue's staff.
 
-| RPC                                                                           | Permission                           |
-| ----------------------------------------------------------------------------- | ------------------------------------ |
-| `OpenChat`                                                                    | `chats.create`                       |
-| `OpenPetEnquiry` (one per adopter and pet; reopening returns it)              | `chats.create`                       |
-| `SendMessage` / `React`                                                       | `messages.create` + participant      |
-| `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat` / `DeleteChat` | `chats.read` + participant           |
-| `ListChats` / `SearchChats` / `SearchMessages`                                | `chats.read` (results limited to the caller's own chats) |
+| RPC                                                                           | Permission                                                       |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `OpenChat`                                                                    | `chats.create`                                                   |
+| `OpenPetEnquiry` (one per adopter and pet; reopening returns it)              | `chats.create`                                                   |
+| `SendMessage` / `React`                                                       | `messages.create` + participant                                  |
+| `ListMessages` / `MarkRead` / `GetChatUnreadCount` / `GetChat` / `DeleteChat` | `chats.read` + participant                                       |
+| `ListChats` / `SearchChats` / `SearchMessages`                                | `chats.read` (results limited to the caller's own chats)         |
 | `UpdateChatStatus`                                                            | `chats.read` + rescue staff of the chat (moderator/admin bypass) |
 | `GetChatStats`                                                                | `chats.read` + moderator/admin role (cross-chat admin dashboard) |
-| `DeleteMessage`                                                               | sender, or `chat.message.delete:any` |
+| `DeleteMessage`                                                               | sender, or `chat.message.delete:any`                             |
 
 Schema (`chat`): `chats` (anchored to an application, or to a pet for an
 enquiry), `chat_participants`

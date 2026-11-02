@@ -26,7 +26,7 @@ the repo root with `pnpm <script>`.
 | Script | Command |
 | --- | --- |
 | `pnpm dev` | `turbo run dev --parallel` |
-| `pnpm dev:apps` | `turbo run dev --filter='@adopt-dont-shop/app.*' --parallel` |
+| `pnpm dev:apps` | `turbo run dev --filter=@adopt-dont-shop/app.* --parallel` |
 | `pnpm dev:services` | `node scripts/write-redis-secret.mjs && docker compose up -d database redis nats` |
 
 ### Build
@@ -34,14 +34,14 @@ the repo root with `pnpm <script>`.
 | Script | Command |
 | --- | --- |
 | `pnpm build` | `turbo run build` |
-| `pnpm build:apps` | `turbo run build --filter='@adopt-dont-shop/app.*'` |
-| `pnpm build:libs` | `turbo run build --filter='@adopt-dont-shop/lib.*'` |
+| `pnpm build:apps` | `turbo run build --filter=@adopt-dont-shop/app.*` |
+| `pnpm build:libs` | `turbo run build --filter=@adopt-dont-shop/lib.*` |
 
 ### Test
 
 | Script | Command |
 | --- | --- |
-| `pnpm test` | `turbo run test --filter='!@adopt-dont-shop/e2e'` |
+| `pnpm test` | `turbo run test --filter=!@adopt-dont-shop/e2e` |
 | `pnpm test:changed` | `turbo run test -- --changed` |
 | `pnpm test:coverage` | `turbo run test:coverage` |
 | `pnpm test:e2e` | `pnpm --filter @adopt-dont-shop/e2e test` |
@@ -208,16 +208,16 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/scheduler` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/seed-faker` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service-bootstrap` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.applications` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.applications` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.audit` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.auth` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.chat` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.chat` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.cms` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.gateway` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:consumer`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.matching` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.moderation` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.notifications` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:consumer`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.pets` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.rescue` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.rescue` | `backfill:coordinates`, `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/storage` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/test-utils` | `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |

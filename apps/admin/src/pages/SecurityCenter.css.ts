@@ -25,33 +25,6 @@ globalStyle(`${pageHeader} p`, {
   margin: 0,
 });
 
-export const tabBar = style({
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '0.25rem',
-  borderBottom: `1px solid ${vars.border.color.default}`,
-  marginBottom: '1.5rem',
-});
-
-export const tabButton = style({
-  background: 'transparent',
-  border: 'none',
-  padding: '0.75rem 1rem',
-  fontSize: '0.95rem',
-  color: vars.text.tertiary,
-  cursor: 'pointer',
-  borderBottom: '2px solid transparent',
-  transition: 'all 120ms ease',
-  selectors: {
-    '&:hover': { color: vars.text.primary },
-    '&[aria-selected="true"]': {
-      color: vars.colors.infoActive,
-      borderBottomColor: vars.colors.infoActive,
-      fontWeight: 600,
-    },
-  },
-});
-
 export const section = style({
   background: vars.background.surface,
   border: `1px solid ${vars.border.color.default}`,

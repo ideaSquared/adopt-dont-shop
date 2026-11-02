@@ -6,7 +6,13 @@
 
 import { credentials, status, type CallOptions, Metadata } from '@grpc/grpc-js';
 
-import { RescueV1, type GetRescueRequest, type GetRescueResponse } from '@adopt-dont-shop/proto';
+import {
+  RescueV1,
+  type GetRescueLocationsRequest,
+  type GetRescueLocationsResponse,
+  type GetRescueRequest,
+  type GetRescueResponse,
+} from '@adopt-dont-shop/proto';
 import {
   getDefaultPrincipalSigningKey,
   PRINCIPAL_TOKEN_HEADER,
@@ -53,7 +59,24 @@ export type RescueNameClient = {
   close(): void;
 };
 
-export function createRescueClient(opts: CreateRescueClientOptions): RescueNameClient {
+export type RescueCoordinates = { latitude: number; longitude: number };
+
+// Per-call override of the client-wide deadline/retries, for optional lookups
+// that must fit inside their caller's own budget.
+export type CallBudget = { deadlineMs: number; maxRetries?: number };
+
+// Batch coordinate lookup for the swipe card's distance badge. Rescues that
+// are unverified or were never geocoded are simply absent from the map.
+export type RescueLocationClient = {
+  getRescueLocations: (
+    rescueIds: ReadonlyArray<string>,
+    budget?: CallBudget
+  ) => Promise<Map<string, RescueCoordinates>>;
+};
+
+export type RescueClient = RescueNameClient & RescueLocationClient;
+
+export function createRescueClient(opts: CreateRescueClientOptions): RescueClient {
   const stub = new RescueV1.RescueServiceClient(opts.address, credentials.createInsecure());
   const deadlineMs = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -83,17 +106,20 @@ export function createRescueClient(opts: CreateRescueClientOptions): RescueNameC
       options: Partial<CallOptions>,
       cb: (err: unknown, res: Res) => void
     ) => unknown,
-    req: Req
+    req: Req,
+    budget?: CallBudget
   ): Promise<Res> => {
+    const callDeadlineMs = budget?.deadlineMs ?? deadlineMs;
+    const callMaxRetries = budget?.maxRetries ?? maxRetries;
     const attempt = (remaining: number): Promise<Res> =>
       new Promise<Res>((resolve, reject) => {
         const options: Partial<CallOptions> = {
-          deadline: new Date(Date.now() + deadlineMs),
+          deadline: new Date(Date.now() + callDeadlineMs),
         };
         fn.call(stub, req, buildSystemMetadata(), options, (err: unknown, res: Res) => {
           if (err) {
             if (remaining > 0 && isRetryableError(err)) {
-              const retryIndex = maxRetries - remaining + 1;
+              const retryIndex = callMaxRetries - remaining + 1;
               sleep(jitteredBackoff(retryIndex, 100))
                 .then(() => attempt(remaining - 1))
                 .then(resolve, reject);
@@ -106,7 +132,7 @@ export function createRescueClient(opts: CreateRescueClientOptions): RescueNameC
         });
       });
 
-    return attempt(maxRetries);
+    return attempt(callMaxRetries);
   };
 
   return {
@@ -115,6 +141,19 @@ export function createRescueClient(opts: CreateRescueClientOptions): RescueNameC
         rescueId,
       });
       return res.rescue?.name ?? null;
+    },
+    getRescueLocations: async (rescueIds, budget) => {
+      if (rescueIds.length === 0) {
+        return new Map();
+      }
+      const res = await callWithRetry<GetRescueLocationsRequest, GetRescueLocationsResponse>(
+        stub.getRescueLocations,
+        { rescueIds: [...rescueIds] },
+        budget
+      );
+      return new Map(
+        res.locations.map(l => [l.rescueId, { latitude: l.latitude, longitude: l.longitude }])
+      );
     },
     close: () => stub.close(),
   };

@@ -1,8 +1,16 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Button, Card, FormField, Input } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  Card,
+  FormField,
+  Input,
+  SelectInput,
+  type SelectOption,
+} from '@adopt-dont-shop/lib.components';
 import { apiService, type ImageUploadResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
 import { useDialogFocus } from '../../hooks/useDialogFocus';
+import { usePetBreeds } from '../../hooks/usePetBreeds';
 import { resolveFileUrl } from '../../utils/fileUtils';
 import * as styles from './PetFormModal.css';
 
@@ -46,6 +54,73 @@ interface PetFormModalProps {
   uploadImage?: UploadImageFn;
 }
 
+type BreedFieldProps = {
+  id: string;
+  label: string;
+  // Label of the empty choice: breed and secondary breed are both optional.
+  emptyLabel: string;
+  value: string;
+  // undefined until the breeds for the pet's type have loaded.
+  breeds: string[] | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  onChange: (value: string) => void;
+};
+
+// A breed picker over the names the pets service accepts for the pet's type.
+// A pet saved before names were validated can hold a breed that is not in the
+// list (e.g. "Lab cross" typed into the old free-text box). That value is kept
+// as an extra option so the field shows it instead of looking blank, and so
+// saving some other change to the pet sends it back unchanged.
+const BreedField: React.FC<BreedFieldProps> = ({
+  id,
+  label,
+  emptyLabel,
+  value,
+  breeds,
+  isLoading,
+  isError,
+  onChange,
+}) => {
+  const known = breeds ?? [];
+  const options: SelectOption[] = [
+    { value: '', label: emptyLabel },
+    ...(value !== '' && !known.includes(value) ? [{ value, label: value }] : []),
+    ...known.map(breed => ({ value: breed, label: breed })),
+  ];
+  const helperText = isLoading
+    ? 'Loading breeds…'
+    : isError
+      ? "Couldn't load breeds. You can still save without one."
+      : known.length === 0
+        ? 'No breeds are listed for this type.'
+        : undefined;
+
+  return (
+    <FormField label={label} htmlFor={id}>
+      {/* SelectInput uses data-testid as the id of its trigger, which is what
+          the label's htmlFor points at.
+
+          The key remounts the select whenever its option list changes. Radix
+          Select keeps a hidden native <select> whose options lag one render
+          behind the items; if the value changes to an option that was only
+          just added (the saved breed on edit, before the list has loaded) it
+          reads that as "no match" and fires onChange('') — which would wipe the
+          breed. A fresh mount with the value already present does not. */}
+      <SelectInput
+        key={options.map(option => option.value).join('|')}
+        data-testid={id}
+        options={options}
+        value={value}
+        onChange={next => onChange(typeof next === 'string' ? next : '')}
+        disabled={isLoading}
+        helperText={helperText}
+        fullWidth
+      />
+    </FormField>
+  );
+};
+
 const PetFormModal: React.FC<PetFormModalProps> = ({
   isOpen,
   pet,
@@ -84,6 +159,8 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
     energyLevel: 'medium',
     temperament: [],
   });
+
+  const breedsQuery = usePetBreeds(formData.type);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -187,6 +264,13 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  // The breed lists differ per type, so a breed chosen for the old type is
+  // not valid for the new one. Clear both rather than send a name the pets
+  // service would reject.
+  const handleTypeChange = (type: string) => {
+    setFormData(prev => ({ ...prev, type, breed: '', secondaryBreed: undefined }) as typeof prev);
   };
 
   const validateForm = () => {
@@ -435,7 +519,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               <select
                 id="type"
                 value={formData.type}
-                onChange={e => handleInputChange('type', e.target.value)}
+                onChange={e => handleTypeChange(e.target.value)}
               >
                 <option value="dog">Dog</option>
                 <option value="cat">Cat</option>
@@ -445,25 +529,27 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
               </select>
             </div>
 
-            <FormField label="Primary Breed" htmlFor="breed" error={errors.breed}>
-              <Input
-                id="breed"
-                type="text"
-                value={formData.breed}
-                onChange={e => handleInputChange('breed', e.target.value)}
-                placeholder="Enter primary breed"
-              />
-            </FormField>
+            <BreedField
+              id="breed"
+              label="Primary Breed"
+              emptyLabel="Not specified"
+              value={formData.breed}
+              breeds={breedsQuery.data}
+              isLoading={breedsQuery.isLoading}
+              isError={breedsQuery.isError}
+              onChange={value => handleInputChange('breed', value)}
+            />
 
-            <FormField label="Secondary Breed" htmlFor="secondaryBreed">
-              <Input
-                id="secondaryBreed"
-                type="text"
-                value={formData.secondaryBreed || ''}
-                onChange={e => handleInputChange('secondaryBreed', e.target.value)}
-                placeholder="Enter secondary breed (if mix)"
-              />
-            </FormField>
+            <BreedField
+              id="secondaryBreed"
+              label="Secondary Breed"
+              emptyLabel="None"
+              value={formData.secondaryBreed || ''}
+              breeds={breedsQuery.data}
+              isLoading={breedsQuery.isLoading}
+              isError={breedsQuery.isError}
+              onChange={value => handleInputChange('secondaryBreed', value)}
+            />
 
             <FormField label="Age (Years)" htmlFor="ageYears">
               <Input

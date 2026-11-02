@@ -71,7 +71,7 @@ pnpm docker:down             # stop containers
 pnpm docker:reset            # stop and wipe volumes (incl. DB)
 pnpm docker:logs             # follow logs (also :gateway, :apps, :infra, :services)
 pnpm docker:shell:db         # psql in the database container
-pnpm db:seed                 # seed dev data — host-side orchestrator, stack must be running
+pnpm db:seed                 # dev personas, generated through the API — stack must be running
 
 # Native dev (no Docker for app code; you run Postgres + Redis yourself)
 pnpm dev:services            # Postgres + Redis in Docker, detached
@@ -232,5 +232,7 @@ invoked by a person (`/name`), not auto-loaded. Load a skill before writing code
 - `apiService.get(url, params)` takes the query object as the second argument, not `{ params }`.
 - `TextInput` is deprecated; use `Input` from `@adopt-dont-shop/lib.components`. `pnpm check:forms`
   ratchets the remaining raw-control and `TextInput` count downward and fails on any increase.
-- Only `auth`, `rescue`, `pets`, `applications` and `chat` have a `db:seed`; `pnpm db:seed` runs
-  them in that dependency order via `docker compose exec`.
+- Dev personas are generated through the gateway, not SQL: `pnpm db:seed` (`scripts/seed.mjs`)
+  runs the SQL bootstrap (`auth` super_admin, `pets` breeds) and then creates everything else via
+  the API, using the token-peek routes (`E2E_TOKEN_PEEK=true`, on by default in dev). Seeded ids
+  are not fixed; look rows up by name or email. Persona data: `scripts/lib/seed-personas.mjs`.

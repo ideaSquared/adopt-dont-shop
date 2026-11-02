@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.71.0",
+    "@types/node": "^26.0.0",
     "ts-proto": "^2.11.8"
   }
 }

@@ -33,12 +33,14 @@ import {
   type GetTopPicksRequest,
   type ListSwipeHistoryRequest,
   type RecommendRequest,
+  type RecommendResponse,
   type RecordSwipeRequest,
   type SearchPetsRequest,
   type StartSessionRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { MatchingClient } from '../grpc-clients/matching-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { recommendToQueue, searchToView, topPicksToView } from './matching-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -47,6 +49,9 @@ import { parsePagination } from '../middleware/pagination.js';
 
 export type MatchingRoutesOptions = {
   client: MatchingClient;
+  // Optional: resolves each swipe card's rescue name. Without it the cards
+  // carry an empty rescueName.
+  rescueClient?: RescueClient;
 };
 
 // Adds UNIMPLEMENTED → 501 for the Recommend / SearchPets stubs.
@@ -93,7 +98,7 @@ export const registerMatchingRoutes = async (
   app: FastifyInstance,
   opts: MatchingRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, rescueClient } = opts;
 
   await app.register(rateLimit, { global: false });
 
@@ -323,14 +328,20 @@ export const registerMatchingRoutes = async (
       const body = (req.body ?? {}) as DiscoveryQueueBody;
       const filtersJson = body.filters !== undefined ? JSON.stringify(body.filters) : '';
       try {
-        const sessionId = body.sessionId ?? (await openSession(client, req, filtersJson));
+        // The implicit session persists its filters, so it gets them without
+        // the adopter's coordinates; only the Recommend override below carries
+        // them (request-scoped, for card distances).
+        const sessionId =
+          body.sessionId ??
+          (await openSession(client, req, JSON.stringify(withoutLocation(body.filters))));
         const grpcReq: RecommendRequest = {
           sessionId,
           limit: clampLimit(body.limit),
           filtersJsonOverride: filtersJson !== '' ? filtersJson : undefined,
         };
-        const res = await client.recommend(grpcReq, buildMetadata(req));
-        return reply.send(recommendToQueue(res));
+        const meta = buildMetadata(req);
+        const res = await client.recommend(grpcReq, meta);
+        return reply.send(recommendToQueue(res, await rescueNamesFor(res, rescueClient, meta)));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -371,8 +382,9 @@ export const registerMatchingRoutes = async (
         filtersJsonOverride: body.filters !== undefined ? JSON.stringify(body.filters) : undefined,
       };
       try {
-        const res = await client.recommend(grpcReq, buildMetadata(req));
-        return reply.send(recommendToQueue(res));
+        const meta = buildMetadata(req);
+        const res = await client.recommend(grpcReq, meta);
+        return reply.send(recommendToQueue(res, await rescueNamesFor(res, rescueClient, meta)));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -686,6 +698,14 @@ type DiscoveryQueueBody = {
   limit?: number;
 };
 
+// The adopter's coordinates are request-scoped (card distances); anything that
+// is stored with a session must not include them.
+function withoutLocation(filters: Record<string, unknown> | undefined): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(filters ?? {}).filter(([key]) => key !== 'latitude' && key !== 'longitude')
+  );
+}
+
 function clampLimit(raw: number | undefined): number {
   if (raw === undefined || !Number.isFinite(raw)) {
     return 20;
@@ -755,4 +775,27 @@ function parseDeviceType(raw: string | undefined): MatchingV1.DeviceType {
   return out === MatchingV1.DeviceType.UNRECOGNIZED
     ? MatchingV1.DeviceType.DEVICE_TYPE_UNSPECIFIED
     : out;
+}
+
+// rescue_id → name for the cards in a Recommend page. Names are optional
+// decoration, so this is ONE batch RPC with a short gRPC deadline and no
+// retries: on timeout, error or a missing client the deck goes out with empty
+// names (the call itself is cancelled when the deadline passes).
+const RESCUE_NAME_BUDGET = { deadlineMs: 750, maxRetries: 0 };
+
+async function rescueNamesFor(
+  res: RecommendResponse,
+  rescueClient: RescueClient | undefined,
+  meta: ReturnType<typeof buildMetadata>
+): Promise<Map<string, string>> {
+  const rescueIds = [...new Set(res.candidates.map(c => c.rescueId).filter(id => id !== ''))];
+  if (rescueClient === undefined || rescueIds.length === 0) {
+    return new Map();
+  }
+  try {
+    const { names } = await rescueClient.getRescueNames({ rescueIds }, meta, RESCUE_NAME_BUDGET);
+    return new Map(names.map(n => [n.rescueId, n.name]));
+  } catch {
+    return new Map();
+  }
 }

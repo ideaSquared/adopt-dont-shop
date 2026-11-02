@@ -67,6 +67,14 @@ export const AGE_GROUP_TO_TOKEN: Record<PetsV1.PetAgeGroup, string> = {
   [PetsV1.PetAgeGroup.UNRECOGNIZED]: 'unknown',
 };
 
+export const GENDER_TO_TOKEN: Record<PetsV1.PetGender, string> = {
+  [PetsV1.PetGender.PET_GENDER_UNSPECIFIED]: 'unknown',
+  [PetsV1.PetGender.PET_GENDER_MALE]: 'male',
+  [PetsV1.PetGender.PET_GENDER_FEMALE]: 'female',
+  [PetsV1.PetGender.PET_GENDER_UNKNOWN]: 'unknown',
+  [PetsV1.PetGender.UNRECOGNIZED]: 'unknown',
+};
+
 export function lookupToken<T>(value: unknown, table: Record<string, T>): T | undefined {
   if (typeof value !== 'string') {
     return undefined;

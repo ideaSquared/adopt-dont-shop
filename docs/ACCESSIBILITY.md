@@ -52,6 +52,15 @@ All three app shells render `<SkipLink />` (from `lib.components`) as the first 
 targeting `#main-content` — `app.client` (`AppShell`), `app.rescue` (`Layout`), and `app.admin`
 (`AdminLayout`). Do not remove it when editing a layout.
 
+## Tabs
+
+Use `Tabs` from `@adopt-dont-shop/lib.components` instead of hand-rolling `role="tablist"`. It is a
+controlled component (`tabs`, `value`, `onChange`, and an `aria-label` for the tablist) that
+implements the WAI-ARIA tabs pattern with automatic activation: Left/Right (wrapping) and Home/End
+move focus and select, only the active tab is in the Tab order, and tabs and panels are linked with
+generated `id` / `aria-controls` / `aria-labelledby`. Inactive panels stay mounted but `hidden`, so
+form state survives a tab switch. See `app.rescue` `UserSettings` for hash-persisted tabs.
+
 ## Automated and manual testing
 
 Accessibility is enforced by:

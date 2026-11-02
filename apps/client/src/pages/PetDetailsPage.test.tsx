@@ -12,10 +12,12 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test-utils/render';
 import userEvent from '@testing-library/user-event';
 import { toast } from '@adopt-dont-shop/lib.components';
+import { setAnalyticsConsent } from '@adopt-dont-shop/lib.observability';
 
 const startConversationMock = vi.fn();
 const getPetByIdMock = vi.fn();
 const isFavoriteMock = vi.fn();
+const recordViewMock = vi.fn();
 
 const authStateMock = {
   isAuthenticated: true,
@@ -68,6 +70,7 @@ vi.mock('@/services', async () => {
     petService: {
       getPetById: (...args: unknown[]) => getPetByIdMock(...args),
       isFavorite: (...args: unknown[]) => isFavoriteMock(...args),
+      recordView: (...args: unknown[]) => recordViewMock(...args),
       addToFavorites: vi.fn(),
       removeFromFavorites: vi.fn(),
     },
@@ -296,5 +299,85 @@ describe('PetDetailsPage signed-in CTAs (ADS-638 regression)', () => {
         screen.getByRole('button', { name: /ask a question before applying/i })
       ).toBeInTheDocument();
     });
+  });
+});
+
+describe('PetDetailsPage view beacon (views_today label)', () => {
+  const setDoNotTrack = (value: string | null) =>
+    Object.defineProperty(window.navigator, 'doNotTrack', { value, configurable: true });
+
+  beforeEach(() => {
+    authStateMock.isAuthenticated = true;
+    startConversationMock.mockReset();
+    getPetByIdMock.mockReset();
+    isFavoriteMock.mockReset();
+    recordViewMock.mockReset();
+    recordViewMock.mockResolvedValue(undefined);
+    window.localStorage.clear();
+    setDoNotTrack(null);
+
+    getPetByIdMock.mockResolvedValue({
+      pet_id: 'pet-1',
+      name: 'Luna',
+      type: 'dog',
+      status: 'available',
+      rescue_id: 'rescue-1',
+      images: [],
+    });
+    isFavoriteMock.mockResolvedValue(false);
+  });
+
+  it('reports the view once the pet has loaded for a signed-in user who allowed analytics', async () => {
+    setAnalyticsConsent('granted');
+
+    render(<PetDetailsPage />);
+
+    await waitFor(() => expect(recordViewMock).toHaveBeenCalledWith('pet-1'));
+  });
+
+  it('does not report the view when analytics consent was not granted', async () => {
+    render(<PetDetailsPage />);
+
+    await screen.findByRole('link', { name: /^apply to adopt$/i });
+    expect(recordViewMock).not.toHaveBeenCalled();
+  });
+
+  it('does not report the view when analytics consent was declined', async () => {
+    setAnalyticsConsent('denied');
+
+    render(<PetDetailsPage />);
+
+    await screen.findByRole('link', { name: /^apply to adopt$/i });
+    expect(recordViewMock).not.toHaveBeenCalled();
+  });
+
+  it('does not report the view when Do Not Track is on', async () => {
+    setAnalyticsConsent('granted');
+    setDoNotTrack('1');
+
+    render(<PetDetailsPage />);
+
+    await screen.findByRole('link', { name: /^apply to adopt$/i });
+    expect(recordViewMock).not.toHaveBeenCalled();
+  });
+
+  it('does not report the view for a signed-out visitor', async () => {
+    setAnalyticsConsent('granted');
+    authStateMock.isAuthenticated = false;
+
+    render(<PetDetailsPage />);
+
+    expect((await screen.findAllByText('Luna')).length).toBeGreaterThan(0);
+    expect(recordViewMock).not.toHaveBeenCalled();
+  });
+
+  it('still renders the pet when reporting the view fails', async () => {
+    setAnalyticsConsent('granted');
+    recordViewMock.mockRejectedValue(new Error('gateway down'));
+
+    render(<PetDetailsPage />);
+
+    await waitFor(() => expect(recordViewMock).toHaveBeenCalled());
+    expect(await screen.findByRole('link', { name: /^apply to adopt$/i })).toBeInTheDocument();
   });
 });

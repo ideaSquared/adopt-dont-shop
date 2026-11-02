@@ -1,21 +1,32 @@
 import { render, RenderOptions } from '@testing-library/react';
-import { ReactElement } from 'react';
+import { ReactElement, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 
 /**
  * All providers wrapper for tests
- * Wraps components with Router, Theme, and other necessary providers
+ * Wraps components with QueryClient, Router, Theme, and other necessary providers
  */
 type AllProvidersProps = {
   children: React.ReactNode;
 };
 
-const AllProviders = ({ children }: AllProvidersProps) => (
-  <BrowserRouter>
-    <ThemeProvider>{children}</ThemeProvider>
-  </BrowserRouter>
-);
+// A fresh QueryClient per render so cached responses never leak between tests;
+// retries are off so a failed request surfaces immediately instead of after
+// the default exponential backoff.
+const AllProviders = ({ children }: AllProvidersProps) => {
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  );
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <ThemeProvider>{children}</ThemeProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 /**
  * Custom render function that wraps components with all necessary providers

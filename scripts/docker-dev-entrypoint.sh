@@ -17,8 +17,9 @@
 #   1. Renumbers the base image's `node` user/group to HOST_UID/HOST_GID —
 #      set by scripts/docker-dev.mjs from the actual developer's uid/gid on
 #      POSIX hosts, defaulting to 1000/1000 (also the `node` user's baked
-#      uid/gid, and the common first-user uid on Linux) when unset, e.g. on
-#      Windows where the launcher can't compute a POSIX uid. Matching the uid
+#      uid/gid, and the common first-user uid on Linux) when unset. On
+#      Windows the launcher sets 0/0 and this script stays root (see the
+#      early exec below). Matching the uid
 #      means the container's writes into the bind-mounted host source behave
 #      exactly like the host user's own — no chown of host-owned files
 #      required, ever.
@@ -31,14 +32,21 @@
 #      the real command (the compose `command:` for this service).
 #
 # Residual risk: if HOST_UID/HOST_GID aren't wired correctly for a given
-# host (e.g. Windows, or a host where scripts/docker-dev.mjs wasn't used to
-# launch the stack), writes into the bind-mounted source can still fail with
+# host (e.g. one where scripts/docker-dev.mjs wasn't used to launch the
+# stack), writes into the bind-mounted source can still fail with
 # EACCES once root is dropped. Verify by actually running `pnpm docker:dev`
 # and confirming HMR + lib-types-watcher + migrations all still work.
 set -eu
 
 TARGET_UID="${HOST_UID:-1000}"
 TARGET_GID="${HOST_GID:-1000}"
+
+# uid 0 means stay root: scripts/docker-dev.mjs sets it on Windows, where
+# Docker Desktop presents the bind mount as root-owned 0644 and any non-root
+# uid gets EACCES writing it. (`usermod -u 0 node` would also fail outright.)
+if [ "$TARGET_UID" = "0" ]; then
+  exec "$@"
+fi
 
 CURRENT_UID="$(id -u node)"
 CURRENT_GID="$(id -g node)"

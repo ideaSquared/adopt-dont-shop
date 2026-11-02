@@ -1,32 +1,81 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router';
-import clsx from 'clsx';
-import { useAuth, useHasPermission, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
-import { ThemeToggle, toast } from '@adopt-dont-shop/lib.components';
+import { Navigate, useLocation, useNavigate } from 'react-router';
+import { useAuth, useHasPermission } from '@adopt-dont-shop/lib.auth';
+import { Tabs, toast } from '@adopt-dont-shop/lib.components';
 import { SettingsFormSkeleton } from '../components/skeletons';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import RescueProfileForm from '../components/rescue/RescueProfileForm';
 import AdoptionPolicyForm from '../components/rescue/AdoptionPolicyForm';
-import NotificationPreferencesForm from '../components/rescue/NotificationPreferencesForm';
 import QuestionsBuilder from '../components/rescue/QuestionsBuilder';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
 import * as styles from './RescueSettings.css';
 
-type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security' | 'appearance';
+type TabType = 'profile' | 'policies' | 'questions';
 
-const VALID_TABS: ReadonlySet<string> = new Set<TabType>([
-  'profile',
-  'policies',
-  'questions',
-  'preferences',
-  'security',
-  'appearance',
+const VALID_TABS: ReadonlySet<string> = new Set<TabType>(['profile', 'policies', 'questions']);
+
+// Personal settings moved to /user-settings; keep old links and bookmarks working.
+const USER_SETTINGS_HASHES: ReadonlySet<string> = new Set([
+  '#preferences',
+  '#security',
+  '#appearance',
 ]);
 
 const parseTabFromHash = (hash: string): TabType => {
   const value = hash.replace('#', '');
   return VALID_TABS.has(value) ? (value as TabType) : 'profile';
+};
+
+type RescueView = {
+  name: string;
+  email: string;
+  phone: string | null;
+  address: string;
+  city: string;
+  county: string | null;
+  postcode: string;
+  country: string;
+  website: string | null;
+  description: string | null;
+  status: string;
+  settings?: { adoptionPolicies?: AdoptionPolicy };
+  created_at: string;
+  updated_at: string;
+};
+
+// The gateway returns a flat snake_case view; the settings forms want a RescueProfile.
+const toRescueProfile = (view: RescueView, rescueId: string): RescueProfile => ({
+  rescueId,
+  name: view.name,
+  rescue_type: 'animal_shelter',
+  email: view.email,
+  phone: view.phone ?? '',
+  address: {
+    street: view.address,
+    city: view.city,
+    county: view.county ?? undefined,
+    postcode: view.postcode,
+    country: view.country,
+  },
+  description: view.description ?? undefined,
+  website: view.website ?? undefined,
+  adoptionPolicies: view.settings?.adoptionPolicies,
+  verified: view.status === 'verified',
+  createdAt: view.created_at,
+  updatedAt: view.updated_at,
+});
+
+const fetchRescueProfile = async (): Promise<RescueProfile> => {
+  const staffData = await apiService.get<{ data: { rescueId?: string } }>('/api/v1/staff/me');
+  const rescueId = staffData.data.rescueId;
+
+  if (!rescueId) {
+    throw new Error('No rescue ID found for current user');
+  }
+
+  const rescueData = await apiService.get<{ data: RescueView }>(`/api/v1/rescues/${rescueId}`);
+  return toRescueProfile(rescueData.data, rescueId);
 };
 
 const RescueSettings: React.FC = () => {
@@ -58,30 +107,10 @@ const RescueSettings: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-
-        const staffData = await apiService.get<{ data: { rescueId?: string } }>('/api/v1/staff/me');
-        const rescueId = staffData.data.rescueId;
-
-        if (!rescueId) {
-          throw new Error('No rescue ID found for current user');
+        const profile = await fetchRescueProfile();
+        if (!cancelled) {
+          setRescue(profile);
         }
-
-        const rescueData = await apiService.get<{
-          data: RescueProfile & { settings?: { adoptionPolicies?: AdoptionPolicy } };
-        }>(`/api/v1/rescues/${rescueId}`);
-
-        if (cancelled) {
-          return;
-        }
-
-        // Extract adoption policies from settings if they exist
-        const { settings, ...rest } = rescueData.data;
-        const rescueProfile: RescueProfile = {
-          ...rest,
-          adoptionPolicies: settings?.adoptionPolicies,
-        };
-
-        setRescue(rescueProfile);
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -105,26 +134,7 @@ const RescueSettings: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-
-      const staffData = await apiService.get<{ data: { rescueId?: string } }>('/api/v1/staff/me');
-      const rescueId = staffData.data.rescueId;
-
-      if (!rescueId) {
-        throw new Error('No rescue ID found for current user');
-      }
-
-      const rescueData = await apiService.get<{
-        data: RescueProfile & { settings?: { adoptionPolicies?: AdoptionPolicy } };
-      }>(`/api/v1/rescues/${rescueId}`);
-
-      // Extract adoption policies from settings if they exist
-      const { settings, ...rest } = rescueData.data;
-      const rescueProfile: RescueProfile = {
-        ...rest,
-        adoptionPolicies: settings?.adoptionPolicies,
-      };
-
-      setRescue(rescueProfile);
+      setRescue(await fetchRescueProfile());
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load rescue settings. Please try again.'
@@ -155,6 +165,10 @@ const RescueSettings: React.FC = () => {
 
     await loadRescueData();
   };
+
+  if (USER_SETTINGS_HASHES.has(location.hash)) {
+    return <Navigate to={`/user-settings${location.hash}`} replace />;
+  }
 
   if (loading) {
     return (
@@ -213,104 +227,43 @@ const RescueSettings: React.FC = () => {
         <p>Configure your rescue profile, adoption policies, and application questions.</p>
       </div>
 
-      <div className={styles.tabContainer}>
-        <div className={styles.tabList} role="tablist">
-          <button
-            className={clsx(styles.tab, activeTab === 'profile' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'profile'}
-            onClick={() => setActiveTab('profile')}
-          >
-            Rescue Profile
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'policies' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'policies'}
-            onClick={() => setActiveTab('policies')}
-          >
-            Adoption Policies
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'questions' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'questions'}
-            onClick={() => setActiveTab('questions')}
-          >
-            Application Questions
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'preferences' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'preferences'}
-            onClick={() => setActiveTab('preferences')}
-          >
-            Preferences
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'security' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'security'}
-            onClick={() => setActiveTab('security')}
-          >
-            Security
-          </button>
-          <button
-            className={clsx(styles.tab, activeTab === 'appearance' && styles.tabActive)}
-            role="tab"
-            aria-selected={activeTab === 'appearance'}
-            onClick={() => setActiveTab('appearance')}
-          >
-            Appearance
-          </button>
-        </div>
-      </div>
-
-      <div className={clsx(activeTab === 'profile' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <RescueProfileForm rescue={rescue} onSave={handleSaveProfile} loading={loading} />
-      </div>
-
-      <div className={clsx(activeTab === 'policies' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <AdoptionPolicyForm
-          policy={rescue?.adoptionPolicies || null}
-          onSave={handleSavePolicies}
-          loading={loading}
-        />
-      </div>
-
-      <div className={clsx(activeTab === 'questions' ? styles.tabPanel : styles.tabPanelHidden)}>
-        {rescue?.rescueId ? (
-          <QuestionsBuilder rescueId={rescue.rescueId} />
-        ) : (
-          <div className={styles.placeholderSection}>
-            <h2>Custom Application Questions</h2>
-            <p>Loading rescue information...</p>
-          </div>
-        )}
-      </div>
-
-      <div className={clsx(activeTab === 'preferences' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <NotificationPreferencesForm />
-      </div>
-
-      <div className={clsx(activeTab === 'security' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <div className={styles.securitySection}>
-          <h2>Two-Factor Authentication</h2>
-          <p>
-            Add an extra layer of security to your account by requiring a verification code when you
-            sign in.
-          </p>
-          <TwoFactorSettings />
-        </div>
-      </div>
-
-      <div className={clsx(activeTab === 'appearance' ? styles.tabPanel : styles.tabPanelHidden)}>
-        <div className={styles.securitySection}>
-          <h2>Theme</h2>
-          <p>Choose how the rescue tools look — light, cosy (warm cream), or dark.</p>
-          <ThemeToggle />
-        </div>
-      </div>
+      <Tabs
+        value={activeTab}
+        onChange={id => setActiveTab(parseTabFromHash(id))}
+        aria-label="Rescue settings sections"
+        tabs={[
+          {
+            id: 'profile',
+            label: 'Rescue Profile',
+            content: (
+              <RescueProfileForm rescue={rescue} onSave={handleSaveProfile} loading={loading} />
+            ),
+          },
+          {
+            id: 'policies',
+            label: 'Adoption Policies',
+            content: (
+              <AdoptionPolicyForm
+                policy={rescue?.adoptionPolicies || null}
+                onSave={handleSavePolicies}
+                loading={loading}
+              />
+            ),
+          },
+          {
+            id: 'questions',
+            label: 'Application Questions',
+            content: rescue?.rescueId ? (
+              <QuestionsBuilder rescueId={rescue.rescueId} />
+            ) : (
+              <div className={styles.placeholderSection}>
+                <h2>Custom Application Questions</h2>
+                <p>Loading rescue information...</p>
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 };

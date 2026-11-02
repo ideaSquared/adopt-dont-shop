@@ -12,7 +12,7 @@
  */
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 
 // ADS-644: ApplicationReview now renders cross-link <Link>s and calls
@@ -93,10 +93,6 @@ vi.mock('./ApplicationReview.css', () => {
     'statusBadge',
     'statusSelect',
     'statusUpdateContainer',
-    'tab',
-    'tabContainer',
-    'tabList',
-    'tabPanel',
     'textArea',
     'timelineContainer',
     'timelineContent',
@@ -150,7 +146,7 @@ vi.mock('./StageTransitionModal', () => ({
 // Real-enough useConfirm + ConfirmDialog so we can observe the dialog being
 // invoked. The global lib.components mock in setup-tests.ts does not export
 // these.
-vi.mock('@adopt-dont-shop/lib.components', async () => {
+vi.mock('@adopt-dont-shop/lib.components', async importOriginal => {
   type ConfirmOptions = {
     title?: string;
     message: string;
@@ -221,7 +217,10 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
     dismiss: vi.fn(),
   });
 
-  return { useConfirm, ConfirmDialog, toast };
+  // Real Tabs: the review's tab behaviour is part of what these tests cover.
+  const { Tabs } = await importOriginal<typeof import('@adopt-dont-shop/lib.components')>();
+
+  return { useConfirm, ConfirmDialog, toast, Tabs };
 });
 
 import ApplicationReview from './ApplicationReview';
@@ -496,7 +495,7 @@ describe('ApplicationReview backdrop accessibility (UX P0/P1 #7 + UX P2 I)', () 
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /home visits/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /home visits/i }));
     fireEvent.click(screen.getByRole('button', { name: /view details/i }));
 
     // The "Close details" backdrop label should no longer be announced as a button.
@@ -551,7 +550,7 @@ describe('ApplicationReview per-section error indicators (UX P2 G)', () => {
   it('surfaces a references load error without taking down the modal', () => {
     renderWithErrors({ referencesError: 'network down' });
 
-    fireEvent.click(screen.getByRole('button', { name: /references/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /references/i }));
     const alert = screen.getByText(/failed to load reference checks/i);
     expect(alert).toBeInTheDocument();
     // Surrounding screen still renders: the section header is still visible.
@@ -561,7 +560,7 @@ describe('ApplicationReview per-section error indicators (UX P2 G)', () => {
   it('surfaces a home-visits load error without taking down the modal', () => {
     renderWithErrors({ homeVisitsError: 'network down' });
 
-    fireEvent.click(screen.getByRole('button', { name: /home visits/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /home visits/i }));
     expect(screen.getByText(/failed to load home visits/i)).toBeInTheDocument();
     // The "Schedule Visit" affordance still renders.
     expect(screen.getByRole('button', { name: /schedule visit/i })).toBeInTheDocument();
@@ -612,7 +611,7 @@ describe('ApplicationReview cancel-visit modal (UX P2 B)', () => {
 
   const openCancelModal = () => {
     // Switch to Home Visits tab.
-    fireEvent.click(screen.getByRole('button', { name: /home visits/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /home visits/i }));
     // Click the visit's Cancel Visit button.
     fireEvent.click(screen.getByRole('button', { name: /cancel visit/i }));
   };
@@ -671,5 +670,73 @@ describe('ApplicationReview cancel-visit modal (UX P2 B)', () => {
         })
       );
     });
+  });
+});
+
+describe('ApplicationReview tabs', () => {
+  const renderWithCounts = () => {
+    const baseApplication = {
+      id: 'app-1',
+      status: 'submitted',
+      petName: 'Buddy',
+      applicantName: 'John Doe',
+      submittedDaysAgo: 2,
+      stage: 'PENDING' as const,
+    };
+    render(
+      <MemoryRouter>
+        <ApplicationReview
+          application={baseApplication}
+          references={[]}
+          homeVisits={[]}
+          timeline={[]}
+          loading={false}
+          error={null}
+          onClose={vi.fn()}
+          onStatusUpdate={vi.fn().mockResolvedValue(undefined)}
+          onStageTransition={vi.fn().mockResolvedValue(undefined)}
+          onReferenceUpdate={vi.fn()}
+          onScheduleVisit={vi.fn()}
+          onUpdateVisit={vi.fn()}
+          onAddTimelineEvent={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+  };
+
+  it('exposes the sections as a tablist with counts in the labels', () => {
+    renderWithCounts();
+
+    const tablist = screen.getByRole('tablist', { name: /application sections/i });
+    const tabs = within(tablist).getAllByRole('tab');
+    expect(tabs.map(tab => tab.textContent)).toEqual([
+      'Application Details',
+      'References (0)',
+      'Home Visits (0)',
+      'Timeline (0)',
+    ]);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('shows only the selected section in a linked tabpanel', () => {
+    renderWithCounts();
+
+    const timelineTab = screen.getByRole('tab', { name: /timeline/i });
+    fireEvent.click(timelineTab);
+
+    expect(timelineTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', timelineTab.id);
+  });
+
+  it('moves between sections with the arrow keys', () => {
+    renderWithCounts();
+
+    const details = screen.getByRole('tab', { name: /application details/i });
+    details.focus();
+    fireEvent.keyDown(details, { key: 'ArrowRight' });
+
+    const references = screen.getByRole('tab', { name: /references/i });
+    expect(references).toHaveAttribute('aria-selected', 'true');
+    expect(references).toHaveFocus();
   });
 });

@@ -22,7 +22,7 @@
  */
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = join(ROOT, 'docs', 'tasks.md');
@@ -214,6 +214,6 @@ function main() {
 }
 
 // Only run when executed directly (not when imported by check-docs-script-references.mjs).
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }

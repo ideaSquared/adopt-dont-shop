@@ -1,9 +1,9 @@
 import { test, expect } from '../../fixtures';
 import {
-  SEEDED_PET_IDS,
   createAdopterApplication,
   patchWithCsrf,
   postWithCsrf,
+  seededPetId,
 } from '../../helpers/seeds';
 
 /**
@@ -27,12 +27,14 @@ import {
 test.describe('adoption application submission', () => {
   test('the apply CTA on a pet detail page lands the adopter on the application form', async ({
     page,
+    apiAs,
   }) => {
+    const availablePetId = await seededPetId(await apiAs('rescue'), 'available');
     await page.addInitScript(() => {
       window.localStorage.setItem('hasSeenSwipeOnboarding', 'true');
     });
 
-    await page.goto(`/pets/${SEEDED_PET_IDS.available}`);
+    await page.goto(`/pets/${availablePetId}`);
     await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 
     const apply = page

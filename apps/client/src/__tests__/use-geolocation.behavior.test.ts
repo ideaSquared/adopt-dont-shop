@@ -77,6 +77,15 @@ describe('useGeolocation hook', () => {
   });
 
   describe('initial state', () => {
+    // jsdom has no geolocation API; these cases describe a browser that does.
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'geolocation', {
+        value: { getCurrentPosition: vi.fn() },
+        writable: true,
+        configurable: true,
+      });
+    });
+
     it('starts in idle state with no location', () => {
       const { result } = renderHook(() => useGeolocation());
 
@@ -101,6 +110,37 @@ describe('useGeolocation hook', () => {
       expect(result.current.hasLocation).toBe(true);
       expect(result.current.latitude).toBe(51.5074);
       expect(result.current.longitude).toBe(-0.1278);
+    });
+
+    it('starts unavailable, without prompting, when the browser has no geolocation API', () => {
+      Object.defineProperty(navigator, 'geolocation', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+
+      const { result } = renderHook(() => useGeolocation());
+
+      expect(result.current.status).toBe('unavailable');
+      expect(result.current.error).toMatch(/not supported/i);
+      expect(result.current.hasLocation).toBe(false);
+    });
+
+    it('still restores a cached location when the API is missing', () => {
+      Object.defineProperty(navigator, 'geolocation', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+      localStorage.setItem(
+        LOCATION_CACHE_KEY,
+        JSON.stringify({ latitude: 53.58, longitude: -2.43, timestamp: Date.now() })
+      );
+
+      const { result } = renderHook(() => useGeolocation());
+
+      expect(result.current.status).toBe('granted');
+      expect(result.current.hasLocation).toBe(true);
     });
 
     it('ignores expired cached location', () => {

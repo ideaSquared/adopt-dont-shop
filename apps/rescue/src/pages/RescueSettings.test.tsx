@@ -1,20 +1,22 @@
 import { vi, describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import RescueSettings from './RescueSettings';
+import { apiService } from '../services/libraryServices';
 
 // Mock all heavy dependencies to focus on tab/hash behaviour
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({ user: { userId: '1', rescueId: 'r1' } }),
   // ADS-757: hook now returns { allowed, isLoading, error }.
   useHasPermission: () => ({ allowed: true, isLoading: false, error: null }),
-  TwoFactorSettings: () => null,
 }));
 
-vi.mock('@adopt-dont-shop/lib.components', async () => {
+vi.mock('@adopt-dont-shop/lib.components', async importOriginal => {
   const React = await import('react');
+  // Real Tabs: the page's tab behaviour is part of what these tests cover.
+  const { Tabs } = await importOriginal<typeof import('@adopt-dont-shop/lib.components')>();
   return {
-    ThemeToggle: () => null,
+    Tabs,
     toast: { success: vi.fn(), error: vi.fn() },
     Skeleton: (props: Record<string, unknown>) =>
       React.createElement('div', { 'aria-hidden': 'true', ...props }),
@@ -41,25 +43,29 @@ vi.mock('@adopt-dont-shop/lib.permissions', () => ({
 }));
 
 vi.mock('../components/rescue/RescueProfileForm', () => ({
-  default: () => <div data-testid="profile-form">Profile Form</div>,
+  default: ({ rescue }: { rescue: { address: { street: string } } | null }) => (
+    <div data-testid="profile-form">{rescue?.address.street}</div>
+  ),
 }));
 
 vi.mock('../components/rescue/AdoptionPolicyForm', () => ({
   default: () => <div data-testid="policy-form">Policy Form</div>,
 }));
 
-vi.mock('../components/rescue/NotificationPreferencesForm', () => ({
-  default: () => <div data-testid="notif-form">Notification Form</div>,
-}));
-
 vi.mock('../components/rescue/QuestionsBuilder', () => ({
   default: () => <div data-testid="questions-builder">Questions</div>,
 }));
+
+const LocationProbe = () => {
+  const { pathname, hash } = useLocation();
+  return <div data-testid="location">{`${pathname}${hash}`}</div>;
+};
 
 const renderWithRoute = (initialRoute: string) =>
   render(
     <MemoryRouter initialEntries={[initialRoute]}>
       <RescueSettings />
+      <LocationProbe />
     </MemoryRouter>
   );
 
@@ -76,18 +82,23 @@ describe('RescueSettings tab persistence via URL hash', () => {
     expect(profileButton).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('restores the security tab from #security hash', async () => {
-    renderWithRoute('/settings#security');
-    await waitForTabsToLoad();
-    const securityButton = screen.getByRole('tab', { name: /^security$/i });
-    expect(securityButton).toHaveAttribute('aria-selected', 'true');
-  });
+  it.each(['#preferences', '#security', '#appearance'])(
+    'redirects the old %s hash to /user-settings',
+    async hash => {
+      renderWithRoute(`/settings${hash}`);
+      expect(await screen.findByTestId('location')).toHaveTextContent(`/user-settings${hash}`);
+      expect(screen.queryByRole('tab', { name: /rescue profile/i })).not.toBeInTheDocument();
+    }
+  );
 
-  it('restores the appearance tab from #appearance hash', async () => {
-    renderWithRoute('/settings#appearance');
+  it('no longer renders the personal settings tabs', async () => {
+    renderWithRoute('/settings');
     await waitForTabsToLoad();
-    const appearanceButton = screen.getByRole('tab', { name: /appearance/i });
-    expect(appearanceButton).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual([
+      'Rescue Profile',
+      'Adoption Policies',
+      'Application Questions',
+    ]);
   });
 
   it('falls back to profile for invalid hash values', async () => {
@@ -105,5 +116,32 @@ describe('RescueSettings tab persistence via URL hash', () => {
     await waitForTabsToLoad();
     const policiesButton = screen.getByRole('tab', { name: /adoption policies/i });
     expect(policiesButton).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('RescueSettings application questions tab', () => {
+  it('maps the snake_case gateway rescue for the questions builder and profile form', async () => {
+    vi.mocked(apiService.get).mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes('/staff/me')
+          ? { data: { rescueId: 'r1' } }
+          : {
+              data: {
+                rescue_id: 'r1',
+                name: 'Test Rescue',
+                address: '1 High Street',
+                city: 'York',
+                postcode: 'YO1 1AA',
+                country: 'United Kingdom',
+                status: 'verified',
+                settings: {},
+              },
+            }
+      )
+    );
+    renderWithRoute('/settings#questions');
+    expect(await screen.findByTestId('questions-builder')).toBeInTheDocument();
+    expect(screen.queryByText(/loading rescue information/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('profile-form')).toHaveTextContent('1 High Street');
   });
 });

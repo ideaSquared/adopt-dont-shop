@@ -43,13 +43,26 @@ describe('erasePets', () => {
     expect(params).toEqual([payload.userId]);
   });
 
-  it('returns the total rows touched across both statements', async () => {
+  it('deletes the user’s pet views by viewer_id', async () => {
+    const { client, query } = makeClient();
+    await erasePets(client, payload);
+
+    const viewsCall = query.mock.calls.find(call => /pet_views/.test(call[0] as string));
+    expect(viewsCall).toBeDefined();
+    const [sql, params] = viewsCall as [string, unknown[]];
+    expect(sql).toMatch(/DELETE FROM pets.pet_views/);
+    expect(sql).toMatch(/viewer_id = \$1/);
+    expect(params).toEqual([payload.userId]);
+  });
+
+  it('returns the total rows touched across all statements', async () => {
     const { client, query } = makeClient();
     query.mockResolvedValueOnce({ rowCount: 2 }); // favourites
     query.mockResolvedValueOnce({ rowCount: 3 }); // ratings
+    query.mockResolvedValueOnce({ rowCount: 4 }); // pet views
 
     const total = await erasePets(client, payload);
 
-    expect(total).toBe(5);
+    expect(total).toBe(9);
   });
 });

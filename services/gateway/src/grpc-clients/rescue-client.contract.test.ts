@@ -22,6 +22,8 @@ import {
   RescueV1,
   type CreateRescueRequest,
   type CreateRescueResponse,
+  type GetRescueNamesRequest,
+  type GetRescueNamesResponse,
   type GetRescueRequest,
   type GetRescueResponse,
 } from '@adopt-dont-shop/proto';
@@ -48,6 +50,7 @@ const makeHandlers = (
 ): RescueV1.RescueServiceServer => ({
   create: unimplemented,
   get: unimplemented,
+  getRescueNames: unimplemented,
   list: unimplemented,
   update: unimplemented,
   verify: unimplemented,
@@ -194,6 +197,60 @@ describe('rescue-client — gRPC contract', () => {
       expect.fail('expected rejection');
     } catch (err: unknown) {
       expect((err as { code?: number }).code).toBe(status.NOT_FOUND);
+    } finally {
+      client.close();
+    }
+  });
+
+  // ── 4. getRescueNames ────────────────────────────────────────────
+
+  it('getRescueNames — ids arrive in one request and names round-trip', async () => {
+    let receivedIds: string[] = [];
+    port = await startServer(
+      makeHandlers({
+        getRescueNames: (
+          call: ServerUnaryCall<GetRescueNamesRequest, GetRescueNamesResponse>,
+          cb: sendUnaryData<GetRescueNamesResponse>
+        ) => {
+          receivedIds = call.request.rescueIds;
+          cb(null, { names: [{ rescueId: 'r-1', name: 'Paws' }] });
+        },
+      })
+    );
+
+    const client = createRescueClient({ address: `127.0.0.1:${port}` });
+    try {
+      const result = await client.getRescueNames({ rescueIds: ['r-1', 'r-2'] }, new Metadata());
+      expect(receivedIds).toEqual(['r-1', 'r-2']);
+      expect(result.names).toEqual([{ rescueId: 'r-1', name: 'Paws' }]);
+    } finally {
+      client.close();
+    }
+  });
+
+  it('getRescueNames — a per-call budget cancels a stalled call with DEADLINE_EXCEEDED, once', async () => {
+    let calls = 0;
+    port = await startServer(
+      makeHandlers({
+        // Never answers: only the client-side deadline can end this call.
+        getRescueNames: () => {
+          calls += 1;
+        },
+      })
+    );
+
+    const client = createRescueClient({ address: `127.0.0.1:${port}` });
+    const startedAt = Date.now();
+    try {
+      await client.getRescueNames({ rescueIds: ['r-1'] }, new Metadata(), {
+        deadlineMs: 100,
+        maxRetries: 0,
+      });
+      expect.fail('expected rejection');
+    } catch (err: unknown) {
+      expect((err as { code?: number }).code).toBe(status.DEADLINE_EXCEEDED);
+      expect(Date.now() - startedAt).toBeLessThan(2_000);
+      expect(calls).toBe(1);
     } finally {
       client.close();
     }

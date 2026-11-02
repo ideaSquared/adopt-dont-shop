@@ -48,8 +48,8 @@ From the repository root the typical workflow uses Docker — the container boot
 
    ```bash
    docker compose exec service-auth pnpm db:migrate          # or any schema-owning service
-   docker compose exec service-auth pnpm db:seed             # auth / pets / rescue / applications / chat have seeds
-   pnpm db:seed                                              # host-side orchestrator: seeds every service in dep order
+   docker compose exec service-auth pnpm db:seed             # SQL bootstrap: auth (super_admin) and pets (breeds) only
+   pnpm db:seed                                              # bootstrap, then the dev personas via the gateway API
    ```
 
 5. **Services are reachable via the API gateway at**
@@ -167,7 +167,7 @@ Schema-owning services: `service-auth`, `service-pets`, `service-rescue`, `servi
 
 Seeding has two tiers:
 
-1. **Personas** (`db:seed`) — a small fixed set of accounts (john.smith, admin, rescue staff …) with stable ids the e2e suite and the dev-tools login panel depend on. `service-auth`, `service-rescue`, `service-pets`, `service-applications`, `service-chat` each ship one; they use `ON CONFLICT DO UPDATE` and run on every container boot.
+1. **Personas** (`pnpm db:seed`) — a small fixed set of accounts (john.smith, admin, rescue staff …) plus their rescues, pets, an application and a chat, which the e2e suite and the dev-tools login panel depend on. They are generated **through the gateway API** (`scripts/seed.mjs`, data in `scripts/lib/seed-personas.mjs`), so they always match what the API accepts and fire the same events as real traffic. Ids are assigned by the API; look rows up by email or name. Only `service-auth` (the bootstrap super_admin) and `service-pets` (the breed list) keep a SQL `db:seed`, for the rows no API can create.
 2. **Synthetic** (`db:spam`) — the realistic, populated dataset: adopters + rescues, a photo'd pet catalogue (real names, breeds, bios, species-matched photos), plus applications, chats and notifications. Rows use deterministic ids + `ON CONFLICT DO NOTHING`, so re-running converges to the same dataset instead of piling on.
 
 ```bash
@@ -185,7 +185,7 @@ SPAM_PETS=1000 pnpm db:spam
 
 **Fresh Docker stack:** the browsable catalogue (auth + rescue + pets synthetic) is seeded automatically on boot, but only into an EMPTY database — the boot commands pass `SEED_ONLY_IF_EMPTY=true`, so a reboot never re-seeds over data you already have. To (re)populate an existing DB, or to add the applications/chat/notification volume (not seeded at boot), run `pnpm db:seed:dev`. Wipe and start clean with `pnpm docker:reset`.
 
-`pnpm db:seed` / `db:spam` are thin host-side orchestrators (`scripts/seed.mjs` / `scripts/spam.mjs`) that shell into each service container in dependency order (auth → rescue → pets → applications → chat → notifications) — see the script headers for the ordering and why they must not import workspace packages from the host. Synthetic photos are real, species-matched LoremFlickr URLs stored on the pet; the gateway surfaces them (and the breed name) through the list/detail responses.
+`pnpm db:spam` is a thin host-side orchestrator (`scripts/spam.mjs`) that shells into each service container in dependency order (auth → rescue → pets → applications → chat → notifications). `pnpm db:seed` (`scripts/seed.mjs`) shells into auth and pets for the SQL bootstrap, then calls the gateway. See the script headers for why neither may import workspace packages from the host. Synthetic photos are real, species-matched LoremFlickr URLs stored on the pet; the gateway surfaces them (and the breed name) through the list/detail responses.
 
 ## Testing
 
@@ -280,7 +280,7 @@ The gateway is the only HTTP edge. Domain logic lives in a gRPC microservice; th
 1. **Create the migration** by copying the latest file in the owning service's `services/<name>/src/migrations/` and renaming it with the next number (`NNN_create_my_table.ts` — 3-digit zero-padded prefix then snake_case; the `node-pg-migrate` runner picks files up in lexicographic order, no generator). Author both `up()` and `down()`.
 2. **Restart the service** — its boot CMD runs `pnpm run --if-present db:migrate` and applies the new migration, or run it explicitly with `docker compose exec service-<name> pnpm db:migrate`.
 3. **Update the gRPC handlers** in `services/<name>/src/grpc/` to read/write the new table via the connection from `@adopt-dont-shop/db`. Direct parameterised SQL — there is no ORM.
-4. **Add seed rows** (optional) by extending `services/<name>/src/db/seed-data.ts` + `seed.ts`. Keep inserts idempotent with `ON CONFLICT DO UPDATE`.
+4. **Add seed data** (optional) through the API: extend `scripts/lib/seed-personas.mjs` and add an idempotent look-then-create step to `scripts/lib/seed-generate.mjs`. Bulk synthetic rows go in the service's `src/db/spam.ts`.
 
 ### gRPC handler authoring
 
@@ -391,8 +391,8 @@ docker compose ps database
 
 # Nuclear reset (wipes the volume, then re-initializes)
 pnpm docker:reset
-pnpm docker:dev:detach   # each service runs its own db:migrate + db:seed on boot
-pnpm db:seed             # re-run if you need to top up seed rows after boot
+pnpm docker:dev:detach   # each service migrates on boot; seed-personas then seeds via the API
+pnpm db:seed             # re-run if you need to restore the seed rows after boot
 ```
 
 ### Email Not Sending

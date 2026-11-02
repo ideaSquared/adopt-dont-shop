@@ -691,7 +691,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerRescuesPublicRoutes(server, { client: opts.rescueClient });
     // Staff / foster / invitation-read surface (/api/v1/staff/*,
     // /api/v1/foster/*, GET /api/v1/invitations/details/:token).
-    await registerStaffFosterRoutes(server, { client: opts.rescueClient });
+    await registerStaffFosterRoutes(server, {
+      client: opts.rescueClient,
+      authClient: opts.authClient,
+    });
     // Admin rescue detail surface — plan / analytics / send-email /
     // bulk-update + plural verify/reject + StaffTab (staff + invitations).
     // authClient enriches staff members with name/email from auth.users.
@@ -743,7 +746,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
   if (opts.matchingClient) {
-    await registerMatchingRoutes(server, { client: opts.matchingClient });
+    await registerMatchingRoutes(server, {
+      client: opts.matchingClient,
+      rescueClient: opts.rescueClient,
+    });
   }
   if (opts.moderationClient) {
     // Per-principal report-filing cap (ADS-1421) — enforced as a route

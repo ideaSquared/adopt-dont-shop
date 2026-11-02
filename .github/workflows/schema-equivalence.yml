@@ -155,10 +155,25 @@ jobs:
       # that's only unsafe once a table has rows (a NOT NULL add with no
       # default is invisible against an empty table). This step (a) re-runs
       # every service's migrations a second time to prove the runner is a true
-      # no-op on an already-migrated schema, then (b) for the services with a
-      # `db:seed`, replays this branch's newly-added migrations against a
-      # database that already has seed data in it.
+      # no-op on an already-migrated schema, then (b) for the services with
+      # dev data, replays this branch's newly-added migrations against a
+      # database that already has rows in it.
+      #
+      # The rows come from each service's SQL `db:seed` (auth's super_admin,
+      # pets' breeds) plus a small `db:spam` run — the dev personas are
+      # generated through the API (scripts/seed.mjs), which needs the running
+      # stack. The applications and chat spam read rows from the other
+      # schemas, so every schema is populated once before the replay loop.
       - name: Re-run migrations (idempotency) and replay new migrations against seeded data
+        env:
+          SPAM_ADOPTERS: '20'
+          SPAM_STAFF: '10'
+          SPAM_RESCUES: '3'
+          SPAM_PETS: '30'
+          SPAM_RATINGS: '20'
+          SPAM_APPLICATIONS: '20'
+          SPAM_CHATS: '5'
+          SPAM_MESSAGES: '20'
         run: |
           set -euo pipefail
           command -v psql >/dev/null 2>&1 || sudo apt-get install -y --no-install-recommends postgresql-client
@@ -169,6 +184,20 @@ jobs:
             if ! (cd "services/${svc}" && pnpm db:migrate); then
               echo "::error::services/${svc}: migrations are not idempotent (second run failed)"
               failed+=("${svc}-idempotent")
+            fi
+          done
+          echo "::endgroup::"
+
+          # db:spam is double-gated to dev/test (NODE_ENV + ALLOW_SPAM).
+          populate() {
+            (cd "services/$1" && pnpm run --if-present db:seed && NODE_ENV=test ALLOW_SPAM=true pnpm db:spam)
+          }
+
+          echo "::group::Populate every schema with dev data"
+          for svc in auth rescue pets applications chat; do
+            if ! populate "${svc}"; then
+              echo "::error::services/${svc}: db:seed / db:spam failed against the current schema"
+              failed+=("${svc}-populate")
             fi
           done
           echo "::endgroup::"
@@ -193,8 +222,8 @@ jobs:
               echo "::error::services/${svc}: baseline migrations failed while preparing the seeded replay"
               failed+=("${svc}-seed-baseline")
               baseline_ok=0
-            elif ! (cd "services/${svc}" && pnpm db:seed); then
-              echo "::error::services/${svc}: db:seed failed against the baseline schema"
+            elif ! populate "${svc}"; then
+              echo "::error::services/${svc}: db:seed / db:spam failed against the baseline schema"
               failed+=("${svc}-seed")
               baseline_ok=0
             fi

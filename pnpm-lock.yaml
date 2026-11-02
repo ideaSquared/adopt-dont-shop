@@ -727,8 +727,8 @@ importers:
         specifier: '>=5.0.0'
         version: 7.1.1(eslint@10.5.0(jiti@2.7.0))
       eslint-plugin-react-refresh:
-        specifier: ^0.4.3
-        version: 0.4.26(eslint@10.5.0(jiti@2.7.0))
+        specifier: '>=0.4.3'
+        version: 0.5.3(eslint@10.5.0(jiti@2.7.0))
       typescript-eslint:
         specifier: ^8.0.0
         version: 8.61.1(eslint@10.5.0(jiti@2.7.0))(typescript@6.0.3)
@@ -1530,6 +1530,9 @@ importers:
       '@bufbuild/buf':
         specifier: ^1.71.0
         version: 1.71.0
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.1.1
       ts-proto:
         specifier: ^2.11.8
         version: 2.11.8
@@ -1709,6 +1712,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@pact-foundation/pact':
         specifier: ^17.0.0
         version: 17.0.0
@@ -2269,6 +2275,9 @@ importers:
       '@adopt-dont-shop/proto':
         specifier: workspace:*
         version: link:../../packages/proto
+      '@adopt-dont-shop/scheduler':
+        specifier: workspace:*
+        version: link:../../packages/scheduler
       '@adopt-dont-shop/seed-faker':
         specifier: workspace:*
         version: link:../../packages/seed-faker
@@ -2297,6 +2306,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@pact-foundation/pact':
         specifier: ^17.0.0
         version: 17.0.0
@@ -2355,6 +2367,9 @@ importers:
       '@adopt-dont-shop/eslint-config-node':
         specifier: workspace:*
         version: link:../../packages/eslint-config-node
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@pact-foundation/pact':
         specifier: ^17.0.0
         version: 17.0.0
@@ -7049,11 +7064,6 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0 || ^9.0.0 || ^10.0.0
-
-  eslint-plugin-react-refresh@0.4.26:
-    resolution: {integrity: sha512-1RETEylht2O6FM/MvgnyvT+8K21wLqDNg4qD51Zj3guhjt433XbnnkVttHMyaVyAFD03QSV4LPS5iE3VQmO7XQ==}
-    peerDependencies:
-      eslint: '>=8.40'
 
   eslint-plugin-react-refresh@0.5.3:
     resolution: {integrity: sha512-5EMmLCV98Pi4o/f/3DP/v/tNqLHMIc9I8LKClNDWhZ9JTho89/kQcitCXQBMG7sAfVRK0Ie3T2EDOzp1YXYiVA==}
@@ -15063,10 +15073,6 @@ snapshots:
       zod-validation-error: 4.0.2(zod@4.6.7)
     transitivePeerDependencies:
       - supports-color
-
-  eslint-plugin-react-refresh@0.4.26(eslint@10.5.0(jiti@2.7.0)):
-    dependencies:
-      eslint: 10.5.0(jiti@2.7.0)
 
   eslint-plugin-react-refresh@0.5.3(eslint@10.5.0(jiti@2.7.0)):
     dependencies:

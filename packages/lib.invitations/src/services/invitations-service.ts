@@ -9,6 +9,25 @@ import {
   AcceptInvitationResponse,
 } from '../types';
 
+// Wire shape of GET /api/v1/rescues/:rescueId/invitations (gateway invitationToView).
+type GatewayInvitation = {
+  invitationId: number;
+  email: string;
+  title?: string;
+  invitedBy?: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+const toPendingInvitation = (inv: GatewayInvitation): PendingInvitation => ({
+  invitation_id: inv.invitationId,
+  email: inv.email,
+  title: inv.title,
+  invited_by: inv.invitedBy,
+  created_at: inv.createdAt,
+  expiration: inv.expiresAt,
+});
+
 /**
  * InvitationsService - Handles staff invitation operations
  *
@@ -82,11 +101,11 @@ export class InvitationsService {
     try {
       const response = await this.apiService.get<{
         success: boolean;
-        invitations: PendingInvitation[];
+        data: GatewayInvitation[];
       }>(`/api/v1/rescues/${rescueId}/invitations`);
 
-      if (response.success && Array.isArray(response.invitations)) {
-        return response.invitations;
+      if (response.success && Array.isArray(response.data)) {
+        return response.data.map(toPendingInvitation);
       }
 
       // Fallback for different response formats

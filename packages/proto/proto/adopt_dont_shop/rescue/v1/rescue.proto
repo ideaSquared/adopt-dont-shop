@@ -32,6 +32,11 @@ service RescueService {
   // by default; admins can filter on the other statuses.
   rpc List(ListRescuesRequest) returns (ListRescuesResponse);
 
+  // Batch read of rescue coordinates (geocoded from the postcode) for the
+  // swipe card's distance badge. Verified rescues only; rescues without
+  // coordinates are omitted. `rescues.read`.
+  rpc GetRescueLocations(GetRescueLocationsRequest) returns (GetRescueLocationsResponse);
+
   // Update mutable rescue fields. Does NOT change verification status
   // — that's Verify's job. Caller MUST have `rescues.update` scoped to
   // the rescue. Publishes `rescue.updated` on NATS after commit.
@@ -185,6 +190,13 @@ service RescueService {
   // uncapped, unlike counting List() page lengths (capped at 100). Caller
   // MUST have `rescues.read`.
   rpc CountRescues(CountRescuesRequest) returns (CountRescuesResponse);
+
+  // Batch id -> name lookup for decorating lists (e.g. the swipe deck) with
+  // rescue names in ONE call instead of one Get per rescue. Public like Get:
+  // a caller without `rescues.read` (or anonymous) only resolves VERIFIED
+  // rescues; unknown / soft-deleted / hidden ids are simply absent from the
+  // response. At most 100 ids per call.
+  rpc GetRescueNames(GetRescueNamesRequest) returns (GetRescueNamesResponse);
 
   // Validate + enqueue an admin email to a rescue's contact address.
   // Admin-only — caller MUST have `admin.security.manage`. Confirms the
@@ -364,6 +376,20 @@ message GetRescueResponse {
   Rescue rescue = 1;
 }
 
+message GetRescueLocationsRequest {
+  repeated string rescue_ids = 1;
+}
+
+message RescueLocation {
+  string rescue_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message GetRescueLocationsResponse {
+  repeated RescueLocation locations = 1;
+}
+
 // --- List -------------------------------------------------------------
 
 message ListRescuesRequest {
@@ -428,6 +454,8 @@ message UpdateRescueRequest {
   // moved beyond this version. Unset = no check (last-write-wins,
   // the pre-existing behaviour).
   optional uint32 expected_version = 17;
+  // The rescue's primary email (rescue.rescues.email, unique).
+  optional string email = 18;
 }
 
 message UpdateRescueResponse {
@@ -813,6 +841,21 @@ message CountRescuesResponse {
   uint32 rejected = 5;
   // Sum across every status (includes any not broken out above).
   uint32 total = 6;
+}
+
+// --- GetRescueNames ---------------------------------------------------
+
+message GetRescueNamesRequest {
+  repeated string rescue_ids = 1;
+}
+
+message RescueName {
+  string rescue_id = 1;
+  string name = 2;
+}
+
+message GetRescueNamesResponse {
+  repeated RescueName names = 1;
 }
 
 message SendRescueEmailRequest {

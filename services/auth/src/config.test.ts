@@ -26,6 +26,7 @@ describe('loadConfig', () => {
     expect(config.schema).toBe('auth');
     expect(config.natsUrl).toBe('nats://nats:4222');
     expect(config.applicationsGrpcUrl).toBe('service-applications:6005');
+    expect(config.rescueGrpcUrl).toBe('service-rescue:6004');
     expect(config.jwtSecret).toBe(REQUIRED.JWT_SECRET);
     expect(config.jwtRefreshSecret).toBe(REQUIRED.JWT_REFRESH_SECRET);
     expect(config.encryptionKey).toBe(REQUIRED.ENCRYPTION_KEY);
@@ -41,6 +42,7 @@ describe('loadConfig', () => {
       DATABASE_URL: 'postgres://prod:secret@db.example.com:5432/auth',
       NATS_URL: 'nats://nats.internal:4222',
       APPLICATIONS_GRPC_URL: 'applications.internal:6005',
+      RESCUE_GRPC_URL: 'rescue.internal:6004',
       JWT_SECRET: VALID_ACCESS_SECRET,
       JWT_REFRESH_SECRET: VALID_REFRESH_SECRET,
       ENCRYPTION_KEY: VALID_ENCRYPTION_KEY,
@@ -54,6 +56,7 @@ describe('loadConfig', () => {
     expect(config.databaseUrl).toBe('postgres://prod:secret@db.example.com:5432/auth');
     expect(config.natsUrl).toBe('nats://nats.internal:4222');
     expect(config.applicationsGrpcUrl).toBe('applications.internal:6005');
+    expect(config.rescueGrpcUrl).toBe('rescue.internal:6004');
     expect(config.jwtSecret).toBe(VALID_ACCESS_SECRET);
     expect(config.jwtRefreshSecret).toBe(VALID_REFRESH_SECRET);
     expect(config.encryptionKey).toBe(VALID_ENCRYPTION_KEY);

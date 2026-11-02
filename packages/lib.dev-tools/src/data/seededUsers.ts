@@ -26,11 +26,13 @@ export interface DevUser {
   description: string;
 }
 
-// Dev password used in backend seeders
+// Dev password every seeded persona shares (SEED_PASSWORD's default)
 export const SEEDED_PASSWORD = 'DevPassword123!';
 
-// Centralized seeded dev users data matching backend seeders
-// This ensures dev panels always match the actual seeded database data
+// The accounts `pnpm db:seed` creates (scripts/lib/seed-personas.mjs), so the
+// dev login panel only offers logins that work. The emails are pinned to the
+// seed by scripts/lib/seed-generate.test.mjs. userId is only a local key: the
+// API assigns the real ids.
 export const seededDevUsers: DevUser[] = [
   // Admin users
   {
@@ -243,29 +245,6 @@ export const seededDevUsers: DevUser[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     description: 'Active dog owner',
-  },
-  {
-    userId: 'user_0000adopt04',
-    firstName: 'Jessica',
-    lastName: 'Wilson',
-    email: 'jessica.wilson@gmail.com',
-    userType: 'adopter',
-    status: 'active',
-    emailVerified: true,
-    country: 'US',
-    city: 'Boston',
-    addressLine1: '321 Elm Street',
-    postalCode: '02101',
-    timezone: 'America/New_York',
-    language: 'en',
-    bio: 'First-time pet owner looking for a gentle, well-trained pet.',
-    dateOfBirth: '1990-07-18',
-    phoneNumber: '+1234567899',
-    termsAcceptedAt: new Date().toISOString(),
-    privacyPolicyAcceptedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    description: 'First-time adopter',
   },
 ];
 

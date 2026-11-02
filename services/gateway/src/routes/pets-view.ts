@@ -69,18 +69,18 @@ function prune(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
 }
 
-// Pet images ride in extra_json — as `image_urls` (the /pets/:id/images
-// append/remove routes and lib.pets' image manager write this key) or as a
-// bare `images` string[] (the create/update body packs it there via
-// pickExtra). Both are just URL lists; lib.pets renders `{ url, is_primary }`
-// objects. Normalise either source into that shape, dedupe by URL, and mark
-// the first as primary so PetCard has a cover photo.
+// Pet images ride in extra_json under `image_urls`, the single authoritative
+// list (the /pets/:id/images routes, the create/update body and the pets
+// service all write it). lib.pets renders `{ url, is_primary }` objects, so
+// map it into that shape and mark the first as primary so PetCard has a cover
+// photo.
 type ImageView = { url: string; is_primary: boolean; order_index: number };
 
+const stringList = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u !== '') : [];
+
 function imagesFromExtra(extra: Record<string, unknown>): ImageView[] | undefined {
-  const collect = (v: unknown): string[] =>
-    Array.isArray(v) ? v.filter((u): u is string => typeof u === 'string' && u !== '') : [];
-  const urls = [...new Set([...collect(extra.image_urls), ...collect(extra.images)])];
+  const urls = [...new Set(stringList(extra.image_urls))];
   if (urls.length === 0) {
     return undefined;
   }
@@ -183,7 +183,10 @@ export function listToEnvelope(
 // core proto message doesn't carry is packed into extra_json.
 
 // snake_case (and camelCase fallback) keys consumed by the core proto
-// fields — everything else in the body is packed into extra_json.
+// fields — everything else in the body is packed into extra_json. `breed` /
+// `secondary_breed` are deliberately NOT listed: the service resolves the
+// names to breed ids (breedName), and the copy left in extra_json is what
+// petToView hands back as the breed name, since the proto Pet has no name.
 const CORE_KEYS = new Set([
   'name',
   'rescue_id',
@@ -266,8 +269,15 @@ function tokenToEnum(
   }
 }
 
+// The form posts photos as `images`; fold them into the canonical
+// `image_urls` (existing image_urls first, deduped) so the bare key is never
+// stored.
 function pickExtra(b: Record<string, unknown>): string {
-  const extra = Object.fromEntries(Object.entries(b).filter(([k]) => !CORE_KEYS.has(k)));
+  const { images, ...rest } = Object.fromEntries(
+    Object.entries(b).filter(([k]) => !CORE_KEYS.has(k))
+  );
+  const urls = [...new Set([...stringList(rest.image_urls), ...stringList(images)])];
+  const extra = urls.length > 0 || images !== undefined ? { ...rest, image_urls: urls } : rest;
   return JSON.stringify(extra);
 }
 
@@ -302,6 +312,8 @@ export function viewToCreateRequest(body: unknown): CreatePetRequest {
     ),
     breedId: str(b.breed_id ?? b.breedId),
     secondaryBreedId: str(b.secondary_breed_id ?? b.secondaryBreedId),
+    breedName: str(b.breed),
+    secondaryBreedName: str(b.secondary_breed ?? b.secondaryBreed),
     shortDescription: str(b.short_description ?? b.shortDescription),
     longDescription: str(b.long_description ?? b.longDescription),
     ageYears: int(b.age_years ?? b.ageYears),
@@ -362,6 +374,18 @@ export function viewToUpdateRequest(petId: string, body: unknown): UpdatePetRequ
   const breedId = str(b.breed_id ?? b.breedId);
   if (breedId !== undefined) {
     req.breedId = breedId;
+  }
+  const secondaryBreedId = str(b.secondary_breed_id ?? b.secondaryBreedId);
+  if (secondaryBreedId !== undefined) {
+    req.secondaryBreedId = secondaryBreedId;
+  }
+  const breedName = str(b.breed);
+  if (breedName !== undefined) {
+    req.breedName = breedName;
+  }
+  const secondaryBreedName = str(b.secondary_breed ?? b.secondaryBreed);
+  if (secondaryBreedName !== undefined) {
+    req.secondaryBreedName = secondaryBreedName;
   }
   const fee = feeToMinor(b.adoption_fee ?? b.adoptionFee ?? b.adoption_fee_minor);
   if (fee !== undefined) {

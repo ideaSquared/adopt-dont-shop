@@ -408,6 +408,14 @@ export interface CreatePetRequest {
   temperamentJson: string;
   tagsJson: string;
   extraJson: string;
+  /**
+   * Breed NAME, resolved to a breed_id by the service against pets.breeds
+   * (matched on the pet's type + name, case-insensitive). Used when the
+   * caller (the rescue app) only knows the name; an explicit breed_id /
+   * secondary_breed_id wins. An unknown name is INVALID_ARGUMENT.
+   */
+  breedName?: string | undefined;
+  secondaryBreedName?: string | undefined;
 }
 
 export interface CreatePetResponse {
@@ -542,7 +550,15 @@ export interface UpdatePetRequest {
    * Off-market archive flag (distinct from status + from soft Delete).
    * Mutating it platform-wide requires `pets.manage:any`.
    */
-  archived?: boolean | undefined;
+  archived?:
+    | boolean
+    | undefined;
+  /**
+   * Breed NAME, resolved against the pet's type; same rules as
+   * CreatePetRequest.breed_name. An explicit breed_id wins.
+   */
+  breedName?: string | undefined;
+  secondaryBreedName?: string | undefined;
 }
 
 export interface UpdatePetResponse {
@@ -785,6 +801,54 @@ export interface BreedAdoptionCount {
 
 export interface GetTopBreedsByAdoptionsResponse {
   breeds: BreedAdoptionCount[];
+}
+
+export interface AdoptionCohort {
+  type: PetType;
+  size: PetSize;
+  ageGroup: PetAgeGroup;
+}
+
+export interface GetAdoptionStatsRequest {
+  /** At most 50 cohorts per call. */
+  cohorts: AdoptionCohort[];
+}
+
+export interface AdoptionCohortStats {
+  cohort?: AdoptionCohort | undefined;
+  sampleCount: number;
+  /**
+   * Median days from available_since to adopted_date; 0 when
+   * sample_count is 0.
+   */
+  medianDays: number;
+}
+
+export interface GetAdoptionStatsResponse {
+  stats: AdoptionCohortStats[];
+}
+
+export interface RecordPetViewRequest {
+  petId: string;
+}
+
+export interface RecordPetViewResponse {
+  /** False when the view fell inside the dedupe window and was not stored. */
+  recorded: boolean;
+}
+
+export interface GetViewsTodayRequest {
+  /** At most 100 ids per call. */
+  petIds: string[];
+}
+
+export interface PetViewCount {
+  petId: string;
+  views: number;
+}
+
+export interface GetViewsTodayResponse {
+  counts: PetViewCount[];
 }
 
 function createBasePet(): Pet {
@@ -1681,6 +1745,8 @@ function createBaseCreatePetRequest(): CreatePetRequest {
     temperamentJson: "",
     tagsJson: "",
     extraJson: "",
+    breedName: undefined,
+    secondaryBreedName: undefined,
   };
 }
 
@@ -1742,6 +1808,12 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     }
     if (message.extraJson !== "") {
       writer.uint32(154).string(message.extraJson);
+    }
+    if (message.breedName !== undefined) {
+      writer.uint32(162).string(message.breedName);
+    }
+    if (message.secondaryBreedName !== undefined) {
+      writer.uint32(170).string(message.secondaryBreedName);
     }
     return writer;
   },
@@ -1905,6 +1977,22 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
           message.extraJson = reader.string();
           continue;
         }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.breedName = reader.string();
+          continue;
+        }
+        case 21: {
+          if (tag !== 170) {
+            break;
+          }
+
+          message.secondaryBreedName = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1995,6 +2083,16 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
         : isSet(object.extra_json)
         ? globalThis.String(object.extra_json)
         : "",
+      breedName: isSet(object.breedName)
+        ? globalThis.String(object.breedName)
+        : isSet(object.breed_name)
+        ? globalThis.String(object.breed_name)
+        : undefined,
+      secondaryBreedName: isSet(object.secondaryBreedName)
+        ? globalThis.String(object.secondaryBreedName)
+        : isSet(object.secondary_breed_name)
+        ? globalThis.String(object.secondary_breed_name)
+        : undefined,
     };
   },
 
@@ -2057,6 +2155,12 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     if (message.extraJson !== "") {
       obj.extraJson = message.extraJson;
     }
+    if (message.breedName !== undefined) {
+      obj.breedName = message.breedName;
+    }
+    if (message.secondaryBreedName !== undefined) {
+      obj.secondaryBreedName = message.secondaryBreedName;
+    }
     return obj;
   },
 
@@ -2084,6 +2188,8 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     message.temperamentJson = object.temperamentJson ?? "";
     message.tagsJson = object.tagsJson ?? "";
     message.extraJson = object.extraJson ?? "";
+    message.breedName = object.breedName ?? undefined;
+    message.secondaryBreedName = object.secondaryBreedName ?? undefined;
     return message;
   },
 };
@@ -2960,6 +3066,8 @@ function createBaseUpdatePetRequest(): UpdatePetRequest {
     tagsJson: undefined,
     extraJson: undefined,
     archived: undefined,
+    breedName: undefined,
+    secondaryBreedName: undefined,
   };
 }
 
@@ -3021,6 +3129,12 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     }
     if (message.archived !== undefined) {
       writer.uint32(152).bool(message.archived);
+    }
+    if (message.breedName !== undefined) {
+      writer.uint32(162).string(message.breedName);
+    }
+    if (message.secondaryBreedName !== undefined) {
+      writer.uint32(170).string(message.secondaryBreedName);
     }
     return writer;
   },
@@ -3184,6 +3298,22 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
           message.archived = reader.bool();
           continue;
         }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.breedName = reader.string();
+          continue;
+        }
+        case 21: {
+          if (tag !== 170) {
+            break;
+          }
+
+          message.secondaryBreedName = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3270,6 +3400,16 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
         ? globalThis.String(object.extra_json)
         : undefined,
       archived: isSet(object.archived) ? globalThis.Boolean(object.archived) : undefined,
+      breedName: isSet(object.breedName)
+        ? globalThis.String(object.breedName)
+        : isSet(object.breed_name)
+        ? globalThis.String(object.breed_name)
+        : undefined,
+      secondaryBreedName: isSet(object.secondaryBreedName)
+        ? globalThis.String(object.secondaryBreedName)
+        : isSet(object.secondary_breed_name)
+        ? globalThis.String(object.secondary_breed_name)
+        : undefined,
     };
   },
 
@@ -3332,6 +3472,12 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     if (message.archived !== undefined) {
       obj.archived = message.archived;
     }
+    if (message.breedName !== undefined) {
+      obj.breedName = message.breedName;
+    }
+    if (message.secondaryBreedName !== undefined) {
+      obj.secondaryBreedName = message.secondaryBreedName;
+    }
     return obj;
   },
 
@@ -3359,6 +3505,8 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     message.tagsJson = object.tagsJson ?? undefined;
     message.extraJson = object.extraJson ?? undefined;
     message.archived = object.archived ?? undefined;
+    message.breedName = object.breedName ?? undefined;
+    message.secondaryBreedName = object.secondaryBreedName ?? undefined;
     return message;
   },
 };
@@ -6360,6 +6508,654 @@ export const GetTopBreedsByAdoptionsResponse: MessageFns<GetTopBreedsByAdoptions
   },
 };
 
+function createBaseAdoptionCohort(): AdoptionCohort {
+  return { type: 0, size: 0, ageGroup: 0 };
+}
+
+export const AdoptionCohort: MessageFns<AdoptionCohort> = {
+  encode(message: AdoptionCohort, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.type !== 0) {
+      writer.uint32(8).int32(message.type);
+    }
+    if (message.size !== 0) {
+      writer.uint32(16).int32(message.size);
+    }
+    if (message.ageGroup !== 0) {
+      writer.uint32(24).int32(message.ageGroup);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdoptionCohort {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdoptionCohort();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.size = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.ageGroup = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdoptionCohort {
+    return {
+      type: isSet(object.type) ? petTypeFromJSON(object.type) : 0,
+      size: isSet(object.size) ? petSizeFromJSON(object.size) : 0,
+      ageGroup: isSet(object.ageGroup)
+        ? petAgeGroupFromJSON(object.ageGroup)
+        : isSet(object.age_group)
+        ? petAgeGroupFromJSON(object.age_group)
+        : 0,
+    };
+  },
+
+  toJSON(message: AdoptionCohort): unknown {
+    const obj: any = {};
+    if (message.type !== 0) {
+      obj.type = petTypeToJSON(message.type);
+    }
+    if (message.size !== 0) {
+      obj.size = petSizeToJSON(message.size);
+    }
+    if (message.ageGroup !== 0) {
+      obj.ageGroup = petAgeGroupToJSON(message.ageGroup);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdoptionCohort>, I>>(base?: I): AdoptionCohort {
+    return AdoptionCohort.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdoptionCohort>, I>>(object: I): AdoptionCohort {
+    const message = createBaseAdoptionCohort();
+    message.type = object.type ?? 0;
+    message.size = object.size ?? 0;
+    message.ageGroup = object.ageGroup ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetAdoptionStatsRequest(): GetAdoptionStatsRequest {
+  return { cohorts: [] };
+}
+
+export const GetAdoptionStatsRequest: MessageFns<GetAdoptionStatsRequest> = {
+  encode(message: GetAdoptionStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.cohorts) {
+      AdoptionCohort.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAdoptionStatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAdoptionStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.cohorts.push(AdoptionCohort.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAdoptionStatsRequest {
+    return {
+      cohorts: globalThis.Array.isArray(object?.cohorts)
+        ? object.cohorts.map((e: any) => AdoptionCohort.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetAdoptionStatsRequest): unknown {
+    const obj: any = {};
+    if (message.cohorts?.length) {
+      obj.cohorts = message.cohorts.map((e) => AdoptionCohort.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAdoptionStatsRequest>, I>>(base?: I): GetAdoptionStatsRequest {
+    return GetAdoptionStatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAdoptionStatsRequest>, I>>(object: I): GetAdoptionStatsRequest {
+    const message = createBaseGetAdoptionStatsRequest();
+    message.cohorts = object.cohorts?.map((e) => AdoptionCohort.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseAdoptionCohortStats(): AdoptionCohortStats {
+  return { cohort: undefined, sampleCount: 0, medianDays: 0 };
+}
+
+export const AdoptionCohortStats: MessageFns<AdoptionCohortStats> = {
+  encode(message: AdoptionCohortStats, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.cohort !== undefined) {
+      AdoptionCohort.encode(message.cohort, writer.uint32(10).fork()).join();
+    }
+    if (message.sampleCount !== 0) {
+      writer.uint32(16).uint32(message.sampleCount);
+    }
+    if (message.medianDays !== 0) {
+      writer.uint32(25).double(message.medianDays);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdoptionCohortStats {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdoptionCohortStats();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.cohort = AdoptionCohort.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.sampleCount = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 25) {
+            break;
+          }
+
+          message.medianDays = reader.double();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdoptionCohortStats {
+    return {
+      cohort: isSet(object.cohort) ? AdoptionCohort.fromJSON(object.cohort) : undefined,
+      sampleCount: isSet(object.sampleCount)
+        ? globalThis.Number(object.sampleCount)
+        : isSet(object.sample_count)
+        ? globalThis.Number(object.sample_count)
+        : 0,
+      medianDays: isSet(object.medianDays)
+        ? globalThis.Number(object.medianDays)
+        : isSet(object.median_days)
+        ? globalThis.Number(object.median_days)
+        : 0,
+    };
+  },
+
+  toJSON(message: AdoptionCohortStats): unknown {
+    const obj: any = {};
+    if (message.cohort !== undefined) {
+      obj.cohort = AdoptionCohort.toJSON(message.cohort);
+    }
+    if (message.sampleCount !== 0) {
+      obj.sampleCount = Math.round(message.sampleCount);
+    }
+    if (message.medianDays !== 0) {
+      obj.medianDays = message.medianDays;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdoptionCohortStats>, I>>(base?: I): AdoptionCohortStats {
+    return AdoptionCohortStats.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdoptionCohortStats>, I>>(object: I): AdoptionCohortStats {
+    const message = createBaseAdoptionCohortStats();
+    message.cohort = (object.cohort !== undefined && object.cohort !== null)
+      ? AdoptionCohort.fromPartial(object.cohort)
+      : undefined;
+    message.sampleCount = object.sampleCount ?? 0;
+    message.medianDays = object.medianDays ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetAdoptionStatsResponse(): GetAdoptionStatsResponse {
+  return { stats: [] };
+}
+
+export const GetAdoptionStatsResponse: MessageFns<GetAdoptionStatsResponse> = {
+  encode(message: GetAdoptionStatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.stats) {
+      AdoptionCohortStats.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAdoptionStatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAdoptionStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.stats.push(AdoptionCohortStats.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAdoptionStatsResponse {
+    return {
+      stats: globalThis.Array.isArray(object?.stats)
+        ? object.stats.map((e: any) => AdoptionCohortStats.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetAdoptionStatsResponse): unknown {
+    const obj: any = {};
+    if (message.stats?.length) {
+      obj.stats = message.stats.map((e) => AdoptionCohortStats.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAdoptionStatsResponse>, I>>(base?: I): GetAdoptionStatsResponse {
+    return GetAdoptionStatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAdoptionStatsResponse>, I>>(object: I): GetAdoptionStatsResponse {
+    const message = createBaseGetAdoptionStatsResponse();
+    message.stats = object.stats?.map((e) => AdoptionCohortStats.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseRecordPetViewRequest(): RecordPetViewRequest {
+  return { petId: "" };
+}
+
+export const RecordPetViewRequest: MessageFns<RecordPetViewRequest> = {
+  encode(message: RecordPetViewRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.petId !== "") {
+      writer.uint32(10).string(message.petId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RecordPetViewRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRecordPetViewRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RecordPetViewRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : "",
+    };
+  },
+
+  toJSON(message: RecordPetViewRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== "") {
+      obj.petId = message.petId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RecordPetViewRequest>, I>>(base?: I): RecordPetViewRequest {
+    return RecordPetViewRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RecordPetViewRequest>, I>>(object: I): RecordPetViewRequest {
+    const message = createBaseRecordPetViewRequest();
+    message.petId = object.petId ?? "";
+    return message;
+  },
+};
+
+function createBaseRecordPetViewResponse(): RecordPetViewResponse {
+  return { recorded: false };
+}
+
+export const RecordPetViewResponse: MessageFns<RecordPetViewResponse> = {
+  encode(message: RecordPetViewResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.recorded !== false) {
+      writer.uint32(8).bool(message.recorded);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RecordPetViewResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRecordPetViewResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.recorded = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RecordPetViewResponse {
+    return { recorded: isSet(object.recorded) ? globalThis.Boolean(object.recorded) : false };
+  },
+
+  toJSON(message: RecordPetViewResponse): unknown {
+    const obj: any = {};
+    if (message.recorded !== false) {
+      obj.recorded = message.recorded;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RecordPetViewResponse>, I>>(base?: I): RecordPetViewResponse {
+    return RecordPetViewResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RecordPetViewResponse>, I>>(object: I): RecordPetViewResponse {
+    const message = createBaseRecordPetViewResponse();
+    message.recorded = object.recorded ?? false;
+    return message;
+  },
+};
+
+function createBaseGetViewsTodayRequest(): GetViewsTodayRequest {
+  return { petIds: [] };
+}
+
+export const GetViewsTodayRequest: MessageFns<GetViewsTodayRequest> = {
+  encode(message: GetViewsTodayRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.petIds) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetViewsTodayRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetViewsTodayRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetViewsTodayRequest {
+    return {
+      petIds: globalThis.Array.isArray(object?.petIds)
+        ? object.petIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.pet_ids)
+        ? object.pet_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetViewsTodayRequest): unknown {
+    const obj: any = {};
+    if (message.petIds?.length) {
+      obj.petIds = message.petIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetViewsTodayRequest>, I>>(base?: I): GetViewsTodayRequest {
+    return GetViewsTodayRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetViewsTodayRequest>, I>>(object: I): GetViewsTodayRequest {
+    const message = createBaseGetViewsTodayRequest();
+    message.petIds = object.petIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBasePetViewCount(): PetViewCount {
+  return { petId: "", views: 0 };
+}
+
+export const PetViewCount: MessageFns<PetViewCount> = {
+  encode(message: PetViewCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.petId !== "") {
+      writer.uint32(10).string(message.petId);
+    }
+    if (message.views !== 0) {
+      writer.uint32(16).uint32(message.views);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PetViewCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePetViewCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.views = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PetViewCount {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+        ? globalThis.String(object.pet_id)
+        : "",
+      views: isSet(object.views) ? globalThis.Number(object.views) : 0,
+    };
+  },
+
+  toJSON(message: PetViewCount): unknown {
+    const obj: any = {};
+    if (message.petId !== "") {
+      obj.petId = message.petId;
+    }
+    if (message.views !== 0) {
+      obj.views = Math.round(message.views);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PetViewCount>, I>>(base?: I): PetViewCount {
+    return PetViewCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<PetViewCount>, I>>(object: I): PetViewCount {
+    const message = createBasePetViewCount();
+    message.petId = object.petId ?? "";
+    message.views = object.views ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetViewsTodayResponse(): GetViewsTodayResponse {
+  return { counts: [] };
+}
+
+export const GetViewsTodayResponse: MessageFns<GetViewsTodayResponse> = {
+  encode(message: GetViewsTodayResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.counts) {
+      PetViewCount.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetViewsTodayResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetViewsTodayResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.counts.push(PetViewCount.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetViewsTodayResponse {
+    return {
+      counts: globalThis.Array.isArray(object?.counts) ? object.counts.map((e: any) => PetViewCount.fromJSON(e)) : [],
+    };
+  },
+
+  toJSON(message: GetViewsTodayResponse): unknown {
+    const obj: any = {};
+    if (message.counts?.length) {
+      obj.counts = message.counts.map((e) => PetViewCount.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetViewsTodayResponse>, I>>(base?: I): GetViewsTodayResponse {
+    return GetViewsTodayResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetViewsTodayResponse>, I>>(object: I): GetViewsTodayResponse {
+    const message = createBaseGetViewsTodayResponse();
+    message.counts = object.counts?.map((e) => PetViewCount.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * PetService is the gRPC contract for the pets vertical. It owns the
  * `pets.*` schema (Pet, PetMedia, Breed, UserFavorite, Rating,
@@ -6694,6 +7490,56 @@ export const PetServiceService = {
       Buffer.from(GetPetFacetsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetPetFacetsResponse => GetPetFacetsResponse.decode(value),
   },
+  /**
+   * Time-to-adoption for "pets like this" cohorts (type + size + age
+   * group), over adoptions in the last 365 days. One entry per requested
+   * cohort, in request order, with the sample count and the median days
+   * from available_since to adopted_date. Platform-wide by design (no
+   * rescue scope): it returns aggregates only, never pet rows. Backs the
+   * swipe card's `similar_adopted_fast` activity label. `pets.read`.
+   */
+  getAdoptionStats: {
+    path: "/adopt_dont_shop.pets.v1.PetService/GetAdoptionStats" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetAdoptionStatsRequest): Buffer =>
+      Buffer.from(GetAdoptionStatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetAdoptionStatsRequest => GetAdoptionStatsRequest.decode(value),
+    responseSerialize: (value: GetAdoptionStatsResponse): Buffer =>
+      Buffer.from(GetAdoptionStatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetAdoptionStatsResponse => GetAdoptionStatsResponse.decode(value),
+  },
+  /**
+   * Record that the calling (authenticated) principal viewed a pet's
+   * detail page. Deduped per user + pet inside a rolling hour, so
+   * refreshes don't inflate the count. Anonymous callers are rejected
+   * (anonymous views are deliberately not counted). `pets.read`.
+   */
+  recordPetView: {
+    path: "/adopt_dont_shop.pets.v1.PetService/RecordPetView" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RecordPetViewRequest): Buffer => Buffer.from(RecordPetViewRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RecordPetViewRequest => RecordPetViewRequest.decode(value),
+    responseSerialize: (value: RecordPetViewResponse): Buffer =>
+      Buffer.from(RecordPetViewResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RecordPetViewResponse => RecordPetViewResponse.decode(value),
+  },
+  /**
+   * Batch read of how many recorded views each pet got in the last 24
+   * hours — feeds the swipe card's `views_today` activity label. Pets
+   * with no views are omitted. `pets.read`.
+   */
+  getViewsToday: {
+    path: "/adopt_dont_shop.pets.v1.PetService/GetViewsToday" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetViewsTodayRequest): Buffer => Buffer.from(GetViewsTodayRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetViewsTodayRequest => GetViewsTodayRequest.decode(value),
+    responseSerialize: (value: GetViewsTodayResponse): Buffer =>
+      Buffer.from(GetViewsTodayResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetViewsTodayResponse => GetViewsTodayResponse.decode(value),
+  },
 } as const;
 
 export interface PetServiceServer extends UntypedServiceImplementation {
@@ -6816,6 +7662,28 @@ export interface PetServiceServer extends UntypedServiceImplementation {
    * platform). `pets.read`.
    */
   getPetFacets: handleUnaryCall<GetPetFacetsRequest, GetPetFacetsResponse>;
+  /**
+   * Time-to-adoption for "pets like this" cohorts (type + size + age
+   * group), over adoptions in the last 365 days. One entry per requested
+   * cohort, in request order, with the sample count and the median days
+   * from available_since to adopted_date. Platform-wide by design (no
+   * rescue scope): it returns aggregates only, never pet rows. Backs the
+   * swipe card's `similar_adopted_fast` activity label. `pets.read`.
+   */
+  getAdoptionStats: handleUnaryCall<GetAdoptionStatsRequest, GetAdoptionStatsResponse>;
+  /**
+   * Record that the calling (authenticated) principal viewed a pet's
+   * detail page. Deduped per user + pet inside a rolling hour, so
+   * refreshes don't inflate the count. Anonymous callers are rejected
+   * (anonymous views are deliberately not counted). `pets.read`.
+   */
+  recordPetView: handleUnaryCall<RecordPetViewRequest, RecordPetViewResponse>;
+  /**
+   * Batch read of how many recorded views each pet got in the last 24
+   * hours — feeds the swipe card's `views_today` activity label. Pets
+   * with no views are omitted. `pets.read`.
+   */
+  getViewsToday: handleUnaryCall<GetViewsTodayRequest, GetViewsTodayResponse>;
 }
 
 export interface PetServiceClient extends Client {
@@ -7231,6 +8099,70 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetPetFacetsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Time-to-adoption for "pets like this" cohorts (type + size + age
+   * group), over adoptions in the last 365 days. One entry per requested
+   * cohort, in request order, with the sample count and the median days
+   * from available_since to adopted_date. Platform-wide by design (no
+   * rescue scope): it returns aggregates only, never pet rows. Backs the
+   * swipe card's `similar_adopted_fast` activity label. `pets.read`.
+   */
+  getAdoptionStats(
+    request: GetAdoptionStatsRequest,
+    callback: (error: ServiceError | null, response: GetAdoptionStatsResponse) => void,
+  ): ClientUnaryCall;
+  getAdoptionStats(
+    request: GetAdoptionStatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetAdoptionStatsResponse) => void,
+  ): ClientUnaryCall;
+  getAdoptionStats(
+    request: GetAdoptionStatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetAdoptionStatsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Record that the calling (authenticated) principal viewed a pet's
+   * detail page. Deduped per user + pet inside a rolling hour, so
+   * refreshes don't inflate the count. Anonymous callers are rejected
+   * (anonymous views are deliberately not counted). `pets.read`.
+   */
+  recordPetView(
+    request: RecordPetViewRequest,
+    callback: (error: ServiceError | null, response: RecordPetViewResponse) => void,
+  ): ClientUnaryCall;
+  recordPetView(
+    request: RecordPetViewRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RecordPetViewResponse) => void,
+  ): ClientUnaryCall;
+  recordPetView(
+    request: RecordPetViewRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RecordPetViewResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Batch read of how many recorded views each pet got in the last 24
+   * hours — feeds the swipe card's `views_today` activity label. Pets
+   * with no views are omitted. `pets.read`.
+   */
+  getViewsToday(
+    request: GetViewsTodayRequest,
+    callback: (error: ServiceError | null, response: GetViewsTodayResponse) => void,
+  ): ClientUnaryCall;
+  getViewsToday(
+    request: GetViewsTodayRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetViewsTodayResponse) => void,
+  ): ClientUnaryCall;
+  getViewsToday(
+    request: GetViewsTodayRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetViewsTodayResponse) => void,
   ): ClientUnaryCall;
 }
 

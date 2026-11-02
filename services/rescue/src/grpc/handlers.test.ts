@@ -11,6 +11,8 @@ import {
   createRescue,
   deleteRescue,
   getRescue,
+  getRescueNames,
+  getRescueLocations,
   getRescueStatistics,
   HandlerError,
   inviteStaff,
@@ -157,6 +159,19 @@ describe('createRescue', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it.each(['United Kingdom', 'gb', 'G', 'GBR'])(
+    'rejects country %j that is not an ISO 3166-1 alpha-2 code',
+    async country => {
+      await expect(
+        createRescue(mocks.deps, ADMIN, { ...BASE_CREATE, country })
+      ).rejects.toMatchObject({
+        code: 'INVALID_ARGUMENT',
+        message: expect.stringMatching(/country/),
+      });
+      expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    }
+  );
+
   it('PERMISSION_DENIED when caller lacks rescues.create', async () => {
     await expect(createRescue(mocks.deps, ADOPTER, BASE_CREATE)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
@@ -177,6 +192,149 @@ describe('createRescue', () => {
     expect(res.rescue.name).toBe('Pawsome');
     expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+  });
+});
+
+// --- rescue coordinates ----------------------------------------------
+
+describe('rescue coordinates', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const LONDON = { latitude: 51.5, longitude: -0.12 };
+
+  it('stores geocoded coordinates when a rescue is created', async () => {
+    const geocode = vi.fn().mockResolvedValue(LONDON);
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await createRescue({ ...mocks.deps, geocode }, ADMIN, BASE_CREATE);
+
+    expect(geocode).toHaveBeenCalledWith('SW1A 1AA');
+    const insert = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      String(sql).includes('INSERT INTO rescue.rescues')
+    );
+    expect(insert?.[1]).toEqual(expect.arrayContaining([51.5, -0.12]));
+  });
+
+  it('still creates the rescue, without coordinates, when geocoding fails', async () => {
+    const geocode = vi.fn().mockResolvedValue(undefined);
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    const res = await createRescue({ ...mocks.deps, geocode }, ADMIN, BASE_CREATE);
+
+    expect(res.rescue.name).toBe('Pawsome');
+    const insert = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      String(sql).includes('INSERT INTO rescue.rescues')
+    );
+    expect(insert?.[1].slice(-2)).toEqual([null, null]);
+  });
+
+  it('does not geocode non-UK rescues', async () => {
+    const geocode = vi.fn();
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ country: 'FR' })] });
+
+    await createRescue({ ...mocks.deps, geocode }, ADMIN, { ...BASE_CREATE, country: 'FR' });
+
+    expect(geocode).not.toHaveBeenCalled();
+  });
+
+  it('re-geocodes when the postcode changes and clears stale coordinates on failure', async () => {
+    const geocode = vi.fn().mockResolvedValueOnce(LONDON).mockResolvedValueOnce(undefined);
+    mocks.poolMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    const deps = { ...mocks.deps, geocode };
+
+    await updateRescue(deps, STAFF, { rescueId: 'rsc-1', postcode: 'M1 1AE' } as never);
+    await updateRescue(deps, STAFF, { rescueId: 'rsc-1', postcode: 'ZZ9 9ZZ' } as never);
+
+    const updates = mocks.clientMock.query.mock.calls.filter(([sql]) =>
+      String(sql).includes('UPDATE rescue.rescues')
+    );
+    expect(updates[0][1]).toEqual(expect.arrayContaining(['M1 1AE', 51.5, -0.12]));
+    expect(updates[1][1]).toEqual(expect.arrayContaining(['ZZ9 9ZZ', null, null]));
+  });
+
+  it('does not geocode (or clear coordinates) when the stored postcode and country are resubmitted', async () => {
+    const geocode = vi.fn().mockResolvedValue(undefined);
+    mocks.poolMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await updateRescue({ ...mocks.deps, geocode }, STAFF, {
+      rescueId: 'rsc-1',
+      name: 'Renamed',
+      postcode: 'SW1A 1AA',
+      country: 'GB',
+    } as never);
+
+    expect(geocode).not.toHaveBeenCalled();
+    const update = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      String(sql).includes('UPDATE rescue.rescues')
+    );
+    expect(String(update?.[0])).not.toMatch(/latitude/);
+  });
+
+  it('leaves coordinates alone when the postcode is not updated', async () => {
+    const geocode = vi.fn();
+    mocks.poolMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await updateRescue({ ...mocks.deps, geocode }, STAFF, {
+      rescueId: 'rsc-1',
+      name: 'Renamed',
+    } as never);
+
+    expect(geocode).not.toHaveBeenCalled();
+  });
+});
+
+describe('getRescueLocations', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  const ID_A = '11111111-1111-4111-8111-111111111111';
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('PERMISSION_DENIED without rescues.read', async () => {
+    await expect(
+      getRescueLocations(mocks.deps, PUBLIC_ADOPTER, { rescueIds: [ID_A] })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns coordinates for verified, geocoded rescues only', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: ID_A, latitude: 51.5, longitude: -0.12 }],
+    });
+
+    const res = await getRescueLocations(mocks.deps, ADOPTER, {
+      rescueIds: [ID_A, ID_A, 'not-a-uuid'],
+    });
+
+    expect(res.locations).toEqual([{ rescueId: ID_A, latitude: 51.5, longitude: -0.12 }]);
+    const [sql, params] = mocks.poolMock.query.mock.calls[0];
+    expect(sql).toMatch(/status = 'verified'/);
+    expect(params).toEqual([[ID_A]]);
+  });
+
+  it('skips the query when no valid ids are supplied', async () => {
+    const res = await getRescueLocations(mocks.deps, ADOPTER, { rescueIds: ['nope'] });
+
+    expect(res.locations).toEqual([]);
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('INVALID_ARGUMENT for more than 100 ids', async () => {
+    const ids = Array.from({ length: 101 }, (_, i) => `id-${i}`);
+    await expect(getRescueLocations(mocks.deps, ADOPTER, { rescueIds: ids })).rejects.toMatchObject(
+      { code: 'INVALID_ARGUMENT' }
+    );
   });
 });
 
@@ -622,6 +780,43 @@ describe('updateRescue', () => {
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
+  it.each(['United Kingdom', 'gb', 'G', 'GBR'])(
+    'rejects country %j that is not an ISO 3166-1 alpha-2 code',
+    async country => {
+      await expect(
+        updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1', country } as never)
+      ).rejects.toMatchObject({
+        code: 'INVALID_ARGUMENT',
+        message: expect.stringMatching(/country/),
+      });
+      expect(mocks.poolMock.query).not.toHaveBeenCalled();
+    }
+  );
+
+  it('leaves the stored country alone when country is an empty string', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ name: 'Pawsome 2' })] });
+
+    await updateRescue(mocks.deps, STAFF, {
+      rescueId: 'rsc-1',
+      name: 'Pawsome 2',
+      country: '',
+    } as never);
+
+    // calls[0] is the wrapper's BEGIN; the UPDATE is calls[1].
+    const sql = mocks.clientMock.query.mock.calls[1][0] as string;
+    expect(sql).toMatch(/name = \$1/);
+    expect(sql).not.toMatch(/country = /);
+  });
+
+  it('no-ops when the only field supplied is an empty country', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+
+    await updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1', country: '' } as never);
+
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
   it('PERMISSION_DENIED for staff at a different rescue', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     await expect(
@@ -657,6 +852,23 @@ describe('updateRescue', () => {
     const sql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(sql).toMatch(/name = \$1/);
     expect(sql).toMatch(/version = version \+ 1/);
+  });
+
+  it('persists a changed primary email', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ email: 'new@pawsome.org' })] });
+
+    const res = await updateRescue(mocks.deps, STAFF, {
+      rescueId: 'rsc-1',
+      email: 'new@pawsome.org',
+    } as never);
+
+    expect(res.rescue.email).toBe('new@pawsome.org');
+    const updateCall = mocks.clientMock.query.mock.calls.find(
+      c => typeof c[0] === 'string' && c[0].includes('UPDATE rescue.rescues')
+    );
+    expect(updateCall?.[0]).toMatch(/\bemail = \$1/);
+    expect(updateCall?.[1]).toContain('new@pawsome.org');
   });
 
   it('keys rescue.updated on aggregateId:version (deterministic, replay-safe)', async () => {
@@ -1245,6 +1457,66 @@ describe('getRescueStatistics', () => {
     const res = await getRescueStatistics(mocks.deps, ADMIN, { rescueId: 'rsc-1' } as never);
 
     expect(res.statistics.staffCount).toBe(4);
+  });
+});
+
+// --- getRescueNames --------------------------------------------------
+
+describe('getRescueNames', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const rows = [
+    { rescue_id: 'rsc-1', name: 'Paws' },
+    { rescue_id: 'rsc-2', name: 'Happy Tails' },
+  ];
+
+  it('returns id/name pairs from a single query', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows });
+    const res = await getRescueNames(mocks.deps, PUBLIC_ADOPTER, {
+      rescueIds: ['rsc-1', 'rsc-2', 'rsc-1'],
+    });
+    expect(res.names).toEqual([
+      { rescueId: 'rsc-1', name: 'Paws' },
+      { rescueId: 'rsc-2', name: 'Happy Tails' },
+    ]);
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    expect(mocks.poolMock.query.mock.calls[0][1]).toEqual([['rsc-1', 'rsc-2']]);
+  });
+
+  it('resolves verified rescues only for callers without rescues.read, and anonymous visitors', async () => {
+    mocks.poolMock.query.mockResolvedValue({ rows });
+    await getRescueNames(mocks.deps, PUBLIC_ADOPTER, { rescueIds: ['rsc-1'] });
+    await getRescueNames(mocks.deps, null, { rescueIds: ['rsc-1'] });
+    for (const [sql] of mocks.poolMock.query.mock.calls) {
+      expect(sql).toContain("status = 'verified'");
+      expect(sql).toContain('deleted_at IS NULL');
+    }
+  });
+
+  it('lets rescues.read holders resolve a rescue in any status', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows });
+    await getRescueNames(mocks.deps, ADOPTER, { rescueIds: ['rsc-1'] });
+    expect(mocks.poolMock.query.mock.calls[0][0]).not.toContain("status = 'verified'");
+  });
+
+  it('returns nothing without querying when no ids are given', async () => {
+    const res = await getRescueNames(mocks.deps, ADOPTER, { rescueIds: [] });
+    expect(res.names).toEqual([]);
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('INVALID_ARGUMENT above 100 distinct ids', async () => {
+    const rescueIds = Array.from({ length: 101 }, (_, i) => `rsc-${i}`);
+    await expect(getRescueNames(mocks.deps, ADOPTER, { rescueIds })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
   });
 });
 

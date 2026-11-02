@@ -97,6 +97,45 @@ describe('EntityInspector', () => {
     expect(screen.getByText('Overview body')).toBeInTheDocument();
   });
 
+  it('exposes a tablist with a linked tabpanel for the active tab', () => {
+    render(<EntityInspector header={<h3>X</h3>} tabs={baseTabs} />);
+
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveTextContent('Overview body');
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+      'aria-controls',
+      panel.id
+    );
+    expect(panel).toHaveAttribute(
+      'aria-labelledby',
+      screen.getByRole('tab', { name: 'Overview' }).id
+    );
+  });
+
+  it('moves focus and selection with the arrow keys', async () => {
+    const user = userEvent.setup();
+    render(<EntityInspector header={<h3>X</h3>} tabs={baseTabs} />);
+
+    screen.getByRole('tab', { name: 'Overview' }).focus();
+    await user.keyboard('{ArrowRight}');
+
+    expect(screen.getByRole('tab', { name: 'Edit' })).toHaveFocus();
+    expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('Edit body')).toBeInTheDocument();
+    expect(screen.queryByText('Overview body')).not.toBeInTheDocument();
+
+    await user.keyboard('{End}');
+    expect(screen.getByText('Activity body')).toBeInTheDocument();
+  });
+
+  it('only the active tab is in the tab order', () => {
+    render(<EntityInspector header={<h3>X</h3>} tabs={baseTabs} />);
+
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('tabindex', '-1');
+  });
+
   it('handles an empty tab list without crashing', () => {
     render(<EntityInspector header={<h3>X</h3>} tabs={[]} data-testid='inspector' />);
     expect(screen.getByTestId('inspector')).toBeInTheDocument();
