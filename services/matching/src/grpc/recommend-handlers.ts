@@ -104,9 +104,10 @@ export function makeRecommend(
       : {};
     const ranked = scoreCandidates(fresh, preferences).slice(0, limit);
 
-    // Both lookups are optional and independent (each has its own short,
-    // no-retry budget), so run them side by side.
-    const [withDistance, similarAdopted] = await Promise.all([
+    // The lookups are optional and independent (each has its own short,
+    // no-retry budget), so run them side by side. Label precedence on a card:
+    // views_today > days_waiting > similar_adopted_fast.
+    const [withDistance, similarAdopted, viewsToday] = await Promise.all([
       withDistances(
         ranked.map(({ pet, score }) => petToCandidate(pet, score)),
         filters.userLocation,
@@ -117,10 +118,19 @@ export function makeRecommend(
         principal,
         ranked.map(({ pet }) => pet)
       ),
+      fetchViewsToday(
+        petsClient,
+        principal,
+        ranked.map(({ pet }) => pet.petId)
+      ),
     ]);
-    const candidates = withDistance.map((candidate, i) =>
-      withFallbackLabel(candidate, similarAdopted.get(ranked[i].pet.petId))
-    );
+    const candidates = withDistance.map((candidate, i) => {
+      const { petId } = ranked[i].pet;
+      return withFallbackLabel(
+        withPriorityLabel(candidate, viewsTodayLabel(viewsToday.get(petId) ?? 0)),
+        similarAdopted.get(petId)
+      );
+    });
 
     return {
       candidates,
@@ -397,12 +407,47 @@ function petToCandidate(pet: Pet, score: number): PetCandidate {
   return candidate;
 }
 
-// Only `days_waiting` is derivable today: pets keeps a lifetime view_count
-// (no per-day views) and matching has no adoption-time stats, so
-// `views_today` / `similar_adopted_fast` are not produced. Under a week the
-// number isn't a meaningful nudge, so no label.
+// `days_waiting` is derived here from available_since; `views_today` and
+// `similar_adopted_fast` come from lookups in makeRecommend. Under a week the
+// waiting number isn't a meaningful nudge, so no label.
 const MIN_WAITING_DAYS = 7;
+// "3 views today" is a weak nudge; only show the label from here up.
+const MIN_VIEWS_TODAY = 5;
+// Optional garnish, like the adoption stats: one short attempt, no retries, so a
+// stalled count query can not eat the Recommend deadline (fails open).
+const VIEWS_TODAY_BUDGET = { deadlineMs: 1_000, maxRetries: 0 };
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function viewsTodayLabel(views: number): ActivityLabel | undefined {
+  return views >= MIN_VIEWS_TODAY
+    ? { kind: 'views_today', text: `${views} views today`, icon: '👀' }
+    : undefined;
+}
+
+// One batched lookup per Recommend page. The label is decoration, so a
+// failure (pets down, deadline) just drops it rather than failing the deck.
+async function fetchViewsToday(
+  petsClient: PetsClient,
+  principal: Principal,
+  petIds: ReadonlyArray<string>
+): Promise<ReadonlyMap<string, number>> {
+  if (petIds.length === 0) {
+    return new Map();
+  }
+  try {
+    const res = await withTimeout(
+      petsClient.getViewsToday(
+        { petIds: [...petIds] },
+        principalToMetadata(principal),
+        VIEWS_TODAY_BUDGET
+      ),
+      VIEWS_TODAY_BUDGET.deadlineMs
+    );
+    return new Map(res.counts.map(c => [c.petId, c.views]));
+  } catch {
+    return new Map();
+  }
+}
 
 function daysWaitingLabel(availableSince: string | undefined): ActivityLabel | undefined {
   if (availableSince === undefined) {
@@ -515,6 +560,12 @@ async function similarAdoptedLabels(
         },
       ])
   );
+}
+
+// The opposite of withFallbackLabel: a label that outranks whatever the card
+// already carries (views_today beats days_waiting).
+function withPriorityLabel(candidate: PetCandidate, label: ActivityLabel | undefined) {
+  return label === undefined ? candidate : { ...candidate, activityLabel: label };
 }
 
 function withFallbackLabel(candidate: PetCandidate, fallback: ActivityLabel | undefined) {

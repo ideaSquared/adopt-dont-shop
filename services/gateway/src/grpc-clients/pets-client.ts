@@ -28,6 +28,8 @@ import {
   type GetFavoriteStatusResponse,
   type GetPetFacetsRequest,
   type GetPetFacetsResponse,
+  type RecordPetViewRequest,
+  type RecordPetViewResponse,
   type GetPetRequest,
   type GetPetResponse,
   type GetPetStatsRequest,
@@ -99,6 +101,7 @@ export type PetsClient = {
     metadata: Metadata
   ): Promise<GetSearchSuggestionsResponse>;
   getPetFacets(req: GetPetFacetsRequest, metadata: Metadata): Promise<GetPetFacetsResponse>;
+  recordPetView(req: RecordPetViewRequest, metadata: Metadata): Promise<RecordPetViewResponse>;
   close(): void;
 };
 
@@ -185,6 +188,7 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
     getSearchSuggestions: (req, metadata) =>
       callUnary(stub.getSearchSuggestions, req, metadata, true),
     getPetFacets: (req, metadata) => callUnary(stub.getPetFacets, req, metadata, true),
+    recordPetView: (req, metadata) => callUnary(stub.recordPetView, req, metadata, false),
     close: () => stub.close(),
   };
 };

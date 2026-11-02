@@ -43,6 +43,7 @@ import {
   listUserFavorites,
   removeFavorite,
 } from './favorite-handlers.js';
+import { getViewsToday, recordPetView } from './view-handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: PetsConfig;
@@ -82,6 +83,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getSearchSuggestions: adapt(getSearchSuggestions, { deps, logger }),
     getPetFacets: adapt(getPetFacets, { deps, logger }),
     getAdoptionStats: adapt(getAdoptionStats, { deps, logger }),
+    recordPetView: adapt(recordPetView, { deps, logger }),
+    getViewsToday: adapt(getViewsToday, { deps, logger }),
   });
 
   logger.info('gRPC PetService registered', {
@@ -106,6 +109,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getSearchSuggestions',
       'getPetFacets',
       'getAdoptionStats',
+      'recordPetView',
+      'getViewsToday',
     ],
     grpcPort: config.grpcPort,
   });

@@ -35,6 +35,7 @@ function makeClient(): {
   listUserFavoritesMock: ReturnType<typeof vi.fn>;
   getSearchSuggestionsMock: ReturnType<typeof vi.fn>;
   getPetFacetsMock: ReturnType<typeof vi.fn>;
+  recordPetViewMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const getMock = vi.fn();
@@ -51,6 +52,7 @@ function makeClient(): {
   const listUserFavoritesMock = vi.fn();
   const getSearchSuggestionsMock = vi.fn();
   const getPetFacetsMock = vi.fn();
+  const recordPetViewMock = vi.fn().mockResolvedValue({ recorded: true });
   const client: PetsClient = {
     create: createMock,
     get: getMock,
@@ -67,6 +69,7 @@ function makeClient(): {
     listUserFavorites: listUserFavoritesMock,
     getSearchSuggestions: getSearchSuggestionsMock,
     getPetFacets: getPetFacetsMock,
+    recordPetView: recordPetViewMock,
     close: vi.fn(),
   };
   return {
@@ -86,6 +89,7 @@ function makeClient(): {
     listUserFavoritesMock,
     getSearchSuggestionsMock,
     getPetFacetsMock,
+    recordPetViewMock,
   };
 }
 
@@ -274,6 +278,71 @@ describe('GET /api/v1/pets', () => {
 });
 
 describe('GET /api/v1/pets/:id', () => {
+  it('records a view for an authenticated reader', async () => {
+    const { client, getMock, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+      await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/pet-1',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
+      expect(recordPetViewMock).toHaveBeenCalledTimes(1);
+      const [req, metadata] = recordPetViewMock.mock.calls[0];
+      expect(req).toEqual({ petId: 'pet-1' });
+      expect(metadata.get('x-user-id')[0]).toBe('usr-1');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not record anonymous views', async () => {
+    const { client, getMock, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/pet-1' });
+      expect(res.statusCode).toBe(200);
+      expect(recordPetViewMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('still returns the pet when recording the view fails', async () => {
+    const { client, getMock, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+      recordPetViewMock.mockRejectedValueOnce(new Error('pets down'));
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/pet-1',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
+      expect(res.statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not record a view when the pet is not found', async () => {
+    const { client, getMock, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getMock.mockResolvedValueOnce({ pet: undefined });
+      await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/pet-1',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
+      expect(recordPetViewMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
   it('forwards the path param + x-user-* metadata and returns the pet', async () => {
     const { client, getMock } = makeClient();
     const app = await makeApp(client);

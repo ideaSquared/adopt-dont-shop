@@ -51,6 +51,7 @@ describe('pets migrations', () => {
     '009_add_pets_extra_json.ts',
     '010_pets_search_vector_generated.ts',
     '011_backfill_images_into_image_urls.ts',
+    '012_create_pet_views.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

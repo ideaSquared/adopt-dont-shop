@@ -576,6 +576,15 @@ export const registerPetsRoutes = async (
         if (res.pet === undefined) {
           return reply.code(404).send({ success: false, error: 'pet not found' });
         }
+        // Count the view for the swipe card's "views today" label. Only
+        // authenticated readers are counted (the stamped x-user-id), and
+        // it is fire-and-forget: a failure here must never fail or slow
+        // the pet read.
+        if (typeof req.headers['x-user-id'] === 'string') {
+          void client.recordPetView({ petId: req.params.id }, buildMetadata(req)).catch(() => {
+            // Tolerated: a missed view only under-counts the label.
+          });
+        }
         return reply.send({ success: true, data: petToView(res.pet) });
       } catch (err) {
         return handleGrpcError(err, reply);
