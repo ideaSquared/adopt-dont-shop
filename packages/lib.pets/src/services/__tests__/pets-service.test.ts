@@ -214,6 +214,21 @@ describe('PetsService', () => {
       expect(result).toEqual(mockPet);
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/1');
     });
+
+    it('sends the caller location as lat/lng and returns the distance', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: { pet_id: '1', name: 'Buddy', distance: 12.3 },
+      });
+
+      const result = await service.getPetById('1', { latitude: 51.5, longitude: -0.12 });
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/1', {
+        lat: 51.5,
+        lng: -0.12,
+      });
+      expect(result.distance).toBe(12.3);
+    });
   });
 
   describe('getFeaturedPets', () => {

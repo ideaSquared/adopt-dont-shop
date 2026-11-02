@@ -1,5 +1,6 @@
-// Straight-line distance for the swipe card badge. Pure functions; the
-// caller's coordinates only ever live in memory for the duration of a request.
+// Straight-line distance for the swipe card, search result and pet detail
+// badges. Pure functions; the caller's coordinates only ever live in memory
+// for the duration of a request.
 
 export type LatLng = { latitude: number; longitude: number };
 

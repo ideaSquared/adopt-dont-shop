@@ -1502,3 +1502,135 @@ describe('GET /api/v1/pets rescue-name enrichment (ADS-1186)', () => {
     }
   });
 });
+
+describe('pet distance (search results + detail)', () => {
+  const LONDON_QUERY = 'lat=51.5074&lng=-0.1278';
+  const MANCHESTER = { latitude: 53.4808, longitude: -2.2426 };
+  const asAdopter = { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' };
+
+  const makeDistanceApp = async (getRescueLocations: ReturnType<typeof vi.fn>) => {
+    const m = makeClient();
+    const rescueClient = {
+      get: vi.fn().mockResolvedValue({ rescue: { name: 'Happy Paws' } }),
+      getRescueLocations,
+    } as unknown as RescueClient;
+    const app = Fastify({ logger: false });
+    await registerPetsRoutes(app, { client: m.client, rescueClient });
+    return { app, ...m };
+  };
+
+  it('adds distance to each search result whose rescue has coordinates', async () => {
+    const getRescueLocations = vi
+      .fn()
+      .mockResolvedValue({ locations: [{ rescueId: 'rsc-1', ...MANCHESTER }] });
+    const { app, listMock } = await makeDistanceApp(getRescueLocations);
+    try {
+      listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], total: 1 });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/pets?${LONDON_QUERY}`,
+        headers: asAdopter,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const [row] = (res.json() as { data: Array<{ distance?: number }> }).data;
+      expect(row.distance).toBeGreaterThan(160);
+      expect(row.distance).toBeLessThan(166);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('returns no distance, and does not call the rescue service, without a usable location', async () => {
+    const getRescueLocations = vi.fn();
+    const { app, listMock } = await makeDistanceApp(getRescueLocations);
+    try {
+      listMock.mockResolvedValue({ pets: [PET_FIXTURE], total: 1 });
+
+      const none = await app.inject({ method: 'GET', url: '/api/v1/pets', headers: asAdopter });
+      const bad = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets?lat=999&lng=abc',
+        headers: asAdopter,
+      });
+
+      expect(none.statusCode).toBe(200);
+      expect(bad.statusCode).toBe(200);
+      expect((none.json() as { data: object[] }).data[0]).not.toHaveProperty('distance');
+      expect((bad.json() as { data: object[] }).data[0]).not.toHaveProperty('distance');
+      expect(getRescueLocations).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('still lists pets when the rescue lookup fails', async () => {
+    const getRescueLocations = vi.fn().mockRejectedValue(new Error('rescue down'));
+    const { app, listMock } = await makeDistanceApp(getRescueLocations);
+    try {
+      listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], total: 1 });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/pets?${LONDON_QUERY}`,
+        headers: asAdopter,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect((res.json() as { data: object[] }).data[0]).not.toHaveProperty('distance');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('adds distance to the pet detail when a location is supplied', async () => {
+    const getRescueLocations = vi
+      .fn()
+      .mockResolvedValue({ locations: [{ rescueId: 'rsc-1', ...MANCHESTER }] });
+    const { app, getMock } = await makeDistanceApp(getRescueLocations);
+    try {
+      getMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/pets/pet-1?${LONDON_QUERY}`,
+        headers: asAdopter,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const { data } = res.json() as { data: { distance?: number } };
+      expect(data.distance).toBeGreaterThan(160);
+      expect(data.distance).toBeLessThan(166);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('serves the pet detail without distance when the location or rescue coordinates are missing', async () => {
+    const getRescueLocations = vi.fn().mockResolvedValue({ locations: [] });
+    const { app, getMock } = await makeDistanceApp(getRescueLocations);
+    try {
+      getMock.mockResolvedValue({ pet: PET_FIXTURE });
+
+      const noLocation = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/pet-1',
+        headers: asAdopter,
+      });
+      const noCoordinates = await app.inject({
+        method: 'GET',
+        url: `/api/v1/pets/pet-1?${LONDON_QUERY}`,
+        headers: asAdopter,
+      });
+
+      expect(noLocation.statusCode).toBe(200);
+      expect(noCoordinates.statusCode).toBe(200);
+      expect((noLocation.json() as { data: object }).data).not.toHaveProperty('distance');
+      expect((noCoordinates.json() as { data: object }).data).not.toHaveProperty('distance');
+      expect(getRescueLocations).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+});

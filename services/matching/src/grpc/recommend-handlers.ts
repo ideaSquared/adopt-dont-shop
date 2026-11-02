@@ -27,7 +27,12 @@ import {
   type SearchPetsRequest,
   type SearchPetsResponse,
 } from '@adopt-dont-shop/proto';
-import { isSafeImageUrl } from '@adopt-dont-shop/service-bootstrap';
+import {
+  haversineMiles,
+  isSafeImageUrl,
+  parseUserLocation,
+  type LatLng,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import {
@@ -40,7 +45,6 @@ import {
   SPECIES_TO_TYPE,
   TYPE_TO_SPECIES,
 } from './pet-tokens.js';
-import { haversineMiles, parseUserLocation, type LatLng } from './distance.js';
 import type { PetsClient } from './pets-client.js';
 import type { RescueCoordinates, RescueLocationClient } from './rescue-client.js';
 import { principalToMetadata } from './principal.js';

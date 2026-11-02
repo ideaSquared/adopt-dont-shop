@@ -187,13 +187,19 @@ export class PetsService {
   }
 
   /**
-   * Get a single pet by ID
+   * Get a single pet by ID. Pass the caller's coordinates to have the pet's
+   * `distance` (miles to its rescue) filled in; they are sent as lat/lng query
+   * params and used server-side for this one request only.
    */
-  async getPetById(id: string): Promise<Pet> {
+  async getPetById(id: string, location?: { latitude: number; longitude: number }): Promise<Pet> {
     try {
-      const response = await this.apiService.get<ApiResponse<unknown>>(
-        PETS_ENDPOINTS.PET_BY_ID(id)
-      );
+      const url = PETS_ENDPOINTS.PET_BY_ID(id);
+      const response = await (location
+        ? this.apiService.get<ApiResponse<unknown>>(url, {
+            lat: location.latitude,
+            lng: location.longitude,
+          })
+        : this.apiService.get<ApiResponse<unknown>>(url));
 
       if (response.success && response.data) {
         return normalisePet(response.data);

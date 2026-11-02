@@ -1,6 +1,7 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useChat } from '@/contexts/ChatContext';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { useStatsig } from '@/hooks/useStatsig';
 import { petService, Pet } from '@/services';
 import { Badge, Button, Card, toast } from '@adopt-dont-shop/lib.components';
@@ -122,6 +123,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const { startConversation } = useChat();
   const { logEvent } = useStatsig();
   const { trackPageView, trackEvent } = useAnalytics();
+  const { latitude, longitude } = useGeolocation();
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +159,12 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
 
       try {
         setLoading(true);
-        const petData = await petService.getPetById(id);
+        // The cached device location (never prompted for here) lets the API
+        // fill in the pet's distance; without one the call is unchanged.
+        const petData =
+          latitude !== undefined && longitude !== undefined
+            ? await petService.getPetById(id, { latitude, longitude })
+            : await petService.getPetById(id);
         setPet(petData);
 
         // Track page view with new analytics service
@@ -224,7 +231,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     };
 
     fetchPet();
-  }, [id, isAuthenticated, logEvent, trackPageView, trackEvent]);
+  }, [id, isAuthenticated, latitude, longitude, logEvent, trackPageView, trackEvent]);
 
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated || !pet) {
@@ -633,6 +640,12 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 <div className='info-item'>
                   <span className='label'>Location</span>
                   <span className='value'>{pet.rescue.location}</span>
+                </div>
+              )}
+              {pet.distance !== undefined && (
+                <div className='info-item'>
+                  <span className='label'>Distance</span>
+                  <span className='value'>{pet.distance.toFixed(1)} mi away</span>
                 </div>
               )}
             </div>

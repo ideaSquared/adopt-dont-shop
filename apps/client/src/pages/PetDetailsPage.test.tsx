@@ -23,6 +23,18 @@ const authStateMock = {
   isAuthenticated: true,
 };
 
+// The cached device location the page reads (it must never prompt for one).
+const geoMock = {
+  latitude: undefined as number | undefined,
+  longitude: undefined as number | undefined,
+  hasLocation: false,
+  requestLocation: vi.fn(),
+};
+
+vi.mock('@/hooks/useGeolocation', () => ({
+  useGeolocation: () => geoMock,
+}));
+
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
   return {
@@ -299,6 +311,77 @@ describe('PetDetailsPage signed-in CTAs (ADS-638 regression)', () => {
         screen.getByRole('button', { name: /ask a question before applying/i })
       ).toBeInTheDocument();
     });
+  });
+});
+
+describe('PetDetailsPage distance', () => {
+  const basePet = {
+    pet_id: 'pet-1',
+    name: 'Luna',
+    type: 'dog',
+    status: 'available',
+    rescue_id: 'rescue-1',
+    images: [],
+  };
+
+  beforeEach(() => {
+    authStateMock.isAuthenticated = true;
+    getPetByIdMock.mockReset();
+    isFavoriteMock.mockReset();
+    isFavoriteMock.mockResolvedValue(false);
+    geoMock.requestLocation.mockReset();
+    geoMock.latitude = undefined;
+    geoMock.longitude = undefined;
+    geoMock.hasLocation = false;
+  });
+
+  it('asks for the distance with the cached location and shows it, to one decimal place', async () => {
+    geoMock.latitude = 51.5074;
+    geoMock.longitude = -0.1278;
+    geoMock.hasLocation = true;
+    getPetByIdMock.mockResolvedValue({ ...basePet, distance: 164.2 });
+
+    render(<PetDetailsPage />);
+
+    expect(await screen.findByText('164.2 mi away')).toBeInTheDocument();
+    expect(getPetByIdMock).toHaveBeenCalledWith('pet-1', {
+      latitude: 51.5074,
+      longitude: -0.1278,
+    });
+  });
+
+  it('shows whole-mile distances with a trailing decimal', async () => {
+    geoMock.latitude = 51.5;
+    geoMock.longitude = -0.12;
+    geoMock.hasLocation = true;
+    getPetByIdMock.mockResolvedValue({ ...basePet, distance: 8 });
+
+    render(<PetDetailsPage />);
+
+    expect(await screen.findByText('8.0 mi away')).toBeInTheDocument();
+  });
+
+  it('does not send a location or show a distance when none is known, and never prompts for one', async () => {
+    getPetByIdMock.mockResolvedValue(basePet);
+
+    render(<PetDetailsPage />);
+
+    await screen.findByRole('link', { name: /^apply to adopt$/i });
+    expect(getPetByIdMock).toHaveBeenCalledWith('pet-1');
+    expect(screen.queryByText(/mi away/)).not.toBeInTheDocument();
+    expect(geoMock.requestLocation).not.toHaveBeenCalled();
+  });
+
+  it('shows no distance when the rescue has no coordinates', async () => {
+    geoMock.latitude = 51.5;
+    geoMock.longitude = -0.12;
+    geoMock.hasLocation = true;
+    getPetByIdMock.mockResolvedValue(basePet);
+
+    render(<PetDetailsPage />);
+
+    await screen.findByRole('link', { name: /^apply to adopt$/i });
+    expect(screen.queryByText(/mi away/)).not.toBeInTheDocument();
   });
 });
 

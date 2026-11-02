@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { haversineMiles, parseUserLocation } from './distance.js';
+import { haversineMiles, parseUserLocation } from './geo-distance.js';
 
 const LONDON = { latitude: 51.5074, longitude: -0.1278 };
 const MANCHESTER = { latitude: 53.4808, longitude: -2.2426 };

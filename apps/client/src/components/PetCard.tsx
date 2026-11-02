@@ -201,7 +201,7 @@ export const PetCard: React.FC<PetCardProps> = ({
         {pet.distance !== undefined && pet.distance !== null && (
           <div className={styles.distanceBadge}>
             <MapPin size={13} />
-            {pet.distance} mi
+            {pet.distance.toFixed(1)} mi
           </div>
         )}
 
