@@ -22,6 +22,7 @@ import { Link, useNavigate } from 'react-router';
 import * as styles from './DiscoveryPage.css';
 import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';
+import { DiscoveryLocationControl } from './DiscoveryLocationControl';
 import { DiscoverySearchToggle } from './DiscoverySearchToggle';
 import { EndOfQueueEmptyState } from './EndOfQueueEmptyState';
 import { ANON_FIRST_LIKE_FIRED_KEY, AnonymousFirstLikeModal } from './AnonymousFirstLikeModal';
@@ -35,10 +36,11 @@ export const DiscoveryPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<PetSearchFilters>({});
-  // Reuses the location the adopter already shared (cached by useGeolocation,
-  // e.g. from nearby search). Discovery never prompts for it: without one, cards
-  // simply show no distance.
-  const { latitude, longitude } = useGeolocation();
+  // The adopter's location is opt-in: it comes from the cached value (e.g. shared
+  // via nearby search) or from the "Use my location" control below. Nothing here
+  // prompts for it on load; without one, cards simply show no distance.
+  const geolocation = useGeolocation();
+  const { latitude, longitude } = geolocation;
   const requestFilters = useMemo<PetSearchFilters>(
     () =>
       latitude !== undefined && longitude !== undefined
@@ -348,6 +350,15 @@ export const DiscoveryPage: React.FC = () => {
             Favorites
           </Link>
         </div>
+      </div>
+
+      <div className={styles.locationRow}>
+        <DiscoveryLocationControl
+          status={geolocation.status}
+          hasLocation={geolocation.hasLocation}
+          onUseLocation={geolocation.requestLocation}
+          onClear={geolocation.clearLocation}
+        />
       </div>
 
       <div className={styles.mainContent}>
