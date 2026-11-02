@@ -89,5 +89,10 @@ export type { ProcessErrorHandlerDeps } from './process-handlers.js';
 export { checkReadiness, registerReadinessRoute } from './readiness.js';
 export type { ReadinessDeps, ReadinessResult, RegisterReadinessRouteOptions } from './readiness.js';
 
-export { haversineMiles, parseUserLocation } from './geo-distance.js';
+export {
+  CLIENT_LOCATION_HEADER,
+  haversineMiles,
+  parseClientLocationHeader,
+  parseUserLocation,
+} from './geo-distance.js';
 export type { LatLng } from './geo-distance.js';

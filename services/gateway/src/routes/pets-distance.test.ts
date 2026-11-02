@@ -14,21 +14,39 @@ const makeRescueClient = (getRescueLocations: ReturnType<typeof vi.fn>): RescueC
   ({ getRescueLocations }) as unknown as RescueClient;
 
 describe('readUserLocation', () => {
-  it('reads lat/lng query values', () => {
-    expect(readUserLocation({ lat: '51.5', lng: '-0.12' })).toEqual({
+  it('reads the x-client-location header', () => {
+    expect(readUserLocation({ headers: { 'x-client-location': '51.5,-0.12' } })).toEqual({
+      latitude: 51.5,
+      longitude: -0.12,
+    });
+  });
+
+  it('prefers the header over the legacy lat/lng query params', () => {
+    expect(
+      readUserLocation({
+        headers: { 'x-client-location': '51.5,-0.12' },
+        query: { lat: '10', lng: '20' },
+      })
+    ).toEqual({ latitude: 51.5, longitude: -0.12 });
+  });
+
+  it('still honours the legacy lat/lng query params for stale clients', () => {
+    expect(readUserLocation({ headers: {}, query: { lat: '51.5', lng: '-0.12' } })).toEqual({
       latitude: 51.5,
       longitude: -0.12,
     });
   });
 
   it.each([
-    [{}],
-    [{ lat: '51.5' }],
-    [{ lat: 'abc', lng: '1' }],
-    [{ lat: '91', lng: '0' }],
-    [{ lat: '0', lng: '181' }],
-  ])('treats %j as no location rather than an error', query => {
-    expect(readUserLocation(query)).toBeUndefined();
+    [{ headers: {} }],
+    [{ headers: { 'x-client-location': 'nonsense' } }],
+    [{ headers: { 'x-client-location': '91,0' } }],
+    [{ headers: { 'x-client-location': ['51.5,-0.12', '1,2'] } }],
+    [{ headers: {}, query: { lat: '51.5' } }],
+    [{ headers: {}, query: { lat: 'abc', lng: '1' } }],
+    [{ headers: {}, query: { lat: '0', lng: '181' } }],
+  ])('treats %j as no location rather than an error', request => {
+    expect(readUserLocation(request)).toBeUndefined();
   });
 });
 

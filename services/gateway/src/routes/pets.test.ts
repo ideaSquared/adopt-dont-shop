@@ -1505,6 +1505,7 @@ describe('GET /api/v1/pets rescue-name enrichment (ADS-1186)', () => {
 
 describe('pet distance (search results + detail)', () => {
   const LONDON_QUERY = 'lat=51.5074&lng=-0.1278';
+  const LONDON_HEADER = { 'x-client-location': '51.5074,-0.1278' };
   const MANCHESTER = { latitude: 53.4808, longitude: -2.2426 };
   const asAdopter = { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' };
 
@@ -1529,14 +1530,35 @@ describe('pet distance (search results + detail)', () => {
 
       const res = await app.inject({
         method: 'GET',
-        url: `/api/v1/pets?${LONDON_QUERY}`,
-        headers: asAdopter,
+        url: '/api/v1/pets',
+        headers: { ...asAdopter, ...LONDON_HEADER },
       });
 
       expect(res.statusCode).toBe(200);
       const [row] = (res.json() as { data: Array<{ distance?: number }> }).data;
       expect(row.distance).toBeGreaterThan(160);
       expect(row.distance).toBeLessThan(166);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('still honours the legacy lat/lng query params for stale clients', async () => {
+    const getRescueLocations = vi
+      .fn()
+      .mockResolvedValue({ locations: [{ rescueId: 'rsc-1', ...MANCHESTER }] });
+    const { app, listMock } = await makeDistanceApp(getRescueLocations);
+    try {
+      listMock.mockResolvedValueOnce({ pets: [PET_FIXTURE], total: 1 });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/pets?${LONDON_QUERY}`,
+        headers: asAdopter,
+      });
+
+      const [row] = (res.json() as { data: Array<{ distance?: number }> }).data;
+      expect(row.distance).toBeGreaterThan(160);
     } finally {
       await app.close();
     }
@@ -1552,7 +1574,7 @@ describe('pet distance (search results + detail)', () => {
       const bad = await app.inject({
         method: 'GET',
         url: '/api/v1/pets?lat=999&lng=abc',
-        headers: asAdopter,
+        headers: { ...asAdopter, 'x-client-location': 'nonsense' },
       });
 
       expect(none.statusCode).toBe(200);
@@ -1573,8 +1595,8 @@ describe('pet distance (search results + detail)', () => {
 
       const res = await app.inject({
         method: 'GET',
-        url: `/api/v1/pets?${LONDON_QUERY}`,
-        headers: asAdopter,
+        url: '/api/v1/pets',
+        headers: { ...asAdopter, ...LONDON_HEADER },
       });
 
       expect(res.statusCode).toBe(200);
@@ -1594,8 +1616,8 @@ describe('pet distance (search results + detail)', () => {
 
       const res = await app.inject({
         method: 'GET',
-        url: `/api/v1/pets/pet-1?${LONDON_QUERY}`,
-        headers: asAdopter,
+        url: '/api/v1/pets/pet-1',
+        headers: { ...asAdopter, ...LONDON_HEADER },
       });
 
       expect(res.statusCode).toBe(200);
@@ -1620,8 +1642,8 @@ describe('pet distance (search results + detail)', () => {
       });
       const noCoordinates = await app.inject({
         method: 'GET',
-        url: `/api/v1/pets/pet-1?${LONDON_QUERY}`,
-        headers: asAdopter,
+        url: '/api/v1/pets/pet-1',
+        headers: { ...asAdopter, ...LONDON_HEADER },
       });
 
       expect(noLocation.statusCode).toBe(200);

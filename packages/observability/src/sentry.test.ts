@@ -82,6 +82,26 @@ describe('redactSentryEvent', () => {
     });
   });
 
+  it('redacts the x-client-location header (the caller coordinates) regardless of casing', () => {
+    const event = {
+      request: {
+        headers: {
+          'X-Client-Location': '51.5,-0.12',
+          'x-client-location': '51.5,-0.12',
+          accept: 'application/json',
+        },
+      },
+    } as unknown as Sentry.ErrorEvent;
+
+    const out = redactSentryEvent(event);
+
+    expect(out.request!.headers).toEqual({
+      'X-Client-Location': '[REDACTED]',
+      'x-client-location': '[REDACTED]',
+      accept: 'application/json',
+    });
+  });
+
   it('collapses UUIDs and numeric ids in URLs to `:id`', () => {
     const event = {
       request: { url: '/api/v1/users/a1b2c3d4-1234-5678-9abc-def012345678/orders/42' },

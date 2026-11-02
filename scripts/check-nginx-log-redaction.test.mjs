@@ -58,6 +58,8 @@ describe.each(NGINX_CONFIGS)('%s access log', rel => {
       expect(format).not.toMatch(/\$request\b(?!_method|_uri)/);
       expect(format).not.toContain('$request_uri');
       expect(format).not.toContain('$args');
+      // The caller-location header must never be written to a log.
+      expect(format).not.toMatch(/x_client_location/i);
       expect(format).not.toContain('$query_string');
     }
   });

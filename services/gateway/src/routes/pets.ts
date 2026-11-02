@@ -201,8 +201,9 @@ export const registerPetsRoutes = async (
             ageGroup: { type: 'string' },
             sortBy: { type: 'string' },
             sortOrder: { type: 'string' },
-            // The caller's coordinates, for the per-row `distance`. Used in
-            // memory only; never logged or stored.
+            // LEGACY: the caller's coordinates now arrive in the
+            // x-client-location header; these are only read for stale
+            // clients. Used in memory only; never logged or stored.
             lat: { type: 'string' },
             lng: { type: 'string' },
           },
@@ -266,8 +267,14 @@ export const registerPetsRoutes = async (
         const res = await client.list(grpcReq, meta);
         // ADS-1186: attach the rescue name to each row for the admin table.
         const named = await enrichPetsWithRescueName(res.pets.map(petToView), rescueClient, meta);
-        // Optional ?lat&lng: miles from the caller to each pet's rescue.
-        const data = await withDistances(named, readUserLocation(query), rescueClient, meta);
+        // Optional x-client-location header: miles from the caller to each
+        // pet's rescue.
+        const data = await withDistances(
+          named,
+          readUserLocation({ headers: req.headers, query }),
+          rescueClient,
+          meta
+        );
         return reply.send({
           success: true,
           data,
@@ -587,10 +594,14 @@ export const registerPetsRoutes = async (
         if (res.pet === undefined) {
           return reply.code(404).send({ success: false, error: 'pet not found' });
         }
-        // Optional ?lat&lng: miles from the caller to the pet's rescue.
+        // Optional x-client-location header: miles from the caller to the
+        // pet's rescue.
         const [data] = await withDistances(
           [petToView(res.pet)],
-          readUserLocation(req.query as { lat?: string; lng?: string }),
+          readUserLocation({
+            headers: req.headers,
+            query: req.query as { lat?: string; lng?: string },
+          }),
           rescueClient,
           meta
         );

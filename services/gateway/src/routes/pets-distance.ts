@@ -1,24 +1,37 @@
 // Distance badge for the search results and the pet detail page.
 //
-// The caller's coordinates arrive as optional `lat` / `lng` query params. They
-// are used only in memory for this request: never logged (the gateway logs
-// paths, not query strings — see redactUrl) and never persisted. A distance is
-// decoration, so a missing coordinate on either side, or a failed lookup,
-// simply means no `distance` field — never an error.
+// The caller's coordinates arrive in the optional `x-client-location:
+// <lat>,<lng>` request header (see parseClientLocationHeader; the legacy
+// `lat` / `lng` query params are still read for stale clients). They are used
+// only in memory for this request: never logged (the gateway never logs
+// headers, and the name is on the redaction lists) and never persisted. A
+// distance is decoration, so a missing coordinate on either side, or a failed
+// lookup, simply means no `distance` field — never an error.
 
 import type { Metadata } from '@grpc/grpc-js';
 
-import { haversineMiles, parseUserLocation, type LatLng } from '@adopt-dont-shop/service-bootstrap';
+import {
+  CLIENT_LOCATION_HEADER,
+  haversineMiles,
+  parseClientLocationHeader,
+  parseUserLocation,
+  type LatLng,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 // One short attempt, no retries: the pets read must not wait on this.
 const RESCUE_LOCATION_BUDGET = { deadlineMs: 750, maxRetries: 0 };
 
-export const readUserLocation = (query: {
-  lat?: string | undefined;
-  lng?: string | undefined;
-}): LatLng | undefined => parseUserLocation(query.lat, query.lng);
+// The caller's location: the `x-client-location` header (preferred — a header
+// never appears in URL-keyed logs), else the legacy `lat` / `lng` query params
+// that already-deployed clients still send. Invalid or absent => undefined.
+export const readUserLocation = (request: {
+  headers: Record<string, unknown>;
+  query?: { lat?: string | undefined; lng?: string | undefined } | undefined;
+}): LatLng | undefined =>
+  parseClientLocationHeader(request.headers[CLIENT_LOCATION_HEADER]) ??
+  parseUserLocation(request.query?.lat, request.query?.lng);
 
 export async function withDistances<T extends Record<string, unknown>>(
   views: ReadonlyArray<T>,

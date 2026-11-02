@@ -28,6 +28,22 @@ describe('redactSecretFields', () => {
     });
   });
 
+  it('redacts the caller-location header (precise coordinates) in any casing', () => {
+    expect(
+      redactSecretFields({
+        'x-client-location': '51.5,-0.12',
+        'X-Client-Location': '51.5,-0.12',
+        clientLocation: '51.5,-0.12',
+        headers: { 'x-client-location': '51.5,-0.12', accept: 'application/json' },
+      })
+    ).toEqual({
+      'x-client-location': '[REDACTED]',
+      'X-Client-Location': '[REDACTED]',
+      clientLocation: '[REDACTED]',
+      headers: { 'x-client-location': '[REDACTED]', accept: 'application/json' },
+    });
+  });
+
   it('leaves non-secret keys intact', () => {
     const out = redactSecretFields({ userId: 'u1', email: 'a@b.com', count: 3 });
     expect(out).toEqual({ userId: 'u1', email: 'a@b.com', count: 3 });

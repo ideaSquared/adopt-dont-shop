@@ -81,8 +81,9 @@ const NUMERIC_ID_PATTERN = /\/\d+(?=\/|\?|#|$)/g;
 const redactUrlIds = (url: string): string =>
   url.replace(UUID_PATTERN, ':id').replace(NUMERIC_ID_PATTERN, '/:id');
 
-// Strip authorization and cookie headers from a headers map regardless
-// of casing. Returns a new object — does not mutate input.
+// Strip authorization, cookie and x-client-location (the caller's coordinates)
+// headers from a headers map regardless of casing. Returns a new object —
+// does not mutate input.
 const redactHeaders = (
   headers: Record<string, string> | undefined
 ): Record<string, string> | undefined => {
@@ -92,7 +93,7 @@ const redactHeaders = (
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(headers)) {
     const lower = k.toLowerCase();
-    if (lower === 'authorization' || lower === 'cookie') {
+    if (lower === 'authorization' || lower === 'cookie' || lower === 'x-client-location') {
       out[k] = REDACTED;
     } else {
       out[k] = v;
