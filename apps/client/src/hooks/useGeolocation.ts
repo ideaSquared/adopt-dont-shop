@@ -45,6 +45,12 @@ const saveCachedLocation = (latitude: number, longitude: number): void => {
   }
 };
 
+const UNSUPPORTED_MESSAGE = 'Geolocation is not supported by your browser';
+
+// Feature-detects the API without calling it (so no permission prompt).
+const isGeolocationSupported = (): boolean =>
+  typeof navigator !== 'undefined' && Boolean(navigator.geolocation);
+
 export const useGeolocation = () => {
   const [state, setState] = useState<GeolocationState>(() => {
     const cached = loadCachedLocation();
@@ -54,6 +60,14 @@ export const useGeolocation = () => {
         longitude: cached.longitude,
         status: 'granted' as const,
         error: undefined,
+      };
+    }
+    if (!isGeolocationSupported()) {
+      return {
+        latitude: undefined,
+        longitude: undefined,
+        status: 'unavailable' as const,
+        error: UNSUPPORTED_MESSAGE,
       };
     }
     return {
@@ -78,7 +92,7 @@ export const useGeolocation = () => {
       setState(prev => ({
         ...prev,
         status: 'unavailable',
-        error: 'Geolocation is not supported by your browser',
+        error: UNSUPPORTED_MESSAGE,
       }));
       return;
     }

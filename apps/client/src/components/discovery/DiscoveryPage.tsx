@@ -48,6 +48,11 @@ export const DiscoveryPage: React.FC = () => {
         : filters,
     [filters, latitude, longitude]
   );
+  // requestFilters changes identity whenever the filters OR the adopter's location
+  // change, i.e. whenever the deck is reloaded. Pagination started for an older
+  // deck compares against this to discard its (stale) result.
+  const requestFiltersRef = useRef(requestFilters);
+  requestFiltersRef.current = requestFilters;
   const persistedState = useMemo(() => loadDiscoveryState(), []);
   const [session, setSession] = useState<SwipeSession>({
     sessionId: persistedState.sessionId,
@@ -220,6 +225,12 @@ export const DiscoveryPage: React.FC = () => {
           lastPet.petId,
           requestFilters
         );
+        // The deck was reloaded (filters or location changed) while this was in
+        // flight: its cards carry the old distances, and an empty page says
+        // nothing about the new queue.
+        if (requestFiltersRef.current !== requestFilters) {
+          return;
+        }
         if (morePets.length > 0) {
           setPets(prev => [...prev, ...morePets]);
         } else {

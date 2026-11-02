@@ -56,11 +56,20 @@ vi.mock('@/contexts/FavoritesContext', () => ({
 }));
 
 vi.mock('../swipe/SwipeStack', () => ({
-  SwipeStack: ({ pets }: { pets: { name: string; petId: string }[] }) => (
+  SwipeStack: ({
+    pets,
+    onEndReached,
+  }: {
+    pets: { name: string; petId: string }[];
+    onEndReached?: () => void;
+  }) => (
     <div data-testid='swipe-stack'>
       {pets.map(p => (
         <div key={p.petId}>{p.name}</div>
       ))}
+      <button type='button' onClick={onEndReached}>
+        end of deck
+      </button>
     </div>
   ),
 }));
@@ -87,11 +96,12 @@ vi.mock('@/utils/discoverySession', () => ({
 }));
 
 const getDiscoveryQueueMock = vi.fn();
+const loadMorePetsMock = vi.fn();
 vi.mock('@/services', () => ({
   discoveryService: {
     getDiscoveryQueue: (...args: unknown[]) => getDiscoveryQueueMock(...args),
     recordSwipeAction: vi.fn().mockResolvedValue(undefined),
-    loadMorePets: vi.fn().mockResolvedValue([]),
+    loadMorePets: (...args: unknown[]) => loadMorePetsMock(...args),
   },
 }));
 
@@ -149,6 +159,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
   getDiscoveryQueueMock.mockResolvedValue(queue);
+  loadMorePetsMock.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -234,5 +245,61 @@ describe('/discover "Use my location"', () => {
     await waitFor(() => expect(lastQueueFilters()).toMatchObject(HOME));
 
     expect(JSON.stringify(logEventMock.mock.calls)).not.toMatch(/53\.58|-2\.43/);
+  });
+
+  it('explains an unsupported browser straight away, with no button that cannot work', async () => {
+    // No navigator.geolocation at all (the jsdom default).
+    renderPage();
+    await screen.findByText('Buddy');
+
+    expect(screen.getByRole('status')).toHaveTextContent(/doesn.t support/i);
+    expect(screen.queryByRole('button', { name: /use my location/i })).not.toBeInTheDocument();
+  });
+
+  describe('when "Stop sharing location" lands while more cards are loading', () => {
+    const startPaginationWithLocation = async () => {
+      const geo = stubGeolocation();
+      geo.grant();
+      renderPage();
+      await screen.findByText('Buddy');
+      await userEvent.click(screen.getByRole('button', { name: /use my location/i }));
+      await waitFor(() => expect(lastQueueFilters()).toMatchObject(HOME));
+
+      let finishPagination: (pets: unknown[]) => void = () => undefined;
+      loadMorePetsMock.mockReturnValueOnce(
+        new Promise(resolve => {
+          finishPagination = resolve;
+        })
+      );
+      await userEvent.click(screen.getByRole('button', { name: /end of deck/i }));
+      await waitFor(() => expect(loadMorePetsMock).toHaveBeenCalledTimes(1));
+      expect(loadMorePetsMock.mock.calls[0][2]).toMatchObject(HOME);
+      return finishPagination;
+    };
+
+    it('ignores cards fetched for the previous location', async () => {
+      const finishPagination = await startPaginationWithLocation();
+      getDiscoveryQueueMock.mockResolvedValue({ ...queue, pets: [{ ...pet, name: 'Fresh' }] });
+
+      await userEvent.click(screen.getByRole('button', { name: /stop sharing location/i }));
+      expect(await screen.findByText('Fresh')).toBeInTheDocument();
+      finishPagination([{ ...pet, petId: 'pet-stale', name: 'Stale' }]);
+
+      await waitFor(() => expect(loadMorePetsMock).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('Stale')).not.toBeInTheDocument();
+      expect(screen.getByText('Fresh')).toBeInTheDocument();
+    });
+
+    it('does not let an empty stale page mark the new queue as exhausted', async () => {
+      const finishPagination = await startPaginationWithLocation();
+      getDiscoveryQueueMock.mockResolvedValue({ ...queue, pets: [] });
+
+      await userEvent.click(screen.getByRole('button', { name: /stop sharing location/i }));
+      await waitFor(() => expect(lastQueueFilters()).not.toHaveProperty('latitude'));
+      finishPagination([]);
+
+      await waitFor(() => expect(loadMorePetsMock).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('No more pets')).not.toBeInTheDocument();
+    });
   });
 });

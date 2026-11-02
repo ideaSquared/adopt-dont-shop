@@ -11,7 +11,7 @@ type Props = React.ComponentProps<typeof DiscoveryLocationControl>;
 const renderControl = (overrides: Partial<Props> = {}) => {
   const onUseLocation = vi.fn();
   const onClear = vi.fn();
-  render(
+  const element = (props: Partial<Props>) => (
     <ThemeProvider>
       <DiscoveryLocationControl
         status='idle'
@@ -19,10 +19,16 @@ const renderControl = (overrides: Partial<Props> = {}) => {
         onUseLocation={onUseLocation}
         onClear={onClear}
         {...overrides}
+        {...props}
       />
     </ThemeProvider>
   );
-  return { onUseLocation, onClear };
+  const view = render(element({}));
+  return {
+    onUseLocation,
+    onClear,
+    rerender: (props: Partial<Props>) => view.rerender(element(props)),
+  };
 };
 
 describe('DiscoveryLocationControl', () => {
@@ -52,7 +58,35 @@ describe('DiscoveryLocationControl', () => {
 
     const button = screen.getByRole('button', { name: /finding your location/i });
     expect(button).toBeDisabled();
-    expect(screen.getByRole('status')).toHaveTextContent(/finding your location/i);
+    // The busy flag belongs on the request button: on the live region it would
+    // tell assistive technology to defer the "Finding your location" update.
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    const region = screen.getByRole('status');
+    expect(region).toHaveTextContent(/finding your location/i);
+    expect(region).not.toHaveAttribute('aria-busy');
+  });
+
+  it('announces that sharing stopped once the location is cleared', async () => {
+    const { onClear, rerender } = renderControl({ status: 'granted', hasLocation: true });
+
+    await userEvent.click(screen.getByRole('button', { name: /stop sharing location/i }));
+    expect(onClear).toHaveBeenCalledTimes(1);
+    rerender({ status: 'idle', hasLocation: false });
+
+    expect(screen.getByRole('status')).toHaveTextContent('Location sharing stopped');
+    expect(screen.getByRole('button', { name: /use my location/i })).toBeInTheDocument();
+  });
+
+  it('drops the "stopped" message when the adopter shares again', async () => {
+    const { onUseLocation, rerender } = renderControl({ status: 'granted', hasLocation: true });
+    await userEvent.click(screen.getByRole('button', { name: /stop sharing location/i }));
+    rerender({ status: 'idle', hasLocation: false });
+
+    await userEvent.click(screen.getByRole('button', { name: /use my location/i }));
+    expect(onUseLocation).toHaveBeenCalledTimes(1);
+    rerender({ status: 'loading', hasLocation: false });
+
+    expect(screen.getByRole('status')).not.toHaveTextContent(/stopped/i);
   });
 
   it('confirms the distances are from the adopter and lets them stop sharing', async () => {

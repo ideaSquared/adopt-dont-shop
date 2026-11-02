@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './DiscoveryLocationControl.css';
 
@@ -24,7 +24,9 @@ const FAILURE_MESSAGES: Partial<Record<LocationStatus, string>> = {
  * only ever appears after the adopter presses the button, and a failed attempt
  * is never retried automatically.
  *
- * The single polite live region announces progress, success and failure. The
+ * The single polite live region announces progress, success, failure and "stopped".
+ * The busy state is on the request button (not the live region, where aria-busy
+ * would defer the announcement). The
  * coordinates themselves are never rendered or logged here; they are PII.
  */
 export const DiscoveryLocationControl: React.FC<DiscoveryLocationControlProps> = ({
@@ -33,6 +35,9 @@ export const DiscoveryLocationControl: React.FC<DiscoveryLocationControlProps> =
   onUseLocation,
   onClear,
 }) => {
+  // Clearing the location moves the control back to idle. Emptying a live region
+  // is not announced, so remember that sharing was just stopped and say so.
+  const [justStopped, setJustStopped] = useState(false);
   const isLoading = status === 'loading';
   const isSharing = hasLocation && !isLoading;
   const failure = FAILURE_MESSAGES[status];
@@ -41,17 +46,32 @@ export const DiscoveryLocationControl: React.FC<DiscoveryLocationControlProps> =
     ? 'Finding your location…'
     : isSharing
       ? 'Showing distance from your location'
-      : (failure ?? '');
+      : (failure ?? (justStopped ? 'Location sharing stopped' : ''));
+
+  const handleUse = () => {
+    setJustStopped(false);
+    onUseLocation();
+  };
+  const handleClear = () => {
+    setJustStopped(true);
+    onClear();
+  };
 
   return (
     <section className={styles.container} aria-label='Distance from your location'>
       <div className={styles.row}>
         {isSharing ? (
-          <Button variant='outline' size='sm' onClick={onClear}>
+          <Button variant='outline' size='sm' onClick={handleClear}>
             Stop sharing location
           </Button>
         ) : status === 'unavailable' ? null : (
-          <Button variant='outline' size='sm' onClick={onUseLocation} disabled={isLoading}>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={handleUse}
+            disabled={isLoading}
+            aria-busy={isLoading}
+          >
             {isLoading
               ? 'Finding your location…'
               : status === 'denied' || status === 'error'
@@ -70,7 +90,6 @@ export const DiscoveryLocationControl: React.FC<DiscoveryLocationControlProps> =
         className={styles.status({ variant: failure ? 'error' : isSharing ? 'success' : 'info' })}
         role='status'
         aria-live='polite'
-        aria-busy={isLoading}
       >
         {liveMessage}
       </div>
