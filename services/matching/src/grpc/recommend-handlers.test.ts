@@ -118,6 +118,33 @@ describe('makeRecommend distance', () => {
     expect(candidates.get('p-2')?.distanceMiles).toBeUndefined();
   });
 
+  it('carries both the distance and the similar-adopted label on the same card', async () => {
+    const dog = {
+      type: PetsV1.PetType.PET_TYPE_DOG,
+      size: PetsV1.PetSize.PET_SIZE_SMALL,
+      ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_YOUNG,
+    };
+    const listPets = vi
+      .fn()
+      .mockResolvedValue(listResponse([makePet({ petId: 'p-1', rescueId: 'rsc-1', ...dog })]));
+    const getAdoptionStats = vi
+      .fn()
+      .mockResolvedValue({ stats: [{ cohort: dog, sampleCount: 9, medianDays: 5 }] });
+    const getRescueLocations = vi.fn().mockResolvedValue(new Map([['rsc-1', MANCHESTER]]));
+    const recommend = makeRecommend(makePetsClient(listPets, getAdoptionStats), {
+      getRescueLocations,
+    });
+
+    const res = await recommend(recommendDeps, makePrincipal(), {
+      sessionId: 's-1',
+      limit: 10,
+      filtersJsonOverride: LONDON_FILTERS,
+    } as RecommendRequest);
+
+    expect(res.candidates[0].distanceMiles).toBeGreaterThan(160);
+    expect(res.candidates[0].activityLabel?.kind).toBe('similar_adopted_fast');
+  });
+
   it('skips the lookup when the caller sent no usable coordinates', async () => {
     const getRescueLocations = vi.fn();
 
