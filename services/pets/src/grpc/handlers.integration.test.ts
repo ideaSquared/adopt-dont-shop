@@ -30,6 +30,8 @@ import { PetsV1 } from '@adopt-dont-shop/proto';
 import { makeNatsDouble, testPrincipal, withTestDatabase } from '@adopt-dont-shop/test-utils';
 
 import { createPet, updatePet, updatePetStatus, type HandlerDeps } from './handlers.js';
+import { prunePetViews } from '../jobs/prune-pet-views.js';
+import { getViewsToday, recordPetView } from './view-handlers.js';
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
 
@@ -111,6 +113,69 @@ describe.skipIf(!process.env.DATABASE_URL)('updatePetStatus (real Postgres)', ()
         [petId]
       );
       expect(rows[0].recent).toBe(true);
+    });
+  });
+});
+
+const ADOPTER = testPrincipal({
+  userId: randomUUID() as UserId,
+  roles: ['adopter'],
+  permissions: ['pets.read' as Permission],
+});
+
+describe.skipIf(!process.env.DATABASE_URL)('pet views (real Postgres)', () => {
+  it('stores a single view per user, pet and hour even under concurrent requests', async () => {
+    await withTestDatabase(DB_OPTIONS, async pool => {
+      const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+      const petId = await insertAvailablePet(pool);
+
+      const results = await Promise.all(
+        Array.from({ length: 4 }, () => recordPetView(deps, ADOPTER, { petId }))
+      );
+
+      expect(results.filter(r => r.recorded)).toHaveLength(1);
+      const { rows } = await pool.query(`SELECT 1 FROM pets.pet_views WHERE pet_id = $1`, [petId]);
+      expect(rows).toHaveLength(1);
+    });
+  });
+
+  it('counts each distinct viewer once and ignores views older than a day', async () => {
+    await withTestDatabase(DB_OPTIONS, async pool => {
+      const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+      const petId = await insertAvailablePet(pool);
+      await recordPetView(deps, ADOPTER, { petId });
+      const other = testPrincipal({
+        userId: randomUUID() as UserId,
+        roles: ['adopter'],
+        permissions: ['pets.read' as Permission],
+      });
+      await recordPetView(deps, other, { petId });
+      await pool.query(
+        `INSERT INTO pets.pet_views (view_id, pet_id, viewer_id, viewed_at)
+         VALUES ($1, $2, $3, now() - interval '2 days')`,
+        [randomUUID(), petId, randomUUID()]
+      );
+
+      const res = await getViewsToday(deps, ADOPTER, { petIds: [petId] });
+
+      expect(res.counts).toEqual([{ petId, views: 2 }]);
+    });
+  });
+
+  it('drops views older than the retention window and keeps recent ones', async () => {
+    await withTestDatabase(DB_OPTIONS, async pool => {
+      const petId = await insertAvailablePet(pool);
+      await pool.query(
+        `INSERT INTO pets.pet_views (view_id, pet_id, viewer_id, viewed_at)
+         VALUES ($1, $2, $3, now() - interval '30 days'), ($4, $2, $5, now())`,
+        [randomUUID(), petId, randomUUID(), randomUUID(), randomUUID()]
+      );
+
+      const deleted = await prunePetViews(pool);
+
+      expect(deleted).toBe(1);
+      const { rows } = await pool.query(`SELECT 1 FROM pets.pet_views`);
+      expect(rows).toHaveLength(1);
     });
   });
 });

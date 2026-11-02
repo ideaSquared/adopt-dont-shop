@@ -119,6 +119,10 @@ const SERVICE_NAME = 'service.pets';
 export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
   const stub = new PetsV1.PetServiceClient(opts.address, credentials.createInsecure());
   const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
+  // View recording is best-effort and fire-and-forget; keep its failures out of
+  // the breaker the pet reads share, or a broken pet_views table would open it
+  // and 503 healthy reads.
+  const recordViewBreaker = getOrCreateCircuitBreaker(`${SERVICE_NAME}.record-view`);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -129,7 +133,8 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
     ) => unknown,
     req: Req,
     metadata: Metadata,
-    idempotent: boolean
+    idempotent: boolean,
+    circuitBreaker = breaker
   ): Promise<Res> =>
     callWithResilience<Res>(
       deadline =>
@@ -159,7 +164,7 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
         service: SERVICE_NAME,
         deadlineMs: DEFAULT_DEADLINE_MS,
         idempotent,
-        circuitBreaker: breaker,
+        circuitBreaker,
       }
     );
 
@@ -188,7 +193,8 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
     getSearchSuggestions: (req, metadata) =>
       callUnary(stub.getSearchSuggestions, req, metadata, true),
     getPetFacets: (req, metadata) => callUnary(stub.getPetFacets, req, metadata, true),
-    recordPetView: (req, metadata) => callUnary(stub.recordPetView, req, metadata, false),
+    recordPetView: (req, metadata) =>
+      callUnary(stub.recordPetView, req, metadata, false, recordViewBreaker),
     close: () => stub.close(),
   };
 };

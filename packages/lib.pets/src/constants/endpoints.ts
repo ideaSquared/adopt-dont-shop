@@ -18,6 +18,9 @@ export const PETS_ENDPOINTS = {
   FAVORITE_STATUS: (petId: string) => `/api/v1/pets/${petId}/favorite/status`,
   USER_FAVORITES: '/api/v1/pets/favorites/user',
 
+  // Detail-page view beacon (drives the "views today" card label)
+  RECORD_VIEW: (petId: string) => `/api/v1/pets/${petId}/view`,
+
   // Similar pets and recommendations
   SIMILAR_PETS: (petId: string) => `/api/v1/pets/${petId}/similar`,
 

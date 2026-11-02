@@ -208,6 +208,71 @@ describe('createPetsClient (matching) — deadline + retry behaviour', () => {
       client.close();
     }
   });
+
+  describe('getViewsToday (optional label lookup)', () => {
+    // A generous default budget (5s x 3 attempts) must NOT apply: the lookup
+    // is decoration on a Recommend page and has to fail fast, once, so the
+    // deck still returns inside the gateway's deadline.
+    it('gives up after one short attempt when the server hangs', async () => {
+      let callCount = 0;
+      server.addService(PetsV1.PetServiceService, {
+        getViewsToday: () => {
+          callCount += 1;
+          // Never respond.
+        },
+      });
+      port = await startServer();
+      const client = createPetsClient({
+        address: `127.0.0.1:${port}`,
+        deadlineMs: 10_000,
+        maxRetries: 2,
+      });
+
+      const start = Date.now();
+      try {
+        await client.getViewsToday({ petIds: ['p-1'] }, emptyMetadata, {
+          deadlineMs: 1_000,
+          maxRetries: 0,
+        });
+        expect.fail('expected rejection');
+      } catch (err: unknown) {
+        expect((err as { code?: number }).code).toBe(status.DEADLINE_EXCEEDED);
+        expect(Date.now() - start).toBeLessThan(3_000);
+        expect(callCount).toBe(1);
+      } finally {
+        client.close();
+      }
+    }, 15_000);
+
+    it('does not retry an UNAVAILABLE response', async () => {
+      let callCount = 0;
+      server.addService(PetsV1.PetServiceService, {
+        getViewsToday: (_call: unknown, cb: sendUnaryData<unknown>) => {
+          callCount += 1;
+          cb(makeServiceError(status.UNAVAILABLE, 'down'), null);
+        },
+      });
+      port = await startServer();
+      const client = createPetsClient({
+        address: `127.0.0.1:${port}`,
+        deadlineMs: 2_000,
+        maxRetries: 2,
+      });
+
+      try {
+        await client.getViewsToday({ petIds: ['p-1'] }, emptyMetadata, {
+          deadlineMs: 1_000,
+          maxRetries: 0,
+        });
+        expect.fail('expected rejection');
+      } catch (err: unknown) {
+        expect((err as { code?: number }).code).toBe(status.UNAVAILABLE);
+        expect(callCount).toBe(1);
+      } finally {
+        client.close();
+      }
+    });
+  });
 });
 
 describe('createPetsClient (matching) — getAdoptionStats call budget', () => {

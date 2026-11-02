@@ -257,6 +257,14 @@ describe('PetsService', () => {
       expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/pets/1/favorite');
     });
 
+    it('should report a detail-page view to the view endpoint', async () => {
+      mockApiService.post.mockResolvedValueOnce({ success: true, data: { recorded: true } });
+
+      await service.recordView('1');
+
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/pets/1/view');
+    });
+
     it('should remove pet from favorites', async () => {
       mockApiService.delete.mockResolvedValueOnce({ success: true });
 

@@ -61,6 +61,31 @@ describe('pets migrations', () => {
     expect(typeof mod.down).toBe('function');
   });
 
+  it('012 dedupes pet views with a unique (viewer, pet, UTC hour) index', async () => {
+    const createTable = vi.fn();
+    const createIndex = vi.fn();
+    const sql = vi.fn();
+    const pgm = {
+      createTable,
+      createIndex,
+      sql,
+      func: (expr: string) => expr,
+    } as unknown as MigrationBuilder;
+    const mod = await import('./012_create_pet_views.js');
+    await mod.up(pgm);
+
+    // Immutable generated expression (AT TIME ZONE 'UTC'): STORED columns reject
+    // the stable timestamptz variant of date_trunc.
+    expect(sql).toHaveBeenCalledWith(
+      expect.stringContaining("date_trunc('hour', viewed_at AT TIME ZONE 'UTC')")
+    );
+    expect(createIndex).toHaveBeenCalledWith(
+      'pet_views',
+      ['viewer_id', 'pet_id', 'view_hour'],
+      expect.objectContaining({ unique: true })
+    );
+  });
+
   it('009 adds the extra_json jsonb column (ADS-1155)', async () => {
     const addColumn = vi.fn();
     const pgm = { addColumn } as unknown as MigrationBuilder;

@@ -278,65 +278,17 @@ describe('GET /api/v1/pets', () => {
 });
 
 describe('GET /api/v1/pets/:id', () => {
-  it('records a view for an authenticated reader', async () => {
+  it('does not record a view: background lookups also read this route', async () => {
     const { client, getMock, recordPetViewMock } = makeClient();
     const app = await makeApp(client);
     try {
       getMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
-      await app.inject({
-        method: 'GET',
-        url: '/api/v1/pets/pet-1',
-        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
-      });
-      expect(recordPetViewMock).toHaveBeenCalledTimes(1);
-      const [req, metadata] = recordPetViewMock.mock.calls[0];
-      expect(req).toEqual({ petId: 'pet-1' });
-      expect(metadata.get('x-user-id')[0]).toBe('usr-1');
-    } finally {
-      await app.close();
-    }
-  });
-
-  it('does not record anonymous views', async () => {
-    const { client, getMock, recordPetViewMock } = makeClient();
-    const app = await makeApp(client);
-    try {
-      getMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
-      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/pet-1' });
-      expect(res.statusCode).toBe(200);
-      expect(recordPetViewMock).not.toHaveBeenCalled();
-    } finally {
-      await app.close();
-    }
-  });
-
-  it('still returns the pet when recording the view fails', async () => {
-    const { client, getMock, recordPetViewMock } = makeClient();
-    const app = await makeApp(client);
-    try {
-      getMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
-      recordPetViewMock.mockRejectedValueOnce(new Error('pets down'));
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/pets/pet-1',
         headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
       });
       expect(res.statusCode).toBe(200);
-    } finally {
-      await app.close();
-    }
-  });
-
-  it('does not record a view when the pet is not found', async () => {
-    const { client, getMock, recordPetViewMock } = makeClient();
-    const app = await makeApp(client);
-    try {
-      getMock.mockResolvedValueOnce({ pet: undefined });
-      await app.inject({
-        method: 'GET',
-        url: '/api/v1/pets/pet-1',
-        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
-      });
       expect(recordPetViewMock).not.toHaveBeenCalled();
     } finally {
       await app.close();
@@ -407,6 +359,46 @@ describe('GET /api/v1/pets/:id', () => {
         })
       );
       const res = await app.inject({ method: 'GET', url: '/api/v1/pets/ghost' });
+      expect(res.statusCode).toBe(404);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('POST /api/v1/pets/:id/view', () => {
+  it('records the view for the calling user and reports whether it was stored', async () => {
+    const { client, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      recordPetViewMock.mockResolvedValueOnce({ recorded: true });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/view',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ success: true, data: { recorded: true } });
+      const [req, metadata] = recordPetViewMock.mock.calls[0];
+      expect(req).toEqual({ petId: 'pet-1' });
+      expect(metadata.get('x-user-id')[0]).toBe('usr-1');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps a not-found pet from the service to a 404', async () => {
+    const { client, recordPetViewMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      recordPetViewMock.mockRejectedValueOnce(
+        Object.assign(new Error('pet not found'), { code: 5 })
+      );
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-gone/view',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      });
       expect(res.statusCode).toBe(404);
     } finally {
       await app.close();

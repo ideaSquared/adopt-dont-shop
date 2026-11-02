@@ -14,6 +14,12 @@ const ADOPTER: Principal = {
   permissions: ['pets.read' as Permission],
 };
 
+const ADMIN: Principal = {
+  userId: 'usr-admin' as UserId,
+  roles: ['admin'],
+  permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+};
+
 const NO_PERMISSIONS: Principal = {
   userId: 'usr-nobody' as UserId,
   roles: [],
@@ -29,6 +35,15 @@ function makeMocks() {
   };
   return { deps, poolMock: pool };
 }
+
+// Only the columns the visibility gate reads.
+const petRow = (overrides: Record<string, unknown> = {}) => ({
+  pet_id: 'pet-1',
+  rescue_id: 'rsc-1',
+  status: 'available',
+  archived: false,
+  ...overrides,
+});
 
 describe('recordPetView', () => {
   it('rejects anonymous callers', async () => {
@@ -52,35 +67,75 @@ describe('recordPetView', () => {
     });
   });
 
-  it('stores a view for the calling user and reports it recorded', async () => {
+  it('treats a missing pet as not found without storing anything', async () => {
     const { deps, poolMock } = makeMocks();
-    poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    await expect(recordPetView(deps, ADOPTER, { petId: 'pet-gone' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['adopted', { status: 'adopted' }],
+    ['not available', { status: 'not_available' }],
+    ['archived', { archived: true }],
+  ])('treats a %s pet as not found for a public reader', async (_label, overrides) => {
+    const { deps, poolMock } = makeMocks();
+    poolMock.query.mockResolvedValueOnce({ rows: [petRow(overrides)], rowCount: 1 });
+
+    await expect(recordPetView(deps, ADOPTER, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a privileged reader record a view on a hidden-status pet', async () => {
+    const { deps, poolMock } = makeMocks();
+    poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const res = await recordPetView(deps, ADMIN, { petId: 'pet-1' });
+
+    expect(res).toEqual({ recorded: true });
+  });
+
+  it('stores the view for the calling user in one atomic statement', async () => {
+    const { deps, poolMock } = makeMocks();
+    poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow()], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
 
     const res = await recordPetView(deps, ADOPTER, { petId: 'pet-1' });
 
     expect(res).toEqual({ recorded: true });
-    const [sql, params] = poolMock.query.mock.calls[0];
+    const [sql, params] = poolMock.query.mock.calls[1];
     expect(sql).toContain('INSERT INTO pets.pet_views');
+    expect(sql).toContain('ON CONFLICT DO NOTHING');
     expect(params).toContain('pet-1');
     expect(params).toContain('usr-adopter');
   });
 
-  it('reports not recorded when the view falls inside the dedupe window', async () => {
+  it('reports not recorded when the view hit the per-hour unique index', async () => {
     const { deps, poolMock } = makeMocks();
-    poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow()], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
     const res = await recordPetView(deps, ADOPTER, { petId: 'pet-1' });
 
     expect(res).toEqual({ recorded: false });
   });
 
-  it('treats a missing pet as not found', async () => {
+  it('treats a pet deleted mid-request as not found', async () => {
     const { deps, poolMock } = makeMocks();
-    poolMock.query.mockRejectedValueOnce(
-      Object.assign(new Error('fk violation'), { code: '23503' })
-    );
+    poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow()], rowCount: 1 })
+      .mockRejectedValueOnce(Object.assign(new Error('fk violation'), { code: '23503' }));
 
-    await expect(recordPetView(deps, ADOPTER, { petId: 'pet-gone' })).rejects.toMatchObject({
+    await expect(recordPetView(deps, ADOPTER, { petId: 'pet-1' })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
   });
@@ -111,15 +166,20 @@ describe('getViewsToday', () => {
     });
   });
 
-  it('counts last-24h views per pet in one query', async () => {
+  it('counts last-24h views for the visible pets in one count query', async () => {
     const { deps, poolMock } = makeMocks();
-    poolMock.query.mockResolvedValueOnce({
-      rows: [
-        { pet_id: 'pet-1', views: '7' },
-        { pet_id: 'pet-2', views: '2' },
-      ],
-      rowCount: 2,
-    });
+    poolMock.query
+      .mockResolvedValueOnce({
+        rows: [petRow({ pet_id: 'pet-1' }), petRow({ pet_id: 'pet-2' })],
+        rowCount: 2,
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          { pet_id: 'pet-1', views: '7' },
+          { pet_id: 'pet-2', views: '2' },
+        ],
+        rowCount: 2,
+      });
 
     const res = await getViewsToday(deps, ADOPTER, { petIds: ['pet-1', 'pet-2', 'pet-3'] });
 
@@ -127,9 +187,53 @@ describe('getViewsToday', () => {
       { petId: 'pet-1', views: 7 },
       { petId: 'pet-2', views: 2 },
     ]);
-    expect(poolMock.query).toHaveBeenCalledTimes(1);
-    const [sql, params] = poolMock.query.mock.calls[0];
+    const [sql, params] = poolMock.query.mock.calls[1];
     expect(sql).toContain('pets.pet_views');
-    expect(params).toEqual([['pet-1', 'pet-2', 'pet-3']]);
+    expect(params).toEqual([['pet-1', 'pet-2']]);
+  });
+
+  it('never counts hidden, archived or deleted pets for a public reader', async () => {
+    const { deps, poolMock } = makeMocks();
+    poolMock.query
+      .mockResolvedValueOnce({
+        rows: [
+          petRow({ pet_id: 'pet-1' }),
+          petRow({ pet_id: 'pet-2', status: 'adopted' }),
+          petRow({ pet_id: 'pet-3', archived: true }),
+        ],
+        rowCount: 3,
+      })
+      .mockResolvedValueOnce({ rows: [{ pet_id: 'pet-1', views: '9' }], rowCount: 1 });
+
+    const res = await getViewsToday(deps, ADOPTER, {
+      petIds: ['pet-1', 'pet-2', 'pet-3', 'pet-deleted'],
+    });
+
+    expect(res.counts).toEqual([{ petId: 'pet-1', views: 9 }]);
+    expect(poolMock.query.mock.calls[1][1]).toEqual([['pet-1']]);
+  });
+
+  it('skips the count query when no requested pet is visible', async () => {
+    const { deps, poolMock } = makeMocks();
+    poolMock.query.mockResolvedValueOnce({
+      rows: [petRow({ status: 'adopted' })],
+      rowCount: 1,
+    });
+
+    const res = await getViewsToday(deps, ADOPTER, { petIds: ['pet-1'] });
+
+    expect(res).toEqual({ counts: [] });
+    expect(poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a privileged reader count hidden-status pets', async () => {
+    const { deps, poolMock } = makeMocks();
+    poolMock.query
+      .mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [{ pet_id: 'pet-1', views: '3' }], rowCount: 1 });
+
+    const res = await getViewsToday(deps, ADMIN, { petIds: ['pet-1'] });
+
+    expect(res.counts).toEqual([{ petId: 'pet-1', views: 3 }]);
   });
 });

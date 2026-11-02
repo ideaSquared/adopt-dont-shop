@@ -126,6 +126,7 @@ const PET_VIEW_WITH_IMAGES_SCHEMA = {
 const PETS_RATE_LIMITS = {
   list: { max: 120, timeWindow: '1 minute' },
   get: { max: 240, timeWindow: '1 minute' },
+  view: { max: 60, timeWindow: '1 minute' },
   create: { max: 30, timeWindow: '1 minute' },
   update: { max: 30, timeWindow: '1 minute' },
   updateStatus: { max: 30, timeWindow: '1 minute' },
@@ -576,16 +577,50 @@ export const registerPetsRoutes = async (
         if (res.pet === undefined) {
           return reply.code(404).send({ success: false, error: 'pet not found' });
         }
-        // Count the view for the swipe card's "views today" label. Only
-        // authenticated readers are counted (the stamped x-user-id), and
-        // it is fire-and-forget: a failure here must never fail or slow
-        // the pet read.
-        if (typeof req.headers['x-user-id'] === 'string') {
-          void client.recordPetView({ petId: req.params.id }, buildMetadata(req)).catch(() => {
-            // Tolerated: a missed view only under-counts the label.
-          });
-        }
         return reply.send({ success: true, data: petToView(res.pet) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // Detail-page view beacon. GET /pets/:id is also read for background
+  // lookups (e.g. the application dashboard), so a view is only counted when
+  // the detail page explicitly reports one. Authenticated callers only.
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/pets/:id/view',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.view },
+      schema: {
+        tags: ['pets'],
+        summary: 'Record that the authenticated user viewed a pet detail page',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  recorded: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.recordPetView({ petId: req.params.id }, buildMetadata(req));
+        return reply.send({ success: true, data: { recorded: res.recorded } });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
