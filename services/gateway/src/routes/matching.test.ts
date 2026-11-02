@@ -435,108 +435,92 @@ describe('POST /api/v1/discovery/queue (Recommend)', () => {
     });
   });
 
-  it('names each card rescue via the rescue client, tolerating lookup failures', async () => {
-    const m = makeClient();
-    m.recommendMock.mockResolvedValueOnce({
-      candidates: [
-        { petId: 'pet-1', name: 'Rex', species: 'dog', rescueId: 'rsc-1', score: 0.9, images: [] },
-        { petId: 'pet-2', name: 'Sam', species: 'cat', rescueId: 'rsc-2', score: 0.4, images: [] },
-      ],
-      exhausted: false,
-    });
-    const rescueClient = {
-      get: vi.fn(async ({ rescueId }: { rescueId: string }) => {
-        if (rescueId === 'rsc-2') {
-          throw new Error('boom');
-        }
-        return { rescue: { name: 'Happy Paws' } };
-      }),
-    } as unknown as RescueClient;
-    const named = Fastify({ logger: false });
-    await registerMatchingRoutes(named, { client: m.client, rescueClient });
-    try {
-      const res = await named.inject({
-        method: 'POST',
-        url: '/api/v1/discovery/queue',
-        payload: { sessionId: 'sess-9' },
+  describe('rescue names', () => {
+    const candidates = [
+      { petId: 'pet-1', name: 'Rex', species: 'dog', rescueId: 'rsc-1', score: 0.9, images: [] },
+      { petId: 'pet-2', name: 'Sam', species: 'cat', rescueId: 'rsc-2', score: 0.4, images: [] },
+      { petId: 'pet-3', name: 'Kit', species: 'cat', rescueId: 'rsc-1', score: 0.3, images: [] },
+    ];
+
+    const queueWith = async (getRescueNames: ReturnType<typeof vi.fn>) => {
+      const m = makeClient();
+      m.recommendMock.mockResolvedValueOnce({ candidates, exhausted: false });
+      const named = Fastify({ logger: false });
+      await registerMatchingRoutes(named, {
+        client: m.client,
+        rescueClient: { getRescueNames } as unknown as RescueClient,
       });
+      try {
+        return await named.inject({
+          method: 'POST',
+          url: '/api/v1/discovery/queue',
+          payload: { sessionId: 'sess-9' },
+        });
+      } finally {
+        await named.close();
+      }
+    };
+
+    it('names every card with ONE batch lookup under a short gRPC deadline, no retries', async () => {
+      const getRescueNames = vi.fn().mockResolvedValue({
+        names: [
+          { rescueId: 'rsc-1', name: 'Happy Paws' },
+          { rescueId: 'rsc-2', name: 'Tail Waggers' },
+        ],
+      });
+
+      const res = await queueWith(getRescueNames);
+
       expect(res.json().pets).toMatchObject([
         { petId: 'pet-1', rescueName: 'Happy Paws' },
-        { petId: 'pet-2', rescueName: '' },
+        { petId: 'pet-2', rescueName: 'Tail Waggers' },
+        { petId: 'pet-3', rescueName: 'Happy Paws' },
       ]);
-    } finally {
-      await named.close();
-    }
-  });
+      expect(getRescueNames).toHaveBeenCalledTimes(1);
+      const [req, , budget] = getRescueNames.mock.calls[0];
+      expect(req).toEqual({ rescueIds: ['rsc-1', 'rsc-2'] });
+      expect(budget).toEqual({ deadlineMs: 750, maxRetries: 0 });
+    });
 
-  it('bounds concurrent rescue lookups', async () => {
-    const m = makeClient();
-    m.recommendMock.mockResolvedValueOnce({
-      candidates: Array.from({ length: 12 }, (_, i) => ({
-        petId: `pet-${i}`,
-        name: `Pet ${i}`,
-        species: 'dog',
-        rescueId: `rsc-${i}`,
-        score: 0.5,
-        images: [],
-      })),
-      exhausted: false,
-    });
-    let inFlight = 0;
-    let maxInFlight = 0;
-    const rescueClient = {
-      get: vi.fn(async () => {
-        inFlight += 1;
-        maxInFlight = Math.max(maxInFlight, inFlight);
-        await new Promise(resolve => setTimeout(resolve, 5));
-        inFlight -= 1;
-        return { rescue: { name: 'Happy Paws' } };
-      }),
-    } as unknown as RescueClient;
-    const named = Fastify({ logger: false });
-    await registerMatchingRoutes(named, { client: m.client, rescueClient });
-    try {
-      const res = await named.inject({
-        method: 'POST',
-        url: '/api/v1/discovery/queue',
-        payload: { sessionId: 'sess-9' },
-      });
-      expect(res.statusCode).toBe(200);
-      expect(res.json().pets.every((p: { rescueName: string }) => p.rescueName !== '')).toBe(true);
-      expect(maxInFlight).toBeLessThanOrEqual(5);
-    } finally {
-      await named.close();
-    }
-  });
+    it('returns the deck without names when the lookup fails or times out', async () => {
+      const getRescueNames = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('deadline'), { code: 4 }));
 
-  it('returns the deck without names when rescue lookups outlast the deadline', async () => {
-    const m = makeClient();
-    m.recommendMock.mockResolvedValueOnce({
-      candidates: [
-        { petId: 'pet-1', name: 'Rex', species: 'dog', rescueId: 'rsc-1', score: 0.9, images: [] },
-      ],
-      exhausted: false,
-    });
-    const rescueClient = {
-      get: vi.fn(() => new Promise(() => undefined)),
-    } as unknown as RescueClient;
-    const named = Fastify({ logger: false });
-    await registerMatchingRoutes(named, {
-      client: m.client,
-      rescueClient,
-      rescueNameDeadlineMs: 20,
-    });
-    try {
-      const res = await named.inject({
-        method: 'POST',
-        url: '/api/v1/discovery/queue',
-        payload: { sessionId: 'sess-9' },
-      });
+      const res = await queueWith(getRescueNames);
+
       expect(res.statusCode).toBe(200);
-      expect(res.json().pets).toMatchObject([{ petId: 'pet-1', rescueName: '' }]);
-    } finally {
-      await named.close();
-    }
+      expect(res.json().pets).toMatchObject([
+        { petId: 'pet-1', rescueName: '' },
+        { petId: 'pet-2', rescueName: '' },
+        { petId: 'pet-3', rescueName: '' },
+      ]);
+    });
+
+    it('skips the lookup when no card has a rescue', async () => {
+      const m = makeClient();
+      m.recommendMock.mockResolvedValueOnce({
+        candidates: [{ ...candidates[0], rescueId: '' }],
+        exhausted: false,
+      });
+      const getRescueNames = vi.fn();
+      const named = Fastify({ logger: false });
+      await registerMatchingRoutes(named, {
+        client: m.client,
+        rescueClient: { getRescueNames } as unknown as RescueClient,
+      });
+      try {
+        const res = await named.inject({
+          method: 'POST',
+          url: '/api/v1/discovery/queue',
+          payload: { sessionId: 'sess-9' },
+        });
+        expect(res.statusCode).toBe(200);
+        expect(getRescueNames).not.toHaveBeenCalled();
+      } finally {
+        await named.close();
+      }
+    });
   });
 
   it('uses the supplied sessionId without opening a new one', async () => {

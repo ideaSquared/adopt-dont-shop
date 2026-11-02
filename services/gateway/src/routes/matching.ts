@@ -52,8 +52,6 @@ export type MatchingRoutesOptions = {
   // Optional: resolves each swipe card's rescue name. Without it the cards
   // carry an empty rescueName.
   rescueClient?: RescueClient;
-  // Overall budget for the optional rescue-name enrichment (default 750ms).
-  rescueNameDeadlineMs?: number;
 };
 
 // Adds UNIMPLEMENTED → 501 for the Recommend / SearchPets stubs.
@@ -100,7 +98,7 @@ export const registerMatchingRoutes = async (
   app: FastifyInstance,
   opts: MatchingRoutesOptions
 ): Promise<void> => {
-  const { client, rescueClient, rescueNameDeadlineMs = RESCUE_NAME_DEADLINE_MS } = opts;
+  const { client, rescueClient } = opts;
 
   await app.register(rateLimit, { global: false });
 
@@ -338,9 +336,7 @@ export const registerMatchingRoutes = async (
         };
         const meta = buildMetadata(req);
         const res = await client.recommend(grpcReq, meta);
-        return reply.send(
-          recommendToQueue(res, await rescueNamesFor(res, rescueClient, meta, rescueNameDeadlineMs))
-        );
+        return reply.send(recommendToQueue(res, await rescueNamesFor(res, rescueClient, meta)));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -383,9 +379,7 @@ export const registerMatchingRoutes = async (
       try {
         const meta = buildMetadata(req);
         const res = await client.recommend(grpcReq, meta);
-        return reply.send(
-          recommendToQueue(res, await rescueNamesFor(res, rescueClient, meta, rescueNameDeadlineMs))
-        );
+        return reply.send(recommendToQueue(res, await rescueNamesFor(res, rescueClient, meta)));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -771,49 +765,24 @@ function parseDeviceType(raw: string | undefined): MatchingV1.DeviceType {
 }
 
 // rescue_id → name for the cards in a Recommend page. Names are optional
-// decoration, so lookups are bounded: at most RESCUE_LOOKUP_CONCURRENCY in
-// flight (no batch RPC exists), and the whole step gets `deadlineMs` — when
-// it expires the deck goes out with whatever names have resolved and no new
-// lookups start. A failed lookup or a missing client leaves that rescue
-// unnamed. (The rescue client has no per-call abort, so lookups already in
-// flight run out their own deadline in the background.)
-const RESCUE_LOOKUP_CONCURRENCY = 5;
-const RESCUE_NAME_DEADLINE_MS = 750;
+// decoration, so this is ONE batch RPC with a short gRPC deadline and no
+// retries: on timeout, error or a missing client the deck goes out with empty
+// names (the call itself is cancelled when the deadline passes).
+const RESCUE_NAME_BUDGET = { deadlineMs: 750, maxRetries: 0 };
 
 async function rescueNamesFor(
   res: RecommendResponse,
   rescueClient: RescueClient | undefined,
-  meta: ReturnType<typeof buildMetadata>,
-  deadlineMs: number
+  meta: ReturnType<typeof buildMetadata>
 ): Promise<Map<string, string>> {
-  const names = new Map<string, string>();
-  if (rescueClient === undefined) {
-    return names;
+  const rescueIds = [...new Set(res.candidates.map(c => c.rescueId).filter(id => id !== ''))];
+  if (rescueClient === undefined || rescueIds.length === 0) {
+    return new Map();
   }
-  const queue = [...new Set(res.candidates.map(c => c.rescueId).filter(id => id !== ''))];
-  let expired = false;
-  const worker = async (): Promise<void> => {
-    for (let rescueId = queue.shift(); rescueId !== undefined; rescueId = queue.shift()) {
-      if (expired) {
-        return;
-      }
-      try {
-        const name = (await rescueClient.get({ rescueId }, meta)).rescue?.name;
-        if (name !== undefined && !expired) {
-          names.set(rescueId, name);
-        }
-      } catch {
-        // Tolerated: this rescue's cards render without a name.
-      }
-    }
-  };
-  let timer: NodeJS.Timeout | undefined;
-  const deadline = new Promise<void>(resolve => {
-    timer = setTimeout(resolve, deadlineMs);
-  });
-  const lookups = Promise.all(Array.from({ length: RESCUE_LOOKUP_CONCURRENCY }, worker));
-  await Promise.race([lookups, deadline]);
-  expired = true;
-  clearTimeout(timer);
-  return new Map(names);
+  try {
+    const { names } = await rescueClient.getRescueNames({ rescueIds }, meta, RESCUE_NAME_BUDGET);
+    return new Map(names.map(n => [n.rescueId, n.name]));
+  } catch {
+    return new Map();
+  }
 }
