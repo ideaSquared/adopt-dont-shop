@@ -102,6 +102,31 @@ describe('createRescueClient — rescue name lookup', () => {
     }
   });
 
+  it('does not retry GetRescueLocations when the call budget says no retries', async () => {
+    let calls = 0;
+    server.addService(RescueV1.RescueServiceService, {
+      getRescueLocations: (
+        _call: ServerUnaryCall<GetRescueLocationsRequest, GetRescueLocationsResponse>,
+        cb: sendUnaryData<GetRescueLocationsResponse>
+      ) => {
+        calls += 1;
+        cb(makeServiceError(status.UNAVAILABLE, 'down'), null);
+      },
+    });
+
+    port = await startServer();
+    // Client default would retry twice; the per-call budget overrides it.
+    const client = createRescueClient({ address: `127.0.0.1:${port}`, deadlineMs: 2_000 });
+    try {
+      await expect(
+        client.getRescueLocations(['res-1'], { deadlineMs: 750, maxRetries: 0 })
+      ).rejects.toMatchObject({ code: status.UNAVAILABLE });
+      expect(calls).toBe(1);
+    } finally {
+      client.close();
+    }
+  });
+
   it('returns null when the rescue has no name set', async () => {
     server.addService(RescueV1.RescueServiceService, {
       get: (

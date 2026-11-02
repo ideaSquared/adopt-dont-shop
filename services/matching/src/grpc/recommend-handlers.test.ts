@@ -104,7 +104,12 @@ describe('makeRecommend distance', () => {
 
     const candidates = await recommendWith(LONDON_FILTERS, { getRescueLocations });
 
-    expect(getRescueLocations).toHaveBeenCalledWith(['rsc-1', 'rsc-2']);
+    // Optional lookup: short deadline, no retries, so it can't eat the
+    // Recommend budget.
+    expect(getRescueLocations).toHaveBeenCalledWith(['rsc-1', 'rsc-2'], {
+      deadlineMs: 750,
+      maxRetries: 0,
+    });
     expect(candidates.get('p-1')?.distanceMiles).toBeGreaterThan(160);
     expect(candidates.get('p-1')?.distanceMiles).toBeLessThan(166);
     expect(candidates.get('p-2')?.distanceMiles).toBeUndefined();

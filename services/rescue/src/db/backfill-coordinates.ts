@@ -34,11 +34,21 @@ export async function backfillRescueCoordinates(
     if (coordinates === undefined) {
       continue;
     }
-    await pool.query(
-      `UPDATE rescue.rescues SET latitude = $1, longitude = $2 WHERE rescue_id = $3`,
-      [coordinates.latitude, coordinates.longitude, rescue_id]
+    // Guarded on the postcode we geocoded and on still-missing coordinates: if the
+    // rescue's postcode changed (or was geocoded by a concurrent update) since
+    // the SELECT, this writes nothing instead of overwriting newer coordinates
+    // with the old postcode's location.
+    const result = await pool.query(
+      `UPDATE rescue.rescues
+          SET latitude = $1, longitude = $2
+        WHERE rescue_id = $3
+          AND zip_code = $4
+          AND country = 'GB'
+          AND deleted_at IS NULL
+          AND (latitude IS NULL OR longitude IS NULL)`,
+      [coordinates.latitude, coordinates.longitude, rescue_id, zip_code]
     );
-    updated += 1;
+    updated += result.rowCount ?? 0;
   }
   return { updated, skipped: rows.length - updated };
 }

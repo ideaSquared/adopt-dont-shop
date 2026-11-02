@@ -259,6 +259,25 @@ describe('rescue coordinates', () => {
     expect(updates[1][1]).toEqual(expect.arrayContaining(['ZZ9 9ZZ', null, null]));
   });
 
+  it('does not geocode (or clear coordinates) when the stored postcode and country are resubmitted', async () => {
+    const geocode = vi.fn().mockResolvedValue(undefined);
+    mocks.poolMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await updateRescue({ ...mocks.deps, geocode }, STAFF, {
+      rescueId: 'rsc-1',
+      name: 'Renamed',
+      postcode: 'SW1A 1AA',
+      country: 'GB',
+    } as never);
+
+    expect(geocode).not.toHaveBeenCalled();
+    const update = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      String(sql).includes('UPDATE rescue.rescues')
+    );
+    expect(String(update?.[0])).not.toMatch(/latitude/);
+  });
+
   it('leaves coordinates alone when the postcode is not updated', async () => {
     const geocode = vi.fn();
     mocks.poolMock.query.mockResolvedValue({ rows: [rescueRow()] });

@@ -770,15 +770,15 @@ export async function updateRescue(
     set(RESCUE_FIELD_COLUMNS[field], field === 'settingsJson' ? value || '{}' : value);
   }
 
-  // A new postcode (or country) invalidates the stored coordinates: re-geocode,
-  // and clear them if the lookup fails rather than keep a stale location.
-  if (requestedFields.postcode !== undefined || requestedFields.country !== undefined) {
-    const coordinates = await geocodeRescue(
-      deps,
-      req.postcode ?? existing.zip_code,
-      // An empty country means "not supplied" (see requestedFields above).
-      req.country || existing.country
-    );
+  // A CHANGED postcode (or country) invalidates the stored coordinates:
+  // re-geocode, and clear them if the lookup fails rather than keep a stale
+  // location. Resubmitting the stored values (e.g. saving the whole profile)
+  // leaves valid coordinates alone, so a geocoder outage can't wipe them.
+  // An empty country means "not supplied" (see requestedFields above).
+  const postcode = req.postcode ?? existing.zip_code;
+  const country = req.country || existing.country;
+  if (postcode !== existing.zip_code || country !== existing.country) {
+    const coordinates = await geocodeRescue(deps, postcode, country);
     set('latitude', coordinates?.latitude ?? null);
     set('longitude', coordinates?.longitude ?? null);
   }

@@ -61,10 +61,17 @@ export type RescueNameClient = {
 
 export type RescueCoordinates = { latitude: number; longitude: number };
 
+// Per-call override of the client-wide deadline/retries, for optional lookups
+// that must fit inside their caller's own budget.
+export type CallBudget = { deadlineMs: number; maxRetries?: number };
+
 // Batch coordinate lookup for the swipe card's distance badge. Rescues that
 // are unverified or were never geocoded are simply absent from the map.
 export type RescueLocationClient = {
-  getRescueLocations: (rescueIds: ReadonlyArray<string>) => Promise<Map<string, RescueCoordinates>>;
+  getRescueLocations: (
+    rescueIds: ReadonlyArray<string>,
+    budget?: CallBudget
+  ) => Promise<Map<string, RescueCoordinates>>;
 };
 
 export type RescueClient = RescueNameClient & RescueLocationClient;
@@ -99,17 +106,20 @@ export function createRescueClient(opts: CreateRescueClientOptions): RescueClien
       options: Partial<CallOptions>,
       cb: (err: unknown, res: Res) => void
     ) => unknown,
-    req: Req
+    req: Req,
+    budget?: CallBudget
   ): Promise<Res> => {
+    const callDeadlineMs = budget?.deadlineMs ?? deadlineMs;
+    const callMaxRetries = budget?.maxRetries ?? maxRetries;
     const attempt = (remaining: number): Promise<Res> =>
       new Promise<Res>((resolve, reject) => {
         const options: Partial<CallOptions> = {
-          deadline: new Date(Date.now() + deadlineMs),
+          deadline: new Date(Date.now() + callDeadlineMs),
         };
         fn.call(stub, req, buildSystemMetadata(), options, (err: unknown, res: Res) => {
           if (err) {
             if (remaining > 0 && isRetryableError(err)) {
-              const retryIndex = maxRetries - remaining + 1;
+              const retryIndex = callMaxRetries - remaining + 1;
               sleep(jitteredBackoff(retryIndex, 100))
                 .then(() => attempt(remaining - 1))
                 .then(resolve, reject);
@@ -122,7 +132,7 @@ export function createRescueClient(opts: CreateRescueClientOptions): RescueClien
         });
       });
 
-    return attempt(maxRetries);
+    return attempt(callMaxRetries);
   };
 
   return {
@@ -132,13 +142,14 @@ export function createRescueClient(opts: CreateRescueClientOptions): RescueClien
       });
       return res.rescue?.name ?? null;
     },
-    getRescueLocations: async rescueIds => {
+    getRescueLocations: async (rescueIds, budget) => {
       if (rescueIds.length === 0) {
         return new Map();
       }
       const res = await callWithRetry<GetRescueLocationsRequest, GetRescueLocationsResponse>(
         stub.getRescueLocations,
-        { rescueIds: [...rescueIds] }
+        { rescueIds: [...rescueIds] },
+        budget
       );
       return new Map(
         res.locations.map(l => [l.rescueId, { latitude: l.latitude, longitude: l.longitude }])

@@ -268,6 +268,11 @@ type ParsedFilters = {
 // Adds distance_miles to candidates whose rescue has coordinates. Best
 // effort: without the caller's location, a client, or a successful lookup,
 // candidates come back unchanged — a distance is never worth failing the deck.
+// The gateway gives the whole Recommend call 5s and then spends another short
+// budget on rescue names, so this optional lookup gets one short attempt: no
+// retries, and the gRPC deadline cancels it on the wire.
+const RESCUE_LOCATION_BUDGET = { deadlineMs: 750, maxRetries: 0 };
+
 async function withDistances(
   candidates: PetCandidate[],
   userLocation: LatLng | undefined,
@@ -278,7 +283,7 @@ async function withDistances(
   }
   const rescueIds = [...new Set(candidates.map(c => c.rescueId).filter(id => id !== ''))];
   const locations = await rescueLocations
-    .getRescueLocations(rescueIds)
+    .getRescueLocations(rescueIds, RESCUE_LOCATION_BUDGET)
     .catch(() => new Map<string, RescueCoordinates>());
   return candidates.map(candidate => {
     const rescue = locations.get(candidate.rescueId);
