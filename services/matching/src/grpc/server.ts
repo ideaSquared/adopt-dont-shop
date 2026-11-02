@@ -26,7 +26,7 @@ import {
   upsertMatchProfile,
 } from './profile-stats-handlers.js';
 import { makeRecommend, makeSearchPets } from './recommend-handlers.js';
-import { createRescueClient, type RescueNameClient } from './rescue-client.js';
+import { createRescueClient, type RescueClient } from './rescue-client.js';
 import { makeGetTopPicks } from './top-picks-handlers.js';
 
 export type CreateGrpcServerOptions = {
@@ -42,7 +42,7 @@ export type CreateGrpcServerOptions = {
   // Injected for GetTopPicks's rescue-name resolution. Same lifecycle as
   // petsClient: optional for direct/test construction, built + owned by
   // startGrpcServer from config.rescueGrpcUrl in production.
-  rescueClient?: RescueNameClient;
+  rescueClient?: RescueClient;
 };
 
 export type { RunningGrpcServer };
@@ -59,7 +59,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     endSession: adapt(endSession, { deps, logger }),
     recordSwipe: adapt(recordSwipe, { deps, logger }),
     listSwipeHistory: adapt(listSwipeHistory, { deps, logger }),
-    recommend: adapt(makeRecommend(petsClient), { deps, logger }),
+    recommend: adapt(makeRecommend(petsClient, rescueClient), { deps, logger }),
     searchPets: adapt(makeSearchPets(petsClient), { deps, logger }),
     getMatchProfile: adapt(getMatchProfile, { deps, logger }),
     upsertMatchProfile: adapt(upsertMatchProfile, { deps, logger }),

@@ -12,6 +12,7 @@ import {
   deleteRescue,
   getRescue,
   getRescueNames,
+  getRescueLocations,
   getRescueStatistics,
   HandlerError,
   inviteStaff,
@@ -191,6 +192,130 @@ describe('createRescue', () => {
     expect(res.rescue.name).toBe('Pawsome');
     expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+  });
+});
+
+// --- rescue coordinates ----------------------------------------------
+
+describe('rescue coordinates', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const LONDON = { latitude: 51.5, longitude: -0.12 };
+
+  it('stores geocoded coordinates when a rescue is created', async () => {
+    const geocode = vi.fn().mockResolvedValue(LONDON);
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await createRescue({ ...mocks.deps, geocode }, ADMIN, BASE_CREATE);
+
+    expect(geocode).toHaveBeenCalledWith('SW1A 1AA');
+    const insert = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      String(sql).includes('INSERT INTO rescue.rescues')
+    );
+    expect(insert?.[1]).toEqual(expect.arrayContaining([51.5, -0.12]));
+  });
+
+  it('still creates the rescue, without coordinates, when geocoding fails', async () => {
+    const geocode = vi.fn().mockResolvedValue(undefined);
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    const res = await createRescue({ ...mocks.deps, geocode }, ADMIN, BASE_CREATE);
+
+    expect(res.rescue.name).toBe('Pawsome');
+    const insert = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      String(sql).includes('INSERT INTO rescue.rescues')
+    );
+    expect(insert?.[1].slice(-2)).toEqual([null, null]);
+  });
+
+  it('does not geocode non-UK rescues', async () => {
+    const geocode = vi.fn();
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ country: 'FR' })] });
+
+    await createRescue({ ...mocks.deps, geocode }, ADMIN, { ...BASE_CREATE, country: 'FR' });
+
+    expect(geocode).not.toHaveBeenCalled();
+  });
+
+  it('re-geocodes when the postcode changes and clears stale coordinates on failure', async () => {
+    const geocode = vi.fn().mockResolvedValueOnce(LONDON).mockResolvedValueOnce(undefined);
+    mocks.poolMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    const deps = { ...mocks.deps, geocode };
+
+    await updateRescue(deps, STAFF, { rescueId: 'rsc-1', postcode: 'M1 1AE' } as never);
+    await updateRescue(deps, STAFF, { rescueId: 'rsc-1', postcode: 'ZZ9 9ZZ' } as never);
+
+    const updates = mocks.clientMock.query.mock.calls.filter(([sql]) =>
+      String(sql).includes('UPDATE rescue.rescues')
+    );
+    expect(updates[0][1]).toEqual(expect.arrayContaining(['M1 1AE', 51.5, -0.12]));
+    expect(updates[1][1]).toEqual(expect.arrayContaining(['ZZ9 9ZZ', null, null]));
+  });
+
+  it('leaves coordinates alone when the postcode is not updated', async () => {
+    const geocode = vi.fn();
+    mocks.poolMock.query.mockResolvedValue({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow()] });
+
+    await updateRescue({ ...mocks.deps, geocode }, STAFF, {
+      rescueId: 'rsc-1',
+      name: 'Renamed',
+    } as never);
+
+    expect(geocode).not.toHaveBeenCalled();
+  });
+});
+
+describe('getRescueLocations', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  const ID_A = '11111111-1111-4111-8111-111111111111';
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('PERMISSION_DENIED without rescues.read', async () => {
+    await expect(
+      getRescueLocations(mocks.deps, PUBLIC_ADOPTER, { rescueIds: [ID_A] })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns coordinates for verified, geocoded rescues only', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ rescue_id: ID_A, latitude: 51.5, longitude: -0.12 }],
+    });
+
+    const res = await getRescueLocations(mocks.deps, ADOPTER, {
+      rescueIds: [ID_A, ID_A, 'not-a-uuid'],
+    });
+
+    expect(res.locations).toEqual([{ rescueId: ID_A, latitude: 51.5, longitude: -0.12 }]);
+    const [sql, params] = mocks.poolMock.query.mock.calls[0];
+    expect(sql).toMatch(/status = 'verified'/);
+    expect(params).toEqual([[ID_A]]);
+  });
+
+  it('skips the query when no valid ids are supplied', async () => {
+    const res = await getRescueLocations(mocks.deps, ADOPTER, { rescueIds: ['nope'] });
+
+    expect(res.locations).toEqual([]);
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('INVALID_ARGUMENT for more than 100 ids', async () => {
+    const ids = Array.from({ length: 101 }, (_, i) => `id-${i}`);
+    await expect(getRescueLocations(mocks.deps, ADOPTER, { rescueIds: ids })).rejects.toMatchObject(
+      { code: 'INVALID_ARGUMENT' }
+    );
   });
 });
 

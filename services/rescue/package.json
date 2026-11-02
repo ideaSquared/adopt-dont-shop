@@ -25,6 +25,7 @@
     "start": "node --import ./dist/instrumentation.js ./dist/index.js",
     "db:migrate": "tsx ./src/db/migrate.ts",
     "db:spam": "tsx ./src/db/spam.ts",
+    "backfill:coordinates": "tsx ./src/db/backfill-coordinates.ts",
     "build": "tsc",
     "clean": "rimraf dist",
     "test": "vitest run",

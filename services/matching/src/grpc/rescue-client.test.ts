@@ -12,7 +12,13 @@ import {
   status,
 } from '@grpc/grpc-js';
 
-import { RescueV1, type GetRescueRequest, type GetRescueResponse } from '@adopt-dont-shop/proto';
+import {
+  RescueV1,
+  type GetRescueLocationsRequest,
+  type GetRescueLocationsResponse,
+  type GetRescueRequest,
+  type GetRescueResponse,
+} from '@adopt-dont-shop/proto';
 import {
   PRINCIPAL_TOKEN_HEADER,
   resetDefaultPrincipalSigningKeyForTests,
@@ -66,6 +72,31 @@ describe('createRescueClient — rescue name lookup', () => {
     const client = createRescueClient({ address: `127.0.0.1:${port}`, deadlineMs: 2_000 });
     try {
       expect(await client.getRescueName('res-1')).toBe('Happy Tails');
+    } finally {
+      client.close();
+    }
+  });
+
+  it('maps GetRescueLocations to a rescueId → coordinates map', async () => {
+    let requested: string[] = [];
+    server.addService(RescueV1.RescueServiceService, {
+      getRescueLocations: (
+        call: ServerUnaryCall<GetRescueLocationsRequest, GetRescueLocationsResponse>,
+        cb: sendUnaryData<GetRescueLocationsResponse>
+      ) => {
+        requested = call.request.rescueIds;
+        cb(null, { locations: [{ rescueId: 'res-1', latitude: 51.5, longitude: -0.12 }] });
+      },
+    });
+
+    port = await startServer();
+    const client = createRescueClient({ address: `127.0.0.1:${port}`, deadlineMs: 2_000 });
+    try {
+      const locations = await client.getRescueLocations(['res-1', 'res-2']);
+      expect(requested).toEqual(['res-1', 'res-2']);
+      expect(locations.get('res-1')).toEqual({ latitude: 51.5, longitude: -0.12 });
+      expect(locations.has('res-2')).toBe(false);
+      expect((await client.getRescueLocations([])).size).toBe(0);
     } finally {
       client.close();
     }

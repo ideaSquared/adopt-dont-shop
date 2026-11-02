@@ -478,6 +478,20 @@ export interface GetRescueResponse {
   rescue?: Rescue | undefined;
 }
 
+export interface GetRescueLocationsRequest {
+  rescueIds: string[];
+}
+
+export interface RescueLocation {
+  rescueId: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface GetRescueLocationsResponse {
+  locations: RescueLocation[];
+}
+
 export interface ListRescuesRequest {
   cursor?:
     | string
@@ -2485,6 +2499,228 @@ export const GetRescueResponse: MessageFns<GetRescueResponse> = {
     message.rescue = (object.rescue !== undefined && object.rescue !== null)
       ? Rescue.fromPartial(object.rescue)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseGetRescueLocationsRequest(): GetRescueLocationsRequest {
+  return { rescueIds: [] };
+}
+
+export const GetRescueLocationsRequest: MessageFns<GetRescueLocationsRequest> = {
+  encode(message: GetRescueLocationsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.rescueIds) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetRescueLocationsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetRescueLocationsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueIds.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetRescueLocationsRequest {
+    return {
+      rescueIds: globalThis.Array.isArray(object?.rescueIds)
+        ? object.rescueIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.rescue_ids)
+        ? object.rescue_ids.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetRescueLocationsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueIds?.length) {
+      obj.rescueIds = message.rescueIds;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetRescueLocationsRequest>, I>>(base?: I): GetRescueLocationsRequest {
+    return GetRescueLocationsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetRescueLocationsRequest>, I>>(object: I): GetRescueLocationsRequest {
+    const message = createBaseGetRescueLocationsRequest();
+    message.rescueIds = object.rescueIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseRescueLocation(): RescueLocation {
+  return { rescueId: "", latitude: 0, longitude: 0 };
+}
+
+export const RescueLocation: MessageFns<RescueLocation> = {
+  encode(message: RescueLocation, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.latitude !== 0) {
+      writer.uint32(17).double(message.latitude);
+    }
+    if (message.longitude !== 0) {
+      writer.uint32(25).double(message.longitude);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RescueLocation {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRescueLocation();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 17) {
+            break;
+          }
+
+          message.latitude = reader.double();
+          continue;
+        }
+        case 3: {
+          if (tag !== 25) {
+            break;
+          }
+
+          message.longitude = reader.double();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RescueLocation {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+        ? globalThis.String(object.rescue_id)
+        : "",
+      latitude: isSet(object.latitude) ? globalThis.Number(object.latitude) : 0,
+      longitude: isSet(object.longitude) ? globalThis.Number(object.longitude) : 0,
+    };
+  },
+
+  toJSON(message: RescueLocation): unknown {
+    const obj: any = {};
+    if (message.rescueId !== "") {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.latitude !== 0) {
+      obj.latitude = message.latitude;
+    }
+    if (message.longitude !== 0) {
+      obj.longitude = message.longitude;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RescueLocation>, I>>(base?: I): RescueLocation {
+    return RescueLocation.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RescueLocation>, I>>(object: I): RescueLocation {
+    const message = createBaseRescueLocation();
+    message.rescueId = object.rescueId ?? "";
+    message.latitude = object.latitude ?? 0;
+    message.longitude = object.longitude ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetRescueLocationsResponse(): GetRescueLocationsResponse {
+  return { locations: [] };
+}
+
+export const GetRescueLocationsResponse: MessageFns<GetRescueLocationsResponse> = {
+  encode(message: GetRescueLocationsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.locations) {
+      RescueLocation.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetRescueLocationsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetRescueLocationsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.locations.push(RescueLocation.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetRescueLocationsResponse {
+    return {
+      locations: globalThis.Array.isArray(object?.locations)
+        ? object.locations.map((e: any) => RescueLocation.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetRescueLocationsResponse): unknown {
+    const obj: any = {};
+    if (message.locations?.length) {
+      obj.locations = message.locations.map((e) => RescueLocation.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetRescueLocationsResponse>, I>>(base?: I): GetRescueLocationsResponse {
+    return GetRescueLocationsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetRescueLocationsResponse>, I>>(object: I): GetRescueLocationsResponse {
+    const message = createBaseGetRescueLocationsResponse();
+    message.locations = object.locations?.map((e) => RescueLocation.fromPartial(e)) || [];
     return message;
   },
 };
@@ -11430,6 +11666,22 @@ export const RescueServiceService = {
     responseDeserialize: (value: Buffer): ListRescuesResponse => ListRescuesResponse.decode(value),
   },
   /**
+   * Batch read of rescue coordinates (geocoded from the postcode) for the
+   * swipe card's distance badge. Verified rescues only; rescues without
+   * coordinates are omitted. `rescues.read`.
+   */
+  getRescueLocations: {
+    path: "/adopt_dont_shop.rescue.v1.RescueService/GetRescueLocations" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetRescueLocationsRequest): Buffer =>
+      Buffer.from(GetRescueLocationsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetRescueLocationsRequest => GetRescueLocationsRequest.decode(value),
+    responseSerialize: (value: GetRescueLocationsResponse): Buffer =>
+      Buffer.from(GetRescueLocationsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetRescueLocationsResponse => GetRescueLocationsResponse.decode(value),
+  },
+  /**
    * Update mutable rescue fields. Does NOT change verification status
    * — that's Verify's job. Caller MUST have `rescues.update` scoped to
    * the rescue. Publishes `rescue.updated` on NATS after commit.
@@ -12013,6 +12265,12 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    */
   list: handleUnaryCall<ListRescuesRequest, ListRescuesResponse>;
   /**
+   * Batch read of rescue coordinates (geocoded from the postcode) for the
+   * swipe card's distance badge. Verified rescues only; rescues without
+   * coordinates are omitted. `rescues.read`.
+   */
+  getRescueLocations: handleUnaryCall<GetRescueLocationsRequest, GetRescueLocationsResponse>;
+  /**
    * Update mutable rescue fields. Does NOT change verification status
    * — that's Verify's job. Caller MUST have `rescues.update` scoped to
    * the rescue. Publishes `rescue.updated` on NATS after commit.
@@ -12281,6 +12539,26 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListRescuesResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Batch read of rescue coordinates (geocoded from the postcode) for the
+   * swipe card's distance badge. Verified rescues only; rescues without
+   * coordinates are omitted. `rescues.read`.
+   */
+  getRescueLocations(
+    request: GetRescueLocationsRequest,
+    callback: (error: ServiceError | null, response: GetRescueLocationsResponse) => void,
+  ): ClientUnaryCall;
+  getRescueLocations(
+    request: GetRescueLocationsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetRescueLocationsResponse) => void,
+  ): ClientUnaryCall;
+  getRescueLocations(
+    request: GetRescueLocationsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetRescueLocationsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Update mutable rescue fields. Does NOT change verification status

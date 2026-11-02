@@ -83,6 +83,8 @@ export type DiscoveryDeckPet = {
   rescueName: string;
   compatibilityScore: number;
   activityLabel?: { kind: string; text: string; icon?: string };
+  // Miles from the caller's location to the pet's rescue.
+  distance?: number;
 };
 
 function candidateToDeckPet(
@@ -110,6 +112,7 @@ function candidateToDeckPet(
     gender: c.gender,
     shortDescription: c.shortDescription,
     activityLabel: c.activityLabel,
+    distance: c.distanceMiles,
   };
   return {
     ...pet,

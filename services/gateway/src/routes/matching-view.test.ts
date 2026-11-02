@@ -122,6 +122,15 @@ describe('recommendToQueue', () => {
     });
   });
 
+  it('maps distanceMiles to distance, and omits it when unknown', () => {
+    const env = recommendToQueue({
+      candidates: [makeCandidate({ distanceMiles: 12.3 }), makeCandidate({ petId: 'pet-2' })],
+      exhausted: false,
+    } as RecommendResponse);
+    expect(env.pets[0]).toMatchObject({ distance: 12.3 });
+    expect('distance' in env.pets[1]).toBe(false);
+  });
+
   it('falls back to the primary image and an empty rescue name', () => {
     const env = recommendToQueue({
       candidates: [makeCandidate()],
