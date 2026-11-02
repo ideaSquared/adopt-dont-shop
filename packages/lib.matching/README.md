@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Shared TypeScript types for the pet-adopter matching feature. A zero-runtime,
-types-only package that mirrors the surface of
+Shared types and a thin API client for the pet-adopter matching feature. Mirrors
+the surface of
 [`services/matching`](../../services/matching/README.md) (the gRPC
 `MatchingService` and its read-model handlers) so backend and frontend speak the
 same shapes across the API boundary (top-picks response, discovery pet card,
@@ -36,10 +36,15 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 - `AdopterLifestyle`, `AdopterMatchProfile` (preferred types/sizes/ages/energy,
   lifestyle, distance, special-needs + notification opt-in, allergies).
 - `MatchTopPick` — the top-picks endpoint shape.
+- `MatchingService` — thin API client over `lib.api` for the gateway's
+  `/api/v1/match/*` routes (`getTopPicks`, `getMatchProfile`,
+  `updateMatchProfile`).
 
 ## Environment variables consumed
 
-None — types only.
+None read directly — `MatchingService` resolves the API base URL through the
+injected `lib.api` client. See
+[`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 
 ## Testing notes
 

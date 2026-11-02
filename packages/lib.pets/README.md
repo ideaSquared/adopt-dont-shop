@@ -27,7 +27,7 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 
 - `PetsService` + `petsService` (singleton) — adopter read-side client
   (`searchPets`, `getPetById`, `getFeaturedPets`, `getRecentPets`,
-  `getPetsByRescue`, `getSimilarPets`, `getPetBreeds` / `getPetTypes`,
+  `getPetsByRescue`, `getSimilarPets`, `getPetBreeds`,
   favourites `addToFavorites` / `removeFromFavorites` / `getFavorites` /
   `isFavorite`, `reportPet`, `getPetStats`).
 - `PetManagementService` + `petManagementService` — rescue write-side client
