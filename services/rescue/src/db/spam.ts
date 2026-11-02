@@ -26,6 +26,7 @@ import {
 } from '@adopt-dont-shop/seed-faker';
 
 import { loadConfig } from '../config.js';
+import { seedLocation } from './seed-locations.js';
 
 type Faker = ReturnType<typeof createSpamFaker>;
 export type QueryFn = (text: string, values: readonly unknown[]) => Promise<unknown>;
@@ -73,6 +74,8 @@ const RESCUE_COLUMNS = [
   'address',
   'city',
   'zip_code',
+  'latitude',
+  'longitude',
   'country',
   'contact_person',
   'description',
@@ -94,21 +97,26 @@ const STAFF_COLUMNS = [
   'updated_at',
 ] as const;
 
-const rescueRow = (faker: Faker, index: number, now: Date): readonly unknown[] => [
-  seededUuid(`rescue-${index}`),
-  rescueName(index),
-  `rescue${index}@example.test`,
-  faker.location.streetAddress(),
-  faker.location.city(),
-  faker.location.zipCode(),
-  'GB',
-  faker.person.fullName(),
-  faker.helpers.arrayElement(BLURBS),
-  'verified',
-  now,
-  now,
-  now,
-];
+const rescueRow = (faker: Faker, index: number, now: Date): readonly unknown[] => {
+  const location = seedLocation(index);
+  return [
+    seededUuid(`rescue-${index}`),
+    rescueName(index),
+    `rescue${index}@example.test`,
+    faker.location.streetAddress(),
+    location.city,
+    location.postcode,
+    location.latitude,
+    location.longitude,
+    'GB',
+    faker.person.fullName(),
+    faker.helpers.arrayElement(BLURBS),
+    'verified',
+    now,
+    now,
+    now,
+  ];
+};
 
 const staffRow = (
   faker: Faker,
@@ -160,7 +168,12 @@ export const spamRescues = async (deps: {
     RESCUE_COLUMNS,
     rescueRows,
     500,
-    'ON CONFLICT (rescue_id) DO NOTHING'
+    // A seeded rescue that already exists keeps everything but its location,
+    // which is refreshed: dev DBs seeded before the real-postcode table hold
+    // random faker postcodes that can't be geocoded.
+    `ON CONFLICT (rescue_id) DO UPDATE SET
+       address = EXCLUDED.address, city = EXCLUDED.city, zip_code = EXCLUDED.zip_code,
+       latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude`
   );
 
   const staffRows =
@@ -178,9 +191,13 @@ export const spamRescues = async (deps: {
 };
 
 const anchorExists = async (query: QueryFn): Promise<boolean> => {
-  const res = (await query(`SELECT 1 FROM rescue.rescues WHERE rescue_id = $1 LIMIT 1`, [
-    seededUuid('rescue-0'),
-  ])) as { rows: unknown[] };
+  // The anchor must also carry its current postcode: a DB seeded before the
+  // real-postcode table counts as NOT populated, so the next boot re-plants
+  // and the upsert above repairs the old faker locations.
+  const res = (await query(
+    `SELECT 1 FROM rescue.rescues WHERE rescue_id = $1 AND zip_code = $2 LIMIT 1`,
+    [seededUuid('rescue-0'), seedLocation(0).postcode]
+  )) as { rows: unknown[] };
   return res.rows.length > 0;
 };
 

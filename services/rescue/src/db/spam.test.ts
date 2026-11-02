@@ -1,6 +1,7 @@
 import { createSpamFaker, seededUuid } from '@adopt-dont-shop/seed-faker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { SEED_LOCATIONS } from './seed-locations.js';
 import { buildRescueRows, buildStaffRows, runSpam, spamRescues, type QueryFn } from './spam.js';
 
 const RESCUE = { rescue_id: 0, name: 1, email: 2 } as const;
@@ -30,6 +31,36 @@ describe('buildRescueRows', () => {
   });
 });
 
+describe('buildRescueRows locations', () => {
+  const LOCATION = { city: 4, zip_code: 5, latitude: 6, longitude: 7 } as const;
+
+  it('gives each rescue a real postcode, its city and coordinates, with no network', () => {
+    const rows = buildRescueRows(createSpamFaker(), 3);
+
+    rows.forEach((row, i) => {
+      const expected = SEED_LOCATIONS[i];
+      expect(row[LOCATION.city]).toBe(expected.city);
+      expect(row[LOCATION.zip_code]).toBe(expected.postcode);
+      expect(row[LOCATION.latitude]).toBe(expected.latitude);
+      expect(row[LOCATION.longitude]).toBe(expected.longitude);
+    });
+  });
+
+  it('puts the seeded columns in the order the INSERT lists them', () => {
+    const calls: Array<{ text: string }> = [];
+    const query: QueryFn = async text => {
+      calls.push({ text });
+      return { rows: [] };
+    };
+    return spamRescues({ query, faker: createSpamFaker(), rescues: 1, staff: 0 }).then(() => {
+      const insert = calls.find(c => c.text.includes('INTO rescue.rescues'))?.text ?? '';
+      expect(insert).toMatch(
+        /\(rescue_id, name, email, address, city, zip_code, latitude, longitude,/
+      );
+    });
+  });
+});
+
 describe('buildStaffRows', () => {
   it('links staff computed from the auth key scheme, spread across rescues', () => {
     const rows = buildStaffRows(createSpamFaker(), 3, 2);
@@ -41,7 +72,7 @@ describe('buildStaffRows', () => {
 });
 
 describe('spamRescues', () => {
-  it('inserts rescues and staff idempotently (ON CONFLICT DO NOTHING)', async () => {
+  it('upserts rescues (refreshing only their location) and inserts staff idempotently', async () => {
     const calls: Array<{ text: string }> = [];
     const query: QueryFn = async text => {
       calls.push({ text });
@@ -53,7 +84,16 @@ describe('spamRescues', () => {
     expect(result).toEqual({ rescues: 3, staff: 4 });
     const rescueInsert = calls.find(c => c.text.includes('INTO rescue.rescues'));
     const staffInsert = calls.find(c => c.text.includes('INTO rescue.staff_members'));
-    expect(rescueInsert?.text).toMatch(/ON CONFLICT \(rescue_id\) DO NOTHING/);
+    expect(rescueInsert?.text).toMatch(/ON CONFLICT \(rescue_id\) DO UPDATE SET/);
+    // Only location columns are refreshed — names, emails and status stay put.
+    const updateClause = rescueInsert?.text.split('DO UPDATE SET')[1] ?? '';
+    expect(updateClause.match(/(\w+) = EXCLUDED/g)).toEqual([
+      'address = EXCLUDED',
+      'city = EXCLUDED',
+      'zip_code = EXCLUDED',
+      'latitude = EXCLUDED',
+      'longitude = EXCLUDED',
+    ]);
     expect(staffInsert?.text).toMatch(/ON CONFLICT \(staff_member_id\) DO NOTHING/);
   });
 });
@@ -75,6 +115,25 @@ describe('runSpam', () => {
 
     expect(result.seeded).toBe(true);
     expect(inserts.some(t => t.includes('INTO rescue.rescues'))).toBe(true);
+  });
+
+  it('checks the anchor against its current postcode, so an old-postcode DB is re-planted', async () => {
+    vi.stubEnv('SEED_ONLY_IF_EMPTY', 'true');
+    const anchorQueries: Array<{ text: string; values: readonly unknown[] }> = [];
+    const query: QueryFn = async (text, values) => {
+      if (text.includes('SELECT 1 FROM rescue.rescues')) {
+        anchorQueries.push({ text, values });
+        // No row matches rescue-0 WITH the new postcode: the DB holds an old one.
+        return { rows: [] };
+      }
+      return { rows: [] };
+    };
+
+    const result = await runSpam({ query, faker: createSpamFaker() });
+
+    expect(result.seeded).toBe(true);
+    expect(anchorQueries[0].text).toMatch(/rescue_id = \$1 AND zip_code = \$2/);
+    expect(anchorQueries[0].values).toEqual([seededUuid('rescue-0'), SEED_LOCATIONS[0].postcode]);
   });
 
   it('skips on boot when the anchor rescue already exists', async () => {

@@ -159,6 +159,15 @@ export const createGenerator = ({ baseUrl, password, fetchImpl, log = () => {} }
     const existing = (search.body.data ?? []).find(r => r.name === rescue.name);
     const rescueId =
       existing?.rescue_id ?? (await superAdmin.post('/api/v1/rescue', body)).body.rescue.rescueId;
+    // A dev DB seeded with an older postcode keeps it forever otherwise.
+    // PATCHing a changed postcode makes the rescue service re-geocode.
+    if (existing && existing.postcode !== rescue.postcode) {
+      await superAdmin.patch(`/api/v1/rescue/${rescueId}`, {
+        postcode: rescue.postcode,
+        city: rescue.city,
+        address: rescue.address,
+      });
+    }
     if (existing?.status !== 'verified') {
       await superAdmin.post(`/api/v1/rescue/${rescueId}/verify`, {
         toStatus: 'verified',

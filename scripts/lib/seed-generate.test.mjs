@@ -36,7 +36,8 @@ const fullySeededRoutes = () => ({
   'POST /api/v1/auth/login': () => [200, {}, ['accessToken=at; HttpOnly']],
   'GET /api/v1/admin/rescues': ({ search }) => {
     const name = new URLSearchParams(search).get('search');
-    return [200, { data: [{ rescue_id: `rescue-${name}`, name, status: 'verified' }] }];
+    const postcode = personas.RESCUES.find(r => r.name === name)?.postcode;
+    return [200, { data: [{ rescue_id: `rescue-${name}`, name, postcode, status: 'verified' }] }];
   },
   'GET /api/v1/pets': ({ search }) => {
     const name = new URLSearchParams(search).get('search');
@@ -135,6 +136,39 @@ describe('createGenerator', () => {
       .filter(path => !path.endsWith('/favorite') && path !== '/api/v1/chats/enquiries');
     // Only logins: no account, rescue, pet, status, application or message writes.
     expect(new Set(writes)).toEqual(new Set(['/api/v1/auth/login']));
+  });
+
+  it('moves an existing rescue off a stale postcode so the rescue service re-geocodes it', async () => {
+    const routes = {
+      ...fullySeededRoutes(),
+      'GET /api/v1/admin/rescues': ({ search }) => {
+        const name = new URLSearchParams(search).get('search');
+        const { key } = personas.RESCUES.find(r => r.name === name);
+        return [
+          200,
+          { data: [{ rescue_id: `rescue-${key}`, name, postcode: 'M1 1AA', status: 'verified' }] },
+        ];
+      },
+      ...Object.fromEntries(
+        personas.RESCUES.map(r => [`PATCH /api/v1/rescue/rescue-${r.key}`, () => [200, {}]])
+      ),
+    };
+    const { fetchImpl, calls } = fakeGateway(routes);
+    const generator = createGenerator({ baseUrl: BASE, password: 'pw', fetchImpl });
+
+    await generator.run(personas);
+
+    const patches = calls.filter(c => c.method === 'PATCH');
+    expect(patches.map(c => c.path)).toEqual(
+      personas.RESCUES.map(r => `/api/v1/rescue/rescue-${r.key}`)
+    );
+    for (const [i, rescue] of personas.RESCUES.entries()) {
+      expect(patches[i].body).toEqual({
+        postcode: rescue.postcode,
+        city: rescue.city,
+        address: rescue.address,
+      });
+    }
   });
 
   it('registers and verifies a missing adopter through the public sign-up flow', async () => {
@@ -267,5 +301,28 @@ describe('seed persona contract', () => {
     ];
 
     expect(new Set(seededDevUsers.map(u => u.email))).toEqual(new Set(seeded));
+  });
+});
+
+// UK postcode: outward code (1-2 letters, a digit, optional digit/letter) then
+// inward code (digit + 2 letters).
+const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/;
+
+describe('persona rescues', () => {
+  it('use well-formed, distinct UK postcodes in different cities', () => {
+    const postcodes = personas.RESCUES.map(r => r.postcode);
+
+    for (const postcode of postcodes) {
+      expect(postcode).toMatch(UK_POSTCODE);
+    }
+    expect(new Set(postcodes).size).toBe(postcodes.length);
+    expect(new Set(personas.RESCUES.map(r => r.city)).size).toBe(personas.RESCUES.length);
+  });
+
+  it('keeps the names and emails the e2e suite and staff rely on', () => {
+    expect(personas.RESCUES.map(r => [r.key, r.name, r.email])).toEqual([
+      ['paws', 'Paws Rescue', 'hello@pawsrescue.dev'],
+      ['happyTails', 'Happy Tails Rescue', 'hello@happytailsrescue.dev'],
+    ]);
   });
 });
