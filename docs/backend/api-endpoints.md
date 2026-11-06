@@ -49,6 +49,28 @@ users-export.ts`); rate-limited to 5 requests/hour like `POST /api/v1/users/me/e
 The OpenAPI document also declares a `bearerAuth` (JWT) scheme for non-browser integrators;
 public routes (login, register, health) opt out with `security: []`.
 
+## Caller location (`x-client-location`)
+
+A caller's coordinates are precise PII, so they travel in a request **header**, never in the URL
+(URLs end up in nginx access/error logs, Sentry events and trace attributes):
+
+```http
+x-client-location: <lat>,<lng>      e.g.  x-client-location: 51.5074,-0.1278
+```
+
+- Read by `GET /api/v1/pets`, `GET /api/v1/pets/:id` (adds `distance`, miles to the pet's rescue,
+  1dp) and `GET /api/v1/rescues/nearby`. The parser is `parseClientLocationHeader` in
+  `@adopt-dont-shop/service-bootstrap`: exactly two plain decimals, at most 40 characters,
+  `lat` in [-90, 90], `lng` in [-180, 180]. Anything else (absent, malformed, repeated, out of
+  range) is **ignored**, never an error, and simply yields no distance.
+- Used in memory for the request only: never logged or stored, and the name is on the Sentry and
+  `redactSecretFields` redaction lists. The gateway does not forward it to downstream services.
+- Browser clients set it through `apiService.get(url, params, { headers })` (see
+  `clientLocationOptions` in `@adopt-dont-shop/lib.pets`). The deprecated `lat` / `lng` query
+  params are still read for already-deployed clients; nginx strips them from its logs.
+- The discovery queue (`POST /api/v1/discovery/queue`) takes `latitude` / `longitude` in the JSON
+  body, which no log format records, so it is unchanged.
+
 ## Pagination
 
 List routes parse `page` and `limit` through a shared parser

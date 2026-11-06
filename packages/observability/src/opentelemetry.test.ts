@@ -1,6 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { initializeOpenTelemetry, isOpenTelemetryStarted } from './opentelemetry.js';
+import {
+  HTTP_REDACTED_QUERY_PARAMS,
+  initializeOpenTelemetry,
+  isOpenTelemetryStarted,
+} from './opentelemetry.js';
+
+describe('HTTP_REDACTED_QUERY_PARAMS', () => {
+  // Setting redactedQueryParams replaces the instrumentation's defaults, so the
+  // list has to carry them as well as the caller's coordinates (precise PII
+  // that would otherwise land in span url/target attributes).
+  it('redacts the caller coordinates and keeps the default signature params', () => {
+    expect(HTTP_REDACTED_QUERY_PARAMS).toEqual(
+      expect.arrayContaining([
+        'lat',
+        'lng',
+        'latitude',
+        'longitude',
+        'sig',
+        'Signature',
+        'AWSAccessKeyId',
+        'X-Goog-Signature',
+      ])
+    );
+  });
+});
 
 const ENV_KEYS = [
   'OTEL_EXPORTER_OTLP_ENDPOINT',

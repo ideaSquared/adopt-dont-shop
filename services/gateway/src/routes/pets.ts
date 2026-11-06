@@ -33,6 +33,7 @@ import type { PetsClient } from '../grpc-clients/pets-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { isSafeImageUrl } from './events.schemas.js';
+import { readUserLocation, withDistances } from './pets-distance.js';
 import { petToView, viewToCreateRequest, viewToUpdateRequest } from './pets-view.js';
 import { mapWithConcurrency } from './reports.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -83,6 +84,8 @@ const PET_VIEW_SCHEMA = {
     special_needs: { type: 'boolean' },
     house_trained: { type: 'boolean' },
     adoption_fee: { type: 'string' },
+    // Miles from the caller's ?lat&lng to the pet's rescue (search + detail).
+    distance: { type: 'number' },
     temperament: { type: 'array', items: { type: 'string' } },
     tags: { type: 'array', items: { type: 'string' } },
     // Pet photos, derived by petToView from extra_json's URL list. Without
@@ -198,6 +201,11 @@ export const registerPetsRoutes = async (
             ageGroup: { type: 'string' },
             sortBy: { type: 'string' },
             sortOrder: { type: 'string' },
+            // LEGACY: the caller's coordinates now arrive in the
+            // x-client-location header; these are only read for stale
+            // clients. Used in memory only; never logged or stored.
+            lat: { type: 'string' },
+            lng: { type: 'string' },
           },
         },
         response: {
@@ -258,7 +266,15 @@ export const registerPetsRoutes = async (
       try {
         const res = await client.list(grpcReq, meta);
         // ADS-1186: attach the rescue name to each row for the admin table.
-        const data = await enrichPetsWithRescueName(res.pets.map(petToView), rescueClient, meta);
+        const named = await enrichPetsWithRescueName(res.pets.map(petToView), rescueClient, meta);
+        // Optional x-client-location header: miles from the caller to each
+        // pet's rescue.
+        const data = await withDistances(
+          named,
+          readUserLocation({ headers: req.headers, query }),
+          rescueClient,
+          meta
+        );
         return reply.send({
           success: true,
           data,
@@ -573,11 +589,23 @@ export const registerPetsRoutes = async (
     },
     async (req, reply) => {
       try {
-        const res = await client.get({ petId: req.params.id }, buildMetadata(req));
+        const meta = buildMetadata(req);
+        const res = await client.get({ petId: req.params.id }, meta);
         if (res.pet === undefined) {
           return reply.code(404).send({ success: false, error: 'pet not found' });
         }
-        return reply.send({ success: true, data: petToView(res.pet) });
+        // Optional x-client-location header: miles from the caller to the
+        // pet's rescue.
+        const [data] = await withDistances(
+          [petToView(res.pet)],
+          readUserLocation({
+            headers: req.headers,
+            query: req.query as { lat?: string; lng?: string },
+          }),
+          rescueClient,
+          meta
+        );
+        return reply.send({ success: true, data });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

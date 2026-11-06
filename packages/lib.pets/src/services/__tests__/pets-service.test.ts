@@ -110,15 +110,19 @@ describe('PetsService', () => {
         pagination: { page: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
       };
 
-      it('sends user coordinates to the API when latitude and longitude are provided', async () => {
+      it('sends user coordinates in the x-client-location header, never in the URL', async () => {
         mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
 
-        await service.searchPets({ latitude: 40.7128, longitude: -74.006 });
+        await service.searchPets({ type: 'dog', latitude: 40.7128, longitude: -74.006 });
 
-        expect(mockApiService.get).toHaveBeenCalledWith(
-          '/api/v1/pets',
-          expect.objectContaining({ lat: 40.7128, lng: -74.006 })
-        );
+        const [url, params, options] = mockApiService.get.mock.calls[0];
+        expect(url).toBe('/api/v1/pets');
+        expect(params).toEqual({ type: 'dog' });
+        expect(params).not.toHaveProperty('lat');
+        expect(params).not.toHaveProperty('lng');
+        expect(params).not.toHaveProperty('latitude');
+        expect(params).not.toHaveProperty('longitude');
+        expect(options).toEqual({ headers: { 'x-client-location': '40.7128,-74.006' } });
       });
 
       it('does not send lat/lng params when no coordinates are provided', async () => {
@@ -126,9 +130,10 @@ describe('PetsService', () => {
 
         await service.searchPets({ type: 'dog' });
 
-        const callArgs = mockApiService.get.mock.calls[0][1] as Record<string, unknown>;
-        expect(callArgs).not.toHaveProperty('lat');
-        expect(callArgs).not.toHaveProperty('lng');
+        const [, params, options] = mockApiService.get.mock.calls[0];
+        expect(params).not.toHaveProperty('lat');
+        expect(params).not.toHaveProperty('lng');
+        expect(options).toBeUndefined();
       });
 
       it('sends maxDistance filter to the API', async () => {
@@ -138,7 +143,8 @@ describe('PetsService', () => {
 
         expect(mockApiService.get).toHaveBeenCalledWith(
           '/api/v1/pets',
-          expect.objectContaining({ maxDistance: 25 })
+          expect.objectContaining({ maxDistance: 25 }),
+          expect.anything()
         );
       });
 
@@ -212,6 +218,31 @@ describe('PetsService', () => {
       const result = await service.getPetById('1');
 
       expect(result).toEqual(mockPet);
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/1');
+    });
+
+    it('sends the caller location in the x-client-location header (not the URL) and returns the distance', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: { pet_id: '1', name: 'Buddy', distance: 12.3 },
+      });
+
+      const result = await service.getPetById('1', { latitude: 51.5, longitude: -0.12 });
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/1', undefined, {
+        headers: { 'x-client-location': '51.5,-0.12' },
+      });
+      expect(result.distance).toBe(12.3);
+    });
+
+    it('sends no location header when the coordinates are not finite numbers', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: { pet_id: '1', name: 'Buddy' },
+      });
+
+      await service.getPetById('1', { latitude: Number.NaN, longitude: -0.12 });
+
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/1');
     });
   });

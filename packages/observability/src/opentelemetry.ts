@@ -61,6 +61,21 @@ const resolveServiceVersion = (override?: string): string => {
   return override ?? process.env.npm_package_version ?? '1.0.0';
 };
 
+// Query params whose values the http instrumentation must not put in span
+// url/target attributes. Setting this option REPLACES the instrumentation's
+// defaults (the first four), so they are repeated here; lat/lng/latitude/
+// longitude are the caller's precise coordinates (PII).
+export const HTTP_REDACTED_QUERY_PARAMS = [
+  'sig',
+  'Signature',
+  'AWSAccessKeyId',
+  'X-Goog-Signature',
+  'lat',
+  'lng',
+  'latitude',
+  'longitude',
+];
+
 export const initializeOpenTelemetry = (opts: OpenTelemetryOptions): NodeSDK | null => {
   if (state.started) {
     return state.sdk;
@@ -93,6 +108,9 @@ export const initializeOpenTelemetry = (opts: OpenTelemetryOptions): NodeSDK | n
           // Operators can override via the standard
           // OTEL_NODE_DISABLED_INSTRUMENTATIONS / ENABLED env vars.
           '@opentelemetry/instrumentation-fs': { enabled: false },
+          '@opentelemetry/instrumentation-http': {
+            redactedQueryParams: HTTP_REDACTED_QUERY_PARAMS,
+          },
         }),
       ],
     });

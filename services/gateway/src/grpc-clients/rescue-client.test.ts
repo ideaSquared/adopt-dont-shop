@@ -12,6 +12,7 @@ describe('createRescueClient', () => {
       expect(typeof client.update).toBe('function');
       expect(typeof client.verify).toBe('function');
       expect(typeof client.inviteStaff).toBe('function');
+      expect(typeof client.getRescueLocations).toBe('function');
       expect(typeof client.close).toBe('function');
     } finally {
       client.close();

@@ -189,6 +189,46 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
+describe('Search request location privacy', () => {
+  afterEach(() => {
+    window.localStorage.removeItem('user_geolocation');
+  });
+
+  it('sends the cached location in the x-client-location header and keeps coordinates out of the URL', async () => {
+    window.localStorage.setItem(
+      'user_geolocation',
+      JSON.stringify({ latitude: 51.5074, longitude: -0.1278, timestamp: Date.now() })
+    );
+    const seen: Request[] = [];
+    server.use(
+      http.get('*/api/v1/pets', ({ request }) => {
+        seen.push(request.clone());
+        return HttpResponse.json({
+          success: true,
+          data: mockPetsWithDistance,
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 2,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        });
+      })
+    );
+
+    renderWithProviders(<SearchPage />);
+
+    await waitFor(() => {
+      expect(seen.some(r => r.headers.get('x-client-location') === '51.5074,-0.1278')).toBe(true);
+    });
+    for (const request of seen.filter(r => r.headers.has('x-client-location'))) {
+      expect(request.url).not.toMatch(/lat|lng|51\.5074|0\.1278/i);
+    }
+  });
+});
+
 describe('Distance Sorting - Behavioral Tests', () => {
   describe('Location Controls', () => {
     it('shows "Use My Location" button on the search page', async () => {

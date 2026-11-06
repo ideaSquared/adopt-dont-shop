@@ -3,6 +3,7 @@ import { ApiService, ApiResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetSearchFilters, PaginatedResponse, PetsServiceConfig } from '../types';
 import { PetSchema, PetStatsSchema, type PetStats } from '../schemas';
 import { PETS_ENDPOINTS } from '../constants/endpoints';
+import { clientLocationOptions } from '../client-location';
 
 const camelToSnake = (key: string): string => key.replace(/([A-Z])/g, (m) => `_${m.toLowerCase()}`);
 
@@ -114,15 +115,11 @@ export class PetsService {
       apiFilters.sortBy = sortByMapping[filters.sortBy] || filters.sortBy;
     }
 
-    // Map location coordinates to backend query params
-    if (filters.latitude !== undefined) {
-      apiFilters.lat = filters.latitude;
-      delete apiFilters.latitude;
-    }
-    if (filters.longitude !== undefined) {
-      apiFilters.lng = filters.longitude;
-      delete apiFilters.longitude;
-    }
+    // The caller's coordinates go in a request header, not the query string
+    // (URLs are logged; see client-location.ts).
+    delete apiFilters.latitude;
+    delete apiFilters.longitude;
+    const locationOptions = clientLocationOptions(filters);
 
     // Map filter field names to backend format
     if (filters.ageGroup) {
@@ -137,7 +134,7 @@ export class PetsService {
     }
 
     try {
-      const response = await this.apiService.get<{
+      type SearchResponse = {
         success: boolean;
         data: unknown[];
         pagination: {
@@ -147,7 +144,14 @@ export class PetsService {
           hasNext: boolean;
           hasPrev: boolean;
         };
-      }>(PETS_ENDPOINTS.PETS, apiFilters);
+      };
+      const response = locationOptions
+        ? await this.apiService.get<SearchResponse>(
+            PETS_ENDPOINTS.PETS,
+            apiFilters,
+            locationOptions
+          )
+        : await this.apiService.get<SearchResponse>(PETS_ENDPOINTS.PETS, apiFilters);
 
       // Transform according to the actual API response structure
       if (response.success && response.data && response.pagination) {
@@ -187,13 +191,17 @@ export class PetsService {
   }
 
   /**
-   * Get a single pet by ID
+   * Get a single pet by ID. Pass the caller's coordinates to have the pet's
+   * `distance` (miles to its rescue) filled in; they are sent as lat/lng query
+   * params and used server-side for this one request only.
    */
-  async getPetById(id: string): Promise<Pet> {
+  async getPetById(id: string, location?: { latitude: number; longitude: number }): Promise<Pet> {
     try {
-      const response = await this.apiService.get<ApiResponse<unknown>>(
-        PETS_ENDPOINTS.PET_BY_ID(id)
-      );
+      const url = PETS_ENDPOINTS.PET_BY_ID(id);
+      const locationOptions = clientLocationOptions(location);
+      const response = await (locationOptions
+        ? this.apiService.get<ApiResponse<unknown>>(url, undefined, locationOptions)
+        : this.apiService.get<ApiResponse<unknown>>(url));
 
       if (response.success && response.data) {
         return normalisePet(response.data);

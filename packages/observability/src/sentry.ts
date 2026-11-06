@@ -81,8 +81,9 @@ const NUMERIC_ID_PATTERN = /\/\d+(?=\/|\?|#|$)/g;
 const redactUrlIds = (url: string): string =>
   url.replace(UUID_PATTERN, ':id').replace(NUMERIC_ID_PATTERN, '/:id');
 
-// Strip authorization and cookie headers from a headers map regardless
-// of casing. Returns a new object — does not mutate input.
+// Strip authorization, cookie and x-client-location (the caller's coordinates)
+// headers from a headers map regardless of casing. Returns a new object —
+// does not mutate input.
 const redactHeaders = (
   headers: Record<string, string> | undefined
 ): Record<string, string> | undefined => {
@@ -92,7 +93,7 @@ const redactHeaders = (
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(headers)) {
     const lower = k.toLowerCase();
-    if (lower === 'authorization' || lower === 'cookie') {
+    if (lower === 'authorization' || lower === 'cookie' || lower === 'x-client-location') {
       out[k] = REDACTED;
     } else {
       out[k] = v;
@@ -101,11 +102,43 @@ const redactHeaders = (
   return out;
 };
 
+// The caller's coordinates travel as query params on the search/detail/nearby
+// requests. They are precise PII and no secret-key redaction would catch them
+// (the names are not secret-shaped), so drop them from URLs and query strings.
+const COORDINATE_PARAMS = new Set(['lat', 'lng', 'latitude', 'longitude']);
+
+const stripCoordinateParams = (url: string): string => {
+  const queryStart = url.indexOf('?');
+  if (queryStart === -1) {
+    return url;
+  }
+  const kept = url
+    .slice(queryStart + 1)
+    .split('&')
+    .filter(pair => !COORDINATE_PARAMS.has(pair.split('=')[0]));
+  return kept.length > 0
+    ? `${url.slice(0, queryStart)}?${kept.join('&')}`
+    : url.slice(0, queryStart);
+};
+
+const stripCoordinateQuery = (
+  query: NonNullable<Sentry.ErrorEvent['request']>['query_string']
+): NonNullable<Sentry.ErrorEvent['request']>['query_string'] => {
+  if (typeof query === 'string') {
+    return stripCoordinateParams(`?${query}`).slice(1);
+  }
+  if (query !== null && typeof query === 'object' && !Array.isArray(query)) {
+    return Object.fromEntries(Object.entries(query).filter(([key]) => !COORDINATE_PARAMS.has(key)));
+  }
+  return query;
+};
+
 // Scrub a Sentry event in-place defence-in-depth before it ships:
 //   - request.headers.authorization / cookie → [REDACTED]
 //   - request.cookies → fully replaced
 //   - request.data → walk and redact secret-shaped keys
 //   - request.url + event.transaction → collapse UUID / numeric ids
+//   - request.url + request.query_string → drop lat/lng/latitude/longitude
 //   - breadcrumbs[].data → same redaction
 // Exported so the redaction logic is testable in isolation.
 export const redactSentryEvent = <T extends Sentry.ErrorEvent>(event: T): T => {
@@ -121,7 +154,10 @@ export const redactSentryEvent = <T extends Sentry.ErrorEvent>(event: T): T => {
       request.data = redactSecretFields(request.data);
     }
     if (typeof request.url === 'string') {
-      request.url = redactUrlIds(request.url);
+      request.url = stripCoordinateParams(redactUrlIds(request.url));
+    }
+    if (request.query_string !== undefined) {
+      request.query_string = stripCoordinateQuery(request.query_string);
     }
   }
 

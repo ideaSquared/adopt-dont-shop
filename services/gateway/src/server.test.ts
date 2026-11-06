@@ -1232,6 +1232,28 @@ describe('createServer — auth backstop does not 401 CORS preflight', () => {
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
   });
 
+  it('allows the x-client-location header in a cross-origin preflight', async () => {
+    server = await createServer({
+      config: baseConfig,
+      logger: quietLogger,
+      authClient: authClientStub,
+    });
+    const res = await server.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/pets/pet-1',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'x-client-location',
+      },
+    });
+    expect(res.statusCode).toBeLessThan(300);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(String(res.headers['access-control-allow-headers']).toLowerCase()).toContain(
+      'x-client-location'
+    );
+  });
+
   it('still 401s a real tokenless request to a protected path (backstop is active)', async () => {
     server = await createServer({
       config: baseConfig,
