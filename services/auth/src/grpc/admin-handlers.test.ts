@@ -254,6 +254,14 @@ describe('adminGetUser', () => {
 
 // --- adminUpdateUser -------------------------------------------------
 
+const BEFORE_ACTIVE_ADOPTER = {
+  status: 'active',
+  user_type: 'adopter',
+  email_verified: false,
+  first_name: 'Alice',
+  last_name: 'Smith',
+};
+
 describe('adminUpdateUser', () => {
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
@@ -271,7 +279,7 @@ describe('adminUpdateUser', () => {
 
   it('writes only set fields and publishes an event', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
-    mocks.clientScript.push({ rows: [{ status: 'active', user_type: 'adopter' }] }); // before-state
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] }); // before-state
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
 
     const res = await adminUpdateUser(mocks.deps, ADMIN, {
@@ -336,7 +344,7 @@ describe('adminUpdateUser', () => {
   it('allows super_admin to assign an elevated role and records role change in audit event', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
     // SELECT previous role, then UPDATE returning new row
-    mocks.clientScript.push({ rows: [{ status: 'active', user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ user_type: 'admin' })] });
 
     const res = await adminUpdateUser(mocks.deps, SUPER_ADMIN, {
@@ -354,6 +362,7 @@ describe('adminUpdateUser', () => {
 
   it('allows admin.users.update to change non-role fields without elevation guard', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] }); // locked before-state
     mocks.clientScript.push({ rows: [userRow({ first_name: 'Bob' })] });
 
     const res = await adminUpdateUser(mocks.deps, ADMIN, {
@@ -362,15 +371,12 @@ describe('adminUpdateUser', () => {
     });
 
     expect(res.user?.firstName).toBe('Bob');
-    // No SELECT for previous role should have been issued
     const updateCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
       ([sql]) => sql.includes('UPDATE auth.users')
     );
     expect(updateCall).toBeDefined();
-    const selectCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
-      ([sql]) => sql.trim().startsWith('SELECT user_type')
-    );
-    expect(selectCall).toBeUndefined();
+    // Role elevation was never requested, so no user_type is written.
+    expect(updateCall![0]).not.toContain('user_type = $');
   });
 
   // --- ADS-1293: any state-changing update to an elevated target -------
@@ -419,16 +425,15 @@ describe('deactivateUser', () => {
 
   it('is idempotent when already deactivated', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'deactivated' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] }); // locked current row
     const res = await deactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
     expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_DEACTIVATED);
-    expect(mocks.clientMock.query).not.toHaveBeenCalled();
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('deactivates an active user + publishes auth.userDeactivated', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // assertMayActOnTarget
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] }); // locked current row
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
 
     const res = await deactivateUser(mocks.deps, ADMIN, { userId: 'usr-1', reason: 'spam' });
@@ -448,7 +453,7 @@ describe('deactivateUser', () => {
 
   it('allows a super_admin to deactivate a super_admin target', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'super_admin' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
 
     const res = await deactivateUser(mocks.deps, SUPER_ADMIN, { userId: 'usr-target' });
@@ -466,7 +471,7 @@ describe('reactivateUser', () => {
   });
 
   it('reactivates a deactivated user + publishes auth.userReactivated', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'deactivated' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
 
     const res = await reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
@@ -1445,7 +1450,7 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
 
   it('records a suspension with actor, target and before/after status', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
-    mocks.clientScript.push({ rows: [{ status: 'active', user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
 
     await adminUpdateUser(mocks.deps, ADMIN, {
@@ -1471,7 +1476,7 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
 
   it('records a role change as assign_role with before/after role', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
-    mocks.clientScript.push({ rows: [{ status: 'active', user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
     mocks.clientScript.push({ rows: [userRow({ user_type: 'admin' })] });
 
     await adminUpdateUser(mocks.deps, SUPER_ADMIN, {
@@ -1489,7 +1494,7 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
   });
 
   it('records a reactivation with actor, target and before/after status', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'suspended' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
 
     await reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
@@ -1510,7 +1515,7 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
 
   it('records a deactivation with the reason', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
 
     await deactivateUser(mocks.deps, ADMIN, { userId: 'usr-1', reason: 'spam' });
@@ -1538,6 +1543,73 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
       reason: 'bulk clean-up',
       after: { status: 'suspended' },
     });
+  });
+
+  it('locks the before-state row so the recorded before matches what was replaced', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+
+    await adminUpdateUser(mocks.deps, ADMIN, {
+      userId: 'usr-1',
+      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+    });
+
+    const selectSql = (mocks.clientMock.query.mock.calls as Array<[string]>)
+      .map(([sql]) => sql)
+      .find(sql => sql.includes('SELECT') && sql.includes('FROM auth.users'));
+    expect(selectSql).toContain('FOR UPDATE');
+  });
+
+  it('records an email-verified change and which name fields changed, without the names', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
+    mocks.clientScript.push({ rows: [userRow({ first_name: 'Bob', email_verified: true })] });
+
+    await adminUpdateUser(mocks.deps, ADMIN, {
+      userId: 'usr-1',
+      emailVerified: true,
+      firstName: 'Bob',
+    });
+
+    const [event] = actionTaken(mocks);
+    expect(event.action).toBe('update');
+    expect(event.payload).toMatchObject({
+      before: { emailVerified: false },
+      after: { emailVerified: true },
+      changedFields: ['emailVerified', 'firstName'],
+    });
+    expect(JSON.stringify(event.payload)).not.toContain('Bob');
+    expect(JSON.stringify(event.payload)).not.toContain('Alice');
+  });
+
+  it('records the previous status and role of each id of a bulk change', async () => {
+    mocks.clientScript.push({
+      rows: [{ user_id: 'usr-1', prev_status: 'active', prev_user_type: 'adopter' }],
+    });
+
+    await bulkUpdateUsers(mocks.deps, SUPER_ADMIN, {
+      userIds: ['usr-1'],
+      userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+    });
+
+    const [event] = actionTaken(mocks);
+    expect(event.payload).toMatchObject({
+      bulk: true,
+      before: { userType: 'adopter' },
+      after: { userType: 'admin' },
+    });
+  });
+
+  it('publishes no audit event when a status change finds no row to update', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] }); // locked current row
+    mocks.clientScript.push({ rows: [] }); // erased between read and write
+
+    await expect(deactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
   it('publishes nothing when the write fails', async () => {
