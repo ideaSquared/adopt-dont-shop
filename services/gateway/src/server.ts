@@ -88,6 +88,7 @@ import { registerConsentRoutes } from './routes/consent.js';
 import { registerReportsRoutes } from './routes/reports.js';
 import { registerRescueRoutes } from './routes/rescue.js';
 import { registerInvitationAcceptRoutes } from './routes/invitation-accept.js';
+import { registerRescueRegisterRoutes } from './routes/rescue-register.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerRescueAdminRoutes } from './routes/rescue-admin.js';
 import { registerSearchRoutes } from './routes/search.js';
@@ -704,6 +705,14 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
     // /api/v1/events/* — event CRUD + attendee management + analytics.
     await registerEventRoutes(server, { client: opts.rescueClient });
+  }
+  // POST /api/v1/rescues/register — public rescue sign-up. Orchestrates auth
+  // (owner account) + rescue (pending rescue + owner membership).
+  if (opts.authClient && opts.rescueClient) {
+    await registerRescueRegisterRoutes(server, {
+      authClient: opts.authClient,
+      rescueClient: opts.rescueClient,
+    });
   }
   // POST /api/v1/invitations/accept — register-on-accept. Orchestrates
   // auth (provision the invited user) + rescue (consume the invitation +

@@ -9,6 +9,7 @@ import { RescueV1, type CreateRescueRequest } from '@adopt-dont-shop/proto';
 import {
   countRescues,
   createRescue,
+  registerRescue,
   deleteRescue,
   getRescue,
   getRescueNames,
@@ -192,6 +193,60 @@ describe('createRescue', () => {
     expect(res.rescue.name).toBe('Pawsome');
     expect(res.rescue.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+  });
+});
+
+// --- registerRescue (public sign-up) ----------------------------------
+
+describe('registerRescue', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const REGISTER = { rescue: BASE_CREATE, ownerUserId: 'owner-1' };
+
+  it('rejects missing required rescue fields and a missing owner without touching the db', async () => {
+    await expect(
+      registerRescue(mocks.deps, null, { ...REGISTER, rescue: { ...BASE_CREATE, name: '' } })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    await expect(
+      registerRescue(mocks.deps, null, {
+        ...REGISTER,
+        rescue: { ...BASE_CREATE, contactPerson: '' },
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    await expect(
+      registerRescue(mocks.deps, null, { ...REGISTER, ownerUserId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('needs no principal: creates a pending rescue and its verified owner in one transaction, then publishes', async () => {
+    const order: string[] = [];
+    const sqls: string[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (!sql.includes('event_outbox')) {
+        order.push(sql.trim().split(/\s+/)[0]);
+        sqls.push(sql);
+      }
+      return { rows: [rescueRow()] };
+    });
+    mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
+
+    const res = await registerRescue(mocks.deps, null, REGISTER);
+
+    expect(res.rescue?.status).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
+    expect(order).toEqual(['BEGIN', 'INSERT', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+    expect(sqls[1]).toContain("'pending'");
+    expect(sqls[2]).toContain('rescue.staff_members');
+    const staffParams = mocks.clientMock.query.mock.calls.find(([sql]) =>
+      String(sql).includes('rescue.staff_members')
+    )?.[1] as unknown[];
+    expect(staffParams).toContain('owner-1');
   });
 });
 

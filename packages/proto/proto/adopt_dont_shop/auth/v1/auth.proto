@@ -73,6 +73,17 @@ service AuthService {
   rpc ProvisionInvitedUser(ProvisionInvitedUserRequest)
       returns (ProvisionInvitedUserResponse);
 
+  // Public rescue sign-up: create the owner account of a rescue that is
+  // registering. Like Register it starts pending_verification and mails a
+  // verification_token (no tokens issued), but the account is user_type
+  // rescue_staff and the new user_id is returned so the gateway can attach
+  // them to the pending rescue. Enumeration-safe: an email that is already
+  // registered gets an empty response (no user, no error), no account is
+  // created, and the existing holder is notified instead.
+  // Service-internal — the gateway only exposes it behind
+  // POST /api/v1/rescues/register.
+  rpc RegisterRescueOwner(RegisterRescueOwnerRequest) returns (RegisterRescueOwnerResponse);
+
   // Consume the verification_token mailed to the user; flips
   // email_verified=true and status=active.
   rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
@@ -606,6 +617,20 @@ message ProvisionInvitedUserResponse {
   // True when this call created the row; false when the email already
   // had an account and was attached as-is.
   bool created = 2;
+}
+
+message RegisterRescueOwnerRequest {
+  string email = 1;
+  string password = 2;
+  string first_name = 3;
+  string last_name = 4;
+}
+
+message RegisterRescueOwnerResponse {
+  // The freshly created owner (status pending_verification,
+  // user_type rescue_staff). user_id is what the caller attaches as the
+  // rescue's first staff member. Unset when the email already had an account.
+  User user = 1;
 }
 
 message VerifyEmailRequest {

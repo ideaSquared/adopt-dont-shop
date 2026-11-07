@@ -139,6 +139,7 @@ const RegisterRescue = () => {
       const payload: Record<string, string> = {
         firstName: formData.firstName,
         lastName: formData.lastName,
+        contactPerson: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
         email: formData.email,
         password: formData.password,
         name: formData.name,
@@ -194,9 +195,10 @@ const RegisterRescue = () => {
               Registration Successful
             </Heading>
             <Text className={styles.successMessage}>
-              Thank you for registering <strong>{formData.name}</strong>. We have sent a
-              verification email to <strong>{formData.email}</strong>. Please check your inbox and
-              click the verification link to activate your account.
+              Thank you for registering <strong>{formData.name}</strong>. Your application is
+              pending approval by our team; you will be able to manage your rescue once it is
+              approved. We have sent a verification email to <strong>{formData.email}</strong>.
+              Please check your inbox and click the verification link to activate your account.
             </Text>
             <div className={styles.buttonRowCentered}>
               <Button variant="primary" onClick={() => navigate('/login')}>

@@ -180,6 +180,54 @@ describe('RegisterRescue wizard', () => {
     );
   });
 
+  it('sends every field the gateway requires, including the contact person', async () => {
+    mockPost.mockResolvedValueOnce({ success: true });
+
+    renderComponent();
+    fillStep1();
+    clickNext();
+    fillStep2();
+    clickNext();
+    fillStep3();
+    clickNext();
+    clickNext();
+    fireEvent.click(screen.getByText('Submit Registration'));
+
+    await waitFor(() => expect(mockPost).toHaveBeenCalled());
+    expect(mockPost.mock.calls[0][1]).toMatchObject({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'jane@example.com',
+      password: 'Password1!',
+      contactPerson: 'Jane Doe',
+      name: 'Happy Tails',
+      rescueEmail: 'hello@happytails.org',
+      address: '1 Lane',
+      city: 'London',
+      postcode: 'SW1A 1AA',
+      country: 'GB',
+    });
+  });
+
+  it('tells the visitor the application is pending approval and to verify their email', async () => {
+    mockPost.mockResolvedValueOnce({ success: true });
+
+    renderComponent();
+    fillStep1();
+    clickNext();
+    fillStep2();
+    clickNext();
+    fillStep3();
+    clickNext();
+    clickNext();
+    fireEvent.click(screen.getByText('Submit Registration'));
+
+    expect(await screen.findByText('Registration Successful')).toBeInTheDocument();
+    expect(screen.getByText(/pending approval/i)).toBeInTheDocument();
+    expect(screen.getByText(/jane@example\.com/)).toBeInTheDocument();
+    expect(screen.getByText(/verif/i)).toBeInTheDocument();
+  });
+
   it('shows an error message when submission fails', async () => {
     mockPost.mockRejectedValueOnce(new Error('Email already registered'));
 

@@ -60,6 +60,8 @@ import {
   type Invitation,
   type ListRescuesRequest,
   type ListRescuesResponse,
+  type RegisterRescueRequest,
+  type RegisterRescueResponse,
   type Rescue,
   type SendRescueEmailRequest,
   type SendRescueEmailResponse,
@@ -315,11 +317,7 @@ function assertValidCountry(country: string | undefined): void {
   }
 }
 
-export async function createRescue(
-  deps: HandlerDeps,
-  principal: Principal,
-  req: CreateRescueRequest
-): Promise<CreateRescueResponse> {
+function assertValidCreateRequest(req: CreateRescueRequest): void {
   if (!req.name) {
     throw new HandlerError('INVALID_ARGUMENT', 'name is required');
   }
@@ -333,10 +331,47 @@ export async function createRescue(
     throw new HandlerError('INVALID_ARGUMENT', 'contact_person is required');
   }
   assertValidCountry(req.country);
+}
+
+export async function createRescue(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: CreateRescueRequest
+): Promise<CreateRescueResponse> {
+  assertValidCreateRequest(req);
   if (!hasPermission(principal, RESCUES_CREATE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_CREATE}' required`);
   }
+  return insertPendingRescue(deps, req, principal.userId);
+}
 
+// Public sign-up: no principal, no permission. The gateway only exposes it
+// behind the rate-limited POST /api/v1/rescues/register, after the owner
+// account exists. The rescue is always created 'pending' (admin approval).
+export async function registerRescue(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: RegisterRescueRequest
+): Promise<RegisterRescueResponse> {
+  void _principal;
+  if (!req.rescue) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue is required');
+  }
+  assertValidCreateRequest(req.rescue);
+  if (!req.ownerUserId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'owner_user_id is required');
+  }
+  return insertPendingRescue(deps, req.rescue, req.ownerUserId, req.ownerUserId);
+}
+
+// Inserts the rescue as 'pending' and, when an owner is given, attaches them
+// as its first verified staff member in the same transaction.
+async function insertPendingRescue(
+  deps: HandlerDeps,
+  req: CreateRescueRequest,
+  createdBy: string,
+  ownerUserId?: string
+): Promise<CreateRescueResponse> {
   const rescueId = randomUUID();
   let inserted: RescueRow | undefined;
   // Outside the transaction: a slow geocoder must not hold a connection open.
@@ -378,17 +413,31 @@ export async function createRescue(
         req.contactTitle ?? null,
         req.contactEmail ?? null,
         req.contactPhone ?? null,
-        principal.userId,
+        createdBy,
         coordinates?.latitude ?? null,
         coordinates?.longitude ?? null,
       ]
     );
     inserted = result.rows[0];
 
+    if (ownerUserId) {
+      await client.query(
+        `
+        INSERT INTO rescue.staff_members (
+          staff_member_id, rescue_id, user_id, title,
+          is_verified, verified_by, verified_at,
+          added_by, added_at, created_by, version, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, 'Owner', true, $3, now(), $3, now(), $3, 0, now(), now())
+        `,
+        [randomUUID(), rescueId, ownerUserId]
+      );
+    }
+
     publish({
       type: 'rescue.created',
       id: `rescue.created.${rescueId}`,
-      payload: { rescueId, name: req.name, createdBy: principal.userId },
+      payload: { rescueId, name: req.name, createdBy },
     });
   });
 

@@ -73,4 +73,31 @@ describe('AcceptInvitation', () => {
       password: 'password123',
     });
   });
+
+  it('shows the account form when the gateway returns the invitation under data', async () => {
+    const { InvitationsService } = await vi.importActual<
+      typeof import('@adopt-dont-shop/lib.invitations')
+    >('@adopt-dont-shop/lib.invitations');
+    const gatewayApi = {
+      get: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          invitationId: 'inv-1',
+          email: 'newstaff@rescue.org',
+          rescueId: 'rsc-1',
+          expiration: '2099-01-01T00:00:00Z',
+          used: false,
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      }),
+    };
+    const real = new InvitationsService(gatewayApi as never);
+    getInvitationDetails.mockImplementation((token: string) => real.getInvitationDetails(token));
+
+    renderPage();
+
+    expect(await screen.findByLabelText(/first name/i)).toBeInTheDocument();
+    expect(screen.getByText(/newstaff@rescue.org/)).toBeInTheDocument();
+    expect(screen.queryByText(/not found or has expired/i)).not.toBeInTheDocument();
+  });
 });

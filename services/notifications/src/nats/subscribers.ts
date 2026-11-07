@@ -43,6 +43,7 @@ import type {
   ApplicationRejectedEvent,
   ApplicationSubmittedEvent,
   AuthAccountDeletionRequestedEvent,
+  AuthRescueRegistrationAttemptedEvent,
   AuthRoleAssignedEvent,
   AuthUserInvitedEvent,
   AuthUserLoggedInEvent,
@@ -605,6 +606,25 @@ export const buildAuthAccountDeletionRequestedCreate = (
     NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY,
 });
 
+// auth.rescueRegistrationAttempted — security notification for the holder of
+// an email that someone tried to use for a public rescue sign-up. ACCOUNT_SECURITY
+// reaches the inbox through the existing notifications.created → email adapter.
+export const buildAuthRescueRegistrationAttemptedCreate = (
+  event: AuthRescueRegistrationAttemptedEvent
+): CreateNotificationRequest => ({
+  userId: event.userId as string,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH,
+  title: 'Rescue registration attempt',
+  message:
+    'Someone tried to register a rescue with your email address. You already have an account: sign in to apply to a rescue. If this was not you, you can ignore this message.',
+  dataJson: '{}',
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY,
+});
+
 // Cap the message preview so we never store the full chat body on the
 // notification row — the SPA opens the chat to read more, and a runaway
 // 10k-char message shouldn't bloat the notifications.notifications row.
@@ -751,5 +771,9 @@ const SIMPLE_EVENT_ROUTES: readonly SimpleEventRoute[] = [
   defineRoute<AuthAccountDeletionRequestedEvent>(
     'auth.accountDeletionRequested',
     buildAuthAccountDeletionRequestedCreate
+  ),
+  defineRoute<AuthRescueRegistrationAttemptedEvent>(
+    'auth.rescueRegistrationAttempted',
+    buildAuthRescueRegistrationAttemptedCreate
   ),
 ];
