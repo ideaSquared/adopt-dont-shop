@@ -31,8 +31,10 @@ export const footerText = style({
 
 export const footerLinks = style({
   display: 'flex',
+  flexWrap: 'wrap',
   justifyContent: 'center',
-  gap: vars.spacing['4'],
+  columnGap: vars.spacing['4'],
+  rowGap: vars.spacing['2'],
   marginBottom: vars.spacing['3'],
 });
 

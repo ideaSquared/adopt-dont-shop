@@ -3,6 +3,10 @@ import { style } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
 
+// On narrow viewports a horizontal stepper stacks like the vertical one so
+// long step titles and descriptions never push the page wider than the screen.
+const NARROW = '(max-width: 640px)';
+
 export const root = style({
   width: '100%',
 });
@@ -17,7 +21,11 @@ export const list = recipe({
   },
   variants: {
     orientation: {
-      horizontal: { flexDirection: 'row', alignItems: 'flex-start' },
+      horizontal: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        '@media': { [NARROW]: { flexDirection: 'column', alignItems: 'stretch' } },
+      },
       vertical: { flexDirection: 'column' },
     },
   },
@@ -35,7 +43,11 @@ export const step = recipe({
   },
   variants: {
     orientation: {
-      horizontal: { flex: 1 },
+      horizontal: {
+        flex: 1,
+        minWidth: 0,
+        '@media': { [NARROW]: { flex: 'none' } },
+      },
       vertical: { flex: 'none' },
     },
   },
@@ -50,6 +62,7 @@ export const connector = recipe({
     minWidth: vars.spacing['4'],
     height: vars.border.width.base,
     backgroundColor: vars.border.color.default,
+    '@media': { [NARROW]: { display: 'none' } },
   },
   variants: {
     complete: {
@@ -143,6 +156,7 @@ export const checkIcon = style({
 });
 
 export const body = style({
+  minWidth: 0,
   display: 'flex',
   flexDirection: 'column',
   gap: vars.spacing['1'],
