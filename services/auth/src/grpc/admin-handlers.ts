@@ -10,7 +10,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
-import { withTransaction } from '@adopt-dont-shop/events';
+import { withTransaction, type TransactionalScope } from '@adopt-dont-shop/events';
 import {
   ADMIN_SECURITY_MANAGE,
   ADMIN_SECURITY_READ,
@@ -345,6 +345,49 @@ export async function adminCreateUser(
   return { user: rowToProtoUser(createdUser) };
 }
 
+// --- Audit trail -----------------------------------------------------
+// Forensic record of an admin user action, published as `auth.actionTaken`
+// so service.audit's wildcard `*.actionTaken` subscriber persists it (the
+// legacy auth.user* events below have no audit subscriber). Called from
+// inside withTransaction, so it only fires on commit.
+
+type UserActionAudit = {
+  actorUserId: string;
+  userId: string;
+  action: string;
+  details: Record<string, unknown>;
+};
+
+function publishUserActionTaken(publish: TransactionalScope['publish'], audit: UserActionAudit) {
+  publish({
+    type: 'auth.actionTaken',
+    id: `auth.actionTaken.${randomUUID()}`,
+    payload: {
+      eventId: randomUUID(),
+      service: 'service.auth',
+      subject: 'auth.actionTaken',
+      aggregateType: 'user',
+      aggregateId: audit.userId,
+      actorUserId: audit.actorUserId,
+      action: audit.action,
+      outcome: 'success',
+      occurredAt: new Date().toISOString(),
+      payload: audit.details,
+    },
+  });
+}
+
+// A status transition's audit verb: suspend / reactivate / deactivate.
+function statusAction(status: string): string {
+  if (status === 'active') {
+    return 'reactivate';
+  }
+  if (status === 'suspended') {
+    return 'suspend';
+  }
+  return status === 'deactivated' ? 'deactivate' : 'update';
+}
+
 // --- AdminUpdateUser -------------------------------------------------
 
 export async function adminUpdateUser(
@@ -362,9 +405,11 @@ export async function adminUpdateUser(
   const sets: string[] = [];
   const params: unknown[] = [];
 
+  let statusChange: { newStatus: string } | undefined;
   if (req.status !== undefined && req.status !== AuthV1.UserStatus.USER_STATUS_UNSPECIFIED) {
+    statusChange = { newStatus: statusToDb(req.status) };
     sets.push(`status = $${params.length + 1}`);
-    params.push(statusToDb(req.status));
+    params.push(statusChange.newStatus);
   }
   let roleChange: { newRole: string } | undefined;
   if (req.userType !== undefined && req.userType !== AuthV1.UserRole.USER_ROLE_UNSPECIFIED) {
@@ -410,15 +455,17 @@ export async function adminUpdateUser(
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
     let previousRole: string | undefined;
-    if (roleChange) {
-      const prevRes = await client.query<{ user_type: string }>(
-        `SELECT user_type FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+    let previousStatus: string | undefined;
+    if (roleChange || statusChange) {
+      const prevRes = await client.query<{ status: string; user_type: string }>(
+        `SELECT status, user_type FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
         [req.userId]
       );
       if (prevRes.rows.length === 0) {
         throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
       }
       previousRole = prevRes.rows[0].user_type;
+      previousStatus = prevRes.rows[0].status;
     }
 
     const res = await client.query<UserRow>(
@@ -442,6 +489,27 @@ export async function adminUpdateUser(
         userId: req.userId,
         updatedBy: principal.userId,
         ...(roleChange && { roleChange: { before: previousRole, after: roleChange.newRole } }),
+      },
+    });
+
+    const action = statusChange
+      ? statusAction(statusChange.newStatus)
+      : roleChange
+        ? 'assign_role'
+        : 'update';
+    publishUserActionTaken(publish, {
+      actorUserId: principal.userId,
+      userId: req.userId,
+      action,
+      details: {
+        before: {
+          ...(statusChange && { status: previousStatus }),
+          ...(roleChange && { userType: previousRole }),
+        },
+        after: {
+          ...(statusChange && { status: statusChange.newStatus }),
+          ...(roleChange && { userType: roleChange.newRole }),
+        },
       },
     });
   });
@@ -526,6 +594,17 @@ async function setStatus(
       type: status === 'deactivated' ? 'auth.userDeactivated' : 'auth.userReactivated',
       id: `auth.user${status === 'deactivated' ? 'Deactivated' : 'Reactivated'}.${userId}.${Date.now()}`,
       payload: { userId, actedBy: principal.userId, reason },
+    });
+
+    publishUserActionTaken(publish, {
+      actorUserId: principal.userId,
+      userId,
+      action: statusAction(status),
+      details: {
+        before: { status: current.rows[0].status },
+        after: { status },
+        reason,
+      },
     });
   });
 
@@ -986,6 +1065,19 @@ export async function bulkUpdateUsers(
           type: 'auth.userUpdatedByAdmin',
           id: `auth.userUpdatedByAdmin.${userId}.${Date.now()}`,
           payload: { userId, updatedBy: principal.userId, bulk: true, reason: req.reason ?? null },
+        });
+        publishUserActionTaken(publish, {
+          actorUserId: principal.userId,
+          userId,
+          action: setStatus ? statusAction(statusToDb(req.status)) : 'assign_role',
+          details: {
+            bulk: true,
+            reason: req.reason ?? null,
+            after: {
+              ...(setStatus && { status: statusToDb(req.status) }),
+              ...(targetRole !== undefined && { userType: targetRole }),
+            },
+          },
         });
       });
       results.push({ userId, success: true });
