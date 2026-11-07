@@ -1099,8 +1099,13 @@ export interface ApplyUserSanctionRequest {
   expiresAt?: string | undefined;
 }
 
+/**
+ * Deliberately minimal: the full User carries fields (phone_verified,
+ * two_factor_enabled) that moderators are not allowed to read.
+ */
 export interface ApplyUserSanctionResponse {
-  user?: User | undefined;
+  userId: string;
+  status: UserStatus;
 }
 
 export interface DeactivateUserRequest {
@@ -8820,13 +8825,16 @@ export const ApplyUserSanctionRequest: MessageFns<ApplyUserSanctionRequest> = {
 };
 
 function createBaseApplyUserSanctionResponse(): ApplyUserSanctionResponse {
-  return { user: undefined };
+  return { userId: "", status: 0 };
 }
 
 export const ApplyUserSanctionResponse: MessageFns<ApplyUserSanctionResponse> = {
   encode(message: ApplyUserSanctionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.user !== undefined) {
-      User.encode(message.user, writer.uint32(10).fork()).join();
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.status !== 0) {
+      writer.uint32(16).int32(message.status);
     }
     return writer;
   },
@@ -8843,7 +8851,15 @@ export const ApplyUserSanctionResponse: MessageFns<ApplyUserSanctionResponse> = 
             break;
           }
 
-          message.user = User.decode(reader, reader.uint32());
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
           continue;
         }
       }
@@ -8856,13 +8872,23 @@ export const ApplyUserSanctionResponse: MessageFns<ApplyUserSanctionResponse> = 
   },
 
   fromJSON(object: any): ApplyUserSanctionResponse {
-    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
+    };
   },
 
   toJSON(message: ApplyUserSanctionResponse): unknown {
     const obj: any = {};
-    if (message.user !== undefined) {
-      obj.user = User.toJSON(message.user);
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.status !== 0) {
+      obj.status = userStatusToJSON(message.status);
     }
     return obj;
   },
@@ -8872,7 +8898,8 @@ export const ApplyUserSanctionResponse: MessageFns<ApplyUserSanctionResponse> = 
   },
   fromPartial<I extends Exact<DeepPartial<ApplyUserSanctionResponse>, I>>(object: I): ApplyUserSanctionResponse {
     const message = createBaseApplyUserSanctionResponse();
-    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
+    message.userId = object.userId ?? "";
+    message.status = object.status ?? 0;
     return message;
   },
 };

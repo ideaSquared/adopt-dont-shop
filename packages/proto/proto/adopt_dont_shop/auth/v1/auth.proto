@@ -1049,8 +1049,11 @@ message ApplyUserSanctionRequest {
   optional string expires_at = 5;
 }
 
+// Deliberately minimal: the full User carries fields (phone_verified,
+// two_factor_enabled) that moderators are not allowed to read.
 message ApplyUserSanctionResponse {
-  User user = 1;
+  string user_id = 1;
+  UserStatus status = 2;
 }
 
 message DeactivateUserRequest {
