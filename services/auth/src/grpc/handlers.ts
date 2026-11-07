@@ -60,6 +60,7 @@ import { findMatchingBackupCodeHash } from './backup-codes.js';
 import { createAuthMetrics } from './auth-metrics.js';
 import { verifyAndConsumeTotp } from './totp-verification.js';
 import { ELEVATED_ROLES } from './admin-handlers.js';
+import { liftSuspensionIfExpired } from './suspension-expiry.js';
 
 // --- Errors ----------------------------------------------------------
 
@@ -166,6 +167,8 @@ export type UserRow = {
   last_login_at: Date | null;
   locked_until: Date | null;
   login_attempts: number;
+  // End of a timed suspension; null/undefined = indefinite or not suspended.
+  suspended_until?: Date | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -485,7 +488,7 @@ export async function login(
     });
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
-  const user = userRes.rows[0];
+  let user = userRes.rows[0];
 
   // Compare the password BEFORE revealing anything about account state
   // (ADS-966) — checking locked/suspended/deactivated first turned those
@@ -556,6 +559,15 @@ export async function login(
       userAgent: req.userAgent,
     });
     throw new HandlerError('PERMISSION_DENIED', 'account is temporarily locked');
+  }
+  // A timed suspension that has ended no longer blocks sign-in: lift it now
+  // (audited) so a missed scheduled job can never keep someone out past their
+  // date. Only reached with the right password, so nothing is revealed.
+  if (user.status === 'suspended') {
+    const lifted = await liftSuspensionIfExpired(deps, user);
+    if (lifted) {
+      user = lifted;
+    }
   }
   if (user.status === 'suspended' || user.status === 'deactivated') {
     loginCounter.inc({ outcome: 'account_suspended' });
