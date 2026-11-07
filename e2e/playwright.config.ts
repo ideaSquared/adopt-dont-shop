@@ -11,12 +11,20 @@ export const URLS = {
   client: process.env.E2E_CLIENT_URL ?? 'http://localhost:3000',
   admin: process.env.E2E_ADMIN_URL ?? 'http://localhost:3001',
   rescue: process.env.E2E_RESCUE_URL ?? 'http://localhost:3002',
+  // Second gateway that keeps the PRODUCTION rate limits, started only by the
+  // isolated stack's `limits` profile (docker-compose.e2e.yml). The limiter spec
+  // (tests/gateway-limits) skips itself when this is unset.
+  limiter: process.env.E2E_LIMITER_GATEWAY_URL,
 } as const;
 
+// Saved logins. The isolated stack (scripts/e2e-isolated.mjs) points this at its
+// own directory so its tokens never overwrite or reuse the dev stack's.
+const AUTH_DIR = process.env.E2E_AUTH_DIR ?? '.auth';
+
 export const AUTH_FILES = {
-  adopter: '.auth/adopter.json',
-  rescue: '.auth/rescue.json',
-  admin: '.auth/admin.json',
+  adopter: `${AUTH_DIR}/adopter.json`,
+  rescue: `${AUTH_DIR}/rescue.json`,
+  admin: `${AUTH_DIR}/admin.json`,
 } as const;
 
 // Phase 11 follow-up — incremental un-park. #1076 aligned the gateway↔SPA
@@ -97,11 +105,10 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     //   endpoint (404), and a tokenless protected read is 401.
     // - logout-flow: a Bearer-authenticated logout revokes the refresh token
     //   (200), then the SPA falls back to "Login Required" once wiped.
-    // - rate-limit-application-submission: login responses carry the
-    //   x-ratelimit-* headers @fastify/rate-limit emits (no CSRF dance).
+    //   (The rate-limit spec moved to the gateway-limits project below: it
+    //   needs a gateway with production limits, which the e2e stack lifts.)
     '**/api-auth-contract.spec.ts',
     '**/logout-flow.spec.ts',
-    '**/rate-limit-application-submission.spec.ts',
     // ADS-919 follow-up: the two full-stack specs the acceptance criteria
     // called for (httpOnly-cookie token storage + CSRF double-submit
     // enforcement), deferred when #1218/#1215 shipped the backend/frontend
@@ -240,7 +247,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: CI,
   retries: CI ? 1 : 0,
-  workers: CI ? 2 : undefined,
+  // E2E_WORKERS overrides the default (scripts/e2e-isolated.mjs sets it locally).
+  workers: process.env.E2E_WORKERS ? Number(process.env.E2E_WORKERS) : CI ? 2 : undefined,
   timeout: 60_000,
   expect: { timeout: 10_000 },
   reporter: CI
@@ -252,6 +260,9 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    // Built bundles (the isolated stack) register a PWA service worker that
+    // caches /api/v1/pets responses between tests; the dev servers never do.
+    ...(process.env.E2E_BLOCK_SERVICE_WORKERS === '1' ? { serviceWorkers: 'block' as const } : {}),
     actionTimeout: 10_000,
     navigationTimeout: 30_000,
     extraHTTPHeaders: {
@@ -267,6 +278,13 @@ export default defineConfig({
       name: 'gateway-smoke',
       testDir: './tests/gateway-smoke',
       use: { baseURL: URLS.api },
+    },
+    {
+      // Rate-limiter behaviour against a gateway with PRODUCTION limits. API
+      // only (no browser, no storageState). Skips unless E2E_LIMITER_GATEWAY_URL
+      // is set, which only the isolated stack's `limits` profile does.
+      name: 'gateway-limits',
+      testDir: './tests/gateway-limits',
     },
     {
       // ADS-1326: axe-core smoke coverage. Runs logged-out against

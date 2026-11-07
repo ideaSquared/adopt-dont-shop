@@ -273,37 +273,46 @@ VITE_WS_BASE_URL=wss://api.your-domain.com
 
 ## Reproducing CI E2E locally
 
-There is no `docker-compose.ci.yml` overlay — CI runs the `test-e2e` job (`.github/workflows/ci.yml`) directly against `docker-compose.yml` using the `full` profile, with images built via `docker buildx bake` (falling back to `docker compose build` if bake can't resolve targets). To reproduce it locally:
+CI and local runs share one mechanism: `docker-compose.e2e.yml`, layered last on top of `docker-compose.yml` + `docker-compose.dev.yml` and driven by `scripts/e2e-isolated.mjs` (the `e2e-suite` composite action builds the shared dev image, then calls the script). It boots a **throwaway, isolated** copy of the stack, so an e2e run never shares rate-limit counters, data or saved logins with your dev stack.
 
 ```bash
-# 1. Generate a throwaway .env — CI writes fresh secrets on every run rather than
-#    reusing the checked-in dev defaults (see "Generate secrets and write .env" in ci.yml)
-pnpm secrets:generate > .env
-echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002" >> .env
-echo "GATEWAY_RATE_LIMIT_MAX=100000" >> .env
-echo "GATEWAY_AUTH_RATE_LIMIT_MAX=100000" >> .env
-
-# 2. Start database and cache first, wait for Postgres to be ready
-docker compose -f docker-compose.yml up -d database redis
-timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U adopt_user; do sleep 2; done'
-
-# 3. Build every image (bake if available, otherwise a plain compose build)
-docker buildx bake -f docker-compose.yml --load || \
-  docker compose -f docker-compose.yml --profile full build
-
-# 4. Bring up the full stack without rebuilding, then wait for all services healthy
-docker compose -f docker-compose.yml --profile full up -d --no-build
-docker compose -f docker-compose.yml --profile full ps
-
-# 5. Run the Playwright suite (see e2e/ for the actual specs)
-pnpm test:e2e:install
-pnpm test:e2e
-
-# 6. Tear down
-docker compose -f docker-compose.yml down -v
+pnpm docker:down            # the isolated stack is sized to fit alone, not beside the dev stack
+pnpm e2e:isolated           # boot, seed, run the @smoke subset, tear down
+pnpm e2e:isolated:full      # the whole suite, plus the production-limits gateway
+pnpm e2e:isolated --keep    # leave it running to poke at it; stop with pnpm e2e:isolated:down
 ```
 
-This runs the same dev-mode images and bind mounts as `pnpm docker:dev` — CI does **not** run a separate production-mode build for E2E. If you hit permission errors on `./uploads` locally that CI doesn't see, check that your local `.env` doesn't carry over a stale `POSTGRES_PASSWORD`/`REDIS_PASSWORD` from a previous run; CI always generates fresh ones.
+What is different from `pnpm docker:dev`:
+
+| Aspect                    | Dev stack                              | Isolated e2e stack (`ads-e2e`)                                                                                               |
+| ------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Compose project           | checkout directory (`adopt-dont-shop`) | `ads-e2e` (the script refuses anything else, and never the dev project's name)                                               |
+| Network, volumes, secrets | `adopt-dont-shop-network`, `./secrets` | `ads-e2e-network`, `ads-e2e_*` volumes, `./.e2e-stack/` (fresh secrets per run)                                              |
+| Host ports                | 3000-3002, 4000, 5432, 6380, 4222…     | **13000-13002** (apps), **14000** (gateway), **14001** (limits gateway); nothing else                                        |
+| Apps                      | Vite dev servers with HMR              | the same Vite dev servers, on the e2e ports, capped at 2 GB each                                                             |
+| Data                      | `db:spam` plants thousands of rows     | only the SQL bootstrap plus the personas the runner seeds through the API                                                    |
+| Not started               | n/a                                    | nginx, observability, ClamAV (uploads fail open), the in-compose seeder                                                      |
+| Rate limits               | 1000 req/min, 100 logins/min           | lifted (100000) on the main gateway; production defaults on the `limits` gateway                                             |
+| Memory                    | ~7-8 GB with everything                | explicit `mem_limit`/`cpus` per service; peak ~7 GiB while booting (6.9 GiB sampled on a CI runner; each run prints its own) |
+
+The script checks for a running dev stack (any other compose project running `service-gateway`/`database`/`app-client`) and refuses with a pointer to `pnpm docker:down`; `--force` overrides. It also warns when Docker's memory limit is below what the stack needs. At the end it prints phase timings and the peak memory it sampled.
+
+It reuses the dev image `adopt-dont-shop-dev:latest` (pulled from GHCR or built locally if missing; `--build` forces a rebuild, needed after a lockfile change). The source tree is bind-mounted, so the stack runs your working tree. Because of that, the script first runs `pnpm build:libs` on the host (the services import the compiled `lib.*` dist and nothing in the shared dev image builds it; turbo caches reruns), so `pnpm install` must have been run.
+
+**The production-limits gateway.** The main e2e gateway has its limits lifted so parallel specs are not throttled, which would leave the limiter untested. Full runs (`--full`, or `--limits`) therefore also start `service-gateway-limits` (compose profile `limits`): a second gateway from the same image with the default limits and its own Redis database (so the main gateway's traffic cannot spend its budget), on port 14001. `e2e/tests/gateway-limits` points at it through `E2E_LIMITER_GATEWAY_URL` and skips itself when that is unset (any run against the shared dev stack).
+
+Useful variants:
+
+```bash
+pnpm e2e:isolated tests/client/pet-discovery.spec.ts      # any Playwright args are passed through
+pnpm e2e:isolated --workers 4                              # default is 3 locally (CI keeps 2)
+pnpm e2e:isolated --keep && pnpm e2e:isolated --reuse tests/client   # iterate on a kept stack
+pnpm e2e:isolated:down                                     # `down -v` scoped to ads-e2e
+```
+
+Saved logins go to `e2e/.auth-isolated/` (not `e2e/.auth/`). The Playwright config also blocks service workers for these runs (`E2E_BLOCK_SERVICE_WORKERS`), so a PWA worker can never cache `/api/v1/pets` between tests. Serving built bundles with `vite preview` instead of the dev servers was tried and dropped for now: the bundle threw `require("react")` in the browser on CI.
+
+CI (`.github/actions/e2e-suite`) builds the dev image with `docker buildx bake` and a gha cache, then runs `node scripts/e2e-isolated.mjs` (`--full` for `test-e2e`, default `@smoke` for the required `test-e2e-smoke`). On failure the script prints container status and writes `docker-compose.log`, which the job uploads with the Playwright report. If you hit odd failures locally that CI doesn't see, check for a stale `adopt-dont-shop-dev` image after a lockfile change (`pnpm e2e:isolated --build`).
 
 ## Troubleshooting
 

@@ -49,6 +49,11 @@ const E2E_FILES = [
   /^\.dockerignore$/,
   /^scripts\/init-postgis\.sql$/,
   /^scripts\/write-redis-secret\.mjs$/,
+  // The isolated stack runner and what it drives (the e2e-suite action calls it).
+  /^scripts\/e2e-isolated\.mjs$/,
+  /^scripts\/docker-dev-entrypoint\.sh$/,
+  /^scripts\/seed\.mjs$/,
+  /^scripts\/lib\/seed-/,
   /^nginx\//,
   /^\.github\/actions\/e2e-suite\//,
 ];
