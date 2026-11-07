@@ -14,8 +14,7 @@ import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import { principalToMetadata } from '@adopt-dont-shop/service-bootstrap';
-import { MODERATION_ACTIONS_MANAGE } from '@adopt-dont-shop/lib.types';
+import { MODERATION_ACTIONS_MANAGE, MODERATION_USERS_SANCTION } from '@adopt-dont-shop/lib.types';
 import type {
   AddEvidenceRequest,
   AddEvidenceResponse,
@@ -115,6 +114,12 @@ export async function logModeratorAction(
       `target_user_id is required to ${suspendsUser ? 'suspend' : 'ban'} a user`
     );
   }
+  // The service principal that calls auth always holds the sanction permission,
+  // so check the HUMAN caller here: managing actions alone must not be enough
+  // to suspend or ban a user.
+  if ((suspendsUser || bansUser) && !requirePermission(principal, MODERATION_USERS_SANCTION)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_USERS_SANCTION}' required`);
+  }
   if ((suspendsUser || bansUser) && authClient === undefined) {
     throw new HandlerError('INTERNAL', 'auth client not configured; cannot restrict a user');
   }
@@ -164,30 +169,22 @@ export async function logModeratorAction(
     // The suspension runs inside the transaction: if auth rejects it the
     // throw rolls back the action row and the queued event, so a failed
     // sanction leaves nothing half-written.
-    if (suspendsUser && authClient !== undefined && req.targetUserId) {
+    // One auth call applies the whole sanction (a ban also ends every
+    // session) and records the audit event there. If auth refuses, the throw
+    // rolls back the action row and the queued events.
+    if ((suspendsUser || bansUser) && authClient !== undefined && req.targetUserId) {
       try {
-        await authClient.suspendUser(req.targetUserId, principalToMetadata(principal));
+        await authClient.applyUserSanction({
+          userId: req.targetUserId,
+          kind: bansUser ? 'ban' : 'suspend',
+          reason: req.reason,
+          actorUserId: principal.userId,
+          expiresAt: suspendsUser && expiresAt ? expiresAt : undefined,
+        });
       } catch (err) {
         throw new HandlerError(
           grpcStatusToHandlerCode(err),
-          `could not suspend user ${req.targetUserId}: ${(err as Error).message}`
-        );
-      }
-    }
-
-    // A ban deactivates the account and ends every session, so the user is
-    // locked out now rather than when their tokens expire. Deactivate first:
-    // if ending sessions then fails, the throw rolls the action row back and
-    // a retry is idempotent (deactivating twice is a no-op in auth).
-    if (bansUser && authClient !== undefined && req.targetUserId) {
-      try {
-        const metadata = principalToMetadata(principal);
-        await authClient.deactivateUser(req.targetUserId, metadata);
-        await authClient.revokeAllSessions(req.targetUserId, metadata);
-      } catch (err) {
-        throw new HandlerError(
-          grpcStatusToHandlerCode(err),
-          `could not ban user ${req.targetUserId}: ${(err as Error).message}`
+          `could not ${bansUser ? 'ban' : 'suspend'} user ${req.targetUserId}: ${(err as Error).message}`
         );
       }
     }

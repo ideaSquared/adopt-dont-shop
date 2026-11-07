@@ -13,6 +13,10 @@ import { createBcryptPasswordHasher } from './grpc/password-hasher.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { createJwtTokenIssuer } from './grpc/token-issuer.js';
 import { createServer } from './server.js';
+import { startSuspensionExpiryScheduler, stopSchedulerWithin } from './suspension-expiry-job.js';
+
+// Longest an in-flight suspension sweep may delay the rest of shutdown.
+const SCHEDULER_STOP_TIMEOUT_MS = 5_000;
 
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.auth' });
@@ -73,6 +77,12 @@ const main = async (): Promise<void> => {
       onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
     });
 
+    // Lift ended timed suspensions (the login path also lifts lazily).
+    const suspensionExpiryScheduler = startSuspensionExpiryScheduler({
+      deps: { pool, nats, passwordHasher, tokenIssuer, encryptionKey: config.encryptionKey },
+      logger,
+    });
+
     const httpServer = createServer({
       config,
       logger,
@@ -89,8 +99,12 @@ const main = async (): Promise<void> => {
       environment: config.environment,
     });
 
-    const teardown = (): Promise<void> => {
+    const teardown = async (): Promise<void> => {
       outboxRelay.stop();
+      await stopSchedulerWithin(suspensionExpiryScheduler, {
+        timeoutMs: SCHEDULER_STOP_TIMEOUT_MS,
+        logger,
+      });
       return runServiceShutdown({ httpServer, grpc, nats, pool, logger });
     };
 

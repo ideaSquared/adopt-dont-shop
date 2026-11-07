@@ -174,6 +174,8 @@ export type {
   AdminUpdateUserResponse,
   AdminCreateUserRequest,
   AdminCreateUserResponse,
+  ApplyUserSanctionRequest,
+  ApplyUserSanctionResponse,
   DeactivateUserRequest,
   DeactivateUserResponse,
   ReactivateUserRequest,

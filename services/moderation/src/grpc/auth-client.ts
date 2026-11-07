@@ -1,19 +1,35 @@
 // Service-to-service gRPC client for service.auth.
 //
-// A user_suspended moderator action must actually suspend the account, and
-// the account lives in the auth schema, which moderation never writes. The
-// handler forwards the acting moderator's principal (signed by
-// principalToMetadata) so auth enforces its own permission and elevated-target
-// checks. Mirrors services/rescue/src/grpc/pets-client.ts.
+// A user_suspended / user_banned moderator action must actually restrict the
+// account, and the account lives in the auth schema, which moderation never
+// writes. The call is AuthService.ApplyUserSanction, made as a narrowly-scoped
+// SERVICE principal that holds ONLY moderation.users.sanction (same pattern as
+// services/pets/src/grpc/rescue-client.ts), so moderators need none of the
+// broad admin.users.* / admin.security.manage permissions. The human
+// moderator travels in actor_user_id and is the audit actor.
 
-import { credentials, status, type CallOptions, type Metadata } from '@grpc/grpc-js';
+import { credentials, status, type CallOptions, Metadata } from '@grpc/grpc-js';
 
+import { MODERATION_USERS_SANCTION } from '@adopt-dont-shop/lib.types';
 import { AuthV1 } from '@adopt-dont-shop/proto';
+import {
+  getDefaultPrincipalSigningKey,
+  PRINCIPAL_TOKEN_HEADER,
+  signPrincipalToken,
+} from '@adopt-dont-shop/service-bootstrap';
+
+export type UserSanction = {
+  userId: string;
+  kind: 'suspend' | 'ban';
+  reason: string;
+  // The human moderator, recorded as the audit actor.
+  actorUserId: string;
+  // RFC 3339; suspend only. Omitted = indefinite.
+  expiresAt?: string;
+};
 
 export type AuthClient = {
-  suspendUser(userId: string, metadata: Metadata): Promise<void>;
-  deactivateUser(userId: string, metadata: Metadata): Promise<void>;
-  revokeAllSessions(userId: string, metadata: Metadata): Promise<void>;
+  applyUserSanction(sanction: UserSanction): Promise<void>;
   close(): void;
 };
 
@@ -26,43 +42,56 @@ export type CreateAuthClientOptions = {
 
 const DEFAULT_DEADLINE_MS = 5_000;
 
+// Service principal: only the sanction permission, nothing else.
+const SYSTEM_USER_ID = 'svc-moderation';
+const SYSTEM_ROLES = ['admin'];
+const SYSTEM_PERMISSIONS = [MODERATION_USERS_SANCTION];
+
 export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
   const stub = new AuthV1.AuthServiceClient(opts.address, credentials.createInsecure());
   const deadlineMs = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
 
-  const options = (): Partial<CallOptions> => ({ deadline: new Date(Date.now() + deadlineMs) });
+  // Built per call: the signed x-principal-token carries a short TTL.
+  const buildSystemMetadata = (): Metadata => {
+    const meta = new Metadata();
+    meta.set('x-user-id', SYSTEM_USER_ID);
+    meta.set('x-user-roles', SYSTEM_ROLES.join(','));
+    meta.set('x-user-permissions', SYSTEM_PERMISSIONS.join(','));
+    const signingKey = getDefaultPrincipalSigningKey();
+    if (signingKey) {
+      meta.set(
+        PRINCIPAL_TOKEN_HEADER,
+        signPrincipalToken(
+          { userId: SYSTEM_USER_ID, roles: SYSTEM_ROLES, permissions: SYSTEM_PERMISSIONS },
+          signingKey
+        )
+      );
+    }
+    return meta;
+  };
 
   return {
-    // No retry: the caller's transaction owns failure handling, and a
-    // retried suspend after a lost response is harmless but unnecessary.
-    suspendUser: (userId, metadata) =>
+    // No retry: the caller's transaction owns failure handling, and the
+    // sanction is applied once or the whole moderation action rolls back.
+    applyUserSanction: sanction =>
       new Promise<void>((resolve, reject) => {
-        stub.adminUpdateUser(
+        const callOptions: Partial<CallOptions> = {
+          deadline: new Date(Date.now() + deadlineMs),
+        };
+        stub.applyUserSanction(
           {
-            userId,
-            status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
-            userType: AuthV1.UserRole.USER_ROLE_UNSPECIFIED,
-            emailVerified: undefined,
-            firstName: undefined,
-            lastName: undefined,
+            userId: sanction.userId,
+            kind:
+              sanction.kind === 'ban'
+                ? AuthV1.UserSanctionKind.USER_SANCTION_KIND_BAN
+                : AuthV1.UserSanctionKind.USER_SANCTION_KIND_SUSPEND,
+            reason: sanction.reason,
+            actorUserId: sanction.actorUserId,
+            expiresAt: sanction.expiresAt,
           },
-          metadata,
-          options(),
+          buildSystemMetadata(),
+          callOptions,
           (err: unknown) => (err ? reject(err) : resolve())
-        );
-      }),
-    // Needs admin.users.deactivate on the forwarded moderator principal.
-    deactivateUser: (userId, metadata) =>
-      new Promise<void>((resolve, reject) => {
-        stub.deactivateUser({ userId, reason: undefined }, metadata, options(), (err: unknown) =>
-          err ? reject(err) : resolve()
-        );
-      }),
-    // Needs admin.security.manage on the forwarded moderator principal.
-    revokeAllSessions: (userId, metadata) =>
-      new Promise<void>((resolve, reject) => {
-        stub.adminRevokeAllUserSessions({ userId }, metadata, options(), (err: unknown) =>
-          err ? reject(err) : resolve()
         );
       }),
     close: () => stub.close(),
@@ -79,6 +108,7 @@ export const grpcStatusToHandlerCode = (
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
   | 'UNAVAILABLE'
+  | 'FAILED_PRECONDITION'
   | 'INTERNAL' => {
   const code = (err as { code?: unknown } | null)?.code;
   switch (code) {
@@ -92,6 +122,8 @@ export const grpcStatusToHandlerCode = (
       return 'NOT_FOUND';
     case status.UNAVAILABLE:
       return 'UNAVAILABLE';
+    case status.FAILED_PRECONDITION:
+      return 'FAILED_PRECONDITION';
     default:
       return 'INTERNAL';
   }

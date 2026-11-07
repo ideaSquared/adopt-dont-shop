@@ -504,6 +504,27 @@ describe('registerSubscribers', () => {
     ]);
   });
 
+  it('also subscribes to the verification and password-reset events when authEmail is configured', async () => {
+    const { nats, consumersAdded } = makeNats();
+
+    const subs = registerSubscribers({
+      nats,
+      deps,
+      logger,
+      authEmail: {
+        frontendUrl: 'http://localhost:3000',
+        fromEmail: 'noreply@adoptdontshop.com',
+        fromName: "Adopt Don't Shop",
+      },
+    });
+    await flush();
+
+    expect(subs).toHaveLength(20);
+    const subjects = consumersAdded.map(c => c.filter_subject);
+    expect(subjects).toContain('auth.userRegistered');
+    expect(subjects).toContain('auth.passwordResetRequested');
+  });
+
   it('names each durable consumer with the shared notifications-workers prefix', async () => {
     const { nats, consumersAdded } = makeNats();
 

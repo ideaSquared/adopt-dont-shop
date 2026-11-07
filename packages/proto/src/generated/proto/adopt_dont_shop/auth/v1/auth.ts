@@ -195,6 +195,45 @@ export function profileVisibilityToJSON(object: ProfileVisibility): string {
   }
 }
 
+export enum UserSanctionKind {
+  USER_SANCTION_KIND_UNSPECIFIED = 0,
+  USER_SANCTION_KIND_SUSPEND = 1,
+  USER_SANCTION_KIND_BAN = 2,
+  UNRECOGNIZED = -1,
+}
+
+export function userSanctionKindFromJSON(object: any): UserSanctionKind {
+  switch (object) {
+    case 0:
+    case "USER_SANCTION_KIND_UNSPECIFIED":
+      return UserSanctionKind.USER_SANCTION_KIND_UNSPECIFIED;
+    case 1:
+    case "USER_SANCTION_KIND_SUSPEND":
+      return UserSanctionKind.USER_SANCTION_KIND_SUSPEND;
+    case 2:
+    case "USER_SANCTION_KIND_BAN":
+      return UserSanctionKind.USER_SANCTION_KIND_BAN;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return UserSanctionKind.UNRECOGNIZED;
+  }
+}
+
+export function userSanctionKindToJSON(object: UserSanctionKind): string {
+  switch (object) {
+    case UserSanctionKind.USER_SANCTION_KIND_UNSPECIFIED:
+      return "USER_SANCTION_KIND_UNSPECIFIED";
+    case UserSanctionKind.USER_SANCTION_KIND_SUSPEND:
+      return "USER_SANCTION_KIND_SUSPEND";
+    case UserSanctionKind.USER_SANCTION_KIND_BAN:
+      return "USER_SANCTION_KIND_BAN";
+    case UserSanctionKind.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export enum IpRuleType {
   IP_RULE_TYPE_UNSPECIFIED = 0,
   IP_RULE_TYPE_ALLOW = 1,
@@ -1048,6 +1087,25 @@ export interface AdminCreateUserResponse {
    * the invitation is redeemed.
    */
   user?: User | undefined;
+}
+
+export interface ApplyUserSanctionRequest {
+  userId: string;
+  kind: UserSanctionKind;
+  reason: string;
+  /** The human moderator, recorded as the audit actor. */
+  actorUserId: string;
+  /** RFC 3339. Only valid for SUSPEND; unset means indefinite. */
+  expiresAt?: string | undefined;
+}
+
+/**
+ * Deliberately minimal: the full User carries fields (phone_verified,
+ * two_factor_enabled) that moderators are not allowed to read.
+ */
+export interface ApplyUserSanctionResponse {
+  userId: string;
+  status: UserStatus;
 }
 
 export interface DeactivateUserRequest {
@@ -8630,6 +8688,222 @@ export const AdminCreateUserResponse: MessageFns<AdminCreateUserResponse> = {
   },
 };
 
+function createBaseApplyUserSanctionRequest(): ApplyUserSanctionRequest {
+  return { userId: "", kind: 0, reason: "", actorUserId: "", expiresAt: undefined };
+}
+
+export const ApplyUserSanctionRequest: MessageFns<ApplyUserSanctionRequest> = {
+  encode(message: ApplyUserSanctionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.kind !== 0) {
+      writer.uint32(16).int32(message.kind);
+    }
+    if (message.reason !== "") {
+      writer.uint32(26).string(message.reason);
+    }
+    if (message.actorUserId !== "") {
+      writer.uint32(34).string(message.actorUserId);
+    }
+    if (message.expiresAt !== undefined) {
+      writer.uint32(42).string(message.expiresAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ApplyUserSanctionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseApplyUserSanctionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.kind = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.actorUserId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ApplyUserSanctionRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      kind: isSet(object.kind) ? userSanctionKindFromJSON(object.kind) : 0,
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
+      actorUserId: isSet(object.actorUserId)
+        ? globalThis.String(object.actorUserId)
+        : isSet(object.actor_user_id)
+        ? globalThis.String(object.actor_user_id)
+        : "",
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+        ? globalThis.String(object.expires_at)
+        : undefined,
+    };
+  },
+
+  toJSON(message: ApplyUserSanctionRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.kind !== 0) {
+      obj.kind = userSanctionKindToJSON(message.kind);
+    }
+    if (message.reason !== "") {
+      obj.reason = message.reason;
+    }
+    if (message.actorUserId !== "") {
+      obj.actorUserId = message.actorUserId;
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ApplyUserSanctionRequest>, I>>(base?: I): ApplyUserSanctionRequest {
+    return ApplyUserSanctionRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ApplyUserSanctionRequest>, I>>(object: I): ApplyUserSanctionRequest {
+    const message = createBaseApplyUserSanctionRequest();
+    message.userId = object.userId ?? "";
+    message.kind = object.kind ?? 0;
+    message.reason = object.reason ?? "";
+    message.actorUserId = object.actorUserId ?? "";
+    message.expiresAt = object.expiresAt ?? undefined;
+    return message;
+  },
+};
+
+function createBaseApplyUserSanctionResponse(): ApplyUserSanctionResponse {
+  return { userId: "", status: 0 };
+}
+
+export const ApplyUserSanctionResponse: MessageFns<ApplyUserSanctionResponse> = {
+  encode(message: ApplyUserSanctionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.status !== 0) {
+      writer.uint32(16).int32(message.status);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ApplyUserSanctionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseApplyUserSanctionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ApplyUserSanctionResponse {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : "",
+      status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
+    };
+  },
+
+  toJSON(message: ApplyUserSanctionResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.status !== 0) {
+      obj.status = userStatusToJSON(message.status);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ApplyUserSanctionResponse>, I>>(base?: I): ApplyUserSanctionResponse {
+    return ApplyUserSanctionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ApplyUserSanctionResponse>, I>>(object: I): ApplyUserSanctionResponse {
+    const message = createBaseApplyUserSanctionResponse();
+    message.userId = object.userId ?? "";
+    message.status = object.status ?? 0;
+    return message;
+  },
+};
+
 function createBaseDeactivateUserRequest(): DeactivateUserRequest {
   return { userId: "", reason: undefined };
 }
@@ -13797,6 +14071,25 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): DeactivateUserResponse => DeactivateUserResponse.decode(value),
   },
   /**
+   * Apply a moderation sanction to a user in ONE transaction and record ONE
+   * auth.actionTaken: SUSPEND sets status suspended; BAN deactivates the user
+   * and revokes every session. Guarded only by moderation.users.sanction,
+   * which service.moderation's service principal carries; the human moderator
+   * is passed as actor_user_id for the audit trail. Refuses elevated-role
+   * targets (admin, moderator, super_admin) and self-sanction.
+   */
+  applyUserSanction: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/ApplyUserSanction" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ApplyUserSanctionRequest): Buffer =>
+      Buffer.from(ApplyUserSanctionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ApplyUserSanctionRequest => ApplyUserSanctionRequest.decode(value),
+    responseSerialize: (value: ApplyUserSanctionResponse): Buffer =>
+      Buffer.from(ApplyUserSanctionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ApplyUserSanctionResponse => ApplyUserSanctionResponse.decode(value),
+  },
+  /**
    * Reactivate a deactivated/suspended user (status -> active).
    * admin.users.reactivate. Idempotent.
    */
@@ -14364,6 +14657,15 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * Idempotent. The caller cannot deactivate their own account.
    */
   deactivateUser: handleUnaryCall<DeactivateUserRequest, DeactivateUserResponse>;
+  /**
+   * Apply a moderation sanction to a user in ONE transaction and record ONE
+   * auth.actionTaken: SUSPEND sets status suspended; BAN deactivates the user
+   * and revokes every session. Guarded only by moderation.users.sanction,
+   * which service.moderation's service principal carries; the human moderator
+   * is passed as actor_user_id for the audit trail. Refuses elevated-role
+   * targets (admin, moderator, super_admin) and self-sanction.
+   */
+  applyUserSanction: handleUnaryCall<ApplyUserSanctionRequest, ApplyUserSanctionResponse>;
   /**
    * Reactivate a deactivated/suspended user (status -> active).
    * admin.users.reactivate. Idempotent.
@@ -15205,6 +15507,29 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeactivateUserResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Apply a moderation sanction to a user in ONE transaction and record ONE
+   * auth.actionTaken: SUSPEND sets status suspended; BAN deactivates the user
+   * and revokes every session. Guarded only by moderation.users.sanction,
+   * which service.moderation's service principal carries; the human moderator
+   * is passed as actor_user_id for the audit trail. Refuses elevated-role
+   * targets (admin, moderator, super_admin) and self-sanction.
+   */
+  applyUserSanction(
+    request: ApplyUserSanctionRequest,
+    callback: (error: ServiceError | null, response: ApplyUserSanctionResponse) => void,
+  ): ClientUnaryCall;
+  applyUserSanction(
+    request: ApplyUserSanctionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ApplyUserSanctionResponse) => void,
+  ): ClientUnaryCall;
+  applyUserSanction(
+    request: ApplyUserSanctionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ApplyUserSanctionResponse) => void,
   ): ClientUnaryCall;
   /**
    * Reactivate a deactivated/suspended user (status -> active).

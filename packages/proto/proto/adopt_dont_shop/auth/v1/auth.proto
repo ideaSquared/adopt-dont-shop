@@ -254,6 +254,14 @@ service AuthService {
   // Idempotent. The caller cannot deactivate their own account.
   rpc DeactivateUser(DeactivateUserRequest) returns (DeactivateUserResponse);
 
+  // Apply a moderation sanction to a user in ONE transaction and record ONE
+  // auth.actionTaken: SUSPEND sets status suspended; BAN deactivates the user
+  // and revokes every session. Guarded only by moderation.users.sanction,
+  // which service.moderation's service principal carries; the human moderator
+  // is passed as actor_user_id for the audit trail. Refuses elevated-role
+  // targets (admin, moderator, super_admin) and self-sanction.
+  rpc ApplyUserSanction(ApplyUserSanctionRequest) returns (ApplyUserSanctionResponse);
+
   // Reactivate a deactivated/suspended user (status -> active).
   // admin.users.reactivate. Idempotent.
   rpc ReactivateUser(ReactivateUserRequest) returns (ReactivateUserResponse);
@@ -1023,6 +1031,29 @@ message AdminCreateUserResponse {
   // The newly created (pending) user. Carries no usable credentials until
   // the invitation is redeemed.
   User user = 1;
+}
+
+enum UserSanctionKind {
+  USER_SANCTION_KIND_UNSPECIFIED = 0;
+  USER_SANCTION_KIND_SUSPEND = 1;
+  USER_SANCTION_KIND_BAN = 2;
+}
+
+message ApplyUserSanctionRequest {
+  string user_id = 1;
+  UserSanctionKind kind = 2;
+  string reason = 3;
+  // The human moderator, recorded as the audit actor.
+  string actor_user_id = 4;
+  // RFC 3339. Only valid for SUSPEND; unset means indefinite.
+  optional string expires_at = 5;
+}
+
+// Deliberately minimal: the full User carries fields (phone_verified,
+// two_factor_enabled) that moderators are not allowed to read.
+message ApplyUserSanctionResponse {
+  string user_id = 1;
+  UserStatus status = 2;
 }
 
 message DeactivateUserRequest {

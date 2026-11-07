@@ -115,7 +115,18 @@ const main = async (): Promise<void> => {
     // applications.submitted before we're ready to handle gRPC calls
     // can't race against partially-constructed deps. Shutdown drains the
     // whole NATS connection later, which transparently cancels these.
-    registerSubscribers({ nats, deps: { pool, nats }, logger, petsClient, rescueClient });
+    registerSubscribers({
+      nats,
+      deps: { pool, nats },
+      logger,
+      petsClient,
+      rescueClient,
+      authEmail: {
+        frontendUrl: config.frontendUrl,
+        fromEmail: config.defaultFromEmail,
+        fromName: config.defaultFromName,
+      },
+    });
 
     // GDPR erasure subscriber — drops the user's notifications + prefs
     // + device tokens. Reported back via gdpr.erasureCompleted.
