@@ -207,6 +207,31 @@ export async function logModeratorAction(
       },
     });
 
+    // Forensic record: service.audit persists every `<domain>.actionTaken`.
+    publish({
+      type: 'moderation.actionTaken',
+      id: `moderation.actionTaken.${actionId}`,
+      payload: {
+        eventId: randomUUID(),
+        service: 'service.moderation',
+        subject: 'moderation.actionTaken',
+        aggregateType: 'moderator_action',
+        aggregateId: actionId,
+        actorUserId: principal.userId,
+        action: actionTypeDb,
+        outcome: 'success',
+        occurredAt: new Date().toISOString(),
+        payload: {
+          targetUserId: req.targetUserId ?? null,
+          targetEntityType: targetEntityTypeDb,
+          targetEntityId: req.targetEntityId,
+          reportId: req.reportId ?? null,
+          duration: req.duration ?? null,
+          expiresAt,
+        },
+      },
+    });
+
     return { action: actionRowToProto(inserted.rows[0]) };
   });
 }

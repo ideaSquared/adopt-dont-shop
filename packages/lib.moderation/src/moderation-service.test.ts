@@ -49,6 +49,72 @@ const validMetrics = {
   moderatorActivity: [{ moderatorId: 'mod_1', actionsCount: 4, resolvedCount: 2 }],
 };
 
+// What GET/POST /moderation/actions really returns (moderatorActionToView):
+// nulls for unset optionals and no updatedAt.
+const gatewayAction = {
+  actionId: 'act-1',
+  moderatorId: 'mod-1',
+  actionType: 'user_suspended',
+  severity: 'high',
+  reason: 'repeated spam',
+  description: null,
+  targetEntityType: 'user',
+  targetEntityId: 'usr-1',
+  targetUserId: 'usr-1',
+  reportId: 'rep-1',
+  duration: null,
+  metadata: {},
+  createdAt: '2026-06-01T12:00:00.000Z',
+  expiresAt: null,
+};
+
+describe('gateway-shaped moderator action responses', () => {
+  let moderationService: ModerationService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    moderationService = new ModerationService();
+  });
+
+  it('createAction accepts nulls for unset fields and a missing updatedAt', async () => {
+    mockedApi.post.mockResolvedValueOnce({ data: gatewayAction });
+
+    const action = await moderationService.createAction({
+      reportId: 'rep-1',
+      targetEntityType: 'user',
+      targetEntityId: 'usr-1',
+      targetUserId: 'usr-1',
+      actionType: 'user_suspended',
+      severity: 'high',
+      reason: 'repeated spam',
+    });
+
+    expect(action.actionId).toBe('act-1');
+    expect(action.duration).toBeUndefined();
+    expect(action.expiresAt).toBeUndefined();
+  });
+
+  it('takeAction still resolves the report after a gateway-shaped action response', async () => {
+    mockedApi.post.mockResolvedValueOnce({ data: gatewayAction });
+    mockedApi.patch.mockResolvedValueOnce({ data: { ...validReport, status: 'resolved' } });
+
+    await moderationService.takeAction(
+      'rep-1',
+      {
+        reportId: 'rep-1',
+        targetEntityType: 'user',
+        targetEntityId: 'usr-1',
+        actionType: 'user_suspended',
+        severity: 'high',
+        reason: 'repeated spam',
+      },
+      'notes'
+    );
+
+    expect(mockedApi.patch).toHaveBeenCalled();
+  });
+});
+
 describe('ModerationService', () => {
   let service: ModerationService;
 

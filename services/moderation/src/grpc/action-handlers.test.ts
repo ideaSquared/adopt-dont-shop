@@ -149,6 +149,23 @@ describe('logModeratorAction', () => {
     expect(stored).toBeLessThanOrEqual(Date.now() + thirtyDays);
   });
 
+  it('also queues moderation.actionTaken for the audit log, with actor, target, action and duration', async () => {
+    const { deps } = makeDeps([{ rows: [actionRow({ duration: 7 })] }]);
+    await logModeratorAction(deps, makePrincipal(), { ...VALID_LOG_REQ, duration: 7 });
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    const types = publish.mock.calls.map(c => c[0].type);
+    expect(types).toContain('moderation.actionTaken');
+    const audit = publish.mock.calls.map(c => c[0]).find(e => e.type === 'moderation.actionTaken');
+    expect(audit.payload).toMatchObject({
+      service: 'service.moderation',
+      subject: 'moderation.actionTaken',
+      aggregateType: 'moderator_action',
+      actorUserId: expect.any(String),
+      outcome: 'success',
+      payload: { duration: 7 },
+    });
+  });
+
   it('publishes moderation.actionLogged', async () => {
     const { deps } = makeDeps([{ rows: [actionRow()] }]);
     await logModeratorAction(deps, makePrincipal(), VALID_LOG_REQ);
@@ -253,8 +270,9 @@ describe('logModeratorAction - user_banned', () => {
     const auth = makeAuth({
       revokeAllSessions: vi.fn().mockRejectedValue({ code: 14, message: 'unavailable' }),
     });
+    // UNAVAILABLE is preserved so the gateway answers 503, not 500.
     await expect(logModeratorAction(deps, makePrincipal(), BAN_REQ, auth)).rejects.toMatchObject({
-      code: 'INTERNAL',
+      code: 'UNAVAILABLE',
     });
     expect((deps as { _publish?: unknown })._publish).toBeUndefined();
   });

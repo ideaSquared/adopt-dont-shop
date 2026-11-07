@@ -62,12 +62,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const describeSuspensionEnd = (days: number): string =>
   days === INDEFINITE
-    ? 'The suspension has no end date and stays until it is lifted manually.'
-    : `The suspension ends on ${new Date(Date.now() + days * DAY_MS).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })}.`;
+    ? 'No expiry date is recorded; the suspension stays until an admin lifts it.'
+    : `The recorded expiry date is ${new Date(Date.now() + days * DAY_MS).toLocaleDateString(
+        'en-GB',
+        { day: 'numeric', month: 'long', year: 'numeric' }
+      )}. The account is not reactivated automatically; reactivate the account manually after that date.`;
 
 export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   isOpen,

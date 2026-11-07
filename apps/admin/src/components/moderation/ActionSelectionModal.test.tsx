@@ -59,7 +59,7 @@ describe('ActionSelectionModal suspension duration', () => {
     expect(onSubmit.mock.calls[0][0].duration).toBeUndefined();
   });
 
-  it('shows the date the suspension ends', () => {
+  it('shows the recorded expiry date and says the account needs manual reactivation', () => {
     renderModal();
     chooseSuspension();
     fireEvent.change(screen.getByLabelText(/suspension duration/i), { target: { value: '30' } });
@@ -69,7 +69,9 @@ describe('ActionSelectionModal suspension duration', () => {
       month: 'long',
       year: 'numeric',
     });
-    expect(screen.getByText(new RegExp(`ends on ${ends}`, 'i'))).toBeInTheDocument();
+    const note = screen.getByText(new RegExp(`recorded expiry date is ${ends}`, 'i'));
+    expect(note).toBeInTheDocument();
+    expect(note.textContent).toMatch(/reactivate the account manually/i);
   });
 
   it('says there is no end date for an indefinite suspension', () => {
@@ -77,6 +79,6 @@ describe('ActionSelectionModal suspension duration', () => {
     chooseSuspension();
     fireEvent.change(screen.getByLabelText(/suspension duration/i), { target: { value: '0' } });
 
-    expect(screen.getByText(/no end date/i)).toBeInTheDocument();
+    expect(screen.getByText(/no expiry date/i)).toBeInTheDocument();
   });
 });

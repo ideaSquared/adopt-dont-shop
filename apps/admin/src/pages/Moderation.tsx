@@ -250,7 +250,13 @@ const Moderation: React.FC = () => {
           reportId: selectedReport.reportId,
           targetEntityType: selectedReport.reportedEntityType,
           targetEntityId: selectedReport.reportedEntityId,
-          targetUserId: selectedReport.reportedUserId ?? undefined,
+          // For a user report the reported entity IS the user; reportedUserId is
+          // reporter-supplied and unvalidated, so it is only a fallback for
+          // other entity types.
+          targetUserId:
+            selectedReport.reportedEntityType === 'user'
+              ? selectedReport.reportedEntityId
+              : (selectedReport.reportedUserId ?? undefined),
           actionType: actionData.actionType,
           severity: selectedReport.severity,
           reason: actionData.reason,

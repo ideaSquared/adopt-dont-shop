@@ -73,7 +73,13 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
 // gateway still returns a meaningful HTTP status.
 export const grpcStatusToHandlerCode = (
   err: unknown
-): 'INVALID_ARGUMENT' | 'UNAUTHENTICATED' | 'PERMISSION_DENIED' | 'NOT_FOUND' | 'INTERNAL' => {
+):
+  | 'INVALID_ARGUMENT'
+  | 'UNAUTHENTICATED'
+  | 'PERMISSION_DENIED'
+  | 'NOT_FOUND'
+  | 'UNAVAILABLE'
+  | 'INTERNAL' => {
   const code = (err as { code?: unknown } | null)?.code;
   switch (code) {
     case status.INVALID_ARGUMENT:
@@ -84,6 +90,8 @@ export const grpcStatusToHandlerCode = (
       return 'PERMISSION_DENIED';
     case status.NOT_FOUND:
       return 'NOT_FOUND';
+    case status.UNAVAILABLE:
+      return 'UNAVAILABLE';
     default:
       return 'INTERNAL';
   }

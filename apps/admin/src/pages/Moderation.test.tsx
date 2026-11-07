@@ -151,6 +151,34 @@ describe('Moderation handleActionSubmit error feedback', () => {
     expect(dismissReportMock).not.toHaveBeenCalled();
   });
 
+  it('targets the reported entity itself for a user report, not the reporter-supplied user id', async () => {
+    stubActionType = 'user_suspended';
+    resolveReportMock.mockResolvedValueOnce(undefined);
+    Object.assign(sampleReport, {
+      reportedEntityType: 'user',
+      reportedEntityId: 'user-9',
+      reportedUserId: 'someone-else',
+    });
+
+    try {
+      renderWithProviders(<Moderation />);
+
+      openActionModalForFirstReport();
+      fireEvent.click(screen.getByTestId('stub-action-submit'));
+
+      await waitFor(() => {
+        expect(resolveReportMock).toHaveBeenCalled();
+      });
+      expect(resolveReportMock.mock.calls[0][2]).toMatchObject({ targetUserId: 'user-9' });
+    } finally {
+      Object.assign(sampleReport, {
+        reportedEntityType: 'pet',
+        reportedEntityId: 'pet-1',
+        reportedUserId: 'user-1',
+      });
+    }
+  });
+
   it('passes the chosen suspension duration (days) to resolveReport', async () => {
     stubActionType = 'user_suspended';
     stubDuration = 30;

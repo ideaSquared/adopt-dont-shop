@@ -138,7 +138,21 @@ export const BulkUpdateReportsRequestSchema = z.object({
 });
 
 // Moderator action schema
-export const ModeratorActionSchema = z.object({
+// The gateway renders unset optionals as null and omits updatedAt; normalise
+// both before validating so a real response parses.
+const normaliseActionPayload = (raw: unknown): unknown => {
+  if (typeof raw !== 'object' || raw === null) {
+    return raw;
+  }
+  const entries = Object.entries(raw as Record<string, unknown>).filter(([, v]) => v !== null);
+  const obj: Record<string, unknown> = Object.fromEntries(entries);
+  if (obj.updatedAt === undefined && obj.createdAt !== undefined) {
+    obj.updatedAt = obj.createdAt;
+  }
+  return obj;
+};
+
+const ModeratorActionObjectSchema = z.object({
   actionId: z.string(),
   moderatorId: z.string(),
   reportId: z.string().optional(),
@@ -163,6 +177,11 @@ export const ModeratorActionSchema = z.object({
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
+
+export const ModeratorActionSchema = z.preprocess(
+  normaliseActionPayload,
+  ModeratorActionObjectSchema
+);
 
 // Create moderator action request schema
 export const CreateModeratorActionRequestSchema = z.object({
