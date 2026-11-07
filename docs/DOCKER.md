@@ -284,20 +284,20 @@ pnpm e2e:isolated --keep    # leave it running to poke at it; stop with pnpm e2e
 
 What is different from `pnpm docker:dev`:
 
-| Aspect                    | Dev stack                              | Isolated e2e stack (`ads-e2e`)                                                                                           |
-| ------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Compose project           | checkout directory (`adopt-dont-shop`) | `ads-e2e` (the script refuses anything else, and never the dev project's name)                                           |
-| Network, volumes, secrets | `adopt-dont-shop-network`, `./secrets` | `ads-e2e-network`, `ads-e2e_*` volumes, `./.e2e-stack/` (fresh secrets per run)                                          |
-| Host ports                | 3000-3002, 4000, 5432, 6380, 4222…     | **13000-13002** (apps), **14000** (gateway), **14001** (limits gateway); nothing else                                    |
-| Apps                      | Vite dev servers with HMR              | built bundles (`vite build`, one app at a time) served by `vite preview`                                                 |
-| Data                      | `db:spam` plants thousands of rows     | only the SQL bootstrap plus the personas the runner seeds through the API                                                |
-| Not started               | n/a                                    | nginx, observability, ClamAV (uploads fail open), the in-compose seeder                                                  |
-| Rate limits               | 1000 req/min, 100 logins/min           | lifted (100000) on the main gateway; production defaults on the `limits` gateway                                         |
-| Memory                    | ~7-8 GB with everything                | explicit `mem_limit`/`cpus` per service; budgeted at ~6 GiB while booting (an estimate: the run prints the sampled peak) |
+| Aspect                    | Dev stack                              | Isolated e2e stack (`ads-e2e`)                                                                              |
+| ------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Compose project           | checkout directory (`adopt-dont-shop`) | `ads-e2e` (the script refuses anything else, and never the dev project's name)                              |
+| Network, volumes, secrets | `adopt-dont-shop-network`, `./secrets` | `ads-e2e-network`, `ads-e2e_*` volumes, `./.e2e-stack/` (fresh secrets per run)                             |
+| Host ports                | 3000-3002, 4000, 5432, 6380, 4222…     | **13000-13002** (apps), **14000** (gateway), **14001** (limits gateway); nothing else                       |
+| Apps                      | Vite dev servers with HMR              | the same Vite dev servers, on the e2e ports, capped at 1 GB each                                            |
+| Data                      | `db:spam` plants thousands of rows     | only the SQL bootstrap plus the personas the runner seeds through the API                                   |
+| Not started               | n/a                                    | nginx, observability, ClamAV (uploads fail open), the in-compose seeder                                     |
+| Rate limits               | 1000 req/min, 100 logins/min           | lifted (100000) on the main gateway; production defaults on the `limits` gateway                            |
+| Memory                    | ~7-8 GB with everything                | explicit `mem_limit`/`cpus` per service; budgeted at ~6 GiB (an estimate; each run prints its sampled peak) |
 
 The script checks for a running dev stack (any other compose project running `service-gateway`/`database`/`app-client`) and refuses with a pointer to `pnpm docker:down`; `--force` overrides. It also warns when Docker's memory limit is below what the stack needs. At the end it prints phase timings and the peak memory it sampled.
 
-It reuses the dev image `adopt-dont-shop-dev:latest` (pulled from GHCR or built locally if missing; `--build` forces a rebuild, needed after a lockfile change). The source tree is bind-mounted, so the stack runs your working tree. Because of that, the script first runs `pnpm build:libs` on the host (the services and the app builds import the compiled `lib.*` dist; turbo caches reruns), so `pnpm install` must have been run.
+It reuses the dev image `adopt-dont-shop-dev:latest` (pulled from GHCR or built locally if missing; `--build` forces a rebuild, needed after a lockfile change). The source tree is bind-mounted, so the stack runs your working tree. Because of that, the script first runs `pnpm build:libs` on the host (the services import the compiled `lib.*` dist and nothing in the shared dev image builds it; turbo caches reruns), so `pnpm install` must have been run.
 
 **The production-limits gateway.** The main e2e gateway has its limits lifted so parallel specs are not throttled, which would leave the limiter untested. Full runs (`--full`, or `--limits`) therefore also start `service-gateway-limits` (compose profile `limits`): a second gateway from the same image with the default limits and its own Redis database (so the main gateway's traffic cannot spend its budget), on port 14001. `e2e/tests/gateway-limits` points at it through `E2E_LIMITER_GATEWAY_URL` and skips itself when that is unset (any run against the shared dev stack).
 
@@ -310,7 +310,7 @@ pnpm e2e:isolated --keep && pnpm e2e:isolated --reuse tests/client   # iterate o
 pnpm e2e:isolated:down                                     # `down -v` scoped to ads-e2e
 ```
 
-Saved logins go to `e2e/.auth-isolated/` (not `e2e/.auth/`), and the Playwright config blocks service workers for these runs because the built bundles register a PWA worker that caches `/api/v1/pets`.
+Saved logins go to `e2e/.auth-isolated/` (not `e2e/.auth/`). The Playwright config also blocks service workers for these runs (`E2E_BLOCK_SERVICE_WORKERS`), so a PWA worker can never cache `/api/v1/pets` between tests. Serving built bundles with `vite preview` instead of the dev servers was tried and dropped for now: the bundle threw `require("react")` in the browser on CI.
 
 CI (`.github/actions/e2e-suite`) builds the dev image with `docker buildx bake` and a gha cache, then runs `node scripts/e2e-isolated.mjs` (`--full` for `test-e2e`, default `@smoke` for the required `test-e2e-smoke`). On failure the script prints container status and writes `docker-compose.log`, which the job uploads with the Playwright report. If you hit odd failures locally that CI doesn't see, check for a stale `adopt-dont-shop-dev` image after a lockfile change (`pnpm e2e:isolated --build`).
 

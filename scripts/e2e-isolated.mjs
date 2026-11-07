@@ -53,7 +53,7 @@ const ENV_FILE = join(STACK_DIR, 'env');
 const DEV_IMAGE = 'adopt-dont-shop-dev:latest';
 const GHCR_DEV_IMAGE = 'ghcr.io/ideasquared/adopt-dont-shop/dev:latest';
 const DEFAULT_LOCAL_WORKERS = 3;
-// Budgeted peak of the whole stack while booting (one vite build in flight plus
+// Budgeted peak of the whole stack while booting (three Vite dev servers plus
 // ten tsx services): an estimate from the dev stack's per-container usage, not a
 // measurement. The memory sampler below prints the real peak of each run. Docker Desktop VMs
 // smaller than this plus headroom will swap or OOM-kill containers.
@@ -321,17 +321,14 @@ function main() {
         writeStackFiles();
         mark('image');
 
-        // The services and the app builds import the lib.* packages from their
-        // compiled dist/, and the source tree is bind-mounted into the
-        // containers, so build them once here on the host (turbo caches reruns).
+        // The services import the lib.* packages from their compiled dist/ and
+        // the source tree is bind-mounted into the containers (nothing in the
+        // shared dev image builds them), so build them once here on the host.
+        // turbo caches reruns.
         log('building the lib.* packages on the host');
-        // NODE_ENV=production, as Dockerfile.app builds them: the app bundles are
-        // production builds, and bundling libs built in development mode
-        // threw `require("react")` in the browser on the first CI run.
         const libs = spawnSync('pnpm', ['run', 'build:libs'], {
           cwd: ROOT,
           stdio: 'inherit',
-          env: { ...process.env, NODE_ENV: 'production' },
           shell: process.platform === 'win32',
         });
         if (libs.status !== 0) throw new Error('pnpm build:libs failed');
@@ -339,11 +336,12 @@ function main() {
 
         assertOnlyE2ePortsPublished();
 
-        log(`booting ${PROJECT} (apps are built in-container, one at a time; first run is slow)`);
+        log(`booting ${PROJECT}`);
         if (compose(['up', '-d', '--no-build'], { profiles: upProfiles }) !== 0) {
           throw new Error('docker compose up failed');
         }
         await waitForStack();
+        await warmUpApps();
         mark('boot');
 
         const apiUrl = `http://localhost:${ports.api}`;
@@ -491,6 +489,21 @@ function main() {
     return rows
       .filter(row => row.State !== 'running' || (row.Health && row.Health !== 'healthy'))
       .map(row => row.Service);
+  }
+
+  // Vite dev servers compile on the first request; hit the login page of each
+  // app so Playwright's global setup does not pay for the cold compile.
+  async function warmUpApps() {
+    log('warming up the Vite dev servers');
+    await Promise.all(
+      [ports.client, ports.admin, ports.rescue].map(async port => {
+        try {
+          await fetch(`http://localhost:${port}/login`, { signal: AbortSignal.timeout(120_000) });
+        } catch {
+          /* best effort: global setup waits for the apps anyway */
+        }
+      })
+    );
   }
 
   async function isUp(url) {

@@ -17,11 +17,9 @@
 #     the dev stack's secret)
 #   * publishes ONLY the gateway and the three apps, on 13000-13002 / 14000-14001
 #     (the base ports are hard-coded and port lists MERGE across files, hence
-#     !reset / !override). Nothing is published on 5432 / 6379 / 6380 / 4222.
-#   * apps are BUILT once (libs are prebuilt on the host by the runner, then `vite build`) and served with
-#     `vite preview` instead of the Vite dev server: no HMR watcher, no on-demand
-#     compile, a fraction of the memory once built. Builds run one app at a time
-#     (depends_on chain) so only one vite build is ever in flight.
+#     !override). Nothing is published on 5432 / 6379 / 6380 / 4222.
+#   * the three apps run the dev override's Vite dev servers on the e2e ports with a
+#     1 GB cap each (see the apps section for why they are not built bundles)
 #   * no db:spam population (the dev override plants thousands of users/pets, and
 #     the e2e specs depend on a small known dataset)
 #   * no nginx, no observability stack, no ClamAV (uploads fail open in e2e) and
@@ -39,13 +37,13 @@ x-prod-limits: &prod-limits
   GATEWAY_AUTH_RATE_LIMIT_MAX: ''
 
 x-app-env: &e2e-app-env
-  # Bundled into the build: the browser reaches the e2e gateway, not :4000.
+  # The browser reaches the e2e gateway's WebSocket, not :4000.
   VITE_WS_BASE_URL: ws://localhost:${E2E_API_PORT:-14000}
   # Never talk to Statsig / Sentry from a throwaway run, whatever the dev .env has.
   VITE_STATSIG_CLIENT_KEY: ''
   VITE_SENTRY_DSN: ''
-  # A vite build needs well under the 3 GB heap the dev servers get.
-  NODE_OPTIONS: '--max-old-space-size=1536'
+  # The dev servers sat at 450-600 MB on the dev stack; keep the heap under the cap.
+  NODE_OPTIONS: '--max-old-space-size=768'
 
 services:
   # ---------------------------------------------------------------- infra
@@ -138,7 +136,7 @@ services:
     environment:
       E2E_TOKEN_PEEK: 'true'
       CLAMAV_FAIL_OPEN: 'true'
-      # The bundles call the gateway's WebSocket directly (VITE_WS_BASE_URL), from
+      # The apps call the gateway's WebSocket directly (VITE_WS_BASE_URL), from
       # the e2e app origins; the built-in dev allowlist only knows :3000-3002.
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:13000,http://localhost:13001,http://localhost:13002}
       GATEWAY_RATE_LIMIT_MAX: '100000'
@@ -196,47 +194,29 @@ services:
       start_period: 40s
 
   # ----------------------------------------------------------------- apps
-  # Built bundle + `vite preview`. preview.proxy defaults to server.proxy, so the
-  # bundle's same-origin /api calls (VITE_API_BASE_URL='') still reach
-  # service-gateway (vite.config.ts treats DOCKER_ENV=true as "in Docker").
-  # The healthcheck start_period covers the in-container build.
+  # The dev override's Vite dev servers (ports remapped, memory capped). Built
+  # bundles served by `vite preview` were tried first: the bundle threw
+  # `require("react")` in the browser on CI, and the dev servers are what the
+  # suite has always run against, so they stay until bundles are proven.
+  # Libs resolve to src through the dev aliases, so no lib dist is needed here.
   app-client:
     ports: !override ['127.0.0.1:${E2E_CLIENT_PORT:-13000}:3000']
     environment: *e2e-app-env
-    mem_limit: 2g
-    memswap_limit: 2g
+    mem_limit: 1g
+    memswap_limit: 1g
     cpus: 2
-    command: >-
-      sh -c "NODE_ENV=production pnpm --filter @adopt-dont-shop/app.client exec vite build
-      && exec pnpm --filter @adopt-dont-shop/app.client exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
-    healthcheck: &app-hc
-      start_period: 900s
   app-admin:
     ports: !override ['127.0.0.1:${E2E_ADMIN_PORT:-13001}:3000']
     environment: *e2e-app-env
-    mem_limit: 2g
-    memswap_limit: 2g
+    mem_limit: 1g
+    memswap_limit: 1g
     cpus: 2
-    depends_on:
-      app-client: { condition: service_healthy }
-    command: >-
-      sh -c "NODE_ENV=production pnpm --filter @adopt-dont-shop/app.admin exec vite build
-      && exec pnpm --filter @adopt-dont-shop/app.admin exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
-    healthcheck: *app-hc
   app-rescue:
     ports: !override ['127.0.0.1:${E2E_RESCUE_PORT:-13002}:3000']
-    environment:
-      <<: *e2e-app-env
-      WATCHPACK_POLLING: ''
-    mem_limit: 2g
-    memswap_limit: 2g
+    environment: *e2e-app-env
+    mem_limit: 1g
+    memswap_limit: 1g
     cpus: 2
-    depends_on:
-      app-admin: { condition: service_healthy }
-    command: >-
-      sh -c "NODE_ENV=production pnpm --filter @adopt-dont-shop/app.rescue exec vite build
-      && exec pnpm --filter @adopt-dont-shop/app.rescue exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
-    healthcheck: *app-hc
 
 networks:
   default:

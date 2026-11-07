@@ -109,7 +109,7 @@ runs:
 
     - name: Run Playwright against the isolated stack
       # scripts/e2e-isolated.mjs does the whole lifecycle: fresh secrets, boot
-      # (apps are built in-container, one at a time), wait for health, persona
+      # (the lib.* packages are built on the host first), wait for health, persona
       # seed from the host, Playwright, and `down -v` of the ads-e2e project.
       # On failure it prints container status plus recent logs and writes the
       # full logs to docker-compose.log for the artifact below.
