@@ -6,6 +6,7 @@ import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 
 import type { HandlerDeps } from './handlers.js';
+import type { RescueClient } from './rescue-client.js';
 import {
   addFavorite,
   getFavoriteStatus,
@@ -35,6 +36,7 @@ function makeMocks() {
   const deps: HandlerDeps = {
     pool: pool as unknown as Pool,
     nats: {} as unknown as NatsConnection,
+    rescueClient: {} as unknown as RescueClient,
   };
   return { deps, poolMock: pool };
 }

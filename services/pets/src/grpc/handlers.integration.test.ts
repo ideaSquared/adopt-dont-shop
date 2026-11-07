@@ -26,10 +26,11 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
-import { PetsV1 } from '@adopt-dont-shop/proto';
+import { PetsV1, RescueV1 } from '@adopt-dont-shop/proto';
 import { makeNatsDouble, testPrincipal, withTestDatabase } from '@adopt-dont-shop/test-utils';
 
 import { createPet, updatePet, updatePetStatus, type HandlerDeps } from './handlers.js';
+import type { RescueClient } from './rescue-client.js';
 import { prunePetViews } from '../jobs/prune-pet-views.js';
 import { getViewsToday, recordPetView } from './view-handlers.js';
 
@@ -44,6 +45,16 @@ const STAFF = testPrincipal({
   permissions: ['pets.create' as Permission, 'pets.update' as Permission],
   rescueId: RESCUE_ID,
 });
+
+// The rescue service is out of scope here: a verified rescue whose only staff
+// member is STAFF.
+const RESCUE_CLIENT: RescueClient = {
+  getRescue: async () => ({ rescue: undefined }),
+  listStaffMembers: async () => ({
+    staffMembers: [RescueV1.StaffMember.fromPartial({ userId: STAFF.userId, rescueId: RESCUE_ID })],
+  }),
+  close: () => undefined,
+};
 
 const DB_OPTIONS = {
   schemaPrefix: 'pets',
@@ -68,7 +79,11 @@ const moveTo = (deps: HandlerDeps, petId: string, toStatus: PetsV1.PetStatus) =>
 describe.skipIf(!process.env.DATABASE_URL)('updatePetStatus (real Postgres)', () => {
   it('moves a pet to pending and logs the transition', async () => {
     await withTestDatabase(DB_OPTIONS, async pool => {
-      const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+      const deps: HandlerDeps = {
+        pool,
+        nats: makeNatsDouble().connection,
+        rescueClient: RESCUE_CLIENT,
+      };
       const petId = await insertAvailablePet(pool);
 
       const res = await moveTo(deps, petId, PetsV1.PetStatus.PET_STATUS_PENDING);
@@ -84,7 +99,11 @@ describe.skipIf(!process.env.DATABASE_URL)('updatePetStatus (real Postgres)', ()
 
   it('stamps adopted_date when the pet is adopted', async () => {
     await withTestDatabase(DB_OPTIONS, async pool => {
-      const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+      const deps: HandlerDeps = {
+        pool,
+        nats: makeNatsDouble().connection,
+        rescueClient: RESCUE_CLIENT,
+      };
       const petId = await insertAvailablePet(pool);
 
       await moveTo(deps, petId, PetsV1.PetStatus.PET_STATUS_PENDING);
@@ -101,7 +120,11 @@ describe.skipIf(!process.env.DATABASE_URL)('updatePetStatus (real Postgres)', ()
 
   it('restamps available_since when a pet becomes available again', async () => {
     await withTestDatabase(DB_OPTIONS, async pool => {
-      const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+      const deps: HandlerDeps = {
+        pool,
+        nats: makeNatsDouble().connection,
+        rescueClient: RESCUE_CLIENT,
+      };
       const petId = await insertAvailablePet(pool);
 
       await moveTo(deps, petId, PetsV1.PetStatus.PET_STATUS_PENDING);
@@ -126,7 +149,11 @@ const ADOPTER = testPrincipal({
 describe.skipIf(!process.env.DATABASE_URL)('pet views (real Postgres)', () => {
   it('stores a single view per user, pet and hour even under concurrent requests', async () => {
     await withTestDatabase(DB_OPTIONS, async pool => {
-      const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+      const deps: HandlerDeps = {
+        pool,
+        nats: makeNatsDouble().connection,
+        rescueClient: RESCUE_CLIENT,
+      };
       const petId = await insertAvailablePet(pool);
 
       const results = await Promise.all(
@@ -141,7 +168,11 @@ describe.skipIf(!process.env.DATABASE_URL)('pet views (real Postgres)', () => {
 
   it('counts each distinct viewer once and ignores views older than a day', async () => {
     await withTestDatabase(DB_OPTIONS, async pool => {
-      const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+      const deps: HandlerDeps = {
+        pool,
+        nats: makeNatsDouble().connection,
+        rescueClient: RESCUE_CLIENT,
+      };
       const petId = await insertAvailablePet(pool);
       await recordPetView(deps, ADOPTER, { petId });
       const other = testPrincipal({
@@ -233,7 +264,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
   () => {
     it('stores the breed_id for a breed name on create', async () => {
       await withTestDatabase(DB_OPTIONS, async pool => {
-        const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+        const deps: HandlerDeps = {
+          pool,
+          nats: makeNatsDouble().connection,
+          rescueClient: RESCUE_CLIENT,
+        };
         const breeds = await seedBreeds(pool);
 
         const { pet } = await createPet(deps, STAFF, {
@@ -252,7 +287,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
 
     it("matches the breed on the pet's species when a name exists for several", async () => {
       await withTestDatabase(DB_OPTIONS, async pool => {
-        const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+        const deps: HandlerDeps = {
+          pool,
+          nats: makeNatsDouble().connection,
+          rescueClient: RESCUE_CLIENT,
+        };
         const breeds = await seedBreeds(pool);
 
         const { pet } = await createPet(deps, STAFF, {
@@ -268,7 +307,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
 
     it('rejects a breed that does not exist for the pet species, creating no pet', async () => {
       await withTestDatabase(DB_OPTIONS, async pool => {
-        const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+        const deps: HandlerDeps = {
+          pool,
+          nats: makeNatsDouble().connection,
+          rescueClient: RESCUE_CLIENT,
+        };
         await seedBreeds(pool);
 
         await expect(
@@ -286,7 +329,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
 
     it('stores the breed_id for a breed name on update', async () => {
       await withTestDatabase(DB_OPTIONS, async pool => {
-        const deps: HandlerDeps = { pool, nats: makeNatsDouble().connection };
+        const deps: HandlerDeps = {
+          pool,
+          nats: makeNatsDouble().connection,
+          rescueClient: RESCUE_CLIENT,
+        };
         const breeds = await seedBreeds(pool);
         const { pet } = await createPet(deps, STAFF, BASE_CREATE);
         expect((await storedBreeds(pool, pet.petId))?.breed_id).toBeNull();
