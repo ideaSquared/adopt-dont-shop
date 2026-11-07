@@ -257,6 +257,30 @@ describe('makeGetTopPicks', () => {
     expect(res.picks[0].reasons.some(r => r.kind === 'pref_match')).toBe(false);
   });
 
+  it('treats legacy profile rows whose preference columns hold {} (not an array) as unset', async () => {
+    const listPets = vi
+      .fn()
+      .mockResolvedValue(listResponse([makePet({ petId: 'p-1', rescueId: 'rsc-1' })]));
+    const getTopPicks = makeGetTopPicks(makePetsClient(listPets), makeRescueClient());
+    // An empty selection used to be stored as the jsonb object {}.
+    const legacyEmpty = {} as unknown as unknown[];
+
+    const res = await getTopPicks(
+      makeDeps({
+        profile: {
+          preferred_types: legacyEmpty,
+          preferred_sizes: legacyEmpty,
+          preferred_age_groups: legacyEmpty,
+          lifestyle: {},
+        },
+      }),
+      makePrincipal(),
+      req()
+    );
+
+    expect(res.picks).toHaveLength(1);
+  });
+
   it('surfaces a lifestyle chip when a child-friendly pet meets a household with children', async () => {
     const listPets = vi.fn().mockResolvedValue(
       listResponse([

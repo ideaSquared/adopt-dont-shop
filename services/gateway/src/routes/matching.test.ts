@@ -288,13 +288,58 @@ describe('POST /api/v1/matching/sessions/:id/swipes', () => {
 });
 
 describe('POST /api/v1/discovery/swipe/action — SPA-facing alias', () => {
+  const SERVER_SESSION_ID = '3f6c1b0e-6a47-4f55-9a52-0d3c2f6b8e11';
   let app: FastifyInstance;
   let recordSwipeMock: ReturnType<typeof vi.fn>;
+  let startSessionMock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     const m = makeClient();
     recordSwipeMock = m.recordSwipeMock;
+    startSessionMock = m.startSessionMock;
     app = await makeApp(m.client);
+  });
+
+  // The SPA keeps a browser-local id ("session-<uuid>") in localStorage and
+  // never calls StartSession, so the id is not a matching.swipe_sessions
+  // row id. The alias must swap it for the caller's real (idempotent)
+  // server session instead of forwarding an id Postgres rejects as a uuid.
+  it('records against the caller server session when the SPA sends a browser-local session id', async () => {
+    startSessionMock.mockResolvedValue({
+      session: { ...SESSION_FIXTURE, sessionId: SERVER_SESSION_ID },
+      created: false,
+    });
+    recordSwipeMock.mockResolvedValue({ action: SWIPE_FIXTURE, session: SESSION_FIXTURE });
+
+    const httpRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/discovery/swipe/action',
+      headers: ADOPTER_HEADERS,
+      payload: {
+        sessionId: 'session-0b6f5d0e-1c1e-4d2a-8f3b-7a9c1d2e3f40',
+        petId: 'pet-1',
+        action: 'like',
+      },
+    });
+
+    expect(httpRes.statusCode).toBe(200);
+    expect(startSessionMock).toHaveBeenCalledTimes(1);
+    expect(recordSwipeMock.mock.calls[0][0]).toMatchObject({
+      sessionId: SERVER_SESSION_ID,
+      petId: 'pet-1',
+      action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
+    });
+  });
+
+  it('does not start a session when the SPA already sends a server session uuid', async () => {
+    recordSwipeMock.mockResolvedValue({ action: SWIPE_FIXTURE, session: SESSION_FIXTURE });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/discovery/swipe/action',
+      headers: ADOPTER_HEADERS,
+      payload: { sessionId: SERVER_SESSION_ID, petId: 'pet-1', action: 'like' },
+    });
+    expect(startSessionMock).not.toHaveBeenCalled();
   });
 
   afterEach(async () => {
@@ -307,7 +352,7 @@ describe('POST /api/v1/discovery/swipe/action — SPA-facing alias', () => {
       method: 'POST',
       url: '/api/v1/discovery/swipe/action',
       headers: ADOPTER_HEADERS,
-      payload: { sessionId: 'sess-1', petId: 'pet-1', action: 'like' },
+      payload: { sessionId: SERVER_SESSION_ID, petId: 'pet-1', action: 'like' },
     });
     expect(httpRes.statusCode).toBe(200);
     expect(JSON.parse(httpRes.body)).toEqual({
@@ -322,10 +367,10 @@ describe('POST /api/v1/discovery/swipe/action — SPA-facing alias', () => {
       method: 'POST',
       url: '/api/v1/discovery/swipe/action',
       headers: ADOPTER_HEADERS,
-      payload: { sessionId: 'sess-body', petId: 'pet-1', action: 'pass' },
+      payload: { sessionId: SERVER_SESSION_ID, petId: 'pet-1', action: 'pass' },
     });
     expect(recordSwipeMock.mock.calls[0][0]).toMatchObject({
-      sessionId: 'sess-body',
+      sessionId: SERVER_SESSION_ID,
       petId: 'pet-1',
       action: MatchingV1.SwipeAction.SWIPE_ACTION_PASS,
     });
