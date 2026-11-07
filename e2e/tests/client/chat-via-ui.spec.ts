@@ -7,6 +7,7 @@ import { loginViaUI } from '../../helpers/auth';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
 import { createAdopterApplication, expectOk, postWithCsrf } from '../../helpers/seeds';
+import { skipSwipeIntro } from '../../helpers/swipe-intro';
 
 /**
  * Adopter and rescue talk through the chat UIs of both apps.
@@ -92,6 +93,7 @@ test.describe('chat in the UI', () => {
       storageState: { cookies: [], origins: [] },
     });
     const page = await context.newPage();
+    await skipSwipeIntro(page);
     try {
       await loginViaUI(page, account.email, account.password);
       await page.goto('/chat');

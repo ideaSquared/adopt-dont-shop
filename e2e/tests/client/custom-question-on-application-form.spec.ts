@@ -1,11 +1,11 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
 import {
+  createAvailablePet,
   deleteWithCsrf,
   expectOk,
   getMyRescueId,
   postWithCsrf,
-  seededPetId,
 } from '../../helpers/seeds';
 
 /**
@@ -21,8 +21,8 @@ import {
  * `personal_information` question lands on the first guided step, so it is
  * visible on the form without navigating step-by-step.
  *
- * We attach the question to the rescue that owns the seeded available pet
- * (Buddy) so the adopter's /apply/:petId form for that pet renders it.
+ * We attach the question to the rescue that owns a freshly created pet so the
+ * adopter's /apply/:petId form for that pet renders it.
  */
 test.describe('custom application question on the adopter form', () => {
   test('a custom question added by the rescue renders on the application form', async ({
@@ -33,21 +33,11 @@ test.describe('custom application question on the adopter form', () => {
     const rescueId = await getMyRescueId(rescueApi);
     expect(rescueId).toBeTruthy();
 
-    // The seeded available pet (Buddy) belongs to the rescue persona's rescue
-    // (Paws). Confirm that before relying on its /apply form to fetch the
-    // rescue's questions — otherwise the question would render on a different
-    // rescue's form.
-    const availablePetId = await seededPetId(rescueApi, 'available');
-    const petRes = await rescueApi.context.get(`/api/v1/pets/${availablePetId}`);
-    await expectOk(petRes, `GET /pets/${availablePetId}`);
-    const petBody = (await petRes.json()) as {
-      rescueId?: string;
-      rescue_id?: string;
-      data?: { rescueId?: string; rescue_id?: string };
-    };
-    const petRescueId =
-      petBody.rescueId ?? petBody.rescue_id ?? petBody.data?.rescueId ?? petBody.data?.rescue_id;
-    expect(petRescueId).toBe(rescueId);
+    // A fresh pet of the rescue persona's rescue. The seeded available pet
+    // won't do: the seeded adopter already has an application for it, and
+    // /apply/:petId then redirects to that application's details page.
+    const pet = await createAvailablePet(rescueApi, 'CustomQ');
+    expect(pet.rescueId).toBe(rescueId);
 
     // The rescue adds a required text question in personal_information, the
     // first macro-step — so it must render on the form's opening step.
@@ -71,7 +61,7 @@ test.describe('custom application question on the adopter form', () => {
     try {
       // The adopter opens the application form for that pet and sees the
       // rescue's custom question rendered as a field.
-      await page.goto(`/apply/${availablePetId}`, {
+      await page.goto(`/apply/${pet.petId}`, {
         waitUntil: 'domcontentloaded',
         timeout: 60_000,
       });

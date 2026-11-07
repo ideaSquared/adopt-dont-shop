@@ -146,6 +146,17 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     //   enquiry (no application needed) that the rescue answers from its
     //   shared inbox.
     '**/pet-enquiry-via-ui.spec.ts',
+    // Manual-QA automation (CLI-011/022/052/075/090-092/103/104/122/123/130):
+    // signed-out boundaries, public pages, cookie banner, cross-user isolation,
+    // chat escaping and the onboarding wizard.
+    '**/signed-out-visitor.spec.ts',
+    '**/public-pages.spec.ts',
+    '**/cookie-consent-banner.spec.ts',
+    '**/cross-user-isolation.spec.ts',
+    '**/chat-message-escaping.spec.ts',
+    '**/onboarding-and-top-picks.spec.ts',
+    // Manual-QA gap closure: every gap-*.spec.ts is a validated journey.
+    '**/gap-*.spec.ts',
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
@@ -195,6 +206,18 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     //   the staff member's own rescue.
     '**/review-and-approve-via-ui.spec.ts',
     '**/add-pet-via-ui.spec.ts',
+    // Manual-QA coverage (RES-003/004/006/022/025/050/070/071/080/101, X-010 and the
+    // page-load smoke over every rescue route). Cases blocked by app bugs are
+    // test.fixme in the specs themselves.
+    '**/auth-guards.spec.ts',
+    '**/cookie-consent.spec.ts',
+    '**/page-load-smoke.spec.ts',
+    '**/rescue-settings-persistence.spec.ts',
+    '**/events-management.spec.ts',
+    '**/foster-coordination.spec.ts',
+    '**/add-pet-validation.spec.ts',
+    '**/cross-tenant-and-role-isolation.spec.ts',
+    '**/gap-*.spec.ts',
   ],
   admin: [
     // ADS-867 (batch A3) — admin journeys. superadmin storageState
@@ -227,6 +250,16 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     //   every /api/v1/cms/* route 404'd until index.ts created it.
     '**/suspend-user-via-ui.spec.ts',
     '**/publish-blog-post-via-ui.spec.ts',
+    // Manual-QA coverage (ADM-003/004/010-170/024/041/074/075/092/140/171). Cases
+    // blocked by app bugs (broadcast, sanction) are test.fixme in the specs.
+    '**/admin-pages-load.spec.ts',
+    '**/admin-access-control.spec.ts',
+    '**/admin-broadcast-notification.spec.ts',
+    '**/admin-privacy-export.spec.ts',
+    '**/admin-user-role-change.spec.ts',
+    '**/admin-pet-unpublish.spec.ts',
+    '**/admin-moderation-sanction.spec.ts',
+    '**/gap-*.spec.ts',
   ],
 };
 

@@ -23,19 +23,24 @@ test.describe('pet discovery', () => {
     await expect(results.first()).toBeVisible({ timeout: 20_000 });
   });
 
-  test('searching with nonsense text shows an empty state, not a crash', async ({ page }) => {
+  test('searching with nonsense text shows the "No pets match" empty state and no pet cards', async ({
+    page,
+  }) => {
     await gotoSearch(page);
-    const searchInput = page
-      .getByRole('searchbox')
-      .or(page.getByPlaceholder(/search/i))
-      .or(page.getByLabel(/^search$/i))
-      .first();
-    await searchInput.fill('zzzzz-no-pet-named-this-xyzqq');
-    await searchInput.press('Enter');
+    await expect(petCardLocator(page).first()).toBeVisible({ timeout: 20_000 });
 
-    // Either an explicit empty state, or simply no pet cards rendered, but
-    // the page must still be alive — the h1 stays mounted.
-    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined);
+    // The dev-login panel has its own searchbox, so address the pet search by its placeholder.
+    const searchInput = page.getByPlaceholder('Search by name, breed, or description...');
+    await searchInput.fill('zzzzz-no-pet-named-this-xyzqq');
+    // Enter does not submit this form; the Search button runs the query.
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+
+    await expect(page.getByRole('heading', { name: 'No pets match your filters' })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByText(/try broadening your search/i)).toBeVisible();
+    await expect(petCardLocator(page)).toHaveCount(0);
+    // The page is still the search page, not an error screen.
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
   });
 });

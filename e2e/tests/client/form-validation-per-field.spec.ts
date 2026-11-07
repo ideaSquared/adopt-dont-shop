@@ -1,12 +1,5 @@
 import { test, expect } from '../../fixtures';
 
-/**
- * The Input component renders an error helper-text below the field with
- * aria-invalid=true on the input itself.  We assert on the accessible
- * shape (the input becomes invalid) rather than on a specific copy
- * string, since the validation message comes from a Zod schema that may
- * change wording.
- */
 test.describe('form validation', () => {
   test('the registration form rejects a malformed email on submit', async ({ browser }) => {
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
@@ -15,36 +8,25 @@ test.describe('form validation', () => {
       await page.goto('/register');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });
 
-      const emailField = page.getByLabel(/email/i).first();
+      // Fill everything else validly, take the browser's own validation out
+      // of the way, and submit a malformed email: the app's schema must flag
+      // exactly that field and keep the visitor on /register.
+      await page.getByRole('textbox', { name: 'First Name*' }).fill('Ava');
+      await page.getByRole('textbox', { name: 'Last Name*' }).fill('Adopter');
+      const emailField = page.getByRole('textbox', { name: 'Email Address*' });
       await emailField.fill('not-an-email');
+      await page.getByRole('textbox', { name: 'Password*', exact: true }).fill('BehaviourTest123!');
+      await page.getByRole('textbox', { name: 'Confirm Password*' }).fill('BehaviourTest123!');
+      await page.getByRole('checkbox', { name: /terms of service/i }).check();
+      await page.locator('form').evaluate(f => {
+        (f as HTMLFormElement).noValidate = true;
+      });
+      await page.getByRole('button', { name: 'Create Account' }).click();
 
-      await page
-        .getByRole('button', { name: /(create account|sign up|register)/i })
-        .first()
-        .click();
-
-      // The form must NOT navigate away from /register on bad input —
-      // the URL invariant alone is enough proof that validation rejected
-      // the submission.  Don't pin to the exact copy of the error.
-      const helperLocator = page
-        .getByText(/email/i)
-        .filter({ hasNot: page.getByRole('textbox') })
-        .first();
-
-      // Wait for the validation state to actually render — either path —
-      // instead of sleeping a fixed duration.
-      await Promise.any([
-        expect(emailField).toHaveAttribute('aria-invalid', 'true', { timeout: 5_000 }),
-        expect(helperLocator).toBeVisible({ timeout: 5_000 }),
-      ]).catch(() => undefined);
-
+      await expect(emailField).toHaveAttribute('aria-invalid', 'true');
+      await expect(page.getByText('Please enter a valid email address')).toBeVisible();
+      await expect(page.locator('form [aria-invalid="true"]')).toHaveCount(1);
       await expect(page).toHaveURL(/\/register/);
-
-      // And the email field must surface a validation state via either
-      // aria-invalid="true" OR a helper paragraph rendered after it.
-      const isInvalid = await emailField.getAttribute('aria-invalid');
-      const helperVisible = await helperLocator.isVisible().catch(() => false);
-      expect(isInvalid === 'true' || helperVisible).toBe(true);
     } finally {
       await context.close();
     }

@@ -1,9 +1,47 @@
+import type { Page } from '@playwright/test';
+
 import { test, expect } from '../../fixtures';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { createVerifiedAdopter } from '../../helpers/accounts';
 import { loginViaUI } from '../../helpers/auth';
 import { uniqueEmail } from '../../helpers/factories';
 import { peekAuthTokens } from '../../helpers/token-peek';
+
+const RESET_REQUEST_ATTEMPTS = 3;
+const RATE_LIMIT_WINDOW_MS = 20_000;
+
+/**
+ * Submit the forgot-password form and wait for the gateway's answer. The
+ * route allows 5 requests a minute per source IP and the page shows the same
+ * "Check Your Email" screen for a 429 (so the response can't be used to
+ * enumerate accounts), which means a rate-limited request looks like success
+ * but mints no token. On a shared stack other specs spend that budget, so
+ * when the gateway says 429 wait out the window and ask again.
+ */
+async function requestResetEmail(page: Page, email: string): Promise<void> {
+  for (let attempt = 1; attempt <= RESET_REQUEST_ATTEMPTS; attempt += 1) {
+    await page.goto('/forgot-password');
+    await dismissCookieBannerWhenShown(page);
+    await page.getByRole('textbox', { name: /email address/i }).fill(email);
+    const answered = page.waitForResponse(
+      res => res.url().endsWith('/auth/forgot-password') && res.request().method() === 'POST'
+    );
+    await page.getByRole('button', { name: 'Send Reset Instructions' }).click();
+    const response = await answered;
+    const status = response.status();
+    if (status !== 429) {
+      expect(status, 'POST /auth/forgot-password').toBeLessThan(300);
+      await expect(page.getByRole('heading', { name: 'Check Your Email' })).toBeVisible();
+      return;
+    }
+    await page.waitForTimeout(
+      Number(response.headers()['retry-after'] ?? 0) * 1000 || RATE_LIMIT_WINDOW_MS
+    );
+  }
+  throw new Error(
+    `POST /auth/forgot-password was rate limited (429) on all ${RESET_REQUEST_ATTEMPTS} attempts`
+  );
+}
 
 /**
  * Account sign-up and password reset through the client UI, following the
@@ -53,16 +91,11 @@ test.describe('account sign-up and recovery in the UI', () => {
   test('a user resets a forgotten password from the emailed link and logs in with it', async ({
     page,
   }) => {
+    test.setTimeout(150_000);
     const account = await createVerifiedAdopter('reset-ui');
     const newPassword = 'FreshPassword456!';
 
-    await page.goto('/forgot-password');
-    await dismissCookieBannerWhenShown(page);
-    await page.getByRole('textbox', { name: /email address/i }).fill(account.email);
-    await page.getByRole('button', { name: 'Send Reset Instructions' }).click();
-    await expect(page.getByText(/check your email|instructions/i).first()).toBeVisible({
-      timeout: 15_000,
-    });
+    await requestResetEmail(page, account.email);
 
     const { resetToken } = await peekAuthTokens(account.email);
     expect(resetToken).toBeTruthy();

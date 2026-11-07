@@ -1,36 +1,51 @@
 import { test, expect } from '../../fixtures';
-import { postWithCsrf } from '../../helpers/seeds';
+import { createVerifiedAdopter } from '../../helpers/accounts';
+import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
+import { createAdopterApplication, expectOk, postWithCsrf } from '../../helpers/seeds';
+import { openSignedInSession } from '../../helpers/signed-in-session';
 
 /**
- * The notification badge UI varies — sometimes it's an icon-only button,
- * sometimes a header link.  What's invariant is the API contract:
- *
- *   GET /api/v1/notifications/unread/count returns a number;
- *   POST /api/v1/notifications/read-all marks them all read and the
- *   subsequent count drops to zero.
- *
- * John Smith has at least one seeded notification (12-notifications.ts),
- * so the count starts non-zero on a fresh seed.
+ * The header bell shows how many notifications are unread, and that number is
+ * the gateway's: GET /notifications/unread/count. Marking everything read drops
+ * both to zero. A fresh adopter keeps the count under this test's control (the
+ * seeded personas' notifications are shared with other specs); submitting an
+ * application gives them their first notifications.
  */
 test.describe('notification badge', () => {
-  test('the unread notification count drops to zero after mark-all-read', async ({ apiAs }) => {
-    const adopterApi = await apiAs('adopter');
+  test.use({ storageState: { cookies: [], origins: [] } });
 
-    const beforeRes = await adopterApi.context.get('/api/v1/notifications/unread/count');
-    expect(beforeRes.ok()).toBe(true);
-    const beforeBody = (await beforeRes.json()) as { count?: number; data?: { count?: number } };
-    const initialCount = beforeBody.count ?? beforeBody.data?.count ?? 0;
-    expect(typeof initialCount).toBe('number');
+  test('the header bell shows the unread count and clears after mark-all-read', async ({
+    browser,
+    apiAs,
+  }) => {
+    const session = await openSignedInSession(browser, await createVerifiedAdopter('badge'));
+    const { page, api } = session;
+    try {
+      await createAdopterApplication(api, await apiAs('rescue'));
+      const unreadCount = async (): Promise<number> => {
+        const res = await api.context.get('/api/v1/notifications/unread/count');
+        await expectOk(res, 'unread count');
+        return ((await res.json()) as { data: { count: number } }).data.count;
+      };
+      await expect.poll(unreadCount, { timeout: 20_000 }).toBeGreaterThan(0);
+      const initial = await unreadCount();
 
-    // POST mark-all-read through the gateway's CSRF double-submit gate
-    // (ADS-919) — postWithCsrf performs the handshake on the adopter context.
-    const markRes = await postWithCsrf(adopterApi.context, '/api/v1/notifications/read-all');
-    expect([200, 204]).toContain(markRes.status());
+      await dismissCookieBannerPatiently(page);
+      await page.goto('/search');
+      const bell = page.getByRole('link', { name: /^Notifications/ });
+      await expect(bell).toHaveAccessibleName(
+        `Notifications, ${initial} unread ${initial === 1 ? 'item' : 'items'}`,
+        { timeout: 20_000 }
+      );
 
-    const afterRes = await adopterApi.context.get('/api/v1/notifications/unread/count');
-    expect(afterRes.ok()).toBe(true);
-    const afterBody = (await afterRes.json()) as { count?: number; data?: { count?: number } };
-    const finalCount = afterBody.count ?? afterBody.data?.count ?? 0;
-    expect(finalCount).toBe(0);
+      const markRead = await postWithCsrf(api.context, '/api/v1/notifications/read-all');
+      expect([200, 204]).toContain(markRead.status());
+      expect(await unreadCount()).toBe(0);
+
+      await page.reload();
+      await expect(bell).toHaveAccessibleName('Notifications', { timeout: 20_000 });
+    } finally {
+      await session.close();
+    }
   });
 });
