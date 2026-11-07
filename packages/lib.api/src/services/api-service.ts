@@ -1,6 +1,6 @@
 import { ApiServiceConfig, FetchOptions } from '../types';
 import { InterceptorManager } from '../interceptors';
-import { createHttpError, TimeoutError, NetworkError } from '../errors';
+import { createHttpError, parseRetryAfterSeconds, TimeoutError, NetworkError } from '../errors';
 import { UPLOAD_PATHS } from '../constants/api-paths';
 import { ImageUploadResponseSchema, type ImageUploadResponse } from '../schemas/upload-schemas';
 
@@ -99,7 +99,13 @@ export class ApiService {
           this.clearCsrfToken();
         }
 
-        throw createHttpError(response.status, errorMessage, undefined, errorDetails);
+        throw createHttpError(
+          response.status,
+          errorMessage,
+          undefined,
+          errorDetails,
+          parseRetryAfterSeconds(response.headers.get('Retry-After'))
+        );
       }
       return response;
     });
@@ -540,7 +546,11 @@ export class ApiService {
   }
 
   // Generic HTTP methods with authentication
-  async get<T>(url: string, params?: Record<string, unknown> | unknown): Promise<T> {
+  async get<T>(
+    url: string,
+    params?: Record<string, unknown> | unknown,
+    options?: Pick<FetchOptions, 'headers'>
+  ): Promise<T> {
     let fullUrl = url;
     if (params && typeof params === 'object') {
       const searchParams = new URLSearchParams();
@@ -564,7 +574,7 @@ export class ApiService {
       fullUrl = `${url}?${searchParams.toString()}`;
     }
 
-    const response = await this.fetchWithAuth<T>(fullUrl, { method: 'GET' });
+    const response = await this.fetchWithAuth<T>(fullUrl, { method: 'GET', ...options });
 
     return response;
   }

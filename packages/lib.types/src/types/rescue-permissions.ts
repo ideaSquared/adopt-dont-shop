@@ -86,6 +86,9 @@ export const MODERATION_REPORTS_MANAGE = 'moderation.reports.manage' satisfies P
 export const MODERATION_SANCTIONS_MANAGE = 'moderation.sanctions.manage' satisfies Permission;
 export const MODERATION_TICKETS_MANAGE = 'moderation.tickets.manage' satisfies Permission;
 export const MODERATION_ACTIONS_MANAGE = 'moderation.actions.manage' satisfies Permission;
+// Narrow: only suspend or ban a user via service.auth. Held by service.moderation's
+// service principal and granted to the moderator, admin and super_admin roles.
+export const MODERATION_USERS_SANCTION = 'moderation.users.sanction' satisfies Permission;
 
 /**
  * Admin Permissions
@@ -246,6 +249,7 @@ export const RescuePermissions = {
   MODERATION_SANCTIONS_MANAGE,
   MODERATION_TICKETS_MANAGE,
   MODERATION_ACTIONS_MANAGE,
+  MODERATION_USERS_SANCTION,
 
   // Admin
   ADMIN_DASHBOARD,

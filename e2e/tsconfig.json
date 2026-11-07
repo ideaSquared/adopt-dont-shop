@@ -8,5 +8,5 @@
     "isolatedModules": true
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "test-results", "playwright-report", ".auth"]
+  "exclude": ["node_modules", "test-results", "playwright-report", ".auth", ".auth-isolated"]
 }

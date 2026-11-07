@@ -20,6 +20,7 @@ import {
 
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
+import { readUserLocation } from './pets-distance.js';
 import { parseSettings, rescueDataEnvelope, rescueListEnvelope } from './rescue-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
@@ -260,14 +261,15 @@ export const registerRescuesPublicRoutes = async (
       if (!pagination.ok) {
         return reply.code(400).send({ success: false, error: pagination.error });
       }
-      const lat = q.lat ? Number.parseFloat(q.lat) : undefined;
-      const lng = q.lng ? Number.parseFloat(q.lng) : undefined;
+      // The caller's location: the x-client-location header (kept out of
+      // URL-keyed logs), else the legacy lat/lng query params.
+      const location = readUserLocation({ headers: req.headers, query: q });
       const radius = q.radiusKm ? Number.parseFloat(q.radiusKm) : undefined;
       const grpcReq: ListRescuesRequest = {
         limit: pagination.limit,
         statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
-        latitude: lat,
-        longitude: lng,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
         radiusKm: radius,
       };
       try {
@@ -310,59 +312,8 @@ export const registerRescuesPublicRoutes = async (
     }
   );
 
-  // POST /api/v1/rescues/register — alias for Create. The SPA's
-  // registration flow posts here.
-  app.post(
-    '/api/v1/rescues/register',
-    {
-      config: { rateLimit: RL_WRITE },
-      schema: {
-        tags: ['rescues'],
-        summary: 'Register a new rescue organisation',
-        body: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            email: { type: 'string' },
-            phone: { type: 'string' },
-            address: { type: 'string' },
-            city: { type: 'string' },
-            county: { type: 'string' },
-            postcode: { type: 'string' },
-            country: { type: 'string' },
-            website: { type: 'string' },
-            description: { type: 'string' },
-            mission: { type: 'string' },
-            contact_person: { type: 'string' },
-            contact_title: { type: 'string' },
-            contact_email: { type: 'string' },
-            contact_phone: { type: 'string' },
-          },
-          required: ['name', 'email', 'address', 'city'],
-        },
-        response: {
-          201: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              data: RESCUE_VIEW_SCHEMA,
-            },
-          },
-          400: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              error: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-    async (req, reply) => createRescue(client, req, reply)
-  );
-
-  // POST /api/v1/rescues — also Create (for admin tooling that hits the
-  // canonical path).
+  // POST /api/v1/rescues — Create (admin tooling, needs rescues.create). Public
+  // sign-up is rescue-register.ts (POST /api/v1/rescues/register).
   app.post(
     '/api/v1/rescues',
     {

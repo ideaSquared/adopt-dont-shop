@@ -127,6 +127,10 @@ outbox — see [`packages/events`](../../packages/events/README.md)). Migrations
 subjects; participates in the `gdpr.erasureCompleted` saga. Consumes
 `gdpr.erasureRequested` (durable `gdpr-auth`).
 
+## Scheduled jobs
+
+`suspension-expiry-lift` (`src/suspension-expiry-job.ts`, via `@adopt-dont-shop/scheduler`) runs every minute and on start. It reactivates users whose timed suspension has ended (`auth.users.suspended_until <= now()`; a NULL `suspended_until` is an indefinite suspension and is never touched), in bounded batches under `FOR UPDATE SKIP LOCKED`, and records one `auth.actionTaken` (`lift_suspension`, no human actor) per user. Each interval slot is claimed in `scheduled_job_runs` so one replica runs it. The login path lifts an ended suspension lazily as well, so a missed job cannot keep someone out past their date. `suspended_until` is set by `ApplyUserSanction` (moderation suspensions) and cleared by any admin status change.
+
 ## Environment variables consumed
 
 `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, and `ENCRYPTION_KEY` are

@@ -117,6 +117,18 @@ describe('ApiService — additional behaviour', () => {
       );
     });
 
+    it('sends per-request headers on a GET without touching the URL', async () => {
+      mockFetch.mockResolvedValueOnce(okJson({ data: [] }));
+
+      await apiService.get('/pets/1', undefined, {
+        headers: { 'x-client-location': '51.5,-0.12' },
+      });
+
+      const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe('https://api.example.com/pets/1');
+      expect((init.headers as Record<string, string>)['x-client-location']).toBe('51.5,-0.12');
+    });
+
     it('does not append a query string when params is not an object', async () => {
       mockFetch.mockResolvedValueOnce(okJson({ data: [] }));
 

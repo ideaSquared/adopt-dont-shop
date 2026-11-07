@@ -4,6 +4,7 @@ import {
   PETS_CREATE,
   APPLICATIONS_APPROVE,
   MODERATION_REPORTS_VIEW,
+  MODERATION_USERS_SANCTION,
   ADMIN_SYSTEM_SETTINGS,
   RescuePermissions,
   RescuePermissionGroups,
@@ -15,6 +16,7 @@ describe('rescue permission constants', () => {
     expect(PETS_CREATE).toBe('pets.create');
     expect(APPLICATIONS_APPROVE).toBe('applications.approve');
     expect(MODERATION_REPORTS_VIEW).toBe('moderation.reports.view');
+    expect(MODERATION_USERS_SANCTION).toBe('moderation.users.sanction');
     expect(ADMIN_SYSTEM_SETTINGS).toBe('admin.system_settings');
   });
 });

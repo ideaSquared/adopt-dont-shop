@@ -36,6 +36,7 @@ const baseConfig: GatewayConfig = {
   config: { publicEnabled: false },
   // Rate-limit: no Redis in tests, low cap so we can hit 429 quickly.
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+  enquiryRateLimit: { ipMax: 200, userMax: 20 },
   cors: { origins: ['http://localhost:3000'] },
   // ADS-1325: maintenance-mode file check defaults to "off" — no test in
   // this suite creates the file, so fileExists() (real node:fs.existsSync)
@@ -469,6 +470,56 @@ function makeInvitationAcceptClients(): {
   } as unknown as Parameters<typeof createServer>[0]['rescueClient'];
   return { authClient, rescueClient };
 }
+
+describe('createServer — public rescue sign-up (POST /api/v1/rescues/register)', () => {
+  let server: FastifyInstance;
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('lets an anonymous visitor through the authenticate hook (no 401)', async () => {
+    const authClient = {
+      registerRescueOwner: () => Promise.resolve({ user: { userId: 'usr-owner' } }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['authClient'];
+    const rescueClient = {
+      registerRescue: () =>
+        Promise.resolve({
+          rescue: { rescueId: 'rsc-1', name: 'Happy Tails', status: 1, settingsJson: '{}' },
+        }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['rescueClient'];
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient,
+      rescueClient,
+    });
+
+    const res = await server.inject({
+      method: 'POST',
+      url: '/api/v1/rescues/register',
+      payload: {
+        firstName: 'Rae',
+        lastName: 'Scue',
+        email: 'owner@example.com',
+        password: 'BehaviourTest123!',
+        name: 'Happy Tails',
+        rescueEmail: 'hello@happytails.org',
+        address: '1 Rescue Lane',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+  });
+});
 
 describe('createServer — per-route rate limit override (auth login)', () => {
   let server: FastifyInstance;
@@ -929,26 +980,78 @@ describe('createServer — chat pet-enquiry route per-principal rate limit (ADS-
     });
 
   it('enforces the per-principal cap even when the client forges a rotating x-user-id from a rotating IP', async () => {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       const res = await postEnquiry('victim-token', `32.0.0.${i}`, `forged-user-${i}`);
       expect(res.statusCode).toBe(201);
     }
-    const eleventh = await postEnquiry('victim-token', '32.0.0.99', 'forged-user-99');
-    expect(eleventh.statusCode).toBe(429);
+    const twentyFirst = await postEnquiry('victim-token', '32.0.0.99', 'forged-user-99');
+    expect(twentyFirst.statusCode).toBe(429);
   });
 
   it('does not share a bucket between two different authenticated users on the same IP', async () => {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       const res = await postEnquiry('alice', `42.0.0.${i}`);
       expect(res.statusCode).toBe(201);
     }
-    const aliceEleventh = await postEnquiry('alice', '42.0.0.0');
-    expect(aliceEleventh.statusCode).toBe(429);
+    const aliceTwentyFirst = await postEnquiry('alice', '42.0.0.0');
+    expect(aliceTwentyFirst.statusCode).toBe(429);
 
     // bob is a different authenticated principal reusing an IP alice just
     // used. His own bucket is untouched, so he isn't blocked by alice's.
     const bobFirst = await postEnquiry('bob', '42.0.0.0');
     expect(bobFirst.statusCode).toBe(201);
+  });
+});
+
+describe('createServer — chat pet-enquiry caps follow config.enquiryRateLimit', () => {
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        trustProxy: true,
+        enquiryRateLimit: { ipMax: 3, userMax: 2 },
+      },
+      logger: quietLogger,
+      authClient: {
+        validateToken: (req: { accessToken: string }) =>
+          Promise.resolve({
+            principal: { userId: req.accessToken, roles: [1], permissions: [], rescueId: '' },
+          }),
+        close: () => undefined,
+      } as unknown as Parameters<typeof createServer>[0]['authClient'],
+      chatClient: {
+        openPetEnquiry: () =>
+          Promise.resolve({ chat: { chatId: 'chat-1', participantUserIds: [] }, created: true }),
+        close: () => undefined,
+      } as unknown as Parameters<typeof createServer>[0]['chatClient'],
+    });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  const postEnquiry = (bearerToken: string, ip: string) =>
+    server.inject({
+      method: 'POST',
+      url: '/api/v1/chats/enquiries',
+      headers: { authorization: `Bearer ${bearerToken}`, 'x-forwarded-for': ip },
+      payload: { petId: 'pet-1' },
+    });
+
+  it('applies the configured per-user cap across different IPs', async () => {
+    expect((await postEnquiry('cap-user', '61.0.0.1')).statusCode).toBe(201);
+    expect((await postEnquiry('cap-user', '61.0.0.2')).statusCode).toBe(201);
+    expect((await postEnquiry('cap-user', '61.0.0.3')).statusCode).toBe(429);
+  });
+
+  it('applies the configured per-IP cap across different users', async () => {
+    for (const user of ['ip-a', 'ip-b', 'ip-c']) {
+      expect((await postEnquiry(user, '62.0.0.1')).statusCode).toBe(201);
+    }
+    expect((await postEnquiry('ip-d', '62.0.0.1')).statusCode).toBe(429);
   });
 });
 
@@ -1230,6 +1333,28 @@ describe('createServer — auth backstop does not 401 CORS preflight', () => {
     // tokenless protected request.
     expect(res.statusCode).not.toBe(401);
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+  });
+
+  it('allows the x-client-location header in a cross-origin preflight', async () => {
+    server = await createServer({
+      config: baseConfig,
+      logger: quietLogger,
+      authClient: authClientStub,
+    });
+    const res = await server.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/pets/pet-1',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'x-client-location',
+      },
+    });
+    expect(res.statusCode).toBeLessThan(300);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(String(res.headers['access-control-allow-headers']).toLowerCase()).toContain(
+      'x-client-location'
+    );
   });
 
   it('still 401s a real tokenless request to a protected path (backstop is active)', async () => {

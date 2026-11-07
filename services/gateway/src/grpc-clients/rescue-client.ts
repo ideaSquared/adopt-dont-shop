@@ -15,6 +15,8 @@ import {
   RescueV1,
   type AcceptInvitationRequest,
   type AcceptInvitationResponse,
+  type RegisterRescueRequest,
+  type RegisterRescueResponse,
   type AddEventAttendeeRequest,
   type AddEventAttendeeResponse,
   type CancelRescueInvitationRequest,
@@ -25,6 +27,8 @@ import {
   type CountRescuesResponse,
   type GetRescueNamesRequest,
   type GetRescueNamesResponse,
+  type GetRescueLocationsRequest,
+  type GetRescueLocationsResponse,
   type CreateApplicationQuestionRequest,
   type CreateApplicationQuestionResponse,
   type CreateEventRequest,
@@ -101,6 +105,7 @@ export type CallBudget = { deadlineMs: number; maxRetries?: number };
 
 export type RescueClient = {
   create(req: CreateRescueRequest, metadata: Metadata): Promise<CreateRescueResponse>;
+  registerRescue(req: RegisterRescueRequest, metadata: Metadata): Promise<RegisterRescueResponse>;
   get(req: GetRescueRequest, metadata: Metadata): Promise<GetRescueResponse>;
   list(req: ListRescuesRequest, metadata: Metadata): Promise<ListRescuesResponse>;
   update(req: UpdateRescueRequest, metadata: Metadata): Promise<UpdateRescueResponse>;
@@ -124,6 +129,11 @@ export type RescueClient = {
     metadata: Metadata,
     budget?: CallBudget
   ): Promise<GetRescueNamesResponse>;
+  getRescueLocations(
+    req: GetRescueLocationsRequest,
+    metadata: Metadata,
+    budget?: CallBudget
+  ): Promise<GetRescueLocationsResponse>;
   sendRescueEmail(
     req: SendRescueEmailRequest,
     metadata: Metadata
@@ -290,6 +300,7 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
   return {
     // ── Non-idempotent (writes / mutations) ──────────────────────────
     create: (req, metadata) => callUnary(stub.create, req, metadata, false),
+    registerRescue: (req, metadata) => callUnary(stub.registerRescue, req, metadata, false),
     update: (req, metadata) => callUnary(stub.update, req, metadata, false),
     updateRescuePlan: (req, metadata) => callUnary(stub.updateRescuePlan, req, metadata, false),
     sendRescueEmail: (req, metadata) => callUnary(stub.sendRescueEmail, req, metadata, false),
@@ -324,6 +335,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     getRescueStatistics: (req, metadata) =>
       callUnary(stub.getRescueStatistics, req, metadata, true),
     countRescues: (req, metadata) => callUnary(stub.countRescues, req, metadata, true),
+    getRescueLocations: (req, metadata, budget) =>
+      callUnary(stub.getRescueLocations, req, metadata, true, budget),
     getRescueNames: (req, metadata, budget) =>
       callUnary(stub.getRescueNames, req, metadata, true, budget),
     getMyStaffMembership: (req, metadata) =>

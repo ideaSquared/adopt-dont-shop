@@ -24,6 +24,7 @@ const config: ModerationConfig = {
   databaseUrl: 'postgres://test',
   schema: 'moderation',
   natsUrl: 'nats://localhost:4222',
+  authGrpcUrl: 'localhost:6002',
 };
 
 const pool = {} as unknown as Pool;

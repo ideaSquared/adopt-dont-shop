@@ -257,6 +257,87 @@ describe('login', () => {
     });
   });
 
+  // --- Timed suspensions -----------------------------------------------
+
+  describe('a suspension with an end time', () => {
+    const ended = () => new Date(Date.now() - 60_000);
+
+    const loginWithClient = (suspended: Record<string, unknown>) => {
+      mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture(suspended)] });
+      mocks.hasherMock.compare.mockResolvedValueOnce(true);
+      mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+      mocks.clientMock.query.mockImplementation(async (sql: string) => {
+        if (sql.includes('event_outbox')) {
+          return { rows: [] };
+        }
+        if (sql.includes('FOR UPDATE')) {
+          return { rows: [userRowFixture(suspended)] };
+        }
+        if (sql.includes("SET status = 'active'")) {
+          return { rows: [userRowFixture({ status: 'active', suspended_until: null })] };
+        }
+        return { rows: [] };
+      });
+      mocks.poolMock.query
+        .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+    };
+
+    const publishedActions = () =>
+      mocks.natsMock.publish.mock.calls.map(
+        c => JSON.parse(new TextDecoder().decode(c[1] as Uint8Array)).payload as { action: string }
+      );
+
+    it('lets the user in once the end time has passed, lifting the suspension with an audited event', async () => {
+      loginWithClient({ status: 'suspended', suspended_until: ended() });
+
+      const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+      expect(res.tokens.accessToken).toBe('access.jwt.token');
+      expect(publishedActions().map(e => e.action)).toContain('lift_suspension');
+    });
+
+    it('still refuses while the end time is in the future', async () => {
+      mocks.poolMock.query.mockResolvedValueOnce({
+        rows: [
+          userRowFixture({ status: 'suspended', suspended_until: new Date(Date.now() + 60_000) }),
+        ],
+      });
+      mocks.hasherMock.compare.mockResolvedValueOnce(true);
+
+      await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+        code: 'PERMISSION_DENIED',
+        message: 'account is suspended',
+      });
+      expect(publishedActions().map(e => e.action)).not.toContain('lift_suspension');
+    });
+
+    it('never lifts an indefinite suspension', async () => {
+      mocks.poolMock.query.mockResolvedValueOnce({
+        rows: [userRowFixture({ status: 'suspended', suspended_until: null })],
+      });
+      mocks.hasherMock.compare.mockResolvedValueOnce(true);
+
+      await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+        message: 'account is suspended',
+      });
+    });
+
+    it('does not reveal an ended suspension to a wrong password', async () => {
+      mocks.poolMock.query.mockResolvedValueOnce({
+        rows: [userRowFixture({ status: 'suspended', suspended_until: ended() })],
+      });
+      mocks.hasherMock.compare.mockResolvedValueOnce(false);
+      mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+      await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+        code: 'UNAUTHENTICATED',
+      });
+      expect(publishedActions().map(e => e.action)).not.toContain('lift_suspension');
+    });
+  });
+
   it('returns UNAUTHENTICATED "invalid credentials" (not PERMISSION_DENIED) when a locked account gets a wrong password', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [userRowFixture({ locked_until: new Date(Date.now() + 60_000) })],

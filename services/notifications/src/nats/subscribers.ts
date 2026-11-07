@@ -43,6 +43,7 @@ import type {
   ApplicationRejectedEvent,
   ApplicationSubmittedEvent,
   AuthAccountDeletionRequestedEvent,
+  AuthRescueRegistrationAttemptedEvent,
   AuthRoleAssignedEvent,
   AuthUserInvitedEvent,
   AuthUserLoggedInEvent,
@@ -55,6 +56,7 @@ import type {
   RescueVerifiedEvent,
 } from './event-types.js';
 import { SYSTEM_PRINCIPAL } from './system-principal.js';
+import { registerAuthEmailSubscribers, type AuthEmailConfig } from './auth-emails.js';
 
 export type RegisterSubscribersOptions = {
   nats: NatsConnection;
@@ -66,6 +68,8 @@ export type RegisterSubscribersOptions = {
   // authGrpcUrl. The wire path stays subscribed either way.
   petsClient?: PetsFavoritersClient;
   rescueClient?: RescueStaffClient;
+  // When set, also sends the verification and password-reset emails.
+  authEmail?: AuthEmailConfig;
 };
 
 // Durable-consumer name prefix so multiple replicas of service.notifications
@@ -139,7 +143,7 @@ const defineRoute = <TPayload>(
 // the module is fully initialised, so its forward reference is safe.
 
 export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
-  const { nats, deps, logger, petsClient, rescueClient } = opts;
+  const { nats, deps, logger, petsClient, rescueClient, authEmail } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
     logger.error('subscriber handler failed', {
@@ -153,6 +157,20 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   // Simple single-recipient events first — same order as the table.
   for (const route of SIMPLE_EVENT_ROUTES) {
     subscriptions.push(route.register({ nats, deps, onError }));
+  }
+
+  // auth.userRegistered / auth.passwordResetRequested — verification and
+  // reset emails, queued straight onto the email worker (see auth-emails.ts).
+  if (authEmail) {
+    subscriptions.push(
+      ...registerAuthEmailSubscribers({
+        nats,
+        pool: deps.pool,
+        logger,
+        config: authEmail,
+        onError,
+      })
+    );
   }
 
   // auth.userInvited — see AuthUserInvitedEvent for why this stays
@@ -605,6 +623,25 @@ export const buildAuthAccountDeletionRequestedCreate = (
     NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY,
 });
 
+// auth.rescueRegistrationAttempted — security notification for the holder of
+// an email that someone tried to use for a public rescue sign-up. ACCOUNT_SECURITY
+// reaches the inbox through the existing notifications.created → email adapter.
+export const buildAuthRescueRegistrationAttemptedCreate = (
+  event: AuthRescueRegistrationAttemptedEvent
+): CreateNotificationRequest => ({
+  userId: event.userId as string,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH,
+  title: 'Rescue registration attempt',
+  message:
+    'Someone tried to register a rescue with your email address. You already have an account: sign in to apply to a rescue. If this was not you, you can ignore this message.',
+  dataJson: '{}',
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY,
+});
+
 // Cap the message preview so we never store the full chat body on the
 // notification row — the SPA opens the chat to read more, and a runaway
 // 10k-char message shouldn't bloat the notifications.notifications row.
@@ -751,5 +788,9 @@ const SIMPLE_EVENT_ROUTES: readonly SimpleEventRoute[] = [
   defineRoute<AuthAccountDeletionRequestedEvent>(
     'auth.accountDeletionRequested',
     buildAuthAccountDeletionRequestedCreate
+  ),
+  defineRoute<AuthRescueRegistrationAttemptedEvent>(
+    'auth.rescueRegistrationAttempted',
+    buildAuthRescueRegistrationAttemptedCreate
   ),
 ];

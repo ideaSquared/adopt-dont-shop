@@ -23,7 +23,8 @@ export const REDACTED = '[REDACTED]';
 // Broad on purpose (same strategy as the audit deny-list) so variants like
 // `passwordHash`, `bearer_token`, `x-api-key`, `Set-Cookie` are caught
 // without an exhaustive list.
-export const SECRET_KEY_PATTERN = /password|token|secret|otp|authorization|cookie|api[_-]?key/i;
+export const SECRET_KEY_PATTERN =
+  /password|token|secret|otp|authorization|cookie|api[_-]?key|client[_-]?location/i;
 
 export const redactSecretFields = (value: unknown): unknown => {
   if (value === null || value === undefined) {

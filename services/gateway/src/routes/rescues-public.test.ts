@@ -102,6 +102,32 @@ describe('rescues public routes', () => {
     });
   });
 
+  it('GET /api/v1/rescues/nearby reads the caller location from x-client-location (no coordinates in the URL)', async () => {
+    mocks.list.mockResolvedValueOnce({ rescues: [] });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/rescues/nearby?radiusKm=25',
+      headers: { 'x-client-location': '53.96,-1.08' },
+    });
+    expect(mocks.list.mock.calls[0][0]).toMatchObject({
+      latitude: 53.96,
+      longitude: -1.08,
+      radiusKm: 25,
+    });
+  });
+
+  it('GET /api/v1/rescues/nearby ignores a malformed x-client-location instead of failing', async () => {
+    mocks.list.mockResolvedValueOnce({ rescues: [] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/rescues/nearby?radiusKm=25',
+      headers: { 'x-client-location': 'somewhere' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.list.mock.calls[0][0].latitude).toBeUndefined();
+    expect(mocks.list.mock.calls[0][0].longitude).toBeUndefined();
+  });
+
   it('GET /api/v1/rescues/followed returns an empty page without calling the service', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/rescues/followed' });
     expect(res.statusCode).toBe(200);
@@ -118,28 +144,6 @@ describe('rescues public routes', () => {
     const missing = await app.inject({ method: 'GET', url: '/api/v1/rescues/rsc-x' });
     expect(missing.statusCode).toBe(404);
     expect((missing.json() as { success: boolean }).success).toBe(false);
-  });
-
-  it('POST /api/v1/rescues/register accepts snake_case + camelCase and creates', async () => {
-    mocks.create.mockResolvedValueOnce({ rescue: RESCUE });
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rescues/register',
-      payload: {
-        name: 'Happy Tails',
-        email: 'hi@happy.example',
-        address: '1 Lane',
-        city: 'York',
-        zip_code: 'YO1 1AA',
-        contactPerson: 'Jo',
-      },
-    });
-    expect(res.statusCode).toBe(201);
-    expect(mocks.create.mock.calls[0][0]).toMatchObject({
-      name: 'Happy Tails',
-      postcode: 'YO1 1AA',
-      contactPerson: 'Jo',
-    });
   });
 
   it('POST /api/v1/rescues is also Create', async () => {

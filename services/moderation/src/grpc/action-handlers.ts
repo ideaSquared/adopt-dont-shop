@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import { MODERATION_ACTIONS_MANAGE } from '@adopt-dont-shop/lib.types';
+import { MODERATION_ACTIONS_MANAGE, MODERATION_USERS_SANCTION } from '@adopt-dont-shop/lib.types';
 import type {
   AddEvidenceRequest,
   AddEvidenceResponse,
@@ -31,6 +31,7 @@ import {
   type ModeratorActionRow,
 } from './action-evidence-mapper.js';
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { grpcStatusToHandlerCode, type AuthClient } from './auth-client.js';
 import { decodeCursor, encodeCursor, InvalidCursorError } from './cursor.js';
 import {
   actionTypeToDb,
@@ -76,7 +77,8 @@ function parseMetadataJson(raw: string | undefined): string {
 export async function logModeratorAction(
   deps: HandlerDeps,
   principal: Principal,
-  req: LogModeratorActionRequest
+  req: LogModeratorActionRequest,
+  authClient?: AuthClient
 ): Promise<LogModeratorActionResponse> {
   ensureModerationPermission(principal);
 
@@ -101,8 +103,30 @@ export async function logModeratorAction(
   const severityDb = severityToDb(req.severity);
   const metadataJson = parseMetadataJson(req.metadataJson);
 
-  // duration is in days; expires_at is derived only when a duration
-  // is supplied (permanent actions leave it NULL).
+  // A user_suspended / user_banned action must really restrict the account
+  // (B11), which is an auth-service concern. Validate up front so a malformed
+  // request never opens a transaction.
+  const suspendsUser = actionTypeDb === 'user_suspended';
+  const bansUser = actionTypeDb === 'user_banned';
+  if ((suspendsUser || bansUser) && (req.targetUserId === undefined || req.targetUserId === '')) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `target_user_id is required to ${suspendsUser ? 'suspend' : 'ban'} a user`
+    );
+  }
+  // The service principal that calls auth always holds the sanction permission,
+  // so check the HUMAN caller here: managing actions alone must not be enough
+  // to suspend or ban a user.
+  if ((suspendsUser || bansUser) && !requirePermission(principal, MODERATION_USERS_SANCTION)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_USERS_SANCTION}' required`);
+  }
+  if ((suspendsUser || bansUser) && authClient === undefined) {
+    throw new HandlerError('INTERNAL', 'auth client not configured; cannot restrict a user');
+  }
+
+  // duration is a number of DAYS (the admin UI offers 1, 7, 30 or
+  // indefinite); it is stored as-is and converted here to an absolute
+  // expires_at timestamp. No duration means permanent: expires_at stays NULL.
   const expiresAt =
     req.duration !== undefined && req.duration > 0
       ? new Date(Date.now() + req.duration * 24 * 60 * 60 * 1000).toISOString()
@@ -142,6 +166,29 @@ export async function logModeratorAction(
       throw new HandlerError('INTERNAL', 'insert returned no rows');
     }
 
+    // The suspension runs inside the transaction: if auth rejects it the
+    // throw rolls back the action row and the queued event, so a failed
+    // sanction leaves nothing half-written.
+    // One auth call applies the whole sanction (a ban also ends every
+    // session) and records the audit event there. If auth refuses, the throw
+    // rolls back the action row and the queued events.
+    if ((suspendsUser || bansUser) && authClient !== undefined && req.targetUserId) {
+      try {
+        await authClient.applyUserSanction({
+          userId: req.targetUserId,
+          kind: bansUser ? 'ban' : 'suspend',
+          reason: req.reason,
+          actorUserId: principal.userId,
+          expiresAt: suspendsUser && expiresAt ? expiresAt : undefined,
+        });
+      } catch (err) {
+        throw new HandlerError(
+          grpcStatusToHandlerCode(err),
+          `could not ${bansUser ? 'ban' : 'suspend'} user ${req.targetUserId}: ${(err as Error).message}`
+        );
+      }
+    }
+
     publish({
       type: 'moderation.actionLogged',
       id: actionId,
@@ -157,9 +204,45 @@ export async function logModeratorAction(
       },
     });
 
+    // Forensic record: service.audit persists every `<domain>.actionTaken`.
+    publish({
+      type: 'moderation.actionTaken',
+      id: `moderation.actionTaken.${actionId}`,
+      payload: {
+        eventId: randomUUID(),
+        service: 'service.moderation',
+        subject: 'moderation.actionTaken',
+        aggregateType: 'moderator_action',
+        aggregateId: actionId,
+        actorUserId: principal.userId,
+        action: actionTypeDb,
+        outcome: 'success',
+        occurredAt: new Date().toISOString(),
+        payload: {
+          targetUserId: req.targetUserId ?? null,
+          targetEntityType: targetEntityTypeDb,
+          targetEntityId: req.targetEntityId,
+          reportId: req.reportId ?? null,
+          duration: req.duration ?? null,
+          expiresAt,
+        },
+      },
+    });
+
     return { action: actionRowToProto(inserted.rows[0]) };
   });
 }
+
+// logModeratorAction needs the auth client to apply user_suspended; the gRPC
+// server closes over it here (same factory shape as rescue's pets client).
+export const makeLogModeratorAction =
+  (authClient: AuthClient) =>
+  (
+    deps: HandlerDeps,
+    principal: Principal,
+    req: LogModeratorActionRequest
+  ): Promise<LogModeratorActionResponse> =>
+    logModeratorAction(deps, principal, req, authClient);
 
 // --- ListModeratorActions --------------------------------------------
 

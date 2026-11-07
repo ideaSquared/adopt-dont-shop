@@ -466,6 +466,8 @@ services:
       # this literal env var (not the code default) whenever
       # EMAIL_PROVIDER=resend, so it must be set here too or boot still fails.
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:?Error: DEFAULT_FROM_EMAIL required}"
+      # Client origin for verification / password-reset email links.
+      FRONTEND_URL: "${FRONTEND_URL:?Error: FRONTEND_URL required}"
       PUSH_PROVIDER: fcm
       FCM_PROJECT_ID: "${FCM_PROJECT_ID:?Error: FCM_PROJECT_ID required}"
       FCM_SERVICE_ACCOUNT_JSON_FILE: /run/secrets/fcm_service_account_json

@@ -10,7 +10,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
-import { withTransaction } from '@adopt-dont-shop/events';
+import { withTransaction, type TransactionalScope } from '@adopt-dont-shop/events';
 import {
   ADMIN_SECURITY_MANAGE,
   ADMIN_SECURITY_READ,
@@ -22,6 +22,7 @@ import {
   ADMIN_USERS_REACTIVATE,
   ADMIN_USERS_SEARCH,
   ADMIN_USERS_UPDATE,
+  MODERATION_USERS_SANCTION,
 } from '@adopt-dont-shop/lib.types';
 
 import {
@@ -38,6 +39,8 @@ import {
   type AdminUnlockAccountResponse,
   type AdminUpdateUserRequest,
   type AdminUpdateUserResponse,
+  type ApplyUserSanctionRequest,
+  type ApplyUserSanctionResponse,
   type BulkUpdateUsersRequest,
   type BulkUpdateUsersResponse,
   type CreateIpRuleRequest,
@@ -345,6 +348,49 @@ export async function adminCreateUser(
   return { user: rowToProtoUser(createdUser) };
 }
 
+// --- Audit trail -----------------------------------------------------
+// Forensic record of an admin user action, published as `auth.actionTaken`
+// so service.audit's wildcard `*.actionTaken` subscriber persists it (the
+// legacy auth.user* events below have no audit subscriber). Called from
+// inside withTransaction, so it only fires on commit.
+
+type UserActionAudit = {
+  actorUserId: string;
+  userId: string;
+  action: string;
+  details: Record<string, unknown>;
+};
+
+function publishUserActionTaken(publish: TransactionalScope['publish'], audit: UserActionAudit) {
+  publish({
+    type: 'auth.actionTaken',
+    id: `auth.actionTaken.${randomUUID()}`,
+    payload: {
+      eventId: randomUUID(),
+      service: 'service.auth',
+      subject: 'auth.actionTaken',
+      aggregateType: 'user',
+      aggregateId: audit.userId,
+      actorUserId: audit.actorUserId,
+      action: audit.action,
+      outcome: 'success',
+      occurredAt: new Date().toISOString(),
+      payload: audit.details,
+    },
+  });
+}
+
+// A status transition's audit verb: suspend / reactivate / deactivate.
+function statusAction(status: string): string {
+  if (status === 'active') {
+    return 'reactivate';
+  }
+  if (status === 'suspended') {
+    return 'suspend';
+  }
+  return status === 'deactivated' ? 'deactivate' : 'update';
+}
+
 // --- AdminUpdateUser -------------------------------------------------
 
 export async function adminUpdateUser(
@@ -362,9 +408,13 @@ export async function adminUpdateUser(
   const sets: string[] = [];
   const params: unknown[] = [];
 
+  let statusChange: { newStatus: string } | undefined;
   if (req.status !== undefined && req.status !== AuthV1.UserStatus.USER_STATUS_UNSPECIFIED) {
+    statusChange = { newStatus: statusToDb(req.status) };
     sets.push(`status = $${params.length + 1}`);
-    params.push(statusToDb(req.status));
+    params.push(statusChange.newStatus);
+    // An admin status change replaces any timed suspension.
+    sets.push('suspended_until = NULL');
   }
   let roleChange: { newRole: string } | undefined;
   if (req.userType !== undefined && req.userType !== AuthV1.UserRole.USER_ROLE_UNSPECIFIED) {
@@ -409,17 +459,24 @@ export async function adminUpdateUser(
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
-    let previousRole: string | undefined;
-    if (roleChange) {
-      const prevRes = await client.query<{ user_type: string }>(
-        `SELECT user_type FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
-        [req.userId]
-      );
-      if (prevRes.rows.length === 0) {
-        throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
-      }
-      previousRole = prevRes.rows[0].user_type;
+    // Lock the row so the recorded before-state is what this write replaces.
+    const prevRes = await client.query<{
+      status: string;
+      user_type: string;
+      email_verified: boolean;
+      first_name: string;
+      last_name: string;
+    }>(
+      `SELECT status, user_type, email_verified, first_name, last_name
+       FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [req.userId]
+    );
+    if (prevRes.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
     }
+    const previous = prevRes.rows[0];
+    const previousRole = previous.user_type;
+    const previousStatus = previous.status;
 
     const res = await client.query<UserRow>(
       `
@@ -442,6 +499,37 @@ export async function adminUpdateUser(
         userId: req.userId,
         updatedBy: principal.userId,
         ...(roleChange && { roleChange: { before: previousRole, after: roleChange.newRole } }),
+      },
+    });
+
+    const action = statusChange
+      ? statusAction(statusChange.newStatus)
+      : roleChange
+        ? 'assign_role'
+        : 'update';
+    publishUserActionTaken(publish, {
+      actorUserId: principal.userId,
+      userId: req.userId,
+      action,
+      details: {
+        before: {
+          ...(statusChange && { status: previousStatus }),
+          ...(roleChange && { userType: previousRole }),
+          ...(req.emailVerified !== undefined && { emailVerified: previous.email_verified }),
+        },
+        after: {
+          ...(statusChange && { status: statusChange.newStatus }),
+          ...(roleChange && { userType: roleChange.newRole }),
+          ...(req.emailVerified !== undefined && { emailVerified: req.emailVerified }),
+        },
+        // Names are PII: record only that they changed, never the values.
+        changedFields: [
+          ...(statusChange ? ['status'] : []),
+          ...(roleChange ? ['userType'] : []),
+          ...(req.emailVerified !== undefined ? ['emailVerified'] : []),
+          ...(req.firstName !== undefined ? ['firstName'] : []),
+          ...(req.lastName !== undefined ? ['lastName'] : []),
+        ],
       },
     });
   });
@@ -496,30 +584,35 @@ async function setStatus(
   status: 'active' | 'deactivated',
   reason: string | null
 ): Promise<{ user: ReturnType<typeof rowToProtoUser> }> {
-  // Read current to support idempotency + NOT_FOUND.
-  const current = await deps.pool.query<UserRow>(
-    `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
-    [userId]
-  );
-  if (current.rows.length === 0) {
-    throw new HandlerError('NOT_FOUND', `user ${userId} not found`);
-  }
-  // Idempotent — already in the target state.
-  if (current.rows[0].status === status) {
-    return { user: rowToProtoUser(current.rows[0]) };
-  }
-
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
+    // Read the current row under lock inside the transaction, so the
+    // idempotency check and the audited before-state cannot go stale.
+    const current = await client.query<UserRow>(
+      `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [userId]
+    );
+    if (current.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${userId} not found`);
+    }
+    // Idempotent: already in the target state.
+    if (current.rows[0].status === status) {
+      updated = current.rows[0];
+      return;
+    }
+
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
-      SET status = $1, updated_at = now(), version = version + 1
+      SET status = $1, suspended_until = NULL, updated_at = now(), version = version + 1
       WHERE user_id = $2 AND deleted_at IS NULL
       RETURNING ${USER_SELECT}
       `,
       [status, userId]
     );
+    if (res.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${userId} not found`);
+    }
     updated = res.rows[0];
 
     publish({
@@ -527,12 +620,173 @@ async function setStatus(
       id: `auth.user${status === 'deactivated' ? 'Deactivated' : 'Reactivated'}.${userId}.${Date.now()}`,
       payload: { userId, actedBy: principal.userId, reason },
     });
+
+    publishUserActionTaken(publish, {
+      actorUserId: principal.userId,
+      userId,
+      action: statusAction(status),
+      details: {
+        before: { status: current.rows[0].status },
+        after: { status },
+        reason,
+      },
+    });
   });
 
   if (!updated) {
     throw new HandlerError('INTERNAL', 'status update returned no rows');
   }
   return { user: rowToProtoUser(updated) };
+}
+
+// --- ApplyUserSanction -----------------------------------------------
+//
+// The one auth entry point for service.moderation's suspend and ban. It is
+// guarded ONLY by moderation.users.sanction (held by moderation's service
+// principal, and by the moderator/admin/super_admin roles), so moderators do
+// not need the broad admin.users.* / admin.security.manage permissions. The
+// human moderator arrives as actor_user_id and is the audit actor.
+//
+// Everything happens in one transaction: the row is locked, the status
+// changes (a ban also revokes every session, like AdminRevokeAllUserSessions),
+// and exactly one auth.actionTaken is staged. Elevated-role targets are
+// refused here: the service principal's own roles say nothing about the human
+// actor, so those accounts stay with the admin tools and their super_admin
+// checks.
+
+// service.moderation's service principal (see its auth client) is the only
+// caller allowed to name a different human as the audit actor.
+const MODERATION_SERVICE_PRINCIPAL_ID = 'svc-moderation';
+
+// RFC 3339 with an explicit timezone: `new Date` alone also accepts date-only
+// and offsetless strings, which are read in the server's local timezone.
+const RFC_3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+export async function applyUserSanction(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ApplyUserSanctionRequest
+): Promise<ApplyUserSanctionResponse> {
+  if (!hasPermission(principal, MODERATION_USERS_SANCTION)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_USERS_SANCTION}' required`);
+  }
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!req.actorUserId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'actor_user_id is required');
+  }
+  if (!req.reason) {
+    throw new HandlerError('INVALID_ARGUMENT', 'reason is required');
+  }
+  // actor_user_id is request data, not the authenticated identity: a human
+  // caller may only attribute the sanction to themselves.
+  if (
+    principal.userId !== MODERATION_SERVICE_PRINCIPAL_ID &&
+    req.actorUserId !== principal.userId
+  ) {
+    throw new HandlerError('PERMISSION_DENIED', 'actor_user_id must be the calling user');
+  }
+  if (req.actorUserId === req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'cannot sanction your own account');
+  }
+  const isBan = req.kind === AuthV1.UserSanctionKind.USER_SANCTION_KIND_BAN;
+  if (!isBan && req.kind !== AuthV1.UserSanctionKind.USER_SANCTION_KIND_SUSPEND) {
+    throw new HandlerError('INVALID_ARGUMENT', 'kind must be SUSPEND or BAN');
+  }
+  let expiresAt: Date | undefined;
+  if (req.expiresAt !== undefined) {
+    if (isBan) {
+      throw new HandlerError('INVALID_ARGUMENT', 'a ban is permanent: expires_at is not allowed');
+    }
+    expiresAt = RFC_3339.test(req.expiresAt) ? new Date(req.expiresAt) : undefined;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      throw new HandlerError('INVALID_ARGUMENT', 'expires_at must be a future RFC 3339 time');
+    }
+  }
+  const newStatus = isBan ? 'deactivated' : 'suspended';
+
+  let updated: UserRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    // Locked read that also returns any additional roles (auth.user_roles):
+    // an adopter who was assigned admin or moderator is just as elevated as
+    // one whose primary role is.
+    const current = await client.query<UserRow & { extra_roles: string[] | null }>(
+      `SELECT ${USER_SELECT},
+              COALESCE(
+                (SELECT array_agg(r.role_name)
+                   FROM auth.user_roles ur
+                   INNER JOIN auth.roles r ON r.role_id = ur.role_id
+                  WHERE ur.user_id = auth.users.user_id),
+                '{}'
+              ) AS extra_roles
+         FROM auth.users
+        WHERE user_id = $1 AND deleted_at IS NULL
+          FOR UPDATE`,
+      [req.userId]
+    );
+    if (current.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+    // A suspension must never reactivate a banned or deactivated account (the
+    // expiry would later make it active): only admin.users.reactivate does that.
+    if (!isBan && current.rows[0].status === 'deactivated') {
+      throw new HandlerError(
+        'FAILED_PRECONDITION',
+        'user is deactivated; a suspension cannot be applied'
+      );
+    }
+    const heldRoles = [current.rows[0].user_type, ...(current.rows[0].extra_roles ?? [])];
+    if (heldRoles.some(role => ELEVATED_ROLES.has(role))) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        'admin, moderator and super_admin accounts cannot be sanctioned through moderation'
+      );
+    }
+
+    const res = await client.query<UserRow>(
+      `
+      UPDATE auth.users
+      SET status = $1,
+          ${isBan ? 'suspended_until = NULL, tokens_valid_from = now(),' : 'suspended_until = $3,'}
+          updated_at = now(),
+          version = version + 1
+      WHERE user_id = $2 AND deleted_at IS NULL
+      RETURNING ${USER_SELECT}
+      `,
+      isBan ? [newStatus, req.userId] : [newStatus, req.userId, expiresAt ?? null]
+    );
+    if (res.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+    updated = res.rows[0];
+
+    if (isBan) {
+      await client.query(
+        `UPDATE auth.refresh_tokens
+         SET is_revoked = true, revoked_at = now(), updated_at = now()
+         WHERE user_id = $1 AND is_revoked = false`,
+        [req.userId]
+      );
+    }
+
+    publishUserActionTaken(publish, {
+      actorUserId: req.actorUserId,
+      userId: req.userId,
+      action: isBan ? 'ban' : 'suspend',
+      details: {
+        before: { status: current.rows[0].status },
+        after: { status: newStatus },
+        reason: req.reason,
+        expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'sanction returned no rows');
+  }
+  return { userId: updated.user_id, status: statusFromDb(updated.status) };
 }
 
 // --- AdminResetPassword ----------------------------------------------
@@ -955,6 +1209,7 @@ export async function bulkUpdateUsers(
   if (setStatus) {
     sets.push(`status = $${baseParams.length + 1}`);
     baseParams.push(statusToDb(req.status));
+    sets.push('suspended_until = NULL');
   }
   if (targetRole !== undefined) {
     sets.push(`user_type = $${baseParams.length + 1}`);
@@ -970,12 +1225,24 @@ export async function bulkUpdateUsers(
   for (const userId of req.userIds) {
     try {
       await withTransaction(deps, async ({ client, publish }) => {
-        const res = await client.query<{ user_id: string }>(
+        // Lock the row and return its previous status/role for the audit
+        // before-state.
+        const res = await client.query<{
+          user_id: string;
+          prev_status?: string;
+          prev_user_type?: string;
+        }>(
           `
-          UPDATE auth.users
+          WITH prev AS (
+            SELECT user_id, status, user_type FROM auth.users
+            WHERE user_id = $${baseParams.length + 1} AND deleted_at IS NULL
+            FOR UPDATE
+          )
+          UPDATE auth.users u
           SET ${sets.join(', ')}
-          WHERE user_id = $${baseParams.length + 1} AND deleted_at IS NULL
-          RETURNING user_id
+          FROM prev
+          WHERE u.user_id = prev.user_id
+          RETURNING u.user_id, prev.status AS prev_status, prev.user_type AS prev_user_type
           `,
           [...baseParams, userId]
         );
@@ -986,6 +1253,23 @@ export async function bulkUpdateUsers(
           type: 'auth.userUpdatedByAdmin',
           id: `auth.userUpdatedByAdmin.${userId}.${Date.now()}`,
           payload: { userId, updatedBy: principal.userId, bulk: true, reason: req.reason ?? null },
+        });
+        publishUserActionTaken(publish, {
+          actorUserId: principal.userId,
+          userId,
+          action: setStatus ? statusAction(statusToDb(req.status)) : 'assign_role',
+          details: {
+            bulk: true,
+            reason: req.reason ?? null,
+            before: {
+              ...(setStatus && { status: res.rows[0].prev_status }),
+              ...(targetRole !== undefined && { userType: res.rows[0].prev_user_type }),
+            },
+            after: {
+              ...(setStatus && { status: statusToDb(req.status) }),
+              ...(targetRole !== undefined && { userType: targetRole }),
+            },
+          },
         });
       });
       results.push({ userId, success: true });

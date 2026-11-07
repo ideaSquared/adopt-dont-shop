@@ -65,7 +65,7 @@ describe('reportRowToProto', () => {
         assigned_at: new Date('2026-06-02T09:00:00.000Z'),
         resolved_by: 'mod-1',
         resolved_at: new Date('2026-06-03T15:00:00.000Z'),
-        resolution: 'action_taken',
+        resolution: 'user_suspended',
         resolution_notes: 'User suspended for 7 days.',
       })
     );
@@ -74,9 +74,17 @@ describe('reportRowToProto', () => {
     expect(proto.assignedAt).toBe('2026-06-02T09:00:00.000Z');
     expect(proto.resolvedBy).toBe('mod-1');
     expect(proto.resolvedAt).toBe('2026-06-03T15:00:00.000Z');
-    expect(proto.resolution).toBe('action_taken');
+    expect(proto.resolution).toBe('user_suspended');
     expect(proto.resolutionNotes).toBe('User suspended for 7 days.');
   });
+
+  it.each(['resolved', 'dismissed', 'something_else'])(
+    'reads a legacy resolution %s as no_action so the admin list still parses (B10)',
+    legacy => {
+      const proto = reportRowToProto(baseReportRow({ status: 'resolved', resolution: legacy }));
+      expect(proto.resolution).toBe('no_action');
+    }
+  );
 
   it('populates the escalation chain for an escalated report', () => {
     const proto = reportRowToProto(

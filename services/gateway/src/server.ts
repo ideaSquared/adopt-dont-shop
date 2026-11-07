@@ -88,6 +88,7 @@ import { registerConsentRoutes } from './routes/consent.js';
 import { registerReportsRoutes } from './routes/reports.js';
 import { registerRescueRoutes } from './routes/rescue.js';
 import { registerInvitationAcceptRoutes } from './routes/invitation-accept.js';
+import { registerRescueRegisterRoutes } from './routes/rescue-register.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerRescueAdminRoutes } from './routes/rescue-admin.js';
 import { registerSearchRoutes } from './routes/search.js';
@@ -705,6 +706,15 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // /api/v1/events/* — event CRUD + attendee management + analytics.
     await registerEventRoutes(server, { client: opts.rescueClient });
   }
+  // POST /api/v1/rescues/register — public rescue sign-up. Orchestrates auth
+  // (owner account) + rescue (pending rescue + owner membership).
+  if (opts.authClient && opts.rescueClient) {
+    await registerRescueRegisterRoutes(server, {
+      authClient: opts.authClient,
+      rescueClient: opts.rescueClient,
+      emailRateLimiter,
+    });
+  }
   // POST /api/v1/invitations/accept — register-on-accept. Orchestrates
   // auth (provision the invited user) + rescue (consume the invitation +
   // attach staff membership), so it needs BOTH clients wired.
@@ -839,7 +849,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // x-user-id). Same Redis store as the per-IP limiter, so the cap is
     // N-replica-safe; falls back to an in-memory counter without Redis.
     const petEnquiryUserRateLimiter = createEmailRateLimiter({
-      max: 10,
+      max: config.enquiryRateLimit.userMax,
       windowMs: 24 * 60 * 60_000,
       redis: rateLimitRedis,
       // Distinct namespace (ADS-1421 follow-up) — see exportUserRateLimiter.
@@ -851,6 +861,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       client: opts.chatClient,
       authClient: opts.authClient,
       petEnquiryUserRateLimiter,
+      petEnquiryIpMax: config.enquiryRateLimit.ipMax,
     });
   }
   // /api/v1/search/{messages,suggestions} — cross-service lib.search

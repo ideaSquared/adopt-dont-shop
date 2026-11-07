@@ -171,6 +171,85 @@ describe('email worker', () => {
     }
   });
 
+  it('still delivers essential authentication mail to a user who opted out of email', async () => {
+    const claimed = [
+      queuedFixture({
+        emailId: 'em-E',
+        userId: 'usr-optout',
+        type: 'transactional',
+        metadata: { essential: true },
+      }),
+    ];
+    const { pool } = makePool([
+      { rows: claimed.map(toRow) },
+      // Opted out of everything, but not blacklisted.
+      {
+        rows: [
+          {
+            is_email_enabled: false,
+            global_unsubscribe: true,
+            is_blacklisted: false,
+            preferences: [],
+          },
+        ],
+      },
+      { rows: [] }, // markSent
+    ]);
+    const provider = makeProvider({ success: true });
+    const worker = startEmailWorker({
+      pool,
+      nats: {} as never,
+      provider,
+      logger: quietLogger(),
+      pollIntervalMs: 60_000,
+    });
+    try {
+      await worker.tick();
+      expect(provider.send).toHaveBeenCalledTimes(1);
+    } finally {
+      await worker.stop();
+    }
+  });
+
+  it('keeps suppressing essential mail to a blacklisted address (bounce and abuse protection)', async () => {
+    const claimed = [
+      queuedFixture({
+        emailId: 'em-F',
+        userId: 'usr-bounced',
+        type: 'transactional',
+        metadata: { essential: true },
+      }),
+    ];
+    const { pool } = makePool([
+      { rows: claimed.map(toRow) },
+      {
+        rows: [
+          {
+            is_email_enabled: true,
+            global_unsubscribe: false,
+            is_blacklisted: true,
+            preferences: [],
+          },
+        ],
+      },
+      { rows: [] }, // UPDATE -> unsubscribed
+    ]);
+    const provider = makeProvider({ success: true });
+    const worker = startEmailWorker({
+      pool,
+      nats: {} as never,
+      provider,
+      logger: quietLogger(),
+      pollIntervalMs: 60_000,
+    });
+    try {
+      await worker.tick();
+      expect(provider.send).not.toHaveBeenCalled();
+    } finally {
+      await worker.stop();
+    }
+  });
+
   it('suppresses a marketing email when the user opted out of that type', async () => {
     const claimed = [queuedFixture({ emailId: 'em-M', userId: 'usr-1', type: 'marketing' })];
     const { pool, queries } = makePool([

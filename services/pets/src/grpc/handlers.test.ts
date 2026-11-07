@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
-import { PetsV1, type CreatePetRequest } from '@adopt-dont-shop/proto';
+import { PetsV1, RescueV1, type CreatePetRequest } from '@adopt-dont-shop/proto';
 
 import {
   createPet,
@@ -27,6 +27,7 @@ import {
   updatePetStatus,
   type HandlerDeps,
 } from './handlers.js';
+import type { RescueClient } from './rescue-client.js';
 
 // --- Fixtures --------------------------------------------------------
 
@@ -138,11 +139,22 @@ function makeMocks() {
   // JetStream publish routes to the same spy so existing publish assertions
   // keep working; withTransaction now publishes via nats.jetstream().publish().
   const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
+  // Default: a verified rescue whose staff list is STAFF + OTHER_STAFF.
+  const rescueClient = {
+    getRescue: vi.fn().mockResolvedValue({ rescue: undefined }),
+    listStaffMembers: vi.fn().mockResolvedValue({
+      staffMembers: [
+        RescueV1.StaffMember.fromPartial({ userId: STAFF.userId, rescueId: RESCUE_ID }),
+        RescueV1.StaffMember.fromPartial({ userId: OTHER_STAFF.userId, rescueId: 'rsc-2' }),
+      ],
+    }),
+  };
   const deps: HandlerDeps = {
     pool: pool as unknown as Pool,
     nats: nats as unknown as NatsConnection,
+    rescueClient: rescueClient as unknown as RescueClient,
   };
-  return { deps, poolMock: pool, clientMock: client, natsMock: nats };
+  return { deps, poolMock: pool, clientMock: client, natsMock: nats, rescueClient };
 }
 
 const BASE_CREATE: CreatePetRequest = {
@@ -201,6 +213,36 @@ describe('createPet', () => {
     await expect(createPet(mocks.deps, OTHER_STAFF, BASE_CREATE)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+  });
+
+  it('PERMISSION_DENIED when the rescue is not verified (pending / suspended / rejected)', async () => {
+    // RescueService.Get answers NOT_FOUND for any non-verified rescue.
+    mocks.rescueClient.getRescue.mockRejectedValue({ code: 5 });
+    await expect(createPet(mocks.deps, STAFF, BASE_CREATE)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  });
+
+  it('PERMISSION_DENIED when the caller was removed from the rescue, even with a stale principal', async () => {
+    mocks.rescueClient.listStaffMembers.mockResolvedValue({ staffMembers: [] });
+    await expect(createPet(mocks.deps, STAFF, BASE_CREATE)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
+  });
+
+  it('INTERNAL (not allowed) when the rescue service cannot be reached', async () => {
+    mocks.rescueClient.getRescue.mockRejectedValue({ code: 14 });
+    await expect(createPet(mocks.deps, STAFF, BASE_CREATE)).rejects.toMatchObject({
+      code: 'INTERNAL',
+    });
+  });
+
+  it('super_admin creates without consulting the rescue service', async () => {
+    mocks.clientMock.query.mockResolvedValue({ rows: [petRow()] });
+    await createPet(mocks.deps, SUPER_ADMIN, BASE_CREATE);
+    expect(mocks.rescueClient.getRescue).not.toHaveBeenCalled();
   });
 
   it('inserts inside a transaction and publishes pets.created AFTER commit', async () => {
@@ -909,6 +951,14 @@ describe('updatePet', () => {
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
+  it('PERMISSION_DENIED once the caller was removed from the rescue that owns the pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    mocks.rescueClient.listStaffMembers.mockResolvedValue({ staffMembers: [] });
+    await expect(
+      updatePet(mocks.deps, STAFF, { petId: 'pet-1', name: 'x' } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
   it('PERMISSION_DENIED for staff at a different rescue', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     await expect(
@@ -1206,6 +1256,32 @@ describe('updatePetStatus', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('PERMISSION_DENIED, with no write and no event, when the rescue is no longer verified', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.rescueClient.getRescue.mockRejectedValue({ code: 5 });
+    await expect(
+      updatePetStatus(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('PERMISSION_DENIED, with no write and no event, once the caller was removed from the rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.rescueClient.listStaffMembers.mockResolvedValue({ staffMembers: [] });
+    await expect(
+      updatePetStatus(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
   it('rejects an illegal transition (available → adopted)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
     await expect(
@@ -1332,6 +1408,14 @@ describe('deletePet', () => {
     // calls[0] is the transaction's own BEGIN; the UPDATE is calls[1].
     const sql = mocks.clientMock.query.mock.calls[1][0] as string;
     expect(sql).toMatch(/deleted_at = now\(\)/);
+  });
+
+  it('PERMISSION_DENIED when the rescue that owns the pet is no longer verified', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    mocks.rescueClient.getRescue.mockRejectedValue({ code: 5 });
+    await expect(deletePet(mocks.deps, STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
   });
 
   it('PERMISSION_DENIED for staff at a different rescue', async () => {

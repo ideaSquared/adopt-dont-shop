@@ -46,6 +46,8 @@ export type ChatRoutesOptions = {
   // read there is attacker-controlled. Optional so tests / dev that don't
   // wire it keep the per-IP-only backstop behaviour.
   petEnquiryUserRateLimiter?: EmailRateLimiter;
+  // Per-IP daily backstop for the enquiry route; defaults to 200.
+  petEnquiryIpMax?: number;
 };
 
 // The monolith mounts the same chat routes at /api/v1/chats AND
@@ -79,16 +81,19 @@ const CHAT_RATE_LIMITS = {
   delete: { max: 30, timeWindow: '1 minute' },
 } as const;
 
-// Per-route IP backstop: 10 requests per day per source IP, applied before
-// authentication runs. The INTENDED per-user cap (same 10/day) is enforced
+// Per-route IP backstop: petEnquiryIpMax (default 200) requests per day per
+// source IP, applied before authentication runs. Deliberately loose: many
+// real users share one IP (NAT, offices, schools). The real per-user cap is enforced
 // separately below as a preHandler keyed on the authenticated principal —
 // see petEnquiryUserRateLimiter (ADS-1421). This no longer keys on
 // x-user-id: that header isn't trustworthy yet at the onRequest phase where
 // @fastify/rate-limit's keyGenerator runs.
-const PET_ENQUIRY_RATE_LIMIT = {
-  max: 10,
+const DEFAULT_PET_ENQUIRY_IP_MAX = 200;
+
+const petEnquiryRateLimit = (max: number) => ({
+  max,
   timeWindow: '1 day',
-};
+});
 
 function principalUserId(req: FastifyRequest): string | null {
   const headers = req.headers as Record<string, string | string[] | undefined>;
@@ -196,7 +201,12 @@ export const registerChatRoutes = async (
   app: FastifyInstance,
   opts: ChatRoutesOptions
 ): Promise<void> => {
-  const { client, authClient, petEnquiryUserRateLimiter } = opts;
+  const {
+    client,
+    authClient,
+    petEnquiryUserRateLimiter,
+    petEnquiryIpMax = DEFAULT_PET_ENQUIRY_IP_MAX,
+  } = opts;
 
   await app.register(rateLimit, { global: false });
 
@@ -227,7 +237,7 @@ export const registerChatRoutes = async (
   app.post<{ Body: { petId?: string } }>(
     '/api/v1/chats/enquiries',
     {
-      config: { rateLimit: PET_ENQUIRY_RATE_LIMIT },
+      config: { rateLimit: petEnquiryRateLimit(petEnquiryIpMax) },
       preHandler: petEnquiryUserRateLimit,
       schema: {
         tags: ['chat'],

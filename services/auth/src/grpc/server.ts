@@ -28,6 +28,7 @@ import {
   provisionInvitedUser,
   redeemInvitation,
   register,
+  registerRescueOwner,
   resendVerification,
   resetPassword,
   updateAccount,
@@ -57,6 +58,7 @@ import {
   adminUpdateUser,
   bulkUpdateUsers,
   createIpRule,
+  applyUserSanction,
   deactivateUser,
   deleteIpRule,
   getUserPermissions,
@@ -135,6 +137,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // Service-internal create-or-find for invite acceptance — gated by
     // the gateway behind invitation-token validation, not a principal.
     provisionInvitedUser: adaptUnauth(provisionInvitedUser, { deps, logger }),
+    // Public rescue sign-up owner account: only reachable via the gateway's
+    // rate-limited POST /api/v1/rescues/register.
+    registerRescueOwner: adaptUnauth(registerRescueOwner, { deps, logger }),
     verifyEmail: adaptUnauth(verifyEmail, { deps, logger }),
     resendVerification: adaptUnauth(resendVerification, { deps, logger }),
     forgotPassword: adaptUnauth(forgotPassword, { deps, logger }),
@@ -172,6 +177,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     adminCreateUser: adapt(adminCreateUser, { deps, logger }),
     adminUpdateUser: adapt(adminUpdateUser, { deps, logger }),
     deactivateUser: adapt(deactivateUser, { deps, logger }),
+    applyUserSanction: adapt(applyUserSanction, { deps, logger }),
     reactivateUser: adapt(reactivateUser, { deps, logger }),
     getUserStatistics: adapt(getUserStatistics, { deps, logger }),
     getUserPermissions: adapt(getUserPermissions, { deps, logger }),
@@ -212,6 +218,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'assignRole',
       'register',
       'provisionInvitedUser',
+      'registerRescueOwner',
       'verifyEmail',
       'resendVerification',
       'forgotPassword',
@@ -235,6 +242,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'adminCreateUser',
       'adminUpdateUser',
       'deactivateUser',
+      'applyUserSanction',
       'reactivateUser',
       'getUserStatistics',
       'getUserPermissions',

@@ -24,6 +24,7 @@ const config: PetsConfig = {
   databaseUrl: 'postgres://test',
   schema: 'pets',
   natsUrl: 'nats://localhost:4222',
+  rescueGrpcUrl: 'localhost:6004',
 };
 
 const pool = {} as unknown as Pool;

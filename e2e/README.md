@@ -86,9 +86,23 @@ All seeded users use the password `DevPassword123!`. The personas are defined in
 
 Each project (`client`, `rescue`, `admin`) reuses its role's storageState. Specs that need to test login/registration itself live in the `*-anon` projects with no storageState. Cross-app journeys use the `asRole(...)` fixture to spin up a second authenticated context for a different role.
 
-## Running E2E Locally
+## Running E2E in an isolated stack (recommended)
 
-End-to-end tests need the full Docker stack (backend + three React apps + Postgres + Redis) running and seeded. The commands below are the exact sequence used in development.
+`pnpm e2e:isolated` boots a private, throwaway copy of the stack (compose project `ads-e2e`, apps on 13000-13002, gateway on 14000), seeds it, runs the `@smoke` subset and tears it down. It shares nothing with your dev stack (no rate-limit counters, data, ports or saved logins), and it is the same stack CI runs. Stop the dev stack first (`pnpm docker:down`): the isolated stack fits an 8 GB Docker VM on its own, not beside it. The script refuses to start while a dev stack is running unless you pass `--force`.
+
+```bash
+pnpm e2e:isolated                                   # @smoke subset
+pnpm e2e:isolated:full                              # whole suite (+ production-limits gateway for tests/gateway-limits)
+pnpm e2e:isolated tests/client/pet-discovery.spec.ts   # any other args go to Playwright
+pnpm e2e:isolated --workers 4                       # default 3 locally
+pnpm e2e:isolated --keep                            # leave the stack up; then --reuse to re-run specs, :down to stop
+```
+
+Details (what is built, memory limits, ports, the `limits` gateway) are in [docs/DOCKER.md](../docs/DOCKER.md#reproducing-ci-e2e-locally). The `gateway-limits` project needs a gateway with production rate limits and skips itself unless `E2E_LIMITER_GATEWAY_URL` is set, which only the isolated stack's `limits` profile does.
+
+## Running E2E against the dev stack
+
+The isolated stack above is preferred. To run against the shared dev stack instead, end-to-end tests need the full Docker stack (backend + three React apps + Postgres + Redis) running and seeded. The commands below are the exact sequence used in development.
 
 ```bash
 # 1. One-time setup
@@ -229,10 +243,10 @@ The CI job also emits a workflow warning listing how many tests needed retries (
 
 ## Smoke vs Full Suite
 
-CI splits the suite to keep PR feedback fast while still gating `main` on the full integration set. See `.github/workflows/ci.yml` (the "Run Playwright suite" step in the `test-e2e` job):
+CI splits the suite to keep PR feedback fast while still gating `main` on the full integration set. See `.github/workflows/ci.yml` (the `e2e-suite` composite action both e2e jobs call):
 
-- **Pull requests** run `pnpm test:e2e:smoke` — Playwright is invoked with `--grep @smoke`, executing only tests whose title contains `@smoke`. This is the critical-journey subset and currently completes in roughly 3–5 minutes.
-- **Push to `main` / `develop`** runs the full `pnpm test:e2e`. This is the integration gate before deploy.
+- **Pull requests** run the `@smoke` subset (`pnpm test:e2e:smoke` against the dev stack, `pnpm e2e:isolated` against the isolated one, which is what CI uses) — Playwright is invoked with `--grep @smoke`, executing only tests whose title contains `@smoke`. This is the critical-journey subset and currently completes in roughly 3–5 minutes.
+- **Push to `main` / `develop`** runs the full suite (`pnpm e2e:isolated:full`'s equivalent in CI). This is the integration gate before deploy.
 
 Existing `@smoke` tests:
 

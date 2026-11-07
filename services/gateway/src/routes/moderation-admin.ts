@@ -78,6 +78,13 @@ const LIST_RESPONSE_200 = {
 // call, so the array can't be unbounded.
 const MAX_BULK_REPORT_IDS = 100;
 
+// ResolveReport takes the stored resolution, or the 'dismissed' sentinel that
+// closes the report as dismissed (the service stores a valid 'no_action').
+// Neither 'resolved' nor 'dismissed' is a valid stored value, so a plain
+// resolve with no chosen action records 'no_action'.
+const resolutionFor = (dismiss: boolean, chosen: string | undefined): string =>
+  dismiss ? 'dismissed' : (chosen ?? 'no_action');
+
 export const registerModerationAdminRoutes = async (
   app: FastifyInstance,
   opts: ModerationAdminRoutesOptions
@@ -291,7 +298,7 @@ export const registerModerationAdminRoutes = async (
       }
       const grpcReq: ResolveReportRequest = {
         reportId: req.params.id,
-        resolution: target === 'dismissed' ? 'dismissed' : ((b.resolution as string) ?? 'resolved'),
+        resolution: resolutionFor(target === 'dismissed', b.resolution as string | undefined),
         resolutionNotes: b.resolutionNotes as string | undefined,
       };
       try {
@@ -396,6 +403,7 @@ export const registerModerationAdminRoutes = async (
           200: {
             type: 'object',
             properties: {
+              success: { type: 'boolean' },
               data: { type: 'array', items: { type: 'object', additionalProperties: true } },
               updated: { type: 'integer' },
             },
@@ -432,7 +440,7 @@ export const registerModerationAdminRoutes = async (
             const res = await client.resolveReport(
               {
                 reportId,
-                resolution: b.action === 'dismiss' ? 'dismissed' : (b.resolution ?? 'resolved'),
+                resolution: resolutionFor(b.action === 'dismiss', b.resolution),
                 resolutionNotes: b.resolutionNotes,
               },
               meta
@@ -452,7 +460,9 @@ export const registerModerationAdminRoutes = async (
             return reply.code(400).send({ error: `unsupported bulk action: ${b.action ?? ''}` });
           }
         }
-        return reply.send({ data: reports, updated: reports.length });
+        // { success, updated } is what lib.moderation's BulkUpdateResponseSchema
+        // parses; `data` carries the updated reports for other callers.
+        return reply.send({ success: true, data: reports, updated: reports.length });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

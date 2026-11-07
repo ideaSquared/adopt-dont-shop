@@ -27,6 +27,7 @@ describe('loadConfig', () => {
       NOTIFICATIONS_HOST: '127.0.0.1',
       NOTIFICATIONS_SCHEMA: 'notifications_test',
       NODE_ENV: 'production',
+      FRONTEND_URL: 'https://app.example.com',
       DATABASE_URL: 'postgres://prod:secret@db.example.com:5432/notifications',
       NATS_URL: 'nats://nats.internal:4222',
       // ADS-549: production needs a real email provider — console is
@@ -71,10 +72,32 @@ describe('loadConfig', () => {
     expect(config.pushProvider).toEqual({ kind: 'console' });
   });
 
+  it('builds email links from FRONTEND_URL, defaulting to the local client in development', () => {
+    expect(loadConfig({ DATABASE_URL: VALID_DB_URL }).frontendUrl).toBe('http://localhost:3000');
+    expect(
+      loadConfig({ DATABASE_URL: VALID_DB_URL, FRONTEND_URL: ' https://app.example.com ' })
+        .frontendUrl
+    ).toBe('https://app.example.com');
+  });
+
+  it('refuses to boot in production without FRONTEND_URL, since every email link would be broken', () => {
+    expect(() =>
+      loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        NODE_ENV: 'production',
+        EMAIL_PROVIDER: 'ethereal',
+        PUSH_PROVIDER: 'fcm',
+        FCM_SERVICE_ACCOUNT_JSON: '{}',
+        FCM_PROJECT_ID: 'p',
+      })
+    ).toThrow(/FRONTEND_URL/);
+  });
+
   it("rejects PUSH_PROVIDER='console' in production", () => {
     expect(() =>
       loadConfig({
         NODE_ENV: 'production',
+        FRONTEND_URL: 'https://app.example.com',
         DATABASE_URL: VALID_DB_URL,
         EMAIL_PROVIDER: 'resend',
         RESEND_API_KEY: 'k',
@@ -104,6 +127,7 @@ describe('loadConfig', () => {
     expect(() =>
       loadConfig({
         NODE_ENV: 'production',
+        FRONTEND_URL: 'https://app.example.com',
         DATABASE_URL: VALID_DB_URL,
         EMAIL_PROVIDER: 'console',
       })

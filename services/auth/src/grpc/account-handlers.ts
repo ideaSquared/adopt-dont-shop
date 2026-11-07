@@ -15,7 +15,7 @@
 //   - auth.emailVerified
 //   - auth.passwordChanged
 
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { withTransaction } from '@adopt-dont-shop/events';
 
@@ -31,6 +31,8 @@ import type {
   RedeemInvitationResponse,
   RegisterRequest,
   RegisterResponse,
+  RegisterRescueOwnerRequest,
+  RegisterRescueOwnerResponse,
   ResendVerificationRequest,
   ResendVerificationResponse,
   ResetPasswordRequest,
@@ -271,6 +273,119 @@ export async function provisionInvitedUser(
     }
     throw err;
   }
+}
+
+// --- RegisterRescueOwner ---------------------------------------------
+//
+// Public rescue sign-up. Creates the owner account of a rescue that is
+// registering: pending_verification + a mailed verification token (same as
+// Register), but user_type rescue_staff and the user_id is returned so the
+// gateway can attach the user to the pending rescue. For an email that is
+// already registered the response carries no user (and nothing is created):
+// the gateway then answers exactly as for a new sign-up.
+
+export async function registerRescueOwner(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: RegisterRescueOwnerRequest
+): Promise<RegisterRescueOwnerResponse> {
+  void _principal;
+  assertEmail(req.email);
+  assertPassword(req.password);
+  if (!req.firstName || !req.lastName) {
+    throw new HandlerError('INVALID_ARGUMENT', 'first_name and last_name are required');
+  }
+
+  // Hash up front (same as Register) so response time does not reveal whether
+  // the email is taken.
+  const password = await deps.passwordHasher.hash(req.password);
+
+  // Enumeration-safe, like Register: an existing email gets the SAME neutral
+  // response as a fresh sign-up (no user in it, no error) and no account is
+  // created; the existing holder is told by notification instead.
+  const existing = await deps.pool.query<{ user_id: string }>(
+    `SELECT user_id FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+    [req.email]
+  );
+  if (existing.rows.length > 0) {
+    await notifyRescueRegistrationAttempt(deps, existing.rows[0].user_id);
+    return {};
+  }
+
+  const verificationToken = mintToken();
+  const verificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
+
+  try {
+    const created = await withTransaction(deps, async ({ client, publish }) => {
+      const insertRes = await client.query<UserRow>(
+        `
+        INSERT INTO auth.users (
+          user_id, email, password, first_name, last_name,
+          verification_token_hash, verification_token_expires_at,
+          status, user_type, email_verified, phone_verified,
+          two_factor_enabled, terms_accepted_at, privacy_policy_accepted_at,
+          login_attempts, created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4,
+          $5, $6,
+          'pending_verification', 'rescue_staff', false, false,
+          false, NULL, NULL,
+          0, now(), now()
+        )
+        RETURNING *
+        `,
+        [
+          req.email,
+          password,
+          req.firstName,
+          req.lastName,
+          hashToken(verificationToken),
+          verificationExpires,
+        ]
+      );
+      const user = insertRes.rows[0];
+      publish({
+        type: 'auth.userRegistered',
+        id: `auth.userRegistered.${user.user_id}`,
+        payload: {
+          userId: user.user_id,
+          email: user.email,
+          firstName: user.first_name,
+          verificationToken,
+          verificationExpiresAt: verificationExpires.toISOString(),
+        },
+      });
+      return user;
+    });
+    return { user: rowToProtoUser(created) };
+  } catch (err) {
+    // Unique-violation race: same neutral response, nothing created. The
+    // account that won the race is the existing holder, so tell them too.
+    if ((err as { code?: string }).code === '23505') {
+      const winner = await deps.pool.query<{ user_id: string }>(
+        `SELECT user_id FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+        [req.email]
+      );
+      if (winner.rows.length > 0) {
+        await notifyRescueRegistrationAttempt(deps, winner.rows[0].user_id);
+      }
+      return {};
+    }
+    throw err;
+  }
+}
+
+// Tells the holder of an already-registered email that someone tried to use it
+// for a rescue sign-up (picked up by service.notifications).
+async function notifyRescueRegistrationAttempt(deps: HandlerDeps, userId: string): Promise<void> {
+  await withTransaction(deps, async ({ publish }) => {
+    publish({
+      type: 'auth.rescueRegistrationAttempted',
+      id: `auth.rescueRegistrationAttempted.${randomUUID()}`,
+      payload: { userId },
+    });
+  });
 }
 
 // --- VerifyEmail -----------------------------------------------------

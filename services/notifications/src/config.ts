@@ -50,6 +50,9 @@ export type NotificationsConfig = {
   // NATS bus. Used by both the publish-after-commit pipeline (Create /
   // Dismiss handlers) and the fan-out subscriber (Phase 1.4).
   natsUrl: string;
+  // Client app origin used to build links in verification and password-reset
+  // emails (FRONTEND_URL, as documented in docs/env-reference.md).
+  frontendUrl: string;
   // Email provider selection — Phase 7 round-out. ADS-549 rule: in
   // production an unknown / unconfigured provider crashes boot rather
   // than silently downgrading to console.
@@ -86,6 +89,7 @@ const DEFAULT_GRPC_PORT = 6001;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'notifications';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
+const DEFAULT_FRONTEND_URL = 'http://localhost:3000';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsConfig => {
   const port = parsePort(env.NOTIFICATIONS_PORT, DEFAULT_PORT, 'NOTIFICATIONS_PORT');
@@ -109,6 +113,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     databaseUrl,
     schema: env.NOTIFICATIONS_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    frontendUrl: loadFrontendUrl(env),
     emailProvider: loadEmailProviderConfig(env),
     emailWorkerEnabled: env.EMAIL_WORKER_ENABLED?.trim() !== 'false',
     emailChannelEnabled: env.EMAIL_CHANNEL_ENABLED?.trim() !== 'false',
@@ -118,6 +123,19 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     pushWorkerEnabled: env.PUSH_WORKER_ENABLED?.trim() !== 'false',
     weeklyDigestEnabled: env.WEEKLY_DIGEST_ENABLED?.trim() === 'true',
   };
+};
+
+const loadFrontendUrl = (env: NodeJS.ProcessEnv): string => {
+  const configured = env.FRONTEND_URL?.trim();
+  if (configured) {
+    return configured;
+  }
+  if ((env.NODE_ENV?.trim() ?? '').toLowerCase() === 'production') {
+    throw new Error(
+      'FRONTEND_URL is required in production: verification and reset email links are built from it'
+    );
+  }
+  return DEFAULT_FRONTEND_URL;
 };
 
 const loadPushProviderConfig = (env: NodeJS.ProcessEnv): PushProviderConfig => {

@@ -198,6 +198,10 @@ services:
       E2E_TOKEN_PEEK: ${E2E_TOKEN_PEEK:-true}
       GATEWAY_RATE_LIMIT_MAX: ${GATEWAY_RATE_LIMIT_MAX:-1000}
       GATEWAY_AUTH_RATE_LIMIT_MAX: ${GATEWAY_AUTH_RATE_LIMIT_MAX:-100}
+      # Pet-enquiry daily caps (per IP / per user). Dev only: the gateway
+      # refuses to boot with either overridden under production/staging.
+      GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: ${GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX:-10000}
+      GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: ${GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX:-10000}
     volumes: *dev-volumes
     command: sh -c "pnpm --filter @adopt-dont-shop/service.gateway run dev"
 
