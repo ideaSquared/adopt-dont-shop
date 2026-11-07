@@ -652,6 +652,14 @@ async function setStatus(
 // actor, so those accounts stay with the admin tools and their super_admin
 // checks.
 
+// service.moderation's service principal (see its auth client) is the only
+// caller allowed to name a different human as the audit actor.
+const MODERATION_SERVICE_PRINCIPAL_ID = 'svc-moderation';
+
+// RFC 3339 with an explicit timezone: `new Date` alone also accepts date-only
+// and offsetless strings, which are read in the server's local timezone.
+const RFC_3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
 export async function applyUserSanction(
   deps: HandlerDeps,
   principal: Principal,
@@ -669,6 +677,14 @@ export async function applyUserSanction(
   if (!req.reason) {
     throw new HandlerError('INVALID_ARGUMENT', 'reason is required');
   }
+  // actor_user_id is request data, not the authenticated identity: a human
+  // caller may only attribute the sanction to themselves.
+  if (
+    principal.userId !== MODERATION_SERVICE_PRINCIPAL_ID &&
+    req.actorUserId !== principal.userId
+  ) {
+    throw new HandlerError('PERMISSION_DENIED', 'actor_user_id must be the calling user');
+  }
   if (req.actorUserId === req.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'cannot sanction your own account');
   }
@@ -681,8 +697,8 @@ export async function applyUserSanction(
     if (isBan) {
       throw new HandlerError('INVALID_ARGUMENT', 'a ban is permanent: expires_at is not allowed');
     }
-    expiresAt = new Date(req.expiresAt);
-    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+    expiresAt = RFC_3339.test(req.expiresAt) ? new Date(req.expiresAt) : undefined;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
       throw new HandlerError('INVALID_ARGUMENT', 'expires_at must be a future RFC 3339 time');
     }
   }
@@ -690,14 +706,28 @@ export async function applyUserSanction(
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
-    const current = await client.query<UserRow>(
-      `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+    // Locked read that also returns any additional roles (auth.user_roles):
+    // an adopter who was assigned admin or moderator is just as elevated as
+    // one whose primary role is.
+    const current = await client.query<UserRow & { extra_roles: string[] | null }>(
+      `SELECT ${USER_SELECT},
+              COALESCE(
+                (SELECT array_agg(r.role_name)
+                   FROM auth.user_roles ur
+                   INNER JOIN auth.roles r ON r.role_id = ur.role_id
+                  WHERE ur.user_id = auth.users.user_id),
+                '{}'
+              ) AS extra_roles
+         FROM auth.users
+        WHERE user_id = $1 AND deleted_at IS NULL
+          FOR UPDATE`,
       [req.userId]
     );
     if (current.rows.length === 0) {
       throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
     }
-    if (ELEVATED_ROLES.has(current.rows[0].user_type)) {
+    const heldRoles = [current.rows[0].user_type, ...(current.rows[0].extra_roles ?? [])];
+    if (heldRoles.some(role => ELEVATED_ROLES.has(role))) {
       throw new HandlerError(
         'PERMISSION_DENIED',
         'admin, moderator and super_admin accounts cannot be sanctioned through moderation'
@@ -746,7 +776,7 @@ export async function applyUserSanction(
   if (!updated) {
     throw new HandlerError('INTERNAL', 'sanction returned no rows');
   }
-  return { user: rowToProtoUser(updated) };
+  return { userId: updated.user_id, status: statusFromDb(updated.status) };
 }
 
 // --- AdminResetPassword ----------------------------------------------

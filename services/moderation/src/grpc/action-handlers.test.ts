@@ -185,6 +185,11 @@ describe('logModeratorAction - user sanctions through auth.ApplyUserSanction', (
     actionType: ModerationV1.ModeratorActionType.MODERATOR_ACTION_TYPE_USER_BANNED,
     targetUserId: 'usr-2',
   };
+  // Action management alone is not enough to suspend or ban: the human also
+  // needs moderation.users.sanction (the service principal always has it).
+  const SANCTIONER = makePrincipal({
+    permissions: ['moderation.actions.manage', 'moderation.users.sanction'],
+  });
   const makeAuth = (applyUserSanction = vi.fn().mockResolvedValue(undefined)) => ({
     applyUserSanction,
     close: vi.fn(),
@@ -193,13 +198,13 @@ describe('logModeratorAction - user sanctions through auth.ApplyUserSanction', (
   it('suspends the target user with the human moderator as actor, then publishes', async () => {
     const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_suspended' })] }]);
     const auth = makeAuth();
-    await logModeratorAction(deps, makePrincipal(), SUSPEND_REQ, auth);
+    await logModeratorAction(deps, SANCTIONER, SUSPEND_REQ, auth);
     expect(auth.applyUserSanction).toHaveBeenCalledTimes(1);
     expect(auth.applyUserSanction).toHaveBeenCalledWith({
       userId: 'usr-2',
       kind: 'suspend',
       reason: SUSPEND_REQ.reason,
-      actorUserId: makePrincipal().userId,
+      actorUserId: SANCTIONER.userId,
       expiresAt: undefined,
     });
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
@@ -212,7 +217,7 @@ describe('logModeratorAction - user sanctions through auth.ApplyUserSanction', (
     ]);
     const auth = makeAuth();
     const before = Date.now();
-    await logModeratorAction(deps, makePrincipal(), { ...SUSPEND_REQ, duration: 7 }, auth);
+    await logModeratorAction(deps, SANCTIONER, { ...SUSPEND_REQ, duration: 7 }, auth);
     const sent = auth.applyUserSanction.mock.calls[0][0] as { expiresAt: string };
     const sevenDays = 7 * 24 * 60 * 60 * 1000;
     expect(new Date(sent.expiresAt).getTime()).toBeGreaterThanOrEqual(before + sevenDays);
@@ -222,17 +227,33 @@ describe('logModeratorAction - user sanctions through auth.ApplyUserSanction', (
   it('bans through the same single call, with no expiry', async () => {
     const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
     const auth = makeAuth();
-    await logModeratorAction(deps, makePrincipal(), BAN_REQ, auth);
+    await logModeratorAction(deps, SANCTIONER, BAN_REQ, auth);
     expect(auth.applyUserSanction).toHaveBeenCalledTimes(1);
     expect(auth.applyUserSanction).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'usr-2', kind: 'ban', expiresAt: undefined })
     );
   });
 
+  it.each([
+    ['suspension', SUSPEND_REQ],
+    ['ban', BAN_REQ],
+  ])(
+    'refuses a %s from someone who can manage actions but not sanction users',
+    async (_label, req) => {
+      const { deps, query } = makeDeps([]);
+      const auth = makeAuth();
+      await expect(logModeratorAction(deps, makePrincipal(), req, auth)).rejects.toMatchObject({
+        code: 'PERMISSION_DENIED',
+      });
+      expect(query).not.toHaveBeenCalled();
+      expect(auth.applyUserSanction).not.toHaveBeenCalled();
+    }
+  );
+
   it('does not call auth for other action types', async () => {
     const { deps } = makeDeps([{ rows: [actionRow()] }]);
     const auth = makeAuth();
-    await logModeratorAction(deps, makePrincipal(), VALID_LOG_REQ, auth);
+    await logModeratorAction(deps, SANCTIONER, VALID_LOG_REQ, auth);
     expect(auth.applyUserSanction).not.toHaveBeenCalled();
   });
 
@@ -242,7 +263,7 @@ describe('logModeratorAction - user sanctions through auth.ApplyUserSanction', (
   ])('fails the whole %s (no event) when auth refuses', async (_label, req, actionType) => {
     const { deps } = makeDeps([{ rows: [actionRow({ action_type: actionType })] }]);
     const auth = makeAuth(vi.fn().mockRejectedValue({ code: 7, message: 'denied' }));
-    await expect(logModeratorAction(deps, makePrincipal(), req, auth)).rejects.toMatchObject({
+    await expect(logModeratorAction(deps, SANCTIONER, req, auth)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
     // withTransaction rolls back on throw; the event is only published after
@@ -253,7 +274,7 @@ describe('logModeratorAction - user sanctions through auth.ApplyUserSanction', (
   it('keeps UNAVAILABLE from auth so the gateway answers 503, not 500', async () => {
     const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
     const auth = makeAuth(vi.fn().mockRejectedValue({ code: 14, message: 'unavailable' }));
-    await expect(logModeratorAction(deps, makePrincipal(), BAN_REQ, auth)).rejects.toMatchObject({
+    await expect(logModeratorAction(deps, SANCTIONER, BAN_REQ, auth)).rejects.toMatchObject({
       code: 'UNAVAILABLE',
     });
     expect((deps as { _publish?: unknown })._publish).toBeUndefined();
@@ -265,7 +286,7 @@ describe('logModeratorAction - user sanctions through auth.ApplyUserSanction', (
   ])('rejects a %s with no target user before touching the database', async (_label, req) => {
     const { deps, query } = makeDeps([]);
     await expect(
-      logModeratorAction(deps, makePrincipal(), { ...req, targetUserId: undefined }, makeAuth())
+      logModeratorAction(deps, SANCTIONER, { ...req, targetUserId: undefined }, makeAuth())
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     expect(query).not.toHaveBeenCalled();
   });

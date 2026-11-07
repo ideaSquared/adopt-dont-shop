@@ -1666,6 +1666,8 @@ describe('applyUserSanction', () => {
     ['a missing actor', { actorUserId: '' }],
     ['a missing reason', { reason: '' }],
     ['an unparseable expires_at', { expiresAt: 'tomorrow' }],
+    ['a date-only expires_at', { expiresAt: '2099-01-01' }],
+    ['an expires_at with no timezone', { expiresAt: '2099-01-01T00:00:00' }],
     ['an expires_at in the past', { expiresAt: '2000-01-01T00:00:00.000Z' }],
     ['a moderator sanctioning themselves', { actorUserId: 'usr-1' }],
   ])('rejects %s', async (_label, override) => {
@@ -1674,6 +1676,55 @@ describe('applyUserSanction', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
+
+  it('does not return the full user, which would expose fields moderators may not read', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({
+      rows: [userRow({ status: 'suspended', phone_verified: true, two_factor_enabled: true })],
+    });
+
+    const res = await applyUserSanction(mocks.deps, SANCTIONER, SUSPEND);
+
+    expect(Object.keys(res).sort()).toEqual(['status', 'userId']);
+  });
+
+  it('only lets the moderation service principal name a different actor', async () => {
+    const human: Principal = {
+      userId: 'mod-9' as UserId,
+      roles: ['moderator'],
+      permissions: ['moderation.users.sanction' as Permission],
+    };
+
+    await expect(
+      applyUserSanction(mocks.deps, human, { ...SUSPEND, actorUserId: 'someone-else' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('lets a human caller attribute the sanction to themselves', async () => {
+    const human: Principal = {
+      userId: 'mod-9' as UserId,
+      roles: ['moderator'],
+      permissions: ['moderation.users.sanction' as Permission],
+    };
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+
+    await applyUserSanction(mocks.deps, human, { ...SUSPEND, actorUserId: 'mod-9' });
+
+    expect(actionTaken(mocks)[0].actorUserId).toBe('mod-9');
+  });
+
+  it.each(['admin', 'moderator', 'super_admin'])(
+    'refuses a user who holds %s as an additional role, not just as their primary role',
+    async role => {
+      mocks.clientScript.push({ rows: [userRow({ user_type: 'adopter', extra_roles: [role] })] });
+      await expect(applyUserSanction(mocks.deps, SANCTIONER, SUSPEND)).rejects.toMatchObject({
+        code: 'PERMISSION_DENIED',
+      });
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects an expiry on a ban, which is permanent', async () => {
     await expect(
@@ -1709,7 +1760,10 @@ describe('applyUserSanction', () => {
       expiresAt: FUTURE,
     });
 
-    expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
+    expect(res).toEqual({
+      userId: 'usr-1',
+      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+    });
     expect(publishedEvents(mocks).map(([subject]) => subject)).toEqual(['auth.actionTaken']);
     const [event] = actionTaken(mocks);
     expect(event).toMatchObject({
@@ -1746,7 +1800,10 @@ describe('applyUserSanction', () => {
 
     const res = await applyUserSanction(mocks.deps, SANCTIONER, BAN);
 
-    expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_DEACTIVATED);
+    expect(res).toEqual({
+      userId: 'usr-1',
+      status: AuthV1.UserStatus.USER_STATUS_DEACTIVATED,
+    });
     const sql = (mocks.clientMock.query.mock.calls as Array<[string]>).map(([q]) => q).join(' ');
     expect(sql).toContain('tokens_valid_from');
     expect(sql).toContain('UPDATE auth.refresh_tokens');

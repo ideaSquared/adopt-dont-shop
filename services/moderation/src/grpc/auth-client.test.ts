@@ -46,7 +46,7 @@ describe('createAuthClient (moderation)', () => {
     serve((call, cb) => {
       seen.req = call.request;
       seen.meta = call.metadata;
-      cb(null, {});
+      cb(null, { userId: 'usr-2', status: AuthV1.UserStatus.USER_STATUS_SUSPENDED });
     });
     const client = createAuthClient({ address: `127.0.0.1:${await start()}` });
 
@@ -78,7 +78,7 @@ describe('createAuthClient (moderation)', () => {
     let req: AuthV1.ApplyUserSanctionRequest | undefined;
     serve((call, cb) => {
       req = call.request;
-      cb(null, {});
+      cb(null, { userId: 'usr-2', status: AuthV1.UserStatus.USER_STATUS_SUSPENDED });
     });
     const client = createAuthClient({ address: `127.0.0.1:${await start()}` });
 

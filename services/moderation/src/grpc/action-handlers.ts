@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import { MODERATION_ACTIONS_MANAGE } from '@adopt-dont-shop/lib.types';
+import { MODERATION_ACTIONS_MANAGE, MODERATION_USERS_SANCTION } from '@adopt-dont-shop/lib.types';
 import type {
   AddEvidenceRequest,
   AddEvidenceResponse,
@@ -113,6 +113,12 @@ export async function logModeratorAction(
       'INVALID_ARGUMENT',
       `target_user_id is required to ${suspendsUser ? 'suspend' : 'ban'} a user`
     );
+  }
+  // The service principal that calls auth always holds the sanction permission,
+  // so check the HUMAN caller here: managing actions alone must not be enough
+  // to suspend or ban a user.
+  if ((suspendsUser || bansUser) && !requirePermission(principal, MODERATION_USERS_SANCTION)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_USERS_SANCTION}' required`);
   }
   if ((suspendsUser || bansUser) && authClient === undefined) {
     throw new HandlerError('INTERNAL', 'auth client not configured; cannot restrict a user');
