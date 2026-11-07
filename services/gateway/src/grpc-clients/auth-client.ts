@@ -47,6 +47,8 @@ import {
   type RedeemInvitationResponse,
   type RegisterRequest,
   type RegisterResponse,
+  type RegisterRescueOwnerRequest,
+  type RegisterRescueOwnerResponse,
   type ResendVerificationRequest,
   type ResendVerificationResponse,
   type ResetPasswordRequest,
@@ -141,6 +143,10 @@ export type AuthClient = {
   getMe(req: GetMeRequest, metadata: Metadata): Promise<GetMeResponse>;
   assignRole(req: AssignRoleRequest, metadata: Metadata): Promise<AssignRoleResponse>;
   register(req: RegisterRequest, metadata: Metadata): Promise<RegisterResponse>;
+  registerRescueOwner(
+    req: RegisterRescueOwnerRequest,
+    metadata: Metadata
+  ): Promise<RegisterRescueOwnerResponse>;
   provisionInvitedUser(
     req: ProvisionInvitedUserRequest,
     metadata: Metadata
@@ -361,6 +367,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     logout: (req, metadata) => callUnary(stub.logout, req, metadata, false),
     refreshToken: (req, metadata) => callUnary(stub.refreshToken, req, metadata, false),
     register: (req, metadata) => callUnary(stub.register, req, metadata, false),
+    registerRescueOwner: (req, metadata) =>
+      callUnary(stub.registerRescueOwner, req, metadata, false),
     provisionInvitedUser: (req, metadata) =>
       callUnary(stub.provisionInvitedUser, req, metadata, false),
     verifyEmail: (req, metadata) => callUnary(stub.verifyEmail, req, metadata, false),

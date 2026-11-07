@@ -21,6 +21,8 @@
 
 import { randomUUID } from 'node:crypto';
 
+import { status as grpcStatus } from '@grpc/grpc-js';
+
 import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import {
@@ -93,9 +95,13 @@ import {
   type PetAgeGroupDb,
 } from './enum-map.js';
 import { escapeLikePattern } from './escape-like.js';
+import type { RescueClient } from './rescue-client.js';
 import { isLegalTransition } from './status-machine.js';
 
-export type HandlerDeps = WithTransactionDeps;
+export type HandlerDeps = WithTransactionDeps & {
+  // Source of truth for rescue status and staff membership (service.rescue).
+  rescueClient: RescueClient;
+};
 
 export type HandlerErrorCode =
   | 'INVALID_ARGUMENT'
@@ -312,6 +318,7 @@ export async function createPet(
   if (!requirePermission(principal, PETS_CREATE, { rescueId: rescueId as RescueId })) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_CREATE}' required for this rescue`);
   }
+  await assertRescueMayWrite(deps, principal, rescueId);
 
   const extra = canonicalImageList(parseExtraObject(req.extraJson));
   assertSafeImageUrls(extra);
@@ -704,6 +711,7 @@ export async function updatePet(
     throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
   }
   assertRescueScopedUpdate(principal, existing);
+  await assertRescueMayWrite(deps, principal, existing.rescue_id);
 
   // Build the SET clause from the supplied optional fields only.
   const sets: string[] = [];
@@ -846,6 +854,7 @@ export async function updatePetStatus(
     throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
   }
   assertRescueScopedUpdate(principal, existing);
+  await assertRescueMayWrite(deps, principal, existing.rescue_id);
 
   const toStatus = statusToDb(req.toStatus);
 
@@ -960,6 +969,7 @@ export async function deletePet(
   if (!isPermittedRescueMutation(principal, PETS_DELETE, existing)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_DELETE}' required for this rescue`);
   }
+  await assertRescueMayWrite(deps, principal, existing.rescue_id);
 
   await withTransaction(deps, async ({ client, publish }) => {
     await client.query(
@@ -984,6 +994,49 @@ export async function fetchPet(deps: HandlerDeps, petId: string): Promise<PetRow
     [petId]
   );
   return result.rows[0];
+}
+
+// Rescue-scoped pet writes must be backed by the rescue service, not by the
+// principal alone. The principal's rescueId is stamped by the gateway from a
+// cached membership lookup, so it outlives a staff removal; and nothing in it
+// says whether the rescue is verified. So for every rescue-bound writer we
+// ask service.rescue (source of truth) that
+//   - the rescue is VERIFIED (Get answers NOT_FOUND for pending, suspended,
+//     rejected and inactive rescues to a caller without rescues.read), and
+//   - the caller is still an active staff member of it.
+// Platform callers (super_admin, pets.manage:any) are not rescue-bound and
+// skip the check. Orphan pets (no rescue) have no rescue to ask about.
+async function assertRescueMayWrite(
+  deps: HandlerDeps,
+  principal: Principal,
+  rescueId: string | null | undefined
+): Promise<void> {
+  if (!rescueId) {
+    return;
+  }
+  if (principal.roles.includes('super_admin') || hasPermission(principal, PETS_MANAGE_ANY)) {
+    return;
+  }
+
+  // Both lookups run together so the worst case is one call's time budget, not
+  // two (the gateway gives the whole pet mutation about 5s).
+  const [rescueResult, staffResult] = await Promise.allSettled([
+    deps.rescueClient.getRescue({ rescueId }),
+    deps.rescueClient.listStaffMembers({ rescueId }),
+  ]);
+  if (rescueResult.status === 'rejected') {
+    if ((rescueResult.reason as { code?: number }).code === grpcStatus.NOT_FOUND) {
+      throw new HandlerError('PERMISSION_DENIED', `rescue ${rescueId} is not verified`);
+    }
+    throw new HandlerError('INTERNAL', 'failed to verify rescue status');
+  }
+  if (staffResult.status === 'rejected') {
+    throw new HandlerError('INTERNAL', 'failed to verify rescue membership');
+  }
+  const staff = staffResult.value;
+  if (!staff.staffMembers.some(member => member.userId === principal.userId)) {
+    throw new HandlerError('PERMISSION_DENIED', `not a staff member of rescue ${rescueId}`);
+  }
 }
 
 // A pet with no rescue_id (legacy/orphan) can only be mutated by

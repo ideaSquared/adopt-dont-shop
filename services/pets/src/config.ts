@@ -23,6 +23,9 @@ export type PetsConfig = {
   // pets.statusChanged, pets.deleted etc. for downstream services
   // (notifications, matching, moderation, applications) to consume.
   natsUrl: string;
+  // service.rescue gRPC address: createPet / updatePet / ... verify the
+  // rescue is verified and the caller is still its staff (source of truth).
+  rescueGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 5003;
@@ -30,6 +33,7 @@ const DEFAULT_GRPC_PORT = 6003;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'pets';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
+const DEFAULT_RESCUE_GRPC_URL = 'service-rescue:6004';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): PetsConfig => {
   const port = parsePort(env.PETS_PORT, DEFAULT_PORT, 'PETS_PORT');
@@ -45,5 +49,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): PetsConfig => 
     databaseUrl,
     schema: env.PETS_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || DEFAULT_RESCUE_GRPC_URL,
   };
 };

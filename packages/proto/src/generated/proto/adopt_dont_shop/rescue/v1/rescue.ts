@@ -470,6 +470,15 @@ export interface CreateRescueResponse {
   rescue?: Rescue | undefined;
 }
 
+export interface RegisterRescueRequest {
+  rescue?: CreateRescueRequest | undefined;
+  ownerUserId: string;
+}
+
+export interface RegisterRescueResponse {
+  rescue?: Rescue | undefined;
+}
+
 export interface GetRescueRequest {
   rescueId: string;
 }
@@ -2372,6 +2381,148 @@ export const CreateRescueResponse: MessageFns<CreateRescueResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<CreateRescueResponse>, I>>(object: I): CreateRescueResponse {
     const message = createBaseCreateRescueResponse();
+    message.rescue = (object.rescue !== undefined && object.rescue !== null)
+      ? Rescue.fromPartial(object.rescue)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseRegisterRescueRequest(): RegisterRescueRequest {
+  return { rescue: undefined, ownerUserId: "" };
+}
+
+export const RegisterRescueRequest: MessageFns<RegisterRescueRequest> = {
+  encode(message: RegisterRescueRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescue !== undefined) {
+      CreateRescueRequest.encode(message.rescue, writer.uint32(10).fork()).join();
+    }
+    if (message.ownerUserId !== "") {
+      writer.uint32(18).string(message.ownerUserId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterRescueRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterRescueRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescue = CreateRescueRequest.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.ownerUserId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterRescueRequest {
+    return {
+      rescue: isSet(object.rescue) ? CreateRescueRequest.fromJSON(object.rescue) : undefined,
+      ownerUserId: isSet(object.ownerUserId)
+        ? globalThis.String(object.ownerUserId)
+        : isSet(object.owner_user_id)
+        ? globalThis.String(object.owner_user_id)
+        : "",
+    };
+  },
+
+  toJSON(message: RegisterRescueRequest): unknown {
+    const obj: any = {};
+    if (message.rescue !== undefined) {
+      obj.rescue = CreateRescueRequest.toJSON(message.rescue);
+    }
+    if (message.ownerUserId !== "") {
+      obj.ownerUserId = message.ownerUserId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterRescueRequest>, I>>(base?: I): RegisterRescueRequest {
+    return RegisterRescueRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterRescueRequest>, I>>(object: I): RegisterRescueRequest {
+    const message = createBaseRegisterRescueRequest();
+    message.rescue = (object.rescue !== undefined && object.rescue !== null)
+      ? CreateRescueRequest.fromPartial(object.rescue)
+      : undefined;
+    message.ownerUserId = object.ownerUserId ?? "";
+    return message;
+  },
+};
+
+function createBaseRegisterRescueResponse(): RegisterRescueResponse {
+  return { rescue: undefined };
+}
+
+export const RegisterRescueResponse: MessageFns<RegisterRescueResponse> = {
+  encode(message: RegisterRescueResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescue !== undefined) {
+      Rescue.encode(message.rescue, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterRescueResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterRescueResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescue = Rescue.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterRescueResponse {
+    return { rescue: isSet(object.rescue) ? Rescue.fromJSON(object.rescue) : undefined };
+  },
+
+  toJSON(message: RegisterRescueResponse): unknown {
+    const obj: any = {};
+    if (message.rescue !== undefined) {
+      obj.rescue = Rescue.toJSON(message.rescue);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterRescueResponse>, I>>(base?: I): RegisterRescueResponse {
+    return RegisterRescueResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterRescueResponse>, I>>(object: I): RegisterRescueResponse {
+    const message = createBaseRegisterRescueResponse();
     message.rescue = (object.rescue !== undefined && object.rescue !== null)
       ? Rescue.fromPartial(object.rescue)
       : undefined;
@@ -11638,6 +11789,24 @@ export const RescueServiceService = {
     responseDeserialize: (value: Buffer): CreateRescueResponse => CreateRescueResponse.decode(value),
   },
   /**
+   * Public rescue sign-up: create a PENDING rescue and attach `owner_user_id`
+   * (created moments earlier by auth.RegisterRescueOwner) as its first,
+   * verified staff member. No principal / permission: the gateway only
+   * exposes it behind the rate-limited POST /api/v1/rescues/register.
+   * Publishes `rescue.created` after commit.
+   */
+  registerRescue: {
+    path: "/adopt_dont_shop.rescue.v1.RescueService/RegisterRescue" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RegisterRescueRequest): Buffer =>
+      Buffer.from(RegisterRescueRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RegisterRescueRequest => RegisterRescueRequest.decode(value),
+    responseSerialize: (value: RegisterRescueResponse): Buffer =>
+      Buffer.from(RegisterRescueResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RegisterRescueResponse => RegisterRescueResponse.decode(value),
+  },
+  /**
    * Fetch a single rescue by id. NOT_FOUND when missing or
    * soft-deleted. Public-ish — adopters need to render rescue details
    * on a pet's listing page.
@@ -12253,6 +12422,14 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    */
   create: handleUnaryCall<CreateRescueRequest, CreateRescueResponse>;
   /**
+   * Public rescue sign-up: create a PENDING rescue and attach `owner_user_id`
+   * (created moments earlier by auth.RegisterRescueOwner) as its first,
+   * verified staff member. No principal / permission: the gateway only
+   * exposes it behind the rate-limited POST /api/v1/rescues/register.
+   * Publishes `rescue.created` after commit.
+   */
+  registerRescue: handleUnaryCall<RegisterRescueRequest, RegisterRescueResponse>;
+  /**
    * Fetch a single rescue by id. NOT_FOUND when missing or
    * soft-deleted. Public-ish — adopters need to render rescue details
    * on a pet's listing page.
@@ -12499,6 +12676,28 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CreateRescueResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Public rescue sign-up: create a PENDING rescue and attach `owner_user_id`
+   * (created moments earlier by auth.RegisterRescueOwner) as its first,
+   * verified staff member. No principal / permission: the gateway only
+   * exposes it behind the rate-limited POST /api/v1/rescues/register.
+   * Publishes `rescue.created` after commit.
+   */
+  registerRescue(
+    request: RegisterRescueRequest,
+    callback: (error: ServiceError | null, response: RegisterRescueResponse) => void,
+  ): ClientUnaryCall;
+  registerRescue(
+    request: RegisterRescueRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RegisterRescueResponse) => void,
+  ): ClientUnaryCall;
+  registerRescue(
+    request: RegisterRescueRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RegisterRescueResponse) => void,
   ): ClientUnaryCall;
   /**
    * Fetch a single rescue by id. NOT_FOUND when missing or

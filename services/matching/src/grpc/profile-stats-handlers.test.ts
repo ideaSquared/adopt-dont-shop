@@ -122,6 +122,35 @@ describe('upsertMatchProfile', () => {
     expect(params[0]).toBe('usr-1');
   });
 
+  it('binds array selections as JSON text, not JS arrays (node-pg sends arrays as pg array literals)', async () => {
+    const { deps, query } = makeDeps([{ rows: [profileRow()] }]);
+    await upsertMatchProfile(deps, makePrincipal(), {
+      ...base,
+      preferredTypesJson: '["dog","cat"]',
+      setPreferredTypes: true,
+      preferredSizesJson: '[]',
+      setPreferredSizes: true,
+    });
+    const params = query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('["dog","cat"]');
+    expect(params).toContain('[]');
+    expect(params.some(p => Array.isArray(p))).toBe(false);
+  });
+
+  it('binds an object lifestyle as JSON text and a cleared field as null', async () => {
+    const { deps, query } = makeDeps([{ rows: [profileRow()] }]);
+    await upsertMatchProfile(deps, makePrincipal(), {
+      ...base,
+      lifestyleJson: '{"has_children":true}',
+      setLifestyle: true,
+      preferredEnergyJson: '',
+      setPreferredEnergy: true,
+    });
+    const params = query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('{"has_children":true}');
+    expect(params).toContain(null);
+  });
+
   it('rejects invalid JSON in a set field', async () => {
     const { deps } = makeDeps([]);
     await expect(

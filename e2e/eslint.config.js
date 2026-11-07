@@ -10,6 +10,7 @@ export default [
       'playwright-report/',
       'blob-report/',
       '.auth/',
+      '.auth-isolated/',
       'playwright/.cache/',
       '**/*.d.ts',
     ],

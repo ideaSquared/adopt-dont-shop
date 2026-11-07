@@ -131,10 +131,15 @@ export async function getMatchProfile(
 // Parse a `*_json` field into a JSONB value for the upsert. Empty
 // string is rejected here only when the set_* flag is true but the
 // value can't be parsed; an unset field never reaches this.
-const parseJsonField = (raw: string, field: string): unknown => {
+//
+// Returns the value as JSON TEXT (or null for an unset/cleared field):
+// node-pg serialises a bound JS array as a Postgres array literal
+// ('{"dog"}'), which is not valid JSON for a ::jsonb parameter. A string
+// always reaches Postgres verbatim.
+const parseJsonField = (raw: string, field: string): string | null => {
   if (raw === '') return null;
   try {
-    return JSON.parse(raw);
+    return JSON.stringify(JSON.parse(raw));
   } catch {
     throw new HandlerError('INVALID_ARGUMENT', `${field} is not valid JSON`);
   }
@@ -195,7 +200,7 @@ export async function upsertMatchProfile(
       '::jsonb'
     );
   if (req.setLifestyle)
-    add('lifestyle', parseJsonField(req.lifestyleJson, 'lifestyle_json') ?? {}, '::jsonb');
+    add('lifestyle', parseJsonField(req.lifestyleJson, 'lifestyle_json') ?? '{}', '::jsonb');
   if (req.maxDistanceKm !== undefined) add('max_distance_km', req.maxDistanceKm);
   if (req.openToSpecialNeeds !== undefined) add('open_to_special_needs', req.openToSpecialNeeds);
   if (req.notifyNewMatches !== undefined) add('notify_new_matches', req.notifyNewMatches);

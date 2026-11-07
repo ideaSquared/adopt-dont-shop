@@ -10,7 +10,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
-import { withTransaction } from '@adopt-dont-shop/events';
+import { withTransaction, type TransactionalScope } from '@adopt-dont-shop/events';
 import {
   ADMIN_SECURITY_MANAGE,
   ADMIN_SECURITY_READ,
@@ -345,6 +345,49 @@ export async function adminCreateUser(
   return { user: rowToProtoUser(createdUser) };
 }
 
+// --- Audit trail -----------------------------------------------------
+// Forensic record of an admin user action, published as `auth.actionTaken`
+// so service.audit's wildcard `*.actionTaken` subscriber persists it (the
+// legacy auth.user* events below have no audit subscriber). Called from
+// inside withTransaction, so it only fires on commit.
+
+type UserActionAudit = {
+  actorUserId: string;
+  userId: string;
+  action: string;
+  details: Record<string, unknown>;
+};
+
+function publishUserActionTaken(publish: TransactionalScope['publish'], audit: UserActionAudit) {
+  publish({
+    type: 'auth.actionTaken',
+    id: `auth.actionTaken.${randomUUID()}`,
+    payload: {
+      eventId: randomUUID(),
+      service: 'service.auth',
+      subject: 'auth.actionTaken',
+      aggregateType: 'user',
+      aggregateId: audit.userId,
+      actorUserId: audit.actorUserId,
+      action: audit.action,
+      outcome: 'success',
+      occurredAt: new Date().toISOString(),
+      payload: audit.details,
+    },
+  });
+}
+
+// A status transition's audit verb: suspend / reactivate / deactivate.
+function statusAction(status: string): string {
+  if (status === 'active') {
+    return 'reactivate';
+  }
+  if (status === 'suspended') {
+    return 'suspend';
+  }
+  return status === 'deactivated' ? 'deactivate' : 'update';
+}
+
 // --- AdminUpdateUser -------------------------------------------------
 
 export async function adminUpdateUser(
@@ -362,9 +405,11 @@ export async function adminUpdateUser(
   const sets: string[] = [];
   const params: unknown[] = [];
 
+  let statusChange: { newStatus: string } | undefined;
   if (req.status !== undefined && req.status !== AuthV1.UserStatus.USER_STATUS_UNSPECIFIED) {
+    statusChange = { newStatus: statusToDb(req.status) };
     sets.push(`status = $${params.length + 1}`);
-    params.push(statusToDb(req.status));
+    params.push(statusChange.newStatus);
   }
   let roleChange: { newRole: string } | undefined;
   if (req.userType !== undefined && req.userType !== AuthV1.UserRole.USER_ROLE_UNSPECIFIED) {
@@ -409,17 +454,24 @@ export async function adminUpdateUser(
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
-    let previousRole: string | undefined;
-    if (roleChange) {
-      const prevRes = await client.query<{ user_type: string }>(
-        `SELECT user_type FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
-        [req.userId]
-      );
-      if (prevRes.rows.length === 0) {
-        throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
-      }
-      previousRole = prevRes.rows[0].user_type;
+    // Lock the row so the recorded before-state is what this write replaces.
+    const prevRes = await client.query<{
+      status: string;
+      user_type: string;
+      email_verified: boolean;
+      first_name: string;
+      last_name: string;
+    }>(
+      `SELECT status, user_type, email_verified, first_name, last_name
+       FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [req.userId]
+    );
+    if (prevRes.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
     }
+    const previous = prevRes.rows[0];
+    const previousRole = previous.user_type;
+    const previousStatus = previous.status;
 
     const res = await client.query<UserRow>(
       `
@@ -442,6 +494,37 @@ export async function adminUpdateUser(
         userId: req.userId,
         updatedBy: principal.userId,
         ...(roleChange && { roleChange: { before: previousRole, after: roleChange.newRole } }),
+      },
+    });
+
+    const action = statusChange
+      ? statusAction(statusChange.newStatus)
+      : roleChange
+        ? 'assign_role'
+        : 'update';
+    publishUserActionTaken(publish, {
+      actorUserId: principal.userId,
+      userId: req.userId,
+      action,
+      details: {
+        before: {
+          ...(statusChange && { status: previousStatus }),
+          ...(roleChange && { userType: previousRole }),
+          ...(req.emailVerified !== undefined && { emailVerified: previous.email_verified }),
+        },
+        after: {
+          ...(statusChange && { status: statusChange.newStatus }),
+          ...(roleChange && { userType: roleChange.newRole }),
+          ...(req.emailVerified !== undefined && { emailVerified: req.emailVerified }),
+        },
+        // Names are PII: record only that they changed, never the values.
+        changedFields: [
+          ...(statusChange ? ['status'] : []),
+          ...(roleChange ? ['userType'] : []),
+          ...(req.emailVerified !== undefined ? ['emailVerified'] : []),
+          ...(req.firstName !== undefined ? ['firstName'] : []),
+          ...(req.lastName !== undefined ? ['lastName'] : []),
+        ],
       },
     });
   });
@@ -496,21 +579,23 @@ async function setStatus(
   status: 'active' | 'deactivated',
   reason: string | null
 ): Promise<{ user: ReturnType<typeof rowToProtoUser> }> {
-  // Read current to support idempotency + NOT_FOUND.
-  const current = await deps.pool.query<UserRow>(
-    `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
-    [userId]
-  );
-  if (current.rows.length === 0) {
-    throw new HandlerError('NOT_FOUND', `user ${userId} not found`);
-  }
-  // Idempotent — already in the target state.
-  if (current.rows[0].status === status) {
-    return { user: rowToProtoUser(current.rows[0]) };
-  }
-
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
+    // Read the current row under lock inside the transaction, so the
+    // idempotency check and the audited before-state cannot go stale.
+    const current = await client.query<UserRow>(
+      `SELECT ${USER_SELECT} FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [userId]
+    );
+    if (current.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${userId} not found`);
+    }
+    // Idempotent: already in the target state.
+    if (current.rows[0].status === status) {
+      updated = current.rows[0];
+      return;
+    }
+
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
@@ -520,12 +605,26 @@ async function setStatus(
       `,
       [status, userId]
     );
+    if (res.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${userId} not found`);
+    }
     updated = res.rows[0];
 
     publish({
       type: status === 'deactivated' ? 'auth.userDeactivated' : 'auth.userReactivated',
       id: `auth.user${status === 'deactivated' ? 'Deactivated' : 'Reactivated'}.${userId}.${Date.now()}`,
       payload: { userId, actedBy: principal.userId, reason },
+    });
+
+    publishUserActionTaken(publish, {
+      actorUserId: principal.userId,
+      userId,
+      action: statusAction(status),
+      details: {
+        before: { status: current.rows[0].status },
+        after: { status },
+        reason,
+      },
     });
   });
 
@@ -970,12 +1069,24 @@ export async function bulkUpdateUsers(
   for (const userId of req.userIds) {
     try {
       await withTransaction(deps, async ({ client, publish }) => {
-        const res = await client.query<{ user_id: string }>(
+        // Lock the row and return its previous status/role for the audit
+        // before-state.
+        const res = await client.query<{
+          user_id: string;
+          prev_status?: string;
+          prev_user_type?: string;
+        }>(
           `
-          UPDATE auth.users
+          WITH prev AS (
+            SELECT user_id, status, user_type FROM auth.users
+            WHERE user_id = $${baseParams.length + 1} AND deleted_at IS NULL
+            FOR UPDATE
+          )
+          UPDATE auth.users u
           SET ${sets.join(', ')}
-          WHERE user_id = $${baseParams.length + 1} AND deleted_at IS NULL
-          RETURNING user_id
+          FROM prev
+          WHERE u.user_id = prev.user_id
+          RETURNING u.user_id, prev.status AS prev_status, prev.user_type AS prev_user_type
           `,
           [...baseParams, userId]
         );
@@ -986,6 +1097,23 @@ export async function bulkUpdateUsers(
           type: 'auth.userUpdatedByAdmin',
           id: `auth.userUpdatedByAdmin.${userId}.${Date.now()}`,
           payload: { userId, updatedBy: principal.userId, bulk: true, reason: req.reason ?? null },
+        });
+        publishUserActionTaken(publish, {
+          actorUserId: principal.userId,
+          userId,
+          action: setStatus ? statusAction(statusToDb(req.status)) : 'assign_role',
+          details: {
+            bulk: true,
+            reason: req.reason ?? null,
+            before: {
+              ...(setStatus && { status: res.rows[0].prev_status }),
+              ...(targetRole !== undefined && { userType: res.rows[0].prev_user_type }),
+            },
+            after: {
+              ...(setStatus && { status: statusToDb(req.status) }),
+              ...(targetRole !== undefined && { userType: targetRole }),
+            },
+          },
         });
       });
       results.push({ userId, success: true });

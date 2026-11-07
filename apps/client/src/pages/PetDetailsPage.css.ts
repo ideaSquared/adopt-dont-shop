@@ -248,10 +248,18 @@ export const sidebar = style({
     // holds the Apply CTA) so the primary action stays in view while the
     // adopter scrolls the description. `align-self: start` lets the grid
     // child shrink to content height so `position: sticky` engages.
+    // The sidebar spans both grid rows so its sticky range covers the
+    // description row; otherwise the full-width About card slid over it.
     '(min-width: 768px)': {
+      gridColumn: '2',
+      gridRow: '1 / span 2',
       position: 'sticky',
       top: vars.spacing['4'],
       alignSelf: 'start',
+      // Keep the whole sidebar reachable on short viewports: cap it at the
+      // visible height and let it scroll rather than pinning controls offscreen.
+      maxHeight: `calc(100vh - 2 * ${vars.spacing['4']})`,
+      overflowY: 'auto',
     },
   },
 });
@@ -338,6 +346,13 @@ globalStyle(`${actionCard} .actions`, {
 export const descriptionCard = style({
   padding: '2rem',
   gridColumn: '1 / -1',
+  '@media': {
+    // Sits under the images, beside the sidebar, instead of spanning under it.
+    '(min-width: 768px)': {
+      gridColumn: '1',
+      minWidth: 0,
+    },
+  },
 });
 
 globalStyle(`${descriptionCard} h2`, {

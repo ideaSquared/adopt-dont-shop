@@ -1538,6 +1538,88 @@ describe('auth rate limiting (ADS-844)', () => {
   });
 });
 
+describe('forgot-password 429 contract', () => {
+  const forgot = (app: ReturnType<typeof Fastify>, email: string, ip = '7.7.7.7') =>
+    app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/forgot-password',
+      headers: { 'x-forwarded-for': ip },
+      payload: { email },
+    });
+
+  it('per-email 429 carries Retry-After and the shared error body shape', async () => {
+    const m = makeClient();
+    m.forgotPasswordMock.mockResolvedValue({ ok: true });
+    const app = Fastify({ logger: false, trustProxy: true });
+    const now = 1_000_000_000_000 + 20_000;
+    const emailRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 60_000, now: () => now });
+    await registerAuthRoutes(app, { client: m.client, emailRateLimiter });
+    try {
+      await forgot(app, 'a@example.com');
+      const res = await forgot(app, 'a@example.com');
+
+      expect(res.statusCode).toBe(429);
+      expect(Number(res.headers['retry-after'])).toBeGreaterThan(0);
+      expect(Number(res.headers['retry-after'])).toBeLessThanOrEqual(60);
+      expect(res.json()).toEqual({
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: expect.any(String),
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('per-IP 429 carries Retry-After and the same body shape', async () => {
+    const m = makeClient();
+    m.forgotPasswordMock.mockResolvedValue({ ok: true });
+    const app = Fastify({ logger: false, trustProxy: true });
+    const { default: rateLimit } = await import('@fastify/rate-limit');
+    await app.register(rateLimit, {
+      global: true,
+      max: 100,
+      timeWindow: '1 minute',
+      keyGenerator: req => req.ip,
+    });
+    await registerAuthRoutes(app, { client: m.client });
+    try {
+      const results = [];
+      for (let i = 0; i < 6; i += 1) {
+        results.push(await forgot(app, `flood-${i}@example.com`, '8.8.8.8'));
+      }
+      const limited = results[5];
+
+      expect(limited.statusCode).toBe(429);
+      expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
+      expect(Object.keys(limited.json()).sort()).toEqual(['error', 'message', 'statusCode']);
+      expect(limited.json().statusCode).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('answers known and unknown emails identically with 200', async () => {
+    const m = makeClient();
+    m.forgotPasswordMock.mockResolvedValue({ ok: true });
+    const app = Fastify({ logger: false, trustProxy: true });
+    await registerAuthRoutes(app, {
+      client: m.client,
+      emailRateLimiter: createEmailRateLimiter({ max: 5, windowMs: 60_000 }),
+    });
+    try {
+      const known = await forgot(app, 'known@example.com');
+      const unknown = await forgot(app, 'unknown@example.com');
+
+      expect(known.statusCode).toBe(200);
+      expect(unknown.statusCode).toBe(200);
+      expect(unknown.json()).toEqual(known.json());
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 describe('auth rate limiting — per-email login cap (ADS-916)', () => {
   it('throttles a per-EMAIL login flood spread across many IPs', async () => {
     const m = makeClient();

@@ -267,24 +267,27 @@ describe('InvitationsService', () => {
 
   describe('getInvitationDetails', () => {
     it('should get invitation details successfully', async () => {
-      const mockDetails = {
-        email: 'test@example.com',
-        expiresAt: '2025-01-08',
-      };
-
+      // The real gateway shape: the rescue service's Invitation under `data`.
       mockApiService.get = vi.fn().mockResolvedValue({
         success: true,
-        invitation: mockDetails,
+        data: {
+          invitationId: 'inv-1',
+          email: 'test@example.com',
+          rescueId: 'rsc-1',
+          expiration: '2025-01-08',
+          used: false,
+          createdAt: '2025-01-01',
+        },
       });
 
       const result = await service.getInvitationDetails('token123');
 
-      expect(result).toEqual(mockDetails);
+      expect(result).toMatchObject({ email: 'test@example.com', expiresAt: '2025-01-08' });
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/invitations/details/token123');
     });
 
     it('should return null when the response has no invitation', async () => {
-      mockApiService.get = vi.fn().mockResolvedValue({ success: true, invitation: null });
+      mockApiService.get = vi.fn().mockResolvedValue({ success: true, data: null });
 
       const result = await service.getInvitationDetails('token123');
 
