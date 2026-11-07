@@ -282,6 +282,8 @@ pnpm secrets:generate > .env
 echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002" >> .env
 echo "GATEWAY_RATE_LIMIT_MAX=100000" >> .env
 echo "GATEWAY_AUTH_RATE_LIMIT_MAX=100000" >> .env
+echo "GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX=10000" >> .env
+echo "GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX=10000" >> .env
 
 # 2. Start database and cache first, wait for Postgres to be ready
 docker compose -f docker-compose.yml up -d database redis

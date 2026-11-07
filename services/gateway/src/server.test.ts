@@ -36,6 +36,7 @@ const baseConfig: GatewayConfig = {
   config: { publicEnabled: false },
   // Rate-limit: no Redis in tests, low cap so we can hit 429 quickly.
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+  enquiryRateLimit: { ipMax: 200, userMax: 20 },
   cors: { origins: ['http://localhost:3000'] },
   // ADS-1325: maintenance-mode file check defaults to "off" — no test in
   // this suite creates the file, so fileExists() (real node:fs.existsSync)
@@ -929,21 +930,21 @@ describe('createServer — chat pet-enquiry route per-principal rate limit (ADS-
     });
 
   it('enforces the per-principal cap even when the client forges a rotating x-user-id from a rotating IP', async () => {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       const res = await postEnquiry('victim-token', `32.0.0.${i}`, `forged-user-${i}`);
       expect(res.statusCode).toBe(201);
     }
-    const eleventh = await postEnquiry('victim-token', '32.0.0.99', 'forged-user-99');
-    expect(eleventh.statusCode).toBe(429);
+    const twentyFirst = await postEnquiry('victim-token', '32.0.0.99', 'forged-user-99');
+    expect(twentyFirst.statusCode).toBe(429);
   });
 
   it('does not share a bucket between two different authenticated users on the same IP', async () => {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       const res = await postEnquiry('alice', `42.0.0.${i}`);
       expect(res.statusCode).toBe(201);
     }
-    const aliceEleventh = await postEnquiry('alice', '42.0.0.0');
-    expect(aliceEleventh.statusCode).toBe(429);
+    const aliceTwentyFirst = await postEnquiry('alice', '42.0.0.0');
+    expect(aliceTwentyFirst.statusCode).toBe(429);
 
     // bob is a different authenticated principal reusing an IP alice just
     // used. His own bucket is untouched, so he isn't blocked by alice's.

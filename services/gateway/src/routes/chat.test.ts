@@ -1377,7 +1377,7 @@ describe('POST /api/v1/chats/enquiries — per-principal rate limit (ADS-1421)',
   let petEnquiryUserRateLimiter: EmailRateLimiter;
 
   // Each request carries its own source IP (x-forwarded-for, with
-  // trustProxy) so the route's own 10/day per-IP backstop (PET_ENQUIRY_
+  // trustProxy) so the route's own per-IP backstop (PET_ENQUIRY_
   // RATE_LIMIT, now unkeyed — see chat.ts) never interferes: these tests
   // isolate the per-principal preHandler, which is keyed on x-user-id
   // regardless of source IP.
@@ -1393,7 +1393,7 @@ describe('POST /api/v1/chats/enquiries — per-principal rate limit (ADS-1421)',
     client = makeClient();
     client.openPetEnquiryMock.mockResolvedValue({ chat: CHAT_FIXTURE, created: true });
     app = Fastify({ logger: false, trustProxy: true });
-    petEnquiryUserRateLimiter = createEmailRateLimiter({ max: 10, windowMs: 24 * 60 * 60_000 });
+    petEnquiryUserRateLimiter = createEmailRateLimiter({ max: 20, windowMs: 24 * 60 * 60_000 });
     await registerChatRoutes(app, { client, petEnquiryUserRateLimiter });
   });
 
@@ -1401,20 +1401,20 @@ describe('POST /api/v1/chats/enquiries — per-principal rate limit (ADS-1421)',
     await app.close();
   });
 
-  it('caps each user at 10 enquiry requests a day', async () => {
-    const firstTen = await Promise.all(
-      Array.from({ length: 10 }, (_, i) => ask('usr-busy', `50.0.0.${i}`))
+  it('caps each user at 20 enquiry requests a day', async () => {
+    const firstTwenty = await Promise.all(
+      Array.from({ length: 20 }, (_, i) => ask('usr-busy', `50.0.0.${i}`))
     );
-    expect(firstTen.every(res => res.statusCode === 201)).toBe(true);
-    const eleventh = await ask('usr-busy', '50.0.0.99');
-    expect(eleventh.statusCode).toBe(429);
+    expect(firstTwenty.every(res => res.statusCode === 201)).toBe(true);
+    const twentyFirst = await ask('usr-busy', '50.0.0.99');
+    expect(twentyFirst.statusCode).toBe(429);
     // A different principal, reusing an IP usr-busy already used, is
     // unaffected — that IP's own backstop count is nowhere near its cap.
     expect((await ask('usr-other', '50.0.0.0')).statusCode).toBe(201);
   });
 
   it('does not throttle per-principal when no petEnquiryUserRateLimiter is wired', async () => {
-    // Stays well under the route's own 10/day per-IP backstop (PET_ENQUIRY_
+    // Stays well under the route's own per-IP backstop (PET_ENQUIRY_
     // RATE_LIMIT) — this only proves the per-principal preHandler is a no-op
     // without a limiter, not that the IP backstop is gone.
     const bareApp = Fastify({ logger: false });
@@ -1435,6 +1435,50 @@ describe('POST /api/v1/chats/enquiries — per-principal rate limit (ADS-1421)',
       expect(second.statusCode).toBe(201);
     } finally {
       await bareApp.close();
+    }
+  });
+});
+
+describe('POST /api/v1/chats/enquiries — per-IP backstop', () => {
+  const askFromOneIp = (app: FastifyInstance, userId: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/v1/chats/enquiries',
+      headers: { 'x-user-id': userId, 'x-user-roles': 'adopter' },
+      payload: { petId: 'pet-1' },
+    });
+
+  const buildIpApp = async (petEnquiryIpMax?: number) => {
+    const client = makeClient();
+    client.openPetEnquiryMock.mockResolvedValue({ chat: CHAT_FIXTURE, created: true });
+    const app = Fastify({ logger: false });
+    await registerChatRoutes(app, { client, petEnquiryIpMax });
+    return app;
+  };
+
+  it('allows 200 enquiries a day from one IP by default, then answers 429', async () => {
+    const app = await buildIpApp();
+    try {
+      const first200 = await Promise.all(
+        Array.from({ length: 200 }, (_, i) => askFromOneIp(app, `usr-${i}`))
+      );
+      expect(first200.every(res => res.statusCode === 201)).toBe(true);
+      expect((await askFromOneIp(app, 'usr-extra')).statusCode).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('allows more requests from one IP when a higher limit is configured', async () => {
+    const app = await buildIpApp(250);
+    try {
+      const first250 = await Promise.all(
+        Array.from({ length: 250 }, (_, i) => askFromOneIp(app, `usr-${i}`))
+      );
+      expect(first250.every(res => res.statusCode === 201)).toBe(true);
+      expect((await askFromOneIp(app, 'usr-extra')).statusCode).toBe(429);
+    } finally {
+      await app.close();
     }
   });
 });

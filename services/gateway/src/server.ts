@@ -839,7 +839,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // x-user-id). Same Redis store as the per-IP limiter, so the cap is
     // N-replica-safe; falls back to an in-memory counter without Redis.
     const petEnquiryUserRateLimiter = createEmailRateLimiter({
-      max: 10,
+      max: config.enquiryRateLimit.userMax,
       windowMs: 24 * 60 * 60_000,
       redis: rateLimitRedis,
       // Distinct namespace (ADS-1421 follow-up) — see exportUserRateLimiter.
@@ -851,6 +851,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       client: opts.chatClient,
       authClient: opts.authClient,
       petEnquiryUserRateLimiter,
+      petEnquiryIpMax: config.enquiryRateLimit.ipMax,
     });
   }
   // /api/v1/search/{messages,suggestions} — cross-service lib.search
