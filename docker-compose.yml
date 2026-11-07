@@ -532,6 +532,8 @@ services:
         SERVICE_DIR: services/notifications
     environment:
       <<: *ms-env
+      # Client origin for verification / password-reset email links.
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
       - '127.0.0.1:5001:5001'
     healthcheck:
