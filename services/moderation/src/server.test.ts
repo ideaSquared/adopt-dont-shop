@@ -20,6 +20,7 @@ const baseConfig: ModerationConfig = {
   databaseUrl: 'postgres://test',
   schema: 'moderation',
   natsUrl: 'nats://localhost:4222',
+  authGrpcUrl: 'localhost:6002',
 };
 
 describe('createServer — health endpoint', () => {

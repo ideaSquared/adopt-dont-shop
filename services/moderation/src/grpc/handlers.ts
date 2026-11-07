@@ -55,6 +55,7 @@ import {
   type ReportRow,
   type ReportStatusTransitionRow,
 } from './mapper.js';
+import { DISMISSED_SENTINEL, parseResolveTarget, RESOLUTIONS } from './resolution.js';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
@@ -492,6 +493,14 @@ export async function resolveReport(
     throw new HandlerError('INVALID_ARGUMENT', 'resolution is required');
   }
 
+  const target = parseResolveTarget(req.resolution);
+  if (target === undefined) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `resolution must be one of ${RESOLUTIONS.join(', ')} (or '${DISMISSED_SENTINEL}')`
+    );
+  }
+
   return withTransaction(deps, async ({ client, publish }) => {
     const existing = await client.query<ReportRow>(
       `SELECT status FROM reports WHERE report_id = $1 FOR UPDATE`,
@@ -504,11 +513,11 @@ export async function resolveReport(
 
     const fromStatus = existing.rows[0].status;
 
-    // A "dismissed" resolution is a distinct terminal state, not a
-    // resolution (ADS-1159). Derive the transition's to_status from the
-    // resolution code so the mig-003 trigger propagates the right
-    // reports.status instead of always landing on 'resolved'.
-    const toStatus: ReportStatusDb = req.resolution === 'dismissed' ? 'dismissed' : 'resolved';
+    // A dismissal is a distinct terminal state, not a resolution
+    // (ADS-1159). Derive the transition's to_status from the target so the
+    // mig-003 trigger propagates the right reports.status instead of always
+    // landing on 'resolved'. The stored resolution is always a valid value.
+    const toStatus: ReportStatusDb = target.dismissed ? 'dismissed' : 'resolved';
 
     await client.query(
       `UPDATE reports
@@ -518,7 +527,7 @@ export async function resolveReport(
            resolution_notes = $3,
            updated_at = NOW()
        WHERE report_id = $4`,
-      [principal.userId, req.resolution, req.resolutionNotes ?? null, req.reportId]
+      [principal.userId, target.resolution, req.resolutionNotes ?? null, req.reportId]
     );
 
     await client.query(
@@ -542,7 +551,7 @@ export async function resolveReport(
       payload: {
         reportId: req.reportId,
         resolvedBy: principal.userId,
-        resolution: req.resolution,
+        resolution: target.resolution,
       },
     });
 

@@ -20,6 +20,7 @@ import {
   reportStatusFromDb,
   severityFromDb,
 } from './enum-map.js';
+import { readableResolution } from './resolution.js';
 
 // --- Report row → proto ----------------------------------------------
 
@@ -73,7 +74,7 @@ export function reportRowToProto(row: ReportRow, forReporter = false): Report {
     report.reportedUserId = row.reported_user_id;
   }
   if (row.resolution !== null) {
-    report.resolution = row.resolution;
+    report.resolution = readableResolution(row.resolution);
   }
   if (row.resolved_at !== null) {
     report.resolvedAt = row.resolved_at.toISOString();

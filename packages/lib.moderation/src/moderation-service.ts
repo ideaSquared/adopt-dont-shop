@@ -21,7 +21,7 @@ import {
   type ActionsResponse,
   type ModerationMetrics,
 } from './schemas';
-import { buildQueryString } from './utils';
+import { buildQueryString, getResolutionForAction } from './utils';
 
 /**
  * Moderation Service - API client for moderation endpoints
@@ -149,21 +149,32 @@ export class ModerationService {
     notes?: string,
     actionData?: CreateModeratorActionRequest
   ): Promise<Report> {
-    // First update the report status
-    const report = await this.updateReportStatus(reportId, {
+    if (actionData) {
+      return (await this.applyAction(reportId, actionData, notes)).report;
+    }
+    return this.updateReportStatus(reportId, {
       status: 'resolved',
       resolutionNotes: notes,
     });
+  }
 
-    // If action data is provided, create the moderation action
-    if (actionData) {
-      await this.createAction({
-        ...actionData,
-        reportId,
-      });
-    }
-
-    return report;
+  /**
+   * Create the moderation action first (the backend applies it, e.g. suspends
+   * the user, atomically), then resolve the report with the matching
+   * resolution. If the action fails the report is left untouched.
+   */
+  private async applyAction(
+    reportId: string,
+    actionData: CreateModeratorActionRequest,
+    notes?: string
+  ): Promise<{ report: Report; action: ModeratorAction }> {
+    const action = await this.createAction({ ...actionData, reportId });
+    const report = await this.updateReportStatus(reportId, {
+      status: 'resolved',
+      resolution: getResolutionForAction(actionData.actionType),
+      resolutionNotes: notes,
+    });
+    return { report, action };
   }
 
   /**
@@ -177,31 +188,15 @@ export class ModerationService {
   }
 
   /**
-   * Take action on a report (helper method)
+   * Take action on a report (helper method): apply the action and resolve the
+   * report with the matching resolution.
    */
   async takeAction(
     reportId: string,
     actionData: CreateModeratorActionRequest,
     resolutionNotes?: string
   ): Promise<{ report: Report; action: ModeratorAction }> {
-    // Create the moderation action
-    const action = await this.createAction({
-      ...actionData,
-      reportId,
-    });
-
-    // Update the report status to under_review if it's pending
-    const currentReport = await this.getReportById(reportId);
-    let report = currentReport;
-
-    if (currentReport.status === 'pending') {
-      report = await this.updateReportStatus(reportId, {
-        status: 'under_review',
-        resolutionNotes,
-      });
-    }
-
-    return { report, action };
+    return this.applyAction(reportId, actionData, resolutionNotes);
   }
 }
 

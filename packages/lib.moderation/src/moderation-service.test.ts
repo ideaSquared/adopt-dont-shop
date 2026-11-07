@@ -49,6 +49,72 @@ const validMetrics = {
   moderatorActivity: [{ moderatorId: 'mod_1', actionsCount: 4, resolvedCount: 2 }],
 };
 
+// What GET/POST /moderation/actions really returns (moderatorActionToView):
+// nulls for unset optionals and no updatedAt.
+const gatewayAction = {
+  actionId: 'act-1',
+  moderatorId: 'mod-1',
+  actionType: 'user_suspended',
+  severity: 'high',
+  reason: 'repeated spam',
+  description: null,
+  targetEntityType: 'user',
+  targetEntityId: 'usr-1',
+  targetUserId: 'usr-1',
+  reportId: 'rep-1',
+  duration: null,
+  metadata: {},
+  createdAt: '2026-06-01T12:00:00.000Z',
+  expiresAt: null,
+};
+
+describe('gateway-shaped moderator action responses', () => {
+  let moderationService: ModerationService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    moderationService = new ModerationService();
+  });
+
+  it('createAction accepts nulls for unset fields and a missing updatedAt', async () => {
+    mockedApi.post.mockResolvedValueOnce({ data: gatewayAction });
+
+    const action = await moderationService.createAction({
+      reportId: 'rep-1',
+      targetEntityType: 'user',
+      targetEntityId: 'usr-1',
+      targetUserId: 'usr-1',
+      actionType: 'user_suspended',
+      severity: 'high',
+      reason: 'repeated spam',
+    });
+
+    expect(action.actionId).toBe('act-1');
+    expect(action.duration).toBeUndefined();
+    expect(action.expiresAt).toBeUndefined();
+  });
+
+  it('takeAction still resolves the report after a gateway-shaped action response', async () => {
+    mockedApi.post.mockResolvedValueOnce({ data: gatewayAction });
+    mockedApi.patch.mockResolvedValueOnce({ data: { ...validReport, status: 'resolved' } });
+
+    await moderationService.takeAction(
+      'rep-1',
+      {
+        reportId: 'rep-1',
+        targetEntityType: 'user',
+        targetEntityId: 'usr-1',
+        actionType: 'user_suspended',
+        severity: 'high',
+        reason: 'repeated spam',
+      },
+      'notes'
+    );
+
+    expect(mockedApi.patch).toHaveBeenCalled();
+  });
+});
+
 describe('ModerationService', () => {
   let service: ModerationService;
 
@@ -303,9 +369,9 @@ describe('ModerationService', () => {
       expect(result.reportId).toBe('rep_1');
     });
 
-    it('creates a moderation action tied to the report when action data is supplied', async () => {
-      mockedApi.patch.mockResolvedValueOnce({ data: validReport });
+    it('applies the chosen action, then resolves the report with the matching resolution (B10)', async () => {
       mockedApi.post.mockResolvedValueOnce({ data: validAction });
+      mockedApi.patch.mockResolvedValueOnce({ data: validReport });
 
       await service.resolveReport('rep_1', 'banned them', {
         targetEntityType: 'user',
@@ -319,6 +385,28 @@ describe('ModerationService', () => {
         '/api/v1/admin/moderation/actions',
         expect.objectContaining({ reportId: 'rep_1', actionType: 'user_banned' })
       );
+      expect(mockedApi.patch).toHaveBeenCalledWith(
+        '/api/v1/admin/moderation/reports/rep_1/status',
+        { status: 'resolved', resolution: 'user_banned', resolutionNotes: 'banned them' }
+      );
+      expect(mockedApi.post.mock.invocationCallOrder[0]).toBeLessThan(
+        mockedApi.patch.mock.invocationCallOrder[0]
+      );
+    });
+
+    it('leaves the report untouched when the action is rejected', async () => {
+      mockedApi.post.mockRejectedValueOnce(new Error('403'));
+
+      await expect(
+        service.resolveReport('rep_1', 'x', {
+          targetEntityType: 'user',
+          targetEntityId: 'user_2',
+          actionType: 'user_suspended',
+          severity: 'high',
+          reason: 'Repeated abuse',
+        } as never)
+      ).rejects.toThrow('403');
+      expect(mockedApi.patch).not.toHaveBeenCalled();
     });
   });
 
@@ -336,47 +424,76 @@ describe('ModerationService', () => {
   });
 
   describe('takeAction', () => {
-    it('creates the action then promotes a pending report to under_review', async () => {
+    it('creates the action then resolves the report with the matching resolution (B11)', async () => {
       mockedApi.post.mockResolvedValueOnce({ data: validAction });
-      mockedApi.get.mockResolvedValueOnce({ data: { ...validReport, status: 'pending' } });
-      mockedApi.patch.mockResolvedValueOnce({
-        data: { ...validReport, status: 'under_review' },
-      });
+      mockedApi.patch.mockResolvedValueOnce({ data: { ...validReport, status: 'resolved' } });
 
       const result = await service.takeAction(
         'rep_1',
         {
           targetEntityType: 'user',
           targetEntityId: 'user_2',
-          actionType: 'warning_issued',
+          actionType: 'user_suspended',
           severity: 'medium',
-          reason: 'First warning',
+          reason: 'Suspended',
         } as never,
-        'gave a warning'
+        'suspended'
       );
 
+      // 'under_review' is not a transition the backend accepts.
       expect(mockedApi.patch).toHaveBeenCalledWith(
         '/api/v1/admin/moderation/reports/rep_1/status',
-        { status: 'under_review', resolutionNotes: 'gave a warning' }
+        { status: 'resolved', resolution: 'user_suspended', resolutionNotes: 'suspended' }
       );
-      expect(result.report.status).toBe('under_review');
+      expect(result.report.status).toBe('resolved');
       expect(result.action.actionId).toBe('act_1');
     });
 
-    it('leaves a non-pending report untouched after creating the action', async () => {
+    it('records no_action for actions without a dedicated resolution', async () => {
       mockedApi.post.mockResolvedValueOnce({ data: validAction });
-      mockedApi.get.mockResolvedValueOnce({ data: { ...validReport, status: 'under_review' } });
+      mockedApi.patch.mockResolvedValueOnce({ data: validReport });
 
-      const result = await service.takeAction('rep_1', {
+      await service.takeAction('rep_1', {
         targetEntityType: 'user',
         targetEntityId: 'user_2',
-        actionType: 'warning_issued',
+        actionType: 'account_restricted',
         severity: 'medium',
-        reason: 'First warning',
+        reason: 'Restricted',
       } as never);
 
-      expect(mockedApi.patch).not.toHaveBeenCalled();
-      expect(result.report.status).toBe('under_review');
+      expect(mockedApi.patch).toHaveBeenCalledWith(
+        '/api/v1/admin/moderation/reports/rep_1/status',
+        expect.objectContaining({ resolution: 'no_action' })
+      );
     });
+  });
+
+  describe('bulkUpdateReports', () => {
+    it('parses the { success, updated } response the gateway returns (B10)', async () => {
+      mockedApi.post.mockResolvedValueOnce({ success: true, updated: 2, data: [] });
+
+      const result = await service.bulkUpdateReports({
+        reportIds: ['a', 'b'],
+        action: 'dismiss',
+      });
+
+      expect(result).toEqual({ success: true, updated: 2 });
+    });
+  });
+
+  describe('legacy report resolutions (B10)', () => {
+    it.each(['resolved', 'dismissed'])(
+      'a stored resolution of %s does not fail the report list parse',
+      async legacy => {
+        mockedApi.get.mockResolvedValueOnce({
+          data: [{ ...validReport, resolution: legacy }],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+        });
+
+        const result = await service.getReports();
+
+        expect(result.data[0].resolution).toBe('no_action');
+      }
+    );
   });
 });

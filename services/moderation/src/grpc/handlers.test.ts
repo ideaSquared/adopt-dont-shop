@@ -295,7 +295,7 @@ describe('getReport', () => {
             assigned_at: new Date('2026-06-02T00:00:00.000Z'),
             resolved_by: 'mod-7',
             resolved_at: new Date('2026-06-03T00:00:00.000Z'),
-            resolution: 'action_taken',
+            resolution: 'user_suspended',
             resolution_notes: 'user suspended — internal',
             escalated_to: 'mod-8',
             escalated_at: new Date('2026-06-02T12:00:00.000Z'),
@@ -317,7 +317,7 @@ describe('getReport', () => {
     expect(res.report.escalationReason).toBeUndefined();
     // …but the reporter still sees their report's status and outcome.
     expect(res.report.status).toBeDefined();
-    expect(res.report.resolution).toBe('action_taken');
+    expect(res.report.resolution).toBe('user_suspended');
     expect(res.report.resolvedAt).toBe('2026-06-03T00:00:00.000Z');
   });
 
@@ -615,7 +615,7 @@ describe('resolveReport', () => {
   it('throws NOT_FOUND on a missing report', async () => {
     const { deps } = makeDeps([{ rows: [] }]);
     await expect(
-      resolveReport(deps, makePrincipal(), { reportId: 'gone', resolution: 'action_taken' })
+      resolveReport(deps, makePrincipal(), { reportId: 'gone', resolution: 'user_suspended' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
@@ -624,11 +624,11 @@ describe('resolveReport', () => {
       { rows: [{ status: 'under_review' }] }, // SELECT status FOR UPDATE
       { rows: [] }, // UPDATE
       { rows: [] }, // INSERT transition
-      { rows: [reportRow({ status: 'resolved', resolution: 'action_taken' })] }, // final SELECT
+      { rows: [reportRow({ status: 'resolved', resolution: 'user_suspended' })] }, // final SELECT
     ]);
     const res = await resolveReport(deps, makePrincipal(), {
       reportId: 'rpt-1',
-      resolution: 'action_taken',
+      resolution: 'user_suspended',
       resolutionNotes: 'User suspended.',
     });
     expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_RESOLVED);
@@ -645,7 +645,7 @@ describe('resolveReport', () => {
       { rows: [{ status: 'under_review' }] }, // SELECT status FOR UPDATE
       { rows: [] }, // UPDATE
       { rows: [] }, // INSERT transition
-      { rows: [reportRow({ status: 'dismissed', resolution: 'dismissed' })] }, // final SELECT
+      { rows: [reportRow({ status: 'dismissed', resolution: 'no_action' })] }, // final SELECT
     ]);
     const res = await resolveReport(deps, makePrincipal(), {
       reportId: 'rpt-1',
@@ -658,6 +658,28 @@ describe('resolveReport', () => {
     expect(transitionSql).toContain('INSERT INTO report_status_transitions');
     expect(transitionParams[3]).toBe('dismissed');
     expect(res.report.status).toBe(ModerationV1.ReportStatus.REPORT_STATUS_DISMISSED);
+    // A dismissal stores a value the admin list schema accepts, never 'dismissed'.
+    const updateParams = query.mock.calls[1][1] as unknown[];
+    expect(updateParams[1]).toBe('no_action');
+  });
+
+  it('rejects a resolution outside the admin list schema (B10)', async () => {
+    const { deps, query } = makeDeps([]);
+    await expect(
+      resolveReport(deps, makePrincipal(), { reportId: 'rpt-1', resolution: 'resolved' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('stores the chosen resolution verbatim when it is valid (B10)', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [{ status: 'pending' }] },
+      { rows: [] },
+      { rows: [] },
+      { rows: [reportRow({ status: 'resolved', resolution: 'user_suspended' })] },
+    ]);
+    await resolveReport(deps, makePrincipal(), { reportId: 'rpt-1', resolution: 'user_suspended' });
+    expect((query.mock.calls[1][1] as unknown[])[1]).toBe('user_suspended');
   });
 });
 
