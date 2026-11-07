@@ -4,7 +4,8 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
-    public details?: unknown
+    public details?: unknown,
+    public readonly retryAfterSeconds?: number
   ) {
     super(message);
     this.name = 'ApiError';
@@ -70,13 +71,26 @@ export class NotFoundError extends Error {
 }
 
 /**
+ * Parse a Retry-After header in delta-seconds form. HTTP-date values and
+ * anything that is not a positive whole number are ignored.
+ */
+export function parseRetryAfterSeconds(value: string | null): number | undefined {
+  if (value === null || !/^\d+$/.test(value.trim())) {
+    return undefined;
+  }
+  const seconds = Number(value.trim());
+  return seconds > 0 ? seconds : undefined;
+}
+
+/**
  * Factory function to create appropriate error based on HTTP status
  */
 export function createHttpError(
   status: number,
   message: string,
   code?: string,
-  details?: unknown
+  details?: unknown,
+  retryAfterSeconds?: number
 ): Error {
   switch (status) {
     case 400:
@@ -92,6 +106,6 @@ export function createHttpError(
     case 422:
       return new ValidationError(message, details as Record<string, string[]>);
     default:
-      return new ApiError(message, status, code, details);
+      return new ApiError(message, status, code, details, retryAfterSeconds);
   }
 }

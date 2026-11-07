@@ -1,5 +1,14 @@
+import { useCountdown } from '@/hooks/useCountdown';
 import { useStatsig } from '@/hooks/useStatsig';
 import { authService } from '@/services';
+import {
+  ApiError,
+  AuthenticationError,
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from '@adopt-dont-shop/lib.api';
 import { Alert, Button, Card, Input } from '@adopt-dont-shop/lib.components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
@@ -14,12 +23,54 @@ const forgotPasswordSchema = z.object({
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
+const RESEND_COOLDOWN_SECONDS = 60;
+const SERVER_ERROR_MESSAGE = 'Something went wrong on our side. Please try again shortly.';
+
+type RequestOutcome =
+  | { kind: 'rate-limited'; retryAfterSeconds: number | undefined }
+  | { kind: 'server-error' }
+  | { kind: 'accepted' };
+
+// C2-6 (superseded) used to show the success screen for every 4xx so a 429
+// could not be correlated with "this email exists". That reasoning no longer
+// holds: both gateway limiters (per-IP, per-email) run before any account
+// lookup and key only on request input, so a 429 is identical for known and
+// unknown emails and surfacing it leaks nothing. Other 4xx responses keep
+// the generic success screen; 5xx, network errors and timeouts are errors.
+const classifyFailure = (err: unknown): RequestOutcome => {
+  if (err instanceof ApiError && err.status === 429) {
+    return { kind: 'rate-limited', retryAfterSeconds: err.retryAfterSeconds };
+  }
+  if (err instanceof ApiError && err.status < 500) {
+    return { kind: 'accepted' };
+  }
+  if (
+    err instanceof ValidationError ||
+    err instanceof NotFoundError ||
+    err instanceof AuthenticationError ||
+    err instanceof AuthorizationError ||
+    err instanceof ConflictError
+  ) {
+    return { kind: 'accepted' };
+  }
+  return { kind: 'server-error' };
+};
+
+const rateLimitMessage = (retryAfterSeconds: number | undefined): string => {
+  const wait =
+    retryAfterSeconds === undefined
+      ? 'a minute'
+      : `${retryAfterSeconds} ${retryAfterSeconds === 1 ? 'second' : 'seconds'}`;
+  return `You've made too many reset requests. Please wait ${wait} and try again.`;
+};
+
 export const ForgotPasswordPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState<string>('');
   const { logEvent } = useStatsig();
+  const countdown = useCountdown();
 
   const {
     register,
@@ -29,7 +80,7 @@ export const ForgotPasswordPage: React.FC = () => {
     resolver: zodResolver(forgotPasswordSchema),
   });
 
-  const onSubmit = async (data: ForgotPasswordFormData) => {
+  const requestReset = async (email: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -39,11 +90,11 @@ export const ForgotPasswordPage: React.FC = () => {
         has_email: 'true',
       });
 
-      await authService.forgotPassword(data.email);
+      await authService.forgotPassword(email);
 
-      // Always show success message (security best practice - don't reveal if email exists)
-      setSubmittedEmail(data.email);
+      setSubmittedEmail(email);
       setIsSuccess(true);
+      countdown.start(RESEND_COOLDOWN_SECONDS);
 
       // Log successful request
       logEvent('password_reset_email_sent', 1, {
@@ -60,23 +111,28 @@ export const ForgotPasswordPage: React.FC = () => {
         error_message: err instanceof Error ? err.message : 'Unknown error',
       });
 
-      // C2-6: never differentiate 200 / 4xx in the UI — even a distinct
-      // 429 response would let an attacker time-correlate "this email
-      // hit the rate limit" with "this email exists". Show the same
-      // success screen on every response except a genuine 5xx outage,
-      // where there's nothing to enumerate.
-      const error = err as Error & { response?: { status?: number } };
+      const outcome = classifyFailure(err);
 
-      if (error.response?.status && error.response.status >= 500) {
-        setError('Server error. Please try again later.');
-      } else {
-        setSubmittedEmail(data.email);
-        setIsSuccess(true);
+      if (outcome.kind === 'rate-limited') {
+        setError(rateLimitMessage(outcome.retryAfterSeconds));
+        countdown.start(outcome.retryAfterSeconds ?? RESEND_COOLDOWN_SECONDS);
+        return;
       }
+      if (outcome.kind === 'server-error') {
+        setError(SERVER_ERROR_MESSAGE);
+        return;
+      }
+      setSubmittedEmail(email);
+      setIsSuccess(true);
+      countdown.start(RESEND_COOLDOWN_SECONDS);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const onSubmit = (data: ForgotPasswordFormData) => requestReset(data.email);
+
+  const isCoolingDown = countdown.secondsLeft > 0;
 
   if (isSuccess) {
     return (
@@ -94,8 +150,24 @@ export const ForgotPasswordPage: React.FC = () => {
               <p>
                 <strong>Didn&apos;t receive the email?</strong>
               </p>
-              <p>Check your spam folder or wait a few minutes before trying again.</p>
+              <p>Check your spam or junk folder before requesting another email.</p>
             </div>
+
+            {error && (
+              <Alert variant='error' className={styles.styledAlert}>
+                {error}
+              </Alert>
+            )}
+
+            <Button
+              type='button'
+              variant='secondary'
+              disabled={isLoading || isCoolingDown}
+              onClick={() => requestReset(submittedEmail)}
+            >
+              {isCoolingDown ? `Send again in ${countdown.secondsLeft}s` : 'Send again'}
+            </Button>
+            <p role='status'>{countdown.hasElapsed ? 'You can request another email now.' : ''}</p>
 
             <Link to='/login' className={styles.backToLoginLink}>
               Return to Login
@@ -135,9 +207,20 @@ export const ForgotPasswordPage: React.FC = () => {
             />
           </div>
 
-          <Button type='submit' size='lg' variant='primary' disabled={isLoading} isFullWidth>
-            {isLoading ? 'Sending Instructions...' : 'Send Reset Instructions'}
+          <Button
+            type='submit'
+            size='lg'
+            variant='primary'
+            disabled={isLoading || isCoolingDown}
+            isFullWidth
+          >
+            {isCoolingDown
+              ? `Try again in ${countdown.secondsLeft}s`
+              : isLoading
+                ? 'Sending Instructions...'
+                : 'Send Reset Instructions'}
           </Button>
+          <p role='status'>{countdown.hasElapsed ? 'You can try again now.' : ''}</p>
         </form>
 
         <Link to='/login' className={styles.backToLoginLink}>

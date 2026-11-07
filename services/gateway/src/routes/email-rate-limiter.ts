@@ -44,10 +44,16 @@ export type EmailRateLimiterOptions = {
 export type EmailRateLimiter = {
   // Returns true when the attempt is within the cap, false when throttled.
   consume: (email: string) => Promise<boolean>;
+  // Whole seconds (>= 1) until the email's current window ends, i.e. when a
+  // throttled caller may retry. Sent as the 429 Retry-After header.
+  retryAfterSeconds: (email: string) => number;
   // Current resident bucket count. Only the in-memory limiter tracks state
   // locally; the Redis-backed limiter keeps none, so it omits this.
   size?: () => number;
 };
+
+const toRetryAfterSeconds = (remainingMs: number): number =>
+  Math.max(1, Math.ceil(remainingMs / 1000));
 
 const DEFAULT_KEY_PREFIX = 'auth-email-rl';
 
@@ -113,6 +119,8 @@ const redisLimiter = (
         return true;
       }
     },
+    // Fixed windows are aligned to the clock, so every email shares one end.
+    retryAfterSeconds: (): number => toRetryAfterSeconds(windowMs - (now() % windowMs)),
   };
 };
 
@@ -155,6 +163,10 @@ const memoryLimiter = (max: number, windowMs: number, now: () => number): EmailR
       }
       existing.count += 1;
       return Promise.resolve(existing.count <= max);
+    },
+    retryAfterSeconds: (email: string): number => {
+      const bucket = buckets.get(email);
+      return toRetryAfterSeconds(bucket ? bucket.resetAt - now() : windowMs);
     },
     size: (): number => buckets.size,
   };

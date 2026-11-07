@@ -191,7 +191,16 @@ export const registerAuthRoutes = async (
       const allowed = await limiter.consume(email);
       if (!allowed) {
         onTrip?.();
-        return reply.code(429).send({ error: 'Too many requests for this email' });
+        // Same body shape as the per-IP @fastify/rate-limit response, plus
+        // Retry-After, so clients handle both 429s identically.
+        return reply
+          .code(429)
+          .header('Retry-After', String(limiter.retryAfterSeconds(email)))
+          .send({
+            statusCode: 429,
+            error: 'Too Many Requests',
+            message: 'Too many requests for this email',
+          });
       }
     };
   };

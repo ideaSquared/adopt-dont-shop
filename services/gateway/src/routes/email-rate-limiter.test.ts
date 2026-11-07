@@ -248,3 +248,32 @@ describe('createEmailRateLimiter (redis-backed)', () => {
     expect(seenKeys[0].startsWith('auth-email-rl:')).toBe(true);
   });
 });
+
+describe('createEmailRateLimiter retryAfterSeconds', () => {
+  it('reports the whole seconds left in the in-memory window', async () => {
+    let now = 1_000_000;
+    const limiter = createEmailRateLimiter({ max: 1, windowMs: 60_000, now: () => now });
+    await limiter.consume('a@example.com');
+    now += 20_500;
+
+    expect(limiter.retryAfterSeconds('a@example.com')).toBe(40);
+  });
+
+  it('reports the seconds left in the current fixed Redis window', () => {
+    const redis = { incr: async () => 1, expire: async () => 1 };
+    const limiter = createEmailRateLimiter({
+      max: 1,
+      windowMs: 60_000,
+      redis,
+      now: () => 120_000 + 15_000,
+    });
+
+    expect(limiter.retryAfterSeconds('a@example.com')).toBe(45);
+  });
+
+  it('never reports less than one second', () => {
+    const limiter = createEmailRateLimiter({ max: 1, windowMs: 1_000, now: () => 1_999 });
+
+    expect(limiter.retryAfterSeconds('a@example.com')).toBe(1);
+  });
+});
