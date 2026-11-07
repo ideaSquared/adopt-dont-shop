@@ -17,7 +17,7 @@ export interface ActionSelectionData {
   actionType: ActionType;
   reason: string;
   internalNotes?: string;
-  duration?: number; // in hours, for suspensions
+  duration?: number; // in days, for suspensions; omitted when indefinite
 }
 
 interface ActionSelectionModalProps {
@@ -49,6 +49,26 @@ const actionTypeDescriptions: Record<ActionType, string> = {
   content_flagged: 'Flag content for senior moderator review',
 };
 
+// Suspension length presets, in days. 0 means indefinite (no expiry).
+const INDEFINITE = 0;
+const DURATION_OPTIONS = [
+  { days: 1, label: '1 day' },
+  { days: 7, label: '7 days' },
+  { days: 30, label: '30 days' },
+  { days: INDEFINITE, label: 'Indefinite' },
+] as const;
+const DEFAULT_DURATION_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const describeSuspensionEnd = (days: number): string =>
+  days === INDEFINITE
+    ? 'The suspension has no end date and stays until it is lifted manually.'
+    : `The suspension ends on ${new Date(Date.now() + days * DAY_MS).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })}.`;
+
 export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   isOpen,
   onClose,
@@ -60,7 +80,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   const [actionType, setActionType] = useState<ActionType>('no_action');
   const [reason, setReason] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
-  const [duration, setDuration] = useState<number>(24);
+  const [duration, setDuration] = useState<number>(DEFAULT_DURATION_DAYS);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +96,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
       internalNotes: internalNotes.trim() || undefined,
     };
 
-    if (actionType === 'user_suspended' && duration) {
+    if (actionType === 'user_suspended' && duration !== INDEFINITE) {
       data.duration = duration;
     }
 
@@ -145,21 +165,22 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
             {actionType === 'user_suspended' && (
               <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor='duration'>
-                  Suspension Duration (hours) *
+                  Suspension Duration *
                 </label>
-                <input
+                <select
                   id='duration'
-                  className={styles.input}
-                  type='number'
-                  min='1'
-                  max='8760'
+                  className={styles.select}
                   value={duration}
-                  onChange={e => setDuration(parseInt(e.target.value) || 24)}
+                  onChange={e => setDuration(parseInt(e.target.value, 10))}
                   disabled={isLoading}
-                />
-                <p className={styles.helpText}>
-                  Duration in hours (24 hours = 1 day, 168 hours = 1 week, 720 hours = 30 days)
-                </p>
+                >
+                  {DURATION_OPTIONS.map(option => (
+                    <option key={option.days} value={option.days}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p className={styles.helpText}>{describeSuspensionEnd(duration)}</p>
               </div>
             )}
 

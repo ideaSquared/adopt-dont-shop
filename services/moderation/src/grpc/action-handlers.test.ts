@@ -139,11 +139,132 @@ describe('logModeratorAction', () => {
     expect(query.mock.calls[0][1][12]).not.toBeNull();
   });
 
+  it('stores an absolute expires_at the given number of days from now', async () => {
+    const { deps, query } = makeDeps([{ rows: [actionRow({ duration: 30 })] }]);
+    const before = Date.now();
+    await logModeratorAction(deps, makePrincipal(), { ...VALID_LOG_REQ, duration: 30 });
+    const stored = new Date(query.mock.calls[0][1][12] as string).getTime();
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    expect(stored).toBeGreaterThanOrEqual(before + thirtyDays);
+    expect(stored).toBeLessThanOrEqual(Date.now() + thirtyDays);
+  });
+
   it('publishes moderation.actionLogged', async () => {
     const { deps } = makeDeps([{ rows: [actionRow()] }]);
     await logModeratorAction(deps, makePrincipal(), VALID_LOG_REQ);
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.actionLogged' });
+  });
+});
+
+describe('logModeratorAction - user_suspended (B11)', () => {
+  const SUSPEND_REQ: LogModeratorActionRequest = {
+    ...VALID_LOG_REQ,
+    actionType: ModerationV1.ModeratorActionType.MODERATOR_ACTION_TYPE_USER_SUSPENDED,
+    targetUserId: 'usr-2',
+  };
+  const makeAuth = (suspendUser = vi.fn().mockResolvedValue(undefined)) => ({
+    suspendUser,
+    deactivateUser: vi.fn().mockResolvedValue(undefined),
+    revokeAllSessions: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn(),
+  });
+
+  it('suspends the target user through the auth service, then publishes', async () => {
+    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_suspended' })] }]);
+    const auth = makeAuth();
+    await logModeratorAction(deps, makePrincipal(), SUSPEND_REQ, auth);
+    expect(auth.suspendUser).toHaveBeenCalledWith('usr-2', expect.anything());
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.actionLogged' });
+  });
+
+  it('does not call auth for other action types', async () => {
+    const { deps } = makeDeps([{ rows: [actionRow()] }]);
+    const auth = makeAuth();
+    await logModeratorAction(deps, makePrincipal(), VALID_LOG_REQ, auth);
+    expect(auth.suspendUser).not.toHaveBeenCalled();
+  });
+
+  it('fails the whole action (no event) when auth refuses the suspension', async () => {
+    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_suspended' })] }]);
+    const auth = makeAuth(vi.fn().mockRejectedValue({ code: 7, message: 'denied' }));
+    await expect(
+      logModeratorAction(deps, makePrincipal(), SUSPEND_REQ, auth)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // withTransaction rolls back on throw; the event is only published after
+    // the suspension succeeds, so nothing was queued.
+    expect((deps as { _publish?: unknown })._publish).toBeUndefined();
+  });
+
+  it('rejects a suspension with no target user before touching the database', async () => {
+    const { deps, query } = makeDeps([]);
+    await expect(
+      logModeratorAction(
+        deps,
+        makePrincipal(),
+        { ...SUSPEND_REQ, targetUserId: undefined },
+        makeAuth()
+      )
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+});
+
+describe('logModeratorAction - user_banned', () => {
+  const BAN_REQ: LogModeratorActionRequest = {
+    ...VALID_LOG_REQ,
+    actionType: ModerationV1.ModeratorActionType.MODERATOR_ACTION_TYPE_USER_BANNED,
+    targetUserId: 'usr-2',
+  };
+  const makeAuth = (overrides: Partial<Record<string, ReturnType<typeof vi.fn>>> = {}) => ({
+    suspendUser: vi.fn().mockResolvedValue(undefined),
+    deactivateUser: vi.fn().mockResolvedValue(undefined),
+    revokeAllSessions: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn(),
+    ...overrides,
+  });
+
+  it('deactivates the target user and ends their sessions, then publishes', async () => {
+    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
+    const auth = makeAuth();
+    await logModeratorAction(deps, makePrincipal(), BAN_REQ, auth);
+    expect(auth.deactivateUser).toHaveBeenCalledWith('usr-2', expect.anything());
+    expect(auth.revokeAllSessions).toHaveBeenCalledWith('usr-2', expect.anything());
+    expect(auth.suspendUser).not.toHaveBeenCalled();
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.actionLogged' });
+  });
+
+  it('fails the whole action (no event) when auth refuses to deactivate', async () => {
+    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
+    const auth = makeAuth({
+      deactivateUser: vi.fn().mockRejectedValue({ code: 7, message: 'denied' }),
+    });
+    await expect(logModeratorAction(deps, makePrincipal(), BAN_REQ, auth)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(auth.revokeAllSessions).not.toHaveBeenCalled();
+    expect((deps as { _publish?: unknown })._publish).toBeUndefined();
+  });
+
+  it('fails the whole action (no event) when the sessions cannot be ended', async () => {
+    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
+    const auth = makeAuth({
+      revokeAllSessions: vi.fn().mockRejectedValue({ code: 14, message: 'unavailable' }),
+    });
+    await expect(logModeratorAction(deps, makePrincipal(), BAN_REQ, auth)).rejects.toMatchObject({
+      code: 'INTERNAL',
+    });
+    expect((deps as { _publish?: unknown })._publish).toBeUndefined();
+  });
+
+  it('rejects a ban with no target user before touching the database', async () => {
+    const { deps, query } = makeDeps([]);
+    await expect(
+      logModeratorAction(deps, makePrincipal(), { ...BAN_REQ, targetUserId: undefined }, makeAuth())
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
   });
 });
 

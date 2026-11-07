@@ -244,7 +244,19 @@ const Moderation: React.FC = () => {
       if (actionData.actionType === 'no_action') {
         await dismissReport(selectedReport.reportId, actionData.reason);
       } else {
-        await resolveReport(selectedReport.reportId, actionData.reason);
+        // Send the chosen action so the backend applies it (e.g. suspends the
+        // user) and the report is resolved with the matching resolution.
+        await resolveReport(selectedReport.reportId, actionData.reason, {
+          reportId: selectedReport.reportId,
+          targetEntityType: selectedReport.reportedEntityType,
+          targetEntityId: selectedReport.reportedEntityId,
+          targetUserId: selectedReport.reportedUserId ?? undefined,
+          actionType: actionData.actionType,
+          severity: selectedReport.severity,
+          reason: actionData.reason,
+          internalNotes: actionData.internalNotes,
+          duration: actionData.duration,
+        });
       }
 
       handleCloseActionModal();

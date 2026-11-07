@@ -11,6 +11,8 @@ import { renderWithProviders } from '../test-utils';
 
 const resolveReportMock = vi.fn();
 const dismissReportMock = vi.fn();
+let stubActionType = 'no_action';
+let stubDuration: number | undefined;
 const refetchMock = vi.fn().mockResolvedValue(undefined);
 
 const sampleReport = {
@@ -61,7 +63,7 @@ vi.mock('../components/moderation/ActionSelectionModal', () => ({
     error,
   }: {
     isOpen: boolean;
-    onSubmit: (data: { actionType: string; reason: string }) => void;
+    onSubmit: (data: { actionType: string; reason: string; duration?: number }) => void;
     error?: string | null;
   }) => {
     if (!isOpen) {
@@ -72,7 +74,9 @@ vi.mock('../components/moderation/ActionSelectionModal', () => ({
         {error && <div role='alert'>{error}</div>}
         <button
           type='button'
-          onClick={() => onSubmit({ actionType: 'no_action', reason: 'looked fine' })}
+          onClick={() =>
+            onSubmit({ actionType: stubActionType, reason: 'looked fine', duration: stubDuration })
+          }
           data-testid='stub-action-submit'
         >
           Submit Action
@@ -121,6 +125,46 @@ const openActionModalForFirstReport = () => {
 describe('Moderation handleActionSubmit error feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    stubActionType = 'no_action';
+    stubDuration = undefined;
+  });
+
+  it('sends the chosen action to resolveReport instead of dropping it (B10)', async () => {
+    stubActionType = 'user_suspended';
+    resolveReportMock.mockResolvedValueOnce(undefined);
+
+    renderWithProviders(<Moderation />);
+
+    openActionModalForFirstReport();
+    fireEvent.click(screen.getByTestId('stub-action-submit'));
+
+    await waitFor(() => {
+      expect(resolveReportMock).toHaveBeenCalled();
+    });
+    const [reportId, notes, actionData] = resolveReportMock.mock.calls[0];
+    expect(notes).toBe('looked fine');
+    expect(actionData).toMatchObject({
+      reportId,
+      actionType: 'user_suspended',
+      reason: 'looked fine',
+    });
+    expect(dismissReportMock).not.toHaveBeenCalled();
+  });
+
+  it('passes the chosen suspension duration (days) to resolveReport', async () => {
+    stubActionType = 'user_suspended';
+    stubDuration = 30;
+    resolveReportMock.mockResolvedValueOnce(undefined);
+
+    renderWithProviders(<Moderation />);
+
+    openActionModalForFirstReport();
+    fireEvent.click(screen.getByTestId('stub-action-submit'));
+
+    await waitFor(() => {
+      expect(resolveReportMock).toHaveBeenCalled();
+    });
+    expect(resolveReportMock.mock.calls[0][2]).toMatchObject({ duration: 30 });
   });
 
   it('surfaces an inline error in the modal when the dismiss mutation throws', async () => {

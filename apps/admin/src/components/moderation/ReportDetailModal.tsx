@@ -418,7 +418,11 @@ const ActiveSanctionsSection: React.FC<ActiveSanctionsSectionProps> = ({ reporte
                 <span className={styles.historyItemMeta}>
                   {getSeverityLabel(action.severity)} •{' '}
                   {action.expiresAt
-                    ? `expires ${formatRelativeTime(action.expiresAt)}`
+                    ? `expires ${new Date(action.expiresAt).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}`
                     : 'no expiry'}
                 </span>
               </div>

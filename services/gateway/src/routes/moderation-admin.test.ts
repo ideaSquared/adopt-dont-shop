@@ -180,9 +180,20 @@ describe('moderation admin reports', () => {
     });
     expect(mocks.resolveReport.mock.calls[0][0]).toMatchObject({
       reportId: 'rpt-1',
-      resolution: 'resolved',
+      resolution: 'no_action',
       resolutionNotes: 'handled',
     });
+  });
+
+  it('PATCH status (resolved) forwards the chosen resolution (B10)', async () => {
+    mocks.resolveReport.mockResolvedValueOnce({ report: REPORT });
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/admin/moderation/reports/rpt-1/status',
+      headers: ADMIN,
+      payload: { status: 'resolved', resolution: 'user_suspended' },
+    });
+    expect(mocks.resolveReport.mock.calls[0][0].resolution).toBe('user_suspended');
   });
 
   it('PATCH /admin/moderation/reports/:id/status (dismissed) → ResolveReport with dismissed', async () => {
@@ -251,6 +262,20 @@ describe('moderation admin reports', () => {
     expect(res.statusCode).toBe(200);
     expect(mocks.resolveReport).toHaveBeenCalledTimes(3);
     expect((res.json() as { updated: number }).updated).toBe(3);
+    // never the invalid legacy 'resolved'
+    expect(mocks.resolveReport.mock.calls[0][0].resolution).toBe('no_action');
+  });
+
+  it('bulk-update returns the { success, updated } shape lib.moderation parses (B10)', async () => {
+    mocks.resolveReport.mockResolvedValue({ report: REPORT });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/moderation/reports/bulk-update',
+      headers: ADMIN,
+      payload: { reportIds: ['rpt-1'], action: 'dismiss', resolutionNotes: 'spam' },
+    });
+    expect(res.json()).toMatchObject({ success: true, updated: 1 });
+    expect(mocks.resolveReport.mock.calls[0][0].resolution).toBe('dismissed');
   });
 
   it('bulk-update (assign) calls AssignReport with moderatorId per id', async () => {
