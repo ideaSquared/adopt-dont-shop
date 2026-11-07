@@ -118,6 +118,7 @@ export type Permission =
   | 'moderation.sanctions.manage'
   | 'moderation.tickets.manage'
   | 'moderation.actions.manage'
+  | 'moderation.users.sanction'
   | 'cms.content.read'
   | 'cms.content.create'
   | 'cms.content.update'

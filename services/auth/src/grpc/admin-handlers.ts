@@ -22,6 +22,7 @@ import {
   ADMIN_USERS_REACTIVATE,
   ADMIN_USERS_SEARCH,
   ADMIN_USERS_UPDATE,
+  MODERATION_USERS_SANCTION,
 } from '@adopt-dont-shop/lib.types';
 
 import {
@@ -38,6 +39,8 @@ import {
   type AdminUnlockAccountResponse,
   type AdminUpdateUserRequest,
   type AdminUpdateUserResponse,
+  type ApplyUserSanctionRequest,
+  type ApplyUserSanctionResponse,
   type BulkUpdateUsersRequest,
   type BulkUpdateUsersResponse,
   type CreateIpRuleRequest,
@@ -632,6 +635,148 @@ async function setStatus(
     throw new HandlerError('INTERNAL', 'status update returned no rows');
   }
   return { user: rowToProtoUser(updated) };
+}
+
+// --- ApplyUserSanction -----------------------------------------------
+//
+// The one auth entry point for service.moderation's suspend and ban. It is
+// guarded ONLY by moderation.users.sanction (held by moderation's service
+// principal, and by the moderator/admin/super_admin roles), so moderators do
+// not need the broad admin.users.* / admin.security.manage permissions. The
+// human moderator arrives as actor_user_id and is the audit actor.
+//
+// Everything happens in one transaction: the row is locked, the status
+// changes (a ban also revokes every session, like AdminRevokeAllUserSessions),
+// and exactly one auth.actionTaken is staged. Elevated-role targets are
+// refused here: the service principal's own roles say nothing about the human
+// actor, so those accounts stay with the admin tools and their super_admin
+// checks.
+
+// service.moderation's service principal (see its auth client) is the only
+// caller allowed to name a different human as the audit actor.
+const MODERATION_SERVICE_PRINCIPAL_ID = 'svc-moderation';
+
+// RFC 3339 with an explicit timezone: `new Date` alone also accepts date-only
+// and offsetless strings, which are read in the server's local timezone.
+const RFC_3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+export async function applyUserSanction(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ApplyUserSanctionRequest
+): Promise<ApplyUserSanctionResponse> {
+  if (!hasPermission(principal, MODERATION_USERS_SANCTION)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_USERS_SANCTION}' required`);
+  }
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!req.actorUserId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'actor_user_id is required');
+  }
+  if (!req.reason) {
+    throw new HandlerError('INVALID_ARGUMENT', 'reason is required');
+  }
+  // actor_user_id is request data, not the authenticated identity: a human
+  // caller may only attribute the sanction to themselves.
+  if (
+    principal.userId !== MODERATION_SERVICE_PRINCIPAL_ID &&
+    req.actorUserId !== principal.userId
+  ) {
+    throw new HandlerError('PERMISSION_DENIED', 'actor_user_id must be the calling user');
+  }
+  if (req.actorUserId === req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'cannot sanction your own account');
+  }
+  const isBan = req.kind === AuthV1.UserSanctionKind.USER_SANCTION_KIND_BAN;
+  if (!isBan && req.kind !== AuthV1.UserSanctionKind.USER_SANCTION_KIND_SUSPEND) {
+    throw new HandlerError('INVALID_ARGUMENT', 'kind must be SUSPEND or BAN');
+  }
+  let expiresAt: Date | undefined;
+  if (req.expiresAt !== undefined) {
+    if (isBan) {
+      throw new HandlerError('INVALID_ARGUMENT', 'a ban is permanent: expires_at is not allowed');
+    }
+    expiresAt = RFC_3339.test(req.expiresAt) ? new Date(req.expiresAt) : undefined;
+    if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      throw new HandlerError('INVALID_ARGUMENT', 'expires_at must be a future RFC 3339 time');
+    }
+  }
+  const newStatus = isBan ? 'deactivated' : 'suspended';
+
+  let updated: UserRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    // Locked read that also returns any additional roles (auth.user_roles):
+    // an adopter who was assigned admin or moderator is just as elevated as
+    // one whose primary role is.
+    const current = await client.query<UserRow & { extra_roles: string[] | null }>(
+      `SELECT ${USER_SELECT},
+              COALESCE(
+                (SELECT array_agg(r.role_name)
+                   FROM auth.user_roles ur
+                   INNER JOIN auth.roles r ON r.role_id = ur.role_id
+                  WHERE ur.user_id = auth.users.user_id),
+                '{}'
+              ) AS extra_roles
+         FROM auth.users
+        WHERE user_id = $1 AND deleted_at IS NULL
+          FOR UPDATE`,
+      [req.userId]
+    );
+    if (current.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+    const heldRoles = [current.rows[0].user_type, ...(current.rows[0].extra_roles ?? [])];
+    if (heldRoles.some(role => ELEVATED_ROLES.has(role))) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        'admin, moderator and super_admin accounts cannot be sanctioned through moderation'
+      );
+    }
+
+    const res = await client.query<UserRow>(
+      `
+      UPDATE auth.users
+      SET status = $1,
+          ${isBan ? 'tokens_valid_from = now(),' : ''}
+          updated_at = now(),
+          version = version + 1
+      WHERE user_id = $2 AND deleted_at IS NULL
+      RETURNING ${USER_SELECT}
+      `,
+      [newStatus, req.userId]
+    );
+    if (res.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+    updated = res.rows[0];
+
+    if (isBan) {
+      await client.query(
+        `UPDATE auth.refresh_tokens
+         SET is_revoked = true, revoked_at = now(), updated_at = now()
+         WHERE user_id = $1 AND is_revoked = false`,
+        [req.userId]
+      );
+    }
+
+    publishUserActionTaken(publish, {
+      actorUserId: req.actorUserId,
+      userId: req.userId,
+      action: isBan ? 'ban' : 'suspend',
+      details: {
+        before: { status: current.rows[0].status },
+        after: { status: newStatus },
+        reason: req.reason,
+        expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'sanction returned no rows');
+  }
+  return { userId: updated.user_id, status: statusFromDb(updated.status) };
 }
 
 // --- AdminResetPassword ----------------------------------------------

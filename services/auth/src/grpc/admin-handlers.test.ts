@@ -13,6 +13,7 @@ import {
   adminResetPassword,
   adminUnlockAccount,
   adminUpdateUser,
+  applyUserSanction,
   bulkUpdateUsers,
   createIpRule,
   deactivateUser,
@@ -1622,6 +1623,206 @@ describe('admin user actions publish auth.actionTaken for the audit log', () => 
         status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
       })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+});
+
+// --- applyUserSanction -------------------------------------------------
+
+describe('applyUserSanction', () => {
+  const SANCTIONER: Principal = {
+    userId: 'svc-moderation' as UserId,
+    roles: ['admin'],
+    permissions: ['moderation.users.sanction' as Permission],
+  };
+  const FUTURE = '2099-01-01T00:00:00.000Z';
+  const SUSPEND = {
+    userId: 'usr-1',
+    kind: AuthV1.UserSanctionKind.USER_SANCTION_KIND_SUSPEND,
+    reason: 'repeated spam',
+    actorUserId: 'mod-1',
+  };
+  const BAN = { ...SUSPEND, kind: AuthV1.UserSanctionKind.USER_SANCTION_KIND_BAN };
+
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('is denied without moderation.users.sanction, even to an admin with the broad user permissions', async () => {
+    await expect(applyUserSanction(mocks.deps, ADMIN, SUSPEND)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a missing user_id', { userId: '' }],
+    ['an unspecified kind', { kind: AuthV1.UserSanctionKind.USER_SANCTION_KIND_UNSPECIFIED }],
+    ['a missing actor', { actorUserId: '' }],
+    ['a missing reason', { reason: '' }],
+    ['an unparseable expires_at', { expiresAt: 'tomorrow' }],
+    ['a date-only expires_at', { expiresAt: '2099-01-01' }],
+    ['an expires_at with no timezone', { expiresAt: '2099-01-01T00:00:00' }],
+    ['an expires_at in the past', { expiresAt: '2000-01-01T00:00:00.000Z' }],
+    ['a moderator sanctioning themselves', { actorUserId: 'usr-1' }],
+  ])('rejects %s', async (_label, override) => {
+    await expect(
+      applyUserSanction(mocks.deps, SANCTIONER, { ...SUSPEND, ...override })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('does not return the full user, which would expose fields moderators may not read', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({
+      rows: [userRow({ status: 'suspended', phone_verified: true, two_factor_enabled: true })],
+    });
+
+    const res = await applyUserSanction(mocks.deps, SANCTIONER, SUSPEND);
+
+    expect(Object.keys(res).sort()).toEqual(['status', 'userId']);
+  });
+
+  it('only lets the moderation service principal name a different actor', async () => {
+    const human: Principal = {
+      userId: 'mod-9' as UserId,
+      roles: ['moderator'],
+      permissions: ['moderation.users.sanction' as Permission],
+    };
+
+    await expect(
+      applyUserSanction(mocks.deps, human, { ...SUSPEND, actorUserId: 'someone-else' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('lets a human caller attribute the sanction to themselves', async () => {
+    const human: Principal = {
+      userId: 'mod-9' as UserId,
+      roles: ['moderator'],
+      permissions: ['moderation.users.sanction' as Permission],
+    };
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+
+    await applyUserSanction(mocks.deps, human, { ...SUSPEND, actorUserId: 'mod-9' });
+
+    expect(actionTaken(mocks)[0].actorUserId).toBe('mod-9');
+  });
+
+  it.each(['admin', 'moderator', 'super_admin'])(
+    'refuses a user who holds %s as an additional role, not just as their primary role',
+    async role => {
+      mocks.clientScript.push({ rows: [userRow({ user_type: 'adopter', extra_roles: [role] })] });
+      await expect(applyUserSanction(mocks.deps, SANCTIONER, SUSPEND)).rejects.toMatchObject({
+        code: 'PERMISSION_DENIED',
+      });
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rejects an expiry on a ban, which is permanent', async () => {
+    await expect(
+      applyUserSanction(mocks.deps, SANCTIONER, { ...BAN, expiresAt: FUTURE })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('answers NOT_FOUND for a missing user and publishes nothing', async () => {
+    mocks.clientScript.push({ rows: [] });
+    await expect(applyUserSanction(mocks.deps, SANCTIONER, SUSPEND)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it.each(['admin', 'moderator', 'super_admin'])(
+    'refuses to sanction a %s through this route',
+    async role => {
+      mocks.clientScript.push({ rows: [userRow({ user_type: role })] });
+      await expect(applyUserSanction(mocks.deps, SANCTIONER, SUSPEND)).rejects.toMatchObject({
+        code: 'PERMISSION_DENIED',
+      });
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('suspends the user and records exactly one auth.actionTaken with the human moderator as actor', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] }); // locked current row
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] }); // UPDATE
+
+    const res = await applyUserSanction(mocks.deps, SANCTIONER, {
+      ...SUSPEND,
+      expiresAt: FUTURE,
+    });
+
+    expect(res).toEqual({
+      userId: 'usr-1',
+      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+    });
+    expect(publishedEvents(mocks).map(([subject]) => subject)).toEqual(['auth.actionTaken']);
+    const [event] = actionTaken(mocks);
+    expect(event).toMatchObject({
+      aggregateType: 'user',
+      aggregateId: 'usr-1',
+      actorUserId: 'mod-1',
+      action: 'suspend',
+      outcome: 'success',
+    });
+    expect(event.payload).toMatchObject({
+      before: { status: 'active' },
+      after: { status: 'suspended' },
+      reason: 'repeated spam',
+      expiresAt: FUTURE,
+    });
+  });
+
+  it('locks the row inside the transaction', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+
+    await applyUserSanction(mocks.deps, SANCTIONER, SUSPEND);
+
+    const select = (mocks.clientMock.query.mock.calls as Array<[string]>)
+      .map(([sql]) => sql)
+      .find(sql => sql.includes('FROM auth.users'));
+    expect(select).toContain('FOR UPDATE');
+  });
+
+  it('bans by deactivating and revoking every session in the same transaction, with one event', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] }); // locked current row
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] }); // UPDATE users
+    mocks.clientScript.push({ rows: [] }); // revoke refresh tokens
+
+    const res = await applyUserSanction(mocks.deps, SANCTIONER, BAN);
+
+    expect(res).toEqual({
+      userId: 'usr-1',
+      status: AuthV1.UserStatus.USER_STATUS_DEACTIVATED,
+    });
+    const sql = (mocks.clientMock.query.mock.calls as Array<[string]>).map(([q]) => q).join(' ');
+    expect(sql).toContain('tokens_valid_from');
+    expect(sql).toContain('UPDATE auth.refresh_tokens');
+    expect(publishedEvents(mocks).map(([subject]) => subject)).toEqual(['auth.actionTaken']);
+    expect(actionTaken(mocks)[0]).toMatchObject({ action: 'ban', actorUserId: 'mod-1' });
+  });
+
+  it('rolls everything back, with no event, when revoking the sessions fails', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
+    // No scripted result for the revoke: the query throws.
+
+    await expect(applyUserSanction(mocks.deps, SANCTIONER, BAN)).rejects.toThrow();
+
+    const ops = (mocks.clientMock.query.mock.calls as Array<[string]>).map(([q]) =>
+      q.trim().split(/\s+/)[0].toUpperCase()
+    );
+    expect(ops).toContain('ROLLBACK');
+    expect(ops).not.toContain('COMMIT');
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
