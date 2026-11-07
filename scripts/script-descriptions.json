@@ -79,6 +79,7 @@
   "check:overrides-docs": "Guard: fail if a CVE-style pnpm.overrides entry has no matching overridesDocumentation note (ADS-1113).",
   "check:stale-overrides": "Guard: fail if a security pnpm.overrides entry is no longer needed, because every consumer's own range resolves a patched version (ADS-1112).",
   "check:csp": "Guard: fail if any nginx config's Content-Security-Policy allows unsafe-inline/unsafe-eval, or a prod SPA vhost is missing its CSP header.",
+  "check:gateway-staging-access": "Guard: fail if a staging vhost in deploy/gateway/nginx.conf lacks the staging-access snippet (IP allowlist or basic auth), or the snippet stops denying everyone else.",
   "check:nginx-upload-precedence": "Guard: fail if nginx/nginx.prod.conf's /uploads/documents/ or /uploads/ location loses ^~, letting the static-asset regex override the uploads deny (ADS-1294).",
   "check:docs-freshness": "Report (non-blocking): broken internal/external doc links and docs untouched for 12+ months.",
   "check:stories": "Report Storybook stories coverage for packages/lib.components/src/components/ui/.",

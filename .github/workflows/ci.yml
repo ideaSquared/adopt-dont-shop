@@ -170,6 +170,13 @@ jobs:
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: pnpm check:nginx-upload-precedence
 
+      # Every staging vhost on the shared edge gateway must include
+      # snippets/staging-access.conf (IP allowlist or basic auth), so a new
+      # staging hostname can't go live open to the internet.
+      - name: Verify staging vhosts are access-restricted
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
+        run: pnpm check:gateway-staging-access
+
       # ADS-984: these three drift guards previously only ran via `pnpm
       # ci:local`, so nothing in GitHub CI caught a required env var missing
       # from `.env.example`, a docs/*.md file not linked from docs/README.md,

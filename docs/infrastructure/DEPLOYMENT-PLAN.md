@@ -62,6 +62,8 @@ After the first deploy, check headroom: `free -h`, `docker stats --no-stream`, a
 | `deploy/gateway/docker-compose.gateway.yml`                         | Shared edge gateway nginx + certbot (joins the prod network)              |
 | `deploy/gateway/docker-compose.gateway.staging.yml`                 | Overlay for hosts that also run staging (joins the staging network)       |
 | `deploy/gateway/nginx.conf`                                         | All-domain routing (prod + staging)                                       |
+| `deploy/gateway/landing/`                                           | Pre-launch landing page served on the apex (see "Pre-launch")             |
+| `deploy/gateway/snippets/staging-access.conf`                       | Staging IP allowlist + basic auth (see "Pre-launch")                      |
 | `.github/workflows/deploy.yml`                                      | Build → push → deploy workflow                                            |
 | `.github/workflows/rollback.yml`                                    | Redeploy a previous SHA                                                   |
 | `Makefile`                                                          | `make staging`, `make prod`, `make rollback`                              |
@@ -120,7 +122,8 @@ Build-time-only secret (`build-and-push` in `deploy.yml`, not shipped to the hos
 
 ```
 /opt/ads/
-  gateway/      docker-compose.gateway.yml, nginx.conf, snippets/
+  gateway/      docker-compose.gateway.yml, nginx.conf, snippets/, landing/,
+                staging-access/ (host-only, never in git)
   staging/      docker-compose.staging.yml, docker-compose.observability.yml,
                 docker-compose.glitchtip.yml, nginx/, observability/, scripts/,
                 .env, .last_sha, secrets/
@@ -234,6 +237,73 @@ docker compose -f docker-compose.gateway.yml up -d
 The staging vhosts use the same certificate, so a host that runs staging must include its names too: add `-d staging.adoptdontshop.app -d staging-api.adoptdontshop.app -d staging-admin.adoptdontshop.app -d staging-rescue.adoptdontshop.app` to the command above. Adding staging later means expanding the existing certificate first — with the gateway running, `docker compose -f docker-compose.gateway.yml run --rm --no-deps certbot certonly --webroot -w /var/www/certbot --expand` with every `-d` (production and staging), then `docker compose -f docker-compose.gateway.yml exec nginx nginx -s reload`.
 
 From then on the `certbot` container renews via the webroot every 12h and nginx reloads itself every 12h to serve the renewed certificate. `TlsCertificateExpiringSoon` (observability overlay) alerts if renewal stops working — see [runbooks/tls-cert-renewal.md](../runbooks/tls-cert-renewal.md).
+
+## Pre-launch: landing page + private staging
+
+Until production launches, the host runs the edge gateway and the **staging** stack only:
+
+| Hostname                                                        | Serves                                                                        |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `adoptdontshop.app`, `www.`                                     | Static landing page with the waiting list (`deploy/gateway/landing/`), public |
+| `staging.`, `staging-api.`, `staging-admin.`, `staging-rescue.` | The staging stack, behind an IP allowlist or a basic-auth password            |
+
+Do not create DNS records for `api.`, `admin.` or `rescue.` yet. Their vhosts proxy to the production stack, which is not running.
+
+### Staging-only host
+
+The gateway's compose file joins `ads-prod-network`, which normally comes from the production stack. Create it once by hand so the gateway can start without production:
+
+```bash
+docker network create ads-prod-network
+mkdir -p /opt/ads/{gateway,staging} && chown -R deploy:deploy /opt/ads
+```
+
+Write `/opt/ads/staging/.env` (same keys as "Host `.env`" with staging values, without `PROD_HOSTNAME`) and run `make staging`. Then issue the certificate as in "DNS & TLS", with only the pre-launch names. The bare domain must come first:
+
+```bash
+cd /opt/ads/gateway
+docker compose -f docker-compose.gateway.yml run --rm --no-deps -p 80:80 \
+  --entrypoint certbot certbot certonly --standalone \
+  -d adoptdontshop.app -d www.adoptdontshop.app \
+  -d staging.adoptdontshop.app -d staging-api.adoptdontshop.app \
+  -d staging-admin.adoptdontshop.app -d staging-rescue.adoptdontshop.app \
+  --email <an address you read> --agree-tos --no-eff-email
+docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d
+```
+
+In the `staging-vars` GitHub environment, leave `VITE_API_BASE_URL` and `VITE_WS_BASE_URL` empty so the staging apps call their own origin. Basic auth does not work on cross-origin API calls to `staging-api.`.
+
+### Private staging access
+
+Every staging vhost includes `snippets/staging-access.conf` (`pnpm check:gateway-staging-access` fails CI if one does not). An allowlisted IP gets straight in; anyone else gets a password prompt. The allowlist and passwords live on the host only, in `/opt/ads/gateway/staging-access/`. With neither file present, every staging request is refused.
+
+```bash
+install -d -m 755 /opt/ads/gateway/staging-access
+cd /opt/ads/gateway/staging-access
+
+# Allowlist: one `allow` line per IP or range, in any number of *.allow files.
+# Find your public IP with: curl -s https://ifconfig.me
+echo 'allow 203.0.113.7;' > team.allow
+
+# Passwords: bcrypt, one user per person (htpasswd is in apache2-utils).
+apt-get install -y apache2-utils
+htpasswd -B -c htpasswd <first-user>      # drop -c for each further user
+chmod 644 htpasswd *.allow                # nginx workers (uid 101) must read them
+
+cd /opt/ads/gateway && docker compose -f docker-compose.gateway.yml exec nginx nginx -s reload
+```
+
+Never allowlist a private or Docker range (`10.`, `172.16–31.`, `192.168.`): if Docker ever proxies traffic, every client would appear to come from there. To check which IP nginx sees for you, read `docker logs ads_gateway --tail 20`.
+
+Changes to the edge's compose file (such as the `landing/` and `staging-access/` mounts) are not applied by a deploy. After the first deploy that ships them, run `docker compose -f docker-compose.gateway.yml -f docker-compose.gateway.staging.yml up -d` once in `/opt/ads/gateway`.
+
+### Switching on the waiting list
+
+The signup form in `deploy/gateway/landing/index.html` is hidden until an email provider is chosen. The comment above the form lists the three changes: set the provider's form URL, unhide the form, and add the provider's origin to `form-action` in the apex vhost's CSP. Use the provider's double opt-in so consent is recorded.
+
+### At launch
+
+Restore the production apex vhost in `deploy/gateway/nginx.conf` from git history (the commit that added `deploy/gateway/landing/` replaced it), remove the `landing/` mount, expand the certificate with `api.`, `admin.` and `rescue.`, and follow the normal first-deploy steps above.
 
 ## Database migrations
 

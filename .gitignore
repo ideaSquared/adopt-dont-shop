@@ -101,3 +101,6 @@ e2e/playwright/.cache/
 .husky/.prepush-enabled
 
 .pnpm-store/
+
+# Host-only staging access lists (deploy/gateway/snippets/staging-access.conf)
+deploy/gateway/staging-access/

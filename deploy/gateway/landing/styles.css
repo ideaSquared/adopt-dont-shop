@@ -1,0 +1,165 @@
+/* Colours mirror packages/lib.components/src/styles/colors.ts (primary rose-600). */
+:root {
+  --primary: #e11d48;
+  --primary-hover: #be123c;
+  --primary-subtle: #ffe4e6;
+  --text: #1f2937;
+  --muted: #4b5563;
+  --bg: #fffaf5;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #fb7185;
+    --primary-hover: #fda4af;
+    --primary-subtle: #4c0519;
+    --text: #f3f4f6;
+    --muted: #d1d5db;
+    --bg: #111827;
+    --surface: #1f2937;
+    --border: #374151;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.6;
+}
+
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 4rem 1rem 2rem;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--primary-subtle);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.1;
+}
+
+.lede {
+  margin: 0 0 1.5rem;
+  font-size: 1.125rem;
+  color: var(--muted);
+}
+
+.points {
+  margin: 0 0 2rem;
+  padding-left: 1.25rem;
+}
+
+.points li {
+  margin-bottom: 0.5rem;
+}
+
+.signup {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+.signup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.signup-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.signup input {
+  flex: 1 1 14rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.signup button {
+  min-height: 2.75rem;
+  padding: 0.5rem 1.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.signup button:hover {
+  background: var(--primary-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+  .signup button {
+    color: #111827;
+  }
+}
+
+.signup input:focus-visible,
+.signup button:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.soon {
+  margin: 0;
+  font-weight: 600;
+}
+
+.footer {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.footer p {
+  margin: 0;
+}

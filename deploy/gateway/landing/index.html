@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Adopt Don't Shop — coming soon</title>
+    <meta
+      name="description"
+      content="Adopt Don't Shop connects people looking to adopt with UK rescues. Join the waiting list to hear when we launch."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <p class="eyebrow">Coming soon</p>
+      <h1>Adopt Don't Shop</h1>
+      <p class="lede">
+        Find your next companion from rescues across the UK. Browse animals that need a home, talk
+        to the rescue directly, and apply in one place.
+      </p>
+
+      <ul class="points">
+        <li><strong>For adopters:</strong> discover pets near you and track every application.</li>
+        <li>
+          <strong>For rescues:</strong> list animals, manage applications and message adopters.
+        </li>
+      </ul>
+
+      <!--
+        Waiting-list form — switched OFF until an email provider is chosen.
+        To switch it on:
+          1. Set the form's action to the provider's form/embed URL, and rename the
+             email input if the provider expects another field name (e.g. EMAIL).
+          2. Remove the `hidden` attribute from the <form> and add it to
+             <p class="soon"> below.
+          3. Add the provider's origin to form-action in the apex server block of
+             deploy/gateway/nginx.conf, e.g. form-action 'self' https://provider.example
+        Use the provider's double opt-in so consent is recorded (UK GDPR / PECR).
+      -->
+      <form class="signup" action="#" method="post" hidden>
+        <label for="email">Email address</label>
+        <div class="signup-row">
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+            aria-describedby="email-hint"
+          />
+          <button type="submit">Join the waiting list</button>
+        </div>
+        <p id="email-hint" class="hint">
+          We'll only email you about the launch. Unsubscribe at any time.
+        </p>
+      </form>
+      <p class="soon">The waiting list opens soon.</p>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; Adopt Don't Shop</p>
+    </footer>
+  </body>
+</html>
