@@ -462,6 +462,56 @@ describe('deactivateUser', () => {
   });
 });
 
+describe('a status change by an admin overrides any timed suspension', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const updateSql = (m: ReturnType<typeof makeMocks>) =>
+    (m.clientMock.query.mock.calls as Array<[string]>)
+      .map(([sql]) => sql)
+      .find(sql => sql.includes('UPDATE auth.users'))!;
+
+  it('reactivating clears suspended_until', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    await reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(updateSql(mocks)).toContain('suspended_until = NULL');
+  });
+
+  it('a status update through adminUpdateUser clears suspended_until', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+    await adminUpdateUser(mocks.deps, ADMIN, {
+      userId: 'usr-1',
+      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+    });
+    expect(updateSql(mocks)).toContain('suspended_until = NULL');
+  });
+
+  it('a bulk status change clears suspended_until', async () => {
+    mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
+    await bulkUpdateUsers(mocks.deps, ADMIN, {
+      userIds: ['usr-1'],
+      status: AuthV1.UserStatus.USER_STATUS_ACTIVE,
+    });
+    expect(updateSql(mocks)).toContain('suspended_until = NULL');
+  });
+
+  it('a name-only update leaves suspended_until alone', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [BEFORE_ACTIVE_ADOPTER] });
+    mocks.clientScript.push({ rows: [userRow({ first_name: 'Bob' })] });
+    await adminUpdateUser(mocks.deps, ADMIN, { userId: 'usr-1', firstName: 'Bob' });
+    expect(updateSql(mocks)).not.toContain('suspended_until');
+  });
+});
+
 describe('reactivateUser', () => {
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
@@ -1779,6 +1829,68 @@ describe('applyUserSanction', () => {
       reason: 'repeated spam',
       expiresAt: FUTURE,
     });
+  });
+
+  const updateCall = (m: ReturnType<typeof makeMocks>) =>
+    (m.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(([sql]) =>
+      sql.includes('UPDATE auth.users')
+    )!;
+
+  it.each(['deactivated'])(
+    'refuses to suspend a %s account, so a timed suspension can never undo a ban',
+    async status => {
+      mocks.clientScript.push({ rows: [userRow({ status })] });
+
+      await expect(applyUserSanction(mocks.deps, SANCTIONER, SUSPEND)).rejects.toMatchObject({
+        code: 'FAILED_PRECONDITION',
+      });
+      expect(
+        (mocks.clientMock.query.mock.calls as Array<[string]>).some(([sql]) =>
+          sql.includes('UPDATE auth.users')
+        )
+      ).toBe(false);
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('still lets a ban apply to an already suspended account', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
+    mocks.clientScript.push({ rows: [] });
+
+    const res = await applyUserSanction(mocks.deps, SANCTIONER, BAN);
+
+    expect(res.status).toBe(AuthV1.UserStatus.USER_STATUS_DEACTIVATED);
+  });
+
+  it('stores the suspension end time so it can be lifted later', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+
+    await applyUserSanction(mocks.deps, SANCTIONER, { ...SUSPEND, expiresAt: FUTURE });
+
+    const [sql, params] = updateCall(mocks);
+    expect(sql).toContain('suspended_until = $3');
+    expect(params[2]).toEqual(new Date(FUTURE));
+  });
+
+  it('stores no end time for an indefinite suspension', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+
+    await applyUserSanction(mocks.deps, SANCTIONER, SUSPEND);
+
+    expect(updateCall(mocks)[1][2]).toBeNull();
+  });
+
+  it('clears any end time on a ban', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
+    mocks.clientScript.push({ rows: [] });
+
+    await applyUserSanction(mocks.deps, SANCTIONER, BAN);
+
+    expect(updateCall(mocks)[0]).toContain('suspended_until = NULL');
   });
 
   it('locks the row inside the transaction', async () => {

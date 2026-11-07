@@ -413,6 +413,8 @@ export async function adminUpdateUser(
     statusChange = { newStatus: statusToDb(req.status) };
     sets.push(`status = $${params.length + 1}`);
     params.push(statusChange.newStatus);
+    // An admin status change replaces any timed suspension.
+    sets.push('suspended_until = NULL');
   }
   let roleChange: { newRole: string } | undefined;
   if (req.userType !== undefined && req.userType !== AuthV1.UserRole.USER_ROLE_UNSPECIFIED) {
@@ -602,7 +604,7 @@ async function setStatus(
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
-      SET status = $1, updated_at = now(), version = version + 1
+      SET status = $1, suspended_until = NULL, updated_at = now(), version = version + 1
       WHERE user_id = $2 AND deleted_at IS NULL
       RETURNING ${USER_SELECT}
       `,
@@ -726,6 +728,14 @@ export async function applyUserSanction(
     if (current.rows.length === 0) {
       throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
     }
+    // A suspension must never reactivate a banned or deactivated account (the
+    // expiry would later make it active): only admin.users.reactivate does that.
+    if (!isBan && current.rows[0].status === 'deactivated') {
+      throw new HandlerError(
+        'FAILED_PRECONDITION',
+        'user is deactivated; a suspension cannot be applied'
+      );
+    }
     const heldRoles = [current.rows[0].user_type, ...(current.rows[0].extra_roles ?? [])];
     if (heldRoles.some(role => ELEVATED_ROLES.has(role))) {
       throw new HandlerError(
@@ -738,13 +748,13 @@ export async function applyUserSanction(
       `
       UPDATE auth.users
       SET status = $1,
-          ${isBan ? 'tokens_valid_from = now(),' : ''}
+          ${isBan ? 'suspended_until = NULL, tokens_valid_from = now(),' : 'suspended_until = $3,'}
           updated_at = now(),
           version = version + 1
       WHERE user_id = $2 AND deleted_at IS NULL
       RETURNING ${USER_SELECT}
       `,
-      [newStatus, req.userId]
+      isBan ? [newStatus, req.userId] : [newStatus, req.userId, expiresAt ?? null]
     );
     if (res.rows.length === 0) {
       throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
@@ -1199,6 +1209,7 @@ export async function bulkUpdateUsers(
   if (setStatus) {
     sets.push(`status = $${baseParams.length + 1}`);
     baseParams.push(statusToDb(req.status));
+    sets.push('suspended_until = NULL');
   }
   if (targetRole !== undefined) {
     sets.push(`user_type = $${baseParams.length + 1}`);

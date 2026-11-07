@@ -108,6 +108,7 @@ export const grpcStatusToHandlerCode = (
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
   | 'UNAVAILABLE'
+  | 'FAILED_PRECONDITION'
   | 'INTERNAL' => {
   const code = (err as { code?: unknown } | null)?.code;
   switch (code) {
@@ -121,6 +122,8 @@ export const grpcStatusToHandlerCode = (
       return 'NOT_FOUND';
     case status.UNAVAILABLE:
       return 'UNAVAILABLE';
+    case status.FAILED_PRECONDITION:
+      return 'FAILED_PRECONDITION';
     default:
       return 'INTERNAL';
   }
