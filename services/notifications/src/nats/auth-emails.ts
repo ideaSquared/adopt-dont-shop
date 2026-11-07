@@ -16,7 +16,7 @@
 // The event carries the token, so the notifications service never reads the
 // auth schema. The token and the address are never logged.
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
@@ -40,6 +40,8 @@ export type RegisterAuthEmailSubscribersOptions = {
   logger: Logger;
   config: AuthEmailConfig;
   onError: (err: unknown, ctx: { subject: string }) => void;
+  // Injectable clock for tests.
+  now?: () => Date;
 };
 
 // auth.userRegistered — also published by the resend-verification and the
@@ -160,6 +162,22 @@ export const renderPasswordResetEmail = (
       'If you did not ask for this, you can ignore this email and your password will stay the same.',
   });
 
+// A replayed event can outlive its token (JetStream keeps events for days;
+// verification links last 24 hours and reset links one hour). An email whose
+// link is already dead only confuses, so the event is acknowledged unsent.
+const isExpired = (expiresAt: string | undefined, now: Date): boolean => {
+  if (!expiresAt) {
+    return false;
+  }
+  const expiry = new Date(expiresAt).getTime();
+  return !Number.isNaN(expiry) && expiry <= now.getTime();
+};
+
+// email_queue.idempotency_key is varchar(64): hash the namespaced event id
+// (UUID-based ids make the readable key longer than that).
+const idempotencyKeyFor = (subject: string, eventId: string): string =>
+  createHash('sha256').update(`auth-email:${subject}:${eventId}`).digest('hex');
+
 const enqueue = async (
   opts: RegisterAuthEmailSubscribersOptions,
   subject: string,
@@ -182,7 +200,9 @@ const enqueue = async (
       userId: event.userId ?? null,
       // Deterministic per event id: a redelivery hits the unique constraint
       // instead of sending the email twice. The resend variant has its own id.
-      idempotencyKey: eventId ? `auth-email:${subject}:${eventId}` : null,
+      idempotencyKey: eventId ? idempotencyKeyFor(subject, eventId) : null,
+      // Exempt from the optional email preferences (see isEmailChannelOpen).
+      metadata: { essential: true },
     });
     // Identifiers only: never the address or the token.
     opts.logger.info('auth email queued', { subject, userId: event.userId });
@@ -209,6 +229,9 @@ export const registerAuthEmailSubscribers = (
       if (!event.email || !event.verificationToken) {
         return;
       }
+      if (isExpired(event.verificationExpiresAt, (opts.now ?? (() => new Date()))())) {
+        return;
+      }
       await enqueue(
         opts,
         'auth.userRegistered',
@@ -227,6 +250,9 @@ export const registerAuthEmailSubscribers = (
     },
     async (event, meta) => {
       if (!event.email || !event.resetToken) {
+        return;
+      }
+      if (isExpired(event.resetExpiresAt, (opts.now ?? (() => new Date()))())) {
         return;
       }
       await enqueue(

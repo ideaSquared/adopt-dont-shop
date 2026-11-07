@@ -45,7 +45,7 @@ const makeLogger = () => {
 
 type Handler = (payload: unknown, meta: { id?: string }) => Promise<void>;
 
-const register = () => {
+const register = (now: () => Date = () => new Date('2026-11-07T12:00:00.000Z')) => {
   const handlers = new Map<string, Handler>();
   subscribeMock.mockImplementation((_nats, opts: { subject: string }, handler: Handler) => {
     handlers.set(opts.subject, handler);
@@ -58,6 +58,7 @@ const register = () => {
     logger,
     config: CONFIG,
     onError: () => undefined,
+    now,
   });
   return { handlers, subs, logCalls: calls };
 };
@@ -157,11 +158,57 @@ describe('registerAuthEmailSubscribers', () => {
     });
 
     const keys = insertEmailMock.mock.calls.map(c => c[1].idempotencyKey);
-    expect(keys[0]).toBe('auth-email:auth.userRegistered:auth.userRegistered.usr-1');
-    expect(keys[1]).toBe(
-      'auth-email:auth.userRegistered:auth.userRegistered.resend.usr-1.abcd1234'
-    );
+    expect(keys[0]).toMatch(/^[0-9a-f]{64}$/);
+    expect(keys[1]).toMatch(/^[0-9a-f]{64}$/);
     expect(keys[0]).not.toBe(keys[1]);
+  });
+
+  it('keeps the idempotency key within the 64-character column even for real UUID event ids', async () => {
+    const { handlers } = register();
+    const uuid = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+    await handlers.get('auth.userRegistered')!(REGISTERED, {
+      id: `auth.userRegistered.resend.${uuid}.abcd1234`,
+    });
+    await handlers.get('auth.passwordResetRequested')!(RESET, {
+      id: `auth.passwordResetRequested.${uuid}.abcd1234`,
+    });
+
+    const keys = insertEmailMock.mock.calls.map(c => c[1].idempotencyKey as string);
+    expect(keys.every(k => k.length <= 64)).toBe(true);
+    expect(new Set(keys).size).toBe(2);
+  });
+
+  it('marks the email as essential so a user who opted out of email can still reset or verify', async () => {
+    const { handlers } = register();
+
+    await handlers.get('auth.userRegistered')!(REGISTERED, { id: 'evt-1' });
+    await handlers.get('auth.passwordResetRequested')!(RESET, { id: 'evt-2' });
+
+    for (const [, email] of insertEmailMock.mock.calls) {
+      expect(email.metadata).toEqual({ essential: true });
+    }
+  });
+
+  it('acknowledges without emailing when the link has already expired (a replayed old event)', async () => {
+    const { handlers } = register(() => new Date('2026-11-09T00:00:00.000Z'));
+
+    await handlers.get('auth.userRegistered')!(REGISTERED, { id: 'evt-8' }); // expired 8 Nov 14:30
+    await handlers.get('auth.passwordResetRequested')!(RESET, { id: 'evt-9' }); // expired 7 Nov 15:30
+
+    expect(insertEmailMock).not.toHaveBeenCalled();
+  });
+
+  it('still sends when the link has not expired yet, and when no expiry is given', async () => {
+    const { handlers } = register(() => new Date('2026-11-07T15:29:59.000Z'));
+
+    await handlers.get('auth.passwordResetRequested')!(RESET, { id: 'evt-10' });
+    await handlers.get('auth.userRegistered')!(
+      { ...REGISTERED, verificationExpiresAt: undefined },
+      { id: 'evt-11' }
+    );
+
+    expect(insertEmailMock).toHaveBeenCalledTimes(2);
   });
 
   it('treats a redelivered event as a no-op when the idempotency key already exists', async () => {
