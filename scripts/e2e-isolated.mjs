@@ -325,9 +325,13 @@ function main() {
         // compiled dist/, and the source tree is bind-mounted into the
         // containers, so build them once here on the host (turbo caches reruns).
         log('building the lib.* packages on the host');
+        // NODE_ENV=production, as Dockerfile.app builds them: the app bundles are
+        // production builds, and bundling libs built in development mode
+        // threw `require("react")` in the browser on the first CI run.
         const libs = spawnSync('pnpm', ['run', 'build:libs'], {
           cwd: ROOT,
           stdio: 'inherit',
+          env: { ...process.env, NODE_ENV: 'production' },
           shell: process.platform === 'win32',
         });
         if (libs.status !== 0) throw new Error('pnpm build:libs failed');
