@@ -4,7 +4,27 @@ import type {
   ReportSeverity,
   ActionType,
   ReportedEntityType,
+  ResolutionType,
 } from './schemas';
+
+/**
+ * The report resolution recorded when a moderator takes the given action.
+ * Actions without a dedicated resolution (restrictions, flags, appeal reviews)
+ * record no_action; the action row itself carries the detail.
+ */
+export const getResolutionForAction = (actionType: ActionType): ResolutionType => {
+  switch (actionType) {
+    case 'warning_issued':
+    case 'content_removed':
+    case 'user_suspended':
+    case 'user_banned':
+      return actionType;
+    case 'escalation':
+      return 'escalated';
+    default:
+      return 'no_action';
+  }
+};
 
 /**
  * Get display label for report category

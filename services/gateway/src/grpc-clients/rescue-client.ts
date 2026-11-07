@@ -15,6 +15,8 @@ import {
   RescueV1,
   type AcceptInvitationRequest,
   type AcceptInvitationResponse,
+  type RegisterRescueRequest,
+  type RegisterRescueResponse,
   type AddEventAttendeeRequest,
   type AddEventAttendeeResponse,
   type CancelRescueInvitationRequest,
@@ -103,6 +105,7 @@ export type CallBudget = { deadlineMs: number; maxRetries?: number };
 
 export type RescueClient = {
   create(req: CreateRescueRequest, metadata: Metadata): Promise<CreateRescueResponse>;
+  registerRescue(req: RegisterRescueRequest, metadata: Metadata): Promise<RegisterRescueResponse>;
   get(req: GetRescueRequest, metadata: Metadata): Promise<GetRescueResponse>;
   list(req: ListRescuesRequest, metadata: Metadata): Promise<ListRescuesResponse>;
   update(req: UpdateRescueRequest, metadata: Metadata): Promise<UpdateRescueResponse>;
@@ -297,6 +300,7 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
   return {
     // ── Non-idempotent (writes / mutations) ──────────────────────────
     create: (req, metadata) => callUnary(stub.create, req, metadata, false),
+    registerRescue: (req, metadata) => callUnary(stub.registerRescue, req, metadata, false),
     update: (req, metadata) => callUnary(stub.update, req, metadata, false),
     updateRescuePlan: (req, metadata) => callUnary(stub.updateRescuePlan, req, metadata, false),
     sendRescueEmail: (req, metadata) => callUnary(stub.sendRescueEmail, req, metadata, false),

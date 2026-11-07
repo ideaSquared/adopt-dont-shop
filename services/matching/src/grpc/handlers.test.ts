@@ -89,6 +89,9 @@ function sessionRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// First step of every startSession transaction: the per-user advisory lock.
+const LOCK = { rows: [] };
+
 describe('startSession', () => {
   it('throws PERMISSION_DENIED when principal lacks pets.read', async () => {
     const { deps } = makeDeps([]);
@@ -97,8 +100,18 @@ describe('startSession', () => {
     ).rejects.toBeInstanceOf(HandlerError);
   });
 
+  it('serialises concurrent starts for one user with a per-user advisory lock before looking up', async () => {
+    const { deps, query } = makeDeps([LOCK, { rows: [sessionRow()] }]);
+    await startSession(deps, makePrincipal({ userId: 'usr-9' }), {} as StartSessionRequest);
+    const [lockSql, lockParams] = query.mock.calls[0] as [string, unknown[]];
+    expect(lockSql).toContain('pg_advisory_xact_lock');
+    expect(lockParams).toEqual(['matching:swipe-session:usr-9']);
+    expect(String(query.mock.calls[1][0])).toContain('FROM swipe_sessions');
+  });
+
   it('returns existing active session as created=false (idempotency)', async () => {
     const { deps } = makeDeps([
+      LOCK, // advisory lock
       { rows: [sessionRow()] }, // SELECT existing — found
     ]);
     const res = await startSession(deps, makePrincipal(), {} as StartSessionRequest);
@@ -112,6 +125,7 @@ describe('startSession', () => {
 
   it('creates a new session when none exist and publishes matching.sessionStarted', async () => {
     const { deps } = makeDeps([
+      LOCK, // advisory lock
       { rows: [] }, // SELECT existing — empty
       { rows: [sessionRow({ session_id: 'sess-new' })] }, // INSERT returning
     ]);
@@ -129,41 +143,41 @@ describe('startSession', () => {
   });
 
   it('coerces UNSPECIFIED device_type to "unknown"', async () => {
-    const { deps } = makeDeps([{ rows: [] }, { rows: [sessionRow()] }]);
+    const { deps } = makeDeps([LOCK, { rows: [] }, { rows: [sessionRow()] }]);
     await startSession(deps, makePrincipal(), {} as StartSessionRequest);
     // INSERT call's deviceType param at index 5.
     const insertCall = deps.pool.query as unknown as ReturnType<typeof vi.fn>;
-    expect(insertCall.mock.calls[1][1][5]).toBe('unknown');
+    expect(insertCall.mock.calls[2][1][5]).toBe('unknown');
   });
 
   it('throws INVALID_ARGUMENT on malformed filters_json', async () => {
-    const { deps } = makeDeps([{ rows: [] }]);
+    const { deps } = makeDeps([LOCK, { rows: [] }]);
     await expect(
       startSession(deps, makePrincipal(), { filtersJson: 'not-json' } as StartSessionRequest)
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
   it('throws INVALID_ARGUMENT when filters_json encodes an array instead of object', async () => {
-    const { deps } = makeDeps([{ rows: [] }]);
+    const { deps } = makeDeps([LOCK, { rows: [] }]);
     await expect(
       startSession(deps, makePrincipal(), { filtersJson: '[1,2,3]' } as StartSessionRequest)
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
   it('empty filters_json normalises to "{}"', async () => {
-    const { deps } = makeDeps([{ rows: [] }, { rows: [sessionRow()] }]);
+    const { deps } = makeDeps([LOCK, { rows: [] }, { rows: [sessionRow()] }]);
     await startSession(deps, makePrincipal(), { filtersJson: '' } as StartSessionRequest);
     const insertCall = deps.pool.query as unknown as ReturnType<typeof vi.fn>;
-    expect(insertCall.mock.calls[1][1][2]).toBe('{}');
+    expect(insertCall.mock.calls[2][1][2]).toBe('{}');
   });
 
   it('never persists the adopter coordinates with the session filters', async () => {
-    const { deps } = makeDeps([{ rows: [] }, { rows: [sessionRow()] }]);
+    const { deps } = makeDeps([LOCK, { rows: [] }, { rows: [sessionRow()] }]);
     await startSession(deps, makePrincipal(), {
       filtersJson: '{"species":"dog","latitude":51.5,"longitude":-0.12}',
     } as StartSessionRequest);
     const insertCall = deps.pool.query as unknown as ReturnType<typeof vi.fn>;
-    expect(insertCall.mock.calls[1][1][2]).toBe('{"species":"dog"}');
+    expect(insertCall.mock.calls[2][1][2]).toBe('{"species":"dog"}');
   });
 
   // ADS-931: ip_address / user_agent are forensic columns. They must come
@@ -171,19 +185,19 @@ describe('startSession', () => {
   // the caller-controlled request body — otherwise any adopter can forge
   // the abuse-investigation signal.
   it('ignores caller-supplied ipAddress/userAgent in the request body', async () => {
-    const { deps, query } = makeDeps([{ rows: [] }, { rows: [sessionRow()] }]);
+    const { deps, query } = makeDeps([LOCK, { rows: [] }, { rows: [sessionRow()] }]);
     await startSession(deps, makePrincipal(), {
       ipAddress: '1.2.3.4',
       userAgent: 'forged-agent',
     } as StartSessionRequest);
-    const insertParams = query.mock.calls[1][1] as unknown[];
+    const insertParams = query.mock.calls[2][1] as unknown[];
     // INSERT params: session_id, user_id, filters, ip_address, user_agent, device_type
     expect(insertParams[3]).toBeNull();
     expect(insertParams[4]).toBeNull();
   });
 
   it('persists ip/user-agent from gateway-stamped call metadata', async () => {
-    const { deps, query } = makeDeps([{ rows: [] }, { rows: [sessionRow()] }]);
+    const { deps, query } = makeDeps([LOCK, { rows: [] }, { rows: [sessionRow()] }]);
     const metadata = new Metadata();
     metadata.set('x-client-ip', '203.0.113.9');
     metadata.set('x-client-user-agent', 'Mozilla/5.0 (real)');
@@ -193,7 +207,7 @@ describe('startSession', () => {
       { ipAddress: '1.2.3.4', userAgent: 'forged-agent' } as StartSessionRequest,
       metadata
     );
-    const insertParams = query.mock.calls[1][1] as unknown[];
+    const insertParams = query.mock.calls[2][1] as unknown[];
     expect(insertParams[3]).toBe('203.0.113.9');
     expect(insertParams[4]).toBe('Mozilla/5.0 (real)');
   });

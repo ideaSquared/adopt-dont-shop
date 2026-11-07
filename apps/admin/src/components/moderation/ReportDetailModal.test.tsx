@@ -181,6 +181,28 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
     expect(screen.getByTestId('no-prior-history')).toBeInTheDocument();
   });
 
+  it('shows the date an active sanction expires', async () => {
+    const current = makeReport();
+    mockUseReports.mockReturnValue({
+      data: { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    mockUseActiveActions.mockReturnValue({
+      data: [makeAction({ expiresAt: new Date('2026-08-15T12:00:00Z') })],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    const user = userEvent.setup();
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
+    await user.click(screen.getByRole('tab', { name: 'Context' }));
+
+    expect(screen.getByText(/expires 15 August 2026/i)).toBeInTheDocument();
+  });
+
   it('omits the context tab when reportedUserId is null', () => {
     const current = makeReport({ reportedUserId: null });
     mockUseReports.mockReturnValue({

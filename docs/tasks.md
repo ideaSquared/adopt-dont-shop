@@ -153,6 +153,9 @@ the repo root with `pnpm <script>`.
 | `pnpm db:seed` | `node scripts/seed.mjs` |
 | `pnpm db:seed:dev` | `node scripts/seed.mjs && node scripts/spam.mjs` |
 | `pnpm db:spam` | `node scripts/spam.mjs` |
+| `pnpm e2e:isolated` | `node scripts/e2e-isolated.mjs` |
+| `pnpm e2e:isolated:down` | `node scripts/e2e-isolated.mjs --down` |
+| `pnpm e2e:isolated:full` | `node scripts/e2e-isolated.mjs --full` |
 | `pnpm ratchet:coverage` | `node scripts/ratchet-coverage.mjs` |
 | `pnpm ratchet:stories-coverage` | `node scripts/check-storybook-coverage.mjs --ratchet` |
 | `pnpm smoke:prod` | `bash scripts/smoke-prod.sh` |

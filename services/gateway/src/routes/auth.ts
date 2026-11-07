@@ -138,7 +138,7 @@ type AssignRoleBody = {
 const E2E_AUTH_MAX = Number(process.env.GATEWAY_AUTH_RATE_LIMIT_MAX);
 const authMax = (def: number): number =>
   Number.isFinite(E2E_AUTH_MAX) && E2E_AUTH_MAX > 0 ? E2E_AUTH_MAX : def;
-const AUTH_RATE_LIMITS = {
+export const AUTH_RATE_LIMITS = {
   login: { max: authMax(10), timeWindow: '1 minute' },
   logout: { max: authMax(30), timeWindow: '1 minute' },
   refreshToken: { max: authMax(30), timeWindow: '1 minute' },
@@ -191,7 +191,16 @@ export const registerAuthRoutes = async (
       const allowed = await limiter.consume(email);
       if (!allowed) {
         onTrip?.();
-        return reply.code(429).send({ error: 'Too many requests for this email' });
+        // Same body shape as the per-IP @fastify/rate-limit response, plus
+        // Retry-After, so clients handle both 429s identically.
+        return reply
+          .code(429)
+          .header('Retry-After', String(limiter.retryAfterSeconds(email)))
+          .send({
+            statusCode: 429,
+            error: 'Too Many Requests',
+            message: 'Too many requests for this email',
+          });
       }
     };
   };

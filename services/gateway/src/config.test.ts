@@ -187,6 +187,73 @@ describe('loadConfig — upload signing secret (ADS-845)', () => {
   });
 });
 
+describe('loadConfig — enquiry rate-limit caps', () => {
+  const PROD_BASE = { CORS_ORIGIN: 'https://app.example.com' };
+
+  it('defaults the per-IP cap to 200/day and the per-user cap to 20/day', () => {
+    const { enquiryRateLimit } = loadConfig({});
+    expect(enquiryRateLimit.ipMax).toBe(200);
+    expect(enquiryRateLimit.userMax).toBe(20);
+  });
+
+  it.each(['development', 'test'])('accepts overrides in %s', environment => {
+    const { enquiryRateLimit } = loadConfig({
+      NODE_ENV: environment,
+      GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: '10000',
+      GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: '5000',
+    });
+    expect(enquiryRateLimit.ipMax).toBe(10000);
+    expect(enquiryRateLimit.userMax).toBe(5000);
+  });
+
+  it.each(['production', 'staging'])(
+    'refuses to boot in %s when the per-IP cap is overridden',
+    environment => {
+      expect(() =>
+        loadConfig({
+          ...PROD_BASE,
+          NODE_ENV: environment,
+          GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: '10000',
+        })
+      ).toThrow(/GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX must not be overridden in/);
+    }
+  );
+
+  it.each(['production', 'staging'])(
+    'refuses to boot in %s when the per-user cap is overridden',
+    environment => {
+      expect(() =>
+        loadConfig({
+          ...PROD_BASE,
+          NODE_ENV: environment,
+          GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: '10000',
+        })
+      ).toThrow(/GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX must not be overridden in/);
+    }
+  );
+
+  it('boots in production when both caps are unset or set to their defaults', () => {
+    expect(() => loadConfig({ ...PROD_BASE, NODE_ENV: 'production' })).not.toThrow();
+    expect(() =>
+      loadConfig({
+        ...PROD_BASE,
+        NODE_ENV: 'production',
+        GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: '200',
+        GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: '20',
+      })
+    ).not.toThrow();
+  });
+
+  it.each(['not-a-number', '0', '-5', ''])('falls back to the defaults for %j', raw => {
+    const { enquiryRateLimit } = loadConfig({
+      GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: raw,
+      GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: raw,
+    });
+    expect(enquiryRateLimit.ipMax).toBe(200);
+    expect(enquiryRateLimit.userMax).toBe(20);
+  });
+});
+
 describe('loadConfig — test-token-peek seam (ADS-871)', () => {
   it('is disabled by default', () => {
     const config = loadConfig({});

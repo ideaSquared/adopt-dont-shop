@@ -16,8 +16,9 @@ import { ModerationV1 } from '@adopt-dont-shop/proto';
 
 import type { ModerationConfig } from '../config.js';
 
-import { addEvidence, listModeratorActions, logModeratorAction } from './action-handlers.js';
+import { addEvidence, listModeratorActions, makeLogModeratorAction } from './action-handlers.js';
 import { adapt } from './adapter.js';
+import { createAuthClient, type AuthClient } from './auth-client.js';
 import {
   assignReport,
   escalateReport,
@@ -49,6 +50,7 @@ export type CreateGrpcServerOptions = {
   pool: Pool;
   nats: NatsConnection;
   logger: Logger;
+  authClient?: AuthClient;
 };
 
 export type { RunningGrpcServer };
@@ -56,6 +58,7 @@ export type { RunningGrpcServer };
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
   const deps = { pool, nats };
+  const authClient = opts.authClient ?? createAuthClient({ address: config.authGrpcUrl });
   const server = new Server();
 
   server.addService(ModerationV1.ModerationServiceService, {
@@ -67,7 +70,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     resolveReport: adapt(resolveReport, { deps, logger }),
     escalateReport: adapt(escalateReport, { deps, logger }),
     // Moderator actions + evidence (action-handlers.ts)
-    logModeratorAction: adapt(logModeratorAction, { deps, logger }),
+    logModeratorAction: adapt(makeLogModeratorAction(authClient), { deps, logger }),
     listModeratorActions: adapt(listModeratorActions, { deps, logger }),
     getModerationMetrics: adapt(getModerationMetrics, { deps, logger }),
     addEvidence: adapt(addEvidence, { deps, logger }),
@@ -99,6 +102,19 @@ export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
-  const server = createGrpcServer(opts);
-  return startGrpcServerShared(server, config, logger);
+  // Own the auth client here so it is closed on shutdown.
+  const authClient = opts.authClient ?? createAuthClient({ address: config.authGrpcUrl });
+  const server = createGrpcServer({ ...opts, authClient });
+  const running = await startGrpcServerShared(server, config, logger);
+  return {
+    ...running,
+    shutdown: async () => {
+      await running.shutdown();
+      try {
+        authClient.close();
+      } catch (closeErr) {
+        logger.error('auth client close error', { err: closeErr });
+      }
+    },
+  };
 };

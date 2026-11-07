@@ -83,7 +83,9 @@ export const ReportSchema = z.object({
   assignedAt: z.coerce.date().nullable().optional(),
   resolvedBy: z.string().nullable().optional(),
   resolvedAt: z.coerce.date().nullable().optional(),
-  resolution: ResolutionTypeSchema.nullable().optional(),
+  // Legacy rows hold values outside the enum ('resolved', 'dismissed'); fall
+  // back rather than failing the whole list parse on one bad row.
+  resolution: ResolutionTypeSchema.nullable().optional().catch('no_action'),
   resolutionNotes: z.string().nullable().optional(),
   escalatedTo: z.string().nullable().optional(),
   escalatedAt: z.coerce.date().nullable().optional(),
@@ -109,6 +111,8 @@ export const CreateReportRequestSchema = z.object({
 // `resolutionNotes` — the field name must match the controller payload contract.
 export const UpdateReportStatusRequestSchema = z.object({
   status: ReportStatusSchema,
+  // The outcome recorded on the report; must be a ResolutionType.
+  resolution: ResolutionTypeSchema.optional(),
   resolutionNotes: z.string().optional(),
 });
 
@@ -134,7 +138,21 @@ export const BulkUpdateReportsRequestSchema = z.object({
 });
 
 // Moderator action schema
-export const ModeratorActionSchema = z.object({
+// The gateway renders unset optionals as null and omits updatedAt; normalise
+// both before validating so a real response parses.
+const normaliseActionPayload = (raw: unknown): unknown => {
+  if (typeof raw !== 'object' || raw === null) {
+    return raw;
+  }
+  const entries = Object.entries(raw as Record<string, unknown>).filter(([, v]) => v !== null);
+  const obj: Record<string, unknown> = Object.fromEntries(entries);
+  if (obj.updatedAt === undefined && obj.createdAt !== undefined) {
+    obj.updatedAt = obj.createdAt;
+  }
+  return obj;
+};
+
+const ModeratorActionObjectSchema = z.object({
   actionId: z.string(),
   moderatorId: z.string(),
   reportId: z.string().optional(),
@@ -146,7 +164,8 @@ export const ModeratorActionSchema = z.object({
   reason: z.string().min(3).max(500),
   description: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).default({}),
-  duration: z.number().int().min(1).max(8760).optional(),
+  // Number of DAYS (the backend converts it to an absolute expires_at); omit for permanent.
+  duration: z.number().int().min(1).max(3650).optional(),
   expiresAt: z.coerce.date().optional(),
   isActive: z.boolean().default(true),
   reversedBy: z.string().optional(),
@@ -159,6 +178,11 @@ export const ModeratorActionSchema = z.object({
   updatedAt: z.coerce.date(),
 });
 
+export const ModeratorActionSchema = z.preprocess(
+  normaliseActionPayload,
+  ModeratorActionObjectSchema
+);
+
 // Create moderator action request schema
 export const CreateModeratorActionRequestSchema = z.object({
   reportId: z.string().optional(),
@@ -169,7 +193,8 @@ export const CreateModeratorActionRequestSchema = z.object({
   severity: ActionSeveritySchema,
   reason: z.string().min(3).max(500),
   description: z.string().optional(),
-  duration: z.number().int().min(1).max(8760).optional(),
+  // Number of DAYS (the backend converts it to an absolute expires_at); omit for permanent.
+  duration: z.number().int().min(1).max(3650).optional(),
   evidence: z.array(EvidenceItemSchema).optional(),
   internalNotes: z.string().optional(),
 });

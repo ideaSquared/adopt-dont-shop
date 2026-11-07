@@ -9,7 +9,7 @@ covered by automated tests in this repository.
 | ---------- | ------------------------------------------- | --------------------------------------------------------------- |
 | Vitest     | every `services/*`, `app.*`, and `lib.*`    | Behaviour-driven tests for services, components, libraries      |
 | Vitest     | `scripts/` (`pnpm test:scripts`)            | The repo's own DX guard-scripts (see below)                     |
-| Playwright | `e2e/`                                      | Cross-app integration journeys against the docker-compose stack |
+| Playwright | `e2e/`                                      | Cross-app integration journeys against an isolated docker stack |
 | Bash       | `scripts/smoke-prod.sh` (`pnpm smoke:prod`) | Production smoke test: the real production stack, end to end    |
 
 Each backend service — and every `packages/lib.*` — owns its own
@@ -24,6 +24,12 @@ PR — it runs only when the PR carries the `run-e2e` label (or on `main`
 push / manual dispatch). When it runs it is a required check and blocks
 merge on failure; unlabelled PRs skip the job entirely to keep the
 default CI path fast. See CONTRIBUTING.md for the label workflow.
+
+Both CI e2e jobs (and `pnpm e2e:isolated` locally) run against a private,
+throwaway stack (`docker-compose.e2e.yml`, project `ads-e2e`, ports
+13000-13002 and 14000) rather than the dev stack, so e2e runs never share
+rate-limit counters, data or saved logins with a developer's environment. See
+[Reproducing CI E2E locally](DOCKER.md#reproducing-ci-e2e-locally).
 
 ## Production smoke test
 

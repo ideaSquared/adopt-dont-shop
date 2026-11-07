@@ -85,6 +85,8 @@ describe('classifyAffected', () => {
     '.dockerignore',
     'scripts/init-postgis.sql',
     'scripts/write-redis-secret.mjs',
+    'scripts/e2e-isolated.mjs',
+    'docker-compose.e2e.yml',
     '.github/actions/e2e-suite/action.yml',
   ])('runs the e2e stack when %s changes', file => {
     expect(classify({ files: [file] }).e2e).toBe(true);

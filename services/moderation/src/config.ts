@@ -24,6 +24,9 @@ export type ModerationConfig = {
   // chat.messageCreated, pets.created, applications.submitted etc.
   // for content scanning + auto-report triggers.
   natsUrl: string;
+  // service.auth gRPC address. A user_suspended moderator action calls
+  // AdminUpdateUser here to suspend the account.
+  authGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 5007;
@@ -31,6 +34,7 @@ const DEFAULT_GRPC_PORT = 6007;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'moderation';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
+const DEFAULT_AUTH_GRPC_URL = 'service-auth:6002';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ModerationConfig => {
   const port = parsePort(env.MODERATION_PORT, DEFAULT_PORT, 'MODERATION_PORT');
@@ -46,5 +50,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ModerationConf
     databaseUrl,
     schema: env.MODERATION_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    authGrpcUrl: env.AUTH_GRPC_URL?.trim() || DEFAULT_AUTH_GRPC_URL,
   };
 };
