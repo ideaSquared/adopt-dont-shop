@@ -1256,6 +1256,32 @@ describe('updatePetStatus', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('PERMISSION_DENIED, with no write and no event, when the rescue is no longer verified', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.rescueClient.getRescue.mockRejectedValue({ code: 5 });
+    await expect(
+      updatePetStatus(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('PERMISSION_DENIED, with no write and no event, once the caller was removed from the rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.rescueClient.listStaffMembers.mockResolvedValue({ staffMembers: [] });
+    await expect(
+      updatePetStatus(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
   it('rejects an illegal transition (available → adopted)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
     await expect(

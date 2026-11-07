@@ -42,9 +42,14 @@ export type CreateRescueClientOptions = {
   // DEADLINE_EXCEEDED trigger a retry (both are safe for idempotent
   // reads). Defaults to 2 (i.e. up to 3 total attempts).
   maxRetries?: number;
+  // Overall time budget across ALL attempts of one call, in milliseconds. The
+  // gateway allows a whole pet mutation only ~5s, so retries must not stack
+  // fresh per-attempt deadlines past it. Defaults to 4s.
+  budgetMs?: number;
 };
 
 const DEFAULT_DEADLINE_MS = 5_000;
+const DEFAULT_BUDGET_MS = 4_000;
 const DEFAULT_MAX_RETRIES = 2;
 // Retry-eligible status codes for idempotent reads.
 const RETRYABLE_CODES = new Set([status.UNAVAILABLE, status.DEADLINE_EXCEEDED]);
@@ -76,6 +81,7 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
   const stub = new RescueV1.RescueServiceClient(opts.address, credentials.createInsecure());
   const deadlineMs = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const budgetMs = opts.budgetMs ?? DEFAULT_BUDGET_MS;
 
   // Built per attempt, not once at client creation: the signed
   // x-principal-token (ADS-800) carries a short TTL.
@@ -106,14 +112,16 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     ) => unknown,
     req: Req
   ): Promise<Res> => {
+    const budgetEnd = Date.now() + budgetMs;
     const attempt = (remaining: number): Promise<Res> =>
       new Promise<Res>((resolve, reject) => {
+        // Each attempt is capped by what is left of the overall budget.
         const options: Partial<CallOptions> = {
-          deadline: new Date(Date.now() + deadlineMs),
+          deadline: new Date(Math.min(Date.now() + deadlineMs, budgetEnd)),
         };
         fn.call(stub, req, buildSystemMetadata(), options, (err: unknown, res: Res) => {
           if (err) {
-            if (remaining > 0 && isRetryableError(err)) {
+            if (remaining > 0 && isRetryableError(err) && Date.now() < budgetEnd) {
               const retryIndex = maxRetries - remaining + 1;
               sleep(jitteredBackoff(retryIndex, 100))
                 .then(() => attempt(remaining - 1))

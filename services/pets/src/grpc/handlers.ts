@@ -1018,21 +1018,22 @@ async function assertRescueMayWrite(
     return;
   }
 
-  try {
-    await deps.rescueClient.getRescue({ rescueId });
-  } catch (err) {
-    if ((err as { code?: number }).code === grpcStatus.NOT_FOUND) {
+  // Both lookups run together so the worst case is one call's time budget, not
+  // two (the gateway gives the whole pet mutation about 5s).
+  const [rescueResult, staffResult] = await Promise.allSettled([
+    deps.rescueClient.getRescue({ rescueId }),
+    deps.rescueClient.listStaffMembers({ rescueId }),
+  ]);
+  if (rescueResult.status === 'rejected') {
+    if ((rescueResult.reason as { code?: number }).code === grpcStatus.NOT_FOUND) {
       throw new HandlerError('PERMISSION_DENIED', `rescue ${rescueId} is not verified`);
     }
     throw new HandlerError('INTERNAL', 'failed to verify rescue status');
   }
-
-  let staff;
-  try {
-    staff = await deps.rescueClient.listStaffMembers({ rescueId });
-  } catch {
+  if (staffResult.status === 'rejected') {
     throw new HandlerError('INTERNAL', 'failed to verify rescue membership');
   }
+  const staff = staffResult.value;
   if (!staff.staffMembers.some(member => member.userId === principal.userId)) {
     throw new HandlerError('PERMISSION_DENIED', `not a staff member of rescue ${rescueId}`);
   }

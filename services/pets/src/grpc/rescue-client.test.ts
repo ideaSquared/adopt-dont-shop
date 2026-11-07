@@ -91,6 +91,28 @@ describe('createRescueClient (pets)', () => {
     }
   });
 
+  it('gives up within the overall budget even if each attempt would allow longer', async () => {
+    server.addService(RescueV1.RescueServiceService, {
+      // Never answers: only the deadline can end the call.
+      get: () => undefined,
+    });
+    const client = createRescueClient({
+      address: `127.0.0.1:${await start()}`,
+      deadlineMs: 5_000,
+      budgetMs: 300,
+    });
+
+    try {
+      const startedAt = Date.now();
+      await expect(client.getRescue({ rescueId: 'rsc-1' })).rejects.toMatchObject({
+        code: status.DEADLINE_EXCEEDED,
+      });
+      expect(Date.now() - startedAt).toBeLessThan(2_000);
+    } finally {
+      client.close();
+    }
+  });
+
   it('surfaces NOT_FOUND from Get without retrying', async () => {
     let calls = 0;
     server.addService(RescueV1.RescueServiceService, {
