@@ -1,0 +1,228 @@
+# Isolated, throwaway stack for the Playwright suite (ADS e2e).
+#
+# Layered LAST on top of the dev stack files, always under its own compose
+# project and env file, never the dev project's. scripts/e2e-isolated.mjs does
+# exactly this (`pnpm e2e:isolated`), and so does CI (.github/actions/e2e-suite):
+#
+#   docker compose -p ads-e2e --env-file .e2e-stack/env \
+#     -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.e2e.yml \
+#     --profile client --profile admin --profile rescue --profile services up -d
+#
+# Needs Compose >= 2.24 for the !override / !reset tags.
+#
+# What it changes versus the dev stack:
+#   * own project, network name and redis secret file (the base file hard-codes
+#     `adopt-dont-shop-network` and ./secrets/redis_password; sharing either with
+#     the dev stack would cross-wire the `database` / `redis` aliases and clobber
+#     the dev stack's secret)
+#   * publishes ONLY the gateway and the three apps, on 13000-13002 / 14000-14001
+#     (the base ports are hard-coded and port lists MERGE across files, hence
+#     !reset / !override). Nothing is published on 5432 / 6379 / 6380 / 4222.
+#   * apps are BUILT once (libs via turbo, then `vite build`) and served with
+#     `vite preview` instead of the Vite dev server: no HMR watcher, no on-demand
+#     compile, a fraction of the memory once built. Builds run one app at a time
+#     (depends_on chain) so only one vite build is ever in flight.
+#   * no db:spam population (the dev override plants thousands of users/pets, and
+#     the e2e specs depend on a small known dataset)
+#   * no nginx, no observability stack, no ClamAV (uploads fail open in e2e) and
+#     no seed-personas container (the runner seeds from the host, see the script)
+#   * explicit mem_limit / cpus on every service so the stack fits a Docker
+#     Desktop VM of 8 GB on its own (it is NOT meant to run beside the dev stack)
+#   * gateway rate limits lifted per project, in env, not code. The optional
+#     `limits` profile adds a second gateway that keeps the PRODUCTION limits, on
+#     its own port and its own Redis database, for the limiter spec.
+x-no-ports: &no-ports
+  ports: !reset []
+
+# Production-default limiter for the second gateway. GATEWAY_AUTH_RATE_LIMIT_MAX
+# is deliberately empty (services/gateway/src/routes/auth.ts treats unset/empty
+# as "use the strict defaults", e.g. 10 logins per minute).
+x-prod-limits: &prod-limits
+  GATEWAY_RATE_LIMIT_MAX: '100'
+  GATEWAY_AUTH_RATE_LIMIT_MAX: ''
+
+x-app-env: &e2e-app-env
+  # Bundled into the build: the browser reaches the e2e gateway, not :4000.
+  VITE_WS_BASE_URL: ws://localhost:${E2E_API_PORT:-14000}
+  # Never talk to Statsig / Sentry from a throwaway run, whatever the dev .env has.
+  VITE_STATSIG_CLIENT_KEY: ''
+  VITE_SENTRY_DSN: ''
+  # A vite build needs well under the 3 GB heap the dev servers get.
+  NODE_OPTIONS: '--max-old-space-size=1536'
+
+services:
+  # ---------------------------------------------------------------- infra
+  database:
+    <<: *no-ports
+    mem_limit: 768m
+    cpus: 2
+    # Throwaway data: trade durability for speed.
+    command: ['postgres', '-c', 'fsync=off', '-c', 'synchronous_commit=off', '-c', 'full_page_writes=off']
+  nats:
+    <<: *no-ports
+    mem_limit: 128m
+    cpus: 0.5
+  redis:
+    <<: *no-ports
+    mem_limit: 128m
+    cpus: 0.5
+  lib-types-watcher:
+    mem_limit: 384m
+    cpus: 1
+  # ClamAV is parked behind a profile nobody enables: ~1 GB of RAM and a
+  # virus-database download on every fresh run. The gateway fails open instead.
+  clamav:
+    ports: !reset []
+    profiles: !override ['av']
+  # Personas are seeded from the host (scripts/e2e-isolated.mjs), against the e2e
+  # gateway only, so the in-compose seeder never starts.
+  seed-personas:
+    profiles: !override ['seed']
+  nginx:
+    profiles: !override ['proxy']
+
+  # ------------------------------------------------------------- services
+  service-notifications: &svc
+    <<: *no-ports
+    mem_limit: 640m
+    cpus: 1
+  service-auth:
+    <<: *svc
+    # db:migrate + db:seed (bootstrap super_admin) only; no db:spam.
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.auth run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.auth run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.auth run dev"
+  service-pets:
+    <<: *svc
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.pets run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.pets run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.pets run dev"
+  service-rescue:
+    <<: *svc
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.rescue run dev"
+  service-applications: *svc
+  service-chat: *svc
+  service-moderation: *svc
+  service-matching: *svc
+  service-audit: *svc
+  service-cms: *svc
+
+  service-gateway:
+    ports: !override
+      - '127.0.0.1:${E2E_API_PORT:-14000}:4000'
+    mem_limit: 768m
+    cpus: 1.5
+    # No clamav dependency: the base file waits for it to start.
+    depends_on: !override
+      nats: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      database: { condition: service_healthy }
+    environment:
+      E2E_TOKEN_PEEK: 'true'
+      CLAMAV_FAIL_OPEN: 'true'
+      # The bundles call the gateway's WebSocket directly (VITE_WS_BASE_URL), from
+      # the e2e app origins; the built-in dev allowlist only knows :3000-3002.
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:13000,http://localhost:13001,http://localhost:13002}
+      GATEWAY_RATE_LIMIT_MAX: '100000'
+      GATEWAY_AUTH_RATE_LIMIT_MAX: '100000'
+      # Read by the gateway once fix/gateway-enquiry-ip-limit-config lands;
+      # harmless (an unknown env var) until then.
+      GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: '100000'
+      GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: '100000'
+
+  # Second gateway with production-default limits, for the limiter spec only
+  # (e2e/tests/gateway-limits). Same image and source as service-gateway, but:
+  #   * own host port
+  #   * own Redis DATABASE (/1): @fastify/rate-limit counters are keyed by IP and
+  #     route, so sharing database 0 would let the main gateway's traffic (all of
+  #     it from the same docker-side IP) eat this gateway's budget
+  # It only starts with `--profile limits` (the runner enables it for full runs).
+  #
+  # Compose `extends` cannot reach a service that is only defined in another
+  # merged file, so this repeats the gateway's wiring (base + dev override) and
+  # takes its mounts (source bind mount and node_modules volumes) from the main
+  # gateway with volumes_from. If service-gateway gains env vars, mirror them here.
+  service-gateway-limits:
+    profiles: ['limits']
+    image: adopt-dont-shop-dev:latest
+    volumes_from:
+      - service-gateway
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.gateway run dev"
+    ports:
+      - '127.0.0.1:${E2E_LIMITER_PORT:-14001}:4000'
+    mem_limit: 512m
+    cpus: 1
+    stop_grace_period: 30s
+    environment:
+      <<: *prod-limits
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      HUSKY: '0'
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+      NODE_ENV: ${NODE_ENV:-development}
+      NATS_URL: nats://nats:4222
+      NATS_AUTH_TOKEN: '${NATS_AUTH_TOKEN:?Error: NATS_AUTH_TOKEN required}'
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      PRINCIPAL_SIGNING_KEY: ${PRINCIPAL_SIGNING_KEY:-}
+      LEGAL_DOCS_DIR: /app/docs/legal
+      E2E_TOKEN_PEEK: 'true'
+      CLAMAV_FAIL_OPEN: 'true'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-adopt_user}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-adopt_dont_shop_dev}
+    depends_on:
+      service-gateway: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ----------------------------------------------------------------- apps
+  # Built bundle + `vite preview`. preview.proxy defaults to server.proxy, so the
+  # bundle's same-origin /api calls (VITE_API_BASE_URL='') still reach
+  # service-gateway (vite.config.ts treats DOCKER_ENV=true as "in Docker").
+  # The healthcheck start_period covers the in-container build.
+  app-client:
+    ports: !override ['127.0.0.1:${E2E_CLIENT_PORT:-13000}:3000']
+    environment: *e2e-app-env
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2
+    command: >-
+      sh -c "NODE_ENV=production pnpm exec turbo run build --filter='@adopt-dont-shop/app.client^...'
+      && NODE_ENV=production pnpm --filter @adopt-dont-shop/app.client exec vite build
+      && exec pnpm --filter @adopt-dont-shop/app.client exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
+    healthcheck: &app-hc
+      start_period: 900s
+  app-admin:
+    ports: !override ['127.0.0.1:${E2E_ADMIN_PORT:-13001}:3000']
+    environment: *e2e-app-env
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2
+    depends_on:
+      app-client: { condition: service_healthy }
+    command: >-
+      sh -c "NODE_ENV=production pnpm exec turbo run build --filter='@adopt-dont-shop/app.admin^...'
+      && NODE_ENV=production pnpm --filter @adopt-dont-shop/app.admin exec vite build
+      && exec pnpm --filter @adopt-dont-shop/app.admin exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
+    healthcheck: *app-hc
+  app-rescue:
+    ports: !override ['127.0.0.1:${E2E_RESCUE_PORT:-13002}:3000']
+    environment:
+      <<: *e2e-app-env
+      WATCHPACK_POLLING: ''
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2
+    depends_on:
+      app-admin: { condition: service_healthy }
+    command: >-
+      sh -c "NODE_ENV=production pnpm exec turbo run build --filter='@adopt-dont-shop/app.rescue^...'
+      && NODE_ENV=production pnpm --filter @adopt-dont-shop/app.rescue exec vite build
+      && exec pnpm --filter @adopt-dont-shop/app.rescue exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
+    healthcheck: *app-hc
+
+networks:
+  default:
+    name: ${E2E_PROJECT:-ads-e2e}-network
+
+secrets:
+  redis_password:
+    file: ./.e2e-stack/redis_password

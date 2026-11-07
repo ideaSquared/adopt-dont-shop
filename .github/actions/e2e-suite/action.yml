@@ -1,9 +1,10 @@
 name: 'E2E Suite (Playwright)'
 description: >-
-  Full body of ci.yml's test-e2e job (ADS-953): builds the docker-compose
-  stack, boots it, runs the Playwright suite against it, and tears it down.
-  Extracted verbatim into a composite action purely to shrink ci.yml — the
-  job itself (name, needs, if-gating, env, timeout) stays in ci.yml so its
+  Full body of ci.yml's test-e2e job (ADS-953): builds the shared dev image,
+  boots the isolated ads-e2e stack (docker-compose.e2e.yml, via
+  scripts/e2e-isolated.mjs), runs the Playwright suite against it, and tears it
+  down. Extracted into a composite action purely to shrink ci.yml; the job
+  itself (name, needs, if-gating, env, timeout) stays in ci.yml so its
   status-check identity is unchanged. See that job for the opt-in-on-PRs
   rationale (`run-e2e` label / push to main / workflow_dispatch).
 inputs:
@@ -18,22 +19,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-
-    - name: Free up disk space
-      # The 14-image compose build needs ~25GB; the hosted runner has ~14GB
-      # free. Evict the big preinstalled toolchains (Android SDK, .NET, GHC,
-      # Swift, CodeQL, runner docker images) before building. Without this
-      # the build dies with ENOSPC mid-export, or — worse — limps through
-      # and the services then sit "unhealthy" because nothing inside the
-      # containers can write (the failure signature ADS-792 describes).
-      shell: bash
-      run: |
-        df -h /
-        sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" \
-          /usr/local/lib/android /usr/share/swift /opt/hostedtoolcache/CodeQL \
-          "$AGENT_TOOLSDIRECTORY"
-        sudo docker image prune -af
-        df -h /
 
     - uses: ./.github/actions/setup-workspace
 
@@ -89,280 +74,63 @@ runs:
       shell: bash
       run: pnpm test:e2e:install
 
-    - name: Generate secrets and write .env
-      shell: bash
-      run: |
-        {
-          echo "NODE_ENV=development"
-          echo "POSTGRES_USER=postgres"
-          # Hex, not base64, for the same reason as REDIS_PASSWORD below:
-          # compose interpolates this into DATABASE_URL=postgresql://user:
-          # ${POSTGRES_PASSWORD}@database:5432/db and base64's / + = break
-          # `new URL()` in every service's db:migrate — intermittently,
-          # whenever the random draw happens to contain one.
-          echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
-          echo "POSTGRES_DB=adopt_dont_shop_dev"
-          echo "JWT_SECRET=$(openssl rand -base64 32)"
-          echo "JWT_REFRESH_SECRET=$(openssl rand -base64 32)"
-          echo "SESSION_SECRET=$(openssl rand -base64 32)"
-          echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
-          # HMAC key for the service-to-service principal tokens minted
-          # and verified by packages/service-bootstrap (read via
-          # config-secrets as PRINCIPAL_SIGNING_KEY).
-          echo "PRINCIPAL_SIGNING_KEY=$(openssl rand -hex 32)"
-          # ADS-1273 made NATS_AUTH_TOKEN a required secret in
-          # docker-compose.yml (every service's NATS client and the nats
-          # container itself). Compose interpolates every service's
-          # environment block up front, so a missing value fails the very
-          # first `up -d database redis` below, same as REDIS_PASSWORD.
-          echo "NATS_AUTH_TOKEN=$(openssl rand -hex 32)"
-          # ADS-600 made REDIS_PASSWORD a required secret in
-          # docker-compose.yml; the CI stack-up step refuses to
-          # start without it. Generate it here so every E2E run
-          # gets a fresh, non-default value.
-          #
-          # Hex (not base64) because docker-compose interpolates
-          # this into REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-          # and `openssl rand -base64` includes `/`, `+`, `=` —
-          # `/` terminates the URL userinfo so the backend's
-          # `new URL(REDIS_URL)` rejects it with "Invalid URL"
-          # before validateEnv can finish.
-          echo "REDIS_PASSWORD=$(openssl rand -hex 32)"
-          # ADS-968 made GF_SECURITY_ADMIN_PASSWORD a required secret in
-          # docker-compose.yml (${GF_SECURITY_ADMIN_PASSWORD:?} on the grafana
-          # service, which lives in the `full` profile this job brings up).
-          # Compose interpolates every service's environment block up front,
-          # before it selects services/profiles, so a missing value fails
-          # EVERY `docker compose -f docker-compose.yml ...` command here —
-          # including the first `up -d database redis` — not just grafana.
-          echo "GF_SECURITY_ADMIN_PASSWORD=$(openssl rand -hex 24)"
-          # ADS-542 made UPLOAD_SIGNING_SECRET a required env var on
-          # the backend (32+ chars). Without it the /health probe
-          # never goes ready and the Wait-for-services step times
-          # out.
-          echo "UPLOAD_SIGNING_SECRET=$(openssl rand -base64 32)"
-          echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
-          # Raise the gateway's global per-IP rate limit for e2e. A full
-          # Playwright run drives the whole SPA (favourites, chats,
-          # notifications, permissions, legal, match, csrf) across parallel
-          # workers from a single docker-side IP, bursting past the 100/min
-          # production default and 429-ing page loads. (apiAs also caches its
-          # login token per role to stay under the stricter 10/min auth-login
-          # limit.) Production keeps the 100/min default.
-          echo "GATEWAY_RATE_LIMIT_MAX=100000"
-          # Also lift the stricter per-route auth limits (login 10/min,
-          # register 5/min, ...) — a full suite logs in/registers many times
-          # from one IP across workers. Production leaves this unset.
-          echo "GATEWAY_AUTH_RATE_LIMIT_MAX=100000"
-          # ADS-871: enable the gateway's test-only token-peek seam so the
-          # e2e suite can read one-time reset/verify/invitation tokens and
-          # drive the full auth round-trips. Safe here — NODE_ENV is
-          # development above, and the gateway refuses to boot with this on
-          # under NODE_ENV=production. Production/staging never set it.
-          echo "E2E_TOKEN_PEEK=true"
-        } > .env
-
-    - name: Start database and cache
-      shell: bash
-      run: |
-        # ADS-878: the redis service reads --requirepass from the file-mounted
-        # secret ./secrets/redis_password (a top-level `secrets:` in
-        # docker-compose.yml), NOT from `environment:`. That file must exist
-        # before `up`, or the container fails with "bind source path does not
-        # exist: .../secrets/redis_password". Materialise it from the .env we
-        # just wrote — the same step `pnpm dev:services` runs before its own
-        # `docker compose up -d database redis`.
-        node scripts/write-redis-secret.mjs
-        docker compose -f docker-compose.yml up -d database redis
-        timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
-
-    - name: Build images
-      # ADS-792: `buildx bake` against docker-compose.yml with BuildKit GHA
-      # layer caching. Design notes:
+    - name: Build the shared dev image
+      # The isolated stack (docker-compose.e2e.yml on top of the dev compose
+      # files) runs every app and service from ONE image, the same
+      # adopt-dont-shop-dev:latest the dev stack uses: a single workspace
+      # install baked once, with the checkout bind-mounted over /app. That
+      # replaces the previous 14 per-service images (and their ~25 GB of disk
+      # and per-target cache scopes) with one build and one gha cache scope.
       #
-      # PER-TARGET scopes (scope=e2e-<service>): GHA cache writes are
-      # last-write-wins per scope, so a single shared scope with 14 targets
-      # exporting concurrently thrashes — each save evicts the previous
-      # target's layers and the hit rate collapses.
-      #
-      # mode=min, not mode=max, against the repo's 10GB Actions cache
-      # budget (shared with the pnpm/turbo/lib-dist/Playwright caches and
-      # docker.yml's type=gha caches):
-      #   - the `development` targets inherit FROM the build stage, so the
-      #     expensive pnpm-install + turbo-build layers ARE final-image
-      #     layers and mode=min still caches them;
-      #   - mode=max would additionally export intermediates like the
-      #     `pruner` stage, whose COPY-the-whole-repo layer changes every
-      #     commit — pure churn, several GB per scope, guaranteed eviction
-      #     pressure across 14 scopes;
-      #   - estimated mode=min footprint: ~0.3-0.6GB x 14 scopes. Layers
-      #     shared between images are still stored once per scope — the
-      #     price of not thrashing;
-      #   - ignore-error=true: a cache-backend outage degrades to an
-      #     uncached build instead of failing CI.
-      #
-      # Targets are discovered from the compose file via `bake --print`
-      # (buildx parses compose profiles as "all", so every buildable
-      # service is included) — compose-stack changes need no edits here.
-      # Bake assigns NO tags when compose services have no `image:` field,
-      # so each target's tag is set explicitly to the <project>-<service>
-      # name that `docker compose up --no-build` later resolves (project =
-      # lowercased checkout directory name, the same default compose uses).
-      # If bake ever fails to resolve targets (e.g. a compose-file feature
-      # it can't parse), fall back to the previous uncached compose build
-      # rather than breaking the job.
+      # `bake` interpolates the compose files, so the `${VAR:?}` guards need
+      # values; they are placeholders here because nothing secret is baked into
+      # the image. scripts/e2e-isolated.mjs generates the real, per-run secrets.
+      # Only non-PR runs write the layer cache (a PR run reads main's), so PRs do
+      # not evict main's warm layers from the repo-wide 10 GB cache budget.
       shell: bash
+      env:
+        NATS_AUTH_TOKEN: build-only
+        JWT_SECRET: build-only
+        JWT_REFRESH_SECRET: build-only
+        ENCRYPTION_KEY: build-only
+        GF_SECURITY_ADMIN_PASSWORD: build-only
       run: |
         set -euo pipefail
-        # bake interpolates the compose file itself, so the ${VAR:?} guards
-        # (REDIS_PASSWORD, JWT_SECRET, ...) need the generated .env values
-        # in the process env.
-        set -a; source ./.env; set +a
-
-        project="$(basename "$PWD" | tr '[:upper:]' '[:lower:]')"
-        mapfile -t targets < <(docker buildx bake -f docker-compose.yml --print 2>/dev/null | jq -r '.group.default.targets[]' || true)
-
-        if [ "${#targets[@]}" -eq 0 ]; then
-          echo "::warning title=bake fallback::buildx bake resolved no targets from docker-compose.yml — falling back to uncached docker compose build"
-          COMPOSE_PARALLEL_LIMIT=4 docker compose -f docker-compose.yml --profile full build
-          exit 0
+        set_args=(--set "app-admin.cache-from=type=gha,scope=e2e-dev-image")
+        if [ "${{ github.event_name }}" != "pull_request" ]; then
+          set_args+=(--set "app-admin.cache-to=type=gha,mode=min,scope=e2e-dev-image,ignore-error=true")
         fi
-
-        echo "Building ${#targets[@]} targets: ${targets[*]}"
-        # Only non-PR runs (push to main, manual) write the layer cache. A PR
-        # run reads main's cache but doesn't add its own: the cache is
-        # repo-wide capped at 10 GB, and ~14 image caches per PR push evicted
-        # main's warm layers, which made every PR build cold (~8 min).
-        write_cache=true
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          write_cache=false
-        fi
-
-        set_args=()
-        for t in "${targets[@]}"; do
-          set_args+=(
-            --set "${t}.tags=${project}-${t}"
-            --set "${t}.cache-from=type=gha,scope=e2e-${t}"
-          )
-          if [ "$write_cache" = true ]; then
-            set_args+=(--set "${t}.cache-to=type=gha,mode=min,scope=e2e-${t},ignore-error=true")
-          fi
-        done
-
-        # --load = output=type=docker: images land in the daemon store
-        # under the tags set above, where `up --no-build` expects them.
-        docker buildx bake -f docker-compose.yml --load "${set_args[@]}"
-
-        # The BuildKit cache is dead weight once the images are in the
-        # daemon store — reclaim the disk before the stack boots.
+        # --load puts the image in the daemon store under the `image:` tag the
+        # dev override sets, where `compose up --no-build` expects it.
+        docker buildx bake -f docker-compose.yml -f docker-compose.dev.yml --load "${set_args[@]}" app-admin
         docker buildx prune -af > /dev/null
-        docker image ls --format '{{.Repository}}:{{.Tag}}  {{.Size}}' | grep "^${project}-" || true
+        docker image ls adopt-dont-shop-dev
         df -h /
 
-    - name: Start the full stack (images already built)
-      # Phase 11 follow-up: bring the apps + gateway + services + nginx up
-      # in ONE compose invocation under the `full` profile. The previous
-      # two-step `--profile services up` + `up app-client app-admin
-      # app-rescue` left nginx (which has no profile and therefore
-      # auto-starts on the first invocation) crash-looping for six minutes
-      # because its `app-client:3000` upstream wasn't resolvable. nginx is
-      # now in the `full`/`proxy` profiles so it starts only alongside the
-      # apps it proxies, and a single `up` honours the compose dependency
-      # graph instead of racing two independent stacks.
-      # ADS-792: --no-build because images were pre-built above.
-      shell: bash
-      run: |
-        docker compose -f docker-compose.yml --profile full up -d --no-build
-        df -h /
-
-    - name: Wait for services
-      # The gateway is first in the list and carries the whole budget: it
-      # boots 10 sibling services' worth of migrations + tsx compiles on a
-      # contended 4-core runner, so it gets 240×2s (8 min) rather than the
-      # 90×2s that used to time out. Log dumps need --profile full — the
-      # service/app containers live in that profile, so a bare `compose
-      # logs` shows only the infra containers and hides the actual failure.
-      shell: bash
-      run: |
-        set -euo pipefail
-        for url in http://localhost:4000/health/simple http://localhost:3000 http://localhost:3001 http://localhost:3002; do
-          echo "Waiting for $url"
-          for i in $(seq 1 240); do
-            if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
-              echo "  ready: $url"
-              break
-            fi
-            if [ "$i" = "240" ]; then
-              echo "  timeout: $url"
-              docker compose -f docker-compose.yml --profile full ps
-              docker compose -f docker-compose.yml --profile full logs --tail=300
-              exit 1
-            fi
-            sleep 2
-          done
-        done
-
-        # The URL loop only proves the gateway + apps are up. The gateway
-        # answers /health/simple before its sibling gRPC services finish
-        # their own migrate→seed→boot cycle, so a Playwright login probe
-        # fired now hits ECONNREFUSED on service-auth:6002. Every service
-        # binds gRPC before its HTTP health server (see services/*/src/
-        # index.ts), so compose-healthy ⇒ gRPC ready — wait for that.
-        echo "Waiting for service containers to report healthy"
-        for i in $(seq 1 120); do
-          not_healthy=$(docker compose -f docker-compose.yml --profile full ps --format '{{.Service}} {{.Health}}' \
-            | awk '$1 ~ /^service-/ && $2 != "healthy" {print $1}')
-          if [ -z "$not_healthy" ]; then
-            echo "  all service containers healthy"
-            break
-          fi
-          if [ "$i" = "120" ]; then
-            echo "  timeout waiting for: $not_healthy"
-            docker compose -f docker-compose.yml --profile full ps
-            docker compose -f docker-compose.yml --profile full logs --tail=300
-            exit 1
-          fi
-          sleep 2
-        done
-
-    - name: Generate dev personas through the API
-      # The service containers' boot command only plants the SQL bootstrap
-      # (super_admin, breeds); every persona the suite logs in as is created
-      # through the gateway by scripts/seed.mjs. --api-only: the bootstrap
-      # already ran on container start. Needs E2E_TOKEN_PEEK=true (set in the
-      # .env above) to complete sign-ups and invitations.
-      shell: bash
-      run: node scripts/seed.mjs --api-only
-
-    - name: Warm up Vite bundles
-      # Vite dev servers compile on first request. Hit /login on each app
-      # so the JS is built before Playwright tries to interact with it.
-      shell: bash
-      run: |
-        for url in \
-          http://localhost:3000/login \
-          http://localhost:3001/login \
-          http://localhost:3002/login; do
-          echo "Warming $url"
-          curl -fsS --max-time 60 "$url" >/dev/null || true
-        done
-
-    - name: Run Playwright suite
+    - name: Run Playwright against the isolated stack
+      # scripts/e2e-isolated.mjs does the whole lifecycle: fresh secrets, boot
+      # (apps are built in-container, one at a time), wait for health, persona
+      # seed from the host, Playwright, and `down -v` of the ads-e2e project.
+      # On failure it prints container status plus recent logs and writes the
+      # full logs to docker-compose.log for the artifact below.
+      #
       # Two callers (ADS-1242):
       #   - the opt-in test-e2e job (main push / `run-e2e` label / dispatch)
-      #     wants complete integration coverage → mode: full (default).
+      #     wants complete integration coverage -> mode: full, which also
+      #     starts the production-limits gateway for the limiter spec.
       #   - the required test-e2e-smoke PR job runs only the @smoke-tagged
-      #     headline journeys for a fast pre-merge signal → mode: smoke.
+      #     headline journeys for a fast pre-merge signal -> mode: smoke.
       #
-      # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
+      # Retries and workers are configured in e2e/playwright.config.ts
+      # (retries: CI ? 1 : 0, workers: CI ? 2 : undefined).
       shell: bash
       run: |
         if [ "${{ inputs.mode }}" = "smoke" ]; then
-          echo "${{ github.event_name }} on ${{ github.ref }} — running @smoke subset"
-          pnpm test:e2e:smoke
+          echo "${{ github.event_name }} on ${{ github.ref }} - running @smoke subset"
+          node scripts/e2e-isolated.mjs
         else
-          echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
-          pnpm test:e2e
+          echo "${{ github.event_name }} on ${{ github.ref }} - running full suite"
+          node scripts/e2e-isolated.mjs --full
         fi
 
     # ADS-386: Surface flaky-retry signal so engineers can see which tests
@@ -384,24 +152,6 @@ runs:
           echo "No retried tests detected in this run."
         fi
 
-    - name: Dump service logs on failure
-      # Inline (not just the artifact): the artifact requires a download to
-      # inspect, while the job log is immediately searchable. gRPC adapters
-      # mask unexpected handler errors as INTERNAL 'internal error', so the
-      # real exception only exists in the owning service's stdout.
-      if: failure()
-      shell: bash
-      run: |
-        docker compose -f docker-compose.yml --profile full logs --no-color --tail=150
-
-    - name: Capture docker-compose logs on failure
-      if: failure()
-      # --profile full: without it the dump only contains the default-profile
-      # infra containers (database/redis/nats/...) and silently omits every
-      # service and app container — the part that actually fails.
-      shell: bash
-      run: docker compose -f docker-compose.yml --profile full logs --no-color > docker-compose.log
-
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       if: always()
       with:
@@ -411,8 +161,11 @@ runs:
           e2e/test-results/
           docker-compose.log
         retention-days: 7
+        if-no-files-found: ignore
 
     - name: Tear down stack
+      # The script tears down after itself; this covers a cancelled or timed
+      # out job. Scoped to the ads-e2e project, idempotent.
       if: always()
       shell: bash
-      run: docker compose -f docker-compose.yml down -v
+      run: node scripts/e2e-isolated.mjs --down
