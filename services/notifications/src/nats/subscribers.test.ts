@@ -14,6 +14,7 @@ import {
   buildApplicationRejectedCreate,
   buildApplicationSubmittedCreate,
   buildAuthAccountDeletionRequestedCreate,
+  buildAuthRescueRegistrationAttemptedCreate,
   buildAuthRoleAssignedCreate,
   buildAuthUserLoggedInCreate,
   buildChatMessageReceivedCreate,
@@ -263,6 +264,19 @@ describe('event → CreateNotificationRequest translation', () => {
     });
   });
 
+  describe('buildAuthRescueRegistrationAttemptedCreate', () => {
+    it('tells the existing account holder, via a HIGH-priority ACCOUNT_SECURITY row, to sign in to apply', () => {
+      const req = buildAuthRescueRegistrationAttemptedCreate({ userId: 'usr-a' as UserId });
+
+      expect(req.userId).toBe('usr-a');
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY);
+      expect(req.channel).toBe(NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH);
+      expect(req.message).toMatch(/someone tried to register a rescue with your email address/i);
+      expect(req.message).toMatch(/sign in to apply/i);
+    });
+  });
+
   describe('buildChatMessageReceivedCreate', () => {
     const baseEvent = {
       messageId: 'msg-1',
@@ -466,7 +480,7 @@ describe('registerSubscribers', () => {
     const subs = registerSubscribers({ nats, deps, logger });
     await flush();
 
-    expect(subs).toHaveLength(17);
+    expect(subs).toHaveLength(18);
     const subjects = consumersAdded.map(c => c.filter_subject);
     expect(subjects).toEqual([
       'applications.submitted',
@@ -478,6 +492,7 @@ describe('registerSubscribers', () => {
       'auth.userLoggedIn',
       'auth.roleAssigned',
       'auth.accountDeletionRequested',
+      'auth.rescueRegistrationAttempted',
       'auth.userInvited',
       'pets.statusChanged',
       'pets.deleted',

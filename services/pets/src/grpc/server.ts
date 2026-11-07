@@ -17,6 +17,7 @@ import { PetsV1 } from '@adopt-dont-shop/proto';
 import type { PetsConfig } from '../config.js';
 
 import { adapt, adaptUnauth } from './adapter.js';
+import { createRescueClient, type RescueClient } from './rescue-client.js';
 import {
   createPet,
   deletePet,
@@ -50,13 +51,16 @@ export type CreateGrpcServerOptions = {
   pool: Pool;
   nats: NatsConnection;
   logger: Logger;
+  // Injected in tests; defaults to a real client for config.rescueGrpcUrl.
+  rescueClient?: RescueClient;
 };
 
 export type { RunningGrpcServer };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
-  const deps = { pool, nats };
+  const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
+  const deps = { pool, nats, rescueClient };
   const server = new Server();
 
   server.addService(PetsV1.PetServiceService, {
@@ -122,6 +126,14 @@ export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
-  const server = createGrpcServer(opts);
-  return startGrpcServerShared(server, config, logger);
+  const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
+  const server = createGrpcServer({ ...opts, rescueClient });
+  const running = await startGrpcServerShared(server, config, logger);
+  return {
+    ...running,
+    shutdown: async () => {
+      await running.shutdown();
+      rescueClient.close();
+    },
+  };
 };

@@ -146,28 +146,6 @@ describe('rescues public routes', () => {
     expect((missing.json() as { success: boolean }).success).toBe(false);
   });
 
-  it('POST /api/v1/rescues/register accepts snake_case + camelCase and creates', async () => {
-    mocks.create.mockResolvedValueOnce({ rescue: RESCUE });
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rescues/register',
-      payload: {
-        name: 'Happy Tails',
-        email: 'hi@happy.example',
-        address: '1 Lane',
-        city: 'York',
-        zip_code: 'YO1 1AA',
-        contactPerson: 'Jo',
-      },
-    });
-    expect(res.statusCode).toBe(201);
-    expect(mocks.create.mock.calls[0][0]).toMatchObject({
-      name: 'Happy Tails',
-      postcode: 'YO1 1AA',
-      contactPerson: 'Jo',
-    });
-  });
-
   it('POST /api/v1/rescues is also Create', async () => {
     mocks.create.mockResolvedValueOnce({ rescue: RESCUE });
     const res = await app.inject({

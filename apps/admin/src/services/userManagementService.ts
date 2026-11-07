@@ -108,7 +108,7 @@ class UserManagementService {
   async unsuspendUser(userId: string): Promise<User> {
     try {
       return await apiService.patch<User>(`/api/v1/admin/users/${userId}/action`, {
-        action: 'unsuspend',
+        action: 'reactivate',
       });
     } catch (error) {
       throw error;

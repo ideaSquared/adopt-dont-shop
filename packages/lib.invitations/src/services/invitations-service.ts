@@ -28,6 +28,24 @@ const toPendingInvitation = (inv: GatewayInvitation): PendingInvitation => ({
   expiration: inv.expiresAt,
 });
 
+// Wire shape of GET /api/v1/invitations/details/:token — the gateway returns the
+// rescue service's Invitation message under `data`, which names the expiry `expiration`.
+type GatewayInvitationDetails = {
+  email: string;
+  expiration: string;
+  rescueName?: string | null;
+  invitedByName?: string | null;
+  role?: string | null;
+};
+
+const toInvitationDetails = (inv: GatewayInvitationDetails): InvitationDetails => ({
+  email: inv.email,
+  expiresAt: inv.expiration,
+  rescueName: inv.rescueName,
+  invitedByName: inv.invitedByName,
+  role: inv.role,
+});
+
 /**
  * InvitationsService - Handles staff invitation operations
  *
@@ -159,11 +177,11 @@ export class InvitationsService {
     try {
       const response = await this.apiService.get<{
         success: boolean;
-        invitation: InvitationDetails;
+        data?: GatewayInvitationDetails | null;
       }>(`/api/v1/invitations/details/${token}`);
 
-      if (response.success && response.invitation) {
-        return response.invitation;
+      if (response.success && response.data) {
+        return toInvitationDetails(response.data);
       }
 
       return null;
