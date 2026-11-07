@@ -174,113 +174,98 @@ describe('logModeratorAction', () => {
   });
 });
 
-describe('logModeratorAction - user_suspended (B11)', () => {
+describe('logModeratorAction - user sanctions through auth.ApplyUserSanction', () => {
   const SUSPEND_REQ: LogModeratorActionRequest = {
     ...VALID_LOG_REQ,
     actionType: ModerationV1.ModeratorActionType.MODERATOR_ACTION_TYPE_USER_SUSPENDED,
     targetUserId: 'usr-2',
   };
-  const makeAuth = (suspendUser = vi.fn().mockResolvedValue(undefined)) => ({
-    suspendUser,
-    deactivateUser: vi.fn().mockResolvedValue(undefined),
-    revokeAllSessions: vi.fn().mockResolvedValue(undefined),
+  const BAN_REQ: LogModeratorActionRequest = {
+    ...VALID_LOG_REQ,
+    actionType: ModerationV1.ModeratorActionType.MODERATOR_ACTION_TYPE_USER_BANNED,
+    targetUserId: 'usr-2',
+  };
+  const makeAuth = (applyUserSanction = vi.fn().mockResolvedValue(undefined)) => ({
+    applyUserSanction,
     close: vi.fn(),
   });
 
-  it('suspends the target user through the auth service, then publishes', async () => {
+  it('suspends the target user with the human moderator as actor, then publishes', async () => {
     const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_suspended' })] }]);
     const auth = makeAuth();
     await logModeratorAction(deps, makePrincipal(), SUSPEND_REQ, auth);
-    expect(auth.suspendUser).toHaveBeenCalledWith('usr-2', expect.anything());
+    expect(auth.applyUserSanction).toHaveBeenCalledTimes(1);
+    expect(auth.applyUserSanction).toHaveBeenCalledWith({
+      userId: 'usr-2',
+      kind: 'suspend',
+      reason: SUSPEND_REQ.reason,
+      actorUserId: makePrincipal().userId,
+      expiresAt: undefined,
+    });
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.actionLogged' });
+  });
+
+  it('carries the suspension expiry to auth as an ISO timestamp', async () => {
+    const { deps } = makeDeps([
+      { rows: [actionRow({ action_type: 'user_suspended', duration: 7 })] },
+    ]);
+    const auth = makeAuth();
+    const before = Date.now();
+    await logModeratorAction(deps, makePrincipal(), { ...SUSPEND_REQ, duration: 7 }, auth);
+    const sent = auth.applyUserSanction.mock.calls[0][0] as { expiresAt: string };
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    expect(new Date(sent.expiresAt).getTime()).toBeGreaterThanOrEqual(before + sevenDays);
+    expect(new Date(sent.expiresAt).getTime()).toBeLessThanOrEqual(Date.now() + sevenDays);
+  });
+
+  it('bans through the same single call, with no expiry', async () => {
+    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
+    const auth = makeAuth();
+    await logModeratorAction(deps, makePrincipal(), BAN_REQ, auth);
+    expect(auth.applyUserSanction).toHaveBeenCalledTimes(1);
+    expect(auth.applyUserSanction).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'usr-2', kind: 'ban', expiresAt: undefined })
+    );
   });
 
   it('does not call auth for other action types', async () => {
     const { deps } = makeDeps([{ rows: [actionRow()] }]);
     const auth = makeAuth();
     await logModeratorAction(deps, makePrincipal(), VALID_LOG_REQ, auth);
-    expect(auth.suspendUser).not.toHaveBeenCalled();
+    expect(auth.applyUserSanction).not.toHaveBeenCalled();
   });
 
-  it('fails the whole action (no event) when auth refuses the suspension', async () => {
-    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_suspended' })] }]);
+  it.each([
+    ['suspension', SUSPEND_REQ, 'user_suspended'],
+    ['ban', BAN_REQ, 'user_banned'],
+  ])('fails the whole %s (no event) when auth refuses', async (_label, req, actionType) => {
+    const { deps } = makeDeps([{ rows: [actionRow({ action_type: actionType })] }]);
     const auth = makeAuth(vi.fn().mockRejectedValue({ code: 7, message: 'denied' }));
-    await expect(
-      logModeratorAction(deps, makePrincipal(), SUSPEND_REQ, auth)
-    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
-    // withTransaction rolls back on throw; the event is only published after
-    // the suspension succeeds, so nothing was queued.
-    expect((deps as { _publish?: unknown })._publish).toBeUndefined();
-  });
-
-  it('rejects a suspension with no target user before touching the database', async () => {
-    const { deps, query } = makeDeps([]);
-    await expect(
-      logModeratorAction(
-        deps,
-        makePrincipal(),
-        { ...SUSPEND_REQ, targetUserId: undefined },
-        makeAuth()
-      )
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-    expect(query).not.toHaveBeenCalled();
-  });
-});
-
-describe('logModeratorAction - user_banned', () => {
-  const BAN_REQ: LogModeratorActionRequest = {
-    ...VALID_LOG_REQ,
-    actionType: ModerationV1.ModeratorActionType.MODERATOR_ACTION_TYPE_USER_BANNED,
-    targetUserId: 'usr-2',
-  };
-  const makeAuth = (overrides: Partial<Record<string, ReturnType<typeof vi.fn>>> = {}) => ({
-    suspendUser: vi.fn().mockResolvedValue(undefined),
-    deactivateUser: vi.fn().mockResolvedValue(undefined),
-    revokeAllSessions: vi.fn().mockResolvedValue(undefined),
-    close: vi.fn(),
-    ...overrides,
-  });
-
-  it('deactivates the target user and ends their sessions, then publishes', async () => {
-    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
-    const auth = makeAuth();
-    await logModeratorAction(deps, makePrincipal(), BAN_REQ, auth);
-    expect(auth.deactivateUser).toHaveBeenCalledWith('usr-2', expect.anything());
-    expect(auth.revokeAllSessions).toHaveBeenCalledWith('usr-2', expect.anything());
-    expect(auth.suspendUser).not.toHaveBeenCalled();
-    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
-    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.actionLogged' });
-  });
-
-  it('fails the whole action (no event) when auth refuses to deactivate', async () => {
-    const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
-    const auth = makeAuth({
-      deactivateUser: vi.fn().mockRejectedValue({ code: 7, message: 'denied' }),
-    });
-    await expect(logModeratorAction(deps, makePrincipal(), BAN_REQ, auth)).rejects.toMatchObject({
+    await expect(logModeratorAction(deps, makePrincipal(), req, auth)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
-    expect(auth.revokeAllSessions).not.toHaveBeenCalled();
+    // withTransaction rolls back on throw; the event is only published after
+    // auth accepts, so nothing was queued.
     expect((deps as { _publish?: unknown })._publish).toBeUndefined();
   });
 
-  it('fails the whole action (no event) when the sessions cannot be ended', async () => {
+  it('keeps UNAVAILABLE from auth so the gateway answers 503, not 500', async () => {
     const { deps } = makeDeps([{ rows: [actionRow({ action_type: 'user_banned' })] }]);
-    const auth = makeAuth({
-      revokeAllSessions: vi.fn().mockRejectedValue({ code: 14, message: 'unavailable' }),
-    });
-    // UNAVAILABLE is preserved so the gateway answers 503, not 500.
+    const auth = makeAuth(vi.fn().mockRejectedValue({ code: 14, message: 'unavailable' }));
     await expect(logModeratorAction(deps, makePrincipal(), BAN_REQ, auth)).rejects.toMatchObject({
       code: 'UNAVAILABLE',
     });
     expect((deps as { _publish?: unknown })._publish).toBeUndefined();
   });
 
-  it('rejects a ban with no target user before touching the database', async () => {
+  it.each([
+    ['suspension', SUSPEND_REQ],
+    ['ban', BAN_REQ],
+  ])('rejects a %s with no target user before touching the database', async (_label, req) => {
     const { deps, query } = makeDeps([]);
     await expect(
-      logModeratorAction(deps, makePrincipal(), { ...BAN_REQ, targetUserId: undefined }, makeAuth())
+      logModeratorAction(deps, makePrincipal(), { ...req, targetUserId: undefined }, makeAuth())
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     expect(query).not.toHaveBeenCalled();
   });
