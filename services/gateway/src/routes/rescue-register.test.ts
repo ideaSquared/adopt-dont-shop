@@ -1,4 +1,3 @@
-import { status } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -148,6 +147,8 @@ describe('POST /api/v1/rescues/register', () => {
     ['a missing address', { address: '' }],
     ['a missing postcode', { postcode: '' }],
     ['a non ISO country code', { country: 'United Kingdom' }],
+    ['a company number longer than the column', { companiesHouseNumber: '123456789' }],
+    ['a charity number longer than the column', { charityRegistrationNumber: '1234567890123' }],
   ])('returns 400 and creates nothing for %s', async (_label, override) => {
     const res = await post({ ...FORM_BODY, ...override });
 

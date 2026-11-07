@@ -67,8 +67,9 @@ const RegisterRescueBodySchema = z.object({
   website: optional(255),
   description: optional(5000),
   mission: optional(5000),
-  companiesHouseNumber: optional(20),
-  charityRegistrationNumber: optional(20),
+  // Match the rescue.rescues column widths (varchar(8) / varchar(12)).
+  companiesHouseNumber: optional(8),
+  charityRegistrationNumber: optional(12),
   contactPerson: optional(255),
 });
 

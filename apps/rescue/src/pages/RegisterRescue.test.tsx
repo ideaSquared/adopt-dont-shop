@@ -228,6 +228,23 @@ describe('RegisterRescue wizard', () => {
     expect(screen.getByText(/verif/i)).toBeInTheDocument();
   });
 
+  it('keeps the success message neutral for an email that may already have an account', async () => {
+    mockPost.mockResolvedValueOnce({ success: true });
+
+    renderComponent();
+    fillStep1();
+    clickNext();
+    fillStep2();
+    clickNext();
+    fillStep3();
+    clickNext();
+    clickNext();
+    fireEvent.click(screen.getByText('Submit Registration'));
+
+    await screen.findByText('Registration Successful');
+    expect(screen.getByText(/already have an account.*sign in/i)).toBeInTheDocument();
+  });
+
   it('shows an error message when submission fails', async () => {
     mockPost.mockRejectedValueOnce(new Error('Email already registered'));
 
