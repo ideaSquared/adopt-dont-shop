@@ -145,10 +145,11 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:13000,http://localhost:13001,http://localhost:13002}
       GATEWAY_RATE_LIMIT_MAX: '100000'
       GATEWAY_AUTH_RATE_LIMIT_MAX: '100000'
-      # Read by the gateway once fix/gateway-enquiry-ip-limit-config lands;
-      # harmless (an unknown env var) until then.
-      GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: '100000'
-      GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: '100000'
+      # Pet-enquiry daily caps (per IP and per user): every e2e spec enquires from
+      # the one docker-side IP. The gateway refuses to boot with these set under
+      # production/staging; service-gateway-limits deliberately omits them.
+      GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX: '10000'
+      GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX: '10000'
 
   # Second gateway with production-default limits, for the limiter spec only
   # (e2e/tests/gateway-limits). Same image and source as service-gateway, but:

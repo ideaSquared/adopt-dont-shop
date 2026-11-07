@@ -144,6 +144,13 @@ export type GatewayConfig = {
   // Backed by a shared Redis store in production/staging so per-replica
   // limits don't multiply by N replicas. Falls back to an in-memory
   // store (with a logged warning) if Redis is unreachable.
+  // Daily caps for POST /api/v1/chats/enquiries: per source IP (backstop) and
+  // per authenticated user (the real control, ADS-1421). Env-overridable for
+  // dev/e2e only — loadConfig throws if production/staging overrides either.
+  enquiryRateLimit: {
+    ipMax: number;
+    userMax: number;
+  };
   rateLimit: {
     // Redis URL for the shared rate-limit store. When unset the gateway
     // runs with an in-memory store only (single-replica / dev use).
@@ -227,6 +234,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     cors: buildCorsConfig(env, environment),
     trustProxy: buildTrustProxy(env, environment),
     rateLimit: buildRateLimitConfig(env),
+    enquiryRateLimit: buildEnquiryRateLimitConfig(env, environment),
     maintenance: buildMaintenanceConfig(env),
   };
 };
@@ -319,6 +327,49 @@ function buildRateLimitConfig(env: NodeJS.ProcessEnv): GatewayConfig['rateLimit'
     max: Number.isNaN(max) || max <= 0 ? 100 : max,
     timeWindow: env.GATEWAY_RATE_LIMIT_WINDOW?.trim() || '1 minute',
   };
+}
+
+const DEFAULT_ENQUIRY_IP_MAX = 200;
+const DEFAULT_ENQUIRY_USER_MAX = 20;
+
+// Positive integer from env, or the default when unset / non-numeric / <= 0
+// (same lenient parsing as GATEWAY_RATE_LIMIT_MAX).
+function readPositiveInt(raw: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(raw?.trim() ?? '', 10);
+  return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed;
+}
+
+// Daily caps on POST /api/v1/chats/enquiries. They exist as env vars only so
+// dev and e2e can lift them; a deployed environment (production/staging)
+// must run the defaults, so any other value THROWS at boot — same pattern
+// as the E2E_TOKEN_PEEK guard below.
+function buildEnquiryRateLimitConfig(
+  env: NodeJS.ProcessEnv,
+  environment: string
+): GatewayConfig['enquiryRateLimit'] {
+  const ipMax = readPositiveInt(env.GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX, DEFAULT_ENQUIRY_IP_MAX);
+  const userMax = readPositiveInt(
+    env.GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX,
+    DEFAULT_ENQUIRY_USER_MAX
+  );
+  if (environment === 'production' || environment === 'staging') {
+    assertDefault('GATEWAY_ENQUIRY_IP_RATE_LIMIT_MAX', ipMax, DEFAULT_ENQUIRY_IP_MAX, environment);
+    assertDefault(
+      'GATEWAY_ENQUIRY_USER_RATE_LIMIT_MAX',
+      userMax,
+      DEFAULT_ENQUIRY_USER_MAX,
+      environment
+    );
+  }
+  return { ipMax, userMax };
+}
+
+function assertDefault(name: string, value: number, fallback: number, environment: string): void {
+  if (value !== fallback) {
+    throw new Error(
+      `${name} must not be overridden in ${environment} — it is for dev/e2e only (default ${fallback})`
+    );
+  }
 }
 
 // Build the test-token-peek config block (ADS-871). The seam is OFF by
