@@ -161,13 +161,13 @@ describe('UserManagementService', () => {
   });
 
   describe('unsuspendUser', () => {
-    it('sends an unsuspend action', async () => {
+    it('sends a reactivate action, the verb the gateway accepts', async () => {
       mockPatch.mockResolvedValueOnce({ ...fakeUser, status: 'active' });
 
       const result = await userManagementService.unsuspendUser('u1');
 
       expect(mockPatch).toHaveBeenCalledWith('/api/v1/admin/users/u1/action', {
-        action: 'unsuspend',
+        action: 'reactivate',
       });
       expect(result.status).toBe('active');
     });
