@@ -470,6 +470,56 @@ function makeInvitationAcceptClients(): {
   return { authClient, rescueClient };
 }
 
+describe('createServer — public rescue sign-up (POST /api/v1/rescues/register)', () => {
+  let server: FastifyInstance;
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('lets an anonymous visitor through the authenticate hook (no 401)', async () => {
+    const authClient = {
+      registerRescueOwner: () => Promise.resolve({ user: { userId: 'usr-owner' } }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['authClient'];
+    const rescueClient = {
+      registerRescue: () =>
+        Promise.resolve({
+          rescue: { rescueId: 'rsc-1', name: 'Happy Tails', status: 1, settingsJson: '{}' },
+        }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['rescueClient'];
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient,
+      rescueClient,
+    });
+
+    const res = await server.inject({
+      method: 'POST',
+      url: '/api/v1/rescues/register',
+      payload: {
+        firstName: 'Rae',
+        lastName: 'Scue',
+        email: 'owner@example.com',
+        password: 'BehaviourTest123!',
+        name: 'Happy Tails',
+        rescueEmail: 'hello@happytails.org',
+        address: '1 Rescue Lane',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+  });
+});
+
 describe('createServer — per-route rate limit override (auth login)', () => {
   let server: FastifyInstance;
 

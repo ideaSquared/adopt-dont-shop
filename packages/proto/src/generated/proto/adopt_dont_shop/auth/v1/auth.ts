@@ -600,6 +600,22 @@ export interface ProvisionInvitedUserResponse {
   created: boolean;
 }
 
+export interface RegisterRescueOwnerRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface RegisterRescueOwnerResponse {
+  /**
+   * The freshly created owner (status pending_verification,
+   * user_type rescue_staff). user_id is what the caller attaches as the
+   * rescue's first staff member. Unset when the email already had an account.
+   */
+  user?: User | undefined;
+}
+
 export interface VerifyEmailRequest {
   verificationToken: string;
 }
@@ -3606,6 +3622,180 @@ export const ProvisionInvitedUserResponse: MessageFns<ProvisionInvitedUserRespon
     const message = createBaseProvisionInvitedUserResponse();
     message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     message.created = object.created ?? false;
+    return message;
+  },
+};
+
+function createBaseRegisterRescueOwnerRequest(): RegisterRescueOwnerRequest {
+  return { email: "", password: "", firstName: "", lastName: "" };
+}
+
+export const RegisterRescueOwnerRequest: MessageFns<RegisterRescueOwnerRequest> = {
+  encode(message: RegisterRescueOwnerRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.email !== "") {
+      writer.uint32(10).string(message.email);
+    }
+    if (message.password !== "") {
+      writer.uint32(18).string(message.password);
+    }
+    if (message.firstName !== "") {
+      writer.uint32(26).string(message.firstName);
+    }
+    if (message.lastName !== "") {
+      writer.uint32(34).string(message.lastName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterRescueOwnerRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterRescueOwnerRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterRescueOwnerRequest {
+    return {
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+        ? globalThis.String(object.first_name)
+        : "",
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+        ? globalThis.String(object.last_name)
+        : "",
+    };
+  },
+
+  toJSON(message: RegisterRescueOwnerRequest): unknown {
+    const obj: any = {};
+    if (message.email !== "") {
+      obj.email = message.email;
+    }
+    if (message.password !== "") {
+      obj.password = message.password;
+    }
+    if (message.firstName !== "") {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== "") {
+      obj.lastName = message.lastName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterRescueOwnerRequest>, I>>(base?: I): RegisterRescueOwnerRequest {
+    return RegisterRescueOwnerRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterRescueOwnerRequest>, I>>(object: I): RegisterRescueOwnerRequest {
+    const message = createBaseRegisterRescueOwnerRequest();
+    message.email = object.email ?? "";
+    message.password = object.password ?? "";
+    message.firstName = object.firstName ?? "";
+    message.lastName = object.lastName ?? "";
+    return message;
+  },
+};
+
+function createBaseRegisterRescueOwnerResponse(): RegisterRescueOwnerResponse {
+  return { user: undefined };
+}
+
+export const RegisterRescueOwnerResponse: MessageFns<RegisterRescueOwnerResponse> = {
+  encode(message: RegisterRescueOwnerResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterRescueOwnerResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterRescueOwnerResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterRescueOwnerResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: RegisterRescueOwnerResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterRescueOwnerResponse>, I>>(base?: I): RegisterRescueOwnerResponse {
+    return RegisterRescueOwnerResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterRescueOwnerResponse>, I>>(object: I): RegisterRescueOwnerResponse {
+    const message = createBaseRegisterRescueOwnerResponse();
+    message.user = (object.user !== undefined && object.user !== null) ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
@@ -13186,6 +13376,28 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): ProvisionInvitedUserResponse => ProvisionInvitedUserResponse.decode(value),
   },
   /**
+   * Public rescue sign-up: create the owner account of a rescue that is
+   * registering. Like Register it starts pending_verification and mails a
+   * verification_token (no tokens issued), but the account is user_type
+   * rescue_staff and the new user_id is returned so the gateway can attach
+   * them to the pending rescue. Enumeration-safe: an email that is already
+   * registered gets an empty response (no user, no error), no account is
+   * created, and the existing holder is notified instead.
+   * Service-internal — the gateway only exposes it behind
+   * POST /api/v1/rescues/register.
+   */
+  registerRescueOwner: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/RegisterRescueOwner" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RegisterRescueOwnerRequest): Buffer =>
+      Buffer.from(RegisterRescueOwnerRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RegisterRescueOwnerRequest => RegisterRescueOwnerRequest.decode(value),
+    responseSerialize: (value: RegisterRescueOwnerResponse): Buffer =>
+      Buffer.from(RegisterRescueOwnerResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RegisterRescueOwnerResponse => RegisterRescueOwnerResponse.decode(value),
+  },
+  /**
    * Consume the verification_token mailed to the user; flips
    * email_verified=true and status=active.
    */
@@ -14003,6 +14215,18 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    */
   provisionInvitedUser: handleUnaryCall<ProvisionInvitedUserRequest, ProvisionInvitedUserResponse>;
   /**
+   * Public rescue sign-up: create the owner account of a rescue that is
+   * registering. Like Register it starts pending_verification and mails a
+   * verification_token (no tokens issued), but the account is user_type
+   * rescue_staff and the new user_id is returned so the gateway can attach
+   * them to the pending rescue. Enumeration-safe: an email that is already
+   * registered gets an empty response (no user, no error), no account is
+   * created, and the existing holder is notified instead.
+   * Service-internal — the gateway only exposes it behind
+   * POST /api/v1/rescues/register.
+   */
+  registerRescueOwner: handleUnaryCall<RegisterRescueOwnerRequest, RegisterRescueOwnerResponse>;
+  /**
    * Consume the verification_token mailed to the user; flips
    * email_verified=true and status=active.
    */
@@ -14439,6 +14663,32 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Public rescue sign-up: create the owner account of a rescue that is
+   * registering. Like Register it starts pending_verification and mails a
+   * verification_token (no tokens issued), but the account is user_type
+   * rescue_staff and the new user_id is returned so the gateway can attach
+   * them to the pending rescue. Enumeration-safe: an email that is already
+   * registered gets an empty response (no user, no error), no account is
+   * created, and the existing holder is notified instead.
+   * Service-internal — the gateway only exposes it behind
+   * POST /api/v1/rescues/register.
+   */
+  registerRescueOwner(
+    request: RegisterRescueOwnerRequest,
+    callback: (error: ServiceError | null, response: RegisterRescueOwnerResponse) => void,
+  ): ClientUnaryCall;
+  registerRescueOwner(
+    request: RegisterRescueOwnerRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RegisterRescueOwnerResponse) => void,
+  ): ClientUnaryCall;
+  registerRescueOwner(
+    request: RegisterRescueOwnerRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RegisterRescueOwnerResponse) => void,
   ): ClientUnaryCall;
   /**
    * Consume the verification_token mailed to the user; flips

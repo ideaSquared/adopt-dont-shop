@@ -21,6 +21,7 @@ import { adapt, adaptUnauth } from './adapter.js';
 import {
   countRescues,
   createRescue,
+  registerRescue,
   deleteRescue,
   getRescue,
   getRescueNames,
@@ -97,6 +98,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
 
   server.addService(RescueV1.RescueServiceService, {
     create: adapt(createRescue, { deps, logger }),
+    // Public sign-up: pending rescue + owner membership. Only reachable via the
+    // gateway's rate-limited POST /api/v1/rescues/register.
+    registerRescue: adaptUnauth(registerRescue, { deps, logger }),
     // Public reads — anonymous (logged-out) visitors may see verified rescues
     // (basic, field-masked details) so they can browse before registering.
     get: adaptUnauth(getRescue, { deps, logger }),
@@ -145,6 +149,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   logger.info('gRPC RescueService registered', {
     methods: [
       'create',
+      'registerRescue',
       'get',
       'list',
       'getRescueLocations',

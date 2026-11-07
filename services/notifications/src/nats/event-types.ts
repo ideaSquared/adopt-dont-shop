@@ -196,6 +196,15 @@ export type AuthAccountDeletionRequestedEvent = {
   scheduledFor: string; // RFC 3339
 };
 
+// auth.rescueRegistrationAttempted — service.auth publishes when a public
+// rescue sign-up uses an email that already has an account. The sign-up
+// response stays neutral (no account enumeration); the existing account
+// holder is told instead, via the same ACCOUNT_SECURITY in-app + email path
+// as auth.accountDeletionRequested.
+export type AuthRescueRegistrationAttemptedEvent = {
+  userId: UserId;
+};
+
 // rescue.staffInvitationCancelled — service.rescue publishes when an
 // admin/rescue-lead cancels a pending staff invitation. Same log-only
 // treatment as RescueStaffInvitedEvent: the invitee never had an
