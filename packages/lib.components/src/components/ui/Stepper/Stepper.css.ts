@@ -88,6 +88,9 @@ export const control = recipe({
     textAlign: 'left',
     font: 'inherit',
     color: 'inherit',
+    // Let the control shrink and wrap long words inside a narrow step.
+    minWidth: 0,
+    overflowWrap: 'anywhere',
   },
   variants: {
     clickable: {
