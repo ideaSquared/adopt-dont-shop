@@ -38,7 +38,7 @@
  */
 import { execFile, execFileSync, spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -123,9 +123,25 @@ const log = message => console.log(`[e2e-isolated] ${message}`);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const minutes = ms => `${(ms / 60000).toFixed(1)} min`;
 
-function capture(cmd, args) {
+// KEY=VALUE lines of a dotenv-style file (the saved stack env, the checkout's .env).
+function readEnvFile(file) {
+  if (!existsSync(file)) return {};
+  return Object.fromEntries(
+    readFileSync(file, 'utf8')
+      .split('\n')
+      .map(line => /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(line.trim()))
+      .filter(Boolean)
+      .map(([, key, value]) => [key, value])
+  );
+}
+
+// Compose lets variables exported in the shell win over --env-file, so the saved
+// stack values are passed explicitly to every Compose subprocess.
+const stackEnv = () => ({ ...process.env, ...readEnvFile(ENV_FILE) });
+
+function capture(cmd, args, env) {
   try {
-    return execFileSync(cmd, args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] })
+    return execFileSync(cmd, args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'], env })
       .toString()
       .trim();
   } catch {
@@ -136,14 +152,24 @@ function capture(cmd, args) {
 function main() {
   const { flags, passthrough, workers } = parseArgs(process.argv.slice(2));
   const PROJECT = process.env.E2E_PROJECT ?? 'ads-e2e';
-  assertSafeProject(PROJECT, { composeProjectName: process.env.COMPOSE_PROJECT_NAME });
+  // The dev launcher lets Compose read COMPOSE_PROJECT_NAME from the checkout's
+  // .env as well as the shell; neither may name the project we are about to wipe.
+  for (const name of [
+    process.env.COMPOSE_PROJECT_NAME,
+    readEnvFile(join(ROOT, '.env')).COMPOSE_PROJECT_NAME,
+  ]) {
+    assertSafeProject(PROJECT, { composeProjectName: name });
+  }
 
+  // --reuse targets the stack that was kept, whatever the current shell says.
+  const saved = flags.has('--reuse') ? readEnvFile(ENV_FILE) : {};
+  const pick = (savedKey, envKey, fallback) => saved[savedKey] ?? process.env[envKey] ?? fallback;
   const ports = {
-    api: process.env.E2E_API_PORT ?? '14000',
-    client: process.env.E2E_CLIENT_PORT ?? '13000',
-    admin: process.env.E2E_ADMIN_PORT ?? '13001',
-    rescue: process.env.E2E_RESCUE_PORT ?? '13002',
-    limiter: process.env.E2E_LIMITER_PORT ?? '14001',
+    api: pick('E2E_API_PORT', 'E2E_API_PORT', '14000'),
+    client: pick('E2E_CLIENT_PORT', 'E2E_CLIENT_PORT', '13000'),
+    admin: pick('E2E_ADMIN_PORT', 'E2E_ADMIN_PORT', '13001'),
+    rescue: pick('E2E_RESCUE_PORT', 'E2E_RESCUE_PORT', '13002'),
+    limiter: pick('E2E_LIMITER_PORT', 'E2E_LIMITER_PORT', '14001'),
   };
   const withLimits = flags.has('--full') || flags.has('--limits');
   const keep = flags.has('--keep');
@@ -176,9 +202,22 @@ function main() {
     spawnSync('docker', [...composeBase, ...profiles, ...args], {
       cwd: ROOT,
       stdio: 'inherit',
+      env: stackEnv(),
       ...opts,
     }).status ?? 1;
-  const composeCapture = args => capture('docker', [...composeBase, ...allProfiles, ...args]);
+  // Async variant for long calls (`up`), so the memory sampler keeps running.
+  const composeAsync = (args, { profiles = allProfiles } = {}) =>
+    new Promise(resolve => {
+      const child = spawn('docker', [...composeBase, ...profiles, ...args], {
+        cwd: ROOT,
+        stdio: 'inherit',
+        env: stackEnv(),
+      });
+      child.on('exit', status => resolve(status ?? 1));
+      child.on('error', () => resolve(1));
+    });
+  const composeCapture = args =>
+    capture('docker', [...composeBase, ...allProfiles, ...args], stackEnv());
 
   // Fresh secrets every boot. Hex only: they are interpolated into URLs.
   function writeStackFiles() {
@@ -336,7 +375,7 @@ function main() {
         assertOnlyE2ePortsPublished();
 
         log(`booting ${PROJECT}`);
-        if (compose(['up', '-d', '--no-build'], { profiles: upProfiles }) !== 0) {
+        if ((await composeAsync(['up', '-d', '--no-build'], { profiles: upProfiles })) !== 0) {
           throw new Error('docker compose up failed');
         }
         await waitForStack();
@@ -521,13 +560,14 @@ function main() {
     // Full logs for CI's artifact upload (.github/actions/e2e-suite).
     const full = spawnSync('docker', [...composeBase, ...allProfiles, 'logs', '--no-color'], {
       cwd: ROOT,
+      env: stackEnv(),
       maxBuffer: 512 * 1024 * 1024,
     });
     if (full.stdout) writeFileSync(join(ROOT, 'docker-compose.log'), full.stdout);
   }
 
   process.on('SIGINT', () => {
-    if (!keep) teardown();
+    if (!keep && !flags.has('--reuse')) teardown();
     process.exit(130);
   });
 

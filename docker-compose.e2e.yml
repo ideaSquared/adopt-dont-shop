@@ -137,6 +137,9 @@ services:
     environment:
       E2E_TOKEN_PEEK: 'true'
       CLAMAV_FAIL_OPEN: 'true'
+      # Uploads default to services/gateway/uploads, which the source bind mount
+      # puts in the developer's checkout and which would outlive `down -v`.
+      UPLOAD_DIR: /tmp/uploads
       # The apps call the gateway's WebSocket directly (VITE_WS_BASE_URL), from
       # the e2e app origins; the built-in dev allowlist only knows :3000-3002.
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:13000,http://localhost:13001,http://localhost:13002}
@@ -184,6 +187,7 @@ services:
       LEGAL_DOCS_DIR: /app/docs/legal
       E2E_TOKEN_PEEK: 'true'
       CLAMAV_FAIL_OPEN: 'true'
+      UPLOAD_DIR: /tmp/uploads
       DATABASE_URL: postgresql://${POSTGRES_USER:-adopt_user}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-adopt_dont_shop_dev}
     depends_on:
       service-gateway: { condition: service_healthy }
