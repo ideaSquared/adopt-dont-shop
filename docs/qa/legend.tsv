@@ -1,0 +1,10 @@
+Column / value	Meaning
+Automated	A passing automated browser test (e2e) covers this. Manual QA only needs a quick smoke check.
+Partial	Automation covers part of it. Do the part named in "Manual QA needed".
+Automated (blocked by bug)	The automated test is written but is expected to fail (or is skipped) because of a known bug. Test by hand, and re-test once the bug is fixed.
+Manual only	Cannot be automated (real devices, real browsers, human judgement). Test fully by hand.
+Smoke only	Quick pass: do the happy path once and confirm it looks right.
+Status	Use: Not Run / Pass / Fail / Blocked.
+Known bug(s)	IDs like B14. Look them up on the Known bugs tab. If you hit the bug, mark Fail and add the ID to Notes. Do not log a new bug.
+Priority	P0 = must pass to go live. P1 = should pass. P2 = nice to pass. P3 = minor.
+Test data	The automated tests leave throwaway users (e2e+...@e2e.adoptdontshop.test), pets and reports on the dev stack. Use a fresh email for your own sign-ups.

@@ -1,0 +1,41 @@
+Bug ID	Severity	App	What is wrong	Manual tests affected	Found by (automated test)	Fixed?	Ticket
+B01	Blocker	Rescue	Rescue sign-up (/register-rescue) cannot register anyone. The server returns 401 "authentication required" for visitors, the form never sends the required contact person, and no owner account is created.	RES-001, X-002	rescue/gap-registration-and-login, client/gap-cross-rescue-onboarding		
+B02	Blocker	Client	/terms and /privacy show placeholder and maintainer text such as "Placeholder copy - must be reviewed by legal counsel".	CLI-122	client/public-pages		
+B03	High	Client	Saving onboarding preferences fails with a 500 (array values sent to the database as the wrong type). Top Picks then shows "Failed to load your top picks".	CLI-090, CLI-092	client/onboarding-and-top-picks		
+B04	Blocker (security)	Rescue	Removing a staff member only deletes the staff record. The removed user can still create pets for that rescue.	RES-043	rescue/gap-staff-lifecycle		
+B05	Blocker (security)	Rescue / Admin	A rescue that is pending approval can create pets. Staff of a suspended rescue can still sign in and create pets.	RES-001, ADM-031, ADM-032	admin/gap-admin-rescue-approval, rescue/gap-registration-and-login		
+B06	High	Rescue	There is no limited staff role. Every rescue staff member can invite, edit and remove staff and decide applications.	RES-034, RES-044	rescue/gap-staff-permissions		
+B07	High	Rescue	Every staff invitation link ends on "Invitation not found or has expired" because the page reads the wrong part of the server response. Nobody can set up an account from an invite.	RES-005	rescue/gap-staff-lifecycle		
+B08	High	Admin	Admin actions such as suspend and reactivate are not written to the audit log.	ADM-150, X-003, ADM-022	admin/gap-admin-user-lifecycle, client/gap-cross-moderation-lockout		
+B09	High	Admin	The Unsuspend User button sends the wrong action and gets a 400, so the user stays suspended.	ADM-023	admin/gap-admin-user-lifecycle		
+B10	High	Admin	Moderation "Take Action" ignores the chosen action. Resolving or bulk-dismissing a report saves a value the list cannot read, which then breaks the whole Moderation page for every admin.	ADM-072, X-003	admin/gap-admin-moderation-reports		
+B11	High	Admin	Bulk Sanction > Suspend User shows "0 succeeded, 1 failed" and the user stays active.	ADM-073	admin/admin-moderation-sanction		
+B12	High	Admin	Broadcast notification preview fails with a 500 (the notifications service is missing a setting in docker-compose).	ADM-091	admin/admin-broadcast-notification		
+B13	High	Client	Swiping Like or Pass fails with a 500, so swipes are never saved. The screen still moves to the next pet.	CLI-031	client/gap-browse-flows		
+B14	High	Client	/rescues/:id shows "Rescue Not Found" for a valid rescue.	CLI-053, CLI-060, RES-050	client/gap-browse-flows, rescue/rescue-settings-persistence		
+B15	High	Client	At phone width (375px) the home, search, pet and chat pages scroll sideways (footer "Manage cookies" button), and the apply form is about 700px wide.	CLI-141	client/gap-keyboard-and-mobile		
+B16	Medium	Client	Phone and postcode do not save. The profile shows "Phone: Not provided" after saving and "Member Since" says "Invalid date".	CLI-080, CLI-081	client/gap-account-and-inbox-flows		
+B17	Medium	Client	The server accepts an application for a pet that is not available. It is only blocked by hiding the button.	CLI-070	client/cannot-apply-to-unavailable-pet		
+B18	Medium	Client	Opening one notification to mark it read fails with a 400.	CLI-110	client/gap-account-and-inbox-flows		
+B19	Medium	Client	"Nearest first" sorting does nothing (falls back to newest).	CLI-041	client/distance-sorted-search		
+B20	Medium	Client	There is no change-password option in the client app.	CLI-082	client/gap-account-and-inbox-flows		
+B21	Low	Client	Applying twice sends you to the existing application with no message explaining why.	CLI-072	client/gap-application-flows		
+B22	Medium	Rescue	Foster page cannot assign a pet (pickers stay on "Loading pets..."), and a placement status shows as "1" so it cannot be ended.	RES-080	rescue/foster-coordination		
+B23	Medium	Rescue	Event times are an hour out in summer (10:00 shows as 11:00), the edit form opens with empty dates, and create and edit forms share duplicate field ids.	RES-070, RES-071	rescue/events-management		
+B24	Low	Rescue	A rescue's website cannot be cleared once set.	RES-050	rescue/rescue-settings-persistence		
+B25	Medium	Rescue	Rescue managers get a 403 on Reports and on the pending invitations list.	RES-091, RES-041	rescue/page-load-smoke, rescue/gap-staff-lifecycle		
+B26	Medium	Rescue	Setting a pet to "Hold" is refused (the card sends a status the server does not know).	RES-023	rescue/gap-pet-edit-archive		
+B27	Medium	Rescue	The Edit Staff form rejects real user ids ("Please enter a valid user ID"), so a staff title cannot be changed from the page.	RES-042	rescue/gap-staff-lifecycle		
+B28	Low	Rescue	The unread badge on Messages comes back after a page reload.	RES-061	rescue/gap-communication-unread		
+B29	Low	Rescue	Archived pets still show in the rescue's Pets list.	RES-024	rescue/gap-pet-edit-archive		
+B30	Medium	Admin	Field-permission overrides save but have no effect. Adopters still see a "hidden" field.	ADM-130	admin/gap-admin-field-permissions		
+B31	Low	Admin	The audit log "Failed" status filter leaves out failed sign-ins.	ADM-150	admin/audit-log-and-settings		
+B32	Low	Admin	Moderation search box is ignored; ticket Responses tab shows 0 after reload; the Reject Rescue dialog is taller than a 720px screen so its buttons cannot be reached; a short ticket description saved by the server breaks the Support page.	ADM-070, ADM-080, ADM-032	admin/content-moderation-queue, support-ticket-triage		
+B33	Medium	Client	First-time visitors get a "Meet Your New Favorite Feature" popup after about a second. It covers the cookie banner and blocks clicks. The onboarding wizard can also lose answers if the saved profile loads late.	CLI-090, CLI-130, CLI-100	client/onboarding-and-top-picks, chat-via-ui, pet-enquiry-via-ui		
+B34	Low	Client	A wrong password shows the raw word "unauthenticated" as the error.	CLI-007	client/gap-auth-flows		
+B35	Medium	Client	On a pet page with a long description the About card overlaps the "Ask a question" and "View Rescue Profile" buttons at 1280x720.	CLI-050	client/gap-browse-flows		
+B36	Medium	Client	Starting a chat from a pet ("Message rescue" or "Ask a question") is limited to 10 per day for everyone on the same internet connection. In QA this will hit the limit quickly.	CLI-100	client/pet-enquiry-via-ui		
+B37	Low	Rescue / Dev	Analytics emits invalid chart values when there is no data, the dashboard has a React missing-key warning, and the dev login panel requests a missing endpoint.	RES-010, RES-090	rescue/page-load-smoke		
+B38	Low	Test data	The seed has several pets all named "Buddy", so searching by name is ambiguous.	CLI-030, CLI-040	client/gap-browse-flows		
+B39	Medium	Client	The client app has no button to report a pet or message, so users cannot send reports to moderators.	ADM-071, X-003	admin/gap-admin-moderation-reports		
+B40	Info	Client	Registering with an email that already exists shows no "email in use" message and goes to /check-your-email. This looks like deliberate protection against account guessing, so the expected result in the plan was changed.	CLI-002	client/gap-auth-flows		
