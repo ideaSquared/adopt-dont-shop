@@ -53,11 +53,10 @@ const ENV_FILE = join(STACK_DIR, 'env');
 const DEV_IMAGE = 'adopt-dont-shop-dev:latest';
 const GHCR_DEV_IMAGE = 'ghcr.io/ideasquared/adopt-dont-shop/dev:latest';
 const DEFAULT_LOCAL_WORKERS = 3;
-// Budgeted peak of the whole stack while booting (three Vite dev servers plus
-// ten tsx services): an estimate from the dev stack's per-container usage, not a
-// measurement. The memory sampler below prints the real peak of each run. Docker Desktop VMs
-// smaller than this plus headroom will swap or OOM-kill containers.
-const STACK_NEEDS_GIB = 6;
+// Peak of the whole stack while booting (three Vite dev servers plus ten tsx
+// services): 6.9 GiB sampled on a GitHub runner. The memory sampler below prints
+// the real peak of each run. Docker VMs smaller than this swap or OOM-kill.
+const STACK_NEEDS_GIB = 7;
 
 const BOOLEAN_FLAGS = ['--full', '--limits', '--keep', '--reuse', '--down', '--force', '--build'];
 
@@ -264,7 +263,7 @@ function main() {
     process.exit(1);
   }
   const memTotalGiB = Number(capture('docker', ['info', '--format', '{{.MemTotal}}'])) / 1024 ** 3;
-  if (memTotalGiB > 0 && memTotalGiB < STACK_NEEDS_GIB + 1) {
+  if (memTotalGiB > 0 && memTotalGiB < STACK_NEEDS_GIB) {
     log(
       `WARNING: Docker has ${memTotalGiB.toFixed(1)} GiB; the stack is budgeted at around ${STACK_NEEDS_GIB} GiB. ` +
         `Raise Docker Desktop's memory limit or expect OOM kills and a slow run.`
@@ -495,15 +494,15 @@ function main() {
   // app so Playwright's global setup does not pay for the cold compile.
   async function warmUpApps() {
     log('warming up the Vite dev servers');
-    await Promise.all(
-      [ports.client, ports.admin, ports.rescue].map(async port => {
-        try {
-          await fetch(`http://localhost:${port}/login`, { signal: AbortSignal.timeout(120_000) });
-        } catch {
-          /* best effort: global setup waits for the apps anyway */
-        }
-      })
-    );
+    // One at a time: each first request spikes to about 1 GB while Vite
+    // optimises dependencies, and three at once dominate the stack's peak.
+    for (const port of [ports.client, ports.admin, ports.rescue]) {
+      try {
+        await fetch(`http://localhost:${port}/login`, { signal: AbortSignal.timeout(120_000) });
+      } catch {
+        /* best effort: global setup waits for the apps anyway */
+      }
+    }
   }
 
   async function isUp(url) {

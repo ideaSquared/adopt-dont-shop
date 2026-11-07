@@ -284,16 +284,16 @@ pnpm e2e:isolated --keep    # leave it running to poke at it; stop with pnpm e2e
 
 What is different from `pnpm docker:dev`:
 
-| Aspect                    | Dev stack                              | Isolated e2e stack (`ads-e2e`)                                                                              |
-| ------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Compose project           | checkout directory (`adopt-dont-shop`) | `ads-e2e` (the script refuses anything else, and never the dev project's name)                              |
-| Network, volumes, secrets | `adopt-dont-shop-network`, `./secrets` | `ads-e2e-network`, `ads-e2e_*` volumes, `./.e2e-stack/` (fresh secrets per run)                             |
-| Host ports                | 3000-3002, 4000, 5432, 6380, 4222…     | **13000-13002** (apps), **14000** (gateway), **14001** (limits gateway); nothing else                       |
-| Apps                      | Vite dev servers with HMR              | the same Vite dev servers, on the e2e ports, capped at 1 GB each                                            |
-| Data                      | `db:spam` plants thousands of rows     | only the SQL bootstrap plus the personas the runner seeds through the API                                   |
-| Not started               | n/a                                    | nginx, observability, ClamAV (uploads fail open), the in-compose seeder                                     |
-| Rate limits               | 1000 req/min, 100 logins/min           | lifted (100000) on the main gateway; production defaults on the `limits` gateway                            |
-| Memory                    | ~7-8 GB with everything                | explicit `mem_limit`/`cpus` per service; budgeted at ~6 GiB (an estimate; each run prints its sampled peak) |
+| Aspect                    | Dev stack                              | Isolated e2e stack (`ads-e2e`)                                                                                               |
+| ------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Compose project           | checkout directory (`adopt-dont-shop`) | `ads-e2e` (the script refuses anything else, and never the dev project's name)                                               |
+| Network, volumes, secrets | `adopt-dont-shop-network`, `./secrets` | `ads-e2e-network`, `ads-e2e_*` volumes, `./.e2e-stack/` (fresh secrets per run)                                              |
+| Host ports                | 3000-3002, 4000, 5432, 6380, 4222…     | **13000-13002** (apps), **14000** (gateway), **14001** (limits gateway); nothing else                                        |
+| Apps                      | Vite dev servers with HMR              | the same Vite dev servers, on the e2e ports, capped at 2 GB each                                                             |
+| Data                      | `db:spam` plants thousands of rows     | only the SQL bootstrap plus the personas the runner seeds through the API                                                    |
+| Not started               | n/a                                    | nginx, observability, ClamAV (uploads fail open), the in-compose seeder                                                      |
+| Rate limits               | 1000 req/min, 100 logins/min           | lifted (100000) on the main gateway; production defaults on the `limits` gateway                                             |
+| Memory                    | ~7-8 GB with everything                | explicit `mem_limit`/`cpus` per service; peak ~7 GiB while booting (6.9 GiB sampled on a CI runner; each run prints its own) |
 
 The script checks for a running dev stack (any other compose project running `service-gateway`/`database`/`app-client`) and refuses with a pointer to `pnpm docker:down`; `--force` overrides. It also warns when Docker's memory limit is below what the stack needs. At the end it prints phase timings and the peak memory it sampled.
 

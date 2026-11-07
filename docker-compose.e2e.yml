@@ -19,7 +19,7 @@
 #     (the base ports are hard-coded and port lists MERGE across files, hence
 #     !override). Nothing is published on 5432 / 6379 / 6380 / 4222.
 #   * the three apps run the dev override's Vite dev servers on the e2e ports with a
-#     1 GB cap each (see the apps section for why they are not built bundles)
+#     2 GB cap each (see the apps section for why they are not built bundles)
 #   * no db:spam population (the dev override plants thousands of users/pets, and
 #     the e2e specs depend on a small known dataset)
 #   * no nginx, no observability stack, no ClamAV (uploads fail open in e2e) and
@@ -42,8 +42,9 @@ x-app-env: &e2e-app-env
   # Never talk to Statsig / Sentry from a throwaway run, whatever the dev .env has.
   VITE_STATSIG_CLIENT_KEY: ''
   VITE_SENTRY_DSN: ''
-  # The dev servers sat at 450-600 MB on the dev stack; keep the heap under the cap.
-  NODE_OPTIONS: '--max-old-space-size=768'
+  # Dev servers sit at 450-600 MB but spike to about 1 GB while Vite optimises
+  # dependencies on the first request (a 1 GB cap OOM-killed app-admin on CI).
+  NODE_OPTIONS: '--max-old-space-size=1280'
 
 services:
   # ---------------------------------------------------------------- infra
@@ -202,20 +203,20 @@ services:
   app-client:
     ports: !override ['127.0.0.1:${E2E_CLIENT_PORT:-13000}:3000']
     environment: *e2e-app-env
-    mem_limit: 1g
-    memswap_limit: 1g
+    mem_limit: 2g
+    memswap_limit: 2g
     cpus: 2
   app-admin:
     ports: !override ['127.0.0.1:${E2E_ADMIN_PORT:-13001}:3000']
     environment: *e2e-app-env
-    mem_limit: 1g
-    memswap_limit: 1g
+    mem_limit: 2g
+    memswap_limit: 2g
     cpus: 2
   app-rescue:
     ports: !override ['127.0.0.1:${E2E_RESCUE_PORT:-13002}:3000']
     environment: *e2e-app-env
-    mem_limit: 1g
-    memswap_limit: 1g
+    mem_limit: 2g
+    memswap_limit: 2g
     cpus: 2
 
 networks:
