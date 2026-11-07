@@ -101,6 +101,11 @@ const redisLimiter = (
   keyPrefix: string
 ): EmailRateLimiter => {
   const windowSeconds = Math.ceil(windowMs / 1000);
+  // End of the bucket that rejected an email's latest request. Read (and
+  // cleared) by retryAfterSeconds so the 429's Retry-After matches the bucket
+  // consume() judged against, even if the clock has since crossed a window
+  // boundary. Only throttled emails are stored.
+  const rejectedUntil = new Map<string, number>();
   return {
     consume: async (email: string): Promise<boolean> => {
       // Fixed-window bucket: same email in the same window shares a key.
@@ -113,14 +118,24 @@ const redisLimiter = (
         if (count === 1) {
           await redis.expire(key, windowSeconds);
         }
+        if (count > max) {
+          rejectedUntil.set(email, (bucket + 1) * windowMs);
+        }
         return count <= max;
       } catch {
         // Fail open — match the IP limiter's skipOnError behaviour.
         return true;
       }
     },
-    // Fixed windows are aligned to the clock, so every email shares one end.
-    retryAfterSeconds: (): number => toRetryAfterSeconds(windowMs - (now() % windowMs)),
+    // Fixed windows are aligned to the clock; a throttled email reports the
+    // end of the bucket that rejected it, otherwise the current window's end.
+    retryAfterSeconds: (email: string): number => {
+      const until = rejectedUntil.get(email);
+      rejectedUntil.delete(email);
+      return toRetryAfterSeconds(
+        until === undefined ? windowMs - (now() % windowMs) : until - now()
+      );
+    },
   };
 };
 

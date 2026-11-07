@@ -37,6 +37,20 @@ describe('useCountdown', () => {
     expect(result.current.hasElapsed).toBe(true);
   });
 
+  it('counts elapsed time, so timers suspended in the background do not extend the wait', () => {
+    const { result } = renderHook(() => useCountdown());
+    act(() => result.current.start(60));
+
+    // The tab is backgrounded: the clock moves on 60s but no tick has fired.
+    act(() => {
+      vi.setSystemTime(Date.now() + 60_000);
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(result.current.secondsLeft).toBe(0);
+    expect(result.current.hasElapsed).toBe(true);
+  });
+
   it('restarts from a new duration and clears hasElapsed', () => {
     const { result } = renderHook(() => useCountdown());
     act(() => result.current.start(1));
