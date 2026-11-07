@@ -56,6 +56,8 @@ export type MatchingRoutesOptions = {
 
 // Adds UNIMPLEMENTED → 501 for the Recommend / SearchPets stubs.
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Per-route rate limits. Swipes are the chatty path so they get a
 // higher ceiling; sessions are bookended (~2 per browsing session)
 // so the lower ceiling is fine. History is a paginated read.
@@ -239,14 +241,25 @@ export const registerMatchingRoutes = async (
       if (!body.sessionId) {
         return reply.code(400).send({ error: 'sessionId is required' });
       }
-      const grpcReq: RecordSwipeRequest = {
-        sessionId: body.sessionId,
-        petId: body.petId ?? '',
-        action: parseSwipeAction(body.action),
-        responseTime: body.responseTime,
-        deviceType: body.deviceType,
-      };
       try {
+        // The SPA's session id is browser-local ("session-<uuid>"), not a
+        // swipe_sessions row. Resolve it to the caller's real session
+        // (StartSession is idempotent: it returns the active one).
+        const sessionId = UUID_RE.test(body.sessionId)
+          ? body.sessionId
+          : ((
+              await client.startSession(
+                { filtersJson: '', deviceType: MatchingV1.DeviceType.DEVICE_TYPE_UNSPECIFIED },
+                buildMetadata(req)
+              )
+            ).session?.sessionId ?? body.sessionId);
+        const grpcReq: RecordSwipeRequest = {
+          sessionId,
+          petId: body.petId ?? '',
+          action: parseSwipeAction(body.action),
+          responseTime: body.responseTime,
+          deviceType: body.deviceType,
+        };
         await client.recordSwipe(grpcReq, buildMetadata(req));
         return reply.send({
           success: true,

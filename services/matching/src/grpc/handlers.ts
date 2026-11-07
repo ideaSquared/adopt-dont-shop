@@ -85,6 +85,14 @@ export async function startSession(
   ensureSwipePermission(principal);
 
   return withTransaction(deps, async ({ client, publish }) => {
+    // swipe_sessions has no unique active-session constraint, so serialise
+    // concurrent starts for one user: the transaction-scoped advisory lock
+    // makes a second caller wait until the first commits, then find its
+    // session below instead of inserting a duplicate.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+      `matching:swipe-session:${principal.userId}`,
+    ]);
+
     // Idempotency: if the user already has an active session, return
     // it unchanged. NATS event fires only on a fresh create.
     const existing = await client.query<SwipeSessionRow>(

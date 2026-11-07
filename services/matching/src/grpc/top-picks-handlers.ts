@@ -136,9 +136,12 @@ function emptyPreferences(): TopPickPreferences {
   };
 }
 
-function tokensToEnumSet<T>(tokens: unknown[] | null, table: Record<string, T>): ReadonlySet<T> {
+// `tokens` is whatever jsonb holds. Legacy rows written before the upsert
+// bound JSON text hold `{}` for an empty selection, so anything that is not
+// an array is treated as "no preference".
+function tokensToEnumSet<T>(tokens: unknown, table: Record<string, T>): ReadonlySet<T> {
   const set = new Set<T>();
-  if (tokens === null) {
+  if (!Array.isArray(tokens)) {
     return set;
   }
   for (const token of tokens) {
