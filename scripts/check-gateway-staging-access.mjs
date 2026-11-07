@@ -19,7 +19,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CONF_PATH = 'deploy/gateway/nginx.conf';
 const SNIPPET_PATH = 'deploy/gateway/snippets/staging-access.conf';
 
-const GUARD_INCLUDE = /^\s*include\s+\/etc\/nginx\/snippets\/staging-access\.conf\s*;/m;
+const GUARD_INCLUDE = /^\s*include\s+\/etc\/nginx\/snippets\/staging-access\.conf\s*;/;
 
 const stripComments = text => text.replace(/#.*$/gm, '');
 
@@ -30,12 +30,26 @@ const serverNames = block => {
   return match ? match[1].trim().split(/\s+/) : [];
 };
 
-const isHttps = block => /listen\s+443\b/.test(block);
+// Matches `listen 443`, `listen [::]:443` and `listen 0.0.0.0:443`.
+const isHttps = block => /listen\s+(?:\S*:)?443\b/.test(block);
+
+// The lines directly inside the server block (brace depth 1), so an include
+// that only covers one `location` does not count for the whole vhost.
+const serverScopeLines = block =>
+  block.split('\n').reduce(
+    ({ depth, lines }, line) => {
+      const next = depth + (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
+      return { depth: next, lines: depth === 1 ? [...lines, line] : lines };
+    },
+    { depth: 0, lines: [] }
+  ).lines;
+
+const hasServerScopeGuard = block => serverScopeLines(block).some(line => GUARD_INCLUDE.test(line));
 
 export function findUnprotectedStagingHosts(text) {
   return serverBlocks(text)
     .filter(isHttps)
-    .filter(block => !GUARD_INCLUDE.test(block))
+    .filter(block => !hasServerScopeGuard(block))
     .flatMap(serverNames)
     .filter(name => name.startsWith('staging'));
 }
@@ -49,9 +63,13 @@ const REQUIRED_SNIPPET_DIRECTIVES = [
 
 export function findSnippetProblems(text) {
   const live = stripComments(text);
-  return REQUIRED_SNIPPET_DIRECTIVES.filter(([, pattern]) => !pattern.test(live)).map(
+  const missing = REQUIRED_SNIPPET_DIRECTIVES.filter(([, pattern]) => !pattern.test(live)).map(
     ([label]) => `missing "${label}"`
   );
+  // nginx applies the first matching allow/deny; with `satisfy any`, an
+  // `allow all;` lets everyone in without a password.
+  const forbidden = /^\s*allow\s+all\s*;/m.test(live) ? ['must not contain "allow all;"'] : [];
+  return [...missing, ...forbidden];
 }
 
 function main() {

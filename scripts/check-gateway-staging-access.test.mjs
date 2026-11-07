@@ -43,6 +43,36 @@ describe('findUnprotectedStagingHosts', () => {
     expect(findUnprotectedStagingHosts(text)).toEqual(['staging-rescue.adoptdontshop.app']);
   });
 
+  it('checks IPv6 and address-qualified HTTPS listeners too', () => {
+    const text = `
+    server {
+        listen [::]:443 ssl;
+        server_name staging.adoptdontshop.app;
+    }
+    server {
+        listen 0.0.0.0:443 ssl;
+        server_name staging-api.adoptdontshop.app;
+    }
+`;
+    expect(findUnprotectedStagingHosts(text)).toEqual([
+      'staging.adoptdontshop.app',
+      'staging-api.adoptdontshop.app',
+    ]);
+  });
+
+  it('does not count an include scoped to a single location as protection', () => {
+    const text = server(
+      'staging.adoptdontshop.app',
+      `        location /private/ {
+            include /etc/nginx/snippets/staging-access.conf;
+        }
+        location /api/ {
+            proxy_pass http://backend;
+        }`
+    );
+    expect(findUnprotectedStagingHosts(text)).toEqual(['staging.adoptdontshop.app']);
+  });
+
   it('ignores the port-80 redirect block, which only ever answers with a 301', () => {
     const text = `
     server {
@@ -78,6 +108,12 @@ auth_basic_user_file /etc/nginx/staging-access/htpasswd;
       'missing "deny all;"',
       'missing "auth_basic"',
       'missing "auth_basic_user_file"',
+    ]);
+  });
+
+  it('flags an unconditional allow, which would bypass the password via satisfy any', () => {
+    expect(findSnippetProblems(COMPLETE.replace('deny all;', 'allow all;\ndeny all;'))).toEqual([
+      'must not contain "allow all;"',
     ]);
   });
 
