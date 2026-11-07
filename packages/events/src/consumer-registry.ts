@@ -15,6 +15,9 @@
 //   - `auth.>` is covered by:
 //       * service.notifications subscribes to auth.userLoggedIn,
 //         auth.roleAssigned (services/notifications/src/nats/subscribers.ts)
+//         and, for the verification and password-reset emails,
+//         auth.userRegistered / auth.passwordResetRequested
+//         (services/notifications/src/nats/auth-emails.ts)
 //       * service.audit subscribes to *.actionTaken which captures
 //         auth.actionTaken (services/audit/src/nats/subscribers.ts)
 //       * service.auth, and all other services, subscribe to
@@ -59,7 +62,7 @@ export const CONSUMER_REGISTRY: RegistryEntry[] = [
         service: 'service.notifications',
         file: 'services/notifications/src/nats/subscribers.ts',
         description:
-          'Subscribes to auth.userLoggedIn (security notification) and auth.roleAssigned (role change notification).',
+          'Subscribes to auth.userLoggedIn (security notification), auth.roleAssigned (role change notification), auth.userRegistered (verification email) and auth.passwordResetRequested (password reset email).',
       },
       {
         service: 'service.audit',

@@ -56,6 +56,7 @@ import type {
   RescueVerifiedEvent,
 } from './event-types.js';
 import { SYSTEM_PRINCIPAL } from './system-principal.js';
+import { registerAuthEmailSubscribers, type AuthEmailConfig } from './auth-emails.js';
 
 export type RegisterSubscribersOptions = {
   nats: NatsConnection;
@@ -67,6 +68,8 @@ export type RegisterSubscribersOptions = {
   // authGrpcUrl. The wire path stays subscribed either way.
   petsClient?: PetsFavoritersClient;
   rescueClient?: RescueStaffClient;
+  // When set, also sends the verification and password-reset emails.
+  authEmail?: AuthEmailConfig;
 };
 
 // Durable-consumer name prefix so multiple replicas of service.notifications
@@ -140,7 +143,7 @@ const defineRoute = <TPayload>(
 // the module is fully initialised, so its forward reference is safe.
 
 export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
-  const { nats, deps, logger, petsClient, rescueClient } = opts;
+  const { nats, deps, logger, petsClient, rescueClient, authEmail } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
     logger.error('subscriber handler failed', {
@@ -154,6 +157,20 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   // Simple single-recipient events first — same order as the table.
   for (const route of SIMPLE_EVENT_ROUTES) {
     subscriptions.push(route.register({ nats, deps, onError }));
+  }
+
+  // auth.userRegistered / auth.passwordResetRequested — verification and
+  // reset emails, queued straight onto the email worker (see auth-emails.ts).
+  if (authEmail) {
+    subscriptions.push(
+      ...registerAuthEmailSubscribers({
+        nats,
+        pool: deps.pool,
+        logger,
+        config: authEmail,
+        onError,
+      })
+    );
   }
 
   // auth.userInvited — see AuthUserInvitedEvent for why this stays

@@ -120,6 +120,8 @@ Services that call other services read a subset of `*_GRPC_URL` too: `services/a
 
 `.env.example` sets `EMAIL_PROVIDER=console` (prints to stdout) plus `EMAIL_FROM` / `DEFAULT_FROM_EMAIL`. Only `console`, `ethereal` and `resend` are implemented; production refuses `console`.
 
+Verification and password-reset emails are sent by `services/notifications` (`src/nats/auth-emails.ts`) from the `auth.userRegistered` and `auth.passwordResetRequested` events, via the same `email_queue` and worker as every other email. The links are built from `FRONTEND_URL` (`/verify-email?token=` and `/reset-password?token=` on the client app): the notifications service defaults it to `http://localhost:3000` in development and refuses to boot in production without it. `docker-compose.yml` passes it through (default `http://localhost:3000`); `docker-compose.prod.yml` and `docker-compose.staging.yml` require it. In development with `EMAIL_PROVIDER=console` the email is printed in the `service-notifications` log (`pnpm docker:logs:services`); with `EMAIL_PROVIDER=ethereal` it appears in the Ethereal inbox.
+
 `RESEND_API_KEY` also accepts the `RESEND_API_KEY_FILE` file-secret form via `@adopt-dont-shop/config-secrets` (ADS-1302). `docker-compose.prod.yml` / `docker-compose.staging.yml` set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY_FILE: /run/secrets/resend_api_key` (see `secrets/README.md`) and `DEFAULT_FROM_EMAIL` on `service-notifications` — without these the service crash-loops under `NODE_ENV=production`.
 
 ```env

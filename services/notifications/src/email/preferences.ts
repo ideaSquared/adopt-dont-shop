@@ -190,10 +190,15 @@ export const loadWeeklyDigestConsentedUserIds = async (
   return userIds.filter(userId => isWeeklyDigestConsented(byUserId.get(userId)));
 };
 
+// `essential` mail (sign-in verification, password reset) is exempt from the
+// optional toggles - a user who switched email off must still be able to
+// recover their account - but hard bounce/abuse suppression (is_blacklisted)
+// still applies.
 export const isEmailChannelOpen = async (
   conn: DbConn,
   userId: string,
-  type?: EmailType
+  type?: EmailType,
+  opts: { essential?: boolean } = {}
 ): Promise<boolean> => {
   const res = await conn.query<{
     is_email_enabled: boolean;
@@ -214,7 +219,13 @@ export const isEmailChannelOpen = async (
   if (!row) {
     return true;
   }
-  if (!row.is_email_enabled || row.global_unsubscribe || row.is_blacklisted) {
+  if (row.is_blacklisted) {
+    return false;
+  }
+  if (opts.essential === true) {
+    return true;
+  }
+  if (!row.is_email_enabled || row.global_unsubscribe) {
     return false;
   }
   if (type !== undefined && isEmailTypeOptedOut(row.preferences ?? [], type)) {
