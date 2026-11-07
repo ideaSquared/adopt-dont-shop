@@ -18,7 +18,7 @@
 #   * publishes ONLY the gateway and the three apps, on 13000-13002 / 14000-14001
 #     (the base ports are hard-coded and port lists MERGE across files, hence
 #     !reset / !override). Nothing is published on 5432 / 6379 / 6380 / 4222.
-#   * apps are BUILT once (libs via turbo, then `vite build`) and served with
+#   * apps are BUILT once (libs are prebuilt on the host by the runner, then `vite build`) and served with
 #     `vite preview` instead of the Vite dev server: no HMR watcher, no on-demand
 #     compile, a fraction of the memory once built. Builds run one app at a time
 #     (depends_on chain) so only one vite build is ever in flight.
@@ -31,9 +31,6 @@
 #   * gateway rate limits lifted per project, in env, not code. The optional
 #     `limits` profile adds a second gateway that keeps the PRODUCTION limits, on
 #     its own port and its own Redis database, for the limiter spec.
-x-no-ports: &no-ports
-  ports: !reset []
-
 # Production-default limiter for the second gateway. GATEWAY_AUTH_RATE_LIMIT_MAX
 # is deliberately empty (services/gateway/src/routes/auth.ts treats unset/empty
 # as "use the strict defaults", e.g. 10 logins per minute).
@@ -53,26 +50,27 @@ x-app-env: &e2e-app-env
 services:
   # ---------------------------------------------------------------- infra
   database:
-    <<: *no-ports
+    ports: !override []
     mem_limit: 768m
     cpus: 2
     # Throwaway data: trade durability for speed.
     command: ['postgres', '-c', 'fsync=off', '-c', 'synchronous_commit=off', '-c', 'full_page_writes=off']
   nats:
-    <<: *no-ports
+    ports: !override []
     mem_limit: 128m
     cpus: 0.5
   redis:
-    <<: *no-ports
+    ports: !override []
     mem_limit: 128m
     cpus: 0.5
+  # Libs (incl. lib.types) are built once on the host by the runner, so the
+  # tsc --watch sidecar is not needed.
   lib-types-watcher:
-    mem_limit: 384m
-    cpus: 1
+    profiles: !override ['watch']
   # ClamAV is parked behind a profile nobody enables: ~1 GB of RAM and a
   # virus-database download on every fresh run. The gateway fails open instead.
   clamav:
-    ports: !reset []
+    ports: !override []
     profiles: !override ['av']
   # Personas are seeded from the host (scripts/e2e-isolated.mjs), against the e2e
   # gateway only, so the in-compose seeder never starts.
@@ -82,26 +80,50 @@ services:
     profiles: !override ['proxy']
 
   # ------------------------------------------------------------- services
-  service-notifications: &svc
-    <<: *no-ports
+  service-notifications:
+    ports: !override []
     mem_limit: 640m
     cpus: 1
   service-auth:
-    <<: *svc
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
     # db:migrate + db:seed (bootstrap super_admin) only; no db:spam.
     command: sh -c "pnpm --filter @adopt-dont-shop/service.auth run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.auth run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.auth run dev"
   service-pets:
-    <<: *svc
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
     command: sh -c "pnpm --filter @adopt-dont-shop/service.pets run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.pets run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.pets run dev"
   service-rescue:
-    <<: *svc
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
     command: sh -c "pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.rescue run dev"
-  service-applications: *svc
-  service-chat: *svc
-  service-moderation: *svc
-  service-matching: *svc
-  service-audit: *svc
-  service-cms: *svc
+  service-applications:
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
+  service-chat:
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
+  service-moderation:
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
+  service-matching:
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
+  service-audit:
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
+  service-cms:
+    ports: !override []
+    mem_limit: 640m
+    cpus: 1
 
   service-gateway:
     ports: !override
@@ -185,8 +207,7 @@ services:
     memswap_limit: 2g
     cpus: 2
     command: >-
-      sh -c "NODE_ENV=production pnpm exec turbo run build --filter='@adopt-dont-shop/app.client^...'
-      && NODE_ENV=production pnpm --filter @adopt-dont-shop/app.client exec vite build
+      sh -c "NODE_ENV=production pnpm --filter @adopt-dont-shop/app.client exec vite build
       && exec pnpm --filter @adopt-dont-shop/app.client exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
     healthcheck: &app-hc
       start_period: 900s
@@ -199,8 +220,7 @@ services:
     depends_on:
       app-client: { condition: service_healthy }
     command: >-
-      sh -c "NODE_ENV=production pnpm exec turbo run build --filter='@adopt-dont-shop/app.admin^...'
-      && NODE_ENV=production pnpm --filter @adopt-dont-shop/app.admin exec vite build
+      sh -c "NODE_ENV=production pnpm --filter @adopt-dont-shop/app.admin exec vite build
       && exec pnpm --filter @adopt-dont-shop/app.admin exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
     healthcheck: *app-hc
   app-rescue:
@@ -214,8 +234,7 @@ services:
     depends_on:
       app-admin: { condition: service_healthy }
     command: >-
-      sh -c "NODE_ENV=production pnpm exec turbo run build --filter='@adopt-dont-shop/app.rescue^...'
-      && NODE_ENV=production pnpm --filter @adopt-dont-shop/app.rescue exec vite build
+      sh -c "NODE_ENV=production pnpm --filter @adopt-dont-shop/app.rescue exec vite build
       && exec pnpm --filter @adopt-dont-shop/app.rescue exec vite preview --host 0.0.0.0 --port 3000 --strictPort"
     healthcheck: *app-hc
 

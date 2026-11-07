@@ -297,7 +297,7 @@ What is different from `pnpm docker:dev`:
 
 The script checks for a running dev stack (any other compose project running `service-gateway`/`database`/`app-client`) and refuses with a pointer to `pnpm docker:down`; `--force` overrides. It also warns when Docker's memory limit is below what the stack needs. At the end it prints phase timings and the peak memory it sampled.
 
-It reuses the dev image `adopt-dont-shop-dev:latest` (pulled from GHCR or built locally if missing; `--build` forces a rebuild, needed after a lockfile change). The source tree is bind-mounted, so the stack runs your working tree.
+It reuses the dev image `adopt-dont-shop-dev:latest` (pulled from GHCR or built locally if missing; `--build` forces a rebuild, needed after a lockfile change). The source tree is bind-mounted, so the stack runs your working tree. Because of that, the script first runs `pnpm build:libs` on the host (the services and the app builds import the compiled `lib.*` dist; turbo caches reruns), so `pnpm install` must have been run.
 
 **The production-limits gateway.** The main e2e gateway has its limits lifted so parallel specs are not throttled, which would leave the limiter untested. Full runs (`--full`, or `--limits`) therefore also start `service-gateway-limits` (compose profile `limits`): a second gateway from the same image with the default limits and its own Redis database (so the main gateway's traffic cannot spend its budget), on port 14001. `e2e/tests/gateway-limits` points at it through `E2E_LIMITER_GATEWAY_URL` and skips itself when that is unset (any run against the shared dev stack).
 

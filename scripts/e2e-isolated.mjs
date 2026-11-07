@@ -321,6 +321,20 @@ function main() {
         writeStackFiles();
         mark('image');
 
+        // The services and the app builds import the lib.* packages from their
+        // compiled dist/, and the source tree is bind-mounted into the
+        // containers, so build them once here on the host (turbo caches reruns).
+        log('building the lib.* packages on the host');
+        const libs = spawnSync('pnpm', ['run', 'build:libs'], {
+          cwd: ROOT,
+          stdio: 'inherit',
+          shell: process.platform === 'win32',
+        });
+        if (libs.status !== 0) throw new Error('pnpm build:libs failed');
+        mark('libs');
+
+        assertOnlyE2ePortsPublished();
+
         log(`booting ${PROJECT} (apps are built in-container, one at a time; first run is slow)`);
         if (compose(['up', '-d', '--no-build'], { profiles: upProfiles }) !== 0) {
           throw new Error('docker compose up failed');
@@ -391,6 +405,26 @@ function main() {
     );
     process.exit(code);
   };
+
+  // The overlay promises nothing is published beside the e2e ports (a Compose
+  // that ignored a `ports` override once published the dev ports on a CI runner).
+  // Check the merged model before starting anything.
+  function assertOnlyE2ePortsPublished() {
+    const allowed = new Set(Object.values(ports));
+    const model = JSON.parse(composeCapture(['config', '--format', 'json']) || '{}');
+    const unexpected = Object.entries(model.services ?? {}).flatMap(([name, service]) =>
+      (service.ports ?? [])
+        .map(port => String(port.published))
+        .filter(published => !allowed.has(published))
+        .map(published => `${name}:${published}`)
+    );
+    if (unexpected.length > 0) {
+      throw new Error(
+        `docker-compose.e2e.yml would publish ports outside the e2e set (${unexpected.join(', ')}); ` +
+          `this Compose (${composeVersion}) may not honour the !override tag.`
+      );
+    }
+  }
 
   function ensureImage(rebuild) {
     const exists = () =>
