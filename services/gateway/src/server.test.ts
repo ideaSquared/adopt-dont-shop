@@ -953,6 +953,58 @@ describe('createServer — chat pet-enquiry route per-principal rate limit (ADS-
   });
 });
 
+describe('createServer — chat pet-enquiry caps follow config.enquiryRateLimit', () => {
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        trustProxy: true,
+        enquiryRateLimit: { ipMax: 3, userMax: 2 },
+      },
+      logger: quietLogger,
+      authClient: {
+        validateToken: (req: { accessToken: string }) =>
+          Promise.resolve({
+            principal: { userId: req.accessToken, roles: [1], permissions: [], rescueId: '' },
+          }),
+        close: () => undefined,
+      } as unknown as Parameters<typeof createServer>[0]['authClient'],
+      chatClient: {
+        openPetEnquiry: () =>
+          Promise.resolve({ chat: { chatId: 'chat-1', participantUserIds: [] }, created: true }),
+        close: () => undefined,
+      } as unknown as Parameters<typeof createServer>[0]['chatClient'],
+    });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  const postEnquiry = (bearerToken: string, ip: string) =>
+    server.inject({
+      method: 'POST',
+      url: '/api/v1/chats/enquiries',
+      headers: { authorization: `Bearer ${bearerToken}`, 'x-forwarded-for': ip },
+      payload: { petId: 'pet-1' },
+    });
+
+  it('applies the configured per-user cap across different IPs', async () => {
+    expect((await postEnquiry('cap-user', '61.0.0.1')).statusCode).toBe(201);
+    expect((await postEnquiry('cap-user', '61.0.0.2')).statusCode).toBe(201);
+    expect((await postEnquiry('cap-user', '61.0.0.3')).statusCode).toBe(429);
+  });
+
+  it('applies the configured per-IP cap across different users', async () => {
+    for (const user of ['ip-a', 'ip-b', 'ip-c']) {
+      expect((await postEnquiry(user, '62.0.0.1')).statusCode).toBe(201);
+    }
+    expect((await postEnquiry('ip-d', '62.0.0.1')).statusCode).toBe(429);
+  });
+});
+
 // ADS-1421: same bug/fix shape as the GDPR erasure route above, for the
 // moderation report-filing route's per-principal cap.
 describe('createServer — moderation report-filing route per-principal rate limit (ADS-1421)', () => {
