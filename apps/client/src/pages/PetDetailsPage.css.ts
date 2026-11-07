@@ -256,6 +256,10 @@ export const sidebar = style({
       position: 'sticky',
       top: vars.spacing['4'],
       alignSelf: 'start',
+      // Keep the whole sidebar reachable on short viewports: cap it at the
+      // visible height and let it scroll rather than pinning controls offscreen.
+      maxHeight: `calc(100vh - 2 * ${vars.spacing['4']})`,
+      overflowY: 'auto',
     },
   },
 });
