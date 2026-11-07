@@ -728,6 +728,14 @@ export async function applyUserSanction(
     if (current.rows.length === 0) {
       throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
     }
+    // A suspension must never reactivate a banned or deactivated account (the
+    // expiry would later make it active): only admin.users.reactivate does that.
+    if (!isBan && current.rows[0].status === 'deactivated') {
+      throw new HandlerError(
+        'FAILED_PRECONDITION',
+        'user is deactivated; a suspension cannot be applied'
+      );
+    }
     const heldRoles = [current.rows[0].user_type, ...(current.rows[0].extra_roles ?? [])];
     if (heldRoles.some(role => ELEVATED_ROLES.has(role))) {
       throw new HandlerError(

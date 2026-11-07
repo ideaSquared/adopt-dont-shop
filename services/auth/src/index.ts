@@ -13,7 +13,10 @@ import { createBcryptPasswordHasher } from './grpc/password-hasher.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { createJwtTokenIssuer } from './grpc/token-issuer.js';
 import { createServer } from './server.js';
-import { startSuspensionExpiryScheduler } from './suspension-expiry-job.js';
+import { startSuspensionExpiryScheduler, stopSchedulerWithin } from './suspension-expiry-job.js';
+
+// Longest an in-flight suspension sweep may delay the rest of shutdown.
+const SCHEDULER_STOP_TIMEOUT_MS = 5_000;
 
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.auth' });
@@ -98,7 +101,10 @@ const main = async (): Promise<void> => {
 
     const teardown = async (): Promise<void> => {
       outboxRelay.stop();
-      await suspensionExpiryScheduler.stop();
+      await stopSchedulerWithin(suspensionExpiryScheduler, {
+        timeoutMs: SCHEDULER_STOP_TIMEOUT_MS,
+        logger,
+      });
       return runServiceShutdown({ httpServer, grpc, nats, pool, logger });
     };
 

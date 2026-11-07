@@ -128,6 +128,7 @@ describe('grpcStatusToHandlerCode', () => {
     [status.PERMISSION_DENIED, 'PERMISSION_DENIED'],
     [status.NOT_FOUND, 'NOT_FOUND'],
     [status.UNAVAILABLE, 'UNAVAILABLE'],
+    [status.FAILED_PRECONDITION, 'FAILED_PRECONDITION'],
     [status.DATA_LOSS, 'INTERNAL'],
   ])('maps gRPC status %i to %s', (code, expected) => {
     expect(grpcStatusToHandlerCode({ code })).toBe(expected);

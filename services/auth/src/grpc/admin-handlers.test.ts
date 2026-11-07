@@ -1836,6 +1836,33 @@ describe('applyUserSanction', () => {
       sql.includes('UPDATE auth.users')
     )!;
 
+  it.each(['deactivated'])(
+    'refuses to suspend a %s account, so a timed suspension can never undo a ban',
+    async status => {
+      mocks.clientScript.push({ rows: [userRow({ status })] });
+
+      await expect(applyUserSanction(mocks.deps, SANCTIONER, SUSPEND)).rejects.toMatchObject({
+        code: 'FAILED_PRECONDITION',
+      });
+      expect(
+        (mocks.clientMock.query.mock.calls as Array<[string]>).some(([sql]) =>
+          sql.includes('UPDATE auth.users')
+        )
+      ).toBe(false);
+      expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    }
+  );
+
+  it('still lets a ban apply to an already suspended account', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
+    mocks.clientScript.push({ rows: [] });
+
+    const res = await applyUserSanction(mocks.deps, SANCTIONER, BAN);
+
+    expect(res.status).toBe(AuthV1.UserStatus.USER_STATUS_DEACTIVATED);
+  });
+
   it('stores the suspension end time so it can be lifted later', async () => {
     mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
     mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });

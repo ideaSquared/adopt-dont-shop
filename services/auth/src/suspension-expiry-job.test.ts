@@ -16,6 +16,7 @@ vi.mock('./grpc/suspension-expiry.js', () => ({
 import {
   SUSPENSION_EXPIRY_JOB_NAME,
   startSuspensionExpiryScheduler,
+  stopSchedulerWithin,
 } from './suspension-expiry-job.js';
 import type { HandlerDeps } from './grpc/handlers.js';
 
@@ -81,5 +82,41 @@ describe('startSuspensionExpiryScheduler', () => {
   it('returns the scheduler handle so shutdown can stop it', () => {
     const { result, running } = start();
     expect(result).toBe(running);
+  });
+});
+
+describe('stopSchedulerWithin', () => {
+  it('returns once the scheduler has stopped', async () => {
+    const stop = vi.fn().mockResolvedValue(undefined);
+
+    await stopSchedulerWithin({ tick: vi.fn(), stop }, { timeoutMs: 5_000, logger });
+
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after the time budget when an in-flight sweep will not finish, so shutdown is not held up', async () => {
+    vi.useFakeTimers();
+    try {
+      const stop = vi.fn().mockReturnValue(new Promise<void>(() => undefined));
+      const done = stopSchedulerWithin({ tick: vi.fn(), stop }, { timeoutMs: 5_000, logger });
+
+      await vi.advanceTimersByTimeAsync(5_000);
+      await done;
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        'suspension expiry scheduler did not stop in time; continuing shutdown',
+        { timeoutMs: 5_000 }
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('swallows a stop failure so the rest of shutdown still runs', async () => {
+    const stop = vi.fn().mockRejectedValue(new Error('boom'));
+
+    await expect(
+      stopSchedulerWithin({ tick: vi.fn(), stop }, { timeoutMs: 5_000, logger })
+    ).resolves.toBeUndefined();
   });
 });

@@ -25,6 +25,30 @@ export type StartSuspensionExpirySchedulerOptions = {
   logger: Logger;
 };
 
+// Stop the scheduler, but never let an in-flight sweep hold shutdown past the
+// time budget (the process has a fixed grace period for HTTP, gRPC and NATS).
+export const stopSchedulerWithin = async (
+  scheduler: RunningScheduler,
+  opts: { timeoutMs: number; logger: Logger }
+): Promise<void> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<'timeout'>(resolve => {
+    timer = setTimeout(() => resolve('timeout'), opts.timeoutMs);
+  });
+  try {
+    const outcome = await Promise.race([scheduler.stop().then(() => 'stopped' as const), timedOut]);
+    if (outcome === 'timeout') {
+      opts.logger.warn('suspension expiry scheduler did not stop in time; continuing shutdown', {
+        timeoutMs: opts.timeoutMs,
+      });
+    }
+  } catch (err) {
+    opts.logger.error('suspension expiry scheduler stop error', { err });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 export const startSuspensionExpiryScheduler = (
   opts: StartSuspensionExpirySchedulerOptions
 ): RunningScheduler =>

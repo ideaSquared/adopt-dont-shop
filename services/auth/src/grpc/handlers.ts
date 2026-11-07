@@ -70,6 +70,8 @@ export type HandlerErrorCode =
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
   | 'ALREADY_EXISTS'
+  // The request is valid but the resource is in the wrong state (409).
+  | 'FAILED_PRECONDITION'
   // A dependency (another service) is down — the gateway answers 503.
   | 'UNAVAILABLE'
   | 'INTERNAL';
