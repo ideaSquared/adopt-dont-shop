@@ -44,10 +44,16 @@ export type EmailRateLimiterOptions = {
 export type EmailRateLimiter = {
   // Returns true when the attempt is within the cap, false when throttled.
   consume: (email: string) => Promise<boolean>;
+  // Whole seconds (>= 1) until the email's current window ends, i.e. when a
+  // throttled caller may retry. Sent as the 429 Retry-After header.
+  retryAfterSeconds: (email: string) => number;
   // Current resident bucket count. Only the in-memory limiter tracks state
   // locally; the Redis-backed limiter keeps none, so it omits this.
   size?: () => number;
 };
+
+const toRetryAfterSeconds = (remainingMs: number): number =>
+  Math.max(1, Math.ceil(remainingMs / 1000));
 
 const DEFAULT_KEY_PREFIX = 'auth-email-rl';
 
@@ -95,6 +101,11 @@ const redisLimiter = (
   keyPrefix: string
 ): EmailRateLimiter => {
   const windowSeconds = Math.ceil(windowMs / 1000);
+  // End of the bucket that rejected an email's latest request. Read (and
+  // cleared) by retryAfterSeconds so the 429's Retry-After matches the bucket
+  // consume() judged against, even if the clock has since crossed a window
+  // boundary. Only throttled emails are stored.
+  const rejectedUntil = new Map<string, number>();
   return {
     consume: async (email: string): Promise<boolean> => {
       // Fixed-window bucket: same email in the same window shares a key.
@@ -107,11 +118,23 @@ const redisLimiter = (
         if (count === 1) {
           await redis.expire(key, windowSeconds);
         }
+        if (count > max) {
+          rejectedUntil.set(email, (bucket + 1) * windowMs);
+        }
         return count <= max;
       } catch {
         // Fail open — match the IP limiter's skipOnError behaviour.
         return true;
       }
+    },
+    // Fixed windows are aligned to the clock; a throttled email reports the
+    // end of the bucket that rejected it, otherwise the current window's end.
+    retryAfterSeconds: (email: string): number => {
+      const until = rejectedUntil.get(email);
+      rejectedUntil.delete(email);
+      return toRetryAfterSeconds(
+        until === undefined ? windowMs - (now() % windowMs) : until - now()
+      );
     },
   };
 };
@@ -155,6 +178,10 @@ const memoryLimiter = (max: number, windowMs: number, now: () => number): EmailR
       }
       existing.count += 1;
       return Promise.resolve(existing.count <= max);
+    },
+    retryAfterSeconds: (email: string): number => {
+      const bucket = buckets.get(email);
+      return toRetryAfterSeconds(bucket ? bucket.resetAt - now() : windowMs);
     },
     size: (): number => buckets.size,
   };

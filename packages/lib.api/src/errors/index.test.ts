@@ -65,6 +65,13 @@ describe('HTTP error classes', () => {
 });
 
 describe('createHttpError', () => {
+  it('passes retryAfterSeconds through to the ApiError', () => {
+    const error = createHttpError(429, 'Slow down', undefined, undefined, 30);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).retryAfterSeconds).toBe(30);
+  });
+
   it('maps 400 to a ValidationError with details', () => {
     const error = createHttpError(400, 'Bad input', undefined, { name: ['required'] });
     expect(error).toBeInstanceOf(ValidationError);

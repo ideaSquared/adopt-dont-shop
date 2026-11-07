@@ -1,3 +1,4 @@
+import { ApiError } from '../errors';
 import { ApiService } from '../services/api-service';
 import { ApiServiceConfig } from '../types';
 
@@ -364,6 +365,46 @@ describe('ApiService', () => {
   describe('Error Handling', () => {
     beforeEach(() => {
       apiService = new ApiService();
+    });
+
+    describe('Retry-After on rate-limited responses', () => {
+      const rateLimited = (retryAfter?: string) => {
+        const headers = new Headers();
+        if (retryAfter !== undefined) {
+          headers.set('Retry-After', retryAfter);
+        }
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          statusText: 'Too Many Requests',
+          headers,
+          json: () => Promise.resolve({ message: 'Rate limit exceeded' }),
+        } as Response);
+        return apiService.get('/limited').catch((err: unknown) => err);
+      };
+
+      it('captures delta-seconds on the ApiError', async () => {
+        const err = await rateLimited('30');
+
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).status).toBe(429);
+        expect((err as ApiError).retryAfterSeconds).toBe(30);
+      });
+
+      it.each([['abc'], ['-5'], ['0'], ['Wed, 21 Oct 2026 07:28:00 GMT']])(
+        'ignores the invalid value %s',
+        async (value) => {
+          const err = await rateLimited(value);
+
+          expect((err as ApiError).retryAfterSeconds).toBeUndefined();
+        }
+      );
+
+      it('leaves retryAfterSeconds undefined when the header is absent', async () => {
+        const err = await rateLimited();
+
+        expect((err as ApiError).retryAfterSeconds).toBeUndefined();
+      });
     });
 
     it('should handle HTTP 404 errors', async () => {
