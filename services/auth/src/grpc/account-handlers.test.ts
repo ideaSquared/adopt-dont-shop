@@ -357,6 +357,29 @@ describe('registerRescueOwner', () => {
     expect(mocks.natsMock.publish).toHaveBeenCalled();
   });
 
+  it('notifies the winning account holder when a unique-violation race loses', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-winner' }] });
+    mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [] };
+      if (String(sql).includes('INSERT INTO auth.users')) {
+        throw Object.assign(new Error('duplicate key'), { code: '23505' });
+      }
+      return { rows: [] };
+    });
+
+    await registerRescueOwner(mocks.deps, null, OWNER_REQ);
+
+    const [subject, data] = mocks.natsMock.publish.mock.calls[0];
+    expect(subject).toBe('auth.rescueRegistrationAttempted');
+    const event = JSON.parse(new TextDecoder().decode(data as Uint8Array)) as {
+      payload: { userId: string };
+    };
+    expect(event.payload.userId).toBe('usr-winner');
+  });
+
   it('answers a unique-violation race like an already-registered email', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');

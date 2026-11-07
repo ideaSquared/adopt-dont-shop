@@ -712,6 +712,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerRescueRegisterRoutes(server, {
       authClient: opts.authClient,
       rescueClient: opts.rescueClient,
+      emailRateLimiter,
     });
   }
   // POST /api/v1/invitations/accept — register-on-accept. Orchestrates

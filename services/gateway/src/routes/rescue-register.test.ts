@@ -6,6 +6,7 @@ import { RescueV1 } from '@adopt-dont-shop/proto';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
+import { createEmailRateLimiter } from './email-rate-limiter.js';
 import { registerRescueRegisterRoutes } from './rescue-register.js';
 
 const RESCUE = {
@@ -169,6 +170,32 @@ describe('POST /api/v1/rescues/register', () => {
     expect(existing.statusCode).toBe(fresh.statusCode);
     expect(existing.json()).toEqual(fresh.json());
     expect(m.registerRescue).toHaveBeenCalledTimes(1);
+  });
+
+  it('caps sign-ups per owner email across IPs, so one inbox cannot be flooded', async () => {
+    const limited = Fastify({ logger: false, trustProxy: true });
+    m.registerRescueOwner.mockResolvedValue({});
+    await registerRescueRegisterRoutes(limited, {
+      authClient: m.authClient,
+      rescueClient: m.rescueClient,
+      emailRateLimiter: createEmailRateLimiter({ max: 2, windowMs: 60_000 }),
+    });
+    try {
+      const statuses: number[] = [];
+      for (let i = 0; i < 3; i += 1) {
+        const res = await limited.inject({
+          method: 'POST',
+          url: '/api/v1/rescues/register',
+          headers: { 'x-forwarded-for': `70.0.0.${i}` },
+          payload: { ...FORM_BODY, email: ' Owner@Example.com ' },
+        });
+        statuses.push(res.statusCode);
+      }
+      expect(statuses).toEqual([201, 201, 429]);
+      expect(m.registerRescueOwner).toHaveBeenCalledTimes(2);
+    } finally {
+      await limited.close();
+    }
   });
 
   it('is rate limited per IP', async () => {

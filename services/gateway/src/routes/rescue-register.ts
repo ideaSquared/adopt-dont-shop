@@ -28,11 +28,16 @@ import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildMetadata } from '../middleware/metadata.js';
 
 import { AUTH_RATE_LIMITS } from './auth.js';
+import { normalizeEmail, type EmailRateLimiter } from './email-rate-limiter.js';
 import { toValidationFailure } from './auth.schemas.js';
 
 export type RescueRegisterRoutesOptions = {
   authClient: AuthClient;
   rescueClient: RescueClient;
+  // Per-owner-email cap (same limiter as /auth/register). Each sign-up with an
+  // already-registered email notifies that account, so the per-IP cap alone
+  // would let a flood spread across IPs fill one inbox. Optional like the auth routes.
+  emailRateLimiter?: EmailRateLimiter;
 };
 
 const required = (max: number) => z.string().trim().min(1, 'is required').max(max);
@@ -102,12 +107,18 @@ export const registerRescueRegisterRoutes = async (
   app: FastifyInstance,
   opts: RescueRegisterRoutesOptions
 ): Promise<void> => {
-  const { authClient, rescueClient } = opts;
+  const { authClient, rescueClient, emailRateLimiter } = opts;
 
   app.post(
     '/api/v1/rescues/register',
     {
       config: { public: true, rateLimit: AUTH_RATE_LIMITS.register },
+      preHandler: async (req, reply) => {
+        const email = normalizeEmail((req.body as { email?: unknown } | undefined)?.email);
+        if (emailRateLimiter && email !== undefined && !(await emailRateLimiter.consume(email))) {
+          return reply.code(429).send({ error: 'Too many requests for this email' });
+        }
+      },
       schema: {
         tags: ['rescues'],
         summary: 'Register a new rescue organisation and its owner account (public)',

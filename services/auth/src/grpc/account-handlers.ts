@@ -308,13 +308,7 @@ export async function registerRescueOwner(
     [req.email]
   );
   if (existing.rows.length > 0) {
-    await withTransaction(deps, async ({ publish }) => {
-      publish({
-        type: 'auth.rescueRegistrationAttempted',
-        id: `auth.rescueRegistrationAttempted.${randomUUID()}`,
-        payload: { userId: existing.rows[0].user_id },
-      });
-    });
+    await notifyRescueRegistrationAttempt(deps, existing.rows[0].user_id);
     return {};
   }
 
@@ -366,12 +360,32 @@ export async function registerRescueOwner(
     });
     return { user: rowToProtoUser(created) };
   } catch (err) {
-    // Unique-violation race: same neutral response, nothing created.
+    // Unique-violation race: same neutral response, nothing created. The
+    // account that won the race is the existing holder, so tell them too.
     if ((err as { code?: string }).code === '23505') {
+      const winner = await deps.pool.query<{ user_id: string }>(
+        `SELECT user_id FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+        [req.email]
+      );
+      if (winner.rows.length > 0) {
+        await notifyRescueRegistrationAttempt(deps, winner.rows[0].user_id);
+      }
       return {};
     }
     throw err;
   }
+}
+
+// Tells the holder of an already-registered email that someone tried to use it
+// for a rescue sign-up (picked up by service.notifications).
+async function notifyRescueRegistrationAttempt(deps: HandlerDeps, userId: string): Promise<void> {
+  await withTransaction(deps, async ({ publish }) => {
+    publish({
+      type: 'auth.rescueRegistrationAttempted',
+      id: `auth.rescueRegistrationAttempted.${randomUUID()}`,
+      payload: { userId },
+    });
+  });
 }
 
 // --- VerifyEmail -----------------------------------------------------
