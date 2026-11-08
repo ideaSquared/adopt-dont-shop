@@ -37,9 +37,8 @@ before bringing the stack up.
 | `.env` is missing a required var                                                | [10](#10-env-missing-a-required-var)                                    |
 | Playwright can't connect to `localhost:3000` / `http://localhost`               | [11](#11-playwright-cant-connect-to-the-app-url)                        |
 | `docker:dev:build` needed after a lockfile change                               | [12](#12-lockfile-changed-but-the-dev-image-is-stale)                   |
-| A service restart-loops after a plain `docker compose up`                       | [13](#13-bare-docker-compose-leaves-services-restart-looping)           |
-| Editing a service's source changes nothing                                      | [14](#14-a-service-doesnt-pick-up-host-edits)                           |
-| A variable stopped working after appending to `.env`                            | [15](#15-appending-to-env-corrupts-the-last-variable)                   |
+| Editing a service's source changes nothing                                      | [13](#13-a-service-doesnt-pick-up-host-edits)                           |
+| A variable stopped working after appending to `.env`                            | [14](#14-appending-to-env-corrupts-the-last-variable)                   |
 
 ---
 
@@ -302,7 +301,10 @@ an `.env` that predates ADS-766 delivers `CHOKIDAR_USEPOLLING=` (empty), and
 chokidar reads any defined value as a switch — `!!""` is `false`, which turns
 polling **off** and overrides `usePolling: true` in `vite.config.ts`. Set
 `CHOKIDAR_USEPOLLING=true`, `CHOKIDAR_INTERVAL=1000` and
-`CHOKIDAR_AWAITWRITEFINISH=2000` explicitly, then restart the app container. If polling is already
+`CHOKIDAR_AWAITWRITEFINISH=2000` explicitly, then **recreate** the app
+container. `docker compose restart` keeps the environment the container was
+created with, so the empty value would survive it:
+`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app-client`. If polling is already
 correct and HMR still doesn't fire, check the Vite dev server logs for the
 app in question (`docker compose logs app-client`) for a "file watcher
 limit reached" style error.
@@ -375,38 +377,20 @@ pnpm docker:dev:build
 
 ---
 
-### 13. Bare `docker compose` leaves services restart-looping
-
-**Diagnosis.** The dev stack is two files: `docker-compose.yml` plus
-`docker-compose.dev.yml` (see `resolveComposeFiles` in `scripts/docker-dev.mjs`).
-Each service's `command:` lives only in the dev override. Plain
-`docker compose up -d service-auth` starts it from the base file with no
-command, so the dev entrypoint (`scripts/docker-dev-entrypoint.sh`) reaches
-`exec setpriv … --` with nothing to run, `setpriv` exits with a usage error,
-and the container restart-loops as unhealthy.
-
-**Fix.** Go through `pnpm docker:dev` / the `pnpm docker:*` scripts, or pass
-both files when driving containers by hand:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d service-auth
-```
-
----
-
-### 14. A service doesn't pick up host edits
+### 13. A service doesn't pick up host edits
 
 **Diagnosis.** On macOS/Windows, bind mounts don't forward file-change
 events. The apps get the `CHOKIDAR_*` polling vars through the `app-env`
 anchor ([#9](#9-hmr-not-firing-after-editing-a-lib-package)), but the
 `service-*` containers use `ms-env`, which has none, so a service's
 `tsx watch` never sees an edit made on the host. The file inside the
-container is updated; the running process is not. Changing a `.proto` affects
-every service that imports it.
+container is updated; the running process is not.
 
 ```bash
-# The file is new but the process is older than your edit:
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec service-auth sh -c 'stat -c %y src/index.ts; stat -c %y /proc/1'
+# The file is new but the process is older than your edit (the dev image's
+# WORKDIR is /app, so use the full service path):
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec service-auth \
+  sh -c 'stat -c %y services/auth/src/index.ts && stat -c %y /proc/1'
 ```
 
 **Fix.** Restart each service that imports the changed code, then verify with
@@ -416,9 +400,14 @@ a real request through the gateway on `:4000`:
 docker compose -f docker-compose.yml -f docker-compose.dev.yml restart service-auth
 ```
 
+A `.proto` change needs one more step first. Services consume the generated
+TypeScript in `packages/proto/src/generated`, not the `.proto` file, and a
+restart doesn't regenerate it. Run `pnpm --filter @adopt-dont-shop/proto generate`,
+then restart every service that imports the changed contract.
+
 ---
 
-### 15. Appending to `.env` corrupts the last variable
+### 14. Appending to `.env` corrupts the last variable
 
 **Diagnosis.** On Windows the generated `.env` can have CRLF line endings and
 no trailing newline. `printf 'NEW_VAR=x\n' >> .env` then glues `NEW_VAR=x` onto
