@@ -434,7 +434,7 @@ The signup form in `deploy/gateway/landing/index.html` is hidden until an email 
 
 ### 11. At launch
 
-1. Restore the production apex vhost in `deploy/gateway/nginx.conf` from git history (the commit that added `deploy/gateway/landing/` replaced it) and remove the `landing/` mount.
+1. Switch the apex to the production client: in `deploy/gateway/nginx.conf`, comment out `include /etc/nginx/snippets/apex-landing.conf;` and uncomment `include /etc/nginx/snippets/apex-production.conf;` (include exactly one; `node scripts/check-csp-headers.mjs` fails if both or neither are active). Remove the `landing/` mount from `docker-compose.gateway.yml`.
 2. Remove the hand-made network, so the production stack can create its own. Docker Compose refuses to adopt a network it did not create. The landing page is down until step 4:
 
    ```bash
