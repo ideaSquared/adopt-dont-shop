@@ -17,7 +17,8 @@
  * Run: `pnpm generate` (buf generate && this script).
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -31,7 +32,6 @@ import {
 import prettier from 'prettier';
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const REPO_ROOT = join(PKG_ROOT, '..', '..');
 const OUTPUT_PATH = join(PKG_ROOT, 'src', 'schema.generated.ts');
 
 const OWN_FILE_PREFIX = 'proto/adopt_dont_shop/';
@@ -63,13 +63,9 @@ const SCALAR_NAMES = new Map([
   [FieldDescriptorProto_Type.FLOAT, 'float'],
 ]);
 
-const resolveBin = name => {
-  const local = join(PKG_ROOT, 'node_modules', '.bin', name);
-  if (existsSync(local)) return local;
-  const root = join(REPO_ROOT, 'node_modules', '.bin', name);
-  if (existsSync(root)) return root;
-  throw new Error(`Could not find the \`${name}\` binary. Run \`pnpm install\` and retry.`);
-};
+// buf's launcher is a Node script. Run it with this Node instead of the
+// node_modules/.bin shim, which is a shell script on Windows (spawn ENOENT).
+const BUF_LAUNCHER = createRequire(import.meta.url).resolve('@bufbuild/buf/bin/buf');
 
 const compact = entries => Object.fromEntries(entries.filter(([, value]) => value !== undefined));
 
@@ -90,7 +86,10 @@ export const loadDescriptorSet = (moduleDir = PKG_ROOT) => {
   const dir = mkdtempSync(join(tmpdir(), 'proto-schema-'));
   try {
     const image = join(dir, 'image.binpb');
-    execFileSync(resolveBin('buf'), ['build', '-o', image], { cwd: moduleDir, stdio: 'inherit' });
+    execFileSync(process.execPath, [BUF_LAUNCHER, 'build', '-o', image], {
+      cwd: moduleDir,
+      stdio: 'inherit',
+    });
     return fromBinary(FileDescriptorSetSchema, readFileSync(image));
   } finally {
     rmSync(dir, { recursive: true, force: true });
