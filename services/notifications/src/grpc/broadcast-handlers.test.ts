@@ -1,6 +1,6 @@
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Logger } from 'winston';
 
 import type { Principal } from '@adopt-dont-shop/authz';
@@ -69,6 +69,10 @@ const prefsRow = (over: Record<string, unknown> = {}) => ({
 });
 
 describe('broadcast', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('rejects callers without notifications.broadcast', async () => {
     const mocks = makeMocks();
     await expect(
@@ -141,6 +145,11 @@ describe('broadcast', () => {
   });
 
   it('fans out to the cohort and counts delivered / suppressed / failed', async () => {
+    // Pin the clock. isInQuietHours treats the end as exclusive, so the
+    // 00:00–23:59 window below does not cover 23:59 UTC; a real clock makes
+    // this test fail when it runs in the last minute of a UTC day.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
     const authClient: AuthCohortClient = {
       listUserIdsByCohort: vi.fn().mockResolvedValue({
         userIds: ['u-1', 'u-2', 'u-3'],
