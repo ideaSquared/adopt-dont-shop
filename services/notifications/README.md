@@ -71,18 +71,18 @@ HTTP surface: `/health/simple`. Everything else is gRPC `NotificationService`
 are **self-scoped** (a `*:any` permission unlocks acting on another user);
 admin surfaces require an explicit permission. `super_admin` bypasses.
 
-| RPC                                                                                              | Permission                                         |
-| ------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| `Create` / `BulkCreateNotifications`                                                             | `notifications.create`                             |
-| `List` / `GetNotification` / `GetUnreadCount` / `Dismiss` / `MarkRead` / `MarkAllRead` / `DeleteNotification` | self-scoped                           |
-| `Get/Update/ResetNotificationPreferences`                                                        | self; `notification-prefs:*:any` for others        |
-| `CleanupExpiredNotifications`                                                                    | `notifications.cleanup`                            |
-| `SendEmail`                                                                                      | `notifications.email.send` (or service-to-service) |
-| `Get/UpdateEmailPreferences`                                                                     | self; `email-prefs:*:any` for others               |
-| `List/Get/PreviewEmailTemplate`                                                                  | `email.templates.read`                             |
-| `Create/Update/DeleteEmailTemplate`                                                              | `email.templates.{create,update,delete}`           |
-| `Register/UnregisterDeviceToken` / `ListDeviceTokens`                                            | self-scoped (`device-tokens:list:any` for others)  |
-| `Broadcast`                                                                                      | `notifications.broadcast`                          |
+| RPC                                                                                                           | Permission                                         |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `Create` / `BulkCreateNotifications`                                                                          | `notifications.create`                             |
+| `List` / `GetNotification` / `GetUnreadCount` / `Dismiss` / `MarkRead` / `MarkAllRead` / `DeleteNotification` | self-scoped                                        |
+| `Get/Update/ResetNotificationPreferences`                                                                     | self; `notification-prefs:*:any` for others        |
+| `CleanupExpiredNotifications`                                                                                 | `notifications.cleanup`                            |
+| `SendEmail`                                                                                                   | `notifications.email.send` (or service-to-service) |
+| `Get/UpdateEmailPreferences`                                                                                  | self; `email-prefs:*:any` for others               |
+| `List/Get/PreviewEmailTemplate`                                                                               | `email.templates.read`                             |
+| `Create/Update/DeleteEmailTemplate`                                                                           | `email.templates.{create,update,delete}`           |
+| `Register/UnregisterDeviceToken` / `ListDeviceTokens`                                                         | self-scoped (`device-tokens:list:any` for others)  |
+| `Broadcast`                                                                                                   | `notifications.broadcast`                          |
 
 Schema (`notifications`): `notifications`, `device_tokens`,
 `user_notification_prefs`, `email_queue`, `email_templates`,
@@ -108,7 +108,7 @@ into notifications, plus `gdpr.erasureRequested` (durable
 `NOTIFICATIONS_SCHEMA` (`notifications`), and `NATS_URL` have dev defaults. The
 email + push channels add `EMAIL_PROVIDER`, `EMAIL_CHANNEL_ENABLED`,
 `EMAIL_WORKER_ENABLED`, `DEFAULT_FROM_EMAIL` / `DEFAULT_FROM_NAME` /
-`DEFAULT_REPLY_TO_EMAIL`, and `FCM_PROJECT_ID` / `FCM_SERVICE_ACCOUNT_JSON`,
+`DEFAULT_REPLY_TO_EMAIL`, `PUSH_PROVIDER` (`console` | `fcm` | `none`; `none` turns push off), and `FCM_PROJECT_ID` / `FCM_SERVICE_ACCOUNT_JSON`,
 plus the standard `@adopt-dont-shop/observability` vars. See
 [`docs/env-reference.md`](../../docs/env-reference.md) for the full list.
 

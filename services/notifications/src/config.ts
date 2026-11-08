@@ -7,7 +7,10 @@ export type EmailProviderConfig =
 
 export type PushProviderConfig =
   | { kind: 'console' }
-  | { kind: 'fcm'; serviceAccountJson: string; projectId: string };
+  | { kind: 'fcm'; serviceAccountJson: string; projectId: string }
+  // Push switched off: no worker runs and nothing is sent. Allowed in
+  // production for deployments with no app that registers device tokens.
+  | { kind: 'none' };
 
 export type NotificationsConfig = {
   // Port the HTTP surface listens on. Distinct from service.backend's
@@ -100,6 +103,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
   );
 
   const databaseUrl = requireSecret('DATABASE_URL', env, 'Postgres connection string');
+  const pushProvider = loadPushProviderConfig(env);
 
   return {
     port,
@@ -119,8 +123,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     emailChannelEnabled: env.EMAIL_CHANNEL_ENABLED?.trim() !== 'false',
     defaultFromEmail: env.DEFAULT_FROM_EMAIL?.trim() || 'noreply@adoptdontshop.com',
     defaultFromName: env.DEFAULT_FROM_NAME?.trim() || "Adopt Don't Shop",
-    pushProvider: loadPushProviderConfig(env),
-    pushWorkerEnabled: env.PUSH_WORKER_ENABLED?.trim() !== 'false',
+    pushProvider,
+    pushWorkerEnabled: pushProvider.kind !== 'none' && env.PUSH_WORKER_ENABLED?.trim() !== 'false',
     weeklyDigestEnabled: env.WEEKLY_DIGEST_ENABLED?.trim() === 'true',
   };
 };
@@ -161,9 +165,11 @@ const loadPushProviderConfig = (env: NodeJS.ProcessEnv): PushProviderConfig => {
       }
       return { kind: 'fcm', serviceAccountJson, projectId };
     }
+    case 'none':
+      return { kind: 'none' };
     default:
       throw new Error(
-        `PUSH_PROVIDER='${requested}' is not recognised (expected 'console' | 'fcm')`
+        `PUSH_PROVIDER='${requested}' is not recognised (expected 'console' | 'fcm' | 'none')`
       );
   }
 };

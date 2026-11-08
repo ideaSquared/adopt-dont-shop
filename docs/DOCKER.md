@@ -247,13 +247,14 @@ UPLOAD_SIGNING_SECRET=...            # required in prod
 PRINCIPAL_SIGNING_KEY=...            # required in prod
 RESEND_API_KEY=...                   # required in prod (Resend dashboard)
 DEFAULT_FROM_EMAIL=...               # required in prod (Resend-verified sender)
-FCM_PROJECT_ID=...                   # required in prod
-FCM_SERVICE_ACCOUNT_JSON=...         # required in prod (Firebase service-account JSON)
+PUSH_PROVIDER=none                   # 'fcm' turns push on and needs the two FCM values
+FCM_PROJECT_ID=...                   # only with PUSH_PROVIDER=fcm
+FCM_SERVICE_ACCOUNT_JSON=...         # only with PUSH_PROVIDER=fcm (Firebase service-account JSON)
 VITE_API_BASE_URL=https://api.your-domain.com
 VITE_WS_BASE_URL=wss://api.your-domain.com
 ```
 
-`pnpm secrets:generate` emits every generated secret in this list. The four notifications provider values are not generated: the staging and production compose files run `service-notifications` with `EMAIL_PROVIDER=resend` and `PUSH_PROVIDER=fcm`, and it refuses to boot without them. Set them in the host `.env`; the deploy workflow writes `RESEND_API_KEY` and `FCM_SERVICE_ACCOUNT_JSON` to `secrets/resend_api_key` and `secrets/fcm_service_account_json`. `pnpm validate:env` also requires `CORS_ORIGIN`, `FRONTEND_URL`, `RESCUE_FRONTEND_URL`, `STATSIG_SERVER_SECRET_KEY` and `PROD_DB_NAME` in production; see [`env-reference.md`](./env-reference.md) for the full variable reference.
+`pnpm secrets:generate` emits every generated secret in this list. The notifications provider values are not generated: the staging and production compose files run `service-notifications` with `EMAIL_PROVIDER=resend`, and it refuses to boot without `RESEND_API_KEY` and `DEFAULT_FROM_EMAIL`. The two FCM values are needed only with `PUSH_PROVIDER=fcm`; push defaults to `none` (off). Set them in the host `.env`; the deploy workflow writes `RESEND_API_KEY` and `FCM_SERVICE_ACCOUNT_JSON` to `secrets/resend_api_key` and `secrets/fcm_service_account_json`. `pnpm validate:env` also requires `CORS_ORIGIN`, `FRONTEND_URL`, `RESCUE_FRONTEND_URL`, `STATSIG_SERVER_SECRET_KEY` and `PROD_DB_NAME` in production; see [`env-reference.md`](./env-reference.md) for the full variable reference.
 
 ### Health Checks
 

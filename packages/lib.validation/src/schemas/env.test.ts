@@ -92,6 +92,11 @@ describe('envBaseSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts PUSH_PROVIDER='none' for deployments with push switched off", () => {
+    const result = envBaseSchema.safeParse({ ...validBaseEnv, PUSH_PROVIDER: 'none' });
+    expect(result.success).toBe(true);
+  });
+
   it('rejects a placeholder NATS_AUTH_TOKEN', () => {
     const result = envBaseSchema.safeParse({
       ...validBaseEnv,

@@ -139,7 +139,7 @@ export const envBaseSchema = z.object({
   // wrong default. All optional — the consuming code already defaults them.
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug', 'silly']).optional(),
   SMS_PROVIDER: z.enum(['console', 'twilio']).optional(),
-  PUSH_PROVIDER: z.enum(['console', 'fcm']).optional(),
+  PUSH_PROVIDER: z.enum(['console', 'fcm', 'none']).optional(),
   EMAIL_PROVIDER: z.enum(['console', 'ethereal', 'resend']).optional(),
   SENTRY_DSN: z.string().optional(),
   ANON_SWIPE_LIMIT: numericString('ANON_SWIPE_LIMIT').optional(),

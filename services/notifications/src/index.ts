@@ -189,7 +189,9 @@ const main = async (): Promise<void> => {
         logger.warn('email channel adapter disabled — no AUTH_GRPC_URL to resolve recipients');
       }
     }
-    if (config.pushWorkerEnabled) {
+    if (config.pushProvider.kind === 'none') {
+      logger.info('push disabled (PUSH_PROVIDER=none) — push worker not started');
+    } else if (config.pushWorkerEnabled) {
       const pushProviderConfig =
         config.pushProvider.kind === 'fcm'
           ? ({
