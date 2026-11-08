@@ -70,6 +70,7 @@
   "check:observability-mounts": "Guard: fail if cAdvisor has a /var/run or docker.sock bind-mount, or if node-exporter/cAdvisor don't mask /opt/ads in their host-rootfs mount, in docker-compose.observability.yml (ADS-1376).",
   "check:workflow-pinning": "Guard: fail if a GitHub Actions workflow's `image:` key or `docker run` invocation references a container image by mutable tag instead of a pinned @sha256 digest.",
   "check:migration-backcompat": "Guard: fail if a newly added migration contracts the schema (drop/rename, unmarked NOT NULL, type narrowing) without a backcompat marker comment (ADR 0008).",
+  "check:gateway-upload-dir": "Guard: fail if service-gateway UPLOAD_DIR in the prod/staging compose files does not match its uploads volume mount.",
   "check:stop-grace-period": "Guard: fail if a service-* entry in docker-compose.prod.yml lacks stop_grace_period (ADS-1309).",
   "check:docs-index": "Guard: fail if a docs/**/*.md file isn't linked from docs/README.md.",
   "check:docs-links": "Guard: fail if a docs/**/*.md or root markdown file has a broken internal link or anchor (ADS-1336).",
