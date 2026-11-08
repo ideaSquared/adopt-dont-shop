@@ -47,6 +47,18 @@ registry.
 
 ### Durable consumers, retries, and the dead-letter stream
 
+**Startup resilience.** The JetStream setup in `subscribe()` (`jetstreamManager`,
+`consumers.add`, `consumers.get`, `consume`) is retried with exponential backoff
+(5 attempts, 1s doubling to a 10s cap, JetStream API timeout raised to 15s;
+override with `setupRetry`), because the API can time out while NATS is
+CPU-starved during a busy boot. Each retry is logged at warn. Programming errors
+(`TypeError` and friends) are not retried; every other error is. When the budget
+is exhausted the failure is logged at error and passed to `onSetupFailure`, whose
+default rethrows so the process exits non-zero through
+`installProcessErrorHandlers` - a subscriber that silently never subscribed (a
+GDPR erasure subscriber especially) must not go unnoticed. `handle.ready`
+settles when the consumer is established.
+
 `subscribe()` does a create-or-reuse on its JetStream durable consumer
 (`jsm.consumers.add(DOMAIN_STREAM, { durable_name, filter_subject, deliver_policy,
 max_deliver, … })`). **Footgun:** JetStream fixes `deliver_policy` and

@@ -26,12 +26,35 @@ export const REDACTED = '[REDACTED]';
 export const SECRET_KEY_PATTERN =
   /password|token|secret|otp|authorization|cookie|api[_-]?key|client[_-]?location/i;
 
+// An Error's `name` (its class, e.g. NatsError) is not a person's name, but
+// the PII pass below matches any key containing "name". An Error is therefore
+// turned into a plain object tagged with this (non-enumerable) marker, so the
+// PII pass keeps its `name` visible while masking everything else on it. Only
+// the class name and the error's own enumerable properties (such as `code`)
+// are kept - `message` and `stack`, which were never copied, still are not.
+const ERROR_SHAPE = Symbol('redacted-error');
+
+const isMarkedError = (value: object): boolean =>
+  (value as Record<symbol, unknown>)[ERROR_SHAPE] === true;
+
+const toMarkedError = (err: Error, walk: (v: unknown) => unknown): object => {
+  const own = Object.entries(err).filter(([k]) => k !== 'name');
+  const plain: Record<string, unknown> = { name: err.name };
+  for (const [k, v] of own) {
+    plain[k] = SECRET_KEY_PATTERN.test(k) ? REDACTED : walk(v);
+  }
+  return Object.defineProperty(plain, ERROR_SHAPE, { value: true, enumerable: false });
+};
+
 export const redactSecretFields = (value: unknown): unknown => {
   if (value === null || value === undefined) {
     return value;
   }
   if (Array.isArray(value)) {
     return value.map(redactSecretFields);
+  }
+  if (value instanceof Error) {
+    return toMarkedError(value, redactSecretFields);
   }
   if (typeof value === 'object') {
     return Object.fromEntries(
@@ -90,9 +113,13 @@ export const maskPiiFields = (value: unknown): unknown => {
     return value.map(maskPiiFields);
   }
   if (typeof value === 'object') {
+    const source = value instanceof Error ? toMarkedError(value, v => v) : value;
+    const keepName = isMarkedError(source);
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) =>
-        PII_KEY_PATTERN.test(k) ? ([k, maskPiiValue(v)] as const) : ([k, maskPiiFields(v)] as const)
+      Object.entries(source as Record<string, unknown>).map(([k, v]) =>
+        PII_KEY_PATTERN.test(k) && !(keepName && k === 'name')
+          ? ([k, maskPiiValue(v)] as const)
+          : ([k, maskPiiFields(v)] as const)
       )
     );
   }
