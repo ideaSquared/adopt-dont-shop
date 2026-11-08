@@ -308,6 +308,15 @@ Then (Settings → Environments):
 - Create `staging` with no protection rules.
 - Create `staging-vars` with no protection rules. Leave `VITE_API_BASE_URL` and `VITE_WS_BASE_URL` empty or unset, so the staging apps call their own origin. Basic auth breaks cross-origin API calls to `staging-api.`.
 
+Then send deploy results to Discord through ideasquared-bot (Settings → Webhooks → Add webhook):
+
+- **Payload URL:** the bot's `/ads` route, `https://<ideasquared-bot worker host>/ads`
+- **Content type:** `application/json`
+- **Secret:** the value of the bot's `GITHUB_WEBHOOK_SECRET_ADS`
+- **Events:** "Let me select individual events", then tick **Deployment statuses** (plus whatever else the bot should relay, such as pull requests and releases)
+
+Each deploy then posts its result to the ADS GitHub channel: deployed, rolled back to `<sha>`, or manual action needed.
+
 Then disable the nightly backup until launch (Actions → Backup → ⋯ → Disable workflow). It only backs up production, so it fails every night on a staging-only host.
 
 ### 4. Host network, directories and staging `.env`
