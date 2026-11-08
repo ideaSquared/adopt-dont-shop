@@ -30,8 +30,8 @@ Or skip the browser and type it:
 
 ```bash
 pnpm ops pets                              # what can I do with pets?
-pnpm ops pets list --status available      # run a read
-pnpm ops pets update-status <id> --status adopted   # preview a write, then confirm
+pnpm ops pets list --status-filter available   # run a read
+pnpm ops pets update-status <id> --to-status adopted   # preview a write, then confirm
 ```
 
 For **dev**, start the stack first (`pnpm docker:dev`) and you are done: `pnpm ops login` asks what
@@ -75,14 +75,14 @@ The environment is chosen by, in order: `-e/--env`, the `ADS_OPS_ENV` variable, 
 pnpm ops setup
 pnpm ops login -e staging
 pnpm ops use prod
-pnpm ops pets list --status available --limit 5
+pnpm ops pets list --status-filter available --limit 5
 pnpm ops pets list --tags friendly,senior --tags quiet      # repeat the flag or use commas
 pnpm ops pets get 0b1c2d3e-0000-4000-8000-000000000001      # the id is a positional argument
-pnpm ops pets update-status <id> --status adopted --no-notify-adopter
+pnpm ops pets update-status <id> --to-status adopted --reason "Adopted at the open day"
 pnpm ops <service> <command> --json '{"filter":{"rescueId":"..."}}'   # nested fields: --json
 pnpm ops pets list -o json | jq '.pets[].name'              # raw, still-masked JSON for scripts
 pnpm ops pets list -o table                                 # force a table
-pnpm ops pets update-status <id> --status adopted --yes     # dev / staging only, never prod
+pnpm ops pets update-status <id> --to-status adopted --yes  # dev / staging only, never prod
 pnpm ops unlock user 3f2a... --reason "Chasing a failed adoption email" --ticket ADS-123 --ttl 30
 pnpm ops lock
 pnpm ops again
@@ -96,13 +96,13 @@ How flags are built from the proto request message:
 
 - Field names become kebab-case flags: `includeArchived` is `--include-archived`.
 - Booleans are `--flag` and `--no-flag`. Numbers are parsed and checked.
-- Enums accept short, case-insensitive names: `--status adopted` means `PET_STATUS_ADOPTED`. A
+- Enums accept short, case-insensitive names: `--to-status adopted` means `PET_STATUS_ADOPTED`. A
   typo suggests the closest value.
 - Repeated fields: repeat the flag or use a comma list.
 - Nested messages and maps can only be set with `--json '{...}'`. Flags override `--json`.
 - The positional argument fills the first required field named `id` or ending in `Id` (or the first
   field when there is none). proto3 has no "required", so identifiers are treated as required.
-- Unknown flags are an error with a suggestion (`Did you mean --status?`), and so are unknown
+- Unknown flags are an error with a suggestion (`Did you mean --to-status?`), and so are unknown
   commands (`Did you mean update-status?`).
 
 ## What it looks like
