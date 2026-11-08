@@ -82,7 +82,7 @@ nginx routes by `Host`. In dev, nginx is profile-gated (`--profile full` / `prox
 ## Docker & deploys
 
 - **Dev stack** — `pnpm docker:dev` (see [DOCKER.md](../DOCKER.md)).
-- **Production** — pre-built GHCR images pulled by `docker-compose.prod.yml` on a single Hetzner host under `/opt/ads/<env>/`, driven by `.github/workflows/deploy.yml`. `docker compose -f docker-compose.yml -f docker-compose.prod.yml …` locally is only a **smoke test** of the prod images, not the real deploy. The authoritative release procedure is [operations/deploy.md](../operations/deploy.md); one-time provisioning is [DEPLOYMENT-PLAN.md](./DEPLOYMENT-PLAN.md).
+- **Production** — pre-built GHCR images pulled by `docker-compose.prod.yml` on a single netcup host under `/opt/ads/<env>/`, driven by `.github/workflows/deploy.yml`. `docker compose -f docker-compose.yml -f docker-compose.prod.yml …` locally is only a **smoke test** of the prod images, not the real deploy. The authoritative release procedure is [operations/deploy.md](../operations/deploy.md); one-time provisioning is [DEPLOYMENT-PLAN.md](./DEPLOYMENT-PLAN.md).
 
 Deploys and rollbacks are dispatched via the repo-root `Makefile` (`make staging`, `make prod`, `make rollback env=production sha=<sha>`), which run the `deploy.yml` / `rollback.yml` GitHub Actions workflows.
 

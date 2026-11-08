@@ -642,10 +642,10 @@ jobs:
       - name: Copy deploy config to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
         with:
-          host: ${{ secrets.HETZNER_HOST }}
+          host: ${{ secrets.NETCUP_HOST }}
           username: deploy
-          key: ${{ secrets.HETZNER_SSH_KEY }}
-          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          key: ${{ secrets.NETCUP_SSH_KEY }}
+          fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
           source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
@@ -662,10 +662,10 @@ jobs:
       - name: Copy shared edge gateway config to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
         with:
-          host: ${{ secrets.HETZNER_HOST }}
+          host: ${{ secrets.NETCUP_HOST }}
           username: deploy
-          key: ${{ secrets.HETZNER_SSH_KEY }}
-          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          key: ${{ secrets.NETCUP_SSH_KEY }}
+          fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
           source: deploy/gateway
           target: /opt/ads/gateway
           # deploy/gateway/* must land directly under /opt/ads/gateway/ (see
@@ -720,7 +720,7 @@ jobs:
       # ADS-670: SSH host fingerprint pinned to prevent MitM during deploy.
       # Read it ON the host via the provider's console (not ssh-keyscan over
       # the network, which trusts whoever answers) and store it as the
-      # HETZNER_HOST_FINGERPRINT secret:
+      # NETCUP_HOST_FINGERPRINT secret:
       #   ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $2}'
       - name: Deploy to server
         # Pass secrets via `envs:` rather than `${{ secrets.* }}` interpolation
@@ -747,10 +747,10 @@ jobs:
           ALLOW_BLIND_DEPLOY: ${{ github.event.inputs.allow_blind_deploy }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
-          host: ${{ secrets.HETZNER_HOST }}
+          host: ${{ secrets.NETCUP_HOST }}
           username: deploy
-          key: ${{ secrets.HETZNER_SSH_KEY }}
-          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          key: ${{ secrets.NETCUP_SSH_KEY }}
+          fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
           envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,TAG_OVERRIDES,ENVIRONMENT,ALLOW_BLIND_DEPLOY
           script: |
             set -euo pipefail

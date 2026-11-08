@@ -27,7 +27,7 @@ name: Backup Restore Drill
 # docs/db-backup-runbook.md and ADR 0007
 # (docs/adr/0007-postgres-backups-pitr-restore.md) for that open decision.
 #
-# No AWS keys flow through backup.yml (the Hetzner host's own credentials
+# No AWS keys flow through backup.yml (the netcup host's own credentials
 # authorise its S3 upload), but these jobs run directly on GitHub-hosted
 # runners with no host to borrow credentials from, so they need their own
 # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY repo (or `backups` environment)

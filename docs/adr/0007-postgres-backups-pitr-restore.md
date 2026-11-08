@@ -118,7 +118,7 @@ restore-verification job on top, plus lifecycle + Object Lock.
 - **Pro:** RPO drops from ~24h to the WAL archive interval (minutes). Supports
   PITR to any point in the retention window. Parallel restore, incremental/
   differential backups, built-in `pgbackrest verify`, first-class S3 + retention
-  support. Self-hosted-friendly (we run Postgres in a container on Hetzner per
+  support. Self-hosted-friendly (we run Postgres in a container on netcup per
   `backup.yml`).
 - **Con:** New operational surface (a `pgbackrest` sidecar/cron, `archive_command`
   on the primary, a repo bucket). WAL storage grows continuously and needs
@@ -144,7 +144,7 @@ PITR.
 - **Pro:** PITR, retention, and restore tooling become the provider's problem;
   least backup code to own long-term.
 - **Con:** Large infra/cost change well beyond ADS-1043's scope; the stack is
-  currently self-hosted on Hetzner with PostGIS. Migration is its own project and
+  currently self-hosted on netcup with PostGIS. Migration is its own project and
   does not close today's gap on the current DB in a reasonable timeframe. Still
   warrants an independent restore-verification drill regardless of provider
   claims.
@@ -165,7 +165,7 @@ Rationale:
   archiving. pgBackRest is preferred over wal-g (Option C) for its mature
   `verify`, retention (`repo-retention-full` / `-diff`), and parallelism, and
   over managed Postgres (Option D) because it fits the current self-hosted
-  Hetzner + container + PostGIS setup and can be delivered incrementally rather
+  netcup + container + PostGIS setup and can be delivered incrementally rather
   than as a migration project.
 - This aligns ADS-1043 and ADS-443: Phase 1 satisfies ADS-1043's core; Phase 2
   (pgBackRest WAL/PITR) is the ADS-443 design, now with a concrete tool choice.
