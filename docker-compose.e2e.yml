@@ -123,6 +123,13 @@ services:
     ports: !override []
     mem_limit: 640m
     cpus: 1
+  # The developer ops CLI backend is not part of any journey: parked behind a
+  # profile nobody enables, and (like every service here) nothing is published.
+  service-ops:
+    ports: !override []
+    profiles: !override ['ops']
+    mem_limit: 640m
+    cpus: 1
 
   service-gateway:
     ports: !override

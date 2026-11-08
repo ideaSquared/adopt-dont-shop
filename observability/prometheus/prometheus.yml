@@ -81,6 +81,13 @@ scrape_configs:
       - targets: ['service-cms:5010']
     metrics_path: /metrics
 
+  # service-ops serves /metrics on its single HTTP port (4100) via the shared
+  # createMicroserviceServer, like every other service.
+  - job_name: service-ops
+    static_configs:
+      - targets: ['service-ops:4100']
+    metrics_path: /metrics
+
   # Host / datastore / container exporters (ADS-1313). Only exist when the
   # docker-compose.observability.yml overlay is up — see that file's
   # node-exporter/cadvisor/postgres-exporter/redis-exporter services.

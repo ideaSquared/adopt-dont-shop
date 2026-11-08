@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.pets.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // PetService is the gRPC contract for the pets vertical. It owns the
 // `pets.*` schema (Pet, PetMedia, Breed, UserFavorite, Rating,
 // PetStatusTransition) and exposes the listing CRUD plus the
@@ -209,31 +211,31 @@ enum PetAgeGroup {
 // object) so the proto doesn't have to enumerate all 60 columns; the
 // gateway forwards it through to the SPA unchanged.
 message Pet {
-  string pet_id = 1;
-  string name = 2;
-  optional string rescue_id = 3;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string rescue_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   PetType type = 4;
   PetStatus status = 5;
   PetGender gender = 6;
   PetSize size = 7;
   PetAgeGroup age_group = 8;
-  optional string breed_id = 9;
-  optional string secondary_breed_id = 10;
-  optional string short_description = 11;
-  optional string long_description = 12;
+  optional string breed_id = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string secondary_breed_id = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string short_description = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string long_description = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional int32 age_years = 13;
   optional int32 age_months = 14;
-  optional string color = 15;
+  optional string color = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   bool archived = 16;
   bool featured = 17;
   bool priority_listing = 18;
   optional int32 adoption_fee_minor = 19;
-  optional string adoption_fee_currency = 20;
+  optional string adoption_fee_currency = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool special_needs = 21;
   bool house_trained = 22;
   // JSON-stringified arrays — temperament + tags. Empty string == `[]`.
-  string temperament_json = 23;
-  string tags_json = 24;
+  string temperament_json = 23 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string tags_json = 24 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // JSON-stringified object carrying the long tail of fields the core
   // message omits (medical_notes, behavioral_notes, good_with_*,
   // vaccination_status, location lat/lng, …). Empty string == `{}`.
@@ -241,52 +243,52 @@ message Pet {
   uint32 view_count = 26;
   uint32 favorite_count = 27;
   uint32 application_count = 28;
-  optional string available_since = 29;
-  optional string adopted_date = 30;
-  string created_at = 31;
-  string updated_at = 32;
+  optional string available_since = 29 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string adopted_date = 30 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 31 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 32 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // PetStatusTransition mirrors the pets.pet_status_transitions row — the
 // append-only audit trail behind the state machine.
 message PetStatusTransition {
-  string transition_id = 1;
-  string pet_id = 2;
+  string transition_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string pet_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional PetStatus from_status = 3;
   PetStatus to_status = 4;
-  string transitioned_at = 5;
-  optional string transitioned_by = 6;
-  optional string reason = 7;
+  string transitioned_at = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string transitioned_by = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 // --- Create -----------------------------------------------------------
 
 message CreatePetRequest {
-  string name = 1;
-  string rescue_id = 2;
+  string name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string rescue_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   PetType type = 3;
   PetGender gender = 4;
   PetSize size = 5;
   PetAgeGroup age_group = 6;
-  optional string breed_id = 7;
-  optional string secondary_breed_id = 8;
-  optional string short_description = 9;
-  optional string long_description = 10;
+  optional string breed_id = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string secondary_breed_id = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string short_description = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string long_description = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional int32 age_years = 11;
   optional int32 age_months = 12;
   optional int32 adoption_fee_minor = 13;
-  optional string adoption_fee_currency = 14;
+  optional string adoption_fee_currency = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool special_needs = 15;
   bool house_trained = 16;
-  string temperament_json = 17;
-  string tags_json = 18;
+  string temperament_json = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string tags_json = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   string extra_json = 19;
   // Breed NAME, resolved to a breed_id by the service against pets.breeds
   // (matched on the pet's type + name, case-insensitive). Used when the
   // caller (the rescue app) only knows the name; an explicit breed_id /
   // secondary_breed_id wins. An unknown name is INVALID_ARGUMENT.
-  optional string breed_name = 20;
-  optional string secondary_breed_name = 21;
+  optional string breed_name = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string secondary_breed_name = 21 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }
 
 message CreatePetResponse {
@@ -296,7 +298,7 @@ message CreatePetResponse {
 // --- Get --------------------------------------------------------------
 
 message GetPetRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetPetResponse {
@@ -307,7 +309,7 @@ message GetPetResponse {
 
 message ListPetsRequest {
   // Opaque base64-JSON keyset cursor — same shape as NotificationsV1.
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 20, max 100 — server enforces the bound.
   uint32 limit = 2;
   // Optional filters. UNSPECIFIED in each enum = "no filter".
@@ -315,7 +317,7 @@ message ListPetsRequest {
   PetType type_filter = 4;
   PetSize size_filter = 5;
   // Scope to a single rescue's pets (rescue staff dashboards).
-  optional string rescue_id_filter = 6;
+  optional string rescue_id_filter = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Restrict to featured pets only (the public "featured" homepage rail).
   // false / unset = no featured filter.
   optional bool featured_filter = 7;
@@ -327,7 +329,7 @@ message ListPetsRequest {
   // Free-text search over the pets.search_vector (name / breed / description).
   optional string search = 9;
   // Breed-name filter (case-insensitive substring against the breeds catalogue).
-  optional string breed = 10;
+  optional string breed = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // Enum filters. UNSPECIFIED / unset = "no filter". `optional` (explicit
   // presence) so existing ListPetsRequest construction sites don't have to
   // set them — every other caller stays a compile-clean no-op.
@@ -335,13 +337,13 @@ message ListPetsRequest {
   optional PetAgeGroup age_group_filter = 12;
   // Sort column (allowlisted server-side) + direction ("ASC"/"DESC"). Only
   // honoured in page mode; cursor mode keeps its fixed keyset order.
-  optional string sort_by = 13;
-  optional string sort_order = 14;
+  optional string sort_by = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string sort_order = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListPetsResponse {
   repeated Pet pets = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Total matching rows — populated only in page mode (offset pagination),
   // so the dashboard can render page counts. Unset in cursor mode.
   optional uint32 total = 3;
@@ -352,18 +354,18 @@ message ListPetsResponse {
 message ListBreedsRequest {
   // Species label ('dog', 'cat', 'rabbit', …). Omit / empty to list
   // breeds across every species.
-  optional string species = 1;
+  optional string species = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }
 
 message ListBreedsResponse {
   // Distinct breed names, alphabetical.
-  repeated string breeds = 1;
+  repeated string breeds = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }
 
 // --- GetSimilarPets ---------------------------------------------------
 
 message GetSimilarPetsRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Max results (clamped server-side). 0 → default.
   uint32 limit = 2;
 }
@@ -375,33 +377,33 @@ message GetSimilarPetsResponse {
 // --- Update -----------------------------------------------------------
 
 message UpdatePetRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // All optional — only the supplied fields are written. JSON blobs
   // replace wholesale when present.
-  optional string name = 2;
-  optional string short_description = 3;
-  optional string long_description = 4;
+  optional string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string short_description = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string long_description = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional PetGender gender = 5;
   optional PetSize size = 6;
   optional PetAgeGroup age_group = 7;
-  optional string breed_id = 8;
-  optional string secondary_breed_id = 9;
+  optional string breed_id = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string secondary_breed_id = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional int32 adoption_fee_minor = 10;
-  optional string adoption_fee_currency = 11;
+  optional string adoption_fee_currency = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional bool special_needs = 12;
   optional bool house_trained = 13;
   optional bool featured = 14;
   optional bool priority_listing = 15;
-  optional string temperament_json = 16;
-  optional string tags_json = 17;
+  optional string temperament_json = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string tags_json = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional string extra_json = 18;
   // Off-market archive flag (distinct from status + from soft Delete).
   // Mutating it platform-wide requires `pets.manage:any`.
   optional bool archived = 19;
   // Breed NAME, resolved against the pet's type; same rules as
   // CreatePetRequest.breed_name. An explicit breed_id wins.
-  optional string breed_name = 20;
-  optional string secondary_breed_name = 21;
+  optional string breed_name = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string secondary_breed_name = 21 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }
 
 message UpdatePetResponse {
@@ -411,11 +413,11 @@ message UpdatePetResponse {
 // --- UpdateStatus (the state-machine command) ------------------------
 
 message UpdatePetStatusRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   PetStatus to_status = 2;
   // Optional free-text reason persisted to the transition row + emitted
   // on the `pets.statusChanged` event.
-  optional string reason = 3;
+  optional string reason = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message UpdatePetStatusResponse {
@@ -427,7 +429,7 @@ message UpdatePetStatusResponse {
 // --- Delete -----------------------------------------------------------
 
 message DeletePetRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeletePetResponse {
@@ -441,7 +443,7 @@ message GetPetStatsRequest {
   // Optional override. Rescue staff get pinned to their own rescue_id
   // regardless; admins / super_admin with `pets.read:any` may pass
   // a different value (and pass empty for the platform-wide aggregate).
-  optional string rescue_id_filter = 1;
+  optional string rescue_id_filter = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetPetStatsResponse {
@@ -466,17 +468,17 @@ message GetPetStatsResponse {
 // --- ListFavoriters --------------------------------------------------
 
 message ListPetFavoritersRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListPetFavoritersResponse {
-  repeated string user_ids = 1;
+  repeated string user_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- Per-user favourites ---------------------------------------------
 
 message AddFavoriteRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AddFavoriteResponse {
@@ -484,7 +486,7 @@ message AddFavoriteResponse {
 }
 
 message RemoveFavoriteRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RemoveFavoriteResponse {
@@ -492,7 +494,7 @@ message RemoveFavoriteResponse {
 }
 
 message GetFavoriteStatusRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetFavoriteStatusResponse {
@@ -508,7 +510,7 @@ message ListUserFavoritesResponse {
 // --- ListFavoritesForUser ---------------------------------------------
 
 message ListFavoritesForUserRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListFavoritesForUserResponse {
@@ -547,7 +549,7 @@ message GetPetFacetsRequest {
   PetStatus status_filter = 1;
   PetType type_filter = 2;
   PetSize size_filter = 3;
-  optional string rescue_id_filter = 4;
+  optional string rescue_id_filter = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message FacetCount {
@@ -569,18 +571,18 @@ message GetPetFacetsResponse {
 // --- GetAdoptionTrend --------------------------------------------------
 
 message GetAdoptionTrendRequest {
-  optional string rescue_id_filter = 1;
+  optional string rescue_id_filter = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Inclusive lower / upper bounds on adopted_date. Omit either for an
   // open-ended range.
-  optional string start_date = 2;
-  optional string end_date = 3;
+  optional string start_date = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_date = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // 'day' | 'week' | 'month'. Defaults to 'day'.
-  optional string group_by = 4;
+  optional string group_by = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdoptionTrendPoint {
   // ISO-8601 date (the bucket start).
-  string date = 1;
+  string date = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 count = 2;
 }
 
@@ -591,9 +593,9 @@ message GetAdoptionTrendResponse {
 // --- GetAdoptionsByType -------------------------------------------------
 
 message GetAdoptionsByTypeRequest {
-  optional string rescue_id_filter = 1;
-  optional string start_date = 2;
-  optional string end_date = 3;
+  optional string rescue_id_filter = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string start_date = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_date = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdoptionsByTypeCount {
@@ -608,14 +610,14 @@ message GetAdoptionsByTypeResponse {
 // --- GetTopRescuesByAdoptions -------------------------------------------
 
 message GetTopRescuesByAdoptionsRequest {
-  optional string start_date = 1;
-  optional string end_date = 2;
+  optional string start_date = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_date = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 10, max 50.
   uint32 limit = 3;
 }
 
 message RescueAdoptionCount {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 adoptions = 2;
 }
 
@@ -626,15 +628,15 @@ message GetTopRescuesByAdoptionsResponse {
 // --- GetTopBreedsByAdoptions --------------------------------------------
 
 message GetTopBreedsByAdoptionsRequest {
-  optional string rescue_id_filter = 1;
-  optional string start_date = 2;
-  optional string end_date = 3;
+  optional string rescue_id_filter = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string start_date = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_date = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 10, max 50.
   uint32 limit = 4;
 }
 
 message BreedAdoptionCount {
-  string breed = 1;
+  string breed = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   uint32 count = 2;
   // Mean days between created_at and adopted_at for this breed's
   // adoptions in scope. Zero when count is zero.
@@ -673,7 +675,7 @@ message GetAdoptionStatsResponse {
 // --- Pet views --------------------------------------------------------
 
 message RecordPetViewRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RecordPetViewResponse {
@@ -683,11 +685,11 @@ message RecordPetViewResponse {
 
 message GetViewsTodayRequest {
   // At most 100 ids per call.
-  repeated string pet_ids = 1;
+  repeated string pet_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message PetViewCount {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 views = 2;
 }
 

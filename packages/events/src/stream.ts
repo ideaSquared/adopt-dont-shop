@@ -51,6 +51,7 @@ export const DOMAIN_SUBJECTS = [
   'matching.>',
   'cms.>',
   'audit.>',
+  'ops.>',
   'gdpr.>',
 ] as const;
 

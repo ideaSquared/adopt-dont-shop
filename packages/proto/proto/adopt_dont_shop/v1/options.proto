@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package adopt_dont_shop.v1;
+
+import "google/protobuf/descriptor.proto";
+
+// Sensitivity classifies how much a field's value may be shown to a
+// developer operating the platform through `ads-ops`. Masking is fail-closed:
+// an unannotated string / bytes / map field is treated as hidden.
+enum Sensitivity {
+  SENSITIVITY_UNSPECIFIED = 0;
+
+  // Safe to show to anyone, including the public. Public listing content
+  // such as a pet's name and description, or published CMS copy.
+  SENSITIVITY_PUBLIC = 1;
+
+  // Operational, non-personal data: identifiers, statuses, types,
+  // timestamps, counts, slugs, version numbers and opaque pagination
+  // cursors. Visible to operators.
+  SENSITIVITY_INTERNAL = 2;
+
+  // Personal data: names, email addresses, phone numbers, postal
+  // addresses, dates of birth, and free text a person wrote. Hidden unless
+  // a break-glass unlock applies.
+  SENSITIVITY_PII = 3;
+
+  // UK GDPR special-category or otherwise highly sensitive data: health,
+  // criminal records, and credentials (passwords, tokens, secrets, 2FA
+  // material). Hidden unless a break-glass unlock applies.
+  SENSITIVITY_SPECIAL = 4;
+}
+
+extend google.protobuf.FieldOptions {
+  // Sensitivity of the annotated field. Read by the ops service to mask
+  // response values and by `packages/proto/scripts/generate-schema.mjs`.
+  Sensitivity sensitivity = 51001;
+}

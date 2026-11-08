@@ -74,7 +74,7 @@ Every microservice under `services/` is built from a single parameterised [`Dock
 - `app-admin` — Admin dashboard on 3001
 - `app-rescue` — Rescue portal on 3002
 
-The ten domain gRPC services (`service-auth`, `service-pets`, …) sit behind the `services` / `full` profiles and are also started by `pnpm docker:dev`.
+The ten domain gRPC services (`service-auth`, `service-pets`, …) sit behind the `services` / `full` profiles and are also started by `pnpm docker:dev`. So is `service-ops`, the backend of the developer ops CLI (`pnpm ops`, [ADR 0016](adr/0016-developer-ops-cli.md)): HTTP on `127.0.0.1:4100` (host loopback only), `OPS_AUTH_MODE=local`, health at `/health/ready`.
 
 ### Subdomain routing
 

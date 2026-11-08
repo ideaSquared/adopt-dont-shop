@@ -44,13 +44,18 @@ pool_max (default)                = 8
 
 Baseline (1 replica each)         = 10 × 8 × 1        =  80
 All services at 2 replicas        = 10 × 8 × 2        = 160
+service-ops (DB_POOL_MAX=2, 2 replicas)  = 2 × 2      =  +4
 Reserved (backups/migrations/admin) ~                = +20
                                                         ----
-Peak demand at full 2× scale-out                     = 180
+Peak demand at full 2× scale-out                     = 184
 
 Postgres max_connections                             = 200
-Headroom at full 2× scale-out     = 200 − 180        =  20   ✅
+Headroom at full 2× scale-out     = 200 − 184        =  16   ✅
 ```
+
+`service-ops` (the developer ops CLI backend, ADR 0016) is an 11th schema owner,
+but it only serves operator traffic, so staging/prod pin its pool to
+`DB_POOL_MAX=2` rather than the default 8.
 
 The default leaves room to scale **every** service to 2 replicas with 20
 connections to spare — comfortably above the ticket's floor of "at least one

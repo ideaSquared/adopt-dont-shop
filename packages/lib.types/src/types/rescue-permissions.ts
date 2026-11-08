@@ -73,6 +73,7 @@ export const MESSAGES_SEND = 'messages.create' satisfies Permission;
 export const NOTIFICATIONS_VIEW = 'notifications.read' satisfies Permission;
 export const NOTIFICATIONS_CREATE = 'notifications.create' satisfies Permission;
 export const NOTIFICATIONS_UPDATE = 'notifications.update' satisfies Permission;
+export const NOTIFICATIONS_BROADCAST = 'notifications.broadcast' satisfies Permission;
 
 /**
  * Moderation Permissions
@@ -242,6 +243,7 @@ export const RescuePermissions = {
   NOTIFICATIONS_VIEW,
   NOTIFICATIONS_CREATE,
   NOTIFICATIONS_UPDATE,
+  NOTIFICATIONS_BROADCAST,
 
   // Moderation
   MODERATION_REPORTS_VIEW,

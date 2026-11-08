@@ -29,13 +29,14 @@ adopt-dont-shop/
 │   ├── client/              #   app.client — public adoption portal (port 3000)
 │   └── rescue/              #   app.rescue — rescue org portal      (port 3002)
 ├── services/                # Fastify gateway + gRPC microservices
-│   ├── gateway/             #   REST/WS edge on port 4000 — the only HTTP surface
+│   ├── gateway/             #   REST/WS edge on port 4000 — the only public HTTP surface
 │   ├── auth/ pets/ rescue/ applications/ chat/
-│   └── notifications/ moderation/ matching/ cms/ audit/
+│   ├── notifications/ moderation/ matching/ cms/ audit/
+│   └── ops/                 #   dev ops CLI backend (HTTP, host loopback only, via SSH tunnel)
 ├── packages/
 │   ├── lib.*/               #   frontend-shared libs (lib.api, lib.components, lib.types, …)
 │   │                        #   see docs/libraries/README.md; lib.av-scan is service-only
-│   ├── authz/ config-secrets/ db/ events/ observability/ proto/
+│   ├── authz/ config-secrets/ db/ events/ observability/ ops-cli/ ops-contract/ proto/
 │   ├── scheduler/ seed-faker/ service-bootstrap/ storage/ test-utils/
 │   └── eslint-config-{base,node,react}/
 ├── e2e/                     # Playwright cross-app suite
@@ -203,6 +204,7 @@ as `ApiError`.
 | Feature flags (Statsig)                     | `feature-flags`            | `packages/lib.feature-flags/README.md`                                  |
 | Dates, money, postcodes, phones             | `uk-localization`          | `docs/UK_LOCALIZATION.md`                                               |
 | App layout, routing, providers              | —                          | `docs/frontend/app-shell.md`, `docs/frontend/rescue-architecture.md`    |
+| Running RPCs against an environment         | —                          | `packages/ops-cli/README.md`, `docs/runbooks/ops-cli.md`                |
 | New shared component                        | `new-component`            | `packages/lib.components/README.md`                                     |
 | New `lib.*` package                         | `new-lib`                  | `docs/libraries/README.md`, `docs/templates/README.lib.md`              |
 | New `app.*` package                         | `new-app`                  | `docs/templates/README.app.md`                                          |
@@ -228,7 +230,7 @@ invoked by a person (`/name`), not auto-loaded. Load a skill before writing code
   monitoring stack only start with `--profile full`; `http://localhost/` is not served by default.
 - Native `pnpm dev` runs on the host: set `DB_HOST=localhost` and `REDIS_HOST=localhost` in
   `.env` first (`.env.example` uses the Docker hostnames `database` / `redis`).
-- The gateway owns no schema and has no `db:migrate`. Only the ten domain services migrate.
+- The gateway owns no schema and has no `db:migrate`. Only the ten domain services and `service-ops` migrate.
 - `useFeatureGate(name)` returns `{ value }`, not a boolean.
 - `apiService.get(url, params)` takes the query object as the second argument, not `{ params }`.
 - `TextInput` is deprecated; use `Input` from `@adopt-dont-shop/lib.components`. `pnpm check:forms`

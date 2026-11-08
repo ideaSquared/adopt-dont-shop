@@ -83,7 +83,7 @@ Use the workflow. It ships the compose/nginx/observability config fresh
 (ADS-1312), clears any per-service `SERVICE_*_TAG`/`APP_*_TAG` overrides,
 rewrites `DEPLOY_SHA` in `/opt/ads/production/.env`, runs
 `docker compose up -d` (with the observability/GlitchTip overlays applied if
-enabled), gates on all 11 services' `/health/ready` — not the gateway alone
+enabled), gates on all 12 services' `/health/ready` — not the gateway alone
 (ADS-1308/ADS-1311) — and records `.last_sha` — so the change **persists
 across reboots and the next deploy** in a way that a hand-edit does not.
 
@@ -130,6 +130,7 @@ Re-pass the override on each deploy for as long as you need the pin.
 | `SERVICE_MATCHING_TAG`      | `service-matching`      | 5008          |
 | `SERVICE_AUDIT_TAG`         | `service-audit`         | 5009          |
 | `SERVICE_CMS_TAG`           | `service-cms`           | 5010          |
+| `SERVICE_OPS_TAG`           | `service-ops`           | 4100          |
 | `APP_CLIENT_TAG`            | `app-client`            | 8080          |
 | `APP_ADMIN_TAG`             | `app-admin`             | 8080          |
 | `APP_RESCUE_TAG`            | `app-rescue`            | 8080          |

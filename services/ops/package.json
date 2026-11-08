@@ -1,0 +1,62 @@
+{
+  "name": "@adopt-dont-shop/service.ops",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "private": true,
+  "description": "Ops service — the server half of the ads-ops developer CLI. Authenticates developers (GitHub device flow + team membership), invokes allow-listed gRPC RPCs on the domain services with a least-privilege minted principal, dry-runs writes, masks PII fail-closed, and runs break-glass unlocks with audit + Discord alerts. Owns the ops.* schema. Bound to host loopback only; reached over an SSH tunnel.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/server.ts",
+      "import": "./src/server.ts",
+      "default": "./src/server.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
+    "start": "node --import ./dist/instrumentation.js ./dist/index.js",
+    "db:migrate": "tsx ./src/db/migrate.ts",
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/authz": "workspace:*",
+    "@adopt-dont-shop/config-secrets": "workspace:*",
+    "@adopt-dont-shop/db": "workspace:*",
+    "@adopt-dont-shop/events": "workspace:*",
+    "@adopt-dont-shop/lib.types": "workspace:*",
+    "@adopt-dont-shop/observability": "workspace:*",
+    "@adopt-dont-shop/ops-contract": "workspace:*",
+    "@adopt-dont-shop/proto": "workspace:*",
+    "@adopt-dont-shop/service-bootstrap": "workspace:*",
+    "@grpc/grpc-js": "^1.14.5",
+    "fastify": "^5.12.5",
+    "nats": "^2.29.3",
+    "node-pg-migrate": "^8.0.4",
+    "pg": "^8.22.0",
+    "winston": "^3.19.0",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "workspace:*",
+    "@adopt-dont-shop/test-utils": "workspace:*",
+    "@types/pg": "^8.15.5"
+  }
+}

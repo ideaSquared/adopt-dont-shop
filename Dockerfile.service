@@ -59,7 +59,7 @@ ARG SERVICE
 # turbo prune emits pnpm-lock.yaml, pnpm-workspace.yaml and .npmrc inside
 # out/json/, so this single COPY carries everything pnpm install needs.
 COPY --from=pruner /app/out/json/ ./
-# Cache mounts are keyed per service: the e2e stack builds all 14 images
+# Cache mounts are keyed per service: the e2e stack builds all 15 images
 # concurrently, so each gets its own pnpm store mount rather than contending
 # on a shared one. Runners are fresh VMs, so per-image caches cost nothing
 # cross-build.

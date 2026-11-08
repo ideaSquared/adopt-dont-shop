@@ -28,6 +28,7 @@ Per-environment application stack (docker-compose.prod.yml / .staging.yml):
   nginx (per-stack) ─► service-gateway :4000 ─► 10 gRPC services
                                                 (auth pets rescue applications notifications
                                                  moderation matching audit chat cms)
+  service-ops :4100 (HTTP, host loopback only — never behind nginx) ─► the same 10 services
   app-client · app-admin · app-rescue
   database (PG16+PostGIS) · redis · nats (JetStream) · clamav
 ```
@@ -38,7 +39,7 @@ Estimates, not measurements — confirm on your host after the first deploy:
 
 | Workload                                                                     | Approx. RAM   |
 | ---------------------------------------------------------------------------- | ------------- |
-| Production stack (11 services, 3 apps, Postgres, Redis, NATS, ClamAV, nginx) | 4–5 GB        |
+| Production stack (12 services, 3 apps, Postgres, Redis, NATS, ClamAV, nginx) | 4–5 GB        |
 | Observability overlay (Prometheus, Loki, Tempo, Grafana, exporters)          | 1–1.5 GB      |
 | GlitchTip overlay                                                            | ~1.5 GB       |
 | A staging stack                                                              | as production |
@@ -112,6 +113,12 @@ Application secrets — `deploy.yml` validates all seven are present, then mater
 | `NATS_AUTH_TOKEN`       | Shared token for the `nats` container + every publisher/subscriber (materialised into `secrets/nats_auth_token`; ADS-1311 fixed `rollback.yml` never writing this file)                                 |
 | `PRINCIPAL_SIGNING_KEY` | HMAC key for the signed `x-principal-token` (ADS-800)                                                                                                                                                   |
 
+Optional application secret — NOT validated by `deploy.yml`; when unset, `scripts/deploy-secrets.sh` writes an empty `secrets/ops_discord_webhook_url` and the deploy still succeeds:
+
+| Secret                    | Purpose                                                                                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OPS_DISCORD_WEBHOOK_URL` | Discord webhook `service-ops` posts break-glass unlock alerts to (ADR 0016). Set it per GitHub environment (staging / production). Without it `service-ops` refuses every unlock, so privileged reads stay masked. |
+
 Generate strong values with `pnpm secrets:generate` (it prints `POSTGRES_PASSWORD`, which is the value for `DB_PASSWORD`; the same URL-safe rule applies to the host `.env` `REDIS_PASSWORD`; see [SECRETS-MANAGEMENT.md](../SECRETS-MANAGEMENT.md)); do not reuse staging/dev values. Repo: `ideaSquared/adopt-dont-shop`; images under `ghcr.io/ideasquared/adopt-dont-shop/…`.
 
 Build-time-only secret (`build-and-push` in `deploy.yml`, not shipped to the host):
@@ -152,7 +159,7 @@ ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp
 ufw --force enable
 ```
 
-Docker publishes container ports around ufw, so the firewall above is not what keeps the databases private — the compose files are: only the gateway publishes ports (80/443), and the observability/GlitchTip UIs bind `127.0.0.1` only (reach them over an SSH tunnel). Do not add a `ports:` mapping to any other service.
+Docker publishes container ports around ufw, so the firewall above is not what keeps the databases private — the compose files are: only the gateway publishes ports (80/443), and the observability/GlitchTip UIs bind `127.0.0.1` only (reach them over an SSH tunnel). `service-ops` (the developer ops CLI backend, [ADR 0016](../adr/0016-developer-ops-cli.md)) is the one other deliberate exception, for the same reason as the observability UIs: it publishes `127.0.0.1:4101` (staging) / `127.0.0.1:4102` (production) on the host loopback only, never `0.0.0.0`, never behind nginx or the edge gateway, and developers reach it over a tunnel-only SSH user ([ops-cli runbook](../runbooks/ops-cli.md)). Do not add a `ports:` mapping to any other service, and never widen `service-ops` beyond `127.0.0.1`.
 
 ```bash
 # 2. Deploy user (key-only SSH) and Docker.
@@ -220,6 +227,14 @@ DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
 # PUSH_PROVIDER=fcm
 # FCM_PROJECT_ID=<Firebase project id>
 # FCM_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
+# service-ops (developer ops CLI, ADR 0016). Non-secret, and REQUIRED: the service
+# refuses to boot without the three keys, and deploy.yml fails before `up -d` if
+# any is missing. Create the GitHub OAuth app and team first (ops-cli runbook).
+# One team per environment, so each host .env names its own team.
+# OPS_GITHUB_CLIENT_ID=<client id of the OAuth app, device flow enabled>
+# OPS_GITHUB_ORG=ideaSquared
+# OPS_GITHUB_TEAM=<team slug for this environment>
+# OPS_SESSION_TTL_HOURS=8
 # DEPLOY_SHA is set to a specific git SHA by deploy.yml — there is NO :latest fallback.
 # Grafana admin password — REQUIRED in production, because production deploys require
 # OBSERVABILITY_ENABLED=true and docker-compose.observability.yml fails `compose up`

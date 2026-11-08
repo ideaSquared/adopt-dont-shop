@@ -116,7 +116,7 @@ the repo root with `pnpm <script>`.
 | `pnpm docker:logs:apps` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app-client app-admin app-rescue` |
 | `pnpm docker:logs:gateway` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-gateway` |
 | `pnpm docker:logs:infra` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f database redis nats` |
-| `pnpm docker:logs:services` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit` |
+| `pnpm docker:logs:services` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit service-ops` |
 | `pnpm docker:ps` | `node scripts/docker-ps.mjs` |
 | `pnpm docker:reset` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v` |
 | `pnpm docker:shell:db` | `node scripts/docker-shell-db.mjs` |
@@ -158,6 +158,7 @@ the repo root with `pnpm <script>`.
 | `pnpm e2e:isolated` | `node scripts/e2e-isolated.mjs` |
 | `pnpm e2e:isolated:down` | `node scripts/e2e-isolated.mjs --down` |
 | `pnpm e2e:isolated:full` | `node scripts/e2e-isolated.mjs --full` |
+| `pnpm ops` | `tsx packages/ops-cli/src/bin.ts` |
 | `pnpm ratchet:coverage` | `node scripts/ratchet-coverage.mjs` |
 | `pnpm ratchet:stories-coverage` | `node scripts/check-storybook-coverage.mjs --ratchet` |
 | `pnpm smoke:prod` | `bash scripts/smoke-prod.sh` |
@@ -209,6 +210,8 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/lib.utils` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.validation` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/observability` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/ops-cli` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/ops-contract` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/proto` | `build`, `check:fresh`, `clean`, `dev`, `format`, `format:check`, `generate`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/scheduler` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/seed-faker` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
@@ -222,6 +225,7 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/service.matching` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.moderation` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.notifications` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:consumer`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.ops` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.pets` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.rescue` | `backfill:coordinates`, `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/storage` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |

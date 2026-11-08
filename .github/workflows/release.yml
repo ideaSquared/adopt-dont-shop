@@ -101,6 +101,7 @@ jobs:
           - { name: service-matching,      pkg: '@adopt-dont-shop/service.matching',      dir: services/matching }
           - { name: service-audit,         pkg: '@adopt-dont-shop/service.audit',         dir: services/audit }
           - { name: service-cms,           pkg: '@adopt-dont-shop/service.cms',           dir: services/cms }
+          - { name: service-ops,           pkg: '@adopt-dont-shop/service.ops',           dir: services/ops }
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0

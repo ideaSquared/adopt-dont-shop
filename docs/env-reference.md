@@ -275,6 +275,23 @@ The self-hosted stack (Prometheus + Loki + Tempo + Grafana + Alertmanager) is an
 | `GDPR_SAGA_DEADLINE_MS` | `1800000` (30 min) | GDPR erasure sagas in flight longer than this are marked timed out by the sweep.            |
 | `GDPR_SAGA_MAX_RETRIES` | `3`                | Retries before a timed-out saga is abandoned. See `docs/runbooks/gdpr-erasure-incident.md`. |
 
+## Developer ops CLI (`services/ops`, ADR 0016)
+
+Read by `service-ops`, the server half of `pnpm ops`. Dev needs none of it: `docker-compose.yml` sets `OPS_ENV=dev` and `OPS_AUTH_MODE=local` and publishes `127.0.0.1:4100`. Staging and production read the non-secret values from the host `/opt/ads/<env>/.env`. Setup: [`docs/runbooks/ops-cli.md`](runbooks/ops-cli.md).
+
+| Variable                  | Default                 | Notes                                                                                                                                                                                                                                      |
+| ------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OPS_ENV`                 | set by compose          | `dev`, `staging` or `prod`. Fixed per compose file; the CLI refuses to send a request for another environment.                                                                                                                             |
+| `OPS_AUTH_MODE`           | `local` dev, `github`   | `github` = device-flow login plus team membership. `local` has no login and is refused outside `NODE_ENV=development`.                                                                                                                     |
+| `OPS_HTTP_PORT`           | `4100`                  | Port inside the container. Compose publishes it on the host loopback only: `127.0.0.1:4100` (dev), `:4101` (staging), `:4102` (prod).                                                                                                      |
+| `OPS_GITHUB_CLIENT_ID`    | none                    | Client ID of the GitHub OAuth app (device flow enabled). Not a secret. Host `.env`; required in `github` mode (the service refuses to boot without it, and `deploy.yml` fails early if it is missing).                                     |
+| `OPS_GITHUB_ORG`          | none                    | GitHub organisation that owns the team. Host `.env`.                                                                                                                                                                                       |
+| `OPS_GITHUB_TEAM`         | none                    | Team slug whose members may use this environment (one team per environment, so set it per host `.env`). Host `.env`.                                                                                                                       |
+| `OPS_SESSION_TTL_HOURS`   | `8`                     | Lifetime of an operator session.                                                                                                                                                                                                           |
+| `OPS_DISCORD_WEBHOOK_URL` | none (optional)         | Break-glass alert channel. Also accepts `OPS_DISCORD_WEBHOOK_URL_FILE`; compose mounts the `ops_discord_webhook_url` secret there. Unset or empty disables unlocks in staging/prod (fail closed). Deploy secret `OPS_DISCORD_WEBHOOK_URL`. |
+| `PRINCIPAL_SIGNING_KEY`   | shared                  | Same secret as every service (`principal_signing_key`). service-ops uses it to mint a least-privilege principal per call. It never leaves the server.                                                                                      |
+| `<SVC>_GRPC_URL`          | `service-<name>:<port>` | Same names and defaults as the gateway (see Microservices above).                                                                                                                                                                          |
+
 ## Dev-only file watching
 
 ```env
@@ -314,11 +331,12 @@ Runbooks: `docs/db-backup-runbook.md`, `docs/operations/restore.md`, `docs/opera
 
 ## Deploy (host `/opt/ads/<env>/.env`)
 
-| Variable                               | Set by                                       | Notes                                                                                                                                                                                                               |
-| -------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DEPLOY_SHA`                           | `deploy.yml` / `rollback.yml`                | Git SHA whose GHCR images `docker-compose.prod.yml` / `docker-compose.staging.yml` pull. Both files refuse to start without it.                                                                                     |
-| `SERVICE_<NAME>_TAG`, `APP_<NAME>_TAG` | `deploy.yml` `tag_overrides` input (ADS-824) | Per-image override of `DEPLOY_SHA` (full 40-char SHA). Cleared by the next deploy/rollback.                                                                                                                         |
-| `PROD_HOSTNAME`                        | you, in your shell                           | Operator convenience used by the runbooks' `curl` commands (`https://${PROD_HOSTNAME}/health/simple`). Not read by any code; `nginx/nginx.prod.conf` has a `__PROD_HOSTNAME__` placeholder replaced at deploy time. |
+| Variable                                                    | Set by                                       | Notes                                                                                                                                                                                                                                                        |
+| ----------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DEPLOY_SHA`                                                | `deploy.yml` / `rollback.yml`                | Git SHA whose GHCR images `docker-compose.prod.yml` / `docker-compose.staging.yml` pull. Both files refuse to start without it.                                                                                                                              |
+| `SERVICE_<NAME>_TAG`, `APP_<NAME>_TAG`                      | `deploy.yml` `tag_overrides` input (ADS-824) | Per-image override of `DEPLOY_SHA` (full 40-char SHA). Cleared by the next deploy/rollback.                                                                                                                                                                  |
+| `OPS_GITHUB_CLIENT_ID`, `OPS_GITHUB_ORG`, `OPS_GITHUB_TEAM` | you, in the host `.env`                      | Non-secret settings for `service-ops` (ADR 0016); see the Developer ops CLI section above. Required before the first deploy that includes `service-ops`: the service refuses to boot without them and `deploy.yml` fails before `up -d` if they are missing. |
+| `PROD_HOSTNAME`                                             | you, in your shell                           | Operator convenience used by the runbooks' `curl` commands (`https://${PROD_HOSTNAME}/health/simple`). Not read by any code; `nginx/nginx.prod.conf` has a `__PROD_HOSTNAME__` placeholder replaced at deploy time.                                          |
 
 ## Production checklist
 

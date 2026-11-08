@@ -332,7 +332,7 @@ jobs:
           # addressable for rollback.
           #
           # Post-monolith: the service.backend image is gone. We build the
-          # Fastify gateway + the 10 extracted gRPC services from the shared,
+          # Fastify gateway + the 11 extracted services (10 gRPC + the ops HTTP service) from the shared,
           # parameterised Dockerfile.service (SERVICE = workspace package,
           # SERVICE_DIR = path under the repo). Image name is service-<name>.
           # "<image-name> <workspace-package> <service-dir>"
@@ -348,6 +348,7 @@ jobs:
             "service-matching      @adopt-dont-shop/service.matching      services/matching"
             "service-audit         @adopt-dont-shop/service.audit         services/audit"
             "service-cms           @adopt-dont-shop/service.cms           services/cms"
+            "service-ops           @adopt-dont-shop/service.ops           services/ops"
           )
           for entry in "${SERVICES[@]}"; do
             read -r image pkg dir <<< "$entry"
@@ -495,7 +496,7 @@ jobs:
 
           IMAGES="service-gateway service-auth service-notifications service-pets
             service-rescue service-applications service-chat service-moderation
-            service-matching service-audit service-cms
+            service-matching service-audit service-cms service-ops
             app-client app-admin app-rescue"
           REFS=""
           for image in $IMAGES; do
@@ -651,7 +652,7 @@ jobs:
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -743,6 +744,9 @@ jobs:
           SECRET_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           SECRET_PRINCIPAL_SIGNING_KEY: ${{ secrets.PRINCIPAL_SIGNING_KEY }}
           SECRET_NATS_AUTH_TOKEN: ${{ secrets.NATS_AUTH_TOKEN }}
+          # ADR 0016: OPTIONAL. Unset/blank is fine — deploy-secrets.sh writes an
+          # empty file and service-ops then refuses break-glass unlocks.
+          SECRET_OPS_DISCORD_WEBHOOK_URL: ${{ secrets.OPS_DISCORD_WEBHOOK_URL }}
           # Forwarded via `envs:` so the server script reads it as a shell
           # variable — never interpolated into the script text (injection-safe).
           TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
@@ -759,7 +763,7 @@ jobs:
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,TAG_OVERRIDES,ENVIRONMENT,ALLOW_BLIND_DEPLOY,RUN_ID
+          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,SECRET_OPS_DISCORD_WEBHOOK_URL,TAG_OVERRIDES,ENVIRONMENT,ALLOW_BLIND_DEPLOY,RUN_ID
           script: |
             set -euo pipefail
             ENV="$ENVIRONMENT"
@@ -805,12 +809,12 @@ jobs:
             # Login to GHCR (uses a PAT stored on the server, not the job-scoped GITHUB_TOKEN)
             printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u ideasquared --password-stdin
 
-            # The Fastify gateway + 10 gRPC services replace the deleted
+            # The Fastify gateway + 10 gRPC services (plus service-ops) replace the deleted
             # service.backend monolith, plus the three frontends. Defined once so
             # the ADS-1252 auto-rollback below can re-pull the same set.
             IMAGES="service-gateway service-auth service-notifications service-pets
               service-rescue service-applications service-chat service-moderation
-              service-matching service-audit service-cms
+              service-matching service-audit service-cms service-ops
               app-client app-admin app-rescue"
 
             # Pull new images.
@@ -895,6 +899,13 @@ jobs:
               FCM_JSON="$(grep -E '^FCM_SERVICE_ACCOUNT_JSON=' .env | head -n1 | cut -d= -f2-)" || true
               FCM_JSON="${FCM_JSON%\"}"; FCM_JSON="${FCM_JSON#\"}"; FCM_JSON="${FCM_JSON%\'}"; FCM_JSON="${FCM_JSON#\'}"
             fi
+            # ADR 0016: service-ops (github auth mode) refuses to boot without
+            # these non-secret host .env values, which would crash-loop it and
+            # fail the health gate AFTER the images were swapped. Fail here,
+            # before `up -d`, with the missing key named (same as RESEND above).
+            read_env OPS_GITHUB_CLIENT_ID > /dev/null
+            read_env OPS_GITHUB_ORG > /dev/null
+            read_env OPS_GITHUB_TEAM > /dev/null
             printf '%s' "$RESEND_KEY" > secrets/resend_api_key
             printf '%s' "$FCM_JSON"   > secrets/fcm_service_account_json
             # 644 inside the 700 secrets/ dir: service-notifications reads
@@ -935,7 +946,7 @@ jobs:
             HEALTH_TARGETS="service-notifications:5001 service-auth:5002 \
               service-pets:5003 service-rescue:5004 service-applications:5005 \
               service-chat:5006 service-moderation:5007 service-matching:5008 \
-              service-audit:5009 service-cms:5010 service-gateway:4000"
+              service-audit:5009 service-cms:5010 service-ops:4100 service-gateway:4000"
             chmod +x scripts/wait-for-services.sh
             run_health_gate() {
               # ADS-1308: 60 retries * 2s = 120s, comfortably above the 90s
@@ -972,14 +983,32 @@ jobs:
               # single SHA, so per-service overrides from a prior deploy are not
               # reconstructed — the whole stack reverts to that SHA.)
               TAG_OVERRIDES="" scripts/deploy-pin-env.sh "$LAST_GOOD"
+              # LAST_GOOD may predate service-ops (ADR 0016): it then has no
+              # service-ops image, so leave ops out of the pull, the stack and
+              # the health gate instead of failing the recovery on it.
+              chmod +x scripts/deploy-release-images.sh
+              # shellcheck disable=SC2086
+              ROLLBACK_IMAGES="$(scripts/deploy-release-images.sh "$IMAGE_PREFIX" "$LAST_GOOD" $IMAGES)"
               # Re-pull the last-good images — usually still cached from the prior
               # deploy, so a transient registry error is non-fatal when the image
               # is already present locally.
-              for image in $IMAGES; do
+              for image in $ROLLBACK_IMAGES; do
                 docker pull "$IMAGE_PREFIX/$image:$LAST_GOOD" ||
                   echo "warn: could not pull $image:$LAST_GOOD (using local copy if present)"
               done
-              docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
+              case " $ROLLBACK_IMAGES " in
+                *" service-ops "*)
+                  docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
+                  ;;
+                *)
+                  echo "service-ops is not part of $LAST_GOOD - stopping it and starting the rest of the stack."
+                  docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env rm -sf service-ops
+                  # shellcheck disable=SC2046
+                  docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d \
+                    $(docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env config --services | grep -vx service-ops)
+                  HEALTH_TARGETS="$(printf '%s' "$HEALTH_TARGETS" | sed 's/service-ops:4100//')"
+                  ;;
+              esac
               if run_health_gate; then
                 echo "Rolled back to $LAST_GOOD — the stack is healthy on the previous version."
                 echo "$RUN_ID rolled_back $LAST_GOOD" > .deploy_outcome

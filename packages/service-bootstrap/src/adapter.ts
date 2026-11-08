@@ -34,6 +34,7 @@ import {
 } from '@adopt-dont-shop/observability';
 import type { Logger } from 'winston';
 
+import { DRY_RUN_APPLIED_HEADER, DRY_RUN_HEADER, runWithDryRunDeps } from './dry-run.js';
 import { getDefaultPrincipalSigningKey, PrincipalTokenError } from './principal-token.js';
 import {
   extractPrincipal,
@@ -128,11 +129,14 @@ export function adapt<Deps, Req, Res>(
     const method = handler.name || 'unknown';
     const stop = startGrpcTimer(serviceName, method);
     const requestId = extractRequestIdFromMetadata(call.metadata);
-    echoRequestId(call, requestId);
+    const dryRun = isDryRun(call.metadata);
+    echoResponseHeaders(call, requestId, dryRun);
     void runWithRequestId(requestId, async () => {
       try {
         const principal = extractPrincipal(call.metadata, verification);
-        const response = await handler(deps, principal, call.request, call.metadata);
+        const response = await invoke(deps, dryRun, d =>
+          handler(d, principal, call.request, call.metadata)
+        );
         stop(status.OK);
         callback(null, response);
       } catch (err) {
@@ -157,11 +161,12 @@ export function adaptUnauth<Deps, Req, Res>(
     const method = handler.name || 'unknown';
     const stop = startGrpcTimer(serviceName, method);
     const requestId = extractRequestIdFromMetadata(call.metadata);
-    echoRequestId(call, requestId);
+    const dryRun = isDryRun(call.metadata);
+    echoResponseHeaders(call, requestId, dryRun);
     void runWithRequestId(requestId, async () => {
       try {
         const principal = extractPrincipalOptional(call.metadata, verification);
-        const response = await handler(deps, principal, call.request);
+        const response = await invoke(deps, dryRun, d => handler(d, principal, call.request));
         stop(status.OK);
         callback(null, response);
       } catch (err) {
@@ -173,13 +178,28 @@ export function adaptUnauth<Deps, Req, Res>(
   };
 }
 
-// Echo x-request-id on the response metadata where the transport
-// supports it. Errors out of sendMetadata (e.g. already sent) are
-// swallowed — observability must never affect the call outcome.
-function echoRequestId<Req, Res>(call: ServerUnaryCall<Req, Res>, requestId: string): void {
+const isDryRun = (metadata: Metadata): boolean => metadata.get(DRY_RUN_HEADER)[0] === '1';
+
+// Dry-run calls get per-call deps (see dry-run.ts); everything else is
+// untouched.
+const invoke = <Deps, R>(deps: Deps, dryRun: boolean, run: (d: Deps) => Promise<R>): Promise<R> =>
+  dryRun ? runWithDryRunDeps(deps, run) : run(deps);
+
+// Send the initial response metadata: x-request-id, plus x-dry-run-applied on
+// dry runs. Initial metadata can only be sent once, so both go in one call.
+// Errors out of sendMetadata (e.g. already sent) are swallowed — observability
+// must never affect the call outcome.
+function echoResponseHeaders<Req, Res>(
+  call: ServerUnaryCall<Req, Res>,
+  requestId: string,
+  dryRun: boolean
+): void {
   try {
     const md = new Metadata();
     md.set(REQUEST_ID_HEADER_NAME, requestId);
+    if (dryRun) {
+      md.set(DRY_RUN_APPLIED_HEADER, '1');
+    }
     call.sendMetadata(md);
   } catch {
     // No-op — never let observability break the call.

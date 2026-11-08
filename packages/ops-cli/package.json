@@ -1,0 +1,50 @@
+{
+  "name": "@adopt-dont-shop/ops-cli",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "private": true,
+  "description": "ads-ops — developer CLI for running allow-listed gRPC RPCs against dev, staging and prod through service.ops. Dry-run by default for writes, PII masked unless unlocked (break-glass). Run from the repo root with `pnpm ops`.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "bin": {
+    "ads-ops": "./src/bin.ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "tsx ./src/bin.ts",
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/ops-contract": "workspace:*",
+    "@clack/prompts": "^0.11.0",
+    "picocolors": "^1.1.1",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0"
+  }
+}

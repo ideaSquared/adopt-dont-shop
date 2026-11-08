@@ -23,14 +23,54 @@ imports a namespace gets it transitively.
 ## Scripts
 
 ```bash
-pnpm generate     # regenerate src/generated from proto/ (local protoc-gen-ts_proto)
+pnpm generate     # regenerate src/generated (ts-proto) and src/schema.generated.ts from proto/
 pnpm build        # tsc build
 pnpm dev          # tsc --watch
 pnpm test         # smoke test: encode/decode round-trip, dual-binding shape
-pnpm check:fresh  # CI guard — generated output must match the .proto sources
+pnpm check:fresh  # CI guard — generated output and schema map must match the .proto sources
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
+
+## Field sensitivity
+
+Every `string`, `bytes` and `map` field can carry a sensitivity level, declared with the
+`(adopt_dont_shop.v1.sensitivity)` field option from
+[`proto/adopt_dont_shop/v1/options.proto`](proto/adopt_dont_shop/v1/options.proto):
+
+| Level                  | Meaning                                                                                        |
+| ---------------------- | ---------------------------------------------------------------------------------------------- |
+| `SENSITIVITY_PUBLIC`   | Safe to show anyone (pet name and description, rescue public name and city, published CMS).    |
+| `SENSITIVITY_INTERNAL` | Operational and non-personal: ids, statuses, types, timestamps, counts, slugs, opaque cursors. |
+| `SENSITIVITY_PII`      | Personal data: names, email, phone, address, date of birth, free text a person wrote.          |
+| `SENSITIVITY_SPECIAL`  | UK GDPR special-category or highly sensitive: health, criminal records, credentials and 2FA.   |
+
+The `ads-ops` masking rule is fail-closed. With no unlock in force:
+
+- annotated `PUBLIC` / `INTERNAL` fields are visible; annotated `PII` / `SPECIAL` fields are hidden;
+- an unannotated `string`, `bytes` or `map` is hidden;
+- unannotated bool, numeric and enum fields are visible;
+- an unannotated message field is recursed into (the container itself is visible).
+
+So forgetting an annotation hides data rather than leaking it. Annotate a field only when you are
+sure of its level, and never mark anything auth-related (passwords, tokens, secrets, TOTP, backup
+codes) below `SPECIAL`.
+
+```proto
+import "proto/adopt_dont_shop/v1/options.proto";
+
+message Example {
+  string example_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string email = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+}
+```
+
+The import path starts with `proto/` because the buf module root is this package, not `proto/`.
+
+`pnpm generate` also runs `scripts/generate-schema.mjs`, which reflects every message, enum and
+service (including the sensitivity option and leading comments) into
+`src/schema.generated.ts` as `PROTO_SCHEMA`. Commit the result: `pnpm check:fresh` fails CI when
+either `src/generated/` or `schema.generated.ts` is stale.
 
 ## Public API / exports
 

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.audit.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // AuditQueryService is the gRPC contract for the audit vertical's
 // READ surface. The audit service is the sole producer (NATS
 // subscriber on *.actionTaken topics persisting events into
@@ -81,26 +83,26 @@ service AuditQueryService {
 // --- GDPR saga messages ----------------------------------------------
 
 message GdprErasureRequest {
-  string correlation_id = 1;
-  string user_id = 2;
-  optional string reason = 3;
-  string requested_at = 4;
+  string correlation_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string requested_at = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-encoded { service: { recordsErased, completedAt, error? } } map.
   string completions_json = 5;
-  optional string completed_at = 6;
-  string created_at = 7;
-  string updated_at = 8;
+  optional string completed_at = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // ADS-830 — set by the sweep when the saga exceeded the deadline and at
   // least one service never acked. NULL while in-flight or completed/failed
   // normally.
-  optional string timed_out_at = 9;
+  optional string timed_out_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // ADS-830 — number of times the sweep has re-published
   // gdpr.erasureRequested for erroring services. 0 = never retried.
   uint32 retry_count = 10;
 }
 
 message GetGdprErasureRequestRequest {
-  string correlation_id = 1;
+  string correlation_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message GetGdprErasureRequestResponse {
   GdprErasureRequest request = 1;
@@ -129,37 +131,37 @@ enum AuditOutcome {
 // emitted — admins render it per (service, subject) tuple. The
 // monolith's audit_logs.metadata equivalent.
 message AuditEvent {
-  string event_id = 1;
+  string event_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Producing service: 'service.auth', 'service.pets',
   // 'service.applications', etc.
-  string service = 2;
+  string service = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Full NATS subject — 'auth.userLoggedIn', 'pets.statusChanged',
   // 'applications.submitted'.
-  string subject = 3;
+  string subject = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Domain aggregate the action targeted.
-  string aggregate_type = 4;
-  string aggregate_id = 5;
+  string aggregate_type = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string aggregate_id = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Actor (NULL for system events — cron promotions, NATS replay
   // backfills). actor_email_snapshot is denormalised at write time so
   // the trail stays readable when the user is gone.
-  optional string actor_user_id = 6;
-  optional string actor_email_snapshot = 7;
+  optional string actor_user_id = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string actor_email_snapshot = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Action name within the aggregate's domain.
-  string action = 8;
+  string action = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   AuditOutcome outcome = 9;
   // When the action happened in the producer's clock.
-  string occurred_at = 10;
+  string occurred_at = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // When this row was INSERTed — distinct from occurred_at when
   // NATS redelivery or processing lag pushes recorded_at later.
-  string recorded_at = 11;
+  string recorded_at = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Stringified JSONB the SPA renders per (service, subject)
   // tuple. The blob trick (pets extra_json) keeps the proto stable
   // when event shapes evolve.
   string payload_json = 12;
   // Optional request context — gateway-originated events have
   // these stamped; cron events don't.
-  optional string ip_address = 13;
-  optional string user_agent = 14;
+  optional string ip_address = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string user_agent = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 // --- Query -----------------------------------------------------------
@@ -167,23 +169,23 @@ message AuditEvent {
 message QueryRequest {
   // Opaque base64-JSON keyset cursor over (occurred_at, event_id)
   // for stable pagination across new inserts.
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 50, max 200.
   uint32 limit = 2;
 
   // Filters — each empty value means "no filter on this dimension".
   // Filter by producing service ('service.auth', etc.).
-  optional string service = 3;
+  optional string service = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Filter by full NATS subject.
-  optional string subject = 4;
+  optional string subject = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Filter to events triggered by a specific user.
-  optional string actor_user_id = 5;
+  optional string actor_user_id = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Filter by outcome.
   optional AuditOutcome outcome = 6;
   // Inclusive lower bound on occurred_at.
-  optional string occurred_at_from = 7;
+  optional string occurred_at_from = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Exclusive upper bound on occurred_at.
-  optional string occurred_at_to = 8;
+  optional string occurred_at_to = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 
   // Page-based (offset) pagination for the admin audit-logs surface,
   // which needs a total count + jump-to-page. When set (>0), the handler
@@ -191,15 +193,15 @@ message QueryRequest {
   // COUNT(*) over the same filters, and `cursor` is ignored. 1-based.
   optional uint32 page = 9;
   // Filter by action name within the aggregate's domain.
-  optional string action = 10;
+  optional string action = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Filter by aggregate type (the "entity" the action targeted).
-  optional string aggregate_type = 11;
+  optional string aggregate_type = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message QueryResponse {
   // Descending on occurred_at (newest first).
   repeated AuditEvent events = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Total matching rows — set only in page (offset) mode; absent in
   // keyset (cursor) mode, which streams via next_cursor instead.
   optional uint32 total = 3;
@@ -208,16 +210,16 @@ message QueryResponse {
 // --- GetByTarget -----------------------------------------------------
 
 message GetByTargetRequest {
-  string aggregate_type = 1;
-  string aggregate_id = 2;
-  optional string cursor = 3;
+  string aggregate_type = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string aggregate_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string cursor = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 limit = 4;
 }
 
 message GetByTargetResponse {
   // Descending on occurred_at — most recent activity first.
   repeated AuditEvent events = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- Saved reports messages -----------------------------------------
@@ -232,35 +234,35 @@ enum ReportTemplateCategory {
 }
 
 message SavedReport {
-  string saved_report_id = 1;
-  string user_id = 2;
-  optional string rescue_id = 3;
-  optional string template_id = 4;
-  string name = 5;
-  optional string description = 6;
+  string saved_report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string rescue_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string template_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string description = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified ReportConfig blob. SPA owns the schema; service
   // persists as-is so new widget types don't need a migration here.
   string config_json = 7;
   bool is_archived = 8;
-  string created_at = 9;
-  string updated_at = 10;
+  string created_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ReportTemplate {
-  string template_id = 1;
-  string name = 2;
-  optional string description = 3;
+  string template_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string description = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ReportTemplateCategory category = 4;
   string config_json = 5;
   bool is_system = 6;
-  optional string rescue_id = 7;
-  string created_at = 8;
-  string updated_at = 9;
+  optional string rescue_id = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListSavedReportsRequest {
   // Restrict to a single rescue's reports. Empty = any (platform admin view).
-  optional string rescue_id = 1;
+  optional string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional bool is_archived = 2;
   uint32 page = 3;
   uint32 limit = 4;
@@ -273,17 +275,17 @@ message ListSavedReportsResponse {
 }
 
 message GetSavedReportRequest {
-  string saved_report_id = 1;
+  string saved_report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message GetSavedReportResponse {
   SavedReport report = 1;
 }
 
 message CreateSavedReportRequest {
-  string name = 1;
-  optional string description = 2;
-  optional string rescue_id = 3;
-  optional string template_id = 4;
+  string name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string description = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string rescue_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string template_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string config_json = 5;
 }
 message CreateSavedReportResponse {
@@ -291,9 +293,9 @@ message CreateSavedReportResponse {
 }
 
 message UpdateSavedReportRequest {
-  string saved_report_id = 1;
-  optional string name = 2;
-  optional string description = 3;
+  string saved_report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string description = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string config_json = 4;
   optional bool is_archived = 5;
 }
@@ -302,7 +304,7 @@ message UpdateSavedReportResponse {
 }
 
 message DeleteSavedReportRequest {
-  string saved_report_id = 1;
+  string saved_report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message DeleteSavedReportResponse {
   bool deleted = 1;
@@ -310,7 +312,7 @@ message DeleteSavedReportResponse {
 
 message ListReportTemplatesRequest {
   ReportTemplateCategory category = 1;
-  optional string rescue_id = 2;
+  optional string rescue_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional bool system_only = 3;
 }
 message ListReportTemplatesResponse {
@@ -327,32 +329,32 @@ enum ReportScheduleFormat {
 }
 
 message ReportScheduleRecipient {
-  string email = 1;
-  optional string user_id = 2;
+  string email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ReportSchedule {
-  string schedule_id = 1;
-  string saved_report_id = 2;
-  string cron = 3;
-  string timezone = 4;
+  string schedule_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string saved_report_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string cron = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string timezone = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated ReportScheduleRecipient recipients = 5;
   ReportScheduleFormat format = 6;
   bool is_enabled = 7;
   // Left unset until a delivery worker exists to evaluate the cron
   // expression and run the schedule.
-  optional string last_run_at = 8;
-  optional string next_run_at = 9;
-  optional string last_status = 10;
+  optional string last_run_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string next_run_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string last_status = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string last_error = 11;
-  string created_at = 12;
-  string updated_at = 13;
+  string created_at = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UpsertReportScheduleRequest {
-  string saved_report_id = 1;
-  string cron = 2;
-  optional string timezone = 3;
+  string saved_report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string cron = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string timezone = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated ReportScheduleRecipient recipients = 4;
   ReportScheduleFormat format = 5;
   optional bool is_enabled = 6;
@@ -370,36 +372,36 @@ enum ReportSharePermission {
 }
 
 message ReportShare {
-  string share_id = 1;
-  string saved_report_id = 2;
+  string share_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string saved_report_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Always "token" today — user-targeted shares aren't exposed by the
   // API yet (no frontend call site).
-  string share_type = 3;
+  string share_type = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ReportSharePermission permission = 4;
-  optional string expires_at = 5;
-  optional string revoked_at = 6;
-  string created_at = 7;
+  optional string expires_at = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string revoked_at = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CreateReportShareRequest {
-  string saved_report_id = 1;
+  string saved_report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ReportSharePermission permission = 2;
-  optional string expires_at = 3;
+  optional string expires_at = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message CreateReportShareResponse {
   ReportShare share = 1;
   // Plaintext token — present ONLY in this response. Only its hash is
   // persisted, so it cannot be recovered later.
-  string token = 2;
+  string token = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 message DeleteReportScheduleRequest {
-  string schedule_id = 1;
+  string schedule_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message DeleteReportScheduleResponse {
   bool deleted = 1;
 }
 message RevokeReportShareRequest {
-  string share_id = 1;
+  string share_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message RevokeReportShareResponse {
   bool revoked = 1;
@@ -408,7 +410,7 @@ message RevokeReportShareResponse {
 message GetReportShareByTokenRequest {
   // Plaintext token from the share link. The service hashes it before
   // lookup — the plaintext is never stored.
-  string token = 1;
+  string token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 message GetReportShareByTokenResponse {
   // The saved report the live share points at (config_json carried through

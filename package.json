@@ -7,6 +7,7 @@
   "packageManager": "pnpm@10.34.3",
   "scripts": {
     "bootstrap": "node scripts/bootstrap.mjs",
+    "ops": "tsx packages/ops-cli/src/bin.ts",
     "prepare": "husky || true",
     "dev": "turbo run dev --parallel",
     "dev:apps": "turbo run dev --filter=@adopt-dont-shop/app.* --parallel",
@@ -25,7 +26,7 @@
     "docker:logs:gateway": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-gateway",
     "docker:logs:apps": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app-client app-admin app-rescue",
     "docker:logs:infra": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f database redis nats",
-    "docker:logs:services": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit",
+    "docker:logs:services": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit service-ops",
     "docker:ps": "node scripts/docker-ps.mjs",
     "docker:shell:db": "node scripts/docker-shell-db.mjs",
     "db:seed": "node scripts/seed.mjs",

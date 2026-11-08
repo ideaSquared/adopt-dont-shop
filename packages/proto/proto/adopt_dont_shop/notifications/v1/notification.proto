@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.notifications.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // NotificationService is the gRPC contract for the in-app notification
 // store. The gateway translates `POST/GET/DELETE /api/notifications/*`
 // REST calls into these RPCs after extracting the principal
@@ -169,33 +171,33 @@ service NotificationService {
 // every possible event-data shape — the gateway parses them back to
 // JSON when translating to REST.
 message Notification {
-  string notification_id = 1;
-  string user_id = 2;
+  string notification_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   NotificationType type = 3;
   NotificationChannel channel = 4;
   NotificationPriority priority = 5;
   NotificationStatus status = 6;
-  string title = 7;
-  string message = 8;
+  string title = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string message = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   string data_json = 9;
-  optional string template_id = 10;
+  optional string template_id = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string template_variables_json = 11;
   optional NotificationRelatedEntityType related_entity_type = 12;
-  optional string related_entity_id = 13;
+  optional string related_entity_id = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // RFC 3339 timestamps — `optional` markers mirror the table's
   // NULL columns. created_at / updated_at are never null.
-  optional string scheduled_for = 14;
-  optional string sent_at = 15;
-  optional string delivered_at = 16;
-  optional string read_at = 17;
-  optional string clicked_at = 18;
-  optional string expires_at = 19;
+  optional string scheduled_for = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string sent_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string delivered_at = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string read_at = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string clicked_at = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string expires_at = 19 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 retry_count = 20;
   uint32 max_retries = 21;
   optional string error_message = 22;
-  optional string external_id = 23;
-  string created_at = 24;
-  string updated_at = 25;
+  optional string external_id = 23 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 24 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 25 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -272,24 +274,24 @@ enum NotificationRelatedEntityType {
 message CreateNotificationRequest {
   // Target user — the principal calling Create is typically a service
   // (notifications.create permission), not the recipient.
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   NotificationType type = 2;
   NotificationChannel channel = 3;
   // Defaults to NOTIFICATION_PRIORITY_NORMAL when UNSPECIFIED.
   NotificationPriority priority = 4;
-  string title = 5;
-  string message = 6;
+  string title = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string message = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // JSON-stringified opaque payload. Empty string == `{}`.
   string data_json = 7;
-  optional string template_id = 8;
+  optional string template_id = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string template_variables_json = 9;
   optional NotificationRelatedEntityType related_entity_type = 10;
-  optional string related_entity_id = 11;
-  optional string scheduled_for = 12;
-  optional string expires_at = 13;
+  optional string related_entity_id = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string scheduled_for = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string expires_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // External tracking id (e.g. SendGrid message id). Optional at create
   // time; the email/SMS workers stamp it later when they ship the message.
-  optional string external_id = 14;
+  optional string external_id = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CreateNotificationResponse {
@@ -302,7 +304,7 @@ message ListNotificationsRequest {
   // Opaque base64-JSON keyset cursor — same shape CAD uses for the
   // audit query. Callers pass the previous response's next_cursor
   // back here; the format is the service's private concern.
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 20, max 100 — server enforces the bound, returns
   // INVALID_ARGUMENT on overflow.
   uint32 limit = 2;
@@ -326,7 +328,7 @@ message ListNotificationsResponse {
   repeated Notification notifications = 1;
   // Absent when the result set is exhausted. Same string a future
   // ListNotificationsRequest.cursor would carry. Unset in page mode.
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Only populated when the request used page-based pagination.
   optional uint32 total = 3;
   optional uint32 page = 4;
@@ -336,7 +338,7 @@ message ListNotificationsResponse {
 // --- Dismiss ----------------------------------------------------------
 
 message DismissNotificationRequest {
-  string notification_id = 1;
+  string notification_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DismissNotificationResponse {
@@ -396,24 +398,24 @@ enum EmailFormat {
 
 message SendEmailRequest {
   // Recipient. Required.
-  string to_email = 1;
-  optional string to_name = 2;
+  string to_email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string to_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 
   // Sender override (defaults to the service's configured From).
-  optional string from_email = 3;
-  optional string from_name = 4;
-  optional string reply_to_email = 5;
+  optional string from_email = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string from_name = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string reply_to_email = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 
   // CC / BCC. Empty when omitted.
-  repeated string cc_emails = 6;
-  repeated string bcc_emails = 7;
+  repeated string cc_emails = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  repeated string bcc_emails = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 
   // Either supply (subject + html_content) OR (template_id + template_data_json).
   // When both arrive, template wins and the inline subject/content are ignored.
-  optional string subject = 8;
+  optional string subject = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   optional string html_content = 9;
   optional string text_content = 10;
-  optional string template_id = 11;
+  optional string template_id = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified payload for template variable substitution.
   // Empty string == `{}`.
   string template_data_json = 12;
@@ -423,25 +425,25 @@ message SendEmailRequest {
 
   // Schedule for a future delivery. Absent = send as soon as the worker
   // picks it up.
-  optional string scheduled_for = 15;
+  optional string scheduled_for = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 
   // Free-form metadata + tags for the row. JSON-stringified; empty string == `{}`.
   string metadata_json = 16;
   repeated string tags = 17;
 
   // Tie the row to a user (for prefs enforcement + audit). Optional.
-  optional string user_id = 18;
-  optional string campaign_id = 19;
+  optional string user_id = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string campaign_id = 19 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 
   // Opt-in idempotency. When set, a duplicate SendEmail with the same
   // key returns the same email_id without enqueueing a second row.
-  optional string idempotency_key = 20;
+  optional string idempotency_key = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message SendEmailResponse {
   // The row's emailId. Caller can poll the queue table for status; the
   // worker publishes status changes on `notifications.email.*` topics.
-  string email_id = 1;
+  string email_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // True when the row was already present (idempotency_key collision).
   bool already_queued = 2;
 }
@@ -449,35 +451,35 @@ message SendEmailResponse {
 // --- EmailPreferences -------------------------------------------------
 
 message EmailPreferences {
-  string preference_id = 1;
-  string user_id = 2;
+  string preference_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool is_email_enabled = 3;
   bool global_unsubscribe = 4;
   // JSON-stringified array of per-category opt-in/out rows. Shape:
   // [{type, enabled, frequency?}, ...]. Empty string == `[]`.
   string preferences_json = 5;
-  string language = 6;
-  string timezone = 7;
+  string language = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string timezone = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EmailFormat email_format = 8;
   EmailDigestFrequency digest_frequency = 9;
   // HH:MM 24h.
-  string digest_time = 10;
-  string unsubscribe_token = 11;
-  optional string last_digest_sent = 12;
+  string digest_time = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string unsubscribe_token = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  optional string last_digest_sent = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 bounce_count = 13;
-  optional string last_bounce_at = 14;
+  optional string last_bounce_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool is_blacklisted = 15;
-  optional string blacklist_reason = 16;
-  optional string blacklisted_at = 17;
+  optional string blacklist_reason = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string blacklisted_at = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string metadata_json = 18;
-  string created_at = 19;
-  string updated_at = 20;
+  string created_at = 19 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetEmailPreferencesRequest {
   // Optional target. Defaults to the calling principal. Callers without
   // `email-prefs:read:any` may only read their own row.
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetEmailPreferencesResponse {
@@ -485,17 +487,17 @@ message GetEmailPreferencesResponse {
 }
 
 message UpdateEmailPreferencesRequest {
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 
   // All fields optional — only present fields are written.
   optional bool is_email_enabled = 2;
   optional bool global_unsubscribe = 3;
   optional string preferences_json = 4;
-  optional string language = 5;
-  optional string timezone = 6;
+  optional string language = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string timezone = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EmailFormat email_format = 7;
   EmailDigestFrequency digest_frequency = 8;
-  optional string digest_time = 9;
+  optional string digest_time = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UpdateEmailPreferencesResponse {
@@ -522,18 +524,18 @@ enum DeviceTokenStatus {
 // --- DeviceToken row -------------------------------------------------
 
 message DeviceToken {
-  string token_id = 1;
-  string user_id = 2;
-  string device_token = 3;
+  string token_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string device_token = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   DevicePlatform platform = 4;
-  optional string app_version = 5;
+  optional string app_version = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified jsonb payload. Empty string == `{}`.
-  string device_info_json = 6;
+  string device_info_json = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   DeviceTokenStatus status = 7;
-  optional string last_used_at = 8;
-  optional string expires_at = 9;
-  string created_at = 10;
-  string updated_at = 11;
+  optional string last_used_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string expires_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- RegisterDeviceToken ---------------------------------------------
@@ -541,13 +543,13 @@ message DeviceToken {
 message RegisterDeviceTokenRequest {
   // Target user — optional. Defaults to the calling principal when
   // omitted; cross-user registration requires device-tokens:write:any.
-  optional string user_id = 1;
-  string device_token = 2;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string device_token = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   DevicePlatform platform = 3;
-  optional string app_version = 4;
+  optional string app_version = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional jsonb metadata (model, OS version, app build, etc.).
   // Empty string == `{}`.
-  string device_info_json = 5;
+  string device_info_json = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message RegisterDeviceTokenResponse {
@@ -560,7 +562,7 @@ message RegisterDeviceTokenResponse {
 // --- UnregisterDeviceToken -------------------------------------------
 
 message UnregisterDeviceTokenRequest {
-  string token_id = 1;
+  string token_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UnregisterDeviceTokenResponse {
@@ -574,7 +576,7 @@ message UnregisterDeviceTokenResponse {
 message ListDeviceTokensRequest {
   // Optional target. Defaults to the calling principal. Callers without
   // device-tokens:list:any may only list their own tokens.
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // When true, include soft-deleted (deleted_at IS NOT NULL) rows.
   // Default false.
   bool include_inactive = 2;
@@ -587,7 +589,7 @@ message ListDeviceTokensResponse {
 // --- GetNotification --------------------------------------------------
 
 message GetNotificationRequest {
-  string notification_id = 1;
+  string notification_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetNotificationResponse {
@@ -611,7 +613,7 @@ message MarkAllReadResponse {
 }
 
 message MarkReadRequest {
-  repeated string notification_ids = 1;
+  repeated string notification_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message MarkReadResponse {
@@ -621,7 +623,7 @@ message MarkReadResponse {
 // --- DeleteNotification ----------------------------------------------
 
 message DeleteNotificationRequest {
-  string notification_id = 1;
+  string notification_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeleteNotificationResponse {
@@ -631,23 +633,23 @@ message DeleteNotificationResponse {
 // --- BulkCreateNotifications -------------------------------------------
 
 message BulkCreateNotificationsRequest {
-  repeated string user_ids = 1;
+  repeated string user_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   NotificationType type = 2;
   NotificationChannel channel = 3;
   NotificationPriority priority = 4;
-  string title = 5;
-  string message = 6;
+  string title = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string message = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Opaque payload, shared across every recipient's row. Empty == `{}`.
   string data_json = 7;
-  optional string template_id = 8;
+  optional string template_id = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string template_variables_json = 9;
 }
 
 // Per-recipient outcome — lets the caller tell a blank/duplicate user_id
 // apart from a row that was actually inserted.
 message BulkCreateNotificationResult {
-  string user_id = 1;
-  optional string notification_id = 2;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notification_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool created = 3;
   optional string error = 4;
 }
@@ -672,7 +674,7 @@ enum NotificationDigestFrequency {
 // NotificationPreferences mirrors user_notification_prefs verbatim.
 // Quiet-hours columns are nullable; empty string == NULL.
 message NotificationPreferences {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool email_enabled = 2;
   bool push_enabled = 3;
   bool sms_enabled = 4;
@@ -682,17 +684,17 @@ message NotificationPreferences {
   bool rescue_updates = 8;
   bool chat_messages = 9;
   // HH:MM strings; absent when NULL.
-  optional string quiet_hours_start = 10;
-  optional string quiet_hours_end = 11;
-  string timezone = 12;
-  string created_at = 13;
-  string updated_at = 14;
+  optional string quiet_hours_start = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string quiet_hours_end = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string timezone = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetNotificationPreferencesRequest {
   // Optional target. Defaults to the calling principal. Callers
   // without `notification-prefs:read:any` may only read their own row.
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetNotificationPreferencesResponse {
@@ -700,7 +702,7 @@ message GetNotificationPreferencesResponse {
 }
 
 message UpdateNotificationPreferencesRequest {
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 
   // Scalar booleans don't carry proto3 presence by default, so each is
   // optional + paired with the `set_<field>` companion flag below. The
@@ -717,9 +719,9 @@ message UpdateNotificationPreferencesRequest {
   optional bool chat_messages = 9;
   // Empty string clears the column (NULL). Absent leaves it untouched —
   // distinguished via the set_ flag.
-  optional string quiet_hours_start = 10;
-  optional string quiet_hours_end = 11;
-  optional string timezone = 12;
+  optional string quiet_hours_start = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string quiet_hours_end = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string timezone = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UpdateNotificationPreferencesResponse {
@@ -727,7 +729,7 @@ message UpdateNotificationPreferencesResponse {
 }
 
 message ResetNotificationPreferencesRequest {
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ResetNotificationPreferencesResponse {
@@ -772,29 +774,29 @@ enum EmailTemplateStatus {
 // has 12 values that evolve per-feature; a string avoids a proto rebuild
 // each time one is added).
 message EmailTemplate {
-  string template_id = 1;
-  string name = 2;
-  optional string description = 3;
+  string template_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string description = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EmailTemplateType type = 4;
-  string category = 5;
+  string category = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EmailTemplateStatus status = 6;
-  string subject = 7;
-  string html_content = 8;
-  optional string text_content = 9;
+  string subject = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string html_content = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string text_content = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified array of declared variables. Empty string == [].
   string variables_json = 10;
-  string locale = 11;
+  string locale = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 usage_count = 12;
-  optional string last_used_at = 13;
-  string created_at = 14;
-  string updated_at = 15;
+  optional string last_used_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListEmailTemplatesRequest {
   // Optional filters. UNSPECIFIED = no filter on that field.
   EmailTemplateType type_filter = 1;
   EmailTemplateStatus status_filter = 2;
-  optional string category_filter = 3;
+  optional string category_filter = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string search = 4;
   uint32 page = 5;
   uint32 limit = 6;
@@ -808,7 +810,7 @@ message ListEmailTemplatesResponse {
 }
 
 message GetEmailTemplateRequest {
-  string template_id = 1;
+  string template_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetEmailTemplateResponse {
@@ -816,16 +818,16 @@ message GetEmailTemplateResponse {
 }
 
 message CreateEmailTemplateRequest {
-  string name = 1;
-  optional string description = 2;
+  string name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string description = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EmailTemplateType type = 3;
-  string category = 4;
+  string category = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EmailTemplateStatus status = 5;
-  string subject = 6;
-  string html_content = 7;
-  optional string text_content = 8;
+  string subject = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string html_content = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string text_content = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string variables_json = 9;
-  optional string locale = 10;
+  optional string locale = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CreateEmailTemplateResponse {
@@ -833,16 +835,16 @@ message CreateEmailTemplateResponse {
 }
 
 message UpdateEmailTemplateRequest {
-  string template_id = 1;
+  string template_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Only set fields are written.
-  optional string name = 2;
-  optional string description = 3;
+  optional string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string description = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EmailTemplateType type = 4;
-  optional string category = 5;
+  optional string category = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EmailTemplateStatus status = 6;
-  optional string subject = 7;
-  optional string html_content = 8;
-  optional string text_content = 9;
+  optional string subject = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string html_content = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string text_content = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string variables_json = 10;
 }
 
@@ -851,7 +853,7 @@ message UpdateEmailTemplateResponse {
 }
 
 message DeleteEmailTemplateRequest {
-  string template_id = 1;
+  string template_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeleteEmailTemplateResponse {
@@ -859,13 +861,13 @@ message DeleteEmailTemplateResponse {
 }
 
 message PreviewEmailTemplateRequest {
-  string template_id = 1;
+  string template_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified variable map for substitution. Empty string == {}.
   string variables_json = 2;
 }
 
 message PreviewEmailTemplateResponse {
-  string subject = 1;
+  string subject = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string html_content = 2;
   optional string text_content = 3;
 }
@@ -877,10 +879,10 @@ message PreviewEmailTemplateResponse {
 message BroadcastCohort {
   // String form of auth.UserRole (admin / adopter / rescue_staff / ...).
   // Empty means any.
-  repeated string user_types = 1;
+  repeated string user_types = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // String form of auth.UserStatus. Empty means active-only (the safe
   // broadcast default).
-  repeated string statuses = 2;
+  repeated string statuses = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional bool email_verified = 3;
 }
 
@@ -900,7 +902,7 @@ message BroadcastRequest {
   optional string data_json = 6;
   // Defer delivery to a future timestamp (server stores; worker fires
   // when due). Empty = send immediately.
-  optional string scheduled_for = 7;
+  optional string scheduled_for = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // When true, resolve the cohort and return the would-be `targeted`
   // count without writing any notification rows or publishing events.
   // Used by the admin UI's broadcast preview step. title/message are

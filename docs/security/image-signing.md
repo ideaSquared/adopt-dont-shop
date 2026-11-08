@@ -43,11 +43,11 @@ The `build-and-push` job:
    - Uploads the signature + cert + Rekor inclusion proof to GHCR (next
      to the image, as a `sha256-<digest>.sig` tag).
 
-Each of the fourteen images built by `deploy.yml` is signed individually:
-the eleven `service-*` images (`service-gateway`, `service-auth`,
+Each of the fifteen images built by `deploy.yml` is signed individually:
+the twelve `service-*` images (`service-gateway`, `service-auth`,
 `service-notifications`, `service-pets`, `service-rescue`,
 `service-applications`, `service-chat`, `service-moderation`,
-`service-matching`, `service-audit`, `service-cms`) and the three `app-*`
+`service-matching`, `service-audit`, `service-cms`, `service-ops`) and the three `app-*`
 images (`app-client`, `app-admin`, `app-rescue`).
 
 ## How verification works
@@ -80,7 +80,7 @@ SHA=<git-sha-you-want-to-verify>
 IMAGES=(
   service-gateway service-auth service-notifications service-pets
   service-rescue service-applications service-chat service-moderation
-  service-matching service-audit service-cms
+  service-matching service-audit service-cms service-ops
   app-client app-admin app-rescue
 )
 for image in "${IMAGES[@]}"; do

@@ -102,6 +102,8 @@ x-dev-volumes: &dev-volumes
   - /app/packages/lib.utils/node_modules
   - /app/packages/lib.validation/node_modules
   - /app/packages/observability/node_modules
+  - /app/packages/ops-cli/node_modules
+  - /app/packages/ops-contract/node_modules
   - /app/packages/proto/node_modules
   - /app/packages/scheduler/node_modules
   - /app/packages/seed-faker/node_modules
@@ -117,6 +119,7 @@ x-dev-volumes: &dev-volumes
   - /app/services/matching/node_modules
   - /app/services/moderation/node_modules
   - /app/services/notifications/node_modules
+  - /app/services/ops/node_modules
   - /app/services/pets/node_modules
   - /app/services/rescue/node_modules
 
@@ -284,6 +287,16 @@ services:
       <<: *dev-env
     volumes: *dev-volumes
     command: sh -c "pnpm --filter @adopt-dont-shop/service.cms run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.cms run dev"
+
+  # Developer ops CLI backend (ADR 0016). Same shared dev image as every other
+  # service: migrate the `ops` schema, then watch. The base file publishes it on
+  # 127.0.0.1:4100 only; OPS_AUTH_MODE=local needs no GitHub OAuth app.
+  service-ops:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.ops run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.ops run dev"
 
   # One-shot: generates the fixed dev personas (admins, rescues + staff,
   # adopters, pets, an application, a chat) THROUGH THE GATEWAY once the

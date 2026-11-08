@@ -1,7 +1,7 @@
 # Production images for the production smoke test (scripts/smoke-prod.sh,
 # `pnpm smoke:prod`, and the `prod-image-smoke` job in
 # .github/workflows/docker.yml). One definition so CI and a local run build
-# exactly the same 14 images, tagged the way docker-compose.prod.yml pulls
+# exactly the same 15 images, tagged the way docker-compose.prod.yml pulls
 # them. deploy.yml still builds and pushes the release images itself.
 #
 #   TAG=smoke docker buildx bake -f docker-bake.hcl smoke --load
@@ -23,7 +23,7 @@ target "services" {
   matrix = {
     svc = [
       "gateway", "auth", "notifications", "pets", "rescue", "applications",
-      "chat", "moderation", "matching", "audit", "cms",
+      "chat", "moderation", "matching", "audit", "cms", "ops",
     ]
   }
   context    = "."
