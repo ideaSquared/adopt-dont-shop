@@ -146,6 +146,12 @@ jobs:
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: pnpm check:stop-grace-period
 
+      # The gateway's WORKDIR is the service dir, so a relative UPLOAD_DIR
+      # writes to the read-only rootfs; it must equal the uploads volume mount.
+      - name: Verify gateway UPLOAD_DIR matches the uploads volume mount
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
+        run: pnpm check:gateway-upload-dir
+
       # ADS-847/ADS-958: no CSP in the repo's nginx configs may carry
       # 'unsafe-inline'/'unsafe-eval', and every prod SPA vhost at the edge
       # must declare its own CSP.

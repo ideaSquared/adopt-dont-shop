@@ -402,6 +402,10 @@ services:
       # per-category allowlist (deny-by-default) — there is no auth_request
       # gate; disable the gateway's own file streaming in production.
       SERVE_LOCAL_UPLOADS: "false"
+      # Dockerfile.service sets WORKDIR to the service dir, so the relative
+      # default ('uploads') would hit the read-only rootfs. Write to the
+      # named volume mounted at /app/uploads instead.
+      UPLOAD_DIR: /app/uploads
       # ADS-1303: Dockerfile.service bakes the repo's docs/legal into the
       # image at /app/docs/legal (turbo prune's output doesn't carry the
       # repo-root docs/ tree) — without this the legal routes 500 and the
