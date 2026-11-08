@@ -40,11 +40,9 @@ const SENSITIVITY_PREFIX = 'SENSITIVITY_';
 
 // FileDescriptorProto field numbers used to build source-info paths.
 const FILE_MESSAGES = 4;
-const FILE_ENUMS = 5;
 const FILE_SERVICES = 6;
 const MESSAGE_FIELDS = 2;
 const MESSAGE_NESTED = 3;
-const MESSAGE_ENUMS = 4;
 const SERVICE_METHODS = 2;
 
 const SCALAR_NAMES = new Map([
