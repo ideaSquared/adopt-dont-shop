@@ -440,6 +440,18 @@ The signup form in `deploy/gateway/landing/index.html` is hidden until an email 
 
 Each service owns its migrations under `services/<name>/src/migrations/` and applies its own schema on container start (entrypoint runs `pnpm run --if-present db:migrate`). There is no `00-baseline` migration and no `SequelizeMeta` table — those belonged to the deleted monolith. On first boot each service creates its own `pgmigrations` bookkeeping table (inside its schema) automatically and runs `001+` forward. Nothing to seed by hand. The deploy workflow's health gate waits for each service to come up before passing.
 
+### First super_admin
+
+Migrations seed roles and permissions but no user, and `db:seed` refuses to run in production, so a fresh stack has no admin to verify rescue sign-ups. After the first deploy, create one with the compiled one-shot CLI in `service-auth` (run it once, from `/opt/ads/production`):
+
+```bash
+read -rsp 'Admin password: ' ADMIN_PW; echo
+printf '%s' "$ADMIN_PW" | docker compose -f docker-compose.prod.yml exec -T service-auth   node dist/db/bootstrap-admin.js --password-stdin   --email you@example.org --first-name Ada --last-name Admin
+unset ADMIN_PW
+```
+
+The password is read from stdin only (never an argument or environment variable), so it stays out of the process list; `read -s` keeps it out of shell history. It must satisfy the same policy as registration (at least 8 characters). The command refuses with a non-zero exit if an active `super_admin` already exists, never overwrites, and records an `auth.actionTaken` audit event. Name and email may instead come from `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_FIRST_NAME` and `BOOTSTRAP_ADMIN_LAST_NAME`. Sign in at the admin app to verify the first rescues.
+
 Backups are automated by `.github/workflows/backup.yml` (nightly `0 2 * * *`) — see [db-backup-runbook.md](../db-backup-runbook.md); no host cron is required.
 
 ## Pre-flight checklist
@@ -462,4 +474,5 @@ For the production launch. Pre-launch setup is covered by the runbook above.
 - [ ] Production reviewers configured — with a single maintainer, leave **Prevent self-review** off or nobody can approve
 - [ ] First deploy: `make prod` (approve in the Actions UI); with staging, `make staging` first and verify end-to-end
 - [ ] Certificate issued and edge gateway started — see "DNS & TLS" (after the first deploy: the gateway joins the network it creates)
+- [ ] First `super_admin` created with `node dist/db/bootstrap-admin.js` — see "First super_admin" (without one nobody can verify rescues)
 - [ ] Backups configured (`BACKUP_BUCKET`/`AWS_REGION` + host AWS credentials) — until then the nightly `backup.yml` run fails

@@ -61,7 +61,7 @@ function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-function assertPassword(pw: string): void {
+export function assertPassword(pw: string): void {
   if (pw.length < MIN_PASSWORD_LENGTH) {
     throw new HandlerError(
       'INVALID_ARGUMENT',
@@ -70,7 +70,7 @@ function assertPassword(pw: string): void {
   }
 }
 
-function assertEmail(email: string): void {
+export function assertEmail(email: string): void {
   if (!email || !email.includes('@') || email.length > 255) {
     throw new HandlerError('INVALID_ARGUMENT', 'email is invalid');
   }
