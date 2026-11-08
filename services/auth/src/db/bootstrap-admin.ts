@@ -7,11 +7,16 @@
 // deliberately does NOT call assertNotProduction: production is its purpose.
 // Refuses (exit 1) if an active super_admin already exists. The password is
 // read from stdin only and is never logged. Logic lives in
-// bootstrap-admin-core.ts.
+// bootstrap-admin-core.ts; this file is the I/O wiring, injectable so it can
+// be tested without a database or NATS.
 
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import bcrypt from 'bcryptjs';
+import type { NatsConnection } from 'nats';
+import type { Pool } from 'pg';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { ensureStream } from '@adopt-dont-shop/events';
@@ -24,54 +29,97 @@ import { bootstrapSuperAdmin, resolveCliIdentity, USAGE } from './bootstrap-admi
 // Matches the runtime hasher (createBcryptPasswordHasher).
 const BCRYPT_ROUNDS = 12;
 
-const readStdin = async (): Promise<string> => {
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(Buffer.from(chunk));
-  }
-  // Strip only the trailing newline added by echo/here-strings.
-  return Buffer.concat(chunks)
-    .toString('utf8')
-    .replace(/\r?\n$/, '');
+type CliPool = Pool & { end: () => Promise<void> };
+type CliNats = NatsConnection & { drain: () => Promise<void> };
+
+export type BootstrapCliDeps = {
+  argv: string[];
+  env: NodeJS.ProcessEnv;
+  readStdin: () => Promise<string>;
+  openPool: () => CliPool;
+  openNats: () => Promise<CliNats>;
+  hash: (password: string) => Promise<string>;
+  out: (text: string) => void;
+  err: (text: string) => void;
+  log: {
+    info: (message: string, meta: Record<string, unknown>) => void;
+    error: (message: string, meta: Record<string, unknown>) => void;
+  };
 };
 
-const main = async (): Promise<void> => {
-  const logger = createLogger({ serviceName: 'service.auth.bootstrap-admin' });
-  const { values } = parseArgs({
-    options: {
-      email: { type: 'string' },
-      'first-name': { type: 'string' },
-      'last-name': { type: 'string' },
-      'password-stdin': { type: 'boolean' },
-    },
-  });
+// Strip only the trailing newline added by echo/here-strings.
+export const stripTrailingNewline = (input: string): string => input.replace(/\r?\n$/, '');
 
-  let pool: ReturnType<typeof createDbClient> | undefined;
-  let nats: Awaited<ReturnType<typeof connectNats>> | undefined;
+// Returns the process exit code. Never logs the password or the email.
+export const runBootstrapCli = async (deps: BootstrapCliDeps): Promise<number> => {
+  let pool: CliPool | undefined;
+  let nats: CliNats | undefined;
   try {
-    const identity = resolveCliIdentity(values, process.env);
-    const password = await readStdin();
-    const config = loadConfig();
-    pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
-    nats = await connectNats(config.natsUrl);
-    await ensureStream(nats);
+    const { values } = parseArgs({
+      args: deps.argv,
+      options: {
+        email: { type: 'string' },
+        'first-name': { type: 'string' },
+        'last-name': { type: 'string' },
+        'password-stdin': { type: 'boolean' },
+      },
+    });
+    const identity = resolveCliIdentity(values, deps.env);
+    const password = stripTrailingNewline(await deps.readStdin());
+    pool = deps.openPool();
+    nats = await deps.openNats();
 
     const { userId } = await bootstrapSuperAdmin(
-      { pool, nats, hash: pw => bcrypt.hash(pw, BCRYPT_ROUNDS) },
+      { pool, nats, hash: deps.hash },
       { ...identity, password }
     );
-    // No email in the structured log (PII); the operator sees it on stdout.
-    logger.info('bootstrapped super_admin', { userId });
-    process.stdout.write(`super_admin created: ${identity.email} (${userId})\n`);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.error('bootstrap-admin failed', { message });
-    console.error(`bootstrap-admin failed: ${message}\n${USAGE}`);
-    process.exitCode = 1;
+    deps.log.info('bootstrapped super_admin', { userId });
+    deps.out(`super_admin created: ${identity.email} (${userId})\n`);
+    return 0;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    deps.log.error('bootstrap-admin failed', { message });
+    deps.err(`bootstrap-admin failed: ${message}\n${USAGE}\n`);
+    return 1;
   } finally {
     await nats?.drain();
     await pool?.end();
   }
 };
 
-void main();
+const readProcessStdin = async (): Promise<string> => {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString('utf8');
+};
+
+const isEntryPoint = (): boolean =>
+  process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+
+if (isEntryPoint()) {
+  const logger = createLogger({ serviceName: 'service.auth.bootstrap-admin' });
+  // loadConfig runs inside openPool/openNats (called within runBootstrapCli's
+  // try) so a missing DATABASE_URL prints the usage instead of a stack trace.
+  void runBootstrapCli({
+    argv: process.argv.slice(2),
+    env: process.env,
+    readStdin: readProcessStdin,
+    openPool: () => {
+      const config = loadConfig();
+      return createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
+    },
+    openNats: async () => {
+      const nats = await connectNats(loadConfig().natsUrl);
+      await ensureStream(nats);
+      return nats;
+    },
+    hash: password => bcrypt.hash(password, BCRYPT_ROUNDS),
+    out: text => process.stdout.write(text),
+    err: text => process.stderr.write(text),
+    log: logger,
+  }).then(code => {
+    process.exitCode = code;
+  });
+}
