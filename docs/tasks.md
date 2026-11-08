@@ -115,7 +115,7 @@ the repo root with `pnpm <script>`.
 | `pnpm docker:logs:apps` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app-client app-admin app-rescue` |
 | `pnpm docker:logs:gateway` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-gateway` |
 | `pnpm docker:logs:infra` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f database redis nats` |
-| `pnpm docker:logs:services` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit` |
+| `pnpm docker:logs:services` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit service-ops` |
 | `pnpm docker:ps` | `node scripts/docker-ps.mjs` |
 | `pnpm docker:reset` | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v` |
 | `pnpm docker:shell:db` | `node scripts/docker-shell-db.mjs` |
