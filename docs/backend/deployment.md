@@ -42,9 +42,9 @@ DB_USERNAME=...
 DB_PASSWORD=...
 PROD_DB_NAME=adopt_dont_shop_prod
 
-# Database TLS (ADS-540) — production refuses `disable` unless ALLOW_INSECURE_DB=true
-DB_SSL_MODE=verify-full
-DB_SSL_ROOT_CERT=/etc/ssl/certs/rds-combined-ca-bundle.pem
+# Database TLS is not implemented: connections are plaintext (see
+# docs/operations/deploy.md "Database TLS"); only run Postgres on a trusted
+# private network until TLS support is added to packages/db.
 
 # Redis
 REDIS_HOST=...
