@@ -211,10 +211,12 @@ PROD_HOSTNAME=adoptdontshop.app
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=<from resend.com — the sending domain must be verified there>
 DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
-FCM_PROJECT_ID=<Firebase project id>
-# The service-account JSON on ONE line (the deploy reads a single line):
-#   jq -c . service-account.json
-FCM_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
+# Push is off (PUSH_PROVIDER defaults to none) until an app registers device
+# tokens. To turn it on, uncomment all three; the JSON must be ONE line
+# (jq -c . service-account.json):
+# PUSH_PROVIDER=fcm
+# FCM_PROJECT_ID=<Firebase project id>
+# FCM_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 # DEPLOY_SHA is set to a specific git SHA by deploy.yml — there is NO :latest fallback.
 # Optional observability toggles (off by default): OBSERVABILITY_ENABLED, GLITCHTIP_ENABLED, LOKI_URL, OTEL_EXPORTER_OTLP_ENDPOINT, SENTRY_DSN
 # Production deploys FAIL preflight when OBSERVABILITY_ENABLED isn't `true`
@@ -261,7 +263,7 @@ Commands marked **(laptop)** run on your own machine. Everything else runs on th
 - **netcup VPS** with at least 8 GB RAM.
 - **DNS** for `adoptdontshop.app` at your registrar or DNS host.
 - **Resend** (resend.com): an API key, and `adoptdontshop.app` added as a sending domain with the DNS records Resend gives you. Staging will not deploy without `RESEND_API_KEY`.
-- **Firebase** (console.firebase.google.com): a project, plus a service-account key (Project settings → Service accounts → Generate new private key). Staging will not deploy without `FCM_PROJECT_ID` and the service-account JSON.
+- **No Firebase account needed.** Push notifications are off by default (`PUSH_PROVIDER=none`, ideaSquared/adopt-dont-shop#1615) until an app registers device tokens.
 - **GitHub CLI** (`gh auth login`) **(laptop)**, to run `make staging`. Without it, use Actions → Deploy → Run workflow instead.
 
 ### 2. Install the VPS (netcup SCP)
@@ -327,10 +329,9 @@ FRONTEND_URL=https://staging.adoptdontshop.app
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=<from Resend>
 DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
-FCM_PROJECT_ID=<Firebase project id>
-# One line only: jq -c . service-account.json
-FCM_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 ```
+
+No Firebase values: push is off by default (`PUSH_PROVIDER=none`), because no app registers device tokens yet.
 
 ### 5. DNS
 
@@ -342,6 +343,8 @@ Create **A records only**, all pointing at the VPS IPv4 address: `adoptdontshop.
 Check with `dig +short staging.adoptdontshop.app` before step 7.
 
 ### 6. First staging deploy
+
+`main` must include ideaSquared/adopt-dont-shop#1615 (push off by default). Without it the deploy stops on the missing Firebase values.
 
 The deploy only runs for a commit on `main` whose CI passed, including **Production Image Smoke** (about 25 minutes after a merge). Once it is green:
 
@@ -446,7 +449,7 @@ For the production launch. Pre-launch setup is covered by the runbook above.
 - [ ] `PROD_HOSTNAME` (plain literal) set in `/opt/ads/production/.env` — `deploy.yml` substitutes it into the freshly-shipped `nginx.prod.conf` on every run (ADS-1312); certbot issuance done
 - [ ] Per-env `.env` created (non-secret config) — compose/nginx/observability files are shipped by the first deploy, not hand-copied (ADS-1312)
 - [ ] `OBSERVABILITY_ENABLED=true` set in `/opt/ads/production/.env` before the first production deploy, or the deploy will fail preflight (ADS-1307; override with `allow_blind_deploy` + a reason if truly needed)
-- [ ] Host `.env` includes `RESEND_API_KEY`, `DEFAULT_FROM_EMAIL`, `FCM_PROJECT_ID` and single-line `FCM_SERVICE_ACCOUNT_JSON`
+- [ ] Host `.env` includes `RESEND_API_KEY` and `DEFAULT_FROM_EMAIL`; for push, also `PUSH_PROVIDER=fcm`, `FCM_PROJECT_ID` and single-line `FCM_SERVICE_ACCOUNT_JSON`
 - [ ] Production reviewers configured — with a single maintainer, leave **Prevent self-review** off or nobody can approve
 - [ ] First deploy: `make prod` (approve in the Actions UI); with staging, `make staging` first and verify end-to-end
 - [ ] Certificate issued and edge gateway started — see "DNS & TLS" (after the first deploy: the gateway joins the network it creates)
