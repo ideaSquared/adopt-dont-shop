@@ -61,46 +61,44 @@ test.describe('staff lifecycle', () => {
   // (10 a minute per IP, shared with every other spec); a retry can wait out the window.
   test.describe.configure({ timeout: 180_000 });
 
-  // App bug: the accept page never shows a valid invitation. The gateway answers
-  // GET /api/v1/invitations/details/:token with { success, data }, but
-  // lib.invitations reads `response.invitation`, so every real link ends on
-  // "Invitation not found or has expired" and no one can set up an account.
-  // Remove test.fail once the page can read the invitation.
-  test.fail(
-    'RES-005: an invitee sets up an account from the invitation link',
-    async ({ browser, apiAs }) => {
-      const adminApi = await apiAs('admin');
-      const rescue = await createRescueWithOwner(adminApi, 'Accept');
-      const { email, token } = await inviteStaff(adminApi, rescue.rescueId, {
-        title: 'Kennel Coordinator',
-        label: 'res005-invitee',
+  // The accept page reads the invitation since #1606. It only says "invited to join a rescue
+  // organization": the details response carries neither the rescue name nor the role, so the
+  // page cannot name them (B41).
+  test('RES-005: an invitee sets up an account from the invitation link', async ({
+    browser,
+    apiAs,
+  }) => {
+    const adminApi = await apiAs('admin');
+    const rescue = await createRescueWithOwner(adminApi, 'Accept');
+    const { email, token } = await inviteStaff(adminApi, rescue.rescueId, {
+      title: 'Kennel Coordinator',
+      label: 'res005-invitee',
+    });
+
+    const context = await browser.newContext({
+      baseURL: URLS.rescue,
+      storageState: { cookies: [], origins: [] },
+    });
+    try {
+      const page = await context.newPage();
+      await dismissCookieBannerWhenShown(page);
+      await page.goto(`/accept-invitation?token=${token}`);
+
+      await expect(page.getByText("You've been invited to join")).toBeVisible({
+        timeout: 30_000,
       });
+      await expect(page.getByText(`You're registering with: ${email}`)).toBeVisible();
 
-      const context = await browser.newContext({
-        baseURL: URLS.rescue,
-        storageState: { cookies: [], origins: [] },
-      });
-      try {
-        const page = await context.newPage();
-        await dismissCookieBannerWhenShown(page);
-        await page.goto(`/accept-invitation?token=${token}`);
-
-        await expect(
-          page.getByText(`invited to join ${rescue.name} as Kennel Coordinator`)
-        ).toBeVisible({ timeout: 30_000 });
-        await expect(page.getByText(`You're registering with: ${email}`)).toBeVisible();
-
-        await page.getByLabel('First Name').fill('Kennel');
-        await page.getByLabel('Last Name').fill('Coordinator');
-        await page.getByLabel('Password', { exact: true }).fill(STAFF_PASSWORD);
-        await page.getByLabel('Confirm Password').fill(STAFF_PASSWORD);
-        await page.getByRole('button', { name: /accept|create account|join/i }).click();
-        await expect(page.getByRole('heading', { name: 'Account Created!' })).toBeVisible();
-      } finally {
-        await context.close();
-      }
+      await page.getByLabel('First Name').fill('Kennel');
+      await page.getByLabel('Last Name').fill('Coordinator');
+      await page.getByLabel('Password', { exact: true }).fill(STAFF_PASSWORD);
+      await page.getByLabel('Confirm Password').fill(STAFF_PASSWORD);
+      await page.getByRole('button', { name: /accept|create account|join/i }).click();
+      await expect(page.getByRole('heading', { name: 'Account Created!' })).toBeVisible();
+    } finally {
+      await context.close();
     }
-  );
+  });
 
   test('RES-005: an invitee who accepted joins the rescue with the assigned role', async ({
     browser,
@@ -276,48 +274,42 @@ test.describe('staff lifecycle', () => {
     }
   });
 
-  // App bug: removing a staff member only deletes their staff record. They keep
-  // the rescue_staff permissions, and the pets service still lets them create
-  // pets for the rescue they were removed from (201). Remove test.fail once a
-  // removed member is refused.
-  test.fail(
-    'RES-043: a removed staff member can no longer act for the rescue',
-    async ({ apiAs }) => {
-      const adminApi = await apiAs('admin');
-      const rescue = await createRescueWithOwner(adminApi, 'RemoveAccess');
-      const staff = await inviteAndAcceptStaff(adminApi, rescue.rescueId, {
-        title: 'Volunteer',
-        label: 'res043-access',
+  // A removed member is refused since #1605.
+  test('RES-043: a removed staff member can no longer act for the rescue', async ({ apiAs }) => {
+    const adminApi = await apiAs('admin');
+    const rescue = await createRescueWithOwner(adminApi, 'RemoveAccess');
+    const staff = await inviteAndAcceptStaff(adminApi, rescue.rescueId, {
+      title: 'Volunteer',
+      label: 'res043-access',
+    });
+    const managerApi = await loginAccountViaApi(rescue.owner);
+    const staffApi = await loginAccountViaApi(staff);
+    const addPet = () =>
+      postWithCsrf(staffApi.context, '/api/v1/pets', {
+        name: 'Access check',
+        type: 'dog',
+        gender: 'female',
+        size: 'medium',
+        ageGroup: 'adult',
+        rescueId: rescue.rescueId,
       });
-      const managerApi = await loginAccountViaApi(rescue.owner);
-      const staffApi = await loginAccountViaApi(staff);
-      const addPet = () =>
-        postWithCsrf(staffApi.context, '/api/v1/pets', {
-          name: 'Access check',
-          type: 'dog',
-          gender: 'female',
-          size: 'medium',
-          ageGroup: 'adult',
-          rescueId: rescue.rescueId,
-        });
-      try {
-        // While they are staff they can act for the rescue.
-        expect((await addPet()).status()).toBe(201);
+    try {
+      // While they are staff they can act for the rescue.
+      expect((await addPet()).status()).toBe(201);
 
-        const me = (await (await staffApi.context.get('/api/v1/staff/me')).json()) as {
-          data: { userId: string };
-        };
-        const removed = await deleteWithCsrf(
-          managerApi.context,
-          `/api/v1/rescues/${rescue.rescueId}/staff/${me.data.userId}`
-        );
-        expect(removed.status()).toBe(200);
+      const me = (await (await staffApi.context.get('/api/v1/staff/me')).json()) as {
+        data: { userId: string };
+      };
+      const removed = await deleteWithCsrf(
+        managerApi.context,
+        `/api/v1/rescues/${rescue.rescueId}/staff/${me.data.userId}`
+      );
+      expect(removed.status()).toBe(200);
 
-        expect((await addPet()).status()).toBe(403);
-      } finally {
-        await managerApi.dispose();
-        await staffApi.dispose();
-      }
+      expect((await addPet()).status()).toBe(403);
+    } finally {
+      await managerApi.dispose();
+      await staffApi.dispose();
     }
-  );
+  });
 });

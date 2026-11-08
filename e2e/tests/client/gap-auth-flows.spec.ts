@@ -160,7 +160,7 @@ test.describe('client authentication journeys', () => {
     await page.keyboard.press('Enter');
     await page.getByRole('menuitem', { name: /log out/i }).click();
     // Logging out of a protected page (/profile) ends on the login screen.
-    await expect(page).toHaveURL(/localhost:3000\/(login)?$/);
+    await expect(page).toHaveURL(/\/(login)?$/);
     await expect(page.getByRole('button', userMenuFor(account))).toHaveCount(0);
 
     await page.goBack();

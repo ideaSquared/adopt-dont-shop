@@ -1,7 +1,15 @@
 import { test, expect } from '../../fixtures';
 import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
 import { petCardLocator } from '../../helpers/pet';
-import { createAvailablePet, favouritePet, deleteWithCsrf, expectOk } from '../../helpers/seeds';
+import { uniquePetName } from '../../helpers/factories';
+import {
+  createAvailablePet,
+  favouritePet,
+  deleteWithCsrf,
+  expectOk,
+  getMyRescueId,
+  postWithCsrf,
+} from '../../helpers/seeds';
 import { skipSwipeIntro } from '../../helpers/swipe-intro';
 
 const SEEDED_RESCUE = 'Paws Rescue';
@@ -82,11 +90,8 @@ test.describe('client browsing journeys', () => {
     });
   });
 
-  // CLI-031 (server side). KNOWN APP BUG: POST /api/v1/discovery/swipe/action answers 500
-  // internal_error, so swipes are never persisted. test.fail() keeps this green while
-  // the bug exists and turns red as soon as it is fixed (remove test.fail then).
+  // CLI-031 (server side). Swipes were not persisted (swipe/action answered 500) until #1603.
   test('a Like is persisted by the swipe API', async ({ page }) => {
-    test.fail(true, 'swipe/action returns 500 internal_error');
     await page.goto('/discover');
     await expect(page.getByRole('button', { name: 'Like this pet', exact: true })).toBeVisible({
       timeout: 20_000,
@@ -160,12 +165,15 @@ test.describe('client browsing journeys', () => {
     await page.getByRole('option', { name: 'Cats' }).click();
 
     await expect(total).not.toHaveText(unfiltered, { timeout: 20_000 });
+    const narrowed = await total.innerText();
     const cards = petCardLocator(page);
     await expect(cards.first()).toBeVisible();
     await expect(cards.filter({ hasNotText: /Type:\s*cat/i })).toHaveCount(0);
 
+    // Other specs add dogs while this runs, so the unfiltered total may have grown: assert
+    // the filter is gone (the total is no longer the cats-only count), not an exact total.
     await page.getByRole('button', { name: 'Clear Filters' }).click();
-    await expect(total).toHaveText(unfiltered, { timeout: 20_000 });
+    await expect(total).not.toHaveText(narrowed, { timeout: 20_000 });
   });
 
   // CLI-042
@@ -203,25 +211,36 @@ test.describe('client browsing journeys', () => {
     page,
     apiAs,
   }) => {
-    const adopterApi = await apiAs('adopter');
-    // Other specs create many bare pets, so a fully described seeded pet can sit
-    // beyond the first page of results: look through the pages until one turns up.
-    const MAX_PAGES = 30;
-    let pet: PetView | undefined;
-    for (let pageNumber = 1; pageNumber <= MAX_PAGES && !pet; pageNumber += 1) {
-      const res = await adopterApi.context.get('/api/v1/pets', {
-        params: { status: 'available', limit: '100', page: String(pageNumber) },
-      });
-      await expectOk(res, `GET /pets page ${pageNumber}`);
-      const { data } = (await res.json()) as { data: PetView[] };
-      if (data.length === 0) break;
-      pet = data.find(
-        p => p.breed && p.long_description && (p.images?.length ?? 0) > 1 && p.rescue_id
-      );
-    }
-    if (!pet) {
-      throw new Error('no seeded pet with a breed, description and several photos');
-    }
+    // The seed has no fully described pet, so this test creates its own: a seeded breed
+    // name, a long description, and several photos (same-origin upload paths are the only
+    // image URLs the pets service stores in a test stack).
+    const rescueApi = await apiAs('rescue');
+    const rescueId = await getMyRescueId(rescueApi);
+    const breedsRes = await rescueApi.context.get('/api/v1/pets/breeds/dog');
+    await expectOk(breedsRes, 'GET /pets/breeds/dog');
+    const [breed] = ((await breedsRes.json()) as { data: string[] }).data;
+    expect(breed, 'the seed has at least one dog breed').toBeTruthy();
+    const name = uniquePetName('Described');
+    const longDescription = `${name} loves long walks, quiet evenings and every child she meets.`;
+    const createRes = await postWithCsrf(rescueApi.context, '/api/v1/pets', {
+      name,
+      rescue_id: rescueId,
+      type: 'dog',
+      gender: 'female',
+      size: 'medium',
+      age_group: 'adult',
+      age_years: 3,
+      breed,
+      short_description: 'e2e described pet',
+      long_description: longDescription,
+      images: ['/uploads/e2e-described-1.jpg', '/uploads/e2e-described-2.jpg'],
+    });
+    await expectOk(createRes, 'create a described pet');
+    const { data: created } = (await createRes.json()) as { data: { pet_id: string } };
+    const viewRes = await (await apiAs('adopter')).context.get(`/api/v1/pets/${created.pet_id}`);
+    await expectOk(viewRes, 'GET the described pet');
+    const pet = ((await viewRes.json()) as { data: PetView }).data;
+    expect(pet.images).toHaveLength(2);
 
     await page.goto(`/pets/${pet.pet_id}`);
     await expect(page.getByRole('heading', { level: 1, name: pet.name })).toBeVisible({
@@ -232,7 +251,10 @@ test.describe('client browsing journeys', () => {
     await expect(details).toContainText(/Age\s*\d+\s*(year|month)/i);
     await expect(page.getByRole('heading', { name: `About ${pet.name}` })).toBeVisible();
     await expect(page.getByText(pet.long_description ?? '')).toBeVisible();
-    await expect(page.getByAltText(pet.name, { exact: true })).toHaveAttribute('src', /^https?:/);
+    await expect(page.getByAltText(pet.name, { exact: true })).toHaveAttribute(
+      'src',
+      /e2e-described-1\.jpg$/
+    );
     await expect(page.getByRole('button', { name: /^View photo \d+ of / })).toHaveCount(
       pet.images?.length ?? 0
     );

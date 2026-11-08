@@ -126,9 +126,8 @@ test.describe('approving a pending rescue (ADM-031)', () => {
     });
   });
 
-  // BUG: pet creation never checks the rescue's status, so the staff of a rescue
-  // that is still "pending" can create pets before an admin has approved it.
-  test.fail('a pending rescue cannot create pets until an admin approves it', async ({ apiAs }) => {
+  // Pet creation checks the rescue's status (fixed in #1605).
+  test('a pending rescue cannot create pets until an admin approves it', async ({ apiAs }) => {
     await withFreshRescue(await apiAs('admin'), 'pending', async rescue => {
       await expect(publishPetAsManager(rescue)).rejects.toThrow(/403|forbidden|pending/i);
     });
@@ -178,8 +177,8 @@ test.describe('suspending or rejecting a rescue (ADM-032)', () => {
     });
   });
 
-  // BUG: nothing checks the rescue's status after sign-in, so the staff of a
-  // suspended rescue still reach the rescue app dashboard.
+  // BUG: still open after #1605 (which blocks pet creation): nothing checks the rescue's
+  // status at sign-in, so the staff of a suspended rescue still reach the rescue app.
   test.fail(
     'the staff of a suspended rescue cannot sign in to the rescue app',
     async ({ apiAs, browser }) => {

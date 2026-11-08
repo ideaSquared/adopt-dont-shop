@@ -110,11 +110,8 @@ test.describe('onboarding wizard and top picks', () => {
     }
   });
 
-  // Known bug: saving the wizard stores preferences wrongly (see the next test
-  // for the root cause), so /match/top-picks shows "Failed to load your top
-  // picks." instead of matches. test.fail() goes red once fixed; make it a
-  // plain test() then.
-  test.fail('top picks lists pets after the wizard is completed', async ({ browser }) => {
+  // Saving the wizard used to store preferences wrongly (fixed in #1603).
+  test('top picks lists pets after the wizard is completed', async ({ browser }) => {
     const { page, close } = await signedInNewAdopter(browser);
     try {
       await finishWizard(page, { pickDogs: false });
@@ -128,26 +125,20 @@ test.describe('onboarding wizard and top picks', () => {
     }
   });
 
-  // Known bug: matching's UpsertMatchProfile binds JS arrays to `::jsonb`
-  // parameters; node-pg sends them as Postgres array literals, so a non-empty
-  // selection ({"dog"}) is rejected with a 500 ("Failed to save preferences")
-  // and an empty one ({}) is stored as a JSON object that TopPicks then fails
-  // to iterate. test.fail() goes red once fixed; make it a plain test() then.
-  test.fail(
-    'a chosen pet type is saved and top picks only shows that type',
-    async ({ browser }) => {
-      const { page, close } = await signedInNewAdopter(browser);
-      try {
-        await finishWizard(page, { pickDogs: true });
+  // UpsertMatchProfile used to bind JS arrays to `::jsonb` parameters and fail
+  // with a 500 (fixed in #1603).
+  test('a chosen pet type is saved and top picks only shows that type', async ({ browser }) => {
+    const { page, close } = await signedInNewAdopter(browser);
+    try {
+      await finishWizard(page, { pickDogs: true });
 
-        await expect(page).toHaveURL(/\/match\/top-picks$/);
-        await expect(topPickCards(page).first()).toBeVisible({ timeout: 20_000 });
-        for (const text of await topPickCards(page).allInnerTexts()) {
-          expect(text).toMatch(/dog/i);
-        }
-      } finally {
-        await close();
+      await expect(page).toHaveURL(/\/match\/top-picks$/);
+      await expect(topPickCards(page).first()).toBeVisible({ timeout: 20_000 });
+      for (const text of await topPickCards(page).allInnerTexts()) {
+        expect(text).toMatch(/dog/i);
       }
+    } finally {
+      await close();
     }
-  );
+  });
 });

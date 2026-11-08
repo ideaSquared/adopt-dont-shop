@@ -38,44 +38,38 @@ test.describe('signing in', () => {
 test.describe('registering a rescue', () => {
   test.use({ storageState: SIGNED_OUT });
 
-  // App bug: the form cannot register anyone. POST /api/v1/rescues/register is
-  // not a public route (an anonymous visitor gets 401), so the submit fails
-  // before any "pending approval" message can show. Remove test.fail once a
-  // visitor can register a rescue.
-  test.fail(
-    'RES-001: a visitor who registers a rescue is told it is pending approval',
-    async ({ page }) => {
-      const ownerEmail = uniqueEmail('res001-owner');
-      await dismissCookieBannerWhenShown(page);
-      await page.goto('/register-rescue');
+  // Anonymous visitors can register a rescue since #1606.
+  test('RES-001: a visitor who registers a rescue is told it is pending approval', async ({
+    page,
+  }) => {
+    const ownerEmail = uniqueEmail('res001-owner');
+    await dismissCookieBannerWhenShown(page);
+    await page.goto('/register-rescue');
 
-      await page.getByLabel('First Name').fill('Rae');
-      await page.getByLabel('Last Name').fill('Scue');
-      await page.getByLabel('Email', { exact: true }).fill(ownerEmail);
-      await page.getByLabel('Password', { exact: true }).fill('BehaviourTest123!');
-      await page.getByLabel('Confirm Password').fill('BehaviourTest123!');
-      await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByLabel('First Name').fill('Rae');
+    await page.getByLabel('Last Name').fill('Scue');
+    await page.getByLabel('Email', { exact: true }).fill(ownerEmail);
+    await page.getByLabel('Password', { exact: true }).fill('BehaviourTest123!');
+    await page.getByLabel('Confirm Password').fill('BehaviourTest123!');
+    await page.getByRole('button', { name: 'Next' }).click();
 
-      await page.getByLabel('Organisation Name').fill(uniqueRescueName('RES001'));
-      await page.getByLabel('Contact Email').fill(ownerEmail);
-      await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByLabel('Organisation Name').fill(uniqueRescueName('RES001'));
+    await page.getByLabel('Contact Email').fill(ownerEmail);
+    await page.getByRole('button', { name: 'Next' }).click();
 
-      await page.getByLabel('Address', { exact: true }).fill('1 Rescue Lane');
-      await page.getByLabel('City').fill('London');
-      await page.getByLabel('Postcode').fill('SW1A 1AA');
-      await page.getByRole('button', { name: 'Next' }).click();
-      await page.getByRole('button', { name: 'Next' }).click();
-      await page.getByRole('button', { name: 'Submit Registration' }).click();
+    await page.getByLabel('Address', { exact: true }).fill('1 Rescue Lane');
+    await page.getByLabel('City').fill('London');
+    await page.getByLabel('Postcode').fill('SW1A 1AA');
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByRole('button', { name: 'Submit Registration' }).click();
 
-      await expect(page.getByRole('heading', { name: 'Registration Successful' })).toBeVisible();
-      await expect(page.getByText(/pending approval/i)).toBeVisible();
-    }
-  );
+    await expect(page.getByRole('heading', { name: 'Registration Successful' })).toBeVisible();
+    await expect(page.getByText(/pending approval/i)).toBeVisible();
+  });
 
-  // App bug: the pets service lets the owner of a rescue that is still pending
-  // approval create pets (201). Remove test.fail once unapproved rescues are
-  // refused.
-  test.fail('RES-001: a rescue that is pending approval cannot add pets', async ({ apiAs }) => {
+  // Unapproved rescues are refused pet creation since #1605.
+  test('RES-001: a rescue that is pending approval cannot add pets', async ({ apiAs }) => {
     const rescue = await createRescueWithOwner(await apiAs('admin'), 'Pending', {
       verified: false,
     });

@@ -86,12 +86,9 @@ test.describe('X-003 report and moderate', () => {
     expect(await loginStatus(target.email, target.password)).not.toBe(200);
   });
 
-  // FIXME: blocked by an app bug. The single-report "Take Action" modal ignores
-  // the chosen action and stores the resolution as "resolved", which then fails
-  // the admin list's schema: /moderation shows "Error loading reports" for every
-  // admin on the shared stack until that row is repaired. Enable once the modal
-  // resolves a report without breaking the queue.
-  test.fixme('an admin resolves the pet report from the queue and the report leaves it', async ({
+  // The "Take Action" modal used to store a resolution that broke /moderation for
+  // every admin (fixed in #1607).
+  test('an admin resolves the pet report from the queue and the report leaves it', async ({
     browser,
     apiAs,
   }) => {
@@ -116,14 +113,16 @@ test.describe('X-003 report and moderate', () => {
     const adminContext = await openRoleContext(browser, 'admin');
     try {
       const admin = await adminContext.newPage();
+      await dismissCookieBannerPatiently(admin);
       await admin.goto('/moderation');
       await admin.getByPlaceholder('Search reports...').fill(reportTitle);
       const row = admin.getByRole('row').filter({ hasText: reportTitle });
       await row.getByRole('button', { name: 'Take Action' }).click();
-      await admin
-        .getByRole('dialog')
-        .getByRole('button', { name: /resolve/i })
-        .click();
+      // The modal is not a labelled dialog: find it by its form.
+      const modal = admin.locator('form').filter({ has: admin.getByLabel('Action Type *') });
+      await modal.getByLabel('Action Type *').selectOption('warning_issued');
+      await modal.getByLabel(/^Reason/).fill('E2E: a formal warning');
+      await modal.getByRole('button', { name: 'Take Action' }).click();
       await expect(admin.getByText(/error loading reports/i)).toHaveCount(0);
       await expect(row.getByText(/resolved/i)).toBeVisible();
     } finally {
@@ -131,11 +130,8 @@ test.describe('X-003 report and moderate', () => {
     }
   });
 
-  // BUG: suspending a user (PATCH /api/v1/admin/users/:id/action) publishes
-  // `auth.userUpdatedByAdmin`, not an `*.actionTaken` event, so the audit
-  // service never records it and the admin's /audit page shows only the user's
-  // login. Remove test.fail once an admin suspension leaves an audit entry.
-  test.fail('the admin suspension appears on the /audit page', async ({ browser, apiAs }) => {
+  // An admin suspension leaves an audit entry (fixed in #1604).
+  test('the admin suspension appears on the /audit page', async ({ browser, apiAs }) => {
     const target = await createVerifiedAdopter('x003-audit');
     const targetApi = await loginAccountViaApi(target);
     const { userId } = targetApi;

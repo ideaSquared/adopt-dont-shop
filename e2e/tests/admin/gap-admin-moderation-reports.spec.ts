@@ -77,13 +77,9 @@ test.describe('reports reaching the moderation queue (ADM-071)', () => {
 });
 
 test.describe('closing out a report (ADM-072)', () => {
-  // BUG: bulk dismiss stores resolution='dismissed', which is not in the moderation
-  // list schema (no_action | warning_issued | content_removed | user_suspended |
-  // user_banned | escalated), so /moderation then shows "Error loading reports" for
-  // every admin until the row is repaired in the database. Its response
-  // ({ data: [...] }) also does not match lib.moderation's { success, updated }, so the
-  // dialog never shows its result. Not driven on the shared stack.
-  test.fixme('an admin bulk-dismisses a report with a reason and it is marked Dismissed', async ({
+  // Bulk dismiss used to store a resolution the list schema rejected, breaking
+  // /moderation for every admin (fixed in #1607).
+  test('an admin bulk-dismisses a report with a reason and it is marked Dismissed', async ({
     page,
     apiAs,
   }) => {
@@ -111,10 +107,9 @@ test.describe('closing out a report (ADM-072)', () => {
     });
   });
 
-  // BUG: the single-report "Take Action" modal drops the chosen action and
-  // stores resolution='resolved', which then fails the moderation list schema
-  // and breaks /moderation for every admin. Not driven on the shared stack.
-  test.fixme('an admin takes action on a report from its Take Action button and the action is recorded', async ({
+  // The single-report "Take Action" modal used to store a resolution the list schema
+  // rejected, breaking /moderation for every admin (fixed in #1607).
+  test('an admin takes action on a report from its Take Action button and the action is recorded', async ({
     page,
     apiAs,
   }) => {
@@ -122,10 +117,11 @@ test.describe('closing out a report (ADM-072)', () => {
 
     const row = await findReport(page, title);
     await row.getByRole('button', { name: 'Take Action' }).click();
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: /take action|submit/i })
-      .click();
+    // The modal is not a labelled dialog: find it by its form.
+    const modal = page.locator('form').filter({ has: page.getByLabel('Action Type *') });
+    await modal.getByLabel('Action Type *').selectOption('warning_issued');
+    await modal.getByLabel(/^Reason/).fill('E2E: a formal warning');
+    await modal.getByRole('button', { name: 'Take Action' }).click();
 
     await expect(row.getByText('Resolved', { exact: true })).toBeVisible({ timeout: 15_000 });
   });

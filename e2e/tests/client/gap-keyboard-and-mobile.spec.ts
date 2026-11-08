@@ -201,18 +201,15 @@ test.describe('client layout at 375px', () => {
   });
 
   // CLI-141
-  // KNOWN APP BUG: at 375px the footer's 'Manage cookies' button ends at x=396, so the page
-  // scrolls sideways. Remove test.fail when the footer fits the viewport.
+  // The footer fits the 375px viewport since #1602.
   test('the home page does not scroll sideways', async ({ page }) => {
-    test.fail(true, 'footer Manage cookies button overflows the 375px viewport by 21px');
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 20_000 });
     await expectNoHorizontalScroll(page);
   });
 
-  // CLI-141 (same footer bug as the home page)
+  // CLI-141
   test('search results do not scroll sideways', async ({ page }) => {
-    test.fail(true, 'footer Manage cookies button overflows the 375px viewport by 21px');
     await page.goto('/search');
     await expect(petCardLocator(page).first()).toBeVisible({ timeout: 20_000 });
     await expectNoHorizontalScroll(page);
@@ -223,12 +220,12 @@ test.describe('client layout at 375px', () => {
     page,
     apiAs,
   }) => {
-    test.fail(true, 'footer Manage cookies button overflows the 375px viewport by 21px');
     const { petId, name } = await createAvailablePet(await apiAs('rescue'), 'Mobile');
     await page.goto(`/pets/${petId}`);
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible({ timeout: 20_000 });
+    // The visitor is signed out, so the call to action reads "Sign in to apply".
     const apply = page
-      .getByRole('link', { name: /apply (to|for) adopt/i })
+      .getByRole('link', { name: /(apply (to|for) adopt|sign in to apply)/i })
       .or(page.getByRole('button', { name: /apply (to|for) adopt/i }))
       .first();
     await expect(apply).toBeVisible();
@@ -238,11 +235,8 @@ test.describe('client layout at 375px', () => {
     await expectNoHorizontalScroll(page);
   });
 
-  // CLI-141. KNOWN APP BUG: the horizontal progress Stepper on /apply/:petId keeps its
-  // desktop width, so at 375px the page is ~698px wide and steps 3-5 sit off-screen.
-  // Remove test.fail when the stepper fits (or scrolls inside its own container).
+  // CLI-141 (the apply Stepper fits the viewport since #1602)
   test('the apply form does not scroll sideways', async ({ browser, apiAs }) => {
-    test.fail(true, 'apply-form Stepper overflows the 375px viewport (page is ~698px wide)');
     const { petId } = await createAvailablePet(await apiAs('rescue'), 'MobileApply');
     const session = await openSignedInSession(browser, await createVerifiedAdopter('mobile'));
     const { page } = session;
@@ -258,9 +252,8 @@ test.describe('client layout at 375px', () => {
     }
   });
 
-  // CLI-141 (same footer bug as the home page)
+  // CLI-141
   test('the chat page does not scroll sideways', async ({ browser }) => {
-    test.fail(true, 'footer Manage cookies button overflows the 375px viewport by 21px');
     const session = await openSignedInSession(browser, await createVerifiedAdopter('mobile-chat'));
     const { page } = session;
     try {

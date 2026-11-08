@@ -13,16 +13,9 @@ import { URLS } from '../../playwright.config';
  * reporter and the reported user are freshly registered adopters.
  */
 test.describe('applying a sanction from the moderation queue', () => {
-  // FIXME: blocked by app bugs found while automating ADM-073.
-  //  - Bulk Sanction (the only path that issues an action) reports
-  //    "0 succeeded, 1 failed" and the reported user stays active, although a
-  //    moderator_actions row is written.
-  //  - The single-report "Take Action" modal ignores the chosen action type and
-  //    just resolves the report; the stored resolution ("resolved") then fails
-  //    the admin list schema and /moderation shows "Error loading reports" for
-  //    every admin until that row is fixed.
-  // Enable once a sanction really suspends the reported user.
-  test.fixme('an admin suspends a reported user from a report and they cannot sign in', async ({
+  // Bulk Sanction used to report "0 succeeded, 1 failed" and leave the user active;
+  // the moderation sanction RPC (#1607) fixed that.
+  test('an admin suspends a reported user from a report and they cannot sign in', async ({
     page,
   }) => {
     const reporter = await createVerifiedAdopter('reporter');

@@ -22,65 +22,57 @@ const PASSWORD = 'BehaviourTest123!';
  * the sign-up form is broken, and covers approve -> sign in -> add pet -> find.
  */
 test.describe('X-002 new rescue onboarding', () => {
-  // BUG: /register-rescue cannot register anyone. POST /api/v1/rescues/register
-  // is not a public route (an anonymous visitor gets 401 "authentication
-  // required"), the form never sends the `contact_person` the gateway demands
-  // (400 even when signed in), and the gateway only creates the rescue: no
-  // owner account, no verification email. Remove test.fail once a visitor can
-  // register a rescue and its owner.
-  test.fail(
-    'a visitor registers a rescue at /register-rescue and an admin sees it pending',
-    async ({ browser }) => {
-      const rescueName = uniqueRescueName('X002 Form');
-      const ownerEmail = uniqueEmail('x002-owner');
+  // /register-rescue registers a rescue and its owner for anonymous visitors (fixed in #1606).
+  test('a visitor registers a rescue at /register-rescue and an admin sees it pending', async ({
+    browser,
+  }) => {
+    const rescueName = uniqueRescueName('X002 Form');
+    const ownerEmail = uniqueEmail('x002-owner');
 
-      const visitorContext = await browser.newContext({
-        baseURL: URLS.rescue,
-        storageState: { cookies: [], origins: [] },
+    const visitorContext = await browser.newContext({
+      baseURL: URLS.rescue,
+      storageState: { cookies: [], origins: [] },
+    });
+    const adminContext = await openRoleContext(browser, 'admin');
+    try {
+      const visitor = await visitorContext.newPage();
+      await dismissCookieBannerPatiently(visitor);
+      await visitor.goto('/register-rescue');
+
+      await visitor.getByLabel('First Name').fill('Rae');
+      await visitor.getByLabel('Last Name').fill('Scue');
+      await visitor.getByLabel('Email', { exact: true }).fill(ownerEmail);
+      await visitor.getByLabel('Password', { exact: true }).fill(PASSWORD);
+      await visitor.getByLabel('Confirm Password').fill(PASSWORD);
+      await visitor.getByRole('button', { name: 'Next' }).click();
+
+      await visitor.getByLabel('Organisation Name').fill(rescueName);
+      await visitor.getByLabel('Contact Email').fill(ownerEmail);
+      await visitor.getByRole('button', { name: 'Next' }).click();
+
+      await visitor.getByLabel('Address', { exact: true }).fill('1 Rescue Lane');
+      await visitor.getByLabel('City').fill('London');
+      await visitor.getByLabel('Postcode').fill('SW1A 1AA');
+      await visitor.getByRole('button', { name: 'Next' }).click();
+      await visitor.getByRole('button', { name: 'Next' }).click();
+      await visitor.getByRole('button', { name: 'Submit Registration' }).click();
+
+      await expect(visitor.getByRole('heading', { name: 'Registration Successful' })).toBeVisible({
+        timeout: 15_000,
       });
-      const adminContext = await openRoleContext(browser, 'admin');
-      try {
-        const visitor = await visitorContext.newPage();
-        await dismissCookieBannerPatiently(visitor);
-        await visitor.goto('/register-rescue');
 
-        await visitor.getByLabel('First Name').fill('Rae');
-        await visitor.getByLabel('Last Name').fill('Scue');
-        await visitor.getByLabel('Email', { exact: true }).fill(ownerEmail);
-        await visitor.getByLabel('Password', { exact: true }).fill(PASSWORD);
-        await visitor.getByLabel('Confirm Password').fill(PASSWORD);
-        await visitor.getByRole('button', { name: 'Next' }).click();
-
-        await visitor.getByLabel('Organisation Name').fill(rescueName);
-        await visitor.getByLabel('Contact Email').fill(ownerEmail);
-        await visitor.getByRole('button', { name: 'Next' }).click();
-
-        await visitor.getByLabel('Address', { exact: true }).fill('1 Rescue Lane');
-        await visitor.getByLabel('City').fill('London');
-        await visitor.getByLabel('Postcode').fill('SW1A 1AA');
-        await visitor.getByRole('button', { name: 'Next' }).click();
-        await visitor.getByRole('button', { name: 'Next' }).click();
-        await visitor.getByRole('button', { name: 'Submit Registration' }).click();
-
-        await expect(visitor.getByRole('heading', { name: 'Registration Successful' })).toBeVisible(
-          {
-            timeout: 15_000,
-          }
-        );
-
-        const admin = await adminContext.newPage();
-        await dismissCookieBannerPatiently(admin);
-        await admin.goto('/rescues');
-        await admin.getByPlaceholder('Search by name, city, or email...').fill(rescueName);
-        const row = admin.getByRole('row').filter({ hasText: rescueName });
-        await expect(row).toBeVisible({ timeout: 15_000 });
-        await expect(row.getByText('Pending Review')).toBeVisible();
-      } finally {
-        await visitorContext.close();
-        await adminContext.close();
-      }
+      const admin = await adminContext.newPage();
+      await dismissCookieBannerPatiently(admin);
+      await admin.goto('/rescues');
+      await admin.getByPlaceholder('Search by name, city, or email...').fill(rescueName);
+      const row = admin.getByRole('row').filter({ hasText: rescueName });
+      await expect(row).toBeVisible({ timeout: 15_000 });
+      await expect(row.getByText('Pending Review')).toBeVisible();
+    } finally {
+      await visitorContext.close();
+      await adminContext.close();
     }
-  );
+  });
 
   test('an admin approves a pending rescue, its owner lists a pet and adopters find it', async ({
     browser,

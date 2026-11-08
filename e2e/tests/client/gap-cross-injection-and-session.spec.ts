@@ -52,7 +52,8 @@ test.describe('X-011 script injection in text fields', () => {
     test.setTimeout(240_000);
 
     const marker = uniqueText('xss');
-    const payload = `<img src=x onerror="window.__xss=1"><script>window.__xss=2</script>${marker}`;
+    // Kept under the gateway's 100-character limit on a profile name (longer is a 400).
+    const payload = `<img src=x onerror=__xss=1><script>__xss=2</script>${marker}`;
     const rescueApi = await apiAs('rescue');
     const pet = await createAvailablePet(rescueApi, 'X011');
     const account = await createVerifiedAdopter('x011');

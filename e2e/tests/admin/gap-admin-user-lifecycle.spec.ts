@@ -69,27 +69,25 @@ const createSuspendedUser = async (adminApi: AdminApi, label: string): Promise<A
 };
 
 test.describe('reactivating a suspended user (ADM-023)', () => {
-  // BUG: the Users page "Unsuspend User" button PATCHes
-  // /admin/users/:id/action with { action: 'unsuspend' } (apps/admin
-  // userManagementService.unsuspendUser) but the gateway only accepts
-  // 'suspend' | 'reactivate', so it answers 400 and the user stays suspended.
-  test.fail(
-    'an admin unsuspends a user in the UI and the user can sign in again',
-    async ({ page, apiAs, browser }) => {
-      const account = await createSuspendedUser(await apiAs('admin'), 'reactivate-ui');
+  // The Unsuspend User button works since #1604.
+  test('an admin unsuspends a user in the UI and the user can sign in again', async ({
+    page,
+    apiAs,
+    browser,
+  }) => {
+    const account = await createSuspendedUser(await apiAs('admin'), 'reactivate-ui');
 
-      await openUserActions(page, account);
-      const row = page.getByRole('row').filter({ hasText: account.email });
-      await expect(row.getByRole('cell', { name: /suspended/i })).toBeVisible();
-      await page.getByRole('button', { name: 'Unsuspend User' }).click();
+    await openUserActions(page, account);
+    const row = page.getByRole('row').filter({ hasText: account.email });
+    await expect(row.getByRole('cell', { name: /suspended/i })).toBeVisible();
+    await page.getByRole('button', { name: 'Unsuspend User' }).click();
 
-      await expect(page.getByText('User unsuspended successfully')).toBeVisible({
-        timeout: 15_000,
-      });
-      await expect(row.getByRole('cell', { name: /active/i })).toBeVisible({ timeout: 15_000 });
-      await signInOnClient(browser, account);
-    }
-  );
+    await expect(page.getByText('User unsuspended successfully')).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(row.getByRole('cell', { name: /active/i })).toBeVisible({ timeout: 15_000 });
+    await signInOnClient(browser, account);
+  });
 
   test('a user reactivated through the moderation endpoint can sign in on the client again', async ({
     page,
@@ -120,10 +118,9 @@ test.describe('reactivating a suspended user (ADM-023)', () => {
 });
 
 test.describe('audit trail of a suspension (ADM-150)', () => {
-  // BUG: suspending or reactivating a user (PATCH /admin/users/:id/action ->
-  // auth deactivateUser/reactivateUser) publishes `auth.userDeactivated` /
-  // `auth.userReactivated`, not `<domain>.actionTaken`, so service.audit's
-  // `*.actionTaken` subscriber never persists it and /audit has no entry.
+  // BUG: since #1604 the suspension is audited, but the entry names no actor: /audit shows
+  // it as performed by "System" (no admin email), so "who" is missing. Remove test.fail
+  // once the entry carries the acting admin.
   test.fail('the suspension appears in /audit with who, what and when', async ({ page, apiAs }) => {
     const adminApi = await apiAs('admin');
     const account = await createVerifiedAdopter('audit');
