@@ -69,18 +69,18 @@ Pet listings, media, and status history.
 
 ## rescue
 
-Rescue orgs, staff, foster placements, and events.
+Rescue orgs, staff, and foster placements.
 
-| Table                   | Purpose                               | Created in                            |
-| ----------------------- | ------------------------------------- | ------------------------------------- |
-| `rescues`               | Rescue organisations                  | `001_create_rescues.ts`               |
-| `rescue_settings`       | Per-rescue configuration              | `002_create_rescue_settings.ts`       |
-| `staff_members`         | Staff/volunteer memberships           | `003_create_staff_members.ts`         |
-| `invitations`           | Staff invitations (hashed tokens)     | `004_create_invitations.ts`           |
-| `foster_placements`     | Foster placements                     | `005_create_foster_placements.ts`     |
-| `application_questions` | Rescue-specific application questions | `006_create_application_questions.ts` |
-| `events`                | Rescue events                         | `009_create_events.ts`                |
-| `event_attendees`       | Event RSVPs                           | `010_create_event_attendees.ts`       |
+| Table                   | Purpose                                 | Created in                            |
+| ----------------------- | --------------------------------------- | ------------------------------------- |
+| `rescues`               | Rescue organisations                    | `001_create_rescues.ts`               |
+| `rescue_settings`       | Per-rescue configuration                | `002_create_rescue_settings.ts`       |
+| `staff_members`         | Staff/volunteer memberships             | `003_create_staff_members.ts`         |
+| `invitations`           | Staff invitations (hashed tokens)       | `004_create_invitations.ts`           |
+| `foster_placements`     | Foster placements                       | `005_create_foster_placements.ts`     |
+| `application_questions` | Rescue-specific application questions   | `006_create_application_questions.ts` |
+| `events`                | Rescue events (unused; feature removed) | `009_create_events.ts`                |
+| `event_attendees`       | Event RSVPs (unused; feature removed)   | `010_create_event_attendees.ts`       |
 
 ## applications
 

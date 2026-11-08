@@ -135,7 +135,6 @@ test.describe('an adopter on the rescue and admin apps (X-010)', () => {
     const rescueOnlyAndAdminEndpoints = [
       '/api/v1/staff/colleagues',
       '/api/v1/foster/placements',
-      '/api/v1/events',
       '/api/v1/reports',
       '/api/v1/admin/users',
     ];

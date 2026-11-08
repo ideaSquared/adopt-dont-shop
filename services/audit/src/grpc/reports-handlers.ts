@@ -429,7 +429,7 @@ export async function listReportTemplates(
   // as an optional narrowing filter. A rescue-scoped caller is always
   // constrained to their own rescue plus system templates, and a caller with
   // no rescue context falls through to system templates only — never the
-  // unscoped table (compare ADS-934 in rescue/src/grpc/event-handlers.ts).
+  // unscoped table.
   if (hasPerm(principal, REPORTS_READ_ANY)) {
     if (req.rescueId !== undefined && req.rescueId !== '') {
       where.push(`(rescue_id = $${params.length + 1} OR rescue_id IS NULL)`);

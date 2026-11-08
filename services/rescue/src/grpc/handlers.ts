@@ -113,8 +113,8 @@ export type HandlerErrorCode =
   | 'NOT_FOUND'
   | 'ALREADY_EXISTS'
   | 'FAILED_PRECONDITION'
-  // Retryable downstream failure (e.g. service.applications UNAVAILABLE /
-  // DEADLINE_EXCEEDED on event attribution — ADS-1022). Mapped to
+  // Retryable downstream failure (e.g. a downstream service UNAVAILABLE /
+  // DEADLINE_EXCEEDED). Mapped to
   // grpc.status.UNAVAILABLE by the shared CODE_TO_GRPC table.
   | 'UNAVAILABLE'
   | 'INTERNAL';

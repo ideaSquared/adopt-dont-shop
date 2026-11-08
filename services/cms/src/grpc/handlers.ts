@@ -288,7 +288,7 @@ function parseTs(raw: string | undefined): Date | null {
 // covered by the content body sanitiser, so CreateContent/UpdateContent
 // need the same scheme/host allowlist as the other stored-URL write
 // boundaries. Forked from isSafeImageUrl
-// (services/gateway/src/routes/events.schemas.ts) the same way ADS-1343
+// (services/gateway/src/routes/image-url.ts) the same way ADS-1343
 // forked it into services/pets/src/grpc/handlers.ts — defense-in-depth at
 // this handler's own write boundary, for any caller of the gRPC method,
 // not just the gateway.

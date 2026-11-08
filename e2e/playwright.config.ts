@@ -173,7 +173,6 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // verified green in CI before listing here.
     '**/pet-listing-management.spec.ts',
     '**/staff-management.spec.ts',
-    '**/home-visit-scheduling.spec.ts',
     '**/staff-invitation-acceptance.spec.ts',
     '**/invitation-expiry-and-resend.spec.ts',
     // ADS-871 — staff-invitation round-trip, now COMPLETE: the register-on-
@@ -213,14 +212,13 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     //   the staff member's own rescue.
     '**/review-and-approve-via-ui.spec.ts',
     '**/add-pet-via-ui.spec.ts',
-    // Manual-QA coverage (RES-003/004/006/022/025/050/070/071/080/101, X-010 and the
+    // Manual-QA coverage (RES-003/004/006/022/025/050/080/101, X-010 and the
     // page-load smoke over every rescue route). Cases blocked by app bugs are
     // test.fixme in the specs themselves.
     '**/auth-guards.spec.ts',
     '**/cookie-consent.spec.ts',
     '**/page-load-smoke.spec.ts',
     '**/rescue-settings-persistence.spec.ts',
-    '**/events-management.spec.ts',
     '**/foster-coordination.spec.ts',
     '**/add-pet-validation.spec.ts',
     '**/cross-tenant-and-role-isolation.spec.ts',

@@ -108,12 +108,7 @@ _Out of scope / roadmap:_ Role/permission assignment UI, activity tracking UI, t
 
 ### 7. Event Management
 
-_Status: Shipped (roadmap items noted inline)._
-
-- Create/list adoption events, fundraisers, meet-and-greets (`Events.tsx`)
-- Calendar view (`EventCalendar`)
-
-_Out of scope / roadmap:_ External calendar integration (Google/iCal), event analytics surfaced in UI, training-specific event types.
+_Status: Removed. Rescues do not run events; the feature (UI, gateway routes and rescue RPCs) was removed._
 
 ### 8. Foster Coordination
 
@@ -229,7 +224,6 @@ interface FosterPlacementAttributes {
 - Staff: `staffService`
 - Invitations: `invitationService` (`lib.invitations`)
 - Analytics: `analyticsService` + `lib.analytics`
-- Events: `eventsService`
 - Rescue config: `rescueService`
 - Permissions: `permissionsService` (`lib.permissions`)
 - Foster: `/api/v1/foster/placements` (new)

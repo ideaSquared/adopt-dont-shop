@@ -153,7 +153,7 @@ describe('rescue Navigation [ADS-645 / A7 ADS-1077]', () => {
     expect(screen.getByRole('group', { name: 'Admin' })).toBeInTheDocument();
   });
 
-  it('places Dashboard, Pets, Applications, Foster and Events under Operations', () => {
+  it('places Dashboard, Pets, Applications, and Foster under Operations', () => {
     renderNav({ permissions: RESCUE_ADMIN_PERMS });
 
     const ops = screen.getByRole('group', { name: 'Operations' });
@@ -164,7 +164,6 @@ describe('rescue Navigation [ADS-645 / A7 ADS-1077]', () => {
       '/applications'
     );
     expect(within(ops).getByRole('link', { name: /Foster/ })).toHaveAttribute('href', '/foster');
-    expect(within(ops).getByRole('link', { name: /Events/ })).toHaveAttribute('href', '/events');
   });
 
   it('places Messages under Communication', () => {

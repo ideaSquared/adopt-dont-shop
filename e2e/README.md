@@ -37,7 +37,7 @@ Many specs set up or even complete a journey through the API, which proves the b
 | Admin   | Suspend a user (they can no longer log in)               | `admin/suspend-user-via-ui`                                         |
 | Admin   | Publish a blog post; visitors read it                    | `admin/publish-blog-post-via-ui`                                    |
 
-Still covered through the API only (worth a UI spec next): home-visit scheduling, staff invitations, custom questions (rescue side), notification preferences, bulk user actions, moderation/support triage and audit log (page-load smokes only).
+Still covered through the API only (worth a UI spec next): staff invitations, custom questions (rescue side), notification preferences, bulk user actions, moderation/support triage and audit log (page-load smokes only).
 
 ## Layout
 
