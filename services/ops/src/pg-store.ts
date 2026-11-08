@@ -75,16 +75,28 @@ const toPlan = (row: PlanRow): PlanRecord => ({
 });
 
 export const createPgStore = (pool: Pool, nats: NatsConnection): OpsStore => ({
-  async upsertOperator(input, now) {
+  async upsertGithubOperator(input, now) {
     const { rows } = await pool.query<OperatorRow>(
       `INSERT INTO operators (github_login, github_id, name, last_seen_at)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (github_login) DO UPDATE
-         SET github_id = COALESCE(EXCLUDED.github_id, operators.github_id),
+       ON CONFLICT (github_id) DO UPDATE
+         SET github_login = EXCLUDED.github_login,
              name = EXCLUDED.name,
              last_seen_at = EXCLUDED.last_seen_at
        RETURNING operator_id, github_login, name`,
       [input.login, input.githubId, input.name, now]
+    );
+    return toOperator(rows[0]);
+  },
+
+  async upsertLocalOperator(input, now) {
+    const { rows } = await pool.query<OperatorRow>(
+      `INSERT INTO operators (github_login, github_id, name, last_seen_at)
+       VALUES ($1, NULL, NULL, $2)
+       ON CONFLICT (github_login) WHERE github_id IS NULL DO UPDATE
+         SET last_seen_at = EXCLUDED.last_seen_at
+       RETURNING operator_id, github_login, name`,
+      [input.login, now]
     );
     return toOperator(rows[0]);
   },
@@ -96,12 +108,15 @@ export const createPgStore = (pool: Pool, nats: NatsConnection): OpsStore => ({
     ]);
   },
 
-  async createSession(input, now) {
-    await pool.query(
-      `INSERT INTO sessions (operator_id, token_hash, created_at, expires_at)
-       VALUES ($1, $2, $3, $4)`,
-      [input.operatorId, input.tokenHash, now, input.expiresAt]
-    );
+  async createSession(input, event, now) {
+    await withTransaction({ pool, nats }, async ({ client, publish }) => {
+      await client.query(
+        `INSERT INTO sessions (session_id, operator_id, token_hash, created_at, expires_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [input.sessionId, input.operatorId, input.tokenHash, now, input.expiresAt]
+      );
+      publish(event);
+    });
   },
 
   async findSession(tokenHash, now): Promise<SessionRecord | null> {
@@ -117,11 +132,16 @@ export const createPgStore = (pool: Pool, nats: NatsConnection): OpsStore => ({
       : null;
   },
 
-  async revokeSession(sessionId, now) {
-    await pool.query(
-      `UPDATE sessions SET revoked_at = $2 WHERE session_id = $1 AND revoked_at IS NULL`,
-      [sessionId, now]
-    );
+  async revokeSession(sessionId, event, now) {
+    await withTransaction({ pool, nats }, async ({ client, publish }) => {
+      const { rowCount } = await client.query(
+        `UPDATE sessions SET revoked_at = $2 WHERE session_id = $1 AND revoked_at IS NULL`,
+        [sessionId, now]
+      );
+      if (rowCount === 1) {
+        publish(event);
+      }
+    });
   },
 
   async createPlan(plan, now) {

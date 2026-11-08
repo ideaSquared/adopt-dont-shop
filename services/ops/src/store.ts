@@ -47,19 +47,27 @@ export type HistoryRecord = Pick<
 // argument so the implementation can write the row and the event atomically
 // (event_outbox, via withTransaction).
 export type OpsStore = {
-  upsertOperator(
-    input: { login: string; githubId: number | null; name: string | null },
+  // GitHub operators are identified by the stable GitHub account id: a rename
+  // updates the login on the same operator, and a different account that later
+  // takes the old login gets a new operator.
+  upsertGithubOperator(
+    input: { login: string; githubId: number; name: string | null },
     now: Date
   ): Promise<OperatorRecord>;
+  // Dev-only local login: identified by login among operators with no GitHub id.
+  upsertLocalOperator(input: { login: string }, now: Date): Promise<OperatorRecord>;
   touchOperator(operatorId: string, now: Date): Promise<void>;
 
+  // Inserts the session and publishes `event` in the same transaction.
   createSession(
-    input: { operatorId: string; tokenHash: string; expiresAt: Date },
+    input: { sessionId: string; operatorId: string; tokenHash: string; expiresAt: Date },
+    event: DomainEvent,
     now: Date
   ): Promise<void>;
   // Live sessions only: not revoked, not expired.
   findSession(tokenHash: string, now: Date): Promise<SessionRecord | null>;
-  revokeSession(sessionId: string, now: Date): Promise<void>;
+  // Publishes `event` in the same transaction, only when a live session was revoked.
+  revokeSession(sessionId: string, event: DomainEvent, now: Date): Promise<void>;
 
   createPlan(plan: Omit<PlanRecord, 'usedAt'>, now: Date): Promise<void>;
   findPlan(planId: string): Promise<PlanRecord | null>;

@@ -48,19 +48,30 @@ pnpm ops login && pnpm ops pets         # drive it with the CLI
 
 ## Environment variables consumed
 
-| Variable                                                         | Notes                                                                                          |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `OPS_ENV`                                                        | **Required**: `dev`, `staging` or `prod`. Never inferred.                                      |
-| `OPS_HTTP_PORT`                                                  | Default `4100` (inside the container).                                                         |
-| `DATABASE_URL`, `NATS_URL`, `NATS_AUTH_TOKEN`                    | As other services.                                                                             |
-| `PRINCIPAL_SIGNING_KEY` / `_FILE`                                | **Required in every environment**, at least 32 bytes. Roleless principals only work signed.    |
-| `OPS_AUTH_MODE`                                                  | `github` (default) or `local`. `local` throws unless `NODE_ENV=development` and `OPS_ENV=dev`. |
-| `OPS_GITHUB_CLIENT_ID`, `OPS_GITHUB_ORG`, `OPS_GITHUB_TEAM`      | Required in github mode. Device flow must be enabled on the OAuth app; scope `read:org`.       |
-| `OPS_DISCORD_WEBHOOK_URL` / `_FILE`                              | Required for unlocks on staging/prod (`UNLOCKS_DISABLED` otherwise).                           |
-| `OPS_SESSION_TTL_HOURS`                                          | Default `8`.                                                                                   |
-| `AUTH_GRPC_URL`, `PETS_GRPC_URL`, ... (gateway's names/defaults) | gRPC targets.                                                                                  |
+| Variable                                                         | Notes                                                                                                                                  |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPS_ENV`                                                        | **Required**: `dev`, `staging` or `prod`. Never inferred.                                                                              |
+| `OPS_HTTP_PORT`                                                  | Default `4100` (inside the container).                                                                                                 |
+| `DATABASE_URL`, `NATS_URL`, `NATS_AUTH_TOKEN`                    | As other services.                                                                                                                     |
+| `PRINCIPAL_SIGNING_KEY` / `_FILE`                                | **Required in every environment**, at least 32 bytes. Roleless principals only work signed.                                            |
+| `OPS_AUTH_MODE`                                                  | `github` (default) or `local`. `local` throws unless `NODE_ENV=development` and `OPS_ENV=dev`.                                         |
+| `OPS_GITHUB_CLIENT_ID`, `OPS_GITHUB_ORG`, `OPS_GITHUB_TEAM`      | Required in github mode. Device flow must be enabled on the OAuth app; scope `read:org`.                                               |
+| `OPS_DISCORD_WEBHOOK_URL` / `_FILE`                              | Required for unlocks on staging/prod (`UNLOCKS_DISABLED` otherwise). The alert is posted first; if it fails the unlock is not granted. |
+| `OPS_SESSION_TTL_HOURS`                                          | Default `8`.                                                                                                                           |
+| `AUTH_GRPC_URL`, `PETS_GRPC_URL`, ... (gateway's names/defaults) | gRPC targets.                                                                                                                          |
 
 ## REST / gRPC contract
+
+Every `/v1/*` route (login included) requires the `x-ops-expected-env` header
+(`EXPECTED_ENV_HEADER`) and it must equal this service's `OPS_ENV`; otherwise the response is
+`FAILED_PRECONDITION` (412) before authentication or any other work, so a tunnel pointed at the
+wrong stack cannot log in, read or unlock. `/health/*` and `/metrics` are exempt.
+
+Operators are identified by the stable GitHub account id: a rename updates the login on the same
+operator, and a different account that later takes the old login gets a new operator (no old
+unlocks or history). Local logins (dev only, no GitHub id) are keyed by login. Login and logout
+each publish an `ops.actionTaken` event (`login` / `logout`: operator, login, auth mode, session
+id; never the token or its hash) in the same transaction as the session row.
 
 `POST /v1/login/start`, `/v1/login/poll`, `/v1/login/local` (local mode only), `/v1/logout`,
 `GET /v1/whoami`, `GET /v1/catalog`, `GET /v1/history`, `POST /v1/invoke`,
@@ -76,6 +87,10 @@ pnpm ops login && pnpm ops pets         # drive it with the CLI
 - **Dry-run modes**: `rollback` sends `x-dry-run: 1` and requires the `x-dry-run-applied` echo
   (otherwise `INTERNAL`, and the write may have applied); `native` sets the request's own `dryRun`
   true for the preview and false on execute; `preview-only` calls nothing.
+- **Unlocks** (`POST /v1/unlocks`): with a webhook configured, the Discord alert is posted
+  before anything is recorded. A network error or non-2xx means no unlock and `UNLOCKS_DISABLED`
+  ("Could not alert #ops, so the unlock was not granted"). Dev without a webhook records the unlock
+  with no alert.
 - **PII lookups** (a registry `piiRequestFields` field set) need an active unlock.
 - **Masking** follows the proto `sensitivity` option (see `src/masking.ts`); hidden values become
   `{"$hidden": true}`. An unlock matching the registry `subject` (or `any`) reveals them and logs
@@ -106,7 +121,7 @@ pnpm ops login && pnpm ops pets         # drive it with the CLI
 
 ## Schema (`ops`)
 
-`operators`, `sessions` (token sha256 only), `plans`, `unlocks`, `access_log` (append-only; row
+`operators` (`github_id` unique; `github_login` unique only among local operators), `sessions` (token sha256 only), `plans`, `unlocks`, `access_log` (append-only; row
 triggers reject UPDATE/DELETE and a statement trigger rejects TRUNCATE, no bypass), `event_outbox`.
 Migrations: `src/migrations/001`-`006`.
 

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  EXPECTED_ENV_HEADER,
   ErrorResponseSchema,
   type OpsEnv,
   CatalogResponseSchema,
@@ -30,6 +31,19 @@ export type ClientOptions = {
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 
+// Defence in depth behind the server's own X-Ops-Expected-Env check: a
+// response that names another environment is never trusted or cached.
+const assertSameEnv = <T extends { readonly env: OpsEnv }>(selected: OpsEnv, data: T): T => {
+  if (data.env === selected) {
+    return data;
+  }
+  throw new CliError(
+    `The server answered for ${data.env}, but you selected ${selected}.`,
+    1,
+    'The SSH tunnel or base URL points at the wrong stack. Run `pnpm ops tunnel stop all` and try again.'
+  );
+};
+
 export const createClient = (options: ClientOptions) => {
   const send = async <T>(
     method: string,
@@ -42,6 +56,7 @@ export const createClient = (options: ClientOptions) => {
         method,
         headers: {
           accept: 'application/json',
+          [EXPECTED_ENV_HEADER]: options.env,
           ...(body === undefined ? {} : { 'content-type': 'application/json' }),
           ...(options.token ? { authorization: `Bearer ${options.token}` } : {}),
         },
@@ -71,15 +86,19 @@ export const createClient = (options: ClientOptions) => {
 
   const get = async <T>(path: string, schema: z.ZodType<T>) =>
     (await send('GET', path, schema)).data;
+  // Catalog and whoami say which environment answered; refuse a different one.
+  const getSameEnv = async <T extends { readonly env: OpsEnv }>(
+    path: string,
+    schema: z.ZodType<T>
+  ) => assertSameEnv(options.env, (await send('GET', path, schema)).data);
   const post = async <T>(path: string, body: unknown, schema: z.ZodType<T>) =>
     (await send('POST', path, schema, body)).data;
 
   return {
     env: options.env,
     withToken: (token: string) => createClient({ ...options, token }),
-    whoami: () => get('/v1/whoami', WhoamiResponseSchema),
-    whoamiWithHeaders: () => send('GET', '/v1/whoami', WhoamiResponseSchema),
-    catalog: () => get('/v1/catalog', CatalogResponseSchema),
+    whoami: () => getSameEnv('/v1/whoami', WhoamiResponseSchema),
+    catalog: () => getSameEnv('/v1/catalog', CatalogResponseSchema),
     invoke: (request: InvokeRequest) => post('/v1/invoke', request, InvokeResponseSchema),
     history: (limit: number) => get(`/v1/history?limit=${limit}`, HistoryResponseSchema),
     listUnlocks: () => get('/v1/unlocks', ListUnlocksResponseSchema),

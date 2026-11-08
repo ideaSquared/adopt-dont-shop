@@ -94,3 +94,41 @@ export const writeExecutedEvent = (params: {
     details: { rpc: params.rpc, requestHash: params.requestHash },
     now: params.now,
   });
+
+export const sessionOpenedEvent = (params: {
+  operatorId: string;
+  login: string;
+  authMode: 'github' | 'local';
+  sessionId: string;
+  expiresAt: Date;
+  now: Date;
+}): DomainEvent =>
+  actionTaken({
+    operatorId: params.operatorId,
+    aggregateType: 'operator',
+    aggregateId: params.operatorId,
+    action: 'login',
+    // Never the session token or its hash.
+    details: {
+      login: params.login,
+      authMode: params.authMode,
+      sessionId: params.sessionId,
+      expiresAt: params.expiresAt.toISOString(),
+    },
+    now: params.now,
+  });
+
+export const sessionRevokedEvent = (params: {
+  operatorId: string;
+  login: string;
+  sessionId: string;
+  now: Date;
+}): DomainEvent =>
+  actionTaken({
+    operatorId: params.operatorId,
+    aggregateType: 'operator',
+    aggregateId: params.operatorId,
+    action: 'logout',
+    details: { login: params.login, sessionId: params.sessionId },
+    now: params.now,
+  });

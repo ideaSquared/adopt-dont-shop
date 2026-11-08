@@ -17,6 +17,12 @@ import { z } from 'zod';
 export const OpsEnvSchema = z.enum(['dev', 'staging', 'prod']);
 export type OpsEnv = z.infer<typeof OpsEnvSchema>;
 
+// Every /v1 request carries the environment the CLI believes it is talking
+// to. service.ops rejects a mismatch with FAILED_PRECONDITION before doing
+// anything else, so a tunnel forwarded to the wrong stack (e.g. the staging
+// port pointing at prod) can never log in, read or unlock there.
+export const EXPECTED_ENV_HEADER = 'x-ops-expected-env';
+
 // ---------------------------------------------------------------------------
 // Errors
 // ---------------------------------------------------------------------------

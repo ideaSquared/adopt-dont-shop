@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { createMicroserviceServer, type ReadinessDeps } from '@adopt-dont-shop/service-bootstrap';
 import {
   CreateUnlockRequestSchema,
+  EXPECTED_ENV_HEADER,
   HistoryResponseSchema,
   InvokeRequestSchema,
   InvokeResponseSchema,
@@ -84,6 +85,22 @@ export const createServer = (deps: OpsServerDeps): FastifyInstance => {
         new OpsError('INTERNAL', 'Unexpected failure', 'Check the service.ops logs.')
       );
     });
+    // Runs before authentication or any other work: a tunnel pointed at the wrong
+    // stack must not be able to log in, read or unlock there. Health and metrics
+    // live outside this plugin and are exempt.
+    api.addHook('onRequest', async req => {
+      const expected = req.headers[EXPECTED_ENV_HEADER];
+      if (expected === deps.config.env) {
+        return;
+      }
+      throw new OpsError(
+        'FAILED_PRECONDITION',
+        typeof expected === 'string'
+          ? `This ops server is ${deps.config.env}, but the CLI expected ${expected}`
+          : `This ops server is ${deps.config.env}, but the request did not say which environment the CLI expected`,
+        'Check the SSH tunnel points at the right environment, or run `pnpm ops doctor`.'
+      );
+    });
     const parseBody = <T>(
       schema: {
         safeParse: (
@@ -140,7 +157,7 @@ export const createServer = (deps: OpsServerDeps): FastifyInstance => {
       });
 
       scope.post('/v1/logout', async (req, reply) => {
-        await deps.auth.logout(ctxOf(req).sessionId);
+        await deps.auth.logout(ctxOf(req));
         return reply.status(204).send();
       });
 

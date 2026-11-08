@@ -37,6 +37,10 @@ export const toUnlock = (record: UnlockRecord): Unlock => ({
 export const createUnlocksService = (deps: UnlocksDeps) => {
   const { store, now } = deps;
 
+  // With a webhook configured, the alert is the gate: it is posted before the
+  // unlock is recorded, and a failed alert (network error or non-2xx) means no
+  // unlock. Without one (dev only; other envs are refused earlier) there is
+  // nothing to send.
   const alert = async (ctx: AuthContext, record: UnlockRecord): Promise<void> => {
     if (deps.discordWebhookUrl === undefined) {
       return;
@@ -51,7 +55,7 @@ export const createUnlocksService = (deps: UnlocksDeps) => {
       `expires: ${record.expiresAt.toISOString()}`,
     ].join('\n');
     // Never log the webhook URL: it is a credential.
-    await deps
+    const delivered = await deps
       .fetchFn(deps.discordWebhookUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -61,8 +65,19 @@ export const createUnlocksService = (deps: UnlocksDeps) => {
         if (!res.ok) {
           deps.logger.warn('discord alert rejected', { status: res.status });
         }
+        return res.ok;
       })
-      .catch(() => deps.logger.warn('discord alert failed to send'));
+      .catch(() => {
+        deps.logger.warn('discord alert failed to send');
+        return false;
+      });
+    if (!delivered) {
+      throw new OpsError(
+        'UNLOCKS_DISABLED',
+        'Could not alert #ops, so the unlock was not granted',
+        'Retry, or check that OPS_DISCORD_WEBHOOK_URL is valid.'
+      );
+    }
   };
 
   const create = async (ctx: AuthContext, req: CreateUnlockRequest): Promise<Unlock> => {
@@ -86,6 +101,7 @@ export const createUnlocksService = (deps: UnlocksDeps) => {
       createdAt: at,
       expiresAt: new Date(at.getTime() + ttlMinutes * MINUTE_MS),
     };
+    await alert(ctx, record);
     await store.createUnlock(
       record,
       unlockCreatedEvent({
@@ -104,8 +120,6 @@ export const createUnlocksService = (deps: UnlocksDeps) => {
       subjectType: record.subjectType,
       ticket: record.ticket,
     });
-    // A failed alert never undoes the unlock: it is already recorded and audited.
-    await alert(ctx, record);
     return toUnlock(record);
   };
 

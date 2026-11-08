@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import type {
   LocalLoginResponse,
@@ -10,6 +10,7 @@ import type {
 
 import { sha256Hex } from './access-chain.js';
 import { OpsError } from './errors.js';
+import { sessionOpenedEvent, sessionRevokedEvent } from './events.js';
 import type { GithubClient } from './github.js';
 import type { OperatorRecord, OpsStore } from './store.js';
 
@@ -44,12 +45,25 @@ export const hashToken = (token: string): string => sha256Hex(token);
 export const createAuthService = (opts: AuthServiceOptions) => {
   const { store, now } = opts;
 
-  const openSession = async (record: OperatorRecord): Promise<Session> => {
+  // The session row and its `login` audit event commit together.
+  const openSession = async (
+    record: OperatorRecord,
+    authMode: 'github' | 'local'
+  ): Promise<Session> => {
     const at = now();
     const token = newToken();
+    const sessionId = randomUUID();
     const expiresAt = new Date(at.getTime() + opts.sessionTtlHours * HOUR_MS);
     await store.createSession(
-      { operatorId: record.operatorId, tokenHash: hashToken(token), expiresAt },
+      { sessionId, operatorId: record.operatorId, tokenHash: hashToken(token), expiresAt },
+      sessionOpenedEvent({
+        operatorId: record.operatorId,
+        login: record.login,
+        authMode,
+        sessionId,
+        expiresAt,
+        now: at,
+      }),
       at
     );
     return { token, expiresAt: expiresAt.toISOString(), operator: toOperator(record) };
@@ -73,7 +87,7 @@ export const createAuthService = (opts: AuthServiceOptions) => {
     if (result.status !== 'ok') {
       return result;
     }
-    const operator = await store.upsertOperator(
+    const operator = await store.upsertGithubOperator(
       {
         login: result.identity.login,
         githubId: result.identity.githubId,
@@ -81,7 +95,7 @@ export const createAuthService = (opts: AuthServiceOptions) => {
       },
       now()
     );
-    return { status: 'ok', session: await openSession(operator) };
+    return { status: 'ok', session: await openSession(operator, 'github') };
   };
 
   const localLogin = async (login: string): Promise<LocalLoginResponse> => {
@@ -92,8 +106,8 @@ export const createAuthService = (opts: AuthServiceOptions) => {
         'Run `pnpm ops login` (GitHub) instead.'
       );
     }
-    const operator = await store.upsertOperator({ login, githubId: null, name: null }, now());
-    return { session: await openSession(operator) };
+    const operator = await store.upsertLocalOperator({ login }, now());
+    return { session: await openSession(operator, 'local') };
   };
 
   // Resolves a bearer token to a live session, or null. Touches last_seen_at.
@@ -111,7 +125,19 @@ export const createAuthService = (opts: AuthServiceOptions) => {
     };
   };
 
-  const logout = (sessionId: string): Promise<void> => store.revokeSession(sessionId, now());
+  const logout = (ctx: AuthContext): Promise<void> => {
+    const at = now();
+    return store.revokeSession(
+      ctx.sessionId,
+      sessionRevokedEvent({
+        operatorId: ctx.operator.operatorId,
+        login: ctx.operator.login,
+        sessionId: ctx.sessionId,
+        now: at,
+      }),
+      at
+    );
+  };
 
   return { startLogin, pollLogin, localLogin, authenticate, logout };
 };

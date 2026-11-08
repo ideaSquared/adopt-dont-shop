@@ -205,13 +205,15 @@ export const runTunnel = async (
   if (action === 'stop') {
     const targets = target === 'all' ? remote : [env];
     const stopped = await Promise.all(
-      targets.map(async e => ({ e, ok: await stopTunnel(ctx, e) }))
+      targets.map(async e => ({ e, result: await stopTunnel(ctx, e) }))
     );
     out.body(
-      stopped.map(({ e, ok }) =>
-        ok
+      stopped.map(({ e, result }) =>
+        result === 'stopped'
           ? `  ${ctx.theme.ok(ctx.theme.sym.ok)} Stopped the ${e} tunnel`
-          : `  ${ctx.theme.dim(`No ${e} tunnel was running`)}`
+          : result === 'manual'
+            ? `  ${ctx.theme.dim(`Forgot the ${e} tunnel. On Windows, close the ssh window or process yourself.`)}`
+            : `  ${ctx.theme.dim(`No ${e} tunnel was running`)}`
       )
     );
     return 0;

@@ -121,6 +121,11 @@ describe('setup wizard', () => {
         return { pid: 321 };
       },
       kill: (pid: number) => (killed.push(pid), (up = false), true),
+      exec: async () => ({
+        code: 0,
+        stdout: 'ssh -N -L 14101:127.0.0.1:4101 ads-ops@ops.example.com\n',
+        stderr: '',
+      }),
     };
     expect(await main(['setup'], ctx)).toBe(0);
     expect((await ctx.store.readConfig()).ssh.staging).toEqual({

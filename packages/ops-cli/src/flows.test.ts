@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { InvokeRequest } from '@adopt-dont-shop/ops-contract';
+import { EXPECTED_ENV_HEADER, type InvokeRequest } from '@adopt-dont-shop/ops-contract';
 import { CancelledError } from './errors.js';
 import { main } from './router.js';
 import {
@@ -39,7 +39,7 @@ const server =
       return json({ ok: true });
     }
     if (req.path === '/v1/catalog') {
-      return json(sampleCatalog);
+      return json({ ...sampleCatalog, env: req.headers.get(EXPECTED_ENV_HEADER) });
     }
     if (req.path === '/v1/invoke') {
       return invoke(req.body as InvokeRequest);
@@ -612,7 +612,15 @@ describe('top-level commands', () => {
   });
 
   it('manage the tunnel', async () => {
-    const ctx = await makeCtx({ routes: () => undefined });
+    const base = await makeCtx({ routes: () => undefined });
+    const ctx = {
+      ...base,
+      exec: async () => ({
+        code: 0,
+        stdout: 'ssh -N -L 14101:127.0.0.1:4101 u@h\n',
+        stderr: '',
+      }),
+    };
     await ctx.store.writeTunnel('staging', { pid: 5, startedAt: '2026-10-12T14:00:00.000Z' });
     expect(await main(['tunnel', 'status', '-o', 'pretty'], ctx)).toBe(0);
     expect(ctx.stdout()).toContain('down');

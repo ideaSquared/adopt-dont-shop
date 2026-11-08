@@ -29,6 +29,12 @@ const withStore = <T>(
     return fn({ store: createPgStore(pool, nats.connection), pool, published: nats.published });
   });
 
+const auditEvent = () => ({
+  id: `ops.actionTaken.${randomUUID()}`,
+  type: 'ops.actionTaken',
+  payload: { eventId: randomUUID() },
+});
+
 const entry = (operatorId: string, over: Partial<AccessLogEntry> = {}): AccessLogEntry => ({
   at: NOW.toISOString(),
   operatorId,
@@ -47,15 +53,24 @@ const entry = (operatorId: string, over: Partial<AccessLogEntry> = {}): AccessLo
 describe.skipIf(!process.env.DATABASE_URL)('ops store (real Postgres)', () => {
   it('upserts an operator by login and finds a live session by token hash', async () => {
     await withStore(async ({ store }) => {
-      const first = await store.upsertOperator({ login: 'octocat', githubId: 1, name: null }, NOW);
-      const again = await store.upsertOperator(
+      const first = await store.upsertGithubOperator(
+        { login: 'octocat', githubId: 1, name: null },
+        NOW
+      );
+      const again = await store.upsertGithubOperator(
         { login: 'octocat', githubId: 1, name: 'Mona' },
         LATER
       );
       expect(again.operatorId).toBe(first.operatorId);
 
       await store.createSession(
-        { operatorId: first.operatorId, tokenHash: 'h'.repeat(64), expiresAt: LATER },
+        {
+          sessionId: randomUUID(),
+          operatorId: first.operatorId,
+          tokenHash: 'h'.repeat(64),
+          expiresAt: LATER,
+        },
+        auditEvent(),
         NOW
       );
       const session = await store.findSession('h'.repeat(64), NOW);
@@ -65,9 +80,67 @@ describe.skipIf(!process.env.DATABASE_URL)('ops store (real Postgres)', () => {
     });
   });
 
+  it('keeps the operator across a GitHub rename', async () => {
+    await withStore(async ({ store }) => {
+      const before = await store.upsertGithubOperator(
+        { login: 'octocat', githubId: 1, name: null },
+        NOW
+      );
+      const after = await store.upsertGithubOperator(
+        { login: 'octocat-renamed', githubId: 1, name: null },
+        LATER
+      );
+      expect(after.operatorId).toBe(before.operatorId);
+      expect(after.login).toBe('octocat-renamed');
+    });
+  });
+
+  it('gives a different GitHub id that reuses a login a new operator', async () => {
+    await withStore(async ({ store }) => {
+      const old = await store.upsertGithubOperator(
+        { login: 'octocat', githubId: 1, name: null },
+        NOW
+      );
+      const newcomer = await store.upsertGithubOperator(
+        { login: 'octocat', githubId: 2, name: null },
+        LATER
+      );
+      expect(newcomer.operatorId).not.toBe(old.operatorId);
+    });
+  });
+
+  it('keeps local operators unique by login, separate from GitHub operators', async () => {
+    await withStore(async ({ store }) => {
+      const github = await store.upsertGithubOperator(
+        { login: 'dev', githubId: 7, name: null },
+        NOW
+      );
+      const local = await store.upsertLocalOperator({ login: 'dev' }, NOW);
+      const again = await store.upsertLocalOperator({ login: 'dev' }, LATER);
+      expect(local.operatorId).not.toBe(github.operatorId);
+      expect(again.operatorId).toBe(local.operatorId);
+    });
+  });
+
+  it('publishes the login event with the session and the logout event on revoke', async () => {
+    await withStore(async ({ store, published }) => {
+      const op = await store.upsertLocalOperator({ login: 'dev' }, NOW);
+      const sessionId = randomUUID();
+      await store.createSession(
+        { sessionId, operatorId: op.operatorId, tokenHash: 'a'.repeat(64), expiresAt: LATER },
+        auditEvent(),
+        NOW
+      );
+      await store.revokeSession(sessionId, auditEvent(), NOW);
+      await store.revokeSession(sessionId, auditEvent(), NOW);
+      expect(published).toHaveLength(2);
+      expect(await store.findSession('a'.repeat(64), NOW)).toBeNull();
+    });
+  });
+
   it('lets a plan be consumed exactly once', async () => {
     await withStore(async ({ store }) => {
-      const op = await store.upsertOperator({ login: 'dev', githubId: null, name: null }, NOW);
+      const op = await store.upsertLocalOperator({ login: 'dev' }, NOW);
       const planId = randomUUID();
       await store.createPlan(
         {
@@ -91,7 +164,7 @@ describe.skipIf(!process.env.DATABASE_URL)('ops store (real Postgres)', () => {
 
   it('records an unlock with its audit event and lists it until revoked', async () => {
     await withStore(async ({ store, published }) => {
-      const op = await store.upsertOperator({ login: 'dev', githubId: null, name: null }, NOW);
+      const op = await store.upsertLocalOperator({ login: 'dev' }, NOW);
       const unlockId = randomUUID();
       await store.createUnlock(
         {
@@ -104,11 +177,7 @@ describe.skipIf(!process.env.DATABASE_URL)('ops store (real Postgres)', () => {
           createdAt: NOW,
           expiresAt: LATER,
         },
-        {
-          id: `ops.actionTaken.${randomUUID()}`,
-          type: 'ops.actionTaken',
-          payload: { eventId: randomUUID() },
-        }
+        auditEvent()
       );
       expect(published).toEqual([expect.objectContaining({ subject: 'ops.actionTaken' })]);
       expect(await store.listActiveUnlocks(op.operatorId, NOW)).toHaveLength(1);
@@ -120,7 +189,7 @@ describe.skipIf(!process.env.DATABASE_URL)('ops store (real Postgres)', () => {
 
   it('hash-chains concurrent access-log appends and refuses edits', async () => {
     await withStore(async ({ store, pool }) => {
-      const op = await store.upsertOperator({ login: 'dev', githubId: null, name: null }, NOW);
+      const op = await store.upsertLocalOperator({ login: 'dev' }, NOW);
       await Promise.all(
         ['pets.Get', 'pets.List', 'audit.Query', 'rescue.Get'].map(rpc =>
           store.appendAccessLog(entry(op.operatorId, { rpc }), [])

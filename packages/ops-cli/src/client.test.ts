@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
+import { EXPECTED_ENV_HEADER } from '@adopt-dont-shop/ops-contract';
+import { loadCatalog } from './catalog-loader.js';
+import { withAuth } from './login.js';
 import { checkHealth, createClient, toApiError } from './client.js';
 import { ApiError, CliError, NetworkError } from './errors.js';
-import { apiError, json, makeCtx, sampleSession, type Route } from './test-support.js';
+import {
+  apiError,
+  json,
+  makeCtx,
+  sampleCatalog,
+  sampleSession,
+  type Route,
+} from './test-support.js';
 
 const clientFor = async (routes: Route) => {
   const ctx = await makeCtx({ routes });
@@ -84,5 +94,87 @@ describe('health check', () => {
     expect(await checkHealth(down.fetch, 'http://x')).toEqual({ ok: false });
     const sick = await makeCtx({ routes: () => ({ status: 503, json: {} }) });
     expect((await checkHealth(sick.fetch, 'http://x')).ok).toBe(false);
+  });
+});
+
+describe('environment guard', () => {
+  const WHOAMI = {
+    env: 'dev',
+    operator: sampleSession().operator,
+    sessionExpiresAt: '2099-01-01T00:00:00.000Z',
+    unlocks: [],
+  };
+
+  it('sends the expected env on every /v1 request, login routes included', async () => {
+    const seen: { path: string; env: string | null }[] = [];
+    const { client } = await clientFor(({ path, headers }) => {
+      seen.push({ path, env: headers.get(EXPECTED_ENV_HEADER) });
+      return json({});
+    });
+    const authed = client.withToken('t');
+    await Promise.allSettled([
+      client.loginLocal('alice'),
+      client.loginStart(),
+      client.loginPoll('code'),
+      authed.whoami(),
+      authed.catalog(),
+      authed.invoke({ rpc: 'pets.List', request: {} }),
+      authed.history(5),
+      authed.listUnlocks(),
+      authed.createUnlock({
+        subjectType: 'any',
+        reason: 'looking into a failure',
+        ticket: 'ADS-1',
+      }),
+      authed.revokeUnlocks(),
+      authed.logout(),
+    ]);
+    expect(seen).toHaveLength(11);
+    expect(seen.every(r => r.env === 'dev')).toBe(true);
+  });
+
+  it('refuses a catalog from a different environment and never caches it', async () => {
+    const ctx = await makeCtx({ routes: () => json({ ...sampleCatalog, env: 'prod' }) });
+    const client = createClient({ fetch: ctx.fetch, baseUrl: 'http://x', env: 'staging' });
+    const error = await loadCatalog(ctx, 'staging', client, true).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(CliError);
+    expect((error as CliError).message).toContain('prod');
+    expect((error as CliError).message).toContain('staging');
+    expect(await ctx.store.readCatalogCache('staging')).toBeUndefined();
+  });
+
+  it('refuses a whoami from a different environment', async () => {
+    const { client } = await clientFor(() => json({ ...WHOAMI, env: 'prod' }));
+    await expect(client.withToken('t').whoami()).rejects.toThrow(/prod/);
+  });
+
+  it('accepts a response from the selected environment', async () => {
+    const { client } = await clientFor(() => json(WHOAMI));
+    expect((await client.withToken('t').whoami()).env).toBe('dev');
+  });
+
+  it('shows the server message and hint for a 412 without signing in again', async () => {
+    const ctx = await makeCtx({
+      tty: true,
+      routes: () =>
+        apiError(
+          412,
+          'FAILED_PRECONDITION',
+          'This server is prod, not staging.',
+          'Check the tunnel.'
+        ),
+    });
+    await ctx.store.saveSession('staging', sampleSession());
+    const error = await withAuth(ctx, 'staging', 'http://x', c => c.whoami()).catch(
+      (e: unknown) => e
+    );
+    expect(error).toMatchObject({
+      code: 'FAILED_PRECONDITION',
+      status: 412,
+      message: 'This server is prod, not staging.',
+      hint: 'Check the tunnel.',
+    });
+    expect(await ctx.store.getSession('staging')).toBeDefined();
+    expect(ctx.requests.map(r => r.path)).toEqual(['/v1/whoami']);
   });
 });

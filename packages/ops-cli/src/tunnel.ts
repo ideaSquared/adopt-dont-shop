@@ -80,16 +80,45 @@ export const ensureTunnel = async (ctx: Ctx, env: OpsEnv): Promise<void> => {
 
 export type TunnelStatus = { readonly up: boolean; readonly pid?: number };
 
+// A pid file survives reboots and pids get reused, so before trusting one we
+// check the process really is the ssh tunnel for this env: an `ssh` command
+// line carrying its `-L <localPort>:127.0.0.1:<remotePort>` forward.
+const isOurTunnel = async (ctx: Ctx, env: OpsEnv, pid: number): Promise<boolean> => {
+  if (ctx.platform === 'win32') {
+    return false;
+  }
+  const { localPort, remotePort } = ENDPOINTS[env];
+  const forward = `${localPort}:127.0.0.1:${remotePort}`;
+  const result = await ctx.exec('ps', ['-p', String(pid), '-o', 'args=']).catch(() => undefined);
+  const words = result?.code === 0 ? result.stdout.trim().split(/\s+/) : [];
+  const program = words[0]?.split('/').pop();
+  return program === 'ssh' && words.some((w, i) => w === '-L' && words[i + 1] === forward);
+};
+
 export const tunnelStatus = async (ctx: Ctx, env: OpsEnv): Promise<TunnelStatus> => {
   const record = await ctx.store.readTunnel(env);
   const up = (await checkHealth(ctx.fetch, baseUrlFor(env))).ok;
-  return { up, pid: record && ctx.isAlive(record.pid) ? record.pid : undefined };
+  const ours = record && ctx.isAlive(record.pid) && (await isOurTunnel(ctx, env, record.pid));
+  return { up, pid: ours && record ? record.pid : undefined };
 };
 
-export const stopTunnel = async (ctx: Ctx, env: OpsEnv): Promise<boolean> => {
+// 'manual': Windows has no `ps`, so we cannot tell which process is ours and
+// never signal it; the person closes the ssh window themselves.
+export type StopResult = 'stopped' | 'not-running' | 'manual';
+
+export const stopTunnel = async (ctx: Ctx, env: OpsEnv): Promise<StopResult> => {
   const record = await ctx.store.readTunnel(env);
   await ctx.store.removeTunnel(env);
-  return record ? ctx.kill(record.pid) : false;
+  if (!record) {
+    return 'not-running';
+  }
+  if (ctx.platform === 'win32') {
+    return 'manual';
+  }
+  if (!(await isOurTunnel(ctx, env, record.pid))) {
+    return 'not-running';
+  }
+  return ctx.kill(record.pid) ? 'stopped' : 'not-running';
 };
 
 // Reachability for any env: dev is direct, staging / prod go through the tunnel.

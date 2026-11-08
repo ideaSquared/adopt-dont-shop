@@ -225,8 +225,17 @@ without changing anything, unless you pass `--yes` (dev and staging only).
 (`ADS-123`) and a time limit (default 30, max 60 minutes), scoped to one user / rescue /
 application or `any`. It alerts `#ops`, is audited, and expires by itself. When a result has hidden
 fields the CLI offers the unlock and re-runs your command. When your request looks up by something
-personal (an email, say) it offers the unlock before calling. In staging and prod, unlocks are
-refused if the alert channel is not configured.
+personal (an email, say) it offers the unlock before calling. In staging and prod, an unlock is
+refused unless the `#ops` alert is actually delivered.
+
+**You always reach the environment you picked.** Every request says which environment the CLI
+expects, and `service.ops` refuses anything else before you even log in, so a tunnel pointed at the
+wrong stack fails loudly instead of quietly working against prod. A bare `--env` (no value) is an
+error rather than falling back to your saved environment.
+
+**`tunnel stop` only stops your tunnel.** It checks the recorded process really is this
+environment's `ssh -L` forward before signalling it, so a stale pid file can never kill something
+else. On Windows it asks you to close the ssh process yourself.
 
 **Your session is yours.** Sessions live in `sessions.json` (mode 0600), expire after a few hours,
 and `pnpm ops logout` revokes them. Staging and prod sign in with a GitHub device code and require

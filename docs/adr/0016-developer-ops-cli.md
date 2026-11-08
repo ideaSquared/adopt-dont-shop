@@ -80,12 +80,19 @@ ads-ops CLI (laptop) --HTTP/JSON--> service-ops (in the env's stack) --gRPC--> s
 7. **Break-glass unlocks reveal PII, and they are loud.** An unlock needs a reason (at least 10
    characters) and a ticket (`ADS-123`). It is time-boxed (default 30, maximum 60 minutes) and
    scoped to one subject (a user, rescue or application id) or `any`. Creating one posts a Discord
-   webhook alert, publishes `ops.actionTaken` (so `services/audit` records it), and appends to a
+   webhook alert first, and the unlock is granted only if that alert is delivered (a failed or
+   non-2xx delivery refuses it with `UNLOCKS_DISABLED`); it then publishes `ops.actionTaken` (so `services/audit` records it), and appends to a
    hash-chained `ops.access_log`. Every call made under an unlock records which fields it revealed
    (names, never values). While one person maintains the system, the operator approves their own
    unlock (see Consequences). If the Discord webhook is not configured in staging or production,
    unlocks are refused with `UNLOCKS_DISABLED`: no alert channel, no unlock.
-8. **The surface is loopback-only.** `service-ops` listens on `0.0.0.0:4100` inside its container
+8. **Identity and environment are pinned.** An operator is keyed by their stable GitHub user id,
+   not their login, so a renamed account keeps its history and a new account that later takes an
+   old login starts fresh. Login and logout publish `ops.actionTaken` (never the token). Every
+   `/v1` request carries `x-ops-expected-env`, and the server rejects a missing or different value
+   with `FAILED_PRECONDITION` before authenticating, so a tunnel pointed at the wrong stack cannot
+   log in, read or unlock there.
+9. **The surface is loopback-only.** `service-ops` listens on `0.0.0.0:4100` inside its container
    and compose publishes it on the host loopback only: `127.0.0.1:4100` (dev), `127.0.0.1:4101`
    (staging) and `127.0.0.1:4102` (production). It is never behind the public nginx or the edge
    gateway. Developers reach staging and production through an SSH tunnel as a tunnel-only user

@@ -5,11 +5,12 @@
 import { randomUUID } from 'node:crypto';
 
 import { Metadata } from '@grpc/grpc-js';
+import type { InjectOptions } from 'fastify';
 import winston from 'winston';
 
 import type { DomainEvent } from '@adopt-dont-shop/events';
 import { DRY_RUN_APPLIED_HEADER, DRY_RUN_HEADER } from '@adopt-dont-shop/service-bootstrap';
-import type { OpsEnv } from '@adopt-dont-shop/ops-contract';
+import { EXPECTED_ENV_HEADER, type OpsEnv } from '@adopt-dont-shop/ops-contract';
 import { PROTO_SCHEMA } from '@adopt-dont-shop/proto';
 
 import {
@@ -44,6 +45,7 @@ export type FakeStore = OpsStore & {
 
 export const makeFakeStore = (): FakeStore => {
   const operators = new Map<string, OperatorRecord>();
+  const githubIds = new Map<number, string>();
   const sessions = new Map<string, SessionRecord & { tokenHash: string; revokedAt: Date | null }>();
   const plans = new Map<string, PlanRecord>();
   const unlocks: (UnlockRecord & { revokedAt: Date | null })[] = [];
@@ -55,20 +57,31 @@ export const makeFakeStore = (): FakeStore => {
     accessLog,
     plans,
     unlocks,
-    async upsertOperator(input) {
-      const existing = [...operators.values()].find(o => o.login === input.login);
-      const record = existing ?? { operatorId: randomUUID(), login: input.login, name: input.name };
+    async upsertGithubOperator(input) {
+      const existing = githubIds.get(input.githubId);
+      const record = { operatorId: existing ?? randomUUID(), login: input.login, name: input.name };
+      githubIds.set(input.githubId, record.operatorId);
+      operators.set(record.operatorId, record);
+      return record;
+    },
+    async upsertLocalOperator(input) {
+      const githubOwned = new Set(githubIds.values());
+      const existing = [...operators.values()].find(
+        o => o.login === input.login && !githubOwned.has(o.operatorId)
+      );
+      const record = existing ?? { operatorId: randomUUID(), login: input.login, name: null };
       operators.set(record.operatorId, record);
       return record;
     },
     async touchOperator() {},
-    async createSession(input) {
+    async createSession(input, event) {
       const operator = operators.get(input.operatorId);
       if (operator === undefined) {
         throw new Error('unknown operator');
       }
+      events.push(event);
       sessions.set(input.tokenHash, {
-        sessionId: randomUUID(),
+        sessionId: input.sessionId,
         expiresAt: input.expiresAt,
         operator,
         tokenHash: input.tokenHash,
@@ -79,10 +92,11 @@ export const makeFakeStore = (): FakeStore => {
       const session = sessions.get(tokenHash);
       return session && session.revokedAt === null && session.expiresAt > now ? session : null;
     },
-    async revokeSession(sessionId, now) {
+    async revokeSession(sessionId, event, now) {
       sessions.forEach(s => {
-        if (s.sessionId === sessionId) {
+        if (s.sessionId === sessionId && s.revokedAt === null) {
           s.revokedAt = now;
+          events.push(event);
         }
       });
     },
@@ -254,19 +268,24 @@ export const makeHarness = (opts: HarnessOptions = {}) => {
     now,
   });
 
+  // Sends the expected-env header like the real CLI; `app.inject` stays raw for
+  // tests of the header itself.
+  const inject = (options: InjectOptions) =>
+    app.inject({ ...options, headers: { [EXPECTED_ENV_HEADER]: env, ...options.headers } });
+
   const loginLocal = async (login = 'alice'): Promise<{ token: string; operatorId: string }> => {
-    const res = await app.inject({ method: 'POST', url: '/v1/login/local', payload: { login } });
+    const res = await inject({ method: 'POST', url: '/v1/login/local', payload: { login } });
     const body = res.json<{ session: { token: string; operator: { operatorId: string } } }>();
     return { token: body.session.token, operatorId: body.session.operator.operatorId };
   };
 
   const post = (token: string, url: string, payload: unknown) =>
-    app.inject({
+    inject({
       method: 'POST',
       url,
       payload: payload as object,
       headers: { authorization: `Bearer ${token}` },
     });
 
-  return { app, store, grpc, clock, loginLocal, post, auth };
+  return { app, inject, store, grpc, clock, loginLocal, post, auth };
 };

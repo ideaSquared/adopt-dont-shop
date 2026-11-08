@@ -76,16 +76,16 @@ const completeWords = async (argv: readonly string[], ctx: Ctx): Promise<number>
 
 const dispatch = async (argv: readonly string[], ctx: Ctx): Promise<number> => {
   const parsed = parseArgv(argv);
-  const globals = readGlobals(parsed.values);
   const [word] = parsed.positionals;
+  if (word === '__complete') {
+    return completeWords(argv, ctx);
+  }
+  const globals = readGlobals(parsed.values);
   const interactive = isInteractive(ctx);
 
   if (globals.version) {
     ctx.out(`ads-ops ${ctx.version}\n`);
     return 0;
-  }
-  if (word === '__complete') {
-    return completeWords(argv, ctx);
   }
   if (word === 'completion') {
     ctx.out(completionScript(parsed.positionals[1] ?? '', ctx.repoRoot));
