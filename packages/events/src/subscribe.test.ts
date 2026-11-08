@@ -394,11 +394,30 @@ describe('subscribe setup retry', () => {
         subject: 'pets.created',
         durable: 'pets-workers',
         attempt: 1,
-        errorName: 'NatsError',
+        errorClass: 'NatsError',
         errorCode: 'TIMEOUT',
       })
     );
     expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('logs only the error class and code, never the free-text message', async () => {
+    const bus = makeBus();
+    bus.jsmAdd.mockRejectedValueOnce(
+      Object.assign(new Error('token=s3cret for jane@example.com'), {
+        name: 'NatsError',
+        code: 'TIMEOUT',
+      })
+    );
+    const logger = makeLogger();
+    const handle = subscribe(bus.nc, { subject: 's', durable: 'd', logger }, async () => undefined);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await handle.ready;
+
+    const logged = JSON.stringify(logger.warn.mock.calls);
+    expect(logged).not.toContain('s3cret');
+    expect(logged).not.toContain('jane@example.com');
+    expect(logged).toContain('NatsError');
   });
 
   it('raises the JetStream API timeout above the 5s default', async () => {

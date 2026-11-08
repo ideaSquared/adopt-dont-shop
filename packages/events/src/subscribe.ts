@@ -102,12 +102,12 @@ const stderrLogger: OutboxLogger = {
     process.stderr.write(`${JSON.stringify({ level: 'error', message, ...(meta as object) })}\n`),
 };
 
-const describeError = (
-  err: unknown
-): { errorName?: string; errorCode?: unknown; errorMessage?: string } => ({
-  errorName: (err as { name?: string } | null)?.name,
+const describeError = (err: unknown): { errorClass?: string; errorCode?: unknown } => ({
+  // `errorClass`, not `errorName`: the shared logger masks any key containing
+  // "name" as PII. The free-text message is deliberately omitted: it can carry
+  // secrets or PII and the shared logger does not redact string values.
+  errorClass: (err as { name?: string } | null)?.name,
   errorCode: (err as { code?: unknown } | null)?.code,
-  errorMessage: err instanceof Error ? err.message : undefined,
 });
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
