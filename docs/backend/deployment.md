@@ -42,9 +42,10 @@ DB_USERNAME=...
 DB_PASSWORD=...
 PROD_DB_NAME=adopt_dont_shop_prod
 
-# Database TLS (ADS-540) — production refuses `disable` unless ALLOW_INSECURE_DB=true
-DB_SSL_MODE=verify-full
-DB_SSL_ROOT_CERT=/etc/ssl/certs/rds-combined-ca-bundle.pem
+# Database TLS: the bundled deployment connects in plaintext over the internal
+# Docker network. For managed Postgres, put sslmode=verify-full and
+# sslrootcert=<CA path> in the connection string (see
+# docs/operations/deploy.md "Database TLS").
 
 # Redis
 REDIS_HOST=...

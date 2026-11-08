@@ -205,41 +205,33 @@ on the line and a backup taken first. See
 [`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md)
 path E.
 
-## Database TLS (ADS-540)
+## Database TLS
 
-`docker-compose.prod.yml` defaults `DB_SSL_MODE=require`, which makes the
-`pg` driver (`packages/db/src/client.ts`) open the link to Postgres over TLS.
-Three modes are supported:
-
-| `DB_SSL_MODE` | Behaviour                                                           |
-| ------------- | ------------------------------------------------------------------- |
-| `require`     | TLS, no certificate verification (default)                          |
-| `verify-ca`   | TLS, verify CA chain                                                |
-| `verify-full` | TLS, verify CA chain + hostname (recommended for managed providers) |
-
-Every schema-owning service refuses to boot in production with
-`DB_SSL_MODE=disable` unless `ALLOW_INSECURE_DB=true` is also set —
-only safe on a fully trusted bridge such as the in-cluster docker
-network on the same host.
+In the bundled deployment, connections from the services to Postgres are
+**plaintext**: the in-stack Postgres container has no TLS configured, and the
+`database_url` secret that `scripts/deploy-secrets.sh` composes
+(`postgresql://…@database:5432/…`) carries no SSL parameters. Nothing reads
+`DB_SSL_MODE`, `DB_SSL_ROOT_CERT` or `ALLOW_INSECURE_DB`. This is acceptable
+only because the database is reachable solely over the internal Docker bridge
+network on the same host; it publishes no port.
 
 ### Managed Postgres (RDS / Neon / Supabase)
 
-1. Download the provider's CA bundle (e.g. `rds-combined-ca-bundle.pem`).
-2. Mount it into every schema-owning service container: add a
-   `volumes:` entry to each `service-*` service in
-   `docker-compose.prod.yml` that runs migrations or holds a pg pool
-   (`service-auth`, `service-pets`, `service-rescue`,
-   `service-applications`, `service-chat`, `service-notifications`,
-   `service-moderation`, `service-matching`, `service-cms`,
-   `service-audit`) pointing to a read-only path inside the container.
-3. Set the env vars in `.env`:
-   ```
-   DB_SSL_MODE=verify-full
-   DB_SSL_ROOT_CERT=/etc/ssl/certs/rds-combined-ca-bundle.pem
-   ```
+TLS is configured through the connection string. `pg` reads `sslmode` and
+`sslrootcert` from `DATABASE_URL`, and `@adopt-dont-shop/db` passes the
+connection string straight through, so no code change is needed:
 
-Boot logs print `sslMode=<mode>` so the effective setting is observable
-without exec'ing into the container.
+1. Point `database_url` at the provider with
+   `?sslmode=verify-full&sslrootcert=/etc/ssl/certs/<provider-ca>.pem`.
+   `scripts/deploy-secrets.sh` currently hard-codes the in-stack `database`
+   host, so it must be changed to emit that URL.
+2. Mount the provider's CA bundle read-only at that path in every
+   schema-owning `service-*` container.
+3. Verify before go-live: a service whose CA or hostname doesn't match fails
+   its `/health/ready` probe instead of connecting.
+
+Use `verify-full`. `pg` currently treats `require` and `verify-ca` as aliases
+for `verify-full` and logs a deprecation warning, so say what you mean.
 
 ## Data at rest
 
