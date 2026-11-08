@@ -1,5 +1,5 @@
 import { test, expect } from '../../fixtures';
-import { expectOk, getFirstAdopterApplication, patchWithCsrf } from '../../helpers/seeds';
+import { createAdopterApplication, expectOk, patchWithCsrf } from '../../helpers/seeds';
 
 /**
  * The rescue's application review page lives at /applications.  We
@@ -11,7 +11,8 @@ test.describe('rescue application review', () => {
   test('the rescue can list applications and the page mounts', async ({ page, apiAs }) => {
     const rescueApi = await apiAs('rescue');
     const adopterApi = await apiAs('adopter');
-    const { applicationId } = await getFirstAdopterApplication(adopterApi);
+    // A fresh application is at the top of the list however many others the shared stack holds.
+    const { applicationId } = await createAdopterApplication(adopterApi, rescueApi);
 
     const res = await rescueApi.context.get('/api/v1/applications', { params: { limit: '50' } });
     await expectOk(res, 'GET /applications (rescue scope)');
@@ -42,33 +43,21 @@ test.describe('rescue application review', () => {
     const adopterApi = await apiAs('adopter');
     const adminApi = await apiAs('admin');
     const rescueApi = await apiAs('rescue');
-    const { applicationId, status: currentStatus } = await getFirstAdopterApplication(adopterApi);
+    // A fresh application, so the seeded one other specs read is left alone.
+    const { applicationId } = await createAdopterApplication(adopterApi, rescueApi);
 
-    const targetStatus =
-      currentStatus === 'approved'
-        ? 'rejected'
-        : currentStatus === 'rejected'
-          ? 'approved'
-          : 'approved';
-
+    // Approving needs a started review; rejecting a submitted application does not.
     const patchRes = await patchWithCsrf(
       adminApi.context,
       `/api/v1/applications/${applicationId}/status`,
-      { status: targetStatus }
+      { status: 'rejected', notes: 'Not a good match for this pet' }
     );
-    // If the patch succeeded the rescue should see the new status; if
-    // it didn't, the rescue should still see the unchanged status.
-    // Either way the API and listing should agree on whatever's
-    // currently persisted.
+    await expectOk(patchRes, `PATCH /applications/${applicationId}/status`);
+
     const detailRes = await adopterApi.context.get(`/api/v1/applications/${applicationId}`);
-    expect(detailRes.ok()).toBe(true);
-    const detail = (await detailRes.json()) as {
-      status?: string;
-      data?: { status?: string };
-    };
-    const persistedStatus = detail.status ?? detail.data?.status ?? currentStatus;
-    const expectedStatus = patchRes.ok() ? targetStatus : currentStatus;
-    expect(persistedStatus).toBe(expectedStatus);
+    await expectOk(detailRes, `GET /applications/${applicationId}`);
+    const detail = (await detailRes.json()) as { data: { status: string } };
+    expect(detail.data.status).toBe('rejected');
 
     await expect
       .poll(
@@ -76,19 +65,13 @@ test.describe('rescue application review', () => {
           const res = await rescueApi.context.get('/api/v1/applications', {
             params: { limit: '50' },
           });
-          if (!res.ok()) {
-            return null;
-          }
           const body = (await res.json()) as {
-            data?: Array<{ applicationId?: string; id?: string; status?: string }>;
-            applications?: Array<{ applicationId?: string; id?: string; status?: string }>;
+            data: Array<{ applicationId?: string; id?: string; status?: string }>;
           };
-          const list = body.data ?? body.applications ?? [];
-          const found = list.find(a => (a.applicationId ?? a.id) === applicationId);
-          return found?.status ?? null;
+          return body.data.find(a => (a.applicationId ?? a.id) === applicationId)?.status;
         },
         { timeout: 15_000 }
       )
-      .toBe(persistedStatus);
+      .toBe('rejected');
   });
 });

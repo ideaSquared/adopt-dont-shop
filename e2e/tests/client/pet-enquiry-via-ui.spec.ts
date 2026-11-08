@@ -6,6 +6,7 @@ import { loginViaUI } from '../../helpers/auth';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
 import { createAvailablePet } from '../../helpers/seeds';
+import { skipSwipeIntro } from '../../helpers/swipe-intro';
 
 /**
  * "Ask a question before applying" on a pet page.
@@ -23,7 +24,17 @@ async function send(page: Page, text: string): Promise<void> {
 
 async function askAboutPet(page: Page, petId: string): Promise<void> {
   await page.goto(`/pets/${petId}`);
+  const enquiry = page.waitForResponse(
+    res => res.url().endsWith('/chats/enquiries') && res.request().method() === 'POST'
+  );
   await page.getByRole('button', { name: 'Ask a question before applying' }).click();
+  // POST /chats/enquiries is capped per source IP per day; once the shared dev
+  // stack has spent it the button can only fail, which says nothing about the
+  // feature. Skip with that reason rather than reporting a false regression.
+  test.skip(
+    (await enquiry).status() === 429,
+    'POST /api/v1/chats/enquiries returned 429: the daily per-IP enquiry cap is spent on this stack'
+  );
   await expect(page).toHaveURL(/\/chat\/[^/]+$/, { timeout: 15_000 });
 }
 
@@ -39,6 +50,7 @@ test.describe('asking a rescue about a pet before applying', () => {
     const pet = await createAvailablePet(rescueApi, 'Enquiry');
     // A fresh adopter: each new enquiry counts towards a per-user daily cap.
     const adopter = await createVerifiedAdopter('enquiry');
+    await skipSwipeIntro(page);
     await loginViaUI(page, adopter.email, adopter.password);
     await dismissCookieBannerWhenShown(page);
 

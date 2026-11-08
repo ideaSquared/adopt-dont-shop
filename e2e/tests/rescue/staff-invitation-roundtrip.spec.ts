@@ -37,7 +37,7 @@ test.describe('staff invitation round-trip (ADS-871)', () => {
         title: 'Volunteer',
       }
     );
-    expect([200, 201]).toContain(inviteRes.status());
+    expect(inviteRes.status()).toBe(201);
 
     // 2. Read the emailed invite token via the test-token-peek seam.
     const token = await peekInvitationToken(inviteeEmail, rescueId ?? undefined);
@@ -67,20 +67,17 @@ test.describe('staff invitation round-trip (ADS-871)', () => {
         firstName: 'Invited',
         lastName: 'Volunteer',
       });
-      expect([200, 201]).toContain(acceptRes.status());
+      expect(acceptRes.status()).toBe(201);
 
-      // 5. Re-accepting with the same single-use token is well-defined and
-      //    never 5xx: the gateway either replays the accept idempotently
-      //    (200/201) or reports the token already consumed (404/409). Which
-      //    one wins depends on invitation-state propagation timing, so accept
-      //    either outcome rather than flaking on that race.
+      // 5. The token is single-use: accepting it a second time is refused as
+      //    an invitation that is no longer valid.
       const acceptAgain = await postWithCsrf(anon, '/api/v1/invitations/accept', {
         token,
         password: INVITEE_PASSWORD,
         firstName: 'Invited',
         lastName: 'Volunteer',
       });
-      expect([200, 201, 404, 409]).toContain(acceptAgain.status());
+      expect(acceptAgain.status()).toBe(404);
     } finally {
       await anon.dispose();
     }
@@ -111,11 +108,13 @@ test.describe('staff invitation round-trip (ADS-871)', () => {
         const meRes = await inviteeCtx.get('/api/v1/staff/me');
         expect(meRes.ok(), 'the invitee is not recognised as staff').toBe(true);
         const meBody = (await meRes.json()) as {
-          data?: { rescueId?: string; rescue_id?: string; isVerified?: boolean };
+          data?: { rescueId?: string; rescue_id?: string; isVerified?: boolean; title?: string };
         };
         const staffRescueId = meBody.data?.rescueId ?? meBody.data?.rescue_id;
         expect(staffRescueId).toBe(rescueId);
         expect(meBody.data?.isVerified).toBe(true);
+        // ...in the role the invitation assigned.
+        expect(meBody.data?.title).toBe('Volunteer');
       } finally {
         await inviteeCtx.dispose();
       }

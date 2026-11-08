@@ -1,55 +1,77 @@
 import { test, expect } from '../../fixtures';
-import { getFirstAdopterApplication, patchWithCsrf } from '../../helpers/seeds';
+import { createVerifiedAdopter } from '../../helpers/accounts';
+import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
+import {
+  createAdopterApplication,
+  expectOk,
+  patchWithCsrf,
+  postWithCsrf,
+} from '../../helpers/seeds';
+import { openSignedInSession } from '../../helpers/signed-in-session';
 
 /**
- * Cross-app: admin advances an application's status via API, and the
- * adopter's My Applications page reflects the new state.  We use the
- * seeded John Smith application — creating a fresh one would require
- * pet creation, which is currently 500ing on a Postgres ENUM cast
- * (separate backend bug).
+ * Cross-role: an admin moves an application through review to approved, and the
+ * adopter's My Applications page and the application API both show Approved.
  *
- * The PATCH /applications/:id/status path also has a downstream 500
- * on the status-transition log in some build modes.  We tolerate that:
- * the test passes if either the patch succeeds AND the new status
- * surfaces on the UI, or the patch is rejected and the UI reflects
- * the unchanged state — what we're really verifying is that the
- * adopter's dashboard reads the persisted state correctly.
+ * Every step must succeed (a rejected PATCH fails the test) and the asserted
+ * status is the one we asked for, not "whatever is persisted". A fresh adopter
+ * and application keep the seeded John Smith application untouched for the
+ * specs that read it.
  */
 test.describe('application status round-trip', () => {
-  test("admin status patch is reflected on the adopter's dashboard", async ({ page, apiAs }) => {
-    const adopterApi = await apiAs('adopter');
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("an admin's approval is reflected on the adopter's dashboard", async ({
+    browser,
+    apiAs,
+  }) => {
     const adminApi = await apiAs('admin');
-    const { applicationId, status: currentStatus } = await getFirstAdopterApplication(adopterApi);
+    const rescueApi = await apiAs('rescue');
+    const session = await openSignedInSession(browser, await createVerifiedAdopter('roundtrip'));
+    const { page, api: adopterApi } = session;
+    try {
+      const { applicationId, petId } = await createAdopterApplication(adopterApi, rescueApi);
+      const petRes = await adminApi.context.get(`/api/v1/pets/${petId}`);
+      await expectOk(petRes, 'read pet');
+      const petBody = (await petRes.json()) as { data?: { name?: string }; name?: string };
+      const petName = petBody.data?.name ?? petBody.name ?? '';
+      expect(petName).not.toBe('');
 
-    const targetStatus =
-      currentStatus === 'approved'
-        ? 'rejected'
-        : currentStatus === 'rejected'
-          ? 'approved'
-          : 'approved';
+      const before = await adopterApi.context.get(`/api/v1/applications/${applicationId}`);
+      await expectOk(before, 'read application');
+      expect(((await before.json()) as { data: { status: string } }).data.status).toBe('submitted');
 
-    const patchRes = await patchWithCsrf(
-      adminApi.context,
-      `/api/v1/applications/${applicationId}/status`,
-      { status: targetStatus }
-    );
-    // Re-read the application's current persisted status — that's the
-    // source of truth the dashboard reads from.
-    const detailRes = await adopterApi.context.get(`/api/v1/applications/${applicationId}`);
-    expect(detailRes.ok()).toBe(true);
-    const detail = (await detailRes.json()) as {
-      status?: string;
-      data?: { status?: string };
-    };
-    const persistedStatus = detail.status ?? detail.data?.status ?? currentStatus;
-    const expectedStatus = patchRes.ok() ? targetStatus : currentStatus;
-    expect(persistedStatus).toBe(expectedStatus);
+      const review = await postWithCsrf(
+        adminApi.context,
+        `/api/v1/applications/${applicationId}/review`,
+        {}
+      );
+      await expectOk(review, 'admin starts the review');
+      const approve = await patchWithCsrf(
+        adminApi.context,
+        `/api/v1/applications/${applicationId}/status`,
+        { status: 'approved' }
+      );
+      await expectOk(approve, 'admin approves');
 
-    await page.goto('/applications', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await expect(page.getByRole('heading', { level: 1, name: /my applications/i })).toBeVisible({
-      timeout: 15_000,
-    });
-    const statusPattern = new RegExp(persistedStatus.replace(/_/g, '[ _]?'), 'i');
-    await expect(page.getByText(statusPattern).first()).toBeVisible({ timeout: 20_000 });
+      const after = await adopterApi.context.get(`/api/v1/applications/${applicationId}`);
+      await expectOk(after, 'read application again');
+      expect(((await after.json()) as { data: { status: string } }).data.status).toBe('approved');
+
+      await dismissCookieBannerPatiently(page);
+      await page.goto('/applications');
+      await expect(page.getByRole('heading', { level: 1, name: /my applications/i })).toBeVisible({
+        timeout: 20_000,
+      });
+      const card = page
+        .locator('main div')
+        .filter({ has: page.getByRole('heading', { level: 3, name: petName }) })
+        .filter({ has: page.getByRole('button', { name: 'View Details' }) })
+        .last();
+      await expect(card.getByText('Approved', { exact: true })).toBeVisible({ timeout: 20_000 });
+      await expect(card.getByText('Submitted', { exact: true })).toHaveCount(0);
+    } finally {
+      await session.close();
+    }
   });
 });

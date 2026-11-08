@@ -7,6 +7,7 @@ import { loginViaUI } from '../../helpers/auth';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { uniqueText } from '../../helpers/factories';
 import { createAdopterApplication, expectOk, postWithCsrf } from '../../helpers/seeds';
+import { skipSwipeIntro } from '../../helpers/swipe-intro';
 
 /**
  * Adopter and rescue talk through the chat UIs of both apps.
@@ -20,11 +21,15 @@ import { createAdopterApplication, expectOk, postWithCsrf } from '../../helpers/
  * it listened for a `new_message` socket event the gateway never emits
  * (`chat:message:created`).
  */
-async function openFirstConversation(page: Page, path: string): Promise<void> {
+async function openConversation(page: Page, path: string, lastMessage?: string): Promise<void> {
   await page.goto(path);
   await dismissCookieBannerWhenShown(page);
   const conversations = page.locator('main').getByRole('button', { name: /rescue organization/i });
-  await conversations.first().click();
+  // The shared rescue has many conversations (other specs open more), so pick the one
+  // whose preview is the message under test instead of whichever is listed first.
+  await (lastMessage ? conversations.filter({ hasText: lastMessage }) : conversations)
+    .first()
+    .click();
   await expect(page.getByRole('textbox', { name: /message input/i })).toBeVisible({
     timeout: 15_000,
   });
@@ -44,12 +49,12 @@ test.describe('chat in the UI', () => {
     const question = uniqueText('Is she good with cats?');
     const reply = uniqueText('Yes, she lives with two');
 
-    await openFirstConversation(page, '/chat');
+    await openConversation(page, '/chat');
     await send(page, question);
     await expect(page.getByRole('article').filter({ hasText: question })).toBeVisible();
 
     const rescuePage = await asRole('rescue');
-    await openFirstConversation(rescuePage, '/communication');
+    await openConversation(rescuePage, '/communication', question);
     await expect(rescuePage.getByRole('article').filter({ hasText: question })).toBeVisible({
       timeout: 15_000,
     });
@@ -92,6 +97,7 @@ test.describe('chat in the UI', () => {
       storageState: { cookies: [], origins: [] },
     });
     const page = await context.newPage();
+    await skipSwipeIntro(page);
     try {
       await loginViaUI(page, account.email, account.password);
       await page.goto('/chat');
