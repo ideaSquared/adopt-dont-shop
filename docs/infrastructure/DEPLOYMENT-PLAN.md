@@ -200,6 +200,9 @@ CORS_ORIGIN=https://adoptdontshop.app,https://admin.adoptdontshop.app,https://re
 # Base URL for links in emails (verify email, reset password). Required:
 # compose refuses to start without it.
 FRONTEND_URL=https://adoptdontshop.app
+# Rescue app origin for staff invitation email links. Required: compose
+# refuses to start without it.
+RESCUE_FRONTEND_URL=https://rescue.adoptdontshop.app
 # PROD_HOSTNAME (production only) — a plain literal. deploy.yml/rollback.yml
 # read it to re-apply the __PROD_HOSTNAME__ substitution into
 # nginx/nginx.prod.conf on every run (ADS-1312). It must match the hostnames
@@ -335,6 +338,7 @@ POSTGRES_DB=adopt_dont_shop_staging
 REDIS_PASSWORD=<openssl rand -hex 32>
 CORS_ORIGIN=https://staging.adoptdontshop.app,https://staging-admin.adoptdontshop.app,https://staging-rescue.adoptdontshop.app
 FRONTEND_URL=https://staging.adoptdontshop.app
+RESCUE_FRONTEND_URL=https://staging-rescue.adoptdontshop.app
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=<from Resend>
 DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app

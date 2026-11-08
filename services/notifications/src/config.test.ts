@@ -28,6 +28,7 @@ describe('loadConfig', () => {
       NOTIFICATIONS_SCHEMA: 'notifications_test',
       NODE_ENV: 'production',
       FRONTEND_URL: 'https://app.example.com',
+      RESCUE_FRONTEND_URL: 'https://rescue.example.com',
       DATABASE_URL: 'postgres://prod:secret@db.example.com:5432/notifications',
       NATS_URL: 'nats://nats.internal:4222',
       // ADS-549: production needs a real email provider — console is
@@ -80,6 +81,28 @@ describe('loadConfig', () => {
     ).toBe('https://app.example.com');
   });
 
+  it('builds staff invitation links from RESCUE_FRONTEND_URL, defaulting to the local rescue app in development', () => {
+    expect(loadConfig({ DATABASE_URL: VALID_DB_URL }).rescueAppUrl).toBe('http://localhost:3002');
+    expect(
+      loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        RESCUE_FRONTEND_URL: ' https://rescue.example.com ',
+      }).rescueAppUrl
+    ).toBe('https://rescue.example.com');
+  });
+
+  it('refuses to boot in production without RESCUE_FRONTEND_URL, since invitation links would be broken', () => {
+    expect(() =>
+      loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        NODE_ENV: 'production',
+        EMAIL_PROVIDER: 'ethereal',
+        PUSH_PROVIDER: 'none',
+        FRONTEND_URL: 'https://app.example.com',
+      })
+    ).toThrow(/RESCUE_FRONTEND_URL/);
+  });
+
   it('refuses to boot in production without FRONTEND_URL, since every email link would be broken', () => {
     expect(() =>
       loadConfig({
@@ -98,6 +121,7 @@ describe('loadConfig', () => {
       loadConfig({
         NODE_ENV: 'production',
         FRONTEND_URL: 'https://app.example.com',
+        RESCUE_FRONTEND_URL: 'https://rescue.example.com',
         DATABASE_URL: VALID_DB_URL,
         EMAIL_PROVIDER: 'resend',
         RESEND_API_KEY: 'k',
@@ -121,6 +145,7 @@ describe('loadConfig', () => {
     const config = loadConfig({
       NODE_ENV: 'production',
       FRONTEND_URL: 'https://app.example.com',
+      RESCUE_FRONTEND_URL: 'https://rescue.example.com',
       DATABASE_URL: VALID_DB_URL,
       EMAIL_PROVIDER: 'resend',
       RESEND_API_KEY: 'k',
@@ -151,6 +176,7 @@ describe('loadConfig', () => {
       loadConfig({
         NODE_ENV: 'production',
         FRONTEND_URL: 'https://app.example.com',
+        RESCUE_FRONTEND_URL: 'https://rescue.example.com',
         DATABASE_URL: VALID_DB_URL,
         EMAIL_PROVIDER: 'console',
       })

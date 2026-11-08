@@ -25,6 +25,7 @@ const TOKEN = 'tok_AbC-123_secretValue';
 
 const CONFIG = {
   frontendUrl: 'http://localhost:3000/',
+  rescueAppUrl: 'http://localhost:3002/',
   fromEmail: 'noreply@adoptdontshop.com',
   fromName: "Adopt Don't Shop",
 };
@@ -79,6 +80,15 @@ const RESET = {
   resetExpiresAt: '2026-11-07T15:30:00.000Z',
 };
 
+const STAFF_INVITED = {
+  invitationId: 'inv-1',
+  rescueId: 'rsc-1',
+  email: 'newstaff@example.com',
+  invitedBy: 'usr-9',
+  expiration: '2026-11-14T12:00:00.000Z',
+  token: TOKEN,
+};
+
 describe('registerAuthEmailSubscribers', () => {
   beforeEach(() => {
     subscribeMock.mockReset();
@@ -86,18 +96,20 @@ describe('registerAuthEmailSubscribers', () => {
     insertEmailMock.mockResolvedValue({});
   });
 
-  it('subscribes to auth.userRegistered and auth.passwordResetRequested with their own durables', () => {
+  it('subscribes to auth.userRegistered, auth.passwordResetRequested and rescue.staffInvited with their own durables', () => {
     const { subs } = register();
 
-    expect(subs).toHaveLength(2);
+    expect(subs).toHaveLength(3);
     const opts = subscribeMock.mock.calls.map(c => c[1] as { subject: string; durable: string });
     expect(opts.map(o => o.subject)).toEqual([
       'auth.userRegistered',
       'auth.passwordResetRequested',
+      'rescue.staffInvited',
     ]);
     expect(opts.map(o => o.durable)).toEqual([
       'notifications-workers-auth-userRegistered',
       'notifications-workers-auth-passwordResetRequested',
+      'notifications-workers-rescue-staffInvited',
     ]);
   });
 
@@ -134,6 +146,39 @@ describe('registerAuthEmailSubscribers', () => {
     expect(email.htmlContent).toContain(`href="${link}"`);
     expect(email.textContent).toContain(link);
     expect(email.textContent).toMatch(/if you did not ask/i);
+  });
+
+  it('queues a staff invitation email linking to the rescue app accept page, without logging the address or token', async () => {
+    const { handlers, logCalls } = register();
+
+    await handlers.get('rescue.staffInvited')!(STAFF_INVITED, { id: 'evt-inv-1' });
+
+    expect(insertEmailMock).toHaveBeenCalledTimes(1);
+    const email = insertEmailMock.mock.calls[0][1];
+    const link = `http://localhost:3002/accept-invitation?token=${TOKEN}`;
+    expect(email).toMatchObject({
+      toEmail: 'newstaff@example.com',
+      type: 'transactional',
+      metadata: { essential: true },
+    });
+    expect(email.subject).toMatch(/invited/i);
+    expect(email.htmlContent).toContain(`href="${link}"`);
+    expect(email.textContent).toContain(link);
+    expect(email.textContent).toMatch(/14 November 2026/);
+    expect(JSON.stringify(logCalls)).not.toContain(TOKEN);
+    expect(JSON.stringify(logCalls)).not.toContain('newstaff@example.com');
+  });
+
+  it('acknowledges a staff invitation without emailing when it has no token or has expired', async () => {
+    const { handlers } = register(() => new Date('2026-11-20T00:00:00.000Z'));
+
+    await handlers.get('rescue.staffInvited')!(STAFF_INVITED, { id: 'evt-inv-2' }); // expired 14 Nov
+    await handlers.get('rescue.staffInvited')!(
+      { ...STAFF_INVITED, token: undefined, expiration: '2026-12-01T00:00:00.000Z' },
+      { id: 'evt-inv-3' }
+    );
+
+    expect(insertEmailMock).not.toHaveBeenCalled();
   });
 
   it('escapes the name in HTML and URL-encodes the token', async () => {
@@ -184,6 +229,7 @@ describe('registerAuthEmailSubscribers', () => {
 
     await handlers.get('auth.userRegistered')!(REGISTERED, { id: 'evt-1' });
     await handlers.get('auth.passwordResetRequested')!(RESET, { id: 'evt-2' });
+    await handlers.get('rescue.staffInvited')!(STAFF_INVITED, { id: 'evt-3' });
 
     for (const [, email] of insertEmailMock.mock.calls) {
       expect(email.metadata).toEqual({ essential: true });

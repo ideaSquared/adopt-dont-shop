@@ -14,7 +14,10 @@
 //     publishes rescue.verified (or rescue.rejected, etc.) after commit.
 //   - InviteStaff mints a high-entropy token, persists the row, and
 //     publishes rescue.staffInvited. The token is returned ONCE and
-//     never read back through Get/List (the monolith contract).
+//     never read back through Get/List (the monolith contract). The same
+//     raw token also rides the internal event so service.notifications can
+//     email the invitee their accept link (same precedent as
+//     auth.passwordResetRequested).
 //   - Permission gating uses @adopt-dont-shop/authz.requirePermission
 //     scoped to the rescue (rescue staff can only mutate their own
 //     rescue; super_admin bypasses).
@@ -1103,17 +1106,21 @@ export async function inviteStaff(
     inserted = result.rows[0];
 
     // Key the event on the PERSISTED id (the existing row's id on a
-    // refresh), not the freshly-minted one, so a re-invite is idempotent.
+    // refresh) plus this call's expiry. A redelivery of one invite stays
+    // idempotent, while a re-invite (which rotates the token) is a distinct
+    // event so the invitee gets the new link.
     const persistedId = inserted?.invitation_id ?? invitationId;
     publish({
       type: 'rescue.staffInvited',
-      id: `rescue.staffInvited.${persistedId}`,
+      id: `rescue.staffInvited.${persistedId}.${expiration.getTime()}`,
       payload: {
         invitationId: persistedId,
         rescueId: req.rescueId,
         email: req.email,
         invitedBy: principal.userId,
         expiration: expiration.toISOString(),
+        // Raw one-time token: only on this internal event, never logged.
+        token,
       },
     });
   });

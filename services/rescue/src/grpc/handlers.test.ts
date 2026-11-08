@@ -1282,7 +1282,7 @@ describe('inviteStaff', () => {
     expect(res.invitation.invitationId).toBe('inv-existing');
   });
 
-  it('keys the published event on the persisted invitation id (stable on refresh)', async () => {
+  it('keys the published event on the persisted invitation id and carries the raw token for the invite email', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     mocks.clientMock.query.mockResolvedValue({
       rows: [
@@ -1307,7 +1307,12 @@ describe('inviteStaff', () => {
 
     const published = mocks.natsMock.publish.mock.calls[0];
     const opts = published[2] as { msgID?: string };
-    expect(opts.msgID).toBe('rescue.staffInvited.inv-existing');
+    expect(opts.msgID).toMatch(/^rescue\.staffInvited\.inv-existing\.\d+$/);
+    const payload = JSON.parse(new TextDecoder().decode(published[1] as Uint8Array)) as {
+      payload?: { invitationId?: string; token?: string };
+    };
+    expect(payload.payload?.invitationId).toBe('inv-existing');
+    expect(payload.payload?.token).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 

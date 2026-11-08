@@ -123,6 +123,7 @@ const main = async (): Promise<void> => {
       rescueClient,
       authEmail: {
         frontendUrl: config.frontendUrl,
+        rescueAppUrl: config.rescueAppUrl,
         fromEmail: config.defaultFromEmail,
         fromName: config.defaultFromName,
       },

@@ -480,7 +480,7 @@ describe('registerSubscribers', () => {
     const subs = registerSubscribers({ nats, deps, logger });
     await flush();
 
-    expect(subs).toHaveLength(18);
+    expect(subs).toHaveLength(17);
     const subjects = consumersAdded.map(c => c.filter_subject);
     expect(subjects).toEqual([
       'applications.submitted',
@@ -498,13 +498,12 @@ describe('registerSubscribers', () => {
       'pets.deleted',
       'rescue.verified',
       'rescue.rejected',
-      'rescue.staffInvited',
       'rescue.staffInvitationCancelled',
       'chat.messageCreated',
     ]);
   });
 
-  it('also subscribes to the verification and password-reset events when authEmail is configured', async () => {
+  it('also subscribes to the verification, password-reset and staff invitation events when authEmail is configured', async () => {
     const { nats, consumersAdded } = makeNats();
 
     const subs = registerSubscribers({
@@ -513,6 +512,7 @@ describe('registerSubscribers', () => {
       logger,
       authEmail: {
         frontendUrl: 'http://localhost:3000',
+        rescueAppUrl: 'http://localhost:3002',
         fromEmail: 'noreply@adoptdontshop.com',
         fromName: "Adopt Don't Shop",
       },
@@ -523,6 +523,7 @@ describe('registerSubscribers', () => {
     const subjects = consumersAdded.map(c => c.filter_subject);
     expect(subjects).toContain('auth.userRegistered');
     expect(subjects).toContain('auth.passwordResetRequested');
+    expect(subjects).toContain('rescue.staffInvited');
   });
 
   it('names each durable consumer with the shared notifications-workers prefix', async () => {
