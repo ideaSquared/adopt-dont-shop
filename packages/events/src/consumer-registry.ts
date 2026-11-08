@@ -28,7 +28,7 @@
 //       registerGdprSubscriber (erasureRequested only).
 //   - `*.actionTaken` in audit covers the .actionTaken sub-subject for
 //       EVERY domain prefix; it is noted under each domain prefix.
-//   - matching.>, moderation.>, cms.>, audit.> have no non-actionTaken
+//   - matching.>, moderation.>, cms.>, audit.>, ops.> have no non-actionTaken
 //       subscribers today — the audit wildcard is their only consumer.
 
 import type { DomainSubject } from './stream.js';
@@ -212,6 +212,17 @@ export const CONSUMER_REGISTRY: RegistryEntry[] = [
         file: 'services/audit/src/nats/subscribers.ts',
         description:
           'Wildcard *.actionTaken is the only consumer; captures cms.actionTaken events (contentCreated, contentUpdated, contentDeleted, contentRestored, menuCreated, menuUpdated, menuDeleted).',
+      },
+    ],
+  },
+  {
+    subject: 'ops.>',
+    consumers: [
+      {
+        service: 'service.audit',
+        file: 'services/audit/src/nats/subscribers.ts',
+        description:
+          'Wildcard *.actionTaken is the only consumer; captures ops.actionTaken events (break-glass unlocks, PII reveals and write executions from the ads-ops CLI).',
       },
     ],
   },

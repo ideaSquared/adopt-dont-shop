@@ -1,0 +1,40 @@
+{
+  "name": "@adopt-dont-shop/ops-contract",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "private": true,
+  "description": "Zod schemas for the HTTP API between the ads-ops developer CLI (packages/ops-cli) and service.ops. Single source of truth for request/response shapes on both sides.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "production": "./dist/index.js",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.6.6"
+  }
+}

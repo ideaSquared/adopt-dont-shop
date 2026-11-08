@@ -1518,6 +1518,31 @@ importers:
         specifier: ^6.1.4
         version: 6.1.4
 
+  packages/ops-cli:
+    dependencies:
+      '@adopt-dont-shop/ops-contract':
+        specifier: workspace:*
+        version: link:../ops-contract
+      '@clack/prompts':
+        specifier: ^0.11.0
+        version: 0.11.0
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      zod:
+        specifier: ^4.6.6
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.1.1
+
+  packages/ops-contract:
+    dependencies:
+      zod:
+        specifier: ^4.6.6
+        version: 4.6.7
+
   packages/proto:
     dependencies:
       '@bufbuild/protobuf':
@@ -2251,6 +2276,67 @@ importers:
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.1
+      '@types/pg':
+        specifier: ^8.15.5
+        version: 8.20.0
+
+  services/ops:
+    dependencies:
+      '@adopt-dont-shop/authz':
+        specifier: workspace:*
+        version: link:../../packages/authz
+      '@adopt-dont-shop/config-secrets':
+        specifier: workspace:*
+        version: link:../../packages/config-secrets
+      '@adopt-dont-shop/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@adopt-dont-shop/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+      '@adopt-dont-shop/lib.types':
+        specifier: workspace:*
+        version: link:../../packages/lib.types
+      '@adopt-dont-shop/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@adopt-dont-shop/ops-contract':
+        specifier: workspace:*
+        version: link:../../packages/ops-contract
+      '@adopt-dont-shop/proto':
+        specifier: workspace:*
+        version: link:../../packages/proto
+      '@adopt-dont-shop/service-bootstrap':
+        specifier: workspace:*
+        version: link:../../packages/service-bootstrap
+      '@grpc/grpc-js':
+        specifier: ^1.14.5
+        version: 1.14.5
+      fastify:
+        specifier: ^5.12.5
+        version: 5.12.5
+      nats:
+        specifier: ^2.29.3
+        version: 2.29.3
+      node-pg-migrate:
+        specifier: ^8.0.4
+        version: 8.0.4(@types/pg@8.20.0)(pg@8.22.0)
+      pg:
+        specifier: ^8.22.0
+        version: 8.22.0
+      winston:
+        specifier: ^3.19.0
+        version: 3.19.0
+      zod:
+        specifier: ^4.6.6
+        version: 4.6.7
+    devDependencies:
+      '@adopt-dont-shop/eslint-config-node':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config-node
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@types/pg':
         specifier: ^8.15.5
         version: 8.20.0
@@ -3089,6 +3175,12 @@ packages:
 
   '@bufbuild/protobuf@2.12.0':
     resolution: {integrity: sha512-B/XlCaFIP8LOwzo+bz5uFzATYokcwCKQcghqnlfwSmM5eX/qTkvDBnDPs+gXtX/RyjxJ4DRikECcPJbyALA8FA==}
+
+  '@clack/core@0.5.0':
+    resolution: {integrity: sha512-p3y0FIOwaYRUPRcMO7+dlmLh8PSRcrjuTndsiA0WAFbWES0mLZlrjVoBRZ9DzkPFJZG6KGkJmoEAY0ZcVWTkow==}
+
+  '@clack/prompts@0.11.0':
+    resolution: {integrity: sha512-pMN5FcrEw9hUkZA4f+zLlzivQSeQf5dRGJjSUbvVYDLvpKCdQx5OaknvKzgbtXOizhP+SJJJjqEbOe55uKKfAw==}
 
   '@colors/colors@1.6.0':
     resolution: {integrity: sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA==}
@@ -9103,6 +9195,9 @@ packages:
     resolution: {integrity: sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g==}
     engines: {node: '>=18'}
 
+  sisteransi@1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+
   slice-ansi@7.1.2:
     resolution: {integrity: sha512-iOBWFgUX7caIZiuutICxVgX1SdxwAVFFKwt1EvMYYec/NWO5meOJ6K5uQxhrYBdQJne4KxiqZc+KptFOWFSI9w==}
     engines: {node: '>=18'}
@@ -10962,6 +11057,17 @@ snapshots:
       '@bufbuild/buf-win32-x64': 1.71.0
 
   '@bufbuild/protobuf@2.12.0': {}
+
+  '@clack/core@0.5.0':
+    dependencies:
+      picocolors: 1.1.1
+      sisteransi: 1.0.5
+
+  '@clack/prompts@0.11.0':
+    dependencies:
+      '@clack/core': 0.5.0
+      picocolors: 1.1.1
+      sisteransi: 1.0.5
 
   '@colors/colors@1.6.0': {}
 
@@ -17492,6 +17598,8 @@ snapshots:
       '@polka/url': 1.0.0-next.29
       mrmime: 2.0.1
       totalist: 3.0.1
+
+  sisteransi@1.0.5: {}
 
   slice-ansi@7.1.2:
     dependencies:
