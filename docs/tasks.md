@@ -214,7 +214,7 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/service-bootstrap` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.applications` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.audit` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
-| `@adopt-dont-shop/service.auth` | `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/service.auth` | `bootstrap:admin`, `build`, `clean`, `db:migrate`, `db:seed`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.chat` | `build`, `clean`, `db:migrate`, `db:spam`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.cms` | `build`, `clean`, `db:migrate`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/service.gateway` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `start`, `test`, `test:contracts:consumer`, `test:contracts:provider`, `test:coverage`, `test:watch`, `type-check` |
