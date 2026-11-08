@@ -652,7 +652,7 @@ jobs:
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
+          source: 'scripts/wait-for-services.sh,scripts/deploy-secrets.sh,scripts/deploy-pin-env.sh,scripts/deploy-release-images.sh,scripts/deploy-overlay-args.sh,scripts/deploy-glitchtip-secrets.sh,docker-compose.prod.yml,docker-compose.staging.yml,docker-compose.observability.yml,docker-compose.glitchtip.yml,nginx,observability'
           target: /opt/ads/${{ github.event.inputs.environment }}
           overwrite: true
 
@@ -983,14 +983,32 @@ jobs:
               # single SHA, so per-service overrides from a prior deploy are not
               # reconstructed — the whole stack reverts to that SHA.)
               TAG_OVERRIDES="" scripts/deploy-pin-env.sh "$LAST_GOOD"
+              # LAST_GOOD may predate service-ops (ADR 0016): it then has no
+              # service-ops image, so leave ops out of the pull, the stack and
+              # the health gate instead of failing the recovery on it.
+              chmod +x scripts/deploy-release-images.sh
+              # shellcheck disable=SC2086
+              ROLLBACK_IMAGES="$(scripts/deploy-release-images.sh "$IMAGE_PREFIX" "$LAST_GOOD" $IMAGES)"
               # Re-pull the last-good images — usually still cached from the prior
               # deploy, so a transient registry error is non-fatal when the image
               # is already present locally.
-              for image in $IMAGES; do
+              for image in $ROLLBACK_IMAGES; do
                 docker pull "$IMAGE_PREFIX/$image:$LAST_GOOD" ||
                   echo "warn: could not pull $image:$LAST_GOOD (using local copy if present)"
               done
-              docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
+              case " $ROLLBACK_IMAGES " in
+                *" service-ops "*)
+                  docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
+                  ;;
+                *)
+                  echo "service-ops is not part of $LAST_GOOD - stopping it and starting the rest of the stack."
+                  docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env rm -sf service-ops
+                  # shellcheck disable=SC2046
+                  docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d \
+                    $(docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env config --services | grep -vx service-ops)
+                  HEALTH_TARGETS="$(printf '%s' "$HEALTH_TARGETS" | sed 's/service-ops:4100//')"
+                  ;;
+              esac
               if run_health_gate; then
                 echo "Rolled back to $LAST_GOOD — the stack is healthy on the previous version."
                 echo "$RUN_ID rolled_back $LAST_GOOD" > .deploy_outcome
