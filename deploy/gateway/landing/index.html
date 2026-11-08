@@ -33,8 +33,8 @@
              email input if the provider expects another field name (e.g. EMAIL).
           2. Remove the `hidden` attribute from the <form> and add it to
              <p class="soon"> below.
-          3. Add the provider's origin to form-action in the apex server block of
-             deploy/gateway/nginx.conf, e.g. form-action 'self' https://provider.example
+          3. Add the provider's origin to form-action in the apex landing snippet,
+             deploy/gateway/snippets/apex-landing.conf, e.g. form-action 'self' https://provider.example
         Use the provider's double opt-in so consent is recorded (UK GDPR / PECR).
       -->
       <form class="signup" action="#" method="post" hidden>
