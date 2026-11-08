@@ -69,7 +69,7 @@ jobs:
           for image in \
             service-gateway service-auth service-notifications service-pets \
             service-rescue service-applications service-chat service-moderation \
-            service-matching service-audit service-cms \
+            service-matching service-audit service-cms service-ops \
             app-client app-admin app-rescue; do
             digest=$(docker buildx imagetools inspect "$IMAGE_PREFIX/$image:$SHA" --format '{{.Manifest.Digest}}')
             cosign verify \
@@ -157,13 +157,15 @@ jobs:
           # A rollback on a host that never ran deploy.yml (or after the file
           # was cleaned up) would leave every NATS client unable to connect.
           SECRET_NATS_AUTH_TOKEN: ${{ secrets.NATS_AUTH_TOKEN }}
+          # ADR 0016: OPTIONAL (empty file written when unset; unlocks stay off).
+          SECRET_OPS_DISCORD_WEBHOOK_URL: ${{ secrets.OPS_DISCORD_WEBHOOK_URL }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.NETCUP_HOST }}
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,ROLLBACK_SHA,ROLLBACK_ENV,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN
+          envs: GHCR_TOKEN,ROLLBACK_SHA,ROLLBACK_ENV,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,SECRET_OPS_DISCORD_WEBHOOK_URL
           script: |
             set -euo pipefail
             # Validate SHA before use to prevent shell injection.
@@ -179,11 +181,11 @@ jobs:
 
             printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u ideasquared --password-stdin
 
-            # Post-monolith: the gateway + 10 gRPC services replace the deleted
+            # Post-monolith: the gateway + 10 gRPC services (plus service-ops) replace the deleted
             # service.backend image, plus the three frontends.
             IMAGES="service-gateway service-auth service-notifications service-pets
               service-rescue service-applications service-chat service-moderation
-              service-matching service-audit service-cms
+              service-matching service-audit service-cms service-ops
               app-client app-admin app-rescue"
             for image in $IMAGES; do
               docker pull "$IMAGE_PREFIX/$image:$SHA"
@@ -248,7 +250,7 @@ jobs:
             HEALTH_TARGETS="service-notifications:5001 service-auth:5002 \
               service-pets:5003 service-rescue:5004 service-applications:5005 \
               service-chat:5006 service-moderation:5007 service-matching:5008 \
-              service-audit:5009 service-cms:5010 service-gateway:4000"
+              service-audit:5009 service-cms:5010 service-ops:4100 service-gateway:4000"
             chmod +x scripts/wait-for-services.sh
             # Intentional word-split of the target list.
             # shellcheck disable=SC2086

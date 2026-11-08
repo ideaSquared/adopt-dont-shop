@@ -75,6 +75,10 @@ Whatever you touch, this repo follows TDD ([CONTRIBUTING "TDD loop"](../CONTRIBU
 
 Follow [CONTRIBUTING.md](../CONTRIBUTING.md) for branch naming, Conventional Commits and the pre-PR checklist. The [PR template](../.github/pull_request_template.md) mirrors the most-failed CI checks — fill it in rather than deleting sections. Which CI jobs run, and when to add the `run-e2e` label, is in [.github/workflows/README.md](../.github/workflows/README.md).
 
+## Ops CLI
+
+`pnpm ops --help` runs allow-listed gRPC RPCs against an environment through `service-ops` (PII masked, writes preview first). In dev it is part of the stack (`http://127.0.0.1:4100`, no login); staging and prod need an SSH tunnel and GitHub login. See [`packages/ops-cli/README.md`](../packages/ops-cli/README.md), [ADR 0016](./adr/0016-developer-ops-cli.md) and the [admin runbook](./runbooks/ops-cli.md).
+
 ## 10. Debugging
 
 [docs/runbooks/dev-stack-troubleshooting.md](./runbooks/dev-stack-troubleshooting.md) covers the dev stack's failure modes (migration failures, NATS races, nginx 502s, stale images, port conflicts, HMR). [docs/DOCKER.md "Troubleshooting"](./DOCKER.md#troubleshooting) has the per-tier `pnpm docker:logs:*` shortcuts, and [docs/backend/troubleshooting.md](./backend/troubleshooting.md) covers backend-specific failures.

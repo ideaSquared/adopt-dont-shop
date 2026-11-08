@@ -24,6 +24,11 @@
 #   SECRET_ENCRYPTION_KEY=... SECRET_UPLOAD_SIGNING_SECRET=... \
 #   SECRET_DB_PASSWORD=... SECRET_PRINCIPAL_SIGNING_KEY=... \
 #   SECRET_NATS_AUTH_TOKEN=... scripts/deploy-secrets.sh
+#
+# Optional (never fails the deploy when unset or blank):
+#   SECRET_OPS_DISCORD_WEBHOOK_URL — Discord webhook service-ops posts break-glass
+#   unlock alerts to (ADR 0016). Unset/blank writes an EMPTY secrets/ops_discord_webhook_url,
+#   which service-ops reads as "not configured" and so refuses unlocks (fail closed).
 set -euo pipefail
 
 required_secret_vars="SECRET_JWT_SECRET SECRET_JWT_REFRESH_SECRET SECRET_ENCRYPTION_KEY SECRET_UPLOAD_SIGNING_SECRET SECRET_DB_PASSWORD SECRET_PRINCIPAL_SIGNING_KEY SECRET_NATS_AUTH_TOKEN"
@@ -62,6 +67,9 @@ printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_sec
 printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
 printf '%s' "$SECRET_NATS_AUTH_TOKEN"               > secrets/nats_auth_token
 printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
+# Optional: always written (the compose file mounts it unconditionally), empty
+# when unset. ${VAR:-} keeps `set -u` quiet.
+printf '%s' "${SECRET_OPS_DISCORD_WEBHOOK_URL:-}"   > secrets/ops_discord_webhook_url
 # 644, not 600: compose (outside Swarm) bind-mounts each file as-is, and the
 # services read it as their own container user (svcuser, UID 1001), not as
 # the host's deploy user — a 600 file is `Permission denied` to them. The

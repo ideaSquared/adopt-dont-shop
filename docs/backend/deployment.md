@@ -4,7 +4,7 @@ Prerequisites, environment shape, and rollback for production deploys.
 
 > **Authoritative runbook:** [`docs/operations/deploy.md`](../operations/deploy.md). This page is a higher-level companion that covers prerequisites, environment shape, and rollback. The operator-side steps live in the runbook.
 
-The stack ships as 14 images: the gateway plus each of the 10 gRPC services (11 backend images),
+The stack ships as 15 images: the gateway plus each of the 10 gRPC services plus `service-ops` (12 backend images),
 and the 3 frontend apps (admin, client, rescue). Production deploys are driven by `Makefile`
 targets at the repo root that dispatch GitHub Actions workflows (`deploy.yml`, `rollback.yml`).
 
@@ -101,7 +101,7 @@ make history                              # list recent commits to pick a rollba
 Behind the scenes:
 
 - `deploy.yml` SSHes into the netcup host using `NETCUP_HOST` / `NETCUP_SSH_KEY` /
-  `NETCUP_HOST_FINGERPRINT` secrets, pulls the 14 images from GHCR (`GHCR_TOKEN`), and starts
+  `NETCUP_HOST_FINGERPRINT` secrets, pulls the 15 images from GHCR (`GHCR_TOKEN`), and starts
   `docker-compose.prod.yml`.
 - `rollback.yml` uses the same flow but pins to a previously published image SHA.
 

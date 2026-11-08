@@ -184,7 +184,7 @@ make rollback env=production sha=<git-sha>   # re-deploys the whole stack at tha
 
 It must be a full 40-char git SHA whose signed images already exist in GHCR (the workflow cosign-verifies them before touching the host, like `deploy.yml`) — never a `:latest` or a `sha-`/`vX.Y.Z` tag. `deploy.yml` also auto-rolls back to the last-known-good SHA on a failed health/smoke gate and persists it in `/opt/ads/<env>/.env`. The step-by-step incident procedure (single-service `SERVICE_<NAME>_TAG` overrides, break-glass on the host, auto-rollback behaviour) lives in [runbooks/deploy-rollback.md](../runbooks/deploy-rollback.md).
 
-`rollback.yml` is at parity with `deploy.yml` (ADS-1311): it ships the same compose/nginx/observability config before `up -d`, clears any `SERVICE_*_TAG`/`APP_*_TAG` overrides before rewriting `DEPLOY_SHA`, materializes `secrets/nats_auth_token` (and the rest of `secrets/*`), layers in the observability/GlitchTip overlays when enabled, and gates on all 11 services' `/health/ready` — not the gateway alone.
+`rollback.yml` is at parity with `deploy.yml` (ADS-1311): it ships the same compose/nginx/observability config before `up -d`, clears any `SERVICE_*_TAG`/`APP_*_TAG` overrides before rewriting `DEPLOY_SHA`, materializes `secrets/nats_auth_token` (and the rest of `secrets/*`), layers in the observability/GlitchTip overlays when enabled, and gates on all 12 services' `/health/ready` (`service-ops` on `:4100`) — not the gateway alone.
 
 Break-glass single-service pin, on the host (`cd /opt/ads/production`) — not persisted, the next deploy overwrites `.env`:
 
@@ -231,7 +231,7 @@ network on the same host.
    (`service-auth`, `service-pets`, `service-rescue`,
    `service-applications`, `service-chat`, `service-notifications`,
    `service-moderation`, `service-matching`, `service-cms`,
-   `service-audit`) pointing to a read-only path inside the container.
+   `service-audit`, `service-ops`) pointing to a read-only path inside the container.
 3. Set the env vars in `.env`:
    ```
    DB_SSL_MODE=verify-full

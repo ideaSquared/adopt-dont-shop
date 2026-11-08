@@ -27,7 +27,7 @@ the entrypoint (`Dockerfile.service`) runs
 starts. Schema-owning services are `service-auth`, `service-pets`,
 `service-rescue`, `service-applications`, `service-chat`,
 `service-notifications`, `service-moderation`, `service-matching`,
-`service-cms`, `service-audit`. The gateway owns no tables and
+`service-cms`, `service-audit`, `service-ops`. The gateway owns no tables and
 exits the migrate step as a no-op.
 
 The runner is `node-pg-migrate` wrapped by `@adopt-dont-shop/db`
@@ -68,7 +68,7 @@ docker compose -f docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   -c 'SELECT name, run_on FROM <schema>.pgmigrations ORDER BY id DESC LIMIT 10;'
 # <schema> matches the owning service: auth, pets, rescue, applications,
-# chat, notifications, moderation, matching, cms, audit.
+# chat, notifications, moderation, matching, cms, audit, ops.
 ```
 
 The runner logs each migration name as it tries it. Note the filename

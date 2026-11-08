@@ -188,8 +188,8 @@ services:
     container_name: ads_prod_db
     # ADS-1042: raise max_connections above the pooled connection budget so
     # services can scale past a single replica without `FATAL: too many
-    # clients`. 10 DB-owning services × pool max 8 × 2 replicas + ~20 reserved
-    # (backups + migrations + admin) = 180 < 200. shared_buffers is bumped to
+    # clients`. 10 DB-owning services × pool max 8 × 2 replicas + service-ops (pool 2) + ~20 reserved
+    # (backups + migrations + admin) = 184 < 200. shared_buffers is bumped to
     # ~25% of the 2g container limit to match. Budget math + tuning notes:
     # docs/operations/connection-budget.md. (Do NOT fold these into the Redis/
     # NATS command entries — this belongs to Postgres only.)
@@ -611,6 +611,74 @@ services:
       <<: *hc-service-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/ready']
 
+  # Developer ops CLI backend (ADR 0016). The ONE service in this file with a
+  # `ports:` mapping, and a deliberate exception to "only the gateway
+  # publishes": it binds the host LOOPBACK only (127.0.0.1:4102), so it is
+  # unreachable from the network and reached by developers over a tunnel-only
+  # SSH user (docs/runbooks/ops-cli.md). Never add it to nginx or the edge
+  # gateway. It holds the principal-signing key to mint least-privilege
+  # principals, which is why the HTTP surface must stay off the public edge.
+  service-ops:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-ops:${SERVICE_OPS_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
+    container_name: ads_prod_ops
+    environment:
+      <<: *service-env
+      OPS_ENV: prod
+      OPS_AUTH_MODE: github
+      OPS_HTTP_PORT: "4100"
+      # Operator traffic only: a 2-connection pool keeps the Postgres budget
+      # (docs/operations/connection-budget.md) at 184 of 200 with ops included.
+      DB_POOL_MAX: "2"
+      # Non-secret GitHub OAuth app / membership settings from the host .env
+      # (docs/infrastructure/DEPLOYMENT-PLAN.md). Required: service-ops refuses
+      # to boot without them, and deploy.yml fails early if they are missing.
+      OPS_GITHUB_CLIENT_ID: ${OPS_GITHUB_CLIENT_ID:-}
+      OPS_GITHUB_ORG: ${OPS_GITHUB_ORG:-}
+      OPS_GITHUB_TEAM: ${OPS_GITHUB_TEAM:-}
+      OPS_SESSION_TTL_HOURS: ${OPS_SESSION_TTL_HOURS:-8}
+      # Optional: an empty secrets/ops_discord_webhook_url disables break-glass
+      # unlocks (fail closed: no alert channel, no unlock).
+      OPS_DISCORD_WEBHOOK_URL_FILE: /run/secrets/ops_discord_webhook_url
+    secrets:
+      - database_url
+      - redis_url
+      - principal_signing_key
+      - nats_auth_token
+      - ops_discord_webhook_url
+    ports:
+      - "127.0.0.1:4102:4100"
+    # Needs the domain services' gRPC endpoints at call time; `service_started`
+    # so one unhealthy service never blocks the surface used to diagnose it.
+    depends_on:
+      database:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      service-auth:
+        condition: service_started
+      service-notifications:
+        condition: service_started
+      service-pets:
+        condition: service_started
+      service-rescue:
+        condition: service_started
+      service-applications:
+        condition: service_started
+      service-chat:
+        condition: service_started
+      service-moderation:
+        condition: service_started
+      service-matching:
+        condition: service_started
+      service-audit:
+        condition: service_started
+      service-cms:
+        condition: service_started
+    healthcheck:
+      <<: *hc-service-timing
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4100/health/ready']
+
   # Frontend Apps - Production
   app-admin:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${APP_ADMIN_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
@@ -753,6 +821,10 @@ secrets:
     file: ./secrets/principal_signing_key
   nats_auth_token:
     file: ./secrets/nats_auth_token
+  # ADR 0016: Discord webhook for break-glass unlock alerts (service-ops).
+  # Optional: deploy-secrets.sh writes an empty file when unset.
+  ops_discord_webhook_url:
+    file: ./secrets/ops_discord_webhook_url
   # ADS-1302: third-party provider credentials for service-notifications.
   resend_api_key:
     file: ./secrets/resend_api_key

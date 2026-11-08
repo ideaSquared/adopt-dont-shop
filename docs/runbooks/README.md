@@ -41,27 +41,28 @@ Tools the runbooks call, and where each comes from:
 
 ### In this directory
 
-| Runbook                                                          | When to open it                                                                                 |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [`dev-stack-troubleshooting.md`](./dev-stack-troubleshooting.md) | Local `pnpm docker:dev` failures (not prod on-call)                                             |
-| [`5xx-spike.md`](./5xx-spike.md)                                 | `HighErrorRate` / `HighGrpcErrorRate` / `ServiceDown` / `GatewayCircuitOpen`; HTTP 5xx ratio up |
-| [`redis-outage.md`](./redis-outage.md)                           | `redis` container unhealthy; rate-limiters misbehaving                                          |
-| [`db-pool-exhaustion.md`](./db-pool-exhaustion.md)               | `HttpP95LatencyHigh` / `GrpcP95LatencyHigh`; `acquire timeout` errors                           |
-| [`deploy-rollback.md`](./deploy-rollback.md)                     | Bad deploy: image is live but error rate is up                                                  |
-| [`migration-failure.md`](./migration-failure.md)                 | A schema-owning service stuck in `restarting` after a deploy ran a migration                    |
-| [`maintenance-mode.md`](./maintenance-mode.md)                   | Planned outage, controlled brownout, or kill-switch needed (`GatewayRateLimitSpike`)            |
-| [`jetstream-backlog.md`](./jetstream-backlog.md)                 | NATS JetStream consumer lag / DLQ growth                                                        |
-| [`outbox-backlog.md`](./outbox-backlog.md)                       | `events_outbox_pending` climbs — events staged but not reaching JetStream                       |
-| [`nats-down.md`](./nats-down.md)                                 | `nats` container down; every service depends on it                                              |
-| [`gdpr-erasure-incident.md`](./gdpr-erasure-incident.md)         | GDPR erasure saga failed / timed out                                                            |
-| [`postgres-disk-full.md`](./postgres-disk-full.md)               | Postgres out of disk on the single host                                                         |
-| [`tls-cert-renewal.md`](./tls-cert-renewal.md)                   | Let's Encrypt cert expiring / certbot renew failing                                             |
-| [`ghcr-pull-failure.md`](./ghcr-pull-failure.md)                 | Deploy or rollback fails pulling images from GHCR                                               |
-| [`host-reboot.md`](./host-reboot.md)                             | Host rebooted / cold start; bringing the stack back                                             |
-| [`secret-rotation-emergency.md`](./secret-rotation-emergency.md) | Rotate a leaked signing key / secret under compromise                                           |
-| [`observability-stack-down.md`](./observability-stack-down.md)   | Prometheus / Grafana / Alertmanager / Loki / Tempo down (flying blind)                          |
-| [`observability-enable.md`](./observability-enable.md)           | Setup guide — turn on the self-hosted metrics/logs/traces/alerting + GlitchTip stack            |
-| [`screen-reader-smoke.md`](./screen-reader-smoke.md)             | Accessibility screen-reader smoke check for the apps                                            |
+| Runbook                                                          | When to open it                                                                                                 |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [`dev-stack-troubleshooting.md`](./dev-stack-troubleshooting.md) | Local `pnpm docker:dev` failures (not prod on-call)                                                             |
+| [`5xx-spike.md`](./5xx-spike.md)                                 | `HighErrorRate` / `HighGrpcErrorRate` / `ServiceDown` / `GatewayCircuitOpen`; HTTP 5xx ratio up                 |
+| [`redis-outage.md`](./redis-outage.md)                           | `redis` container unhealthy; rate-limiters misbehaving                                                          |
+| [`db-pool-exhaustion.md`](./db-pool-exhaustion.md)               | `HttpP95LatencyHigh` / `GrpcP95LatencyHigh`; `acquire timeout` errors                                           |
+| [`deploy-rollback.md`](./deploy-rollback.md)                     | Bad deploy: image is live but error rate is up                                                                  |
+| [`migration-failure.md`](./migration-failure.md)                 | A schema-owning service stuck in `restarting` after a deploy ran a migration                                    |
+| [`maintenance-mode.md`](./maintenance-mode.md)                   | Planned outage, controlled brownout, or kill-switch needed (`GatewayRateLimitSpike`)                            |
+| [`jetstream-backlog.md`](./jetstream-backlog.md)                 | NATS JetStream consumer lag / DLQ growth                                                                        |
+| [`outbox-backlog.md`](./outbox-backlog.md)                       | `events_outbox_pending` climbs — events staged but not reaching JetStream                                       |
+| [`nats-down.md`](./nats-down.md)                                 | `nats` container down; every service depends on it                                                              |
+| [`gdpr-erasure-incident.md`](./gdpr-erasure-incident.md)         | GDPR erasure saga failed / timed out                                                                            |
+| [`postgres-disk-full.md`](./postgres-disk-full.md)               | Postgres out of disk on the single host                                                                         |
+| [`tls-cert-renewal.md`](./tls-cert-renewal.md)                   | Let's Encrypt cert expiring / certbot renew failing                                                             |
+| [`ghcr-pull-failure.md`](./ghcr-pull-failure.md)                 | Deploy or rollback fails pulling images from GHCR                                                               |
+| [`host-reboot.md`](./host-reboot.md)                             | Host rebooted / cold start; bringing the stack back                                                             |
+| [`secret-rotation-emergency.md`](./secret-rotation-emergency.md) | Rotate a leaked signing key / secret under compromise                                                           |
+| [`observability-stack-down.md`](./observability-stack-down.md)   | Prometheus / Grafana / Alertmanager / Loki / Tempo down (flying blind)                                          |
+| [`observability-enable.md`](./observability-enable.md)           | Setup guide — turn on the self-hosted metrics/logs/traces/alerting + GlitchTip stack                            |
+| [`ops-cli.md`](./ops-cli.md)                                     | Admin guide for `pnpm ops`: onboard/offboard a developer, OAuth app, Discord webhook, unlock alerts, access log |
+| [`screen-reader-smoke.md`](./screen-reader-smoke.md)             | Accessibility screen-reader smoke check for the apps                                                            |
 
 ### Elsewhere in the docs
 

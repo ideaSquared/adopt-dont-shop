@@ -55,6 +55,32 @@ describe('deploy-secrets.sh', () => {
     expect(readSecret('db_password')).toBe('db-password-value');
   });
 
+  it('writes the optional Discord webhook secret when provided', () => {
+    execFileSync('bash', [SCRIPT], {
+      cwd: dir,
+      env: {
+        ...process.env,
+        ...REQUIRED_SECRET_ENV,
+        SECRET_OPS_DISCORD_WEBHOOK_URL: 'https://discord.example/api/webhooks/1/abc',
+      },
+    });
+
+    expect(readSecret('ops_discord_webhook_url')).toBe(
+      'https://discord.example/api/webhooks/1/abc'
+    );
+  });
+
+  it('writes an empty Discord webhook secret, and still succeeds, when it is unset', () => {
+    const { SECRET_OPS_DISCORD_WEBHOOK_URL: _unset, ...baseEnv } = process.env;
+    execFileSync('bash', [SCRIPT], {
+      cwd: dir,
+      env: { ...baseEnv, ...REQUIRED_SECRET_ENV },
+    });
+
+    // service-ops reads an empty file as "not configured" and refuses unlocks.
+    expect(readSecret('ops_discord_webhook_url')).toBe('');
+  });
+
   it('keeps the secrets directory private but the files readable by container users', () => {
     execFileSync('bash', [SCRIPT], {
       cwd: dir,

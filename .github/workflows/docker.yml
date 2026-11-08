@@ -4,7 +4,7 @@ name: Docker
 # never booted, and this workflow was not a required check — the exact
 # artifact `deploy.yml` ships had never been health-checked. Two changes:
 #
-# - `prod-image-smoke` (below) builds all 14 `production` images and boots
+# - `prod-image-smoke` (below) builds all 15 `production` images and boots
 #   the full production stack exactly as a deploy lays it out — including
 #   the per-stack nginx and the TLS edge gateway — then checks real routes
 #   through HTTPS (scripts/smoke-prod.sh, also `pnpm smoke:prod` locally), so
@@ -207,6 +207,7 @@ jobs:
           - matching
           - audit
           - cms
+          - ops
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -238,6 +239,7 @@ jobs:
               - 'packages/lib.types/**'
               - 'packages/lib.validation/**'
               - 'packages/observability/**'
+              - 'packages/ops-contract/**'
               - 'packages/proto/**'
               - 'packages/scheduler/**'
               - 'packages/seed-faker/**'
@@ -443,7 +445,7 @@ jobs:
   # GHA cache (same `cache-from`/`cache-to: type=gha` key space as the matrix
   # jobs above) makes the rebuild a near-total cache hit in the common case.
   # ============================================================================
-  # Too heavy for every PR (14 image builds and a full stack boot), so it
+  # Too heavy for every PR (15 image builds and a full stack boot), so it
   # runs where it matters:
   #   - every push to main — deploy.yml refuses a commit without a pass here;
   #   - PRs that change how a host boots (the `deploy` filter above);
@@ -467,7 +469,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      # 14 images plus their build cache don't fit in the runner's default
+      # 15 images plus their build cache don't fit in the runner's default
       # free space; drop preinstalled toolchains this job never uses.
       - name: Free disk space
         run: |
@@ -479,14 +481,14 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.23.0
             network=host
-          # Bound concurrent build steps so 14 parallel `pnpm install`s don't
+          # Bound concurrent build steps so 15 parallel `pnpm install`s don't
           # exhaust the runner's memory.
           buildkitd-config-inline: |
             [worker.oci]
               max-parallelism = 4
 
       # Same definition `pnpm smoke:prod` builds locally (docker-bake.hcl).
-      - name: Build the 14 production images
+      - name: Build the 15 production images
         uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e  # v7.5.0
         env:
           TAG: smoke

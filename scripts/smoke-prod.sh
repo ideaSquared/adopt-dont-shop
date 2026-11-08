@@ -5,7 +5,7 @@
 # locally with `pnpm smoke:prod`.
 #
 # What runs:
-#   - the 14 images from docker-bake.hcl, under docker-compose.prod.yml as
+#   - the 15 images from docker-bake.hcl, under docker-compose.prod.yml as
 #     shipped, plus docker-compose.ci-smoke.yml (test-only: swaps the email
 #     provider and nothing else);
 #   - the per-stack nginx and the shared edge gateway (deploy/gateway) with a
@@ -103,7 +103,7 @@ finish() {
 trap finish EXIT
 
 if [ "$BUILD" = true ]; then
-  log "Building the 14 production images (docker-bake.hcl, tag :$TAG)"
+  log "Building the 15 production images (docker-bake.hcl, tag :$TAG)"
   (cd "$ROOT" && TAG="$TAG" docker buildx bake -f docker-bake.hcl smoke --load)
 fi
 
@@ -126,6 +126,10 @@ FRONTEND_URL=https://$DOMAIN
 # Keep the Firebase boot path covered: staging/prod default to PUSH_PROVIDER=none.
 PUSH_PROVIDER=fcm
 FCM_PROJECT_ID=smoke
+# service-ops (ADR 0016) runs in github auth mode on prod; throwaway OAuth values.
+OPS_GITHUB_CLIENT_ID=smoke
+OPS_GITHUB_ORG=smoke
+OPS_GITHUB_TEAM=smoke
 DEPLOY_SHA=$TAG
 EOF
 
@@ -159,7 +163,7 @@ log "Health gate (the same scripts/wait-for-services.sh a deploy runs)"
 (cd "$PROD" && bash scripts/wait-for-services.sh docker-compose.prod.yml 90 2 \
   service-notifications:5001 service-auth:5002 service-pets:5003 service-rescue:5004 \
   service-applications:5005 service-chat:5006 service-moderation:5007 \
-  service-matching:5008 service-audit:5009 service-cms:5010 service-gateway:4000)
+  service-matching:5008 service-audit:5009 service-cms:5010 service-ops:4100 service-gateway:4000)
 
 log "Waiting for every container to be running and healthy (ClamAV's first signature download takes a few minutes)"
 not_ready=""

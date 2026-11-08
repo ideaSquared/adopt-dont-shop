@@ -686,6 +686,55 @@ services:
       <<: *hc-standard-timing
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/ready']
 
+  # Developer ops CLI backend (ADR 0016, `pnpm ops ...`). Serves HTTP/JSON on
+  # 4100, not gRPC: it is the one service whose port is published for humans.
+  # Published on the host LOOPBACK only (never 0.0.0.0) and never added to
+  # nginx — staging/prod reach it over an SSH tunnel. OPS_AUTH_MODE=local
+  # skips GitHub OAuth and is refused by the service outside
+  # NODE_ENV=development.
+  service-ops:
+    <<: *service-defaults
+    build:
+      <<: *service-build-defaults
+      args:
+        SERVICE: '@adopt-dont-shop/service.ops'
+        SERVICE_DIR: services/ops
+    environment:
+      <<: *ms-env
+      OPS_ENV: dev
+      OPS_AUTH_MODE: local
+      OPS_HTTP_PORT: '4100'
+    ports:
+      - '127.0.0.1:4100:4100'
+    # Needs the domain services' gRPC endpoints at call time; `service_started`
+    # (not healthy) so one slow service never blocks the ops surface that is
+    # used to diagnose it.
+    depends_on:
+      <<: *ms-deps
+      service-auth:
+        condition: service_started
+      service-notifications:
+        condition: service_started
+      service-pets:
+        condition: service_started
+      service-rescue:
+        condition: service_started
+      service-applications:
+        condition: service_started
+      service-chat:
+        condition: service_started
+      service-moderation:
+        condition: service_started
+      service-matching:
+        condition: service_started
+      service-audit:
+        condition: service_started
+      service-cms:
+        condition: service_started
+    healthcheck:
+      <<: *hc-standard-timing
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4100/health/ready']
+
 # ============================================================================
 # VOLUMES - Simplified to only what's needed
 # ============================================================================
