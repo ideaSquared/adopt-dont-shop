@@ -142,9 +142,9 @@ Verification and password-reset emails are sent by `services/notifications` (`sr
 
 ## Push notifications (`services/notifications/src/config.ts`)
 
-`PUSH_PROVIDER=console` (default) logs pushes to stdout; production refuses it. The only wired production provider is Firebase Cloud Messaging (`services/notifications/src/push/providers/fcm.ts`, ADS-1238). With `PUSH_PROVIDER=fcm` both vars below are required — boot fails if either is missing:
+`PUSH_PROVIDER=console` (default) logs pushes to stdout; production refuses it. `PUSH_PROVIDER=none` switches push off: the push worker does not start and nothing is sent. It is allowed in production. The only wired sending provider is Firebase Cloud Messaging (`services/notifications/src/push/providers/fcm.ts`, ADS-1238). With `PUSH_PROVIDER=fcm` both vars below are required — boot fails if either is missing:
 
-`FCM_SERVICE_ACCOUNT_JSON` also accepts the `FCM_SERVICE_ACCOUNT_JSON_FILE` file-secret form via `@adopt-dont-shop/config-secrets` (ADS-1302). `docker-compose.prod.yml` / `docker-compose.staging.yml` set `PUSH_PROVIDER=fcm`, `FCM_SERVICE_ACCOUNT_JSON_FILE: /run/secrets/fcm_service_account_json` (see `secrets/README.md`) and `FCM_PROJECT_ID` on `service-notifications`.
+`FCM_SERVICE_ACCOUNT_JSON` also accepts the `FCM_SERVICE_ACCOUNT_JSON_FILE` file-secret form via `@adopt-dont-shop/config-secrets` (ADS-1302). `docker-compose.prod.yml` / `docker-compose.staging.yml` take `PUSH_PROVIDER` from the host `.env` and default it to `none`, since no app registers device tokens yet. To turn push on, set `PUSH_PROVIDER=fcm`, `FCM_PROJECT_ID` and `FCM_SERVICE_ACCOUNT_JSON` in the host `.env`; `deploy.yml` then requires both FCM values and writes the JSON to `secrets/fcm_service_account_json` (see `secrets/README.md`).
 
 ```env
 # PUSH_PROVIDER=fcm
@@ -326,7 +326,7 @@ Runbooks: `docs/db-backup-runbook.md`, `docs/operations/restore.md`, `docs/opera
 - `NODE_ENV=production`
 - `CORS_ORIGIN` and the three `*_FRONTEND_URL` values point at HTTPS origins
 - `EMAIL_PROVIDER=resend` with `RESEND_API_KEY` (production refuses `console`)
-- `PUSH_PROVIDER=fcm` with both FCM vars (production refuses `console`)
+- `PUSH_PROVIDER=none`, or `fcm` with both FCM vars (production refuses `console`)
 - `STORAGE_PROVIDER=s3` with the S3 vars if uploads must survive the host
 - `E2E_TOKEN_PEEK` unset
 - `pnpm validate:env --env-file=<prod .env> --staging-env=<staging .env>` passes (fails on secrets shared with staging, ADS-659)

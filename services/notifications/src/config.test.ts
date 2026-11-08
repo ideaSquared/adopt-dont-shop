@@ -117,9 +117,32 @@ describe('loadConfig', () => {
     ).toThrow(/requires FCM_SERVICE_ACCOUNT_JSON/);
   });
 
+  it("accepts PUSH_PROVIDER='none' in production and turns the push worker off", () => {
+    const config = loadConfig({
+      NODE_ENV: 'production',
+      FRONTEND_URL: 'https://app.example.com',
+      DATABASE_URL: VALID_DB_URL,
+      EMAIL_PROVIDER: 'resend',
+      RESEND_API_KEY: 'k',
+      DEFAULT_FROM_EMAIL: 'from@example.com',
+      PUSH_PROVIDER: 'none',
+    });
+    expect(config.pushProvider).toEqual({ kind: 'none' });
+    expect(config.pushWorkerEnabled).toBe(false);
+  });
+
+  it("does not need Firebase credentials when PUSH_PROVIDER='none'", () => {
+    const config = loadConfig({
+      DATABASE_URL: VALID_DB_URL,
+      PUSH_PROVIDER: 'none',
+      FCM_PROJECT_ID: '',
+    });
+    expect(config.pushProvider).toEqual({ kind: 'none' });
+  });
+
   it('rejects an unknown PUSH_PROVIDER value', () => {
     expect(() => loadConfig({ DATABASE_URL: VALID_DB_URL, PUSH_PROVIDER: 'apns' })).toThrow(
-      /PUSH_PROVIDER='apns' is not recognised/
+      /PUSH_PROVIDER='apns' is not recognised \(expected 'console' \| 'fcm' \| 'none'\)/
     );
   });
 

@@ -459,7 +459,7 @@ services:
       # ADS-1302: production refuses to boot with EMAIL_PROVIDER/PUSH_PROVIDER
       # unset or 'console' (services/notifications/src/config.ts) — every
       # email/push notification would otherwise land in stdout, or the
-      # process crash-loops without these.
+      # process crash-loops without these. PUSH_PROVIDER=none is allowed.
       EMAIL_PROVIDER: resend
       RESEND_API_KEY_FILE: /run/secrets/resend_api_key
       # Resend's verified sending identity. loadEmailProviderConfig requires
@@ -468,8 +468,11 @@ services:
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:?Error: DEFAULT_FROM_EMAIL required}"
       # Client origin for verification / password-reset email links.
       FRONTEND_URL: "${FRONTEND_URL:?Error: FRONTEND_URL required}"
-      PUSH_PROVIDER: fcm
-      FCM_PROJECT_ID: "${FCM_PROJECT_ID:?Error: FCM_PROJECT_ID required}"
+      # Push is off ('none') until an app registers device tokens. To turn it
+      # on, set PUSH_PROVIDER=fcm, FCM_PROJECT_ID and FCM_SERVICE_ACCOUNT_JSON
+      # in the host .env; deploy.yml then requires both FCM values.
+      PUSH_PROVIDER: "${PUSH_PROVIDER:-none}"
+      FCM_PROJECT_ID: "${FCM_PROJECT_ID:-}"
       FCM_SERVICE_ACCOUNT_JSON_FILE: /run/secrets/fcm_service_account_json
     # Notifications needs the third-party provider secrets on top of the
     # common DB/Redis ones (ADS-1302).

@@ -867,7 +867,16 @@ jobs:
             # REDIS_PASSWORD there — they're read straight from the host
             # .env rather than threaded through as GitHub Action secrets.
             RESEND_KEY="$(read_env RESEND_API_KEY)"
-            FCM_JSON="$(read_env FCM_SERVICE_ACCOUNT_JSON)"
+            # Push is optional: the compose files default PUSH_PROVIDER to
+            # 'none'. Only PUSH_PROVIDER=fcm requires the Firebase JSON; an
+            # empty file is still written because compose mounts it either way.
+            PUSH_PROVIDER_ENV="$(grep -E '^PUSH_PROVIDER=' .env | head -n1 | cut -d= -f2- | tr -d "\"'" || true)"
+            if [ "$PUSH_PROVIDER_ENV" = "fcm" ]; then
+              FCM_JSON="$(read_env FCM_SERVICE_ACCOUNT_JSON)"
+              read_env FCM_PROJECT_ID > /dev/null
+            else
+              FCM_JSON=""
+            fi
             printf '%s' "$RESEND_KEY" > secrets/resend_api_key
             printf '%s' "$FCM_JSON"   > secrets/fcm_service_account_json
             # 644 inside the 700 secrets/ dir: service-notifications reads
