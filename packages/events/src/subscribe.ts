@@ -8,6 +8,7 @@ import {
 } from 'nats';
 
 import { recordDeadLetter } from './dead-letter-metrics.js';
+import type { OutboxLogger } from './outbox.js';
 import { DLQ_SUBJECT_PREFIX, DOMAIN_STREAM } from './stream.js';
 
 export type SubscribeOptions = {
@@ -35,7 +36,81 @@ export type SubscribeOptions = {
   // replica gets its own copy. Defaults to false (replay backlog), which is
   // the durable at-least-once behaviour every business subscriber wants.
   deliverNew?: boolean;
+  // Structured logger for the startup retry (warn per retry, error when the
+  // budget is exhausted). Falls back to a JSON line on stderr so a retry is
+  // never silent even where the caller passes none.
+  logger?: OutboxLogger;
+  // Retry budget for the JetStream setup (see DEFAULT_SETUP_RETRY).
+  setupRetry?: Partial<SubscribeSetupRetry>;
+  // Called when the setup still fails after the whole retry budget. The
+  // default (defaultSetupFailure) rethrows, which surfaces as an unhandled
+  // rejection that installProcessErrorHandlers turns into a loud, non-zero
+  // exit: a subscriber that silently never subscribed (a GDPR erasure
+  // subscriber especially) must not go unnoticed. A custom callback must make
+  // the failure just as loud (e.g. exit the process).
+  onSetupFailure?: (
+    err: unknown,
+    ctx: { subject: string; durable: string; attempts: number }
+  ) => void;
 };
+
+export type SubscribeSetupRetry = {
+  // Total attempts, including the first.
+  attempts: number;
+  // Delay before the second attempt; doubles each time up to maxDelayMs.
+  baseDelayMs: number;
+  maxDelayMs: number;
+  // JetStream API timeout (nats.js defaults to 5s, too tight while NATS is
+  // CPU-starved during a busy boot).
+  jetstreamTimeoutMs: number;
+};
+
+export const DEFAULT_SETUP_RETRY: SubscribeSetupRetry = {
+  attempts: 5,
+  baseDelayMs: 1_000,
+  maxDelayMs: 10_000,
+  jetstreamTimeoutMs: 15_000,
+};
+
+// Delay before retrying after the given 1-based failed attempt: exponential
+// from baseDelayMs, capped at maxDelayMs. Exported for unit testing.
+export const setupRetryDelayMs = (
+  attempt: number,
+  retry: Pick<SubscribeSetupRetry, 'baseDelayMs' | 'maxDelayMs'> = DEFAULT_SETUP_RETRY
+): number => Math.min(retry.maxDelayMs, retry.baseDelayMs * 2 ** Math.max(0, attempt - 1));
+
+// The default for an exhausted retry budget: rethrow, so the failure is an
+// unhandled rejection and the process exits non-zero.
+export const defaultSetupFailure = (err: unknown): void => {
+  throw err;
+};
+
+// Programming errors will not fix themselves on a retry; everything else
+// (NatsError TIMEOUT, 503, no responders, connection closed, JetStream API
+// errors while another service is still creating the stream) is treated as
+// possibly transient and retried.
+const isNonTransient = (err: unknown): boolean =>
+  err instanceof TypeError ||
+  err instanceof RangeError ||
+  err instanceof SyntaxError ||
+  err instanceof ReferenceError;
+
+const stderrLogger: OutboxLogger = {
+  warn: (message, meta) =>
+    process.stderr.write(`${JSON.stringify({ level: 'warn', message, ...(meta as object) })}\n`),
+  error: (message, meta) =>
+    process.stderr.write(`${JSON.stringify({ level: 'error', message, ...(meta as object) })}\n`),
+};
+
+const describeError = (err: unknown): { errorClass?: string; errorCode?: unknown } => ({
+  // `errorClass`, not `errorName`: the shared logger masks any key containing
+  // "name" as PII. The free-text message is deliberately omitted: it can carry
+  // secrets or PII and the shared logger does not redact string values.
+  errorClass: (err as { name?: string } | null)?.name,
+  errorCode: (err as { code?: unknown } | null)?.code,
+});
+
+const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
 export type EventEnvelope<T> = {
   id?: string;
@@ -54,6 +129,10 @@ export type MessageHandler<T = unknown> = (
 // persists on the server so the next boot resumes where this one left off.
 export type SubscriptionHandle = {
   drain: () => Promise<void>;
+  // Settles once the durable consumer is established (after any retries), or
+  // rejects when setup is abandoned. Callers may ignore it and keep their
+  // fire-and-forget shape.
+  ready: Promise<void>;
 };
 
 // subscribe binds a durable JetStream pull consumer and drives it with
@@ -83,16 +162,20 @@ export function subscribe<T = unknown>(
 ): SubscriptionHandle {
   let messages: ConsumerMessages | undefined;
   let closed = false;
+  const retry: SubscribeSetupRetry = { ...DEFAULT_SETUP_RETRY, ...opts.setupRetry };
+  const log = opts.logger ?? stderrLogger;
+  const onSetupFailure = opts.onSetupFailure ?? defaultSetupFailure;
 
-  void (async () => {
-    const jsm = await nc.jetstreamManager();
+  // One attempt at everything that talks to JetStream.
+  const connectConsumer = async (): Promise<ConsumerMessages | undefined> => {
+    const jsm = await nc.jetstreamManager({ timeout: retry.jetstreamTimeoutMs });
     // Create-or-reuse the durable consumer. Idempotent: a consumer that
     // already exists (from a previous boot) is reused with its saved
     // position, so the backlog accumulated while this subscriber was down is
     // delivered now.
     //
     // NOTE: JetStream does NOT apply a changed deliver_policy / filter_subject
-    // to an already-existing durable on re-add — those are fixed at creation.
+    // to an already-existing durable on re-add - those are fixed at creation.
     // Changing them in code requires deleting and recreating the consumer (a
     // deliberate ops step), so a flipped `deliverNew` won't take effect on an
     // existing durable until it's recreated.
@@ -101,29 +184,88 @@ export function subscribe<T = unknown>(
       filter_subject: opts.subject,
       ack_policy: AckPolicy.Explicit,
       deliver_policy: opts.deliverNew ? DeliverPolicy.New : DeliverPolicy.All,
-      // Cap redeliveries — after MAX_DELIVER attempts handleFailure() dead-
+      // Cap redeliveries - after MAX_DELIVER attempts handleFailure() dead-
       // letters the message instead of retrying forever (backstop for the
       // app-level term() in case a crash skips it).
       max_deliver: MAX_DELIVER,
     });
 
-    const js = nc.jetstream();
+    const js = nc.jetstream({ timeout: retry.jetstreamTimeoutMs });
     const consumer = await js.consumers.get(DOMAIN_STREAM, opts.durable);
     if (closed) {
-      return;
+      return undefined;
     }
-    messages = await consumer.consume();
-    const decoder = new TextDecoder();
-    for await (const msg of messages) {
-      await dispatch<T>(nc, msg, decoder, opts, handler);
+    return consumer.consume();
+  };
+
+  // Bounded retry with exponential backoff. Every retry is logged at warn;
+  // an exhausted budget (or a non-transient error) is rethrown to the caller.
+  const establish = async (): Promise<ConsumerMessages | undefined> => {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await connectConsumer();
+      } catch (err) {
+        if (closed) {
+          return undefined;
+        }
+        const meta = {
+          subject: opts.subject,
+          durable: opts.durable,
+          attempt,
+          maxAttempts: retry.attempts,
+          ...describeError(err),
+        };
+        if (isNonTransient(err) || attempt >= retry.attempts) {
+          log.error?.('JetStream subscribe setup failed; giving up', {
+            ...meta,
+            attempts: attempt,
+          });
+          throw Object.assign(err instanceof Error ? err : new Error(String(err)), {
+            setupAttempts: attempt,
+          });
+        }
+        const delayMs = setupRetryDelayMs(attempt, retry);
+        log.warn?.('JetStream subscribe setup failed; retrying', { ...meta, retryInMs: delayMs });
+        await sleep(delayMs);
+        if (closed) {
+          return undefined;
+        }
+      }
     }
+  };
+
+  const ready = (async () => {
+    messages = await establish();
   })();
+
+  // Consume loop. A setup failure goes to onSetupFailure; its default rethrows
+  // here, in a promise nobody awaits, so it surfaces as an unhandled rejection
+  // and installProcessErrorHandlers exits the process (loud, never swallowed).
+  void ready.then(
+    async () => {
+      if (!messages) {
+        return;
+      }
+      const decoder = new TextDecoder();
+      for await (const msg of messages) {
+        await dispatch<T>(nc, msg, decoder, opts, handler);
+      }
+    },
+    err => {
+      onSetupFailure(err, {
+        subject: opts.subject,
+        durable: opts.durable,
+        attempts: (err as { setupAttempts?: number }).setupAttempts ?? retry.attempts,
+      });
+    }
+  );
 
   return {
     drain: async () => {
       closed = true;
       await messages?.close();
     },
+    ready,
   };
 }
 

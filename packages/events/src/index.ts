@@ -9,7 +9,12 @@ export type {
 } from './outbox.js';
 export { OUTBOX_TABLE } from './outbox-schema.js';
 export { subscribe } from './subscribe.js';
-export type { MessageHandler, SubscribeOptions, SubscriptionHandle } from './subscribe.js';
+export type {
+  MessageHandler,
+  SubscribeOptions,
+  SubscribeSetupRetry,
+  SubscriptionHandle,
+} from './subscribe.js';
 export { ensureStream, DOMAIN_STREAM, DOMAIN_SUBJECTS } from './stream.js';
 export type { DomainSubject } from './stream.js';
 export {

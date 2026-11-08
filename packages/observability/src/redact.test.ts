@@ -188,3 +188,59 @@ describe('redactUrl', () => {
     expect(redactUrl('/health/simple')).toBe('/health/simple');
   });
 });
+
+// A logged Error used to lose its class: `name` matched the PII pattern (a
+// person's name) and came out as `N***`, so a NatsError TIMEOUT was
+// unreadable in the logs. Error class and code stay visible; real secrets and
+// real names stay masked.
+describe('redacting a logged Error', () => {
+  const natsError = (): Error =>
+    Object.assign(new Error('timeout'), { name: 'NatsError', code: 'TIMEOUT' });
+
+  it('keeps the error class and code visible after both passes the logger runs', () => {
+    const out = maskPiiFields(redactSecretFields({ err: natsError() })) as {
+      err: { name: string; code: string };
+    };
+
+    expect(out.err.name).toBe('NatsError');
+    expect(out.err.code).toBe('TIMEOUT');
+  });
+
+  it('keeps the class of a plain Error that has no code', () => {
+    const out = maskPiiFields(redactSecretFields({ err: new TypeError('boom') })) as {
+      err: { name: string };
+    };
+
+    expect(out.err.name).toBe('TypeError');
+  });
+
+  it('still redacts a secret-shaped property carried on the error', () => {
+    const err = Object.assign(natsError(), { token: 'abc', authorization: 'Bearer x' });
+    const out = maskPiiFields(redactSecretFields({ err })) as Record<
+      string,
+      Record<string, string>
+    >;
+
+    expect(out.err.token).toBe(REDACTED);
+    expect(out.err.authorization).toBe(REDACTED);
+    expect(out.err.code).toBe('TIMEOUT');
+  });
+
+  it('still masks a person name next to it, and an email carried on the error', () => {
+    const err = Object.assign(natsError(), { email: 'jane@example.com' });
+    const out = maskPiiFields(redactSecretFields({ err, user: { name: 'Jane Doe' } })) as {
+      err: { email: string };
+      user: { name: string };
+    };
+
+    expect(out.user.name).toBe('J***');
+    expect(out.err.email).toBe('j***@example.com');
+  });
+
+  it('still masks a plain object that merely has a name and a code', () => {
+    const out = maskPiiFields({ name: 'Jane Doe', code: 'X1' }) as { name: string; code: string };
+
+    expect(out.name).toBe('J***');
+    expect(out.code).toBe('X1');
+  });
+});
