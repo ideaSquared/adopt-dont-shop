@@ -37,6 +37,8 @@ before bringing the stack up.
 | `.env` is missing a required var                                                | [10](#10-env-missing-a-required-var)                                    |
 | Playwright can't connect to `localhost:3000` / `http://localhost`               | [11](#11-playwright-cant-connect-to-the-app-url)                        |
 | `docker:dev:build` needed after a lockfile change                               | [12](#12-lockfile-changed-but-the-dev-image-is-stale)                   |
+| Editing a service's source changes nothing                                      | [13](#13-a-service-doesnt-pick-up-host-edits)                           |
+| A variable stopped working after appending to `.env`                            | [14](#14-appending-to-env-corrupts-the-last-variable)                   |
 
 ---
 
@@ -293,7 +295,16 @@ docker compose exec app-client env | grep CHOKIDAR    # macOS/Windows should sho
 
 **Fix.** On macOS/Windows, confirm the polling vars made it into `.env`
 (`pnpm bootstrap` writes them per-host — see ADS-766); on Linux this should
-never be the cause since native inotify is used. If polling is already
+never be the cause since native inotify is used. An **empty** value is worse
+than a missing one: `docker-compose.yml` passes `${CHOKIDAR_USEPOLLING:-}`, so
+an `.env` that predates ADS-766 delivers `CHOKIDAR_USEPOLLING=` (empty), and
+chokidar reads any defined value as a switch — `!!""` is `false`, which turns
+polling **off** and overrides `usePolling: true` in `vite.config.ts`. Set
+`CHOKIDAR_USEPOLLING=true`, `CHOKIDAR_INTERVAL=1000` and
+`CHOKIDAR_AWAITWRITEFINISH=2000` explicitly, then **recreate** the app
+container. `docker compose restart` keeps the environment the container was
+created with, so the empty value would survive it:
+`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app-client`. If polling is already
 correct and HMR still doesn't fire, check the Vite dev server logs for the
 app in question (`docker compose logs app-client`) for a "file watcher
 limit reached" style error.
@@ -363,6 +374,48 @@ point, or want to force it:
 ```bash
 pnpm docker:dev:build
 ```
+
+---
+
+### 13. A service doesn't pick up host edits
+
+**Diagnosis.** On macOS/Windows, bind mounts don't forward file-change
+events. The apps get the `CHOKIDAR_*` polling vars through the `app-env`
+anchor ([#9](#9-hmr-not-firing-after-editing-a-lib-package)), but the
+`service-*` containers use `ms-env`, which has none, so a service's
+`tsx watch` never sees an edit made on the host. The file inside the
+container is updated; the running process is not.
+
+```bash
+# The file is new but the process is older than your edit (the dev image's
+# WORKDIR is /app, so use the full service path):
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec service-auth \
+  sh -c 'stat -c %y services/auth/src/index.ts && stat -c %y /proc/1'
+```
+
+**Fix.** Restart each service that imports the changed code, then verify with
+a real request through the gateway on `:4000`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart service-auth
+```
+
+A `.proto` change needs one more step first. Services consume the generated
+TypeScript in `packages/proto/src/generated`, not the `.proto` file, and a
+restart doesn't regenerate it. Run `pnpm --filter @adopt-dont-shop/proto generate`,
+then restart every service that imports the changed contract.
+
+---
+
+### 14. Appending to `.env` corrupts the last variable
+
+**Diagnosis.** On Windows the generated `.env` can have CRLF line endings and
+no trailing newline. `printf 'NEW_VAR=x\n' >> .env` then glues `NEW_VAR=x` onto
+the end of the last line, so that variable's value silently becomes
+`<old value>NEW_VAR=x`, and `NEW_VAR` is never set.
+
+**Fix.** Back up `.env` first, open it in an editor and add the line there.
+If you must script it, start with a newline: `printf '\r\nNEW_VAR=x\r\n' >> .env`.
 
 ---
 
