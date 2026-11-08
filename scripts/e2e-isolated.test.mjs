@@ -7,6 +7,7 @@ import {
   parseMemUsageMiB,
   planRestarts,
   RESTART_SETTLE_MS,
+  startWithSupervision,
   superviseServices,
   UNHEALTHY_GRACE_MS,
 } from './e2e-isolated.mjs';
@@ -178,7 +179,7 @@ describe('planRestarts', () => {
 
 describe('superviseServices', () => {
   const makeDeps = () => ({
-    restartService: vi.fn(),
+    restartService: vi.fn(() => 0),
     tailLogs: vi.fn(() => 'line 39' + String.fromCharCode(10) + 'line 40'),
     log: vi.fn(),
   });
@@ -214,5 +215,111 @@ describe('superviseServices', () => {
       /unexpected service name/
     );
     expect(deps.restartService).not.toHaveBeenCalled();
+  });
+});
+
+describe('superviseServices when the restart command fails', () => {
+  it('throws naming the service, the exit status and the log tail, and does not count it as restarted', () => {
+    const deps = {
+      restartService: vi.fn(() => 1),
+      tailLogs: vi.fn(() => 'last words'),
+      log: vi.fn(),
+    };
+    const rows = [row('service-applications', 'exited')];
+
+    expect(() => superviseServices(rows, fresh(), T0, deps)).toThrow(
+      /failed to restart service-applications[\s\S]*exit status 1[\s\S]*last words/
+    );
+    expect(deps.tailLogs).toHaveBeenCalledWith('service-applications', 40);
+  });
+});
+
+describe('startWithSupervision', () => {
+  // `up` stays pending until the supervisor has polled a few times, like a
+  // compose up waiting on a health-gated dependency.
+  const harness = ({ rowsAt, upStatuses }) => {
+    let clock = T0;
+    let ticks = 0;
+    const pending = [];
+    const upCalls = [];
+    const deps = {
+      restartService: vi.fn(() => 0),
+      tailLogs: vi.fn(() => ''),
+      log: vi.fn(),
+    };
+    const up = () =>
+      new Promise(resolve => {
+        upCalls.push(resolve);
+        pending.push(resolve);
+      });
+    const sleep = async () => {
+      ticks += 1;
+      clock += 5_000;
+      const resolve = pending.shift();
+      if (resolve && ticks >= upStatuses[upCalls.length - 1].afterTicks) {
+        resolve(upStatuses[upCalls.length - 1].status);
+      } else if (resolve) {
+        pending.unshift(resolve);
+      }
+    };
+    return {
+      deps,
+      upCalls,
+      run: () =>
+        startWithSupervision({
+          up,
+          readRows: () => rowsAt(ticks),
+          deps,
+          sleep,
+          now: () => clock,
+          pollMs: 5_000,
+        }),
+    };
+  };
+
+  it('restarts a gateway that exits while `up` is still waiting, once, then finishes', async () => {
+    const h = harness({
+      rowsAt: ticks =>
+        ticks < 1
+          ? [row('service-gateway', 'running', 'starting')]
+          : ticks < 2
+            ? [row('service-gateway', 'exited')]
+            : [row('service-gateway', 'running', 'healthy')],
+      upStatuses: [{ afterTicks: 3, status: 0 }],
+    });
+
+    const state = await h.run();
+
+    expect(h.deps.restartService).toHaveBeenCalledTimes(1);
+    expect(h.deps.restartService).toHaveBeenCalledWith('service-gateway');
+    expect(h.upCalls).toHaveLength(1);
+    expect(state.restartedAt['service-gateway']).toBeDefined();
+  });
+
+  it('runs `up` once more when it failed after a restart, so dependents still get created', async () => {
+    const h = harness({
+      rowsAt: ticks =>
+        ticks < 2
+          ? [row('service-gateway', 'exited')]
+          : [row('service-gateway', 'running', 'healthy')],
+      upStatuses: [
+        { afterTicks: 3, status: 1 },
+        { afterTicks: 6, status: 0 },
+      ],
+    });
+
+    await h.run();
+
+    expect(h.upCalls).toHaveLength(2);
+    expect(h.deps.restartService).toHaveBeenCalledTimes(1);
+  });
+
+  it('still fails when `up` fails and nothing was restarted', async () => {
+    const h = harness({
+      rowsAt: () => [row('database', 'running', 'healthy')],
+      upStatuses: [{ afterTicks: 1, status: 1 }],
+    });
+
+    await expect(h.run()).rejects.toThrow(/docker compose up failed/);
   });
 });

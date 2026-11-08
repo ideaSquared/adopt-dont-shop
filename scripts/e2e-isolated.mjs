@@ -158,7 +158,16 @@ export function superviseServices(rows, state, now, { restartService, tailLogs, 
   }
   for (const { service, reason } of plan.restart) {
     log(`restarting ${service}: it ${reason} (each service is restarted once)`);
-    restartService(service);
+    // A failed restart must not be recorded as a restart: throwing here means
+    // the returned state (which marks the service restarted) is never used.
+    const status = restartService(service);
+    if (status !== 0) {
+      throw new Error(
+        `failed to restart ${service} (exit status ${status}). ` +
+          `Last ${LOG_TAIL_LINES} log lines:
+${tailLogs(service, LOG_TAIL_LINES)}`
+      );
+    }
   }
   const [failed] = plan.giveUp;
   if (failed) {
@@ -168,6 +177,33 @@ export function superviseServices(rows, state, now, { restartService, tailLogs, 
     );
   }
   return plan.state;
+}
+
+// Runs `up` (which waits on health-gated dependencies, e.g. the limits gateway
+// waits on the main gateway) while supervising the stack, so a service that
+// dies during `up` is restarted instead of failing the whole run. If `up` still
+// fails after a restart it is run once more so the services it never got to
+// create (the dependents) start now. Returns the supervision state for the wait
+// that follows, so each service is still restarted at most once overall.
+export async function startWithSupervision({ up, readRows, deps, sleep, now, pollMs = 5_000 }) {
+  let state = { unhealthySince: {}, restartedAt: {} };
+  const runUp = async () => {
+    let status;
+    const running = up().then(result => {
+      status = result;
+    });
+    while (status === undefined) {
+      await Promise.race([running, sleep(pollMs)]);
+      if (status === undefined) state = superviseServices(readRows(), state, now(), deps);
+    }
+    return status;
+  };
+  if ((await runUp()) !== 0) {
+    if (Object.keys(state.restartedAt).length === 0) throw new Error('docker compose up failed');
+    deps.log('docker compose up failed after a restart; running it once more');
+    if ((await runUp()) !== 0) throw new Error('docker compose up failed');
+  }
+  return state;
 }
 
 export function parseMemUsageMiB(text) {
@@ -286,6 +322,13 @@ function main() {
     });
   const composeCapture = args =>
     capture('docker', [...composeBase, ...allProfiles, ...args], stackEnv());
+
+  const supervisorDeps = {
+    log,
+    restartService: service => compose(['restart', service]),
+    tailLogs: (service, lines) =>
+      composeCapture(['logs', '--no-color', `--tail=${lines}`, service]),
+  };
 
   // Fresh secrets every boot. Hex only: they are interpolated into URLs.
   function writeStackFiles() {
@@ -443,10 +486,14 @@ function main() {
         assertOnlyE2ePortsPublished();
 
         log(`booting ${PROJECT}`);
-        if ((await composeAsync(['up', '-d', '--no-build'], { profiles: upProfiles })) !== 0) {
-          throw new Error('docker compose up failed');
-        }
-        await waitForStack();
+        const supervision = await startWithSupervision({
+          up: () => composeAsync(['up', '-d', '--no-build'], { profiles: upProfiles }),
+          readRows: psRows,
+          deps: supervisorDeps,
+          sleep,
+          now: Date.now,
+        });
+        await waitForStack(supervision);
         await warmUpApps();
         mark('boot');
 
@@ -552,7 +599,7 @@ function main() {
     if (compose(['build', 'app-admin']) !== 0) throw new Error('dev image build failed');
   }
 
-  async function waitForStack() {
+  async function waitForStack(initialSupervision) {
     const budgetMs = Number(process.env.E2E_WAIT_MINUTES ?? 30) * 60_000;
     const deadline = Date.now() + budgetMs;
     const urls = [
@@ -561,15 +608,10 @@ function main() {
       ...(withLimits ? [`http://localhost:${ports.limiter}/health/simple`] : []),
     ];
     let lastReport = 0;
-    let supervision = { unhealthySince: {}, restartedAt: {} };
+    let supervision = initialSupervision;
     while (Date.now() < deadline) {
       const rows = psRows();
-      supervision = superviseServices(rows, supervision, Date.now(), {
-        log,
-        restartService: service => compose(['restart', service]),
-        tailLogs: (service, lines) =>
-          composeCapture(['logs', '--no-color', `--tail=${lines}`, service]),
-      });
+      supervision = superviseServices(rows, supervision, Date.now(), supervisorDeps);
       const waiting = notReady(rows);
       if (waiting.length === 0 && (await Promise.all(urls.map(isUp))).every(Boolean)) {
         log('stack is up');
