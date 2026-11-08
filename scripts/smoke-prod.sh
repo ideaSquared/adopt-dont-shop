@@ -234,24 +234,30 @@ check() {
   fi
 }
 
-check "public site" 200 "$(status "$DOMAIN" /)"
+# Pre-launch, the apex serves the static landing page (deploy/gateway/landing/),
+# so the API and uploads checks below go through api.$DOMAIN, whose vhost
+# proxies to the gateway and includes the same uploads snippet.
+check "public site (landing page)" 200 "$(status "$DOMAIN" /)"
 check "admin site" 200 "$(status "admin.$DOMAIN" /)"
 check "rescue site" 200 "$(status "rescue.$DOMAIN" /)"
 check "API readiness" 200 "$(status "api.$DOMAIN" /health/ready)"
-check "legal terms (docs baked into the gateway image)" 200 "$(status "$DOMAIN" /api/v1/legal/terms)"
+check "legal terms (docs baked into the gateway image)" 200 "$(status "api.$DOMAIN" /api/v1/legal/terms)"
 # The public login route forwards an empty body to auth, whose validation
 # answers 400. 404 means the route is missing; 401/403 that it was wrongly
 # put behind authentication or CSRF.
 check "login route registered and public (empty body is a 400)" 400 \
   "$(status "api.$DOMAIN" /api/v1/auth/login -X POST -H 'content-type: application/json' -d '{}')"
 check "uploaded photos are served from the uploads volume" 200 \
-  "$(status "$DOMAIN" /uploads/pets/smoke-fixture.jpg)"
+  "$(status "api.$DOMAIN" /uploads/pets/smoke-fixture.jpg)"
 check "uploaded photo content is intact" match \
-  "$([ "$(body "$DOMAIN" /uploads/pets/smoke-fixture.jpg)" = "$fixture" ] && echo match || echo mismatch)"
+  "$([ "$(body "api.$DOMAIN" /uploads/pets/smoke-fixture.jpg)" = "$fixture" ] && echo match || echo mismatch)"
 check "a missing photo is a 404 (not a redirect)" 404 \
-  "$(status "$DOMAIN" /uploads/pets/smoke-missing.jpg)"
-check "ID documents are never served directly" 403 "$(status "$DOMAIN" /uploads/documents/smoke.pdf)"
-check "a vhost whose stack is absent fails alone (staging, no staging stack)" 502 \
+  "$(status "api.$DOMAIN" /uploads/pets/smoke-missing.jpg)"
+check "ID documents are never served directly" 403 "$(status "api.$DOMAIN" /uploads/documents/smoke.pdf)"
+# Staging is private (snippets/staging-access.conf): an anonymous request is
+# refused before nginx tries the absent staging stack. The checks above
+# passing shows the missing stack takes nothing else down.
+check "staging refuses anonymous access (no staging stack running)" 401 \
   "$(status "staging.$DOMAIN" /)"
 hsts="$({ curl -s -D - -o /dev/null --max-time 20 --noproxy '*' --cacert "$WORK/cert/fullchain.pem" \
   --resolve "$DOMAIN:$HTTPS_PORT:127.0.0.1" "https://$DOMAIN:$HTTPS_PORT/" || true; } | tr -d '\r' |
