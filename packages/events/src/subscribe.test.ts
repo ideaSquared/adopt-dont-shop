@@ -1,7 +1,15 @@
 import type { NatsConnection } from 'nats';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { deadLetter, handleFailure, MAX_DELIVER, nakBackoffMs, subscribe } from './subscribe.js';
+import {
+  deadLetter,
+  defaultSetupFailure,
+  handleFailure,
+  MAX_DELIVER,
+  nakBackoffMs,
+  setupRetryDelayMs,
+  subscribe,
+} from './subscribe.js';
 import { DLQ_SUBJECT_PREFIX, DOMAIN_STREAM } from './stream.js';
 
 // A minimal in-memory JetStream stand-in. It models the one property that
@@ -337,5 +345,163 @@ describe('handleFailure / deadLetter', () => {
     const headers = (opts as { headers: { get: (k: string) => string } }).headers;
     expect(headers.get('dlq-original-subject')).toBe('pets.created');
     expect(headers.get('dlq-error')).toBe('boom');
+  });
+});
+
+// --- Startup resilience --------------------------------------------------
+//
+// A JetStream API call can time out while NATS is CPU-starved during a busy
+// boot. That used to be an unhandled rejection that killed the service; the
+// setup is now retried with backoff, and only an exhausted budget is fatal.
+
+const natsError = (code: string): Error =>
+  Object.assign(new Error(`nats ${code}`), { name: 'NatsError', code });
+
+const makeLogger = () => ({ warn: vi.fn(), error: vi.fn() });
+
+describe('subscribe setup retry', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('retries a startup TIMEOUT, then consumes normally, logging a warning', async () => {
+    const bus = makeBus();
+    bus.publish('pets.created', encode({ id: 'evt-1', payload: { petId: 'p1' } }));
+    bus.jsmAdd.mockRejectedValueOnce(natsError('TIMEOUT'));
+    const logger = makeLogger();
+    const seen: unknown[] = [];
+
+    const handle = subscribe<{ petId: string }>(
+      bus.nc,
+      { subject: 'pets.created', durable: 'pets-workers', logger },
+      async payload => {
+        seen.push(payload);
+      }
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    await handle.ready;
+
+    expect(bus.jsmAdd).toHaveBeenCalledTimes(2);
+    expect(seen).toEqual([{ petId: 'p1' }]);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('retrying'),
+      expect.objectContaining({
+        subject: 'pets.created',
+        durable: 'pets-workers',
+        attempt: 1,
+        errorClass: 'NatsError',
+        errorCode: 'TIMEOUT',
+      })
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('logs only the error class and code, never the free-text message', async () => {
+    const bus = makeBus();
+    bus.jsmAdd.mockRejectedValueOnce(
+      Object.assign(new Error('token=s3cret for jane@example.com'), {
+        name: 'NatsError',
+        code: 'TIMEOUT',
+      })
+    );
+    const logger = makeLogger();
+    const handle = subscribe(bus.nc, { subject: 's', durable: 'd', logger }, async () => undefined);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await handle.ready;
+
+    const logged = JSON.stringify(logger.warn.mock.calls);
+    expect(logged).not.toContain('s3cret');
+    expect(logged).not.toContain('jane@example.com');
+    expect(logged).toContain('NatsError');
+  });
+
+  it('raises the JetStream API timeout above the 5s default', async () => {
+    const bus = makeBus();
+    const handle = subscribe(bus.nc, { subject: 's', durable: 'd' }, async () => undefined);
+    await handle.ready;
+
+    expect(bus.nc.jetstreamManager).toHaveBeenCalledWith({ timeout: 15_000 });
+    expect(bus.nc.jetstream).toHaveBeenCalledWith({ timeout: 15_000 });
+  });
+
+  it('gives up after the attempt budget, reports through onSetupFailure, and is bounded in time', async () => {
+    const bus = makeBus();
+    bus.jsmAdd.mockRejectedValue(natsError('TIMEOUT'));
+    const logger = makeLogger();
+    const onSetupFailure = vi.fn();
+
+    const handle = subscribe(
+      bus.nc,
+      {
+        subject: 's',
+        durable: 'd',
+        logger,
+        onSetupFailure,
+        setupRetry: { attempts: 3, baseDelayMs: 100, maxDelayMs: 150 },
+      },
+      async () => undefined
+    );
+    // Delays are 100ms then 150ms (capped): 250ms in total, no more.
+    await vi.advanceTimersByTimeAsync(250);
+    await handle.ready.catch(() => undefined);
+
+    expect(bus.jsmAdd).toHaveBeenCalledTimes(3);
+    expect(onSetupFailure).toHaveBeenCalledTimes(1);
+    expect(onSetupFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'TIMEOUT' }),
+      expect.objectContaining({ subject: 's', durable: 'd', attempts: 3 })
+    );
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('giving up'),
+      expect.objectContaining({ errorCode: 'TIMEOUT', attempts: 3 })
+    );
+  });
+
+  it('does not retry a programming error', async () => {
+    const bus = makeBus();
+    bus.jsmAdd.mockRejectedValue(new TypeError('bad config'));
+    const onSetupFailure = vi.fn();
+
+    const handle = subscribe(
+      bus.nc,
+      { subject: 's', durable: 'd', logger: makeLogger(), onSetupFailure },
+      async () => undefined
+    );
+    await handle.ready.catch(() => undefined);
+
+    expect(bus.jsmAdd).toHaveBeenCalledTimes(1);
+    expect(onSetupFailure).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops retrying once drained', async () => {
+    const bus = makeBus();
+    bus.jsmAdd.mockRejectedValue(natsError('TIMEOUT'));
+    const handle = subscribe(
+      bus.nc,
+      { subject: 's', durable: 'd', logger: makeLogger(), onSetupFailure: vi.fn() },
+      async () => undefined
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    await handle.drain();
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(bus.jsmAdd.mock.calls.length).toBeLessThanOrEqual(2);
+  });
+
+  it('by default the failure is rethrown, never swallowed', () => {
+    const err = natsError('TIMEOUT');
+    expect(() => defaultSetupFailure(err)).toThrow(err);
+  });
+
+  it('backs off exponentially from 1s and caps at 10s', () => {
+    const delays = [1, 2, 3, 4, 5, 6].map(attempt => setupRetryDelayMs(attempt));
+    expect(delays).toEqual([1_000, 2_000, 4_000, 8_000, 10_000, 10_000]);
   });
 });

@@ -170,6 +170,31 @@ describe('createLogger', () => {
     expect(profile.postcode).toBe('S***');
   });
 
+  it('emits a startup-retry log with the error class and code readable (errorClass is not masked as PII)', async () => {
+    const chunks: string[] = [];
+    const sink = new Writable({
+      write(chunk, _enc, cb) {
+        chunks.push(chunk.toString());
+        cb();
+      },
+    });
+    const logger = createLogger({ serviceName: 'svc' });
+    logger.add(new winston.transports.Stream({ stream: sink, format: winston.format.json() }));
+
+    logger.warn('JetStream subscribe setup failed; retrying', {
+      subject: 'pets.created',
+      durable: 'pets-workers',
+      attempt: 1,
+      errorClass: 'NatsError',
+      errorCode: 'TIMEOUT',
+    });
+    await flush();
+
+    const line = JSON.parse(chunks.join('')) as Record<string, unknown>;
+    expect(line.errorClass).toBe('NatsError');
+    expect(line.errorCode).toBe('TIMEOUT');
+  });
+
   describe('trace-context stamping (ADS-1327)', () => {
     function captureOneLine(logger: ReturnType<typeof createLogger>): {
       lines: Record<string, unknown>[];
