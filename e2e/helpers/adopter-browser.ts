@@ -1,6 +1,7 @@
 import type { Browser, BrowserContext, Page } from '@playwright/test';
 
-import { AUTH_FILES, URLS } from '../playwright.config';
+import { roleStorageState } from '../fixtures/api';
+import { URLS } from '../playwright.config';
 
 export type AdopterBrowser = { page: Page; context: BrowserContext };
 
@@ -14,7 +15,7 @@ export async function openAdopterBrowser(
 ): Promise<AdopterBrowser> {
   const context = await browser.newContext({
     baseURL: URLS.client,
-    storageState: AUTH_FILES.adopter,
+    storageState: await roleStorageState('adopter'),
     ...(viewport ? { viewport } : {}),
   });
   const page = await context.newPage();

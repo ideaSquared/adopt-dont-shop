@@ -1,6 +1,7 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
-import { loginViaApi, type ApiClient } from './api';
+import { AUTH_FILES } from '../playwright.config';
+import { loginViaApi, roleStorageState, type ApiClient } from './api';
 import { ROLES, type RoleKey } from './roles';
 
 type Fixtures = {
@@ -13,6 +14,14 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
+  // The project's saved login expires after 15 minutes; hand each test a fresh one once
+  // the file is old (roleStorageState keeps the file while it is young).
+  storageState: async ({ storageState }, use) => {
+    const role = (Object.keys(AUTH_FILES) as RoleKey[]).find(
+      key => AUTH_FILES[key] === storageState
+    );
+    await use(role ? await roleStorageState(role) : storageState);
+  },
   apiAs: async ({}, use) => {
     const clients: ApiClient[] = [];
     await use(async role => {

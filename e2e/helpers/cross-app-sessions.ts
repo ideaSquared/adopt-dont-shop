@@ -1,7 +1,7 @@
 import type { Browser, BrowserContext } from '@playwright/test';
 
 import { ROLES, type RoleKey } from '../fixtures/roles';
-import { AUTH_FILES } from '../playwright.config';
+import { roleStorageState } from '../fixtures/api';
 import { loginAccountViaApi, type Account } from './accounts';
 
 /**
@@ -11,7 +11,10 @@ import { loginAccountViaApi, type Account } from './accounts';
  * minute (shared by every spec on the stack) on each extra app they visit.
  */
 export async function openRoleContext(browser: Browser, role: RoleKey): Promise<BrowserContext> {
-  return browser.newContext({ baseURL: ROLES[role].appUrl, storageState: AUTH_FILES[role] });
+  return browser.newContext({
+    baseURL: ROLES[role].appUrl,
+    storageState: await roleStorageState(role),
+  });
 }
 
 /**
