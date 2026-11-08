@@ -1,8 +1,9 @@
-// Verification and password-reset emails.
+// Verification, password-reset and rescue staff invitation emails.
 //
 // service.auth publishes auth.userRegistered (new account, and the resend
-// variant) and auth.passwordResetRequested, each carrying the recipient's
-// address, first name and the raw one-time token. This module turns them into
+// variant) and auth.passwordResetRequested; service.rescue publishes
+// rescue.staffInvited (the invitee has no account yet, so no first name).
+// Each carries the recipient's address and the raw one-time token. This module turns them into
 // queued emails for the existing email worker (email_queue), keyed so a
 // redelivered event never sends a second email.
 //
@@ -27,9 +28,13 @@ import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 import { escapeHtml } from '../email/escape-html.js';
 import { insertEmail } from '../email/queue.js';
 
+import type { RescueStaffInvitedEvent } from './event-types.js';
+
 export type AuthEmailConfig = {
   // Client app origin the links point at (FRONTEND_URL).
   frontendUrl: string;
+  // Rescue app origin the staff invitation link points at (RESCUE_FRONTEND_URL).
+  rescueAppUrl: string;
   fromEmail: string;
   fromName: string;
 };
@@ -162,6 +167,22 @@ export const renderPasswordResetEmail = (
       'If you did not ask for this, you can ignore this email and your password will stay the same.',
   });
 
+export const renderStaffInvitationEmail = (
+  event: RescueStaffInvitedEvent,
+  rescueAppUrl: string
+): RenderedEmail =>
+  render({
+    subject: `You have been invited to join a rescue on ${APP_NAME}`,
+    greetingName: undefined,
+    lines: [
+      `You have been invited to join a rescue team on ${APP_NAME}. Accept the invitation to set up your account and start helping animals find homes.`,
+    ],
+    linkText: 'Accept the invitation',
+    url: link(rescueAppUrl, '/accept-invitation', event.token ?? ''),
+    expiry: formatExpiry(event.expiration),
+    closing: 'If you were not expecting this invitation, you can ignore this email.',
+  });
+
 // A replayed event can outlive its token (JetStream keeps events for days;
 // verification links last 24 hours and reset links one hour). An email whose
 // link is already dead only confuses, so the event is acknowledged unsent.
@@ -261,6 +282,32 @@ export const registerAuthEmailSubscribers = (
         meta.id,
         event,
         renderPasswordResetEmail(event, opts.config.frontendUrl)
+      );
+    }
+  ),
+  subscribe<RescueStaffInvitedEvent>(
+    opts.nats,
+    {
+      subject: 'rescue.staffInvited',
+      durable: durableFor('rescue.staffInvited'),
+      onError: opts.onError,
+    },
+    async (event, meta) => {
+      // No token: an event published before the token rode along has nothing
+      // useful to send.
+      if (!event.email || !event.token) {
+        return;
+      }
+      if (isExpired(event.expiration, (opts.now ?? (() => new Date()))())) {
+        return;
+      }
+      await enqueue(
+        opts,
+        'rescue.staffInvited',
+        meta.id,
+        // The invitee has no user id; the queue row is keyed on the event id.
+        { email: event.email },
+        renderStaffInvitationEmail(event, opts.config.rescueAppUrl)
       );
     }
   ),

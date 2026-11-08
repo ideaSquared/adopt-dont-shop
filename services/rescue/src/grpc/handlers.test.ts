@@ -1282,7 +1282,7 @@ describe('inviteStaff', () => {
     expect(res.invitation.invitationId).toBe('inv-existing');
   });
 
-  it('keys the published event on the persisted invitation id (stable on refresh)', async () => {
+  it('keys the published event on the persisted invitation id and carries the raw token for the invite email', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     mocks.clientMock.query.mockResolvedValue({
       rows: [
@@ -1307,7 +1307,51 @@ describe('inviteStaff', () => {
 
     const published = mocks.natsMock.publish.mock.calls[0];
     const opts = published[2] as { msgID?: string };
-    expect(opts.msgID).toBe('rescue.staffInvited.inv-existing');
+    expect(opts.msgID).toMatch(
+      /^rescue\.staffInvited\.inv-existing\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    );
+    const payload = JSON.parse(new TextDecoder().decode(published[1] as Uint8Array)) as {
+      payload?: { invitationId?: string; token?: string };
+    };
+    expect(payload.payload?.invitationId).toBe('inv-existing');
+    expect(payload.payload?.token).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('gives each refresh of the same invitation a distinct event id, even within one millisecond', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-01T12:00:00Z'));
+    try {
+      mocks.poolMock.query.mockResolvedValue({ rows: [rescueRow()] });
+      mocks.clientMock.query.mockResolvedValue({
+        rows: [
+          {
+            invitation_id: 'inv-existing',
+            email: 'dup@p.example',
+            rescue_id: 'rsc-1',
+            user_id: null,
+            title: null,
+            invited_by: STAFF.userId,
+            expiration: new Date('2026-06-08T12:00:00Z'),
+            used: false,
+            created_at: new Date('2026-06-01T00:00:00Z'),
+          },
+        ],
+      });
+      const invite = { rescueId: 'rsc-1', email: 'dup@p.example' } as never;
+
+      await inviteStaff(mocks.deps, STAFF, invite);
+      await inviteStaff(mocks.deps, STAFF, invite);
+
+      const [first, second] = mocks.natsMock.publish.mock.calls.map(
+        call => (call[2] as { msgID?: string }).msgID
+      );
+      // Both refreshes rotate the token at the same instant; if the ids
+      // matched, deduplication would drop the event with the live token.
+      expect(first).toBeDefined();
+      expect(second).not.toBe(first);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

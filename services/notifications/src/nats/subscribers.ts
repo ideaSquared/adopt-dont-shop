@@ -52,7 +52,6 @@ import type {
   PetStatusChangedEvent,
   RescueRejectedEvent,
   RescueStaffInvitationCancelledEvent,
-  RescueStaffInvitedEvent,
   RescueVerifiedEvent,
 } from './event-types.js';
 import { SYSTEM_PRINCIPAL } from './system-principal.js';
@@ -249,8 +248,8 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   // RescueService.ListStaffMembers (a system-principal gRPC read); the
   // rescue name (for the body) comes from RescueService.Get. When the
   // rescue client isn't configured the fan-out no-ops gracefully.
-  // rescue.staffInvited stays log-only — it carries an email for a
-  // possibly-not-yet-user, which is out of scope for the staff fan-out.
+  // rescue.staffInvited is not part of this staff fan-out: it carries an
+  // email for a not-yet-user and is emailed by auth-emails.ts.
   subscriptions.push(
     subscribe<RescueVerifiedEvent>(
       nats,
@@ -317,26 +316,9 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     )
   );
 
-  subscriptions.push(
-    subscribe<RescueStaffInvitedEvent>(
-      nats,
-      { subject: 'rescue.staffInvited', durable: durableFor('rescue.staffInvited'), onError },
-      async payload => {
-        // The invitee email is PII — keep it out of operational logs
-        // (Layer 1 redaction only protects known fields). Identifiers
-        // are sufficient to trace the event.
-        logger.info('rescue.staffInvited received', {
-          invitationId: payload.invitationId,
-          rescueId: payload.rescueId,
-        });
-      }
-    )
-  );
-
-  // rescue.staffInvitationCancelled — same log-only treatment as
-  // rescue.staffInvited above (no account/recipient to notify in-app,
-  // and a "cancelled" email isn't critical enough to add the missing
-  // link infra for).
+  // rescue.staffInvitationCancelled — stays
+  // log-only (no account/recipient to notify in-app, and a "cancelled"
+  // email isn't critical enough to add).
   subscriptions.push(
     subscribe<RescueStaffInvitationCancelledEvent>(
       nats,
