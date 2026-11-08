@@ -22,6 +22,7 @@ export const createClackPrompts = (): Prompts => ({
         initialValue,
       })
     ),
+  // clack resolves an empty submit to undefined; callers expect a string.
   text: async ({ message, placeholder, initialValue, validate }) =>
     unwrap(
       await clack.text({
@@ -30,7 +31,7 @@ export const createClackPrompts = (): Prompts => ({
         initialValue,
         validate: validate ? v => validate(v ?? '') : undefined,
       })
-    ),
+    ) ?? '',
   confirm: async ({ message, initialValue }) =>
     unwrap(await clack.confirm({ message, initialValue: initialValue ?? false })),
   spinner: () => {
