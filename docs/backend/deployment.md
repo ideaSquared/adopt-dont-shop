@@ -100,8 +100,8 @@ make history                              # list recent commits to pick a rollba
 
 Behind the scenes:
 
-- `deploy.yml` SSHes into the Hetzner host using `HETZNER_HOST` / `HETZNER_SSH_KEY` /
-  `HETZNER_HOST_FINGERPRINT` secrets, pulls the 14 images from GHCR (`GHCR_TOKEN`), and starts
+- `deploy.yml` SSHes into the netcup host using `NETCUP_HOST` / `NETCUP_SSH_KEY` /
+  `NETCUP_HOST_FINGERPRINT` secrets, pulls the 14 images from GHCR (`GHCR_TOKEN`), and starts
   `docker-compose.prod.yml`.
 - `rollback.yml` uses the same flow but pins to a previously published image SHA.
 

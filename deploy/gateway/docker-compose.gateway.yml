@@ -27,6 +27,11 @@ services:
       # The whole directory: nginx.conf also includes uploads-prod.conf and
       # uploads-staging.conf from here, and refuses to start without them.
       - ./snippets:/etc/nginx/snippets:ro
+      # Pre-launch landing page served on the apex (see nginx.conf).
+      - ./landing:/usr/share/nginx/landing:ro
+      # Host-only staging allowlist (*.allow) and htpasswd — never in git.
+      # Read by snippets/staging-access.conf; empty or missing = staging locked.
+      - ./staging-access:/etc/nginx/staging-access:ro
       - certbot_webroot:/var/www/certbot:ro
       - letsencrypt:/etc/letsencrypt:ro
     networks:

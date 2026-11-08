@@ -201,7 +201,7 @@ Attach your IDE debugger to `localhost:9229`.
 
 ## Smoke-testing production images locally
 
-> This section is for building and running the production-mode images on your **own machine**. The real production deploy runs `docker compose -f docker-compose.prod.yml` on the Hetzner host from `/opt/ads/production` and is driven by `.github/workflows/deploy.yml` — see [`docs/operations/deploy.md`](./operations/deploy.md), the authoritative release procedure.
+> This section is for building and running the production-mode images on your **own machine**. The real production deploy runs `docker compose -f docker-compose.prod.yml` on the netcup host from `/opt/ads/production` and is driven by `.github/workflows/deploy.yml` — see [`docs/operations/deploy.md`](./operations/deploy.md), the authoritative release procedure.
 
 ```bash
 pnpm prod:build               # build production images

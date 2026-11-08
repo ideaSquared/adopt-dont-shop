@@ -34,8 +34,8 @@ rollback**. Each of those is verifiable in the repo today:
   `resources` limits (`docker-compose.prod.yml:62-69`) — no `replicas`, no
   `update_config`. There is one `database` (`:150`), one `redis` (`:186`), one
   `nats` (`:224`), one gateway, one of each of the ten gRPC services, and one
-  `nginx`, all on a single Hetzner host (`deploy.yml:600`,
-  `secrets.HETZNER_HOST`). Any one of Postgres / Redis / NATS / the host itself
+  `nginx`, all on a single netcup host (`deploy.yml:600`,
+  `secrets.NETCUP_HOST`). Any one of Postgres / Redis / NATS / the host itself
   is a hard single point of failure with no standby.
 - **Health checks run AFTER cutover.** Only once `up -d` has already swapped
   the containers does the workflow wait for health: the shared

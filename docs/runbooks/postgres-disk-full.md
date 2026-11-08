@@ -93,7 +93,7 @@ find the root cause.
    of the table's worth of disk and takes an exclusive lock.
 
 4. **If the disk is still full**, growing the host volume is the real fix.
-   On this Hetzner host that means resizing the attached volume / filesystem —
+   On this netcup host that means resizing the attached volume / filesystem —
    **verify on host** (the exact device and resize command depend on the volume
    layout) and escalate; do not guess at `resize2fs` targets blind.
 
