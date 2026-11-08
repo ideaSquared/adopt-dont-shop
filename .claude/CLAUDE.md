@@ -185,7 +185,8 @@ as `ApiError`.
 | Task                                        | Skill                      | Canonical source                                                        |
 | ------------------------------------------- | -------------------------- | ----------------------------------------------------------------------- |
 | First day / running the stack               | —                          | `docs/GETTING-STARTED.md`, `docs/DOCKER.md`                             |
-| Contributing, CI gates, PR flow             | `commit-conventions`       | `CONTRIBUTING.md`, `.github/workflows/README.md`                        |
+| Commit messages, PR titles                  | `commit-conventions`       | `CONTRIBUTING.md`                                                       |
+| After opening a PR: CI, review comments     | `pr-followup`              | `.github/workflows/README.md`                                           |
 | New REST endpoint (proto → handler → route) | `backend-endpoint`         | `docs/backend/implementation-guide.md`, `docs/backend/api-endpoints.md` |
 | Schema change                               | `db-migration`             | `docs/backend/writing-migrations.md`                                    |
 | Audit trail for a state change              | `audit-logging`            | `services/audit/src/nats/event-types.ts`                                |
