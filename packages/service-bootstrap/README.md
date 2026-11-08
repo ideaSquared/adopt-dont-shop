@@ -42,9 +42,35 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
 - `adapt` / `adaptUnauth` / `HandlerError` — the gRPC handler adapter that
   maps thrown errors to gRPC status codes (unauth variant skips the principal
   check).
+- `DRY_RUN_HEADER` / `DRY_RUN_APPLIED_HEADER` — gRPC dry-run request header and
+  response echo (see [Dry runs](#dry-runs)).
 - Principal extraction + signing helpers (`PrincipalVerification`,
   `PrincipalSigning`).
 - `runServiceShutdown(...)` — ordered shutdown sequencer (`ShutdownDeps`).
+
+## Dry runs
+
+`adapt` and `adaptUnauth` honour `x-dry-run: 1` call metadata, so every service
+gets it with no per-service code. The handler runs with per-call deps (the
+shared `deps` is never mutated):
+
+- `deps.pool` becomes a facade bound to ONE real client inside a transaction
+  that is always rolled back (on success and on error), after which the client
+  is released. `pool.read` is the same facade. Handler transactions
+  (`BEGIN` / `COMMIT` / `ROLLBACK`, e.g. `withTransaction`) become
+  `SAVEPOINT dry_run_<n>` / `RELEASE SAVEPOINT` / `ROLLBACK TO SAVEPOINT`, so
+  nesting works. `BEGIN ISOLATION LEVEL ...` becomes a plain savepoint; the
+  isolation level is not applied.
+- `deps.nats` becomes a no-op stub: `publish` and `jetstream().publish` succeed
+  and send nothing; `request` rejects.
+- Every other key of `deps` is passed through unchanged. Side effects outside
+  Postgres and NATS (Redis, email, S3, other gRPC services) are NOT rolled
+  back, so only dry-run RPCs whose side effects stay in Postgres and NATS.
+  service.ops enforces this with the `rollback` mode in its registry.
+
+The initial response metadata carries `x-dry-run-applied: 1` (in the same
+`sendMetadata` call as `x-request-id`). A caller that asked for a dry run and
+does not see the echo must treat the call as having run for real.
 
 ## Environment variables consumed
 

@@ -27,6 +27,8 @@
 //   verifyPrincipalToken      — HMAC-SHA256 signed principal tokens (ADS-800).
 //   PrincipalTokenError       — typed verification error (malformed /
 //                               bad_signature / expired).
+//   DRY_RUN_HEADER /
+//   DRY_RUN_APPLIED_HEADER    — gRPC dry-run request header and its response echo.
 //   runServiceShutdown        — SIGTERM/SIGINT teardown sequencer.
 //   connectNats               — connect() to NATS with the shared
 //                               NATS_AUTH_TOKEN credential (ADS-1273).
@@ -45,6 +47,8 @@ export type {
   UnaryHandlerUnauth,
   AdaptOptions,
 } from './adapter.js';
+
+export { DRY_RUN_HEADER, DRY_RUN_APPLIED_HEADER } from './dry-run.js';
 
 export {
   extractPrincipal,
