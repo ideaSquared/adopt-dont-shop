@@ -36,11 +36,27 @@ export const logo = style({
   color: '#fff',
   textDecoration: 'none',
   whiteSpace: 'nowrap',
+  // The logo gives way before the right slot does: when the wordmark renders
+  // wider than expected (web font failed or still loading) it truncates
+  // instead of pushing the icons and avatar past the viewport edge.
+  minWidth: 0,
+  flexShrink: 1,
+  overflow: 'hidden',
   ':focus-visible': {
     outline: '2px solid rgba(255, 255, 255, 0.8)',
     outlineOffset: '2px',
     borderRadius: vars.border.radius.sm,
   },
+});
+
+globalStyle(`${logo} > span`, {
+  minWidth: 0,
+});
+
+globalStyle(`${logo} [data-wordmark]`, {
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
 });
 
 export const primaryLinks = style({
@@ -59,6 +75,7 @@ export const rightSlot = style({
   alignItems: 'center',
   gap: vars.spacing['1'],
   marginLeft: 'auto',
+  flexShrink: 0,
 });
 
 export const iconLinkAnchorBase = style({
