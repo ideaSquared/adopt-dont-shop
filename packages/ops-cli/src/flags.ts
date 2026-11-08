@@ -115,6 +115,13 @@ export const resolveEnumValue = (spec: FieldSpec, input: string): string => {
   if (exact) {
     return exact;
   }
+  // `available` must not collide with NOT_AVAILABLE, so short names win over suffixes.
+  const byShortName = spec.enumValues.filter(
+    (_, i) => spec.shortEnumValues[i]?.toUpperCase() === wanted
+  );
+  if (byShortName.length === 1 && byShortName[0]) {
+    return byShortName[0];
+  }
   const bySuffix = spec.enumValues.filter(v => v.endsWith(`_${wanted}`));
   if (bySuffix.length === 1 && bySuffix[0]) {
     return bySuffix[0];

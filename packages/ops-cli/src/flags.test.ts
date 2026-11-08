@@ -163,6 +163,16 @@ describe('enum resolution', () => {
     }
   });
 
+  it('prefers an exact short name over a longer value sharing its suffix', () => {
+    const withNotAvailable = {
+      ...spec,
+      enumValues: ['PET_STATUS_AVAILABLE', 'PET_STATUS_NOT_AVAILABLE'],
+      shortEnumValues: ['available', 'not_available'],
+    };
+    expect(resolveEnumValue(withNotAvailable, 'available')).toBe('PET_STATUS_AVAILABLE');
+    expect(resolveEnumValue(withNotAvailable, 'not-available')).toBe('PET_STATUS_NOT_AVAILABLE');
+  });
+
   it('rejects ambiguous suffixes', () => {
     const ambiguous = {
       ...spec,
