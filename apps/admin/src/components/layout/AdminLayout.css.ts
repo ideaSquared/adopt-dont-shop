@@ -1,4 +1,5 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const layoutContainer = style({
   display: 'flex',
@@ -42,6 +43,6 @@ export const layoutFooter = style({
   padding: '0.75rem 2rem',
   display: 'flex',
   justifyContent: 'flex-end',
-  gap: '1rem',
-  background: '#ffffff',
+  gap: vars.spacing['3'],
+  background: vars.background.surface,
 });
