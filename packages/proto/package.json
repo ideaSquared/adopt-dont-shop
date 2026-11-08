@@ -25,8 +25,8 @@
     "README.md"
   ],
   "scripts": {
-    "generate": "buf generate",
-    "build": "buf generate && tsc",
+    "generate": "buf generate && node scripts/generate-schema.mjs",
+    "build": "buf generate && node scripts/generate-schema.mjs && tsc",
     "dev": "tsc --watch",
     "clean": "rimraf dist src/generated",
     "test": "vitest run",

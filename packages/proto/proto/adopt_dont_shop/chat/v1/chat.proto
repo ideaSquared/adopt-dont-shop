@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.chat.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // ChatService is the gRPC contract for the chat vertical. It owns
 // the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
 // MessageRead) and exposes the message send / list / read / react
@@ -121,27 +123,27 @@ enum ChatStatus {
 // message preview + unread count are denormalised columns the
 // SendMessage / MarkRead handlers maintain.
 message Chat {
-  string chat_id = 1;
+  string chat_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Application this chat is anchored to. Empty for a pet enquiry (see
   // OpenPetEnquiry), which is anchored to pet_id instead.
-  string application_id = 2;
+  string application_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Participant user ids (adopter, rescue staff member). Two-party
   // chats only in this phase; group threads are a later concern.
-  repeated string participant_user_ids = 3;
+  repeated string participant_user_ids = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Cheap last-message preview the chat list renders.
-  optional string last_message_preview = 4;
-  optional string last_message_at = 5;
-  optional string last_message_sender_id = 6;
-  string created_at = 7;
-  string updated_at = 8;
+  optional string last_message_preview = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string last_message_at = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string last_message_sender_id = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ChatStatus status = 9;
   // Messages in this chat, sent by others, that the calling user hasn't
   // read. Set by ListChats; other RPCs leave it unset.
   optional uint32 unread_count = 10;
   // The pet a pre-application enquiry is about (unset for application chats).
-  optional string pet_id = 11;
+  optional string pet_id = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // The rescue the chat belongs to.
-  string rescue_id = 12;
+  string rescue_id = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // Message mirrors the chat.messages row. Edited / deleted timestamps
@@ -151,48 +153,48 @@ message Chat {
 // via /api/v1/uploads/images) and sends the resulting URL; the chat
 // service stores the metadata verbatim in messages.attachments (jsonb).
 message MessageAttachment {
-  string url = 1;
-  optional string content_type = 2;
-  optional string file_name = 3;
+  string url = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string content_type = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string file_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   optional uint32 size_bytes = 4;
 }
 
 message Message {
-  string message_id = 1;
-  string chat_id = 2;
-  string sender_user_id = 3;
-  string body = 4;
+  string message_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string chat_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string sender_user_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string body = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Repeated emoji aggregate — one entry per distinct emoji this
   // message has received. Filled by the read path; SendMessage
   // returns an empty list.
   repeated MessageReaction reactions = 5;
-  optional string edited_at = 6;
-  optional string deleted_at = 7;
-  string created_at = 8;
+  optional string edited_at = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string deleted_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated MessageAttachment attachments = 9;
 }
 
 message MessageReaction {
   string emoji = 1;
   // User ids that reacted with this emoji. Order is by reaction time.
-  repeated string user_ids = 2;
+  repeated string user_ids = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- OpenChat --------------------------------------------------------
 
 message OpenChatRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Other participant — the calling principal is the first.
-  string other_user_id = 2;
+  string other_user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Rescue the chat logically belongs to. The gateway populates this from
   // the calling principal's rescue context so the chat row records its
   // owning rescue — rescue-scoped chat search can then match gRPC-created
   // chats instead of the previous null-UUID placeholder.
-  string rescue_id = 3;
+  string rescue_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message OpenPetEnquiryRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message OpenChatResponse {
@@ -205,8 +207,8 @@ message OpenChatResponse {
 // --- SendMessage -----------------------------------------------------
 
 message SendMessageRequest {
-  string chat_id = 1;
-  string body = 2;
+  string chat_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string body = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Optional file attachments. A message may carry attachments with an
   // empty body (an image-only message).
   repeated MessageAttachment attachments = 3;
@@ -219,9 +221,9 @@ message SendMessageResponse {
 // --- ListMessages ----------------------------------------------------
 
 message ListMessagesRequest {
-  string chat_id = 1;
+  string chat_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Opaque base64-JSON keyset cursor.
-  optional string cursor = 2;
+  optional string cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 50, max 200 — chat history is naturally chunkier.
   uint32 limit = 3;
 }
@@ -229,13 +231,13 @@ message ListMessagesRequest {
 message ListMessagesResponse {
   // Newest-first ordering matches the SPA's reverse-scroll pattern.
   repeated Message messages = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- ListChats -------------------------------------------------------
 
 message ListChatsRequest {
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 limit = 2;
   // Optional unread-only filter.
   bool unread_only = 3;
@@ -247,7 +249,7 @@ message ListChatsRequest {
 
 message ListChatsResponse {
   repeated Chat chats = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Total row count for the current filter — present only in offset mode
   // (page set). Keyset responses omit it.
   optional uint32 total = 3;
@@ -256,22 +258,22 @@ message ListChatsResponse {
 // --- MarkRead --------------------------------------------------------
 
 message MarkReadRequest {
-  string chat_id = 1;
+  string chat_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Mark every message up to + including this one as read by the
   // calling principal. The message MUST belong to the chat.
-  string up_to_message_id = 2;
+  string up_to_message_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message MarkReadResponse {
   // Echo of the message id for ack purposes. The downstream WS
   // event carries the same.
-  string up_to_message_id = 1;
+  string up_to_message_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- React -----------------------------------------------------------
 
 message ReactRequest {
-  string message_id = 1;
+  string message_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string emoji = 2;
   // When true, removes the calling principal's existing reaction
   // with this emoji instead of adding. Idempotent in both directions.
@@ -296,7 +298,7 @@ message SearchChatsRequest {
   // Optional rescue scope — limit results to chats anchored on a
   // specific rescue. The caller's participation is enforced
   // independently regardless of this filter.
-  optional string rescue_id = 4;
+  optional string rescue_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // SearchChatHit pairs the chat row with the best matching message
@@ -323,7 +325,7 @@ message SearchChatsResponse {
 // --- GetChatUnreadCount ----------------------------------------------
 
 message GetChatUnreadCountRequest {
-  string chat_id = 1;
+  string chat_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetChatUnreadCountResponse {
@@ -339,7 +341,7 @@ message SearchMessagesRequest {
   // Optional — narrow the search to a single chat. Caller must still be
   // a participant of that chat (same self-scoping as every other
   // chat-scoped read).
-  optional string chat_id = 2;
+  optional string chat_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Offset-based pagination, same convention as SearchChats. 1-indexed.
   uint32 page = 3;
   // Defaults to 20, max 100.
@@ -359,10 +361,10 @@ message SearchMessagesResponse {
 // --- DeleteMessage ---------------------------------------------------
 
 message DeleteMessageRequest {
-  string message_id = 1;
+  string message_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional moderator/admin reason. Captured in the NATS event for
   // downstream audit.
-  optional string reason = 2;
+  optional string reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message DeleteMessageResponse {
@@ -372,7 +374,7 @@ message DeleteMessageResponse {
 // --- GetChat ---------------------------------------------------------
 
 message GetChatRequest {
-  string chat_id = 1;
+  string chat_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetChatResponse {
@@ -382,8 +384,8 @@ message GetChatResponse {
 // --- DeleteChat ------------------------------------------------------
 
 message DeleteChatRequest {
-  string chat_id = 1;
-  optional string reason = 2;
+  string chat_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message DeleteChatResponse {
@@ -391,7 +393,7 @@ message DeleteChatResponse {
 }
 
 message UpdateChatStatusRequest {
-  string chat_id = 1;
+  string chat_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ChatStatus status = 2;
 }
 

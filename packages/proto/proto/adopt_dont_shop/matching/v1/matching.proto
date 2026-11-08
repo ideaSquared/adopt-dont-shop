@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.matching.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // MatchingService is the gRPC contract for the matching vertical.
 // Stateless recommender (CAD service.dispatch shape) — owns the
 // matching.* schema (SwipeSession, SwipeAction) and absorbs the
@@ -116,11 +118,11 @@ enum DeviceType {
 
 // SwipeSession mirrors the matching.swipe_sessions row.
 message SwipeSession {
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Null for anonymous browsing sessions.
-  optional string user_id = 2;
-  string start_time = 3;
-  optional string end_time = 4;
+  optional string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string start_time = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_time = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 total_swipes = 5;
   uint32 likes = 6;
   uint32 passes = 7;
@@ -129,41 +131,41 @@ message SwipeSession {
   // trick as pets extra_json. SPA layer evolves filter shape (species,
   // breed, size, age, location radius) without proto regen.
   string filters_json = 9;
-  optional string ip_address = 10;
-  optional string user_agent = 11;
+  optional string ip_address = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string user_agent = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   DeviceType device_type = 12;
   bool is_active = 13;
-  string created_at = 14;
-  string updated_at = 15;
+  string created_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // PetCandidate is the recommender's per-pet payload. Subset of the
 // service.pets Pet message — just enough for the SPA's swipe card
 // + the score the recommender attached.
 message PetCandidate {
-  string pet_id = 1;
-  string name = 2;
-  string species = 3;
-  optional string breed = 4;
-  optional string age = 5;
-  string rescue_id = 6;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string species = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string breed = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string age = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string rescue_id = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Primary image URL the SPA renders first.
-  optional string primary_image_url = 7;
+  optional string primary_image_url = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // Short description the swipe card surfaces.
-  optional string short_description = 8;
+  optional string short_description = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // The recommender's score for this candidate, on [0.0, 1.0].
   // Higher = better fit. SPA may render this as a heart-meter or
   // hide it entirely.
   float score = 9;
   // Lowercase size/age-group/gender tokens (same vocabulary as TopPick),
   // so the swipe card can render without a second pets lookup.
-  optional string age_group = 10;
-  optional string size = 11;
-  optional string gender = 12;
+  optional string age_group = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string size = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string gender = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional int32 age_years = 13;
   optional int32 age_months = 14;
   // Every image URL for the pet, primary first.
-  repeated string images = 15;
+  repeated string images = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // Server-driven badge for the card; at most one per pet.
   optional ActivityLabel activity_label = 16;
   // Straight-line miles from the caller's coordinates (filters_json
@@ -173,24 +175,24 @@ message PetCandidate {
 
 // ActivityLabel kinds: 'views_today' | 'days_waiting' | 'similar_adopted_fast'.
 message ActivityLabel {
-  string kind = 1;
+  string kind = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string text = 2;
   optional string icon = 3;
 }
 
 // SwipeActionRecord mirrors the matching.swipe_actions row.
 message SwipeActionRecord {
-  string swipe_action_id = 1;
-  string session_id = 2;
-  string pet_id = 3;
-  optional string user_id = 4;
+  string swipe_action_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string session_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string pet_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string user_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   SwipeAction action = 5;
-  string timestamp = 6;
+  string timestamp = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Time taken between card render and the swipe, in ms — useful
   // for the recommender ("hesitated passes" carry more signal than
   // instant passes).
   optional uint32 response_time = 7;
-  optional string device_type = 8;
+  optional string device_type = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- StartSession ----------------------------------------------------
@@ -201,8 +203,8 @@ message StartSessionRequest {
   DeviceType device_type = 2;
   // User agent + IP are stamped by the gateway from the request
   // headers; the SPA does not send them.
-  optional string user_agent = 3;
-  optional string ip_address = 4;
+  optional string user_agent = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string ip_address = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message StartSessionResponse {
@@ -215,7 +217,7 @@ message StartSessionResponse {
 // --- EndSession ------------------------------------------------------
 
 message EndSessionRequest {
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message EndSessionResponse {
@@ -227,7 +229,7 @@ message EndSessionResponse {
 message RecommendRequest {
   // The active session id — recommendations are session-scoped so the
   // recommender can exclude already-seen pets in this session.
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 20, max 100. SPA typically requests in 10-20-pet
   // chunks as the queue runs low.
   uint32 limit = 2;
@@ -247,12 +249,12 @@ message RecommendResponse {
 // --- RecordSwipe -----------------------------------------------------
 
 message RecordSwipeRequest {
-  string session_id = 1;
-  string pet_id = 2;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string pet_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   SwipeAction action = 3;
   // Time between card render and swipe, in ms.
   optional uint32 response_time = 4;
-  optional string device_type = 5;
+  optional string device_type = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RecordSwipeResponse {
@@ -268,7 +270,7 @@ message SearchPetsRequest {
   optional string query = 1;
   // Same JSONB filters shape as a session.
   optional string filters_json = 2;
-  optional string cursor = 3;
+  optional string cursor = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 limit = 4;
 }
 
@@ -276,7 +278,7 @@ message SearchPetsResponse {
   // No recommender score on plain search results — the SPA orders
   // by relevance, not preference.
   repeated PetCandidate results = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- ListSwipeHistory ------------------------------------------------
@@ -285,13 +287,13 @@ message ListSwipeHistoryRequest {
   // Defaults to all action types. When set, returns only swipes
   // matching this action.
   optional SwipeAction action_filter = 1;
-  optional string cursor = 2;
+  optional string cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 limit = 3;
 }
 
 message ListSwipeHistoryResponse {
   repeated SwipeActionRecord actions = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // ===== Match profile =================================================
@@ -301,7 +303,7 @@ message ListSwipeHistoryResponse {
 // proto doesn't have to enumerate every preference shape; the gateway
 // parses them back to JSON for the SPA.
 message MatchProfile {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified arrays of strings. Empty string == null (unset).
   string preferred_types_json = 2;
   string preferred_sizes_json = 3;
@@ -309,17 +311,17 @@ message MatchProfile {
   string preferred_energy_json = 5;
   string preferred_temperament_json = 6;
   // JSON-stringified objects. Empty string == "{}".
-  string lifestyle_json = 7;
+  string lifestyle_json = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   optional uint32 max_distance_km = 8;
   bool open_to_special_needs = 9;
   bool notify_new_matches = 10;
   uint32 min_notification_score = 11;
-  optional string last_notified_at = 12;
+  optional string last_notified_at = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string inferred_prefs_json = 13;
-  optional string prefs_updated_at = 14;
-  optional string allergies = 15;
-  string created_at = 16;
-  string updated_at = 17;
+  optional string prefs_updated_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string allergies = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string created_at = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetMatchProfileRequest {}
@@ -344,13 +346,13 @@ message UpsertMatchProfileRequest {
   bool set_preferred_energy = 8;
   string preferred_temperament_json = 9;
   bool set_preferred_temperament = 10;
-  string lifestyle_json = 11;
+  string lifestyle_json = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   bool set_lifestyle = 12;
   optional uint32 max_distance_km = 13;
   optional bool open_to_special_needs = 14;
   optional bool notify_new_matches = 15;
   optional uint32 min_notification_score = 16;
-  optional string allergies = 17;
+  optional string allergies = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   bool set_allergies = 18;
 }
 
@@ -366,7 +368,7 @@ message UpsertMatchProfileResponse {
 // the chip set is presentation-driven and may grow without a proto
 // regen; `label` is the human-readable text the SPA renders verbatim.
 message TopPickReasonChip {
-  string kind = 1;
+  string kind = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string label = 2;
 }
 
@@ -374,22 +376,22 @@ message TopPickReasonChip {
 // PetCandidate's intent but independently shaped since top picks carries
 // size/age_group/reasons/rescue_name that PetCandidate does not.
 message TopPick {
-  string pet_id = 1;
-  string name = 2;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // Lowercase species/size/age-group tokens (same vocabulary as the
   // filters_json the SPA sends elsewhere — e.g. 'dog', 'medium', 'adult').
-  string type = 3;
-  string age_group = 4;
-  string size = 5;
+  string type = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string age_group = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string size = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // The scorer's result for this pick, on [0.0, 1.0].
   float score = 6;
   repeated TopPickReasonChip reasons = 7;
-  string rescue_name = 8;
+  string rescue_name = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // Pets has no breed NAME (only breed_id) and no photo/image field, so
   // these stay unset until that data is available — both are optional in
   // the SPA's MatchTopPick type for exactly this reason.
-  optional string breed_name = 9;
-  optional string photo_url = 10;
+  optional string breed_name = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string photo_url = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message GetTopPicksRequest {
@@ -415,7 +417,7 @@ message SwipeStats {
 message GetUserSwipeStatsRequest {
   // Optional target. Defaults to the calling principal. Cross-user reads
   // require swipes:read:any.
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetUserSwipeStatsResponse {
@@ -423,7 +425,7 @@ message GetUserSwipeStatsResponse {
 }
 
 message GetSessionStatsRequest {
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetSessionStatsResponse {

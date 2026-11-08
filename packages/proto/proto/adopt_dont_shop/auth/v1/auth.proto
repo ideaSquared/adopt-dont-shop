@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.auth.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // AuthService is the gRPC contract for the auth vertical. It owns the
 // `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
 // UserRole, RolePermission) and exposes the six RPCs every other
@@ -422,15 +424,15 @@ enum UserStatus {
 // permissions is the FULL flattened set (role-derived + direct grants
 // + super_admin-implied), matching what @adopt-dont-shop/authz expects.
 message Principal {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   repeated UserRole roles = 2;
   // Permission strings — `resource.action` format mirroring
   // lib.types.Permission. Kept as strings (not a giant enum) because
   // the set evolves per-feature and we don't want a proto rebuild
   // every time a new permission is added.
-  repeated string permissions = 3;
+  repeated string permissions = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Set when the principal is rescue-staff scoped to a single rescue.
-  optional string rescue_id = 4;
+  optional string rescue_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // User is the denormalised user row GetMe returns. Subset of the
@@ -438,56 +440,56 @@ message Principal {
 // PII the caller doesn't need (date_of_birth, locked_until) stay
 // server-side.
 message User {
-  string user_id = 1;
-  string email = 2;
-  optional string first_name = 3;
-  optional string last_name = 4;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string email = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string first_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string last_name = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   UserRole user_type = 5;
   UserStatus status = 6;
   bool email_verified = 7;
   bool phone_verified = 8;
   bool two_factor_enabled = 9;
-  optional string profile_image_url = 10;
-  optional string bio = 11;
-  optional string timezone = 12;
-  optional string language = 13;
-  optional string country = 14;
-  optional string city = 15;
+  optional string profile_image_url = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string bio = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string timezone = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string language = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string country = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string city = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // RFC 3339 timestamps.
-  optional string last_login_at = 16;
-  string created_at = 17;
-  string updated_at = 18;
+  optional string last_login_at = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // TokenPair is the access+refresh tuple Login and RefreshToken return.
 // expires_at is RFC 3339 to keep the JSON marshalling cheap at the
 // gateway — same convention as NotificationsV1.
 message TokenPair {
-  string access_token = 1;
-  string refresh_token = 2;
+  string access_token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string refresh_token = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   // Access-token expiry (RFC 3339).
-  string access_expires_at = 3;
+  string access_expires_at = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Refresh-token expiry (RFC 3339).
-  string refresh_expires_at = 4;
+  string refresh_expires_at = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- Login -----------------------------------------------------------
 
 message LoginRequest {
-  string email = 1;
-  string password = 2;
+  string email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string password = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   // Optional context the service threads into audit + lockout logic.
   // Populated by the gateway from the inbound HTTP request.
-  optional string ip_address = 3;
-  optional string user_agent = 4;
+  optional string ip_address = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string user_agent = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // The 6-digit TOTP code, supplied on the SECOND login call when the
   // account has 2FA enabled. Absent on the first call (the service then
   // answers with two_factor_required).
-  optional string two_factor_token = 5;
+  optional string two_factor_token = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   // A single-use backup/recovery code, accepted in place of
   // two_factor_token on the second login call. Mutually exclusive with
   // two_factor_token in practice (the service tries whichever is set).
-  optional string backup_code = 6;
+  optional string backup_code = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message LoginResponse {
@@ -496,7 +498,7 @@ message LoginResponse {
   // Flattened permissions snapshot at login time. The gateway caches
   // this for the lifetime of the access token; ValidateToken is the
   // freshness check for every subsequent request.
-  repeated string permissions = 3;
+  repeated string permissions = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Set when the password was correct but the account has 2FA enabled and
   // no (valid) two_factor_token was supplied. user/tokens are empty in
   // this case — the client re-submits Login with the TOTP code.
@@ -517,7 +519,7 @@ message LoginResponse {
 message LogoutRequest {
   // The refresh token to revoke. Logout is idempotent — already-revoked
   // and already-expired tokens both return OK.
-  string refresh_token = 1;
+  string refresh_token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message LogoutResponse {
@@ -529,7 +531,7 @@ message LogoutResponse {
 // --- RefreshToken ----------------------------------------------------
 
 message RefreshTokenRequest {
-  string refresh_token = 1;
+  string refresh_token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message RefreshTokenResponse {
@@ -539,14 +541,14 @@ message RefreshTokenResponse {
 // --- ValidateToken ---------------------------------------------------
 
 message ValidateTokenRequest {
-  string access_token = 1;
+  string access_token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message ValidateTokenResponse {
   Principal principal = 1;
   // Access-token expiry (RFC 3339) — the gateway uses this to decide
   // whether to cache the ValidateToken result or hit the service again.
-  string expires_at = 2;
+  string expires_at = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- GetMe -----------------------------------------------------------
@@ -560,18 +562,18 @@ message GetMeRequest {
 message GetMeResponse {
   User user = 1;
   repeated UserRole roles = 2;
-  repeated string permissions = 3;
-  optional string rescue_id = 4;
+  repeated string permissions = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string rescue_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- AssignRole ------------------------------------------------------
 
 message AssignRoleRequest {
-  string target_user_id = 1;
+  string target_user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   UserRole role = 2;
   // Optional free-text reason persisted to the audit row + emitted
   // on the `auth.roleAssigned` NATS event.
-  optional string reason = 3;
+  optional string reason = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message AssignRoleResponse {
@@ -584,17 +586,17 @@ message AssignRoleResponse {
 // --- Account lifecycle messages -------------------------------------
 
 message RegisterRequest {
-  string email = 1;
-  string password = 2;
-  string first_name = 3;
-  string last_name = 4;
-  optional string phone_number = 5;
+  string email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string password = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string first_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string last_name = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string phone_number = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Default 'adopter' if omitted — adopters self-register; staff are
   // invited via the rescue vertical's InviteStaff flow.
   optional UserRole user_type = 6;
   // Audit / login provenance — same fields as LoginRequest.
-  optional string ip_address = 7;
-  optional string user_agent = 8;
+  optional string ip_address = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string user_agent = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // T&Cs + privacy must be accepted on the form before the row is
   // created. terms_accepted_at / privacy_policy_accepted_at are
   // stamped on the row when both are true.
@@ -608,14 +610,14 @@ message RegisterResponse {
   // — verification is a follow-up step the user can complete from the
   // signed-in app).
   TokenPair tokens = 2;
-  repeated string permissions = 3;
+  repeated string permissions = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ProvisionInvitedUserRequest {
-  string email = 1;
-  string password = 2;
-  string first_name = 3;
-  string last_name = 4;
+  string email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string password = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string first_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string last_name = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ProvisionInvitedUserResponse {
@@ -628,10 +630,10 @@ message ProvisionInvitedUserResponse {
 }
 
 message RegisterRescueOwnerRequest {
-  string email = 1;
-  string password = 2;
-  string first_name = 3;
-  string last_name = 4;
+  string email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string password = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string first_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string last_name = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message RegisterRescueOwnerResponse {
@@ -642,7 +644,7 @@ message RegisterRescueOwnerResponse {
 }
 
 message VerifyEmailRequest {
-  string verification_token = 1;
+  string verification_token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message VerifyEmailResponse {
@@ -650,7 +652,7 @@ message VerifyEmailResponse {
 }
 
 message ResendVerificationRequest {
-  string email = 1;
+  string email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ResendVerificationResponse {
@@ -660,7 +662,7 @@ message ResendVerificationResponse {
 }
 
 message ForgotPasswordRequest {
-  string email = 1;
+  string email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ForgotPasswordResponse {
@@ -668,8 +670,8 @@ message ForgotPasswordResponse {
 }
 
 message ResetPasswordRequest {
-  string reset_token = 1;
-  string new_password = 2;
+  string reset_token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string new_password = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message ResetPasswordResponse {
@@ -679,8 +681,8 @@ message ResetPasswordResponse {
 }
 
 message RedeemInvitationRequest {
-  string invitation_token = 1;
-  string new_password = 2;
+  string invitation_token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string new_password = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message RedeemInvitationResponse {
@@ -692,8 +694,8 @@ message RedeemInvitationResponse {
 message ChangePasswordRequest {
   // The principal (x-user-id) identifies whose password we're changing;
   // current_password is required as a defence against session hijacks.
-  string current_password = 1;
-  string new_password = 2;
+  string current_password = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  string new_password = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message ChangePasswordResponse {
@@ -705,10 +707,10 @@ message ChangePasswordResponse {
 message VerifyCredentialsRequest {
   // The account password to re-verify. The principal (x-user-id) identifies
   // whose credentials we're checking; there is no email field.
-  string password = 1;
+  string password = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   // A current TOTP code, required only when the account has 2FA enabled.
   // Backup/recovery codes are deliberately NOT accepted here.
-  optional string two_factor_token = 2;
+  optional string two_factor_token = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message VerifyCredentialsResponse {
@@ -728,18 +730,18 @@ message SetupTwoFactorResponse {
   // Base32 TOTP secret the client shows to the user (for QR / manual entry).
   // The server now persists this server-side; the client does NOT re-submit it
   // to EnableTwoFactor (ADS-963).
-  string secret = 1;
+  string secret = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   // otpauth:// provisioning URI for QR rendering.
-  string otpauth_url = 2;
+  string otpauth_url = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message EnableTwoFactorRequest {
   // DEPRECATED (ADS-963): this field is ignored by the server. The server
   // reads the pending secret it stored during SetupTwoFactor instead of
   // trusting a client-supplied value. Kept for wire compatibility.
-  string secret = 1 [deprecated = true];
+  string secret = 1 [deprecated = true, (adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   // The current TOTP code proving the user has their authenticator app set up.
-  string token = 2;
+  string token = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message EnableTwoFactorResponse {
@@ -748,13 +750,13 @@ message EnableTwoFactorResponse {
   // once. Only their hashes are persisted — the client must show these to
   // the user now with "save these now" copy; they cannot be retrieved
   // again (only regenerated, which invalidates these).
-  repeated string backup_codes = 2;
+  repeated string backup_codes = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message DisableTwoFactorRequest {
   // A current TOTP code (verified against the stored secret) authorises
   // turning 2FA off.
-  string token = 1;
+  string token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message DisableTwoFactorResponse {
@@ -763,27 +765,27 @@ message DisableTwoFactorResponse {
 
 message RegenerateBackupCodesRequest {
   // A current TOTP code, verified against the stored secret.
-  string token = 1;
+  string token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message RegenerateBackupCodesResponse {
   // The fresh set of 10 plaintext backup codes, returned exactly once.
   // Any codes from a prior enrolment/regeneration are invalidated.
-  repeated string backup_codes = 1;
+  repeated string backup_codes = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message UpdateAccountRequest {
-  optional string first_name = 1;
-  optional string last_name = 2;
-  optional string phone_number = 3;
-  optional string bio = 4;
-  optional string timezone = 5;
-  optional string language = 6;
-  optional string country = 7;
-  optional string city = 8;
-  optional string address_line_1 = 9;
-  optional string address_line_2 = 10;
-  optional string postal_code = 11;
+  optional string first_name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string last_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string phone_number = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string bio = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string timezone = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string language = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string country = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string city = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string address_line_1 = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string address_line_2 = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string postal_code = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message UpdateAccountResponse {
@@ -796,15 +798,15 @@ message Session {
   // Token row id. Stable per chain — the first refresh_token in the
   // family that hasn't been replaced by rotation; never changes for
   // the lifetime of the session.
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Grouping id for the rotation chain. Multiple chains can exist for
   // one user (one per device / browser).
-  string family_id = 2;
+  string family_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // RFC 3339. The chain root's expiry; rotation extends this on the
   // active leaf, not the root, so callers should treat this as
   // approximate.
-  string expires_at = 3;
-  string created_at = 4;
+  string expires_at = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListSessionsRequest {
@@ -817,14 +819,14 @@ message ListSessionsResponse {
 }
 
 message RevokeSessionRequest {
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RevokeSessionResponse {
   // Echo of the revoked id for ack. Idempotent: a second Revoke on a
   // already-revoked session returns the same id without error (NATS
   // event is suppressed on the second call).
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 
@@ -839,20 +841,20 @@ enum ProfileVisibility {
 
 // PrivacyPreferences mirrors auth.user_privacy_prefs verbatim.
 message PrivacyPreferences {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ProfileVisibility profile_visibility = 2;
   bool show_last_seen = 3;
   bool show_location = 4;
   bool allow_search_indexing = 5;
   bool allow_data_export = 6;
-  string created_at = 7;
-  string updated_at = 8;
+  string created_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetPrivacyPreferencesRequest {
   // Optional. Defaults to the calling principal. Callers without
   // privacy-prefs:read:any may only read their own row.
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetPrivacyPreferencesResponse {
@@ -860,7 +862,7 @@ message GetPrivacyPreferencesResponse {
 }
 
 message UpdatePrivacyPreferencesRequest {
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Only set fields are written — scalars get the proto3 optional
   // presence treatment (set_* discipline; absent leaves the column
   // untouched).
@@ -876,7 +878,7 @@ message UpdatePrivacyPreferencesResponse {
 }
 
 message ResetPrivacyPreferencesRequest {
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ResetPrivacyPreferencesResponse {
@@ -889,8 +891,8 @@ message ResetPrivacyPreferencesResponse {
 // a free-text string ('terms' | 'privacy' | 'cookies') validated by the
 // handler; version is the document version the user accepted.
 message ConsentDecision {
-  string document_type = 1;
-  string version = 2;
+  string document_type = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string version = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Only meaningful for the cookies document — the analytics opt-in the
   // cookie banner captures alongside the policy version.
   optional bool analytics_consent = 3;
@@ -899,8 +901,8 @@ message ConsentDecision {
 message RecordConsentRequest {
   repeated ConsentDecision decisions = 1;
   // Request provenance, threaded from the gateway for the audit trail.
-  optional string ip_address = 2;
-  optional string user_agent = 3;
+  optional string ip_address = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string user_agent = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message RecordConsentResponse {
@@ -910,10 +912,10 @@ message RecordConsentResponse {
 
 // The latest accepted consent for one document type.
 message ConsentRecord {
-  string document_type = 1;
-  string version = 2;
+  string document_type = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string version = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // RFC 3339 timestamp the version was accepted.
-  string accepted_at = 3;
+  string accepted_at = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional bool analytics_consent = 4;
 }
 
@@ -934,14 +936,14 @@ message SearchUsersRequest {
   UserRole user_type_filter = 3;
   optional bool email_verified = 4;
   // ISO-8601 created-at range.
-  optional string created_from = 5;
-  optional string created_to = 6;
+  optional string created_from = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string created_to = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // 1-indexed page + size (default 20, max 100).
   uint32 page = 7;
   uint32 limit = 8;
   // Sort: 'createdAt' | 'lastLoginAt' | 'email'. Default createdAt DESC.
-  optional string sort_by = 9;
-  optional string sort_order = 10;
+  optional string sort_by = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string sort_order = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message SearchUsersResponse {
@@ -952,7 +954,7 @@ message SearchUsersResponse {
 }
 
 message AdminGetUserRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdminGetUserResponse {
@@ -960,30 +962,30 @@ message AdminGetUserResponse {
 }
 
 message GetApplicantProfileRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // The applicant's user id, as the caller's application list reports it.
   // Read directly only for admin.users.read callers (who may read any
   // user); for everyone else the applicant comes from the application.
-  string user_id = 2;
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetApplicantProfileResponse {
-  string user_id = 1;
-  string first_name = 2;
-  string last_name = 3;
-  string email = 4;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string first_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string last_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string email = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ListColleagueProfilesRequest {
   // User ids as ListStaffMembers reported them. Max 100.
-  repeated string user_ids = 1;
+  repeated string user_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ColleagueProfile {
-  string user_id = 1;
-  string first_name = 2;
-  string last_name = 3;
-  string email = 4;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string first_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string last_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string email = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ListColleagueProfilesResponse {
@@ -991,23 +993,23 @@ message ListColleagueProfilesResponse {
 }
 
 message GetUserNameRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetUserNameResponse {
-  string user_id = 1;
-  string first_name = 2;
-  string last_name = 3;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string first_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string last_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message AdminUpdateUserRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Only set fields are written.
   UserStatus status = 2;
   UserRole user_type = 3;
   optional bool email_verified = 4;
-  optional string first_name = 5;
-  optional string last_name = 6;
+  optional string first_name = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string last_name = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message AdminUpdateUserResponse {
@@ -1015,9 +1017,9 @@ message AdminUpdateUserResponse {
 }
 
 message AdminCreateUserRequest {
-  string email = 1;
-  string first_name = 2;
-  string last_name = 3;
+  string email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string first_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string last_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // The new account's role. Maps directly onto user_type (the RBAC
   // primary role grant). Required.
   UserRole user_type = 4;
@@ -1040,25 +1042,25 @@ enum UserSanctionKind {
 }
 
 message ApplyUserSanctionRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   UserSanctionKind kind = 2;
-  string reason = 3;
+  string reason = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // The human moderator, recorded as the audit actor.
-  string actor_user_id = 4;
+  string actor_user_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // RFC 3339. Only valid for SUSPEND; unset means indefinite.
-  optional string expires_at = 5;
+  optional string expires_at = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // Deliberately minimal: the full User carries fields (phone_verified,
 // two_factor_enabled) that moderators are not allowed to read.
 message ApplyUserSanctionResponse {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   UserStatus status = 2;
 }
 
 message DeactivateUserRequest {
-  string user_id = 1;
-  optional string reason = 2;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message DeactivateUserResponse {
@@ -1066,7 +1068,7 @@ message DeactivateUserResponse {
 }
 
 message ReactivateUserRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ReactivateUserResponse {
@@ -1074,17 +1076,17 @@ message ReactivateUserResponse {
 }
 
 message AdminResetPasswordRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdminResetPasswordResponse {
   // Plaintext temporary password. Never persisted in the clear — the
   // admin relays it to the user, who changes it on next sign-in.
-  string temporary_password = 1;
+  string temporary_password = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message ExportUserDataRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ExportUserDataResponse {
@@ -1092,18 +1094,18 @@ message ExportUserDataResponse {
   // Absent when the user has no privacy-preferences row yet.
   optional PrivacyPreferences privacy_preferences = 2;
   // RFC 3339 timestamp the snapshot was taken.
-  string exported_at = 3;
+  string exported_at = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RequestAccountDeletionRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional internal-audit note.
-  optional string reason = 2;
+  optional string reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message RequestAccountDeletionResponse {
   // RFC 3339 timestamp after which hard anonymisation runs.
-  string deletion_scheduled_for = 1;
+  string deletion_scheduled_for = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetUserStatisticsRequest {}
@@ -1130,25 +1132,25 @@ message GetUserStatisticsResponse {
 // --- GetUserPermissions ----------------------------------------------
 
 message GetUserPermissionsRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetUserPermissionsResponse {
-  repeated string permissions = 1;
+  repeated string permissions = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- BulkUpdateUsers -------------------------------------------------
 
 message BulkUpdateUsersRequest {
-  repeated string user_ids = 1;
+  repeated string user_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Only set fields are written to every targeted row.
   UserStatus status = 2;
   UserRole user_type = 3;
-  optional string reason = 4;
+  optional string reason = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message BulkUpdateUserResult {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool success = 2;
   optional string error = 3;
 }
@@ -1165,19 +1167,19 @@ message BulkUpdateUsersResponse {
 // cross-user view. session_id/family_id/expires_at/created_at mirror
 // Session; the rest is denormalised from auth.users.
 message AdminSessionInfo {
-  string session_id = 1;
-  string family_id = 2;
-  string user_id = 3;
-  string email = 4;
-  optional string first_name = 5;
-  optional string last_name = 6;
-  string expires_at = 7;
-  string created_at = 8;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string family_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string email = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string first_name = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string last_name = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string expires_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdminListSessionsRequest {
   // Omit to list across all users.
-  optional string user_id = 1;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 page = 2;
   uint32 limit = 3;
 }
@@ -1190,15 +1192,15 @@ message AdminListSessionsResponse {
 }
 
 message AdminRevokeSessionRequest {
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdminRevokeSessionResponse {
-  string session_id = 1;
+  string session_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdminRevokeAllUserSessionsRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdminRevokeAllUserSessionsResponse {
@@ -1206,8 +1208,8 @@ message AdminRevokeAllUserSessionsResponse {
 }
 
 message AdminLockAccountRequest {
-  string user_id = 1;
-  optional string reason = 2;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message AdminLockAccountResponse {
@@ -1215,7 +1217,7 @@ message AdminLockAccountResponse {
 }
 
 message AdminUnlockAccountRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AdminUnlockAccountResponse {
@@ -1235,15 +1237,15 @@ enum IpRuleType {
 }
 
 message IpRule {
-  string ip_rule_id = 1;
+  string ip_rule_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   IpRuleType type = 2;
-  string cidr = 3;
+  string cidr = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string label = 4;
   bool is_active = 5;
-  optional string expires_at = 6;
-  optional string created_by = 7;
-  string created_at = 8;
-  string updated_at = 9;
+  optional string expires_at = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string created_by = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListIpRulesRequest {}
@@ -1254,9 +1256,9 @@ message ListIpRulesResponse {
 
 message CreateIpRuleRequest {
   IpRuleType type = 1;
-  string cidr = 2;
+  string cidr = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string label = 3;
-  optional string expires_at = 4;
+  optional string expires_at = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CreateIpRuleResponse {
@@ -1264,7 +1266,7 @@ message CreateIpRuleResponse {
 }
 
 message DeleteIpRuleRequest {
-  string ip_rule_id = 1;
+  string ip_rule_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeleteIpRuleResponse {}
@@ -1296,11 +1298,11 @@ enum FieldPermissionResource {
 message FieldPermission {
   uint32 field_permission_id = 1;
   FieldPermissionResource resource = 2;
-  string field_name = 3;
-  string role = 4;
+  string field_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string role = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   FieldAccessLevel access_level = 5;
-  string created_at = 6;
-  string updated_at = 7;
+  string created_at = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetFieldPermissionDefaultsRequest {}
@@ -1316,7 +1318,7 @@ message GetFieldPermissionDefaultsResponse {
 
 message GetFieldPermissionDefaultsForRoleRequest {
   FieldPermissionResource resource = 1;
-  string role = 2;
+  string role = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // access_map_json is `Record<fieldName, FieldAccessLevel>` as JSON.
@@ -1334,7 +1336,7 @@ message ListFieldPermissionOverridesResponse {
 
 message ListFieldPermissionOverridesForRoleRequest {
   FieldPermissionResource resource = 1;
-  string role = 2;
+  string role = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListFieldPermissionOverridesForRoleResponse {
@@ -1343,8 +1345,8 @@ message ListFieldPermissionOverridesForRoleResponse {
 
 message UpsertFieldPermissionRequest {
   FieldPermissionResource resource = 1;
-  string field_name = 2;
-  string role = 3;
+  string field_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string role = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   FieldAccessLevel access_level = 4;
 }
 
@@ -1357,8 +1359,8 @@ message UpsertFieldPermissionResponse {
 // (e.g. dry_run) without leaking into the single-upsert API.
 message FieldPermissionOverrideInput {
   FieldPermissionResource resource = 1;
-  string field_name = 2;
-  string role = 3;
+  string field_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string role = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   FieldAccessLevel access_level = 4;
 }
 
@@ -1372,8 +1374,8 @@ message BulkUpsertFieldPermissionsResponse {
 
 message DeleteFieldPermissionRequest {
   FieldPermissionResource resource = 1;
-  string field_name = 2;
-  string role = 3;
+  string field_name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string role = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeleteFieldPermissionResponse {
@@ -1400,7 +1402,7 @@ message ListUserIdsByCohortRequest {
 }
 
 message ListUserIdsByCohortResponse {
-  repeated string user_ids = 1;
+  repeated string user_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 total = 2;
   uint32 page = 3;
   uint32 total_pages = 4;

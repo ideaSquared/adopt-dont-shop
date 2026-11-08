@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.rescue.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // RescueService is the gRPC contract for the rescue vertical. It owns
 // the `rescue.*` schema (Rescue, RescueSettings, StaffMember, Invitation,
 // FosterPlacement, ApplicationQuestion) and exposes classical CRUD plus
@@ -289,42 +291,42 @@ enum RescueVerificationSource {
 // Settings rides as a JSON-stringified blob so the proto doesn't have
 // to enumerate every nested key.
 message Rescue {
-  string rescue_id = 1;
-  string name = 2;
-  string email = 3;
-  optional string phone = 4;
-  string address = 5;
-  string city = 6;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string email = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string phone = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string address = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string city = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // Model attribute `county` maps to the legacy column `state` (matches
   // the monolith's getter/setter pair).
-  optional string county = 7;
-  string postcode = 8;
-  string country = 9;
-  optional string website = 10;
-  optional string description = 11;
-  optional string mission = 12;
+  optional string county = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string postcode = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string country = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string website = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string description = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string mission = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional string companies_house_number = 13;
   optional string charity_registration_number = 14;
-  string contact_person = 15;
-  optional string contact_title = 16;
-  optional string contact_email = 17;
-  optional string contact_phone = 18;
+  string contact_person = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_title = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_email = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_phone = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   RescueStatus status = 19;
-  optional string verified_at = 20;
-  optional string verified_by = 21;
+  optional string verified_at = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string verified_by = 21 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional RescueVerificationSource verification_source = 22;
-  optional string verification_failure_reason = 23;
+  optional string verification_failure_reason = 23 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // JSON-stringified blob (the rescue_settings 1:1 row merged in OR the
   // free-form jsonb settings on the row — depends on whether the
   // typed-settings table is loaded). Empty string == `{}`.
   string settings_json = 24;
-  string created_at = 25;
-  string updated_at = 26;
+  string created_at = 25 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 26 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Subscription plan tier — 'free' | 'growth' | 'professional'. Defaults
   // to 'free'. Drives the admin Plan tab + feature gating downstream.
-  string plan = 27;
+  string plan = 27 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional ISO-8601 plan expiry. Unset = no expiry.
-  optional string plan_expires_at = 28;
+  optional string plan_expires_at = 28 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optimistic-concurrency version — bumped on every Update. Optional
   // (rather than a plain scalar) so existing callers that construct a
   // Rescue without it — fixtures, stub servers — keep working; only
@@ -335,38 +337,38 @@ message Rescue {
 // Invitation mirrors the rescue.invitations row — the pending-staff
 // invitation surfaced to the inviter for revocation / resend.
 message Invitation {
-  string invitation_id = 1;
-  string email = 2;
-  string rescue_id = 3;
-  optional string user_id = 4;
-  optional string title = 5;
-  optional string invited_by = 6;
-  string expiration = 7;
+  string invitation_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string email = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string rescue_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string user_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string title = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string invited_by = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string expiration = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool used = 8;
-  string created_at = 9;
+  string created_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- Create ----------------------------------------------------------
 
 message CreateRescueRequest {
-  string name = 1;
-  string email = 2;
-  optional string phone = 3;
-  string address = 4;
-  string city = 5;
-  optional string county = 6;
-  string postcode = 7;
+  string name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string email = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string phone = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string address = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string city = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string county = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string postcode = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Defaults to 'GB' if omitted/empty.
-  optional string country = 8;
-  optional string website = 9;
-  optional string description = 10;
-  optional string mission = 11;
+  optional string country = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string website = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string description = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string mission = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional string companies_house_number = 12;
   optional string charity_registration_number = 13;
-  string contact_person = 14;
-  optional string contact_title = 15;
-  optional string contact_email = 16;
-  optional string contact_phone = 17;
+  string contact_person = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_title = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_email = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_phone = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message CreateRescueResponse {
@@ -375,7 +377,7 @@ message CreateRescueResponse {
 
 message RegisterRescueRequest {
   CreateRescueRequest rescue = 1;
-  string owner_user_id = 2;
+  string owner_user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RegisterRescueResponse {
@@ -385,7 +387,7 @@ message RegisterRescueResponse {
 // --- Get --------------------------------------------------------------
 
 message GetRescueRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetRescueResponse {
@@ -393,11 +395,11 @@ message GetRescueResponse {
 }
 
 message GetRescueLocationsRequest {
-  repeated string rescue_ids = 1;
+  repeated string rescue_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RescueLocation {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   double latitude = 2;
   double longitude = 3;
 }
@@ -409,7 +411,7 @@ message GetRescueLocationsResponse {
 // --- List -------------------------------------------------------------
 
 message ListRescuesRequest {
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 20, max 100.
   uint32 limit = 2;
   // Optional status filter. UNSPECIFIED = "verified only" (the public
@@ -438,7 +440,7 @@ message ListRescuesRequest {
 
 message ListRescuesResponse {
   repeated Rescue rescues = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Total row count for the current filter — present only in offset mode
   // (page set). Keyset responses omit it.
   optional uint32 total = 3;
@@ -447,22 +449,22 @@ message ListRescuesResponse {
 // --- Update -----------------------------------------------------------
 
 message UpdateRescueRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // All optional — only the supplied fields are written.
-  optional string name = 2;
-  optional string phone = 3;
-  optional string address = 4;
-  optional string city = 5;
-  optional string county = 6;
-  optional string postcode = 7;
-  optional string country = 8;
-  optional string website = 9;
-  optional string description = 10;
-  optional string mission = 11;
-  optional string contact_person = 12;
-  optional string contact_title = 13;
-  optional string contact_email = 14;
-  optional string contact_phone = 15;
+  optional string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string phone = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string address = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string city = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string county = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string postcode = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string country = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string website = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string description = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string mission = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string contact_person = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_title = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_email = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contact_phone = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Replaces the settings JSON blob wholesale when present.
   optional string settings_json = 16;
   // Optimistic-concurrency guard — the caller's last-known version.
@@ -471,7 +473,7 @@ message UpdateRescueRequest {
   // the pre-existing behaviour).
   optional uint32 expected_version = 17;
   // The rescue's primary email (rescue.rescues.email, unique).
-  optional string email = 18;
+  optional string email = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message UpdateRescueResponse {
@@ -481,7 +483,7 @@ message UpdateRescueResponse {
 // --- Verify -----------------------------------------------------------
 
 message VerifyRescueRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // The target status — typically VERIFIED, but REJECTED + SUSPENDED
   // pass through here too so the admin app drives the lifecycle from
   // one RPC. Rejected by the service when the transition is illegal.
@@ -489,15 +491,15 @@ message VerifyRescueRequest {
   // For VERIFIED transitions: how the rescue was verified.
   optional RescueVerificationSource verification_source = 3;
   // For REJECTED: optional rejection reason persisted to the row.
-  optional string failure_reason = 4;
+  optional string failure_reason = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message VerifyRescueResponse {
   Rescue rescue = 1;
 }
 message DeleteRescueRequest {
-  string rescue_id = 1;
-  optional string reason = 2;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 message DeleteRescueResponse {
   Rescue rescue = 1;
@@ -506,9 +508,9 @@ message DeleteRescueResponse {
 // --- InviteStaff ------------------------------------------------------
 
 message InviteStaffRequest {
-  string rescue_id = 1;
-  string email = 2;
-  optional string title = 3;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string email = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string title = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Optional TTL override; defaults to 7 days when omitted.
   optional uint32 expires_in_seconds = 4;
 }
@@ -518,7 +520,7 @@ message InviteStaffResponse {
   // Plain-text invitation token returned ONCE at creation time so the
   // caller can dispatch the email. NOT readable through Get/List
   // afterwards.
-  string token = 2;
+  string token = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 // --- StaffMember ------------------------------------------------------
@@ -529,17 +531,17 @@ message InviteStaffResponse {
 // the SPA fetches them separately. This message carries only the
 // rescue-owned columns.
 message StaffMember {
-  string staff_member_id = 1;
-  string user_id = 2;
-  string rescue_id = 3;
-  optional string title = 4;
+  string staff_member_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string rescue_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string title = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   bool is_verified = 5;
-  optional string verified_by = 6;
-  optional string verified_at = 7;
-  string added_by = 8;
-  string added_at = 9;
-  string created_at = 10;
-  string updated_at = 11;
+  optional string verified_by = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string verified_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string added_by = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string added_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetMyStaffMembershipRequest {}
@@ -552,7 +554,7 @@ message ListStaffMembersRequest {
   // Rescue to list staff for. When empty, the service resolves the
   // caller's own rescue from their staff membership (the "colleagues"
   // case).
-  optional string rescue_id = 1;
+  optional string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListStaffMembersResponse {
@@ -562,11 +564,11 @@ message ListStaffMembersResponse {
 // --- CreateStaffMember --------------------------------------------------
 
 message CreateStaffMemberRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Existing auth user to add as staff. Caller is responsible for
   // ensuring the user exists; the service does not provision accounts.
-  string user_id = 2;
-  optional string title = 3;
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string title = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message CreateStaffMemberResponse {
@@ -576,10 +578,10 @@ message CreateStaffMemberResponse {
 // --- UpdateStaffMember --------------------------------------------------
 
 message UpdateStaffMemberRequest {
-  string rescue_id = 1;
-  string user_id = 2;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Only the supplied fields are written.
-  optional string title = 3;
+  optional string title = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message UpdateStaffMemberResponse {
@@ -589,8 +591,8 @@ message UpdateStaffMemberResponse {
 // --- RemoveStaffMember --------------------------------------------------
 
 message RemoveStaffMemberRequest {
-  string rescue_id = 1;
-  string user_id = 2;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RemoveStaffMemberResponse {
@@ -607,24 +609,24 @@ enum FosterPlacementStatus {
 }
 
 message FosterPlacement {
-  string placement_id = 1;
-  string rescue_id = 2;
-  string pet_id = 3;
-  string foster_user_id = 4;
-  string start_date = 5;
-  optional string end_date = 6;
+  string placement_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string rescue_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string pet_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string foster_user_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string start_date = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_date = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   FosterPlacementStatus status = 7;
-  optional string notes = 8;
-  string created_at = 9;
-  string updated_at = 10;
+  optional string notes = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string created_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CreateFosterPlacementRequest {
-  string rescue_id = 1;
-  string pet_id = 2;
-  string foster_user_id = 3;
-  string start_date = 4;
-  optional string notes = 5;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string pet_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string foster_user_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string start_date = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notes = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message CreateFosterPlacementResponse {
@@ -632,8 +634,8 @@ message CreateFosterPlacementResponse {
 }
 
 message ListFosterPlacementsRequest {
-  optional string rescue_id = 1;
-  optional string foster_user_id = 2;
+  optional string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string foster_user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // UNSPECIFIED = no status filter.
   FosterPlacementStatus status_filter = 3;
 }
@@ -643,7 +645,7 @@ message ListFosterPlacementsResponse {
 }
 
 message GetFosterPlacementRequest {
-  string placement_id = 1;
+  string placement_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetFosterPlacementResponse {
@@ -661,10 +663,10 @@ enum FosterEndOutcome {
 }
 
 message EndFosterPlacementRequest {
-  string placement_id = 1;
+  string placement_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   FosterEndOutcome outcome = 2;
-  optional string end_date = 3;
-  optional string notes = 4;
+  optional string end_date = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notes = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message EndFosterPlacementResponse {
@@ -674,7 +676,7 @@ message EndFosterPlacementResponse {
 // --- GetInvitationByToken --------------------------------------------
 
 message GetInvitationByTokenRequest {
-  string token = 1;
+  string token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
 }
 
 message GetInvitationByTokenResponse {
@@ -685,10 +687,10 @@ message GetInvitationByTokenResponse {
 
 message AcceptInvitationRequest {
   // The invitation token from the email link (the credential).
-  string token = 1;
+  string token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
   // The auth user that the gateway provisioned (or found) for the
   // invitee's email. Becomes the staff member's user_id.
-  string user_id = 2;
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AcceptInvitationResponse {
@@ -699,7 +701,7 @@ message AcceptInvitationResponse {
 // --- ListRescueInvitations (admin) ------------------------------------
 
 message ListRescueInvitationsRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListRescueInvitationsResponse {
@@ -710,8 +712,8 @@ message ListRescueInvitationsResponse {
 // --- CancelRescueInvitation (admin) -----------------------------------
 
 message CancelRescueInvitationRequest {
-  string rescue_id = 1;
-  string invitation_id = 2;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string invitation_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CancelRescueInvitationResponse {
@@ -730,25 +732,25 @@ enum ApplicationQuestionScope {
 // (e.g. 'personal_information', 'text') rather than proto enums — the DB
 // type is the source of truth and the REST surface speaks those strings.
 message ApplicationQuestion {
-  string question_id = 1;
-  optional string rescue_id = 2;
-  string question_key = 3;
+  string question_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string rescue_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string question_key = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ApplicationQuestionScope scope = 4;
-  string category = 5;
-  string question_type = 6;
-  string question_text = 7;
-  optional string help_text = 8;
-  optional string placeholder = 9;
-  repeated string options = 10;
+  string category = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string question_type = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string question_text = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string help_text = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string placeholder = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  repeated string options = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   int32 display_order = 11;
   bool is_enabled = 12;
   bool is_required = 13;
-  string created_at = 14;
-  string updated_at = 15;
+  string created_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListApplicationQuestionsRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListApplicationQuestionsResponse {
@@ -756,14 +758,14 @@ message ListApplicationQuestionsResponse {
 }
 
 message CreateApplicationQuestionRequest {
-  string rescue_id = 1;
-  string question_key = 2;
-  string category = 3;
-  string question_type = 4;
-  string question_text = 5;
-  optional string help_text = 6;
-  optional string placeholder = 7;
-  repeated string options = 8;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string question_key = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string category = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string question_type = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string question_text = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string help_text = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string placeholder = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  repeated string options = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   int32 display_order = 9;
   bool is_required = 10;
 }
@@ -773,20 +775,20 @@ message CreateApplicationQuestionResponse {
 }
 
 message DeleteApplicationQuestionRequest {
-  string question_id = 1;
+  string question_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeleteApplicationQuestionResponse {
   bool deleted = 1;
 }
 message UpdateApplicationQuestionRequest {
-  string question_id = 1;
-  optional string category = 2;
-  optional string question_type = 3;
-  optional string question_text = 4;
-  optional string help_text = 5;
-  optional string placeholder = 6;
-  repeated string options = 7;
+  string question_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string category = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string question_type = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string question_text = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string help_text = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string placeholder = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  repeated string options = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional int32 display_order = 8;
   optional bool is_required = 9;
   optional bool is_enabled = 10;
@@ -795,10 +797,10 @@ message UpdateApplicationQuestionResponse {
   ApplicationQuestion question = 1;
 }
 message ReorderApplicationQuestionsRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Question ids in the desired display order; each question's
   // display_order becomes its index in this list.
-  repeated string question_ids = 2;
+  repeated string question_ids = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message ReorderApplicationQuestionsResponse {
   repeated ApplicationQuestion questions = 1;
@@ -807,11 +809,11 @@ message ReorderApplicationQuestionsResponse {
 // --- Admin extras -----------------------------------------------------
 
 message UpdateRescuePlanRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // 'free' | 'growth' | 'professional'. Validated by the handler.
-  string plan = 2;
+  string plan = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional ISO-8601 expiry. Empty/unset clears the expiry.
-  optional string plan_expires_at = 3;
+  optional string plan_expires_at = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UpdateRescuePlanResponse {
@@ -819,7 +821,7 @@ message UpdateRescuePlanResponse {
 }
 
 message GetRescueStatisticsRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // Mirrors the SPA's RescueStatistics shape. staff_count is real
@@ -862,12 +864,12 @@ message CountRescuesResponse {
 // --- GetRescueNames ---------------------------------------------------
 
 message GetRescueNamesRequest {
-  repeated string rescue_ids = 1;
+  repeated string rescue_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RescueName {
-  string rescue_id = 1;
-  string name = 2;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }
 
 message GetRescueNamesResponse {
@@ -875,11 +877,11 @@ message GetRescueNamesResponse {
 }
 
 message SendRescueEmailRequest {
-  string rescue_id = 1;
+  string rescue_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Either a predefined template id, OR a custom subject + body.
-  optional string template_id = 2;
-  optional string subject = 3;
-  optional string body = 4;
+  optional string template_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string subject = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string body = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message SendRescueEmailResponse {
@@ -906,48 +908,48 @@ enum EventStatus {
 }
 
 message EventLocation {
-  string type = 1;
-  optional string address = 2;
-  optional string city = 3;
-  optional string postcode = 4;
+  string type = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string address = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string city = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string postcode = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   optional string virtual_link = 5;
-  optional string venue = 6;
+  optional string venue = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }
 
 message RescueEvent {
-  string id = 1;
-  string rescue_id = 2;
-  string name = 3;
-  string description = 4;
+  string id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string rescue_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string description = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   EventType type = 5;
-  string start_date = 6;
-  string end_date = 7;
+  string start_date = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string end_date = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EventLocation location = 8;
   optional int32 capacity = 9;
   bool registration_required = 10;
   EventStatus status = 11;
-  repeated string featured_pets = 12;
-  repeated string assigned_staff = 13;
+  repeated string featured_pets = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  repeated string assigned_staff = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool is_public = 14;
-  optional string image_url = 15;
+  optional string image_url = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   int32 current_attendance = 16;
-  string created_at = 17;
-  string updated_at = 18;
-  optional string created_by = 19;
+  string created_at = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string created_by = 19 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RescueEventAttendee {
-  string user_id = 1;
-  string name = 2;
-  string email = 3;
-  string registered_at = 4;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string email = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string registered_at = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool checked_in = 5;
-  optional string checked_in_at = 6;
-  optional string notes = 7;
+  optional string checked_in_at = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notes = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message RescueEventAnalytics {
-  string event_id = 1;
+  string event_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   int32 total_registrations = 2;
   int32 actual_attendance = 3;
   double attendance_rate = 4;
@@ -955,12 +957,12 @@ message RescueEventAnalytics {
 }
 
 message ListEventsRequest {
-  optional string type = 1;
-  optional string status = 2;
-  optional string start_date = 3;
-  optional string end_date = 4;
+  optional string type = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string status = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string start_date = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_date = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string search = 5;
-  optional string assigned_staff = 6;
+  optional string assigned_staff = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional bool is_public = 7;
 }
 
@@ -969,7 +971,7 @@ message ListEventsResponse {
 }
 
 message GetEventRequest {
-  string id = 1;
+  string id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetEventResponse {
@@ -977,18 +979,18 @@ message GetEventResponse {
 }
 
 message CreateEventRequest {
-  string name = 1;
-  string description = 2;
+  string name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string description = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   EventType type = 3;
-  string start_date = 4;
-  string end_date = 5;
+  string start_date = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string end_date = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EventLocation location = 6;
   optional int32 capacity = 7;
   bool registration_required = 8;
-  repeated string featured_pets = 9;
-  repeated string assigned_staff = 10;
+  repeated string featured_pets = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  repeated string assigned_staff = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool is_public = 11;
-  optional string image_url = 12;
+  optional string image_url = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }
 
 message CreateEventResponse {
@@ -999,21 +1001,21 @@ message CreateEventResponse {
 // has_featured_pets / has_assigned_staff distinguish "send empty
 // array to clear" from "don't touch this field".
 message UpdateEventRequest {
-  string id = 1;
-  optional string name = 2;
-  optional string description = 3;
+  string id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string description = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional EventType type = 4;
-  optional string start_date = 5;
-  optional string end_date = 6;
+  optional string start_date = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_date = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional EventLocation location = 7;
   optional int32 capacity = 8;
   optional bool registration_required = 9;
-  repeated string featured_pets = 10;
+  repeated string featured_pets = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool has_featured_pets = 11;
-  repeated string assigned_staff = 12;
+  repeated string assigned_staff = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool has_assigned_staff = 13;
   optional bool is_public = 14;
-  optional string image_url = 15;
+  optional string image_url = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional EventStatus status = 16;
 }
 
@@ -1022,13 +1024,13 @@ message UpdateEventResponse {
 }
 
 message DeleteEventRequest {
-  string id = 1;
+  string id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeleteEventResponse {}
 
 message GetEventAttendeesRequest {
-  string event_id = 1;
+  string event_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetEventAttendeesResponse {
@@ -1036,11 +1038,11 @@ message GetEventAttendeesResponse {
 }
 
 message AddEventAttendeeRequest {
-  string event_id = 1;
-  string user_id = 2;
-  string name = 3;
-  string email = 4;
-  optional string notes = 5;
+  string event_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string email = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string notes = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message AddEventAttendeeResponse {
@@ -1048,8 +1050,8 @@ message AddEventAttendeeResponse {
 }
 
 message CheckInAttendeeRequest {
-  string event_id = 1;
-  string user_id = 2;
+  string event_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CheckInAttendeeResponse {
@@ -1057,7 +1059,7 @@ message CheckInAttendeeResponse {
 }
 
 message GetEventAnalyticsRequest {
-  string event_id = 1;
+  string event_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetEventAnalyticsResponse {

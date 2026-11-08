@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.moderation.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // ModerationService is the gRPC contract for the moderation vertical.
 // It owns the `moderation.*` schema (Report, ReportStatusTransition,
 // ModeratorAction, ModerationEvidence, UserSanction, SupportTicket,
@@ -284,137 +286,137 @@ enum SupportTicketResponderType {
 // no proto regen when its shape evolves (same trick as pets'
 // extra_json + rescue's settings_json).
 message Report {
-  string report_id = 1;
-  string reporter_id = 2;
+  string report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string reporter_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ReportEntityType reported_entity_type = 3;
   // String because the polymorphic target can be a uuid or any other
   // shape (matches the SQL varchar column).
-  string reported_entity_id = 4;
-  optional string reported_user_id = 5;
+  string reported_entity_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reported_user_id = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ReportCategory category = 6;
   Severity severity = 7;
   ReportStatus status = 8;
-  string title = 9;
-  string description = 10;
+  string title = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string description = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   string metadata_json = 11;
-  optional string assigned_moderator = 12;
-  optional string assigned_at = 13;
-  optional string resolved_by = 14;
-  optional string resolved_at = 15;
-  optional string resolution = 16;
-  optional string resolution_notes = 17;
-  optional string escalated_to = 18;
-  optional string escalated_at = 19;
-  optional string escalation_reason = 20;
-  string created_at = 21;
-  string updated_at = 22;
+  optional string assigned_moderator = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string assigned_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string resolved_by = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string resolved_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string resolution = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string resolution_notes = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string escalated_to = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string escalated_at = 19 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string escalation_reason = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string created_at = 21 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 22 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ReportStatusTransition {
-  string transition_id = 1;
-  string report_id = 2;
+  string transition_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string report_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional ReportStatus from_status = 3;
   ReportStatus to_status = 4;
-  string transitioned_at = 5;
-  optional string transitioned_by = 6;
-  optional string reason = 7;
+  string transitioned_at = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string transitioned_by = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ModeratorAction {
-  string action_id = 1;
-  string moderator_id = 2;
-  optional string report_id = 3;
+  string action_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string moderator_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string report_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ReportEntityType target_entity_type = 4;
-  string target_entity_id = 5;
-  optional string target_user_id = 6;
+  string target_entity_id = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string target_user_id = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ModeratorActionType action_type = 7;
   Severity severity = 8;
-  string reason = 9;
-  optional string description = 10;
+  string reason = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string description = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   string metadata_json = 11;
   optional uint32 duration = 12;
-  optional string expires_at = 13;
+  optional string expires_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   bool is_active = 14;
-  optional string acknowledged_at = 15;
-  string created_at = 16;
-  string updated_at = 17;
+  optional string acknowledged_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message Evidence {
-  string evidence_id = 1;
+  string evidence_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EvidenceParentType parent_type = 2;
-  string parent_id = 3;
+  string parent_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EvidenceType type = 4;
-  string content = 5;
-  optional string description = 6;
-  string uploaded_at = 7;
+  string content = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string description = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string uploaded_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UserSanction {
-  string sanction_id = 1;
-  string user_id = 2;
+  string sanction_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   SanctionType sanction_type = 3;
   SanctionReason reason = 4;
-  string description = 5;
+  string description = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   bool is_active = 6;
-  string start_date = 7;
-  optional string end_date = 8;
+  string start_date = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string end_date = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional uint32 duration = 9;
-  string issued_by = 10;
-  optional string report_id = 11;
-  optional string moderator_action_id = 12;
-  optional string appealed_at = 13;
-  optional string appeal_reason = 14;
-  optional string appeal_status = 15;
-  string created_at = 16;
-  string updated_at = 17;
+  string issued_by = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string report_id = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string moderator_action_id = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string appealed_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string appeal_reason = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string appeal_status = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Set when the sanctioned user dismisses the in-app banner. Unset
   // while the banner is still showing (the active-banner query filters
   // on this being null).
-  optional string acknowledged_at = 18;
+  optional string acknowledged_at = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message SupportTicket {
-  string ticket_id = 1;
-  optional string user_id = 2;
-  string user_email = 3;
-  optional string user_name = 4;
-  optional string assigned_to = 5;
+  string ticket_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string user_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_email = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string user_name = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string assigned_to = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   SupportTicketStatus status = 6;
   SupportTicketPriority priority = 7;
   SupportTicketCategory category = 8;
-  string subject = 9;
-  string description = 10;
+  string subject = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string description = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   repeated string tags = 11;
   string metadata_json = 12;
-  optional string first_response_at = 13;
-  optional string last_response_at = 14;
-  optional string resolved_at = 15;
-  optional string closed_at = 16;
-  string created_at = 17;
-  string updated_at = 18;
+  optional string first_response_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string last_response_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string resolved_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string closed_at = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message SupportTicketResponse {
-  string response_id = 1;
-  string ticket_id = 2;
-  string responder_id = 3;
+  string response_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string ticket_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string responder_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   SupportTicketResponderType responder_type = 4;
-  string content = 5;
+  string content = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   bool is_internal = 6;
-  string created_at = 7;
+  string created_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // --- FileReport ------------------------------------------------------
 
 message FileReportRequest {
   ReportEntityType reported_entity_type = 1;
-  string reported_entity_id = 2;
-  optional string reported_user_id = 3;
+  string reported_entity_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reported_user_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ReportCategory category = 4;
   Severity severity = 5;
-  string title = 6;
-  string description = 7;
+  string title = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string description = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Stringified JSONB the handler stores as-is. SPA passes a JSON
   // blob containing context like screenshots URLs, related links.
   optional string metadata_json = 8;
@@ -427,7 +429,7 @@ message FileReportResponse {
 // --- GetReport -------------------------------------------------------
 
 message GetReportRequest {
-  string report_id = 1;
+  string report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // When true the response includes the report's status transition
   // history. Defaults to false to keep the basic card-fetch fast.
   bool include_transitions = 2;
@@ -441,7 +443,7 @@ message GetReportResponse {
 // --- ListReports -----------------------------------------------------
 
 message ListReportsRequest {
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 limit = 2;
   // Optional filters; each empty value means "no filter on this
   // dimension".
@@ -450,7 +452,7 @@ message ListReportsRequest {
   optional ReportCategory category = 5;
   // Filter to reports assigned to a specific moderator (or
   // unassigned via the empty string).
-  optional string assigned_moderator = 6;
+  optional string assigned_moderator = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Offset pagination for admin datatables. When set (>0) the handler
   // returns an OFFSET page plus a real `total` (COUNT) instead of a keyset
   // cursor, so the shared DataTable can render "Page X of Y".
@@ -459,7 +461,7 @@ message ListReportsRequest {
 
 message ListReportsResponse {
   repeated Report reports = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Total row count for the current filter — present only in offset mode
   // (page set). Keyset responses omit it.
   optional uint32 total = 3;
@@ -468,12 +470,12 @@ message ListReportsResponse {
 // --- AssignReport ----------------------------------------------------
 
 message AssignReportRequest {
-  string report_id = 1;
+  string report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // The moderator being assigned. May equal the calling principal
   // (self-assign) or another moderator.
-  string moderator_id = 2;
+  string moderator_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional reason recorded on the status transition.
-  optional string reason = 3;
+  optional string reason = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message AssignReportResponse {
@@ -483,22 +485,22 @@ message AssignReportResponse {
 // --- ResolveReport ---------------------------------------------------
 
 message ResolveReportRequest {
-  string report_id = 1;
+  string report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Short resolution code (e.g. 'action_taken', 'no_violation').
-  string resolution = 2;
+  string resolution = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Longer notes the moderator records.
-  optional string resolution_notes = 3;
+  optional string resolution_notes = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ResolveReportResponse {
   Report report = 1;
 }
 message EscalateReportRequest {
-  string report_id = 1;
+  string report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // The senior moderator / admin the report is escalated to.
-  string escalated_to = 2;
+  string escalated_to = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Why it is being escalated.
-  string reason = 3;
+  string reason = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 message EscalateReportResponse {
   Report report = 1;
@@ -508,14 +510,14 @@ message EscalateReportResponse {
 
 message LogModeratorActionRequest {
   // Optional anchor to a report that triggered this action.
-  optional string report_id = 1;
+  optional string report_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ReportEntityType target_entity_type = 2;
-  string target_entity_id = 3;
-  optional string target_user_id = 4;
+  string target_entity_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string target_user_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ModeratorActionType action_type = 5;
   Severity severity = 6;
-  string reason = 7;
-  optional string description = 8;
+  string reason = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string description = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   optional string metadata_json = 9;
   // Sanction duration in days, when applicable. Null = permanent.
   optional uint32 duration = 10;
@@ -528,12 +530,12 @@ message LogModeratorActionResponse {
 // --- ListModeratorActions --------------------------------------------
 
 message ListModeratorActionsRequest {
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 limit = 2;
   // Filter by target user — the user-history modal hits this.
-  optional string target_user_id = 3;
+  optional string target_user_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Filter to actions linked to a specific report.
-  optional string report_id = 4;
+  optional string report_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Filter by action type.
   optional ModeratorActionType action_type = 5;
   // When true, return only currently-active actions (is_active AND not
@@ -547,7 +549,7 @@ message ListModeratorActionsRequest {
 
 message ListModeratorActionsResponse {
   repeated ModeratorAction actions = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Total row count for the current filter — present only in offset mode
   // (page set). Keyset responses omit it.
   optional uint32 total = 3;
@@ -565,7 +567,7 @@ message ModerationCategoryCount {
 
 // Per-moderator activity: total actions logged + reports resolved.
 message ModerationModeratorActivity {
-  string moderator_id = 1;
+  string moderator_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 actions_count = 2;
   uint32 resolved_count = 3;
 }
@@ -592,12 +594,12 @@ message GetModerationMetricsResponse {
 
 message AddEvidenceRequest {
   EvidenceParentType parent_type = 1;
-  string parent_id = 2;
+  string parent_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   EvidenceType type = 3;
   // Opaque text — URL for type=URL, S3 key for type=SCREENSHOT, raw
   // text for type=TEXT.
-  string content = 4;
-  optional string description = 5;
+  string content = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string description = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message AddEvidenceResponse {
@@ -607,17 +609,17 @@ message AddEvidenceResponse {
 // --- IssueSanction ---------------------------------------------------
 
 message IssueSanctionRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   SanctionType sanction_type = 2;
   SanctionReason reason = 3;
-  string description = 4;
+  string description = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Optional duration in days. Null = permanent (only valid with
   // sanction_type = PERMANENT_BAN).
   optional uint32 duration = 5;
   // Optional anchors to a report and/or moderator action that led
   // to the sanction.
-  optional string report_id = 6;
-  optional string moderator_action_id = 7;
+  optional string report_id = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string moderator_action_id = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message IssueSanctionResponse {
@@ -627,7 +629,7 @@ message IssueSanctionResponse {
 // --- ListUserSanctions -----------------------------------------------
 
 message ListUserSanctionsRequest {
-  string user_id = 1;
+  string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // When true, returns ALL sanctions (active + expired + revoked).
   // Default false returns only active ones (the banner query).
   bool include_inactive = 2;
@@ -643,8 +645,8 @@ message ListUserSanctionsResponse {
 // --- AppealSanction --------------------------------------------------
 
 message AppealSanctionRequest {
-  string sanction_id = 1;
-  string appeal_reason = 2;
+  string sanction_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string appeal_reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message AppealSanctionResponse {
@@ -654,7 +656,7 @@ message AppealSanctionResponse {
 // --- AcknowledgeSanction ---------------------------------------------
 
 message AcknowledgeSanctionRequest {
-  string sanction_id = 1;
+  string sanction_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AcknowledgeSanctionResponse {
@@ -666,13 +668,13 @@ message AcknowledgeSanctionResponse {
 message OpenSupportTicketRequest {
   // user_id is optional — unauthenticated users can open tickets
   // by providing email + name only.
-  optional string user_id = 1;
-  string user_email = 2;
-  optional string user_name = 3;
+  optional string user_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string user_email = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string user_name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   SupportTicketPriority priority = 4;
   SupportTicketCategory category = 5;
-  string subject = 6;
-  string description = 7;
+  string subject = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string description = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   repeated string tags = 8;
 }
 
@@ -683,7 +685,7 @@ message OpenSupportTicketResponse {
 // --- GetSupportTicket ------------------------------------------------
 
 message GetSupportTicketRequest {
-  string ticket_id = 1;
+  string ticket_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // When true the response includes the full response thread.
   bool include_responses = 2;
 }
@@ -696,15 +698,15 @@ message GetSupportTicketResponse {
 // --- ListSupportTickets ----------------------------------------------
 
 message ListSupportTicketsRequest {
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 limit = 2;
   optional SupportTicketStatus status = 3;
   optional SupportTicketPriority priority = 4;
   optional SupportTicketCategory category = 5;
   // Filter to tickets assigned to a specific staff member.
-  optional string assigned_to = 6;
+  optional string assigned_to = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Filter to tickets opened by a specific user.
-  optional string user_id = 7;
+  optional string user_id = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Offset pagination for admin datatables. When set (>0) the handler
   // returns an OFFSET page plus a real `total` (COUNT) instead of a keyset
   // cursor, so the shared DataTable can render "Page X of Y".
@@ -713,7 +715,7 @@ message ListSupportTicketsRequest {
 
 message ListSupportTicketsResponse {
   repeated SupportTicket tickets = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Total row count for the current filter — present only in offset mode
   // (page set). Keyset responses omit it.
   optional uint32 total = 3;
@@ -722,8 +724,8 @@ message ListSupportTicketsResponse {
 // --- RespondToTicket -------------------------------------------------
 
 message RespondToTicketRequest {
-  string ticket_id = 1;
-  string content = 2;
+  string ticket_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string content = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // When true the response is staff-internal and not visible to the
   // ticket opener.
   bool is_internal = 3;
@@ -736,10 +738,10 @@ message RespondToTicketResponse {
 // --- AssignSupportTicket ---------------------------------------------
 
 message AssignSupportTicketRequest {
-  string ticket_id = 1;
+  string ticket_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // The staff member being assigned. May equal the calling principal
   // (self-assign) or another staff member.
-  string assigned_to = 2;
+  string assigned_to = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AssignSupportTicketResponse {
@@ -749,7 +751,7 @@ message AssignSupportTicketResponse {
 // --- UpdateSupportTicket / EscalateSupportTicket ---------------------
 
 message UpdateSupportTicketRequest {
-  string ticket_id = 1;
+  string ticket_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional SupportTicketStatus status = 2;
   optional SupportTicketPriority priority = 3;
   optional SupportTicketCategory category = 4;
@@ -761,10 +763,10 @@ message UpdateSupportTicketResponse {
   SupportTicket ticket = 1;
 }
 message EscalateSupportTicketRequest {
-  string ticket_id = 1;
+  string ticket_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional reassignment on escalation (e.g. to a senior queue).
-  optional string assigned_to = 2;
-  optional string reason = 3;
+  optional string assigned_to = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 message EscalateSupportTicketResponse {
   SupportTicket ticket = 1;
@@ -786,7 +788,7 @@ message SupportTicketCategoryCount {
   uint32 count = 2;
 }
 message SupportTicketStaffActivity {
-  string staff_id = 1;
+  string staff_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 assigned_count = 2;
   uint32 resolved_count = 3;
 }

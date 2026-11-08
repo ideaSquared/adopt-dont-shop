@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.cms.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // CmsService — content + navigation menus for the public-facing pages
 // (help articles, blog posts, static pages, top-nav structure). Owns
 // the `cms.*` schema (cms_content, cms_navigation_menus).
@@ -63,29 +65,29 @@ enum ContentStatus {
 // Single content row. Big text + the versions blob are inline — same
 // shape as the monolith.
 message Content {
-  string content_id = 1;
-  string title = 2;
-  string slug = 3;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string title = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string slug = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ContentType content_type = 4;
   ContentStatus status = 5;
-  string content = 6;
-  optional string excerpt = 7;
-  optional string meta_title = 8;
-  optional string meta_description = 9;
-  repeated string meta_keywords = 10;
-  optional string featured_image_url = 11;
-  optional string published_at = 12;
-  optional string scheduled_publish_at = 13;
-  optional string scheduled_unpublish_at = 14;
+  string content = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string excerpt = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string meta_title = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string meta_description = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  repeated string meta_keywords = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string featured_image_url = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string published_at = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string scheduled_publish_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string scheduled_unpublish_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Version history snapshots. `versions_json` carries the full
   // serialised array so the proto stays cheap to evolve — same
   // approach the field-permission defaults take.
   string versions_json = 15;
   uint32 current_version = 16;
-  string author_id = 17;
-  optional string last_modified_by = 18;
-  string created_at = 19;
-  string updated_at = 20;
+  string author_id = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string last_modified_by = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 19 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListPublicContentRequest {
@@ -101,7 +103,7 @@ message ListPublicContentResponse {
 }
 
 message GetPublicContentBySlugRequest {
-  string slug = 1;
+  string slug = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message GetPublicContentBySlugResponse {
   Content content = 1;
@@ -122,57 +124,57 @@ message ListContentResponse {
 }
 
 message GetContentRequest {
-  string content_id = 1;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message GetContentResponse {
   Content content = 1;
 }
 
 message GetContentBySlugRequest {
-  string slug = 1;
+  string slug = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message GetContentBySlugResponse {
   Content content = 1;
 }
 
 message GenerateSlugRequest {
-  string title = 1;
+  string title = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
 }
 message GenerateSlugResponse {
-  string slug = 1;
+  string slug = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CreateContentRequest {
-  string title = 1;
-  string slug = 2;
+  string title = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string slug = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ContentType content_type = 3;
-  string content = 4;
-  optional string excerpt = 5;
-  optional string meta_title = 6;
-  optional string meta_description = 7;
-  repeated string meta_keywords = 8;
-  optional string featured_image_url = 9;
-  optional string scheduled_publish_at = 10;
-  optional string scheduled_unpublish_at = 11;
+  string content = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string excerpt = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string meta_title = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string meta_description = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  repeated string meta_keywords = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string featured_image_url = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string scheduled_publish_at = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string scheduled_unpublish_at = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message CreateContentResponse {
   Content content = 1;
 }
 
 message UpdateContentRequest {
-  string content_id = 1;
-  optional string title = 2;
-  optional string slug = 3;
-  optional string content = 4;
-  optional string excerpt = 5;
-  optional string meta_title = 6;
-  optional string meta_description = 7;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string title = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string slug = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string content = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string excerpt = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string meta_title = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string meta_description = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   // set_meta_keywords toggles whether meta_keywords is written
   // (partial-update presence flag, same convention as the rest of
   // the codebase's *Request messages).
   bool set_meta_keywords = 8;
-  repeated string meta_keywords = 9;
-  optional string featured_image_url = 10;
+  repeated string meta_keywords = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string featured_image_url = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
   optional string change_note = 11;
 }
 message UpdateContentResponse {
@@ -180,28 +182,28 @@ message UpdateContentResponse {
 }
 
 message DeleteContentRequest {
-  string content_id = 1;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message DeleteContentResponse {
   bool deleted = 1;
 }
 
 message PublishContentRequest {
-  string content_id = 1;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message PublishContentResponse {
   Content content = 1;
 }
 
 message UnpublishContentRequest {
-  string content_id = 1;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message UnpublishContentResponse {
   Content content = 1;
 }
 
 message ArchiveContentRequest {
-  string content_id = 1;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message ArchiveContentResponse {
   Content content = 1;
@@ -209,16 +211,16 @@ message ArchiveContentResponse {
 
 message ContentVersion {
   uint32 version = 1;
-  string title = 2;
-  string content = 3;
-  optional string excerpt = 4;
-  string changed_by = 5;
+  string title = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string content = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string excerpt = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string changed_by = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string change_note = 6;
-  string created_at = 7;
+  string created_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetVersionHistoryRequest {
-  string content_id = 1;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message GetVersionHistoryResponse {
   repeated ContentVersion versions = 1;
@@ -226,7 +228,7 @@ message GetVersionHistoryResponse {
 }
 
 message RestoreVersionRequest {
-  string content_id = 1;
+  string content_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 version = 2;
 }
 message RestoreVersionResponse {
@@ -236,19 +238,19 @@ message RestoreVersionResponse {
 // Navigation menu — a tree-shaped collection of items, JSON-stringified
 // in `items_json` to keep the proto cheap.
 message Menu {
-  string menu_id = 1;
-  string name = 2;
-  string location = 3;
+  string menu_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string location = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON array of { label, url, target?, children? } items. Stored as
   // a single column on the table; structure validated server-side.
   string items_json = 4;
   bool is_active = 5;
-  string created_at = 6;
-  string updated_at = 7;
+  string created_at = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListMenusRequest {
-  optional string location = 1;
+  optional string location = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional bool is_active = 2;
 }
 message ListMenusResponse {
@@ -256,15 +258,15 @@ message ListMenusResponse {
 }
 
 message GetMenuRequest {
-  string menu_id = 1;
+  string menu_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message GetMenuResponse {
   Menu menu = 1;
 }
 
 message CreateMenuRequest {
-  string name = 1;
-  string location = 2;
+  string name = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  string location = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   string items_json = 3;
   optional bool is_active = 4;
 }
@@ -273,9 +275,9 @@ message CreateMenuResponse {
 }
 
 message UpdateMenuRequest {
-  string menu_id = 1;
-  optional string name = 2;
-  optional string location = 3;
+  string menu_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string name = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PUBLIC];
+  optional string location = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional string items_json = 4;
   optional bool is_active = 5;
 }
@@ -284,7 +286,7 @@ message UpdateMenuResponse {
 }
 
 message DeleteMenuRequest {
-  string menu_id = 1;
+  string menu_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 message DeleteMenuResponse {
   bool deleted = 1;

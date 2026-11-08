@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // Ping is the canonical smoke service — exists only to exercise the
 // hermetic codegen pipeline. Every real domain (auth, pets, applications,
 // chat, ...) gets its own .proto file in a sibling directory once those
@@ -15,12 +17,12 @@ service Ping {
 }
 
 message EchoRequest {
-  string message = 1;
+  string message = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message EchoResponse {
-  string message = 1;
+  string message = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Server-assigned RFC 3339 timestamp of when the request was received.
   // Used by smoke tests to assert round-trip latency budgets.
-  string received_at = 2;
+  string received_at = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }

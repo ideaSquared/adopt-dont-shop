@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package adopt_dont_shop.applications.v1;
 
+import "proto/adopt_dont_shop/v1/options.proto";
+
 // ApplicationService is the gRPC contract for the applications
 // vertical — the EVENT-SOURCED extraction. Owns the `applications.*`
 // schema (Application, ApplicationDraft, ApplicationAnswer,
@@ -234,43 +236,43 @@ enum HomeVisitOutcome {
 // --- Application — denormalised read-model row -----------------------
 
 message Application {
-  string application_id = 1;
-  string adopter_id = 2;
-  string pet_id = 3;
-  string rescue_id = 4;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string adopter_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string pet_id = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string rescue_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ApplicationStatus status = 5;
   // JSON-stringified key→value answers map. Empty string == `{}`.
-  string answers_json = 6;
+  string answers_json = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // JSON-stringified reference contact list. Empty string == `[]`.
-  string references_json = 7;
+  string references_json = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Optimistic-concurrency version — bumped on every event append.
   uint32 version = 8;
-  optional string submitted_at = 9;
-  optional string review_started_at = 10;
-  optional string home_visit_scheduled_at = 11;
-  optional string home_visit_completed_at = 12;
+  optional string submitted_at = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string review_started_at = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string home_visit_scheduled_at = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string home_visit_completed_at = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   optional HomeVisitOutcome home_visit_outcome = 13;
-  optional string home_visit_notes = 14;
-  optional string decided_at = 15;
-  optional string decided_by = 16;
-  optional string decision_notes = 17;
-  optional string rejection_reason = 18;
-  optional string adopted_at = 19;
-  string created_at = 20;
-  string updated_at = 21;
+  optional string home_visit_notes = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string decided_at = 15 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string decided_by = 16 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string decision_notes = 17 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string rejection_reason = 18 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string adopted_at = 19 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 20 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 21 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 // TimelineEntry mirrors the applications.application_timeline_entries
 // audit row — every event-store row gets a denormalised entry the SPA
 // renders chronologically.
 message TimelineEntry {
-  string entry_id = 1;
-  string application_id = 2;
+  string entry_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string application_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   ApplicationStatus from_status = 3;
   ApplicationStatus to_status = 4;
-  string actor_user_id = 5;
-  string occurred_at = 6;
-  optional string note = 7;
+  string actor_user_id = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string occurred_at = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string note = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 // --- StartDraft ------------------------------------------------------
@@ -278,8 +280,8 @@ message TimelineEntry {
 message StartDraftRequest {
   // adopter_id MUST match the calling principal (adopters own their
   // drafts). super_admin can pass any.
-  string adopter_id = 1;
-  string pet_id = 2;
+  string adopter_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string pet_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message StartDraftResponse {
@@ -289,7 +291,7 @@ message StartDraftResponse {
 // --- SaveDraftAnswers ------------------------------------------------
 
 message SaveDraftAnswersRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optimistic-concurrency guard — the caller's last-known version.
   // The service rejects with FAILED_PRECONDITION when the row has
   // moved beyond this version.
@@ -297,10 +299,10 @@ message SaveDraftAnswersRequest {
   // JSON-stringified answers patch. The handler merges this into
   // the existing answers map (NOT replace) so callers can save
   // partial progress.
-  string answers_patch_json = 3;
+  string answers_patch_json = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // Optional reference contact list replacement (wholesale). Empty
   // string = leave unchanged.
-  optional string references_json = 4;
+  optional string references_json = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message SaveDraftAnswersResponse {
@@ -310,7 +312,7 @@ message SaveDraftAnswersResponse {
 // --- SubmitDraft -----------------------------------------------------
 
 message SubmitDraftRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   uint32 expected_version = 2;
 }
 
@@ -321,9 +323,9 @@ message SubmitDraftResponse {
 // --- StartReview -----------------------------------------------------
 
 message StartReviewRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional staff note ("opening for review").
-  optional string note = 2;
+  optional string note = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message StartReviewResponse {
@@ -333,10 +335,10 @@ message StartReviewResponse {
 // --- ScheduleHomeVisit -----------------------------------------------
 
 message ScheduleHomeVisitRequest {
-  string application_id = 1;
-  string scheduled_at = 2;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string scheduled_at = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional pre-visit note (visitor name, preferences, etc.).
-  optional string note = 3;
+  optional string note = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ScheduleHomeVisitResponse {
@@ -346,9 +348,9 @@ message ScheduleHomeVisitResponse {
 // --- CompleteHomeVisit -----------------------------------------------
 
 message CompleteHomeVisitRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   HomeVisitOutcome outcome = 2;
-  optional string notes = 3;
+  optional string notes = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message CompleteHomeVisitResponse {
@@ -358,8 +360,8 @@ message CompleteHomeVisitResponse {
 // --- Approve / Reject / Withdraw / MarkAdopted -----------------------
 
 message ApproveRequest {
-  string application_id = 1;
-  optional string notes = 2;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notes = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message ApproveResponse {
@@ -367,8 +369,8 @@ message ApproveResponse {
 }
 
 message RejectRequest {
-  string application_id = 1;
-  string reason = 2;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message RejectResponse {
@@ -376,8 +378,8 @@ message RejectResponse {
 }
 
 message WithdrawRequest {
-  string application_id = 1;
-  optional string reason = 2;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string reason = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message WithdrawResponse {
@@ -385,7 +387,7 @@ message WithdrawResponse {
 }
 
 message MarkAdoptedRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message MarkAdoptedResponse {
@@ -395,7 +397,7 @@ message MarkAdoptedResponse {
 // --- Get -------------------------------------------------------------
 
 message GetApplicationRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Set true to include the timeline projection in the response.
   // Defaults false to keep the GET cheap when the SPA already has
   // the timeline cached.
@@ -411,16 +413,16 @@ message GetApplicationResponse {
 
 message ListApplicationsRequest {
   // Opaque base64-JSON keyset cursor.
-  optional string cursor = 1;
+  optional string cursor = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Defaults to 20, max 100.
   uint32 limit = 2;
   // Optional filters. UNSPECIFIED in each enum = "no filter".
   ApplicationStatus status_filter = 3;
-  optional string rescue_id_filter = 4;
+  optional string rescue_id_filter = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Adopters can only see their own (the handler enforces scope
   // from principal.userId); admins + super_admin can pass any
   // adopter_id_filter explicitly.
-  optional string adopter_id_filter = 5;
+  optional string adopter_id_filter = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Offset pagination for the staff / admin applications datatable. When
   // set (>0) the handler returns an OFFSET page plus a real `total`
   // (COUNT) instead of a keyset cursor, so the shared DataTable can render
@@ -431,7 +433,7 @@ message ListApplicationsRequest {
 
 message ListApplicationsResponse {
   repeated Application applications = 1;
-  optional string next_cursor = 2;
+  optional string next_cursor = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Total row count for the current filter — present only in offset mode
   // (page set). Keyset responses omit it.
   optional uint32 total = 3;
@@ -444,13 +446,13 @@ message GetStatsRequest {
   // the counted set; rescue staff are pinned to their own rescue and
   // adopters to their own user id regardless of these (the handler
   // enforces scope from the principal).
-  optional string rescue_id_filter = 1;
-  optional string adopter_id_filter = 2;
+  optional string rescue_id_filter = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string adopter_id_filter = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Inclusive lower / upper bounds on created_at. Used by the report
   // builder's "application funnel" widget to scope counts to the
   // report's date-range filter; omit either for an open-ended range.
-  optional string created_after = 3;
-  optional string created_before = 4;
+  optional string created_after = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string created_before = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetStatsResponse {
@@ -478,22 +480,22 @@ message CountAdoptedAdoptersRequest {
   // beyond the optional rescue_id below; the caller decides which ids
   // are in play. Capped at 10,000 entries (ADS-1024) — the handler
   // rejects anything above that with INVALID_ARGUMENT before querying.
-  repeated string adopter_ids = 1;
+  repeated string adopter_ids = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Inclusive lower bound (RFC3339) on the application's actioned_at —
   // when it reached APPROVED/ADOPTED status (ADS-1025). Renamed from
   // created_after: the documented attribution rule was always "reached
   // APPROVED/ADOPTED within the window", not "created within the
   // window". Required; must parse as a valid date and must not be
   // after actioned_before.
-  string actioned_after = 2;
+  string actioned_after = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Inclusive upper bound (RFC3339) on actioned_at. See actioned_after.
-  string actioned_before = 3;
+  string actioned_before = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Optional rescue scope (ADS-1023). When set, only applications
   // owned by this rescue count towards the distinct-adopter total —
   // e.g. an event's attribution count should only reflect adoptions at
   // the rescue that ran the event. Omit for an unscoped, cross-rescue
   // count.
-  optional string rescue_id = 4;
+  optional string rescue_id = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message CountAdoptedAdoptersResponse {
@@ -511,24 +513,24 @@ message CountAdoptedAdoptersResponse {
 // bytes live in object storage (owned by the gateway); this row only
 // references the stored `url`. Mirrors the SPA's Document shape.
 message Document {
-  string document_id = 1;
-  string application_id = 2;
-  string type = 3;
-  string filename = 4;
-  string url = 5;
+  string document_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string application_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string type = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string filename = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string url = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   optional uint32 size = 6;
-  optional string mime_type = 7;
-  string uploaded_at = 8;
+  optional string mime_type = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string uploaded_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AddDocumentRequest {
-  string application_id = 1;
-  string type = 2;
-  string filename = 3;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string type = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string filename = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // URL of the already-stored file (the caller owns the upload).
-  string url = 4;
+  string url = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   optional uint32 size = 5;
-  optional string mime_type = 6;
+  optional string mime_type = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AddDocumentResponse {
@@ -536,7 +538,7 @@ message AddDocumentResponse {
 }
 
 message ListDocumentsRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListDocumentsResponse {
@@ -544,8 +546,8 @@ message ListDocumentsResponse {
 }
 
 message RemoveDocumentRequest {
-  string application_id = 1;
-  string document_id = 2;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string document_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message RemoveDocumentResponse {}
@@ -574,7 +576,7 @@ message UpdateApplicationDefaultsResponse {
 // --- Application drafts (autosave scratchpad) ------------------------
 
 message GetApplicationDraftRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message GetApplicationDraftResponse {
@@ -582,27 +584,27 @@ message GetApplicationDraftResponse {
   // are unset / empty in that case.
   bool found = 1;
   // JSON-stringified answers map. Empty string == `{}`.
-  string answers_json = 2;
-  string updated_at = 3;
+  string answers_json = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string updated_at = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // TTL — when the daily purge will reap the row. Unset when the row
   // carries no expiry.
-  optional string expires_at = 4;
+  optional string expires_at = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message SaveApplicationDraftRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified answers map. Stored verbatim (last-write-wins).
-  string answers_json = 2;
+  string answers_json = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
 }
 
 message SaveApplicationDraftResponse {
-  string answers_json = 1;
-  string updated_at = 2;
-  optional string expires_at = 3;
+  string answers_json = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string updated_at = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string expires_at = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeleteApplicationDraftRequest {
-  string pet_id = 1;
+  string pet_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message DeleteApplicationDraftResponse {}
@@ -614,26 +616,26 @@ message DeleteApplicationDraftResponse {}
 // status ∈ {scheduled, in_progress, completed, cancelled}; outcome ∈
 // {approved, rejected, conditional}.
 message HomeVisitRecord {
-  string visit_id = 1;
-  string application_id = 2;
+  string visit_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string application_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // ISO date (YYYY-MM-DD).
-  string scheduled_date = 3;
+  string scheduled_date = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // ISO time (HH:MM:SS).
-  string scheduled_time = 4;
-  optional string assigned_staff = 5;
-  string status = 6;
-  optional string notes = 7;
-  optional string outcome = 8;
-  optional string outcome_notes = 9;
-  optional string reschedule_reason = 10;
-  optional string cancelled_reason = 11;
-  optional string completed_at = 12;
-  string created_at = 13;
-  string updated_at = 14;
+  string scheduled_time = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string assigned_staff = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string status = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notes = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string outcome = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string outcome_notes = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string reschedule_reason = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string cancelled_reason = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string completed_at = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 13 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string updated_at = 14 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListHomeVisitsRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListHomeVisitsResponse {
@@ -641,20 +643,20 @@ message ListHomeVisitsResponse {
 }
 
 message UpdateHomeVisitRequest {
-  string application_id = 1;
-  string visit_id = 2;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string visit_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // Target status. Omit to update fields without transitioning status
   // (e.g. a reschedule that stays 'scheduled').
-  optional string status = 3;
-  optional string scheduled_date = 4;
-  optional string scheduled_time = 5;
-  optional string assigned_staff = 6;
-  optional string notes = 7;
-  optional string outcome = 8;
-  optional string outcome_notes = 9;
-  optional string reschedule_reason = 10;
-  optional string cancelled_reason = 11;
-  optional string completed_at = 12;
+  optional string status = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string scheduled_date = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string scheduled_time = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string assigned_staff = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notes = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string outcome = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string outcome_notes = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string reschedule_reason = 10 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string cancelled_reason = 11 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string completed_at = 12 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UpdateHomeVisitResponse {
@@ -686,24 +688,24 @@ message UpdateApplicationPreferencesResponse {
 message ReferenceCheck {
   // The referee's stable key within the application's references list
   // (e.g. "ref-0") — matches the frontend's array-index id scheme.
-  string reference_id = 1;
-  string application_id = 2;
-  string name = 3;
-  string email = 4;
-  string relationship = 5;
+  string reference_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string application_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string name = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string email = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string relationship = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
   // pending | contacted | completed | failed.
-  string status = 6;
-  optional string notes = 7;
-  optional string contacted_at = 8;
-  optional string contacted_by = 9;
+  string status = 6 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notes = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contacted_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string contacted_by = 9 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UpdateReferenceCheckRequest {
-  string application_id = 1;
-  string reference_id = 2;
-  optional string status = 3;
-  optional string notes = 4;
-  optional string contacted_at = 5;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string reference_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string status = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  optional string notes = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string contacted_at = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message UpdateReferenceCheckResponse {
@@ -713,22 +715,22 @@ message UpdateReferenceCheckResponse {
 // --- Timeline notes (ADS-1139) ------------------------------------------
 
 message TimelineNote {
-  string note_id = 1;
-  string application_id = 2;
-  string title = 3;
-  string description = 4;
-  string note_type = 5;
+  string note_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string application_id = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string title = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string description = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string note_type = 5 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified free-form metadata. Empty string == `{}`.
   string metadata_json = 6;
-  string created_by = 7;
-  string created_at = 8;
+  string created_by = 7 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string created_at = 8 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message AddTimelineNoteRequest {
-  string application_id = 1;
-  string title = 2;
-  string description = 3;
-  optional string note_type = 4;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
+  string title = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  string description = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  optional string note_type = 4 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
   // JSON-stringified free-form metadata. Empty/omitted == `{}`.
   optional string metadata_json = 5;
 }
@@ -738,7 +740,7 @@ message AddTimelineNoteResponse {
 }
 
 message ListTimelineNotesRequest {
-  string application_id = 1;
+  string application_id = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_INTERNAL];
 }
 
 message ListTimelineNotesResponse {
