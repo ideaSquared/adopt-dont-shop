@@ -45,5 +45,6 @@ export const layoutFooter = style({
   padding: '0.75rem 2rem',
   display: 'flex',
   justifyContent: 'flex-end',
+  gap: '1rem',
   background: vars.background.surface,
 });

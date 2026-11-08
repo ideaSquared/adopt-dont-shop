@@ -5,7 +5,7 @@
     "node": ">=24.0.0"
   },
   "description": "Public-facing React application for pet adoption",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "scripts": {

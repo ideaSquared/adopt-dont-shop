@@ -431,6 +431,13 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   InstallPwaBanner: () => null,
   // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
   SanctionBanner: () => null,
+  // AGPL-3.0 section 13 footer link; the real component is covered in lib.components.
+  SourceCodeLink: () =>
+    React.createElement(
+      'a',
+      { href: 'https://github.com/ideaSquared/adopt-dont-shop' },
+      'Source code'
+    ),
   SkipLink: ({
     href = '#main-content',
     children = 'Skip to main content',

@@ -43,7 +43,7 @@
     "consent"
   ],
   "author": "Adopt Don't Shop Team",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "dependencies": {
     "@adopt-dont-shop/lib.api": "workspace:*",
     "@adopt-dont-shop/lib.auth": "workspace:*",

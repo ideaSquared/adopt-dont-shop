@@ -269,4 +269,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full contributor guide.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+Copyright (C) 2024-present Alex Jenkinson. Licensed under the GNU Affero General Public License v3.0 only. Versions up to tag `last-mit-release` were released under the MIT License.
+
+AGPL-3.0-only — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
