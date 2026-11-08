@@ -868,14 +868,21 @@ jobs:
             # .env rather than threaded through as GitHub Action secrets.
             RESEND_KEY="$(read_env RESEND_API_KEY)"
             # Push is optional: the compose files default PUSH_PROVIDER to
-            # 'none'. Only PUSH_PROVIDER=fcm requires the Firebase JSON; an
-            # empty file is still written because compose mounts it either way.
-            PUSH_PROVIDER_ENV="$(grep -E '^PUSH_PROVIDER=' .env | head -n1 | cut -d= -f2- | tr -d "\"'" || true)"
+            # 'none'. Normalise it the way compose and the service read it
+            # (inline comment, whitespace, quotes, case — same coercions as
+            # scripts/deploy-overlay-args.sh). Only 'fcm' requires the
+            # Firebase values. Credentials present in .env are always written,
+            # never cleared; otherwise an empty file is written because
+            # compose mounts it either way.
+            PUSH_PROVIDER_ENV="$(grep -E '^PUSH_PROVIDER=' .env | head -n1 | cut -d= -f2-)" || true
+            PUSH_PROVIDER_ENV="${PUSH_PROVIDER_ENV%%#*}"
+            PUSH_PROVIDER_ENV="$(printf '%s' "$PUSH_PROVIDER_ENV" | tr -d "[:space:]\"'" | tr '[:upper:]' '[:lower:]')"
             if [ "$PUSH_PROVIDER_ENV" = "fcm" ]; then
               FCM_JSON="$(read_env FCM_SERVICE_ACCOUNT_JSON)"
               read_env FCM_PROJECT_ID > /dev/null
             else
-              FCM_JSON=""
+              FCM_JSON="$(grep -E '^FCM_SERVICE_ACCOUNT_JSON=' .env | head -n1 | cut -d= -f2-)" || true
+              FCM_JSON="${FCM_JSON%\"}"; FCM_JSON="${FCM_JSON#\"}"; FCM_JSON="${FCM_JSON%\'}"; FCM_JSON="${FCM_JSON#\'}"
             fi
             printf '%s' "$RESEND_KEY" > secrets/resend_api_key
             printf '%s' "$FCM_JSON"   > secrets/fcm_service_account_json
