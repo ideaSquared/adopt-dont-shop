@@ -263,9 +263,10 @@ test.describe('staff lifecycle', () => {
 
       // Gone for good: a reload does not bring them back, and they are no longer staff.
       await manager.reload();
-      await expect(manager.getByText(rescue.owner.email, { exact: true })).toBeVisible({
-        timeout: 30_000,
-      });
+      // In the main area: the dev login panel also prints the signed-in user's email.
+      await expect(
+        manager.getByRole('main').getByText(rescue.owner.email, { exact: true })
+      ).toBeVisible({ timeout: 30_000 });
       await expect(manager.getByText(staff.email, { exact: true })).toBeHidden();
       expect((await staffApi.context.get('/api/v1/staff/me')).status()).toBe(404);
     } finally {

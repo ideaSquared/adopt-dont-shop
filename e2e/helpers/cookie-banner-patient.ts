@@ -18,7 +18,8 @@ export async function dismissCookieBannerPatiently(page: Page): Promise<void> {
     essentialsOnly,
     async button => {
       if (await button.isEnabled()) {
-        await button.click();
+        // The bottom tab bar can sit over the banner at phone width and swallow the click.
+        await button.click({ timeout: 2_000 }).catch(() => button.dispatchEvent('click'));
       }
       await expect(button).toBeHidden({ timeout: BANNER_SETTLE_TIMEOUT_MS });
     },
