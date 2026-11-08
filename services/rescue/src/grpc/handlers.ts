@@ -1106,13 +1106,15 @@ export async function inviteStaff(
     inserted = result.rows[0];
 
     // Key the event on the PERSISTED id (the existing row's id on a
-    // refresh) plus this call's expiry. A redelivery of one invite stays
-    // idempotent, while a re-invite (which rotates the token) is a distinct
-    // event so the invitee gets the new link.
+    // refresh) plus this call's freshly generated invitationId, which is
+    // unique per token rotation. A redelivery of one invite reuses the
+    // stored outbox id and stays idempotent, while every re-invite —
+    // even two in the same millisecond — is a distinct event, so the
+    // invitee always gets the live link. (The expiry is not unique enough.)
     const persistedId = inserted?.invitation_id ?? invitationId;
     publish({
       type: 'rescue.staffInvited',
-      id: `rescue.staffInvited.${persistedId}.${expiration.getTime()}`,
+      id: `rescue.staffInvited.${persistedId}.${invitationId}`,
       payload: {
         invitationId: persistedId,
         rescueId: req.rescueId,
