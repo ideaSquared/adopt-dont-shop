@@ -24,6 +24,7 @@ import { hasPermission } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import { makeNatsDouble, testPrincipal, withTestDatabase } from '@adopt-dont-shop/test-utils';
 
+import { bootstrapSuperAdmin } from '../db/bootstrap-admin-core.js';
 import { loadPrincipal, type HandlerDeps } from './handlers.js';
 
 // Mirrors src/db/migrate.ts's own path resolution — this test file lives at
@@ -147,6 +148,56 @@ describe.skipIf(!process.env.DATABASE_URL)(
           const deps = buildDeps(pool);
 
           await expect(loadPrincipal(deps, randomUUID())).rejects.toThrow(/not found/);
+        }
+      );
+    });
+  }
+);
+
+// Lives in this file, not its own, because withTestDatabase's exactSchemaName
+// ("auth") must not run in two files at once — tests within one file run
+// sequentially.
+describe.skipIf(!process.env.DATABASE_URL)(
+  'bootstrapSuperAdmin concurrency (real Postgres)',
+  () => {
+    it('lets exactly one of two concurrent runs create a super_admin; the other refuses', async () => {
+      await withTestDatabase(
+        {
+          schemaPrefix: 'auth',
+          exactSchemaName: true,
+          migrationsDir: MIGRATIONS_DIR,
+          registerTsxLoader: true,
+        },
+        async pool => {
+          // withTransaction checks out its own connection per call, so the two
+          // runs below are independent backend sessions racing on the lock.
+          const deps = {
+            pool,
+            nats: makeNatsDouble().connection,
+            hash: async () => 'hashed',
+          };
+          const run = (email: string) =>
+            bootstrapSuperAdmin(deps, {
+              email,
+              firstName: 'Ada',
+              lastName: 'Admin',
+              password: 'correct-horse-battery',
+            });
+
+          const results = await Promise.allSettled([
+            run('first@example.test'),
+            run('second@example.test'),
+          ]);
+
+          expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+          const rejected = results.filter(r => r.status === 'rejected');
+          expect(rejected).toHaveLength(1);
+          expect(rejected[0]).toMatchObject({ reason: { code: 'ALREADY_EXISTS' } });
+
+          const { rows } = await pool.query<{ count: string }>(
+            `SELECT count(*)::text AS count FROM auth.users WHERE user_type = 'super_admin'`
+          );
+          expect(rows[0]?.count).toBe('1');
         }
       );
     });

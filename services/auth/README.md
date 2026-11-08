@@ -33,9 +33,24 @@ pnpm start        # run the built server
 pnpm test         # Vitest (run mode)
 pnpm db:migrate   # run pending migrations (node-pg-migrate)
 pnpm db:seed      # bootstrap super_admin (other personas: root `pnpm db:seed`)
+pnpm bootstrap:admin  # first super_admin via tsx (dev); production runs the compiled CLI, below
 pnpm lint         # ESLint
 pnpm type-check   # TypeScript type-check
 ```
+
+### First super_admin (production)
+
+`db:seed` refuses to run in production and `tsx` is not in the image, so the first
+`super_admin` is created by a one-shot compiled CLI. The password comes from stdin only:
+
+```bash
+printf '%s' "$ADMIN_PW" | docker compose -f docker-compose.prod.yml exec -T service-auth \
+  node dist/db/bootstrap-admin.js --password-stdin --email you@example.org --first-name Ada --last-name Admin
+```
+
+Email and names may also come from `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_FIRST_NAME` /
+`BOOTSTRAP_ADMIN_LAST_NAME`. It exits non-zero if an active `super_admin` already exists.
+See `docs/infrastructure/DEPLOYMENT-PLAN.md`.
 
 ## Running locally
 
