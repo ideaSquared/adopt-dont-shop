@@ -1,6 +1,7 @@
 import { readdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BREEDS_BY_SPECIES, SPECIES, seededUuid } from '@adopt-dont-shop/seed-faker';
 import type { MigrationBuilder } from 'node-pg-migrate';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -52,6 +53,7 @@ describe('pets migrations', () => {
     '010_pets_search_vector_generated.ts',
     '011_backfill_images_into_image_urls.ts',
     '012_create_pet_views.ts',
+    '013_seed_breed_reference_data.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;
@@ -156,6 +158,48 @@ describe('pets migrations', () => {
       const mod = await import('./011_backfill_images_into_image_urls.js');
       await mod.down(pgm);
       expect(sql).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('013 seeds the canonical breed reference list', () => {
+    const upSql = async (): Promise<string> => {
+      const sql = vi.fn();
+      const pgm = { sql } as unknown as MigrationBuilder;
+      const mod = await import('./013_seed_breed_reference_data.js');
+      await mod.up(pgm);
+      expect(sql).toHaveBeenCalledTimes(1);
+      return String(sql.mock.calls[0][0]);
+    };
+
+    const expectedBreeds = SPECIES.flatMap(species =>
+      BREEDS_BY_SPECIES[species].map(name => ({
+        id: seededUuid(`breed-${species}-${name}`),
+        species,
+        name,
+      }))
+    );
+
+    it('inserts every breed the dev seed knows, with the same deterministic ids', async () => {
+      const sql = await upSql();
+      const inserted = [...sql.matchAll(/\('([0-9a-f-]{36})', '([a-z_]+)', '([^']+)'\)/g)].map(
+        m => ({ id: m[1], species: m[2], name: m[3] })
+      );
+      expect(inserted).toEqual(expectedBreeds);
+    });
+
+    it('is idempotent: re-running skips existing (species, name) rows', async () => {
+      expect(await upSql()).toMatch(/ON CONFLICT \(species, name\) DO NOTHING/);
+    });
+
+    it('down only removes seeded breeds that no pet references', async () => {
+      const sql = vi.fn();
+      const pgm = { sql } as unknown as MigrationBuilder;
+      const mod = await import('./013_seed_breed_reference_data.js');
+      await mod.down(pgm);
+      const down = String(sql.mock.calls[0][0]);
+      expect(down).toMatch(/DELETE FROM breeds/);
+      expect(down).toMatch(/NOT EXISTS/);
+      expect(down).toContain(expectedBreeds[0].id);
     });
   });
 });

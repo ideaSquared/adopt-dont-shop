@@ -7,6 +7,10 @@
 // + createDbClient. Runs AFTER migrations.
 //
 // Idempotent: ON CONFLICT (species, name) DO NOTHING.
+//
+// The canonical breed list is now seeded by migration 013 (so production has
+// it too); on a migrated DB this is a no-op. It is kept because the spam
+// seeder (spam.ts) imports seedBreeds as its own guarantee that breed ids exist.
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
