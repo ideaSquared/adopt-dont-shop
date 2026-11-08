@@ -190,7 +190,20 @@ test.describe('client layout at 375px', () => {
     });
     expect(await page.evaluate(() => window.innerWidth)).toBe(375);
     await expect
-      .poll(() => page.evaluate(() => document.documentElement.scrollWidth), { timeout: 10_000 })
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth), {
+        timeout: 10_000,
+        // Name the culprits in the failure, so an overflow seen only on CI can be fixed from its log.
+        message: await page.evaluate(() =>
+          [...document.querySelectorAll('body *')]
+            .filter(element => element.getBoundingClientRect().right > 375)
+            .slice(0, 8)
+            .map(
+              element =>
+                `${element.tagName.toLowerCase()}.${String(element.className).slice(0, 60)}`
+            )
+            .join(' | ')
+        ),
+      })
       .toBeLessThanOrEqual(375);
     expect(await page.evaluate(() => document.body.scrollWidth)).toBeLessThanOrEqual(375);
   };

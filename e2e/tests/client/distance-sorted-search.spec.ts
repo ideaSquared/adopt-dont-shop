@@ -76,7 +76,7 @@ test.describe('distance in search', () => {
     const pawsFromManchester = await distanceTo(api, paws, MANCHESTER);
     test.skip(
       pawsFromManchester === undefined,
-      'gateway returns no pet distances (stale proto build): rebuild the dev image'
+      'gateway returns no pet distances (stale proto build, or the seeded rescue postcodes were not geocoded because the stack has no route to postcodes.io)'
     );
 
     expect(pawsFromManchester).toBeLessThan(NEAR_MILES);
