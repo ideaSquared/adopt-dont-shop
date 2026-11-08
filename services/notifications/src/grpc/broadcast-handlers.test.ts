@@ -1,6 +1,6 @@
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Logger } from 'winston';
 
 import type { Principal } from '@adopt-dont-shop/authz';
