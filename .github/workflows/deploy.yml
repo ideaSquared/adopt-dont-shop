@@ -543,6 +543,11 @@ jobs:
     # `production` (required-reviewer approval), or `production-bypass`
     # (separately-reviewed approval for runs that skip a safety check).
     environment: ${{ needs.preflight.outputs.deploy_environment }}
+    permissions:
+      contents: read
+      # The final "Report deploy status" step posts a described status on
+      # this job's GitHub deployment (ideasquared-bot relays it to Discord).
+      deployments: write
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -745,13 +750,16 @@ jobs:
           # ADS-1307 (partial): forwarded so the observability gate below can
           # tell an audited bypass from an unset flag.
           ALLOW_BLIND_DEPLOY: ${{ github.event.inputs.allow_blind_deploy }}
+          # Tags the .deploy_outcome marker, so the final step never reads one
+          # left by another run or attempt.
+          RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.NETCUP_HOST }}
           username: deploy
           key: ${{ secrets.NETCUP_SSH_KEY }}
           fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,TAG_OVERRIDES,ENVIRONMENT,ALLOW_BLIND_DEPLOY
+          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,SECRET_NATS_AUTH_TOKEN,TAG_OVERRIDES,ENVIRONMENT,ALLOW_BLIND_DEPLOY,RUN_ID
           script: |
             set -euo pipefail
             ENV="$ENVIRONMENT"
@@ -759,6 +767,9 @@ jobs:
             IMAGE_PREFIX="ghcr.io/ideasquared/adopt-dont-shop"
 
             cd /opt/ads/$ENV
+            # Outcome marker for the "Report deploy status" step, read back
+            # after this script ends (see scripts/deploy-status-description.sh).
+            echo "$RUN_ID started" > .deploy_outcome
 
             # ADS-1041/ADS-1311: optionally layer in the self-hosted
             # observability (Prometheus/Loki/Tempo/Grafana/Alertmanager) and
@@ -932,6 +943,7 @@ jobs:
               echo "::error::Deploy of $SHA failed its health check on $ENV." >&2
               if [ -z "$LAST_GOOD" ] || [ "$LAST_GOOD" = "$SHA" ]; then
                 echo "::error::No distinct last-known-good SHA to roll back to — leaving the stack for manual intervention (dispatch rollback.yml)." >&2
+                echo "$RUN_ID no_rollback_target" > .deploy_outcome
                 # ADS-1247: keep secrets/* — the (unhealthy) new stack still runs
                 # under restart:always, and its bind-mounted file-secrets must
                 # survive a reboot. See the keep-secrets note on the success path.
@@ -954,8 +966,10 @@ jobs:
               docker compose -f $COMPOSE_FILE $OVERLAY_ARGS --env-file .env up -d
               if run_health_gate; then
                 echo "Rolled back to $LAST_GOOD — the stack is healthy on the previous version."
+                echo "$RUN_ID rolled_back $LAST_GOOD" > .deploy_outcome
               else
                 echo "::error::Rollback to $LAST_GOOD also failed its health gate — manual intervention required." >&2
+                echo "$RUN_ID rollback_failed $LAST_GOOD" > .deploy_outcome
               fi
               # ADS-1247: keep secrets/* — the rolled-back LAST_GOOD stack is what
               # now runs under restart:always, so its bind-mounted file-secrets
@@ -997,6 +1011,7 @@ jobs:
 
             # Record deployed SHA
             echo "$SHA" > .last_sha
+            echo "$RUN_ID success" > .deploy_outcome
             echo "Deployed $SHA to $ENV successfully."
 
             # Every deploy pulls 14 new images; without pruning, a small VPS
@@ -1006,6 +1021,52 @@ jobs:
             # fails a deploy that has already succeeded.
             docker image prune -af --filter "until=168h" ||
               echo "warn: docker image prune failed — check disk space on the host"
+
+      # GitHub marks this job's deployment success/failure on its own, but with
+      # no detail, so an auto-rollback reads as a plain failure. These two
+      # steps post a status that says what happened (deployed, rolled back to
+      # <sha>, manual action needed); ideasquared-bot shows it in Discord.
+      # Neither can fail the deploy: the outcome is already decided.
+      - name: Read deploy outcome
+        id: outcome
+        if: always()
+        continue-on-error: true
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
+        with:
+          host: ${{ secrets.NETCUP_HOST }}
+          username: deploy
+          key: ${{ secrets.NETCUP_SSH_KEY }}
+          fingerprint: ${{ secrets.NETCUP_HOST_FINGERPRINT }}
+          envs: ENVIRONMENT
+          capture_stdout: true
+          script: cat "/opt/ads/$ENVIRONMENT/.deploy_outcome" 2>/dev/null || true
+
+      - name: Report deploy status
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MARKER: ${{ steps.outcome.outputs.stdout }}
+          RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          SHA: ${{ github.sha }}
+          DEPLOY_ENVIRONMENT: ${{ needs.preflight.outputs.deploy_environment }}
+        run: |
+          set -euo pipefail
+          RESULT="$(scripts/deploy-status-description.sh)"
+          STATE="$(printf '%s\n' "$RESULT" | sed -n 's/^state=//p')"
+          DESCRIPTION="$(printf '%s\n' "$RESULT" | sed -n 's/^description=//p')"
+          echo "Deploy status: $STATE — $DESCRIPTION"
+          DEPLOYMENT_ID="$(gh api "repos/$GITHUB_REPOSITORY/deployments?sha=$SHA&environment=$DEPLOY_ENVIRONMENT&per_page=1" --jq '.[0].id // empty')"
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            echo "::warning::No GitHub deployment found for $SHA in $DEPLOY_ENVIRONMENT — status not posted."
+            exit 0
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" \
+            -f state="$STATE" \
+            -f description="$DESCRIPTION" \
+            -f log_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > /dev/null
 
   # ADS-1324: this workflow previously had no failure notification — a
   # broken deploy was only visible to whoever happened to check the Actions
