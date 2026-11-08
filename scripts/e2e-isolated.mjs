@@ -102,6 +102,74 @@ export function findDevProjects(psOutput, project) {
   ];
 }
 
+// A service that dies or sticks unhealthy during boot is restarted ONCE, then
+// reported. The dev image runs services under `tsx watch`, which keeps the
+// container "Up" after the app exits, so Compose's `restart:` policy never
+// fires and the boot would otherwise stall until the wait budget runs out.
+//
+// Unhealthy only counts after this grace: the healthcheck's start_period is 40s,
+// then it needs 5 failed 10s checks to flip, and a service racing the first
+// lib.types build legitimately takes a while to settle.
+export const UNHEALTHY_GRACE_MS = 120_000;
+// After a restart, `compose ps` can briefly still show the old state.
+export const RESTART_SETTLE_MS = 10_000;
+const LOG_TAIL_LINES = 40;
+const SERVICE_NAME = /^[a-z0-9][a-z0-9_-]*$/;
+
+// Which containers need a restart, and which have failed twice. Pure: `state`
+// ({ unhealthySince, restartedAt }, both service -> ms) is read, never mutated,
+// and the next state is returned.
+export function planRestarts(rows, state, now) {
+  const unhealthySince = { ...state.unhealthySince };
+  const restartedAt = { ...state.restartedAt };
+  const restart = [];
+  const giveUp = [];
+  for (const row of rows) {
+    const service = row.Service;
+    const exited = row.State === 'exited' || row.State === 'dead';
+    const unhealthy = row.State === 'running' && row.Health === 'unhealthy';
+    if (!exited && !unhealthy) {
+      delete unhealthySince[service];
+      continue;
+    }
+    if (unhealthy && unhealthySince[service] === undefined) unhealthySince[service] = now;
+    const unhealthyForMs = unhealthy ? now - unhealthySince[service] : 0;
+    if (!exited && unhealthyForMs < UNHEALTHY_GRACE_MS) continue;
+    const reason = exited
+      ? `exited (code ${row.ExitCode ?? '?'})`
+      : `unhealthy for ${Math.round(unhealthyForMs / 1000)}s`;
+    if (restartedAt[service] === undefined) {
+      restart.push({ service, reason });
+      restartedAt[service] = now;
+      delete unhealthySince[service];
+    } else if (now - restartedAt[service] >= RESTART_SETTLE_MS) {
+      giveUp.push({ service, reason });
+    }
+  }
+  return { restart, giveUp, state: { unhealthySince, restartedAt } };
+}
+
+// Acts on planRestarts: restart each service once (logged), and throw, naming
+// the service and its last log lines, when one fails again. Returns the next state.
+export function superviseServices(rows, state, now, { restartService, tailLogs, log }) {
+  const plan = planRestarts(rows, state, now);
+  for (const { service } of [...plan.restart, ...plan.giveUp]) {
+    if (!SERVICE_NAME.test(service)) throw new Error(`unexpected service name "${service}"`);
+  }
+  for (const { service, reason } of plan.restart) {
+    log(`restarting ${service}: it ${reason} (each service is restarted once)`);
+    restartService(service);
+  }
+  const [failed] = plan.giveUp;
+  if (failed) {
+    throw new Error(
+      `${failed.service} ${failed.reason} again after a restart; giving up. ` +
+        `Last ${LOG_TAIL_LINES} log lines:\n${tailLogs(failed.service, LOG_TAIL_LINES)}`
+    );
+  }
+  return plan.state;
+}
+
 export function parseMemUsageMiB(text) {
   const match = /^([\d.]+)\s*(B|KiB|MiB|GiB|kB|MB|GB)/.exec(text.trim());
   if (!match) return 0;
@@ -493,8 +561,16 @@ function main() {
       ...(withLimits ? [`http://localhost:${ports.limiter}/health/simple`] : []),
     ];
     let lastReport = 0;
+    let supervision = { unhealthySince: {}, restartedAt: {} };
     while (Date.now() < deadline) {
-      const waiting = notReady();
+      const rows = psRows();
+      supervision = superviseServices(rows, supervision, Date.now(), {
+        log,
+        restartService: service => compose(['restart', service]),
+        tailLogs: (service, lines) =>
+          composeCapture(['logs', '--no-color', `--tail=${lines}`, service]),
+      });
+      const waiting = notReady(rows);
       if (waiting.length === 0 && (await Promise.all(urls.map(isUp))).every(Boolean)) {
         log('stack is up');
         return;
@@ -508,11 +584,8 @@ function main() {
     throw new Error(`stack did not become healthy within ${minutes(budgetMs)}`);
   }
 
-  // A service is ready when it is running and, if it has a healthcheck, healthy.
-  // Crash-restarting containers (a service racing lib.types' first tsc build)
-  // simply stay "not ready" until the restart that sticks.
-  function notReady() {
-    const rows = composeCapture(['ps', '--all', '--format', 'json'])
+  function psRows() {
+    return composeCapture(['ps', '--all', '--format', 'json'])
       .split('\n')
       .filter(Boolean)
       .map(line => {
@@ -523,6 +596,14 @@ function main() {
         }
       })
       .filter(Boolean);
+  }
+
+  // A service is ready when it is running and, if it has a healthcheck, healthy.
+  // A container that exits, or stays unhealthy past the grace period, is
+  // restarted once by superviseServices (the dev image's `tsx watch` keeps a
+  // crashed container "Up", so Compose's restart policy cannot be relied on);
+  // until it recovers it simply stays "not ready".
+  function notReady(rows) {
     if (rows.length === 0) return ['(no containers yet)'];
     return rows
       .filter(row => row.State !== 'running' || (row.Health && row.Health !== 'healthy'))
