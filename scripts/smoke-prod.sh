@@ -123,6 +123,7 @@ CORS_ORIGIN=https://$DOMAIN,https://admin.$DOMAIN,https://rescue.$DOMAIN
 PROD_HOSTNAME=$DOMAIN
 DEFAULT_FROM_EMAIL=noreply@$DOMAIN
 FRONTEND_URL=https://$DOMAIN
+RESCUE_FRONTEND_URL=https://rescue.$DOMAIN
 # Keep the Firebase boot path covered: staging/prod default to PUSH_PROVIDER=none.
 PUSH_PROVIDER=fcm
 FCM_PROJECT_ID=smoke

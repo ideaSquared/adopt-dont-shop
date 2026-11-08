@@ -190,7 +190,7 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; prelo
 add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always; \
 # CSP without unsafe-inline / unsafe-eval. styled-components fully replaced \
 # by vanilla-extract (.css.ts) — style-src no longer needs unsafe-inline. [ADS-847] \
-add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"'; style-src '"'"'self'"'"'; img-src '"'"'self'"'"' data: https:; font-src '"'"'self'"'"' data:; connect-src '"'"'self'"'"' wss: https:; frame-ancestors '"'"'none'"'"'; object-src '"'"'none'"'"'; base-uri '"'"'self'"'"'; form-action '"'"'self'"'"'; upgrade-insecure-requests" always;' > /etc/nginx/security-headers.conf
+add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"'; style-src '"'"'self'"'"' https://fonts.googleapis.com; img-src '"'"'self'"'"' data: https:; font-src '"'"'self'"'"' data: https://fonts.gstatic.com; connect-src '"'"'self'"'"' wss: https:; frame-ancestors '"'"'none'"'"'; object-src '"'"'none'"'"'; base-uri '"'"'self'"'"'; form-action '"'"'self'"'"'; upgrade-insecure-requests" always;' > /etc/nginx/security-headers.conf
 
 # Create optimized nginx config for SPA with security headers
 RUN echo 'events { \

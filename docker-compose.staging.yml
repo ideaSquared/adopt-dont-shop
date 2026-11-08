@@ -378,6 +378,10 @@ services:
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
       # Staging has no per-stack nginx; the gateway serves /uploads itself.
       SERVE_LOCAL_UPLOADS: "true"
+      # Dockerfile.service sets WORKDIR to the service dir, so the relative
+      # default ('uploads') would hit the read-only rootfs. Write to the
+      # named volume mounted at /app/uploads instead.
+      UPLOAD_DIR: /app/uploads
       # ADS-1303: Dockerfile.service bakes the repo's docs/legal into the
       # image at /app/docs/legal (turbo prune's output doesn't carry the
       # repo-root docs/ tree) — without this the legal routes 500 and the
@@ -468,6 +472,8 @@ services:
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:?Error: DEFAULT_FROM_EMAIL required}"
       # Client origin for verification / password-reset email links.
       FRONTEND_URL: "${FRONTEND_URL:?Error: FRONTEND_URL required}"
+      # Rescue app origin for staff invitation email links.
+      RESCUE_FRONTEND_URL: "${RESCUE_FRONTEND_URL:?Error: RESCUE_FRONTEND_URL required}"
       # Push is off ('none') until an app registers device tokens. To turn it
       # on, set PUSH_PROVIDER=fcm, FCM_PROJECT_ID and FCM_SERVICE_ACCOUNT_JSON
       # in the host .env; deploy.yml then requires both FCM values.

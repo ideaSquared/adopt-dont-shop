@@ -92,26 +92,26 @@ Configure reviewers once (repo admin): Settings → Environments → New environ
 
 Infrastructure secrets:
 
-| Secret                         | Value                                                                                                                                                                                                                                                                         |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NETCUP_HOST`                  | Server IP / hostname                                                                                                                                                                                                                                                          |
-| `NETCUP_HOST_FINGERPRINT`      | SSH host key fingerprint (pinned, ADS-670)                                                                                                                                                                                                                                    |
-| `NETCUP_SSH_KEY`               | Private key for the `deploy` user                                                                                                                                                                                                                                             |
-| `GHCR_TOKEN`                   | PAT scoped **`read:packages` only** — pulls images on the host. Both `deploy.yml` and `rollback.yml` FAIL the run if it carries `write:packages`, `delete:packages`, or `repo` scope (ADS-671).                                                                               |
-| `BACKUP_BUCKET` / `AWS_REGION` | Repo **variables** (not secrets) for the nightly backup workflow                                                                                                                                                                                                              |
-| `DISCORD_WEBHOOK_URL`          | Optional. `deploy.yml` posts to it on any job failure (ADS-1324), and `docker.yml` posts every production smoke test result (pass or fail) — reuse the same webhook `observability/alertmanager/secrets/discord_webhook_url` uses on the host. Skipped gracefully when unset. |
+| Secret                         | Value                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NETCUP_HOST`                  | Server IP / hostname                                                                                                                                                                                                                                                                                                                                                                                    |
+| `NETCUP_HOST_FINGERPRINT`      | SSH host key fingerprint (pinned, ADS-670)                                                                                                                                                                                                                                                                                                                                                              |
+| `NETCUP_SSH_KEY`               | Private key for the `deploy` user                                                                                                                                                                                                                                                                                                                                                                       |
+| `GHCR_TOKEN`                   | PAT scoped **`read:packages` only** — pulls images on the host. Both `deploy.yml` and `rollback.yml` FAIL the run if it carries `write:packages`, `delete:packages`, or `repo` scope (ADS-671).                                                                                                                                                                                                         |
+| `BACKUP_BUCKET` / `AWS_REGION` | Repo **variables** (not secrets) for the nightly backup workflow                                                                                                                                                                                                                                                                                                                                        |
+| `DISCORD_WEBHOOK_URL`          | Optional. `deploy.yml` posts to it on any job failure (ADS-1324), and `docker.yml` posts every production smoke test result (pass or fail) — reuse the same webhook you write to `observability/alertmanager/secrets/discord_webhook_url_critical` on the host (see [observability-enable.md](../runbooks/observability-enable.md#4-wire-alertmanager-webhook-secrets)). Skipped gracefully when unset. |
 
 Application secrets — `deploy.yml` validates all seven are present, then materialises them into `./secrets/<name>` file-mounts on the host (they are **not** hand-written into `.env`). `rollback.yml` requires the same set (ADS-1311) except `SENTRY_AUTH_TOKEN`, which is a build-time-only secret (see below):
 
-| Secret                  | Purpose                                                                                                                                                                 |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `JWT_SECRET`            | Signs short-lived access tokens                                                                                                                                         |
-| `JWT_REFRESH_SECRET`    | Signs refresh tokens                                                                                                                                                    |
-| `ENCRYPTION_KEY`        | AES-256-GCM key for encrypted PII (64 hex chars)                                                                                                                        |
-| `UPLOAD_SIGNING_SECRET` | Signs upload URLs                                                                                                                                                       |
-| `DB_PASSWORD`           | Postgres password (composed into `database_url`)                                                                                                                        |
-| `NATS_AUTH_TOKEN`       | Shared token for the `nats` container + every publisher/subscriber (materialised into `secrets/nats_auth_token`; ADS-1311 fixed `rollback.yml` never writing this file) |
-| `PRINCIPAL_SIGNING_KEY` | HMAC key for the signed `x-principal-token` (ADS-800)                                                                                                                   |
+| Secret                  | Purpose                                                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `JWT_SECRET`            | Signs short-lived access tokens                                                                                                                                                                         |
+| `JWT_REFRESH_SECRET`    | Signs refresh tokens                                                                                                                                                                                    |
+| `ENCRYPTION_KEY`        | AES-256-GCM key for encrypted PII (64 hex chars)                                                                                                                                                        |
+| `UPLOAD_SIGNING_SECRET` | Signs upload URLs                                                                                                                                                                                       |
+| `DB_PASSWORD`           | Postgres password, composed raw into `database_url`. Use the `POSTGRES_PASSWORD` value printed by `pnpm secrets:generate` (hex, URL-safe); `deploy-secrets.sh` rejects anything outside `A-Za-z0-9._~-` |
+| `NATS_AUTH_TOKEN`       | Shared token for the `nats` container + every publisher/subscriber (materialised into `secrets/nats_auth_token`; ADS-1311 fixed `rollback.yml` never writing this file)                                 |
+| `PRINCIPAL_SIGNING_KEY` | HMAC key for the signed `x-principal-token` (ADS-800)                                                                                                                                                   |
 
 Optional application secret — NOT validated by `deploy.yml`; when unset, `scripts/deploy-secrets.sh` writes an empty `secrets/ops_discord_webhook_url` and the deploy still succeeds:
 
@@ -119,7 +119,7 @@ Optional application secret — NOT validated by `deploy.yml`; when unset, `scri
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `OPS_DISCORD_WEBHOOK_URL` | Discord webhook `service-ops` posts break-glass unlock alerts to (ADR 0016). Set it per GitHub environment (staging / production). Without it `service-ops` refuses every unlock, so privileged reads stay masked. |
 
-Generate strong values with `pnpm secrets:generate` (see [SECRETS-MANAGEMENT.md](../SECRETS-MANAGEMENT.md)); do not reuse staging/dev values. Repo: `ideaSquared/adopt-dont-shop`; images under `ghcr.io/ideasquared/adopt-dont-shop/…`.
+Generate strong values with `pnpm secrets:generate` (it prints `POSTGRES_PASSWORD`, which is the value for `DB_PASSWORD`; the same URL-safe rule applies to the host `.env` `REDIS_PASSWORD`; see [SECRETS-MANAGEMENT.md](../SECRETS-MANAGEMENT.md)); do not reuse staging/dev values. Repo: `ideaSquared/adopt-dont-shop`; images under `ghcr.io/ideasquared/adopt-dont-shop/…`.
 
 Build-time-only secret (`build-and-push` in `deploy.yml`, not shipped to the host):
 
@@ -207,6 +207,9 @@ CORS_ORIGIN=https://adoptdontshop.app,https://admin.adoptdontshop.app,https://re
 # Base URL for links in emails (verify email, reset password). Required:
 # compose refuses to start without it.
 FRONTEND_URL=https://adoptdontshop.app
+# Rescue app origin for staff invitation email links. Required: compose
+# refuses to start without it.
+RESCUE_FRONTEND_URL=https://rescue.adoptdontshop.app
 # PROD_HOSTNAME (production only) — a plain literal. deploy.yml/rollback.yml
 # read it to re-apply the __PROD_HOSTNAME__ substitution into
 # nginx/nginx.prod.conf on every run (ADS-1312). It must match the hostnames
@@ -233,7 +236,13 @@ DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
 # OPS_GITHUB_TEAM=<team slug for this environment>
 # OPS_SESSION_TTL_HOURS=8
 # DEPLOY_SHA is set to a specific git SHA by deploy.yml — there is NO :latest fallback.
-# Optional observability toggles (off by default): OBSERVABILITY_ENABLED, GLITCHTIP_ENABLED, LOKI_URL, OTEL_EXPORTER_OTLP_ENDPOINT, SENTRY_DSN
+# Grafana admin password — REQUIRED in production, because production deploys require
+# OBSERVABILITY_ENABLED=true and docker-compose.observability.yml fails `compose up`
+# without it. Also needs the Alertmanager webhook files on the host; see
+# docs/runbooks/observability-enable.md.
+OBSERVABILITY_ENABLED=true
+GF_SECURITY_ADMIN_PASSWORD=<generated, e.g. openssl rand -hex 24>
+# Other optional observability toggles (off by default): GLITCHTIP_ENABLED, LOKI_URL, OTEL_EXPORTER_OTLP_ENDPOINT, SENTRY_DSN
 # Production deploys FAIL preflight when OBSERVABILITY_ENABLED isn't `true`
 # unless the operator dispatches with allow_blind_deploy=true (ADS-1307).
 ```
@@ -350,6 +359,7 @@ POSTGRES_DB=adopt_dont_shop_staging
 REDIS_PASSWORD=<openssl rand -hex 32>
 CORS_ORIGIN=https://staging.adoptdontshop.app,https://staging-admin.adoptdontshop.app,https://staging-rescue.adoptdontshop.app
 FRONTEND_URL=https://staging.adoptdontshop.app
+RESCUE_FRONTEND_URL=https://staging-rescue.adoptdontshop.app
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=<from Resend>
 DEFAULT_FROM_EMAIL=noreply@adoptdontshop.app
@@ -439,7 +449,7 @@ The signup form in `deploy/gateway/landing/index.html` is hidden until an email 
 
 ### 11. At launch
 
-1. Restore the production apex vhost in `deploy/gateway/nginx.conf` from git history (the commit that added `deploy/gateway/landing/` replaced it) and remove the `landing/` mount.
+1. Switch the apex to the production client: in `deploy/gateway/nginx.conf`, comment out `include /etc/nginx/snippets/apex-landing.conf;` and uncomment `include /etc/nginx/snippets/apex-production.conf;` (include exactly one; `node scripts/check-csp-headers.mjs` fails if both or neither are active). Remove the `landing/` mount from `docker-compose.gateway.yml`.
 2. Remove the hand-made network, so the production stack can create its own. Docker Compose refuses to adopt a network it did not create. The landing page is down until step 4:
 
    ```bash
@@ -454,6 +464,18 @@ The signup form in `deploy/gateway/landing/index.html` is hidden until an email 
 ## Database migrations
 
 Each service owns its migrations under `services/<name>/src/migrations/` and applies its own schema on container start (entrypoint runs `pnpm run --if-present db:migrate`). There is no `00-baseline` migration and no `SequelizeMeta` table — those belonged to the deleted monolith. On first boot each service creates its own `pgmigrations` bookkeeping table (inside its schema) automatically and runs `001+` forward. Nothing to seed by hand. The deploy workflow's health gate waits for each service to come up before passing.
+
+### First super_admin
+
+Migrations seed roles and permissions but no user, and `db:seed` refuses to run in production, so a fresh stack has no admin to verify rescue sign-ups. After the first deploy, create one with the compiled one-shot CLI in `service-auth` (run it once, from `/opt/ads/production`):
+
+```bash
+read -rsp 'Admin password: ' ADMIN_PW; echo
+printf '%s' "$ADMIN_PW" | docker compose -f docker-compose.prod.yml exec -T service-auth   node dist/db/bootstrap-admin.js --password-stdin   --email you@example.org --first-name Ada --last-name Admin
+unset ADMIN_PW
+```
+
+The password is read from stdin only (never an argument or environment variable), so it stays out of the process list; `read -s` keeps it out of shell history. It must satisfy the same policy as registration (at least 8 characters). The command refuses with a non-zero exit if an active `super_admin` already exists, never overwrites, and records an `auth.actionTaken` audit event. Name and email may instead come from `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_FIRST_NAME` and `BOOTSTRAP_ADMIN_LAST_NAME`. Sign in at the admin app to verify the first rescues.
 
 Backups are automated by `.github/workflows/backup.yml` (nightly `0 2 * * *`) — see [db-backup-runbook.md](../db-backup-runbook.md); no host cron is required.
 
@@ -473,8 +495,12 @@ For the production launch. Pre-launch setup is covered by the runbook above.
 - [ ] `PROD_HOSTNAME` (plain literal) set in `/opt/ads/production/.env` — `deploy.yml` substitutes it into the freshly-shipped `nginx.prod.conf` on every run (ADS-1312); certbot issuance done
 - [ ] Per-env `.env` created (non-secret config) — compose/nginx/observability files are shipped by the first deploy, not hand-copied (ADS-1312)
 - [ ] `OBSERVABILITY_ENABLED=true` set in `/opt/ads/production/.env` before the first production deploy, or the deploy will fail preflight (ADS-1307; override with `allow_blind_deploy` + a reason if truly needed)
+- [ ] `GF_SECURITY_ADMIN_PASSWORD` set in `/opt/ads/production/.env` — the observability overlay refuses to start without it
+- [ ] Alertmanager secret files written on the host under `/opt/ads/production/observability/alertmanager/secrets/` (`discord_webhook_url_critical`, `discord_webhook_url_warning`, `deadman_webhook_url`) **before** the first deploy. That directory doesn't exist until the first deploy ships `observability/`, so create it first: `mkdir -p /opt/ads/production/observability/alertmanager/secrets`. Then follow [observability-enable.md](../runbooks/observability-enable.md#4-wire-alertmanager-webhook-secrets); `deploy.yml` ships the directory but never creates or deletes these files
+- [ ] `DB_PASSWORD` is the hex `POSTGRES_PASSWORD` from `pnpm secrets:generate` (URL-safe; `deploy-secrets.sh` rejects other characters, as it does for `REDIS_PASSWORD`)
 - [ ] Host `.env` includes `RESEND_API_KEY` and `DEFAULT_FROM_EMAIL`; for push, also `PUSH_PROVIDER=fcm`, `FCM_PROJECT_ID` and single-line `FCM_SERVICE_ACCOUNT_JSON`
 - [ ] Production reviewers configured — with a single maintainer, leave **Prevent self-review** off or nobody can approve
 - [ ] First deploy: `make prod` (approve in the Actions UI); with staging, `make staging` first and verify end-to-end
 - [ ] Certificate issued and edge gateway started — see "DNS & TLS" (after the first deploy: the gateway joins the network it creates)
+- [ ] First `super_admin` created with `node dist/db/bootstrap-admin.js` — see "First super_admin" (without one nobody can verify rescues)
 - [ ] Backups configured (`BACKUP_BUCKET`/`AWS_REGION` + host AWS credentials) — until then the nightly `backup.yml` run fails

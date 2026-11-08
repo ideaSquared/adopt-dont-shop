@@ -55,6 +55,20 @@ PG_USER="$(read_env POSTGRES_USER)"
 PG_DB="$(read_env POSTGRES_DB)"
 REDIS_PW="$(read_env REDIS_PASSWORD)"
 
+# Both passwords are interpolated raw into connection URLs, so anything outside
+# the RFC 3986 unreserved set (/ + = @ : # % ? ...) would break URL parsing in
+# every service. Fail before writing any file; never echo the value.
+require_url_safe() {  # $1 = variable name, $2 = value
+  case "$2" in
+    *[!A-Za-z0-9._~-]*)
+      echo "ERROR: $1 contains characters that are not URL-safe; use only A-Z a-z 0-9 . _ ~ - (e.g. the hex POSTGRES_PASSWORD / REDIS_PASSWORD printed by 'pnpm secrets:generate')" >&2
+      exit 1
+      ;;
+  esac
+}
+require_url_safe SECRET_DB_PASSWORD "$SECRET_DB_PASSWORD"
+require_url_safe REDIS_PASSWORD "$REDIS_PW"
+
 mkdir -p secrets
 chmod 700 secrets
 printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url

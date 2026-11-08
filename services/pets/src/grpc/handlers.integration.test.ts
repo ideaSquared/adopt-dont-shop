@@ -232,23 +232,30 @@ type SeededBreeds = {
 };
 
 // 'Domestic Shorthair' exists for two species, so only a species-aware lookup
-// picks the right row.
+// picks the right row. Migration 013 already seeds some of these pairs, so
+// insert only the missing ones and read back the ids actually stored.
 const seedBreeds = async (pool: HandlerDeps['pool']): Promise<SeededBreeds> => {
-  const breeds = {
-    labrador: randomUUID(),
-    poodle: randomUUID(),
-    dogShorthair: randomUUID(),
-    catShorthair: randomUUID(),
-  };
   await pool.query(
     `INSERT INTO pets.breeds (breed_id, species, name) VALUES
        ($1, 'dog', 'Labrador Retriever'),
        ($2, 'dog', 'Poodle'),
        ($3, 'dog', 'Domestic Shorthair'),
-       ($4, 'cat', 'Domestic Shorthair')`,
-    [breeds.labrador, breeds.poodle, breeds.dogShorthair, breeds.catShorthair]
+       ($4, 'cat', 'Domestic Shorthair')
+     ON CONFLICT (species, name) DO NOTHING`,
+    [randomUUID(), randomUUID(), randomUUID(), randomUUID()]
   );
-  return breeds;
+  const idOf = async (species: string, name: string): Promise<string> => {
+    const { rows } = await pool.query<{ breed_id: string }>(
+      `SELECT breed_id FROM pets.breeds WHERE species = $1 AND name = $2`,
+      [species, name]
+    );
+    return rows[0].breed_id;
+  };
+  return {
+    labrador: await idOf('dog', 'Labrador Retriever'),
+    poodle: await idOf('dog', 'Poodle'),
+    catShorthair: await idOf('cat', 'Domestic Shorthair'),
+  };
 };
 
 const storedBreeds = async (pool: HandlerDeps['pool'], petId: string) => {

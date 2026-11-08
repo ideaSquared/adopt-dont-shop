@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import clsx from 'clsx';
 
 import { footer, footerContainer, footerText, footerLinks, footerLink } from './Footer.css';
+import { SourceCodeLink } from './SourceCodeLink';
 
 export interface FooterProps {
   className?: string;
@@ -37,6 +38,7 @@ export const Footer: React.FC<FooterProps> = ({ className, extraLinks }) => {
           <Link to='/contact' className={footerLink}>
             Contact
           </Link>
+          <SourceCodeLink />
           {extraLinks}
         </div>
         <p className={footerText}>

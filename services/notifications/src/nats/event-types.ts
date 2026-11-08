@@ -154,25 +154,25 @@ export type RescueRejectedEvent = {
 };
 
 // rescue.staffInvited — service.rescue publishes when InviteStaff
-// mints + persists an invitation row (Phase 4.3b). Includes the
-// invitee email so an email worker can dispatch the invite token.
-// The plain-text token itself is NOT in the payload (it's returned
-// in the InviteStaffResponse and never persisted in NATS).
+// mints + persists an invitation row (Phase 4.3b). Carries the invitee
+// email and the raw one-time token so auth-emails.ts can email the accept
+// link (same precedent as auth.passwordResetRequested). Never logged.
 export type RescueStaffInvitedEvent = {
   invitationId: string;
   rescueId: string;
   email: string;
   invitedBy: string;
   expiration: string;
+  // Optional only for events published before the token was added.
+  token?: string;
 };
 
 // auth.userInvited — service.auth publishes when an admin creates a
 // pending user via CreateUser with send_invitation (Phase 2.4). Carries
 // the raw set-password token so a downstream worker could email the
-// redeem-invitation link. Phase 2.4b: log-only on the consumer side —
-// actually emailing the link needs a FRONTEND_URL config + a
-// redeem-invitation page in the SPA, neither of which exist yet. Same
-// deferral as RescueStaffInvitedEvent below.
+// redeem-invitation link. Still log-only on the consumer side: no SPA
+// (admin or client) has a page that redeems this token, so there is no
+// link to email. The auth redeem RPC exists; the page does not.
 export type AuthUserInvitedEvent = {
   userId: UserId;
   email: string;
@@ -206,11 +206,10 @@ export type AuthRescueRegistrationAttemptedEvent = {
 };
 
 // rescue.staffInvitationCancelled — service.rescue publishes when an
-// admin/rescue-lead cancels a pending staff invitation. Same log-only
-// treatment as RescueStaffInvitedEvent: the invitee never had an
+// admin/rescue-lead cancels a pending staff invitation. Log-only: the
+// invitee never had an
 // account, so there's no in-app recipient, and an "invite cancelled"
-// email isn't critical enough to justify the missing link-building
-// infra called out on AuthUserInvitedEvent.
+// email isn't critical enough to send.
 export type RescueStaffInvitationCancelledEvent = {
   invitationId: string;
   rescueId: string;

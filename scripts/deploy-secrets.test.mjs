@@ -118,3 +118,48 @@ describe('deploy-secrets.sh', () => {
     ).toThrowError(/POSTGRES_DB missing from \.env/);
   });
 });
+
+describe('deploy-secrets.sh URL-safety of passwords', () => {
+  const run = env =>
+    execFileSync('bash', [SCRIPT], {
+      cwd: dir,
+      env: { ...process.env, ...REQUIRED_SECRET_ENV, ...env },
+      stdio: 'pipe',
+    });
+
+  it.each(['pa/ss', 'pa+ss', 'pa=ss', 'pa@ss', 'pa:ss', 'pa#ss', 'pa%ss', 'pa?ss', 'pa ss'])(
+    'rejects a DB password containing a URL-unsafe character (%s) without echoing it',
+    password => {
+      let message = '';
+      try {
+        run({ SECRET_DB_PASSWORD: password });
+      } catch (error) {
+        message = String(error.stderr);
+      }
+      expect(message).toMatch(/SECRET_DB_PASSWORD/);
+      expect(message).not.toContain(password);
+      expect(() => readSecret('database_url')).toThrow();
+    }
+  );
+
+  it('rejects a REDIS_PASSWORD containing a URL-unsafe character before writing any file', () => {
+    writeFileSync(
+      join(dir, '.env'),
+      'POSTGRES_USER=ads_prod\nPOSTGRES_DB=adopt_dont_shop_prod\nREDIS_PASSWORD=re/dis+pw\n'
+    );
+    let message = '';
+    try {
+      run({});
+    } catch (error) {
+      message = String(error.stderr);
+    }
+    expect(message).toMatch(/REDIS_PASSWORD/);
+    expect(message).not.toContain('re/dis+pw');
+    expect(() => readSecret('redis_url')).toThrow();
+  });
+
+  it('accepts hex and unreserved punctuation (. _ ~ -)', () => {
+    run({ SECRET_DB_PASSWORD: 'aB3.d_e~f-0123456789abcdef' });
+    expect(readSecret('database_url')).toContain(':aB3.d_e~f-0123456789abcdef@database');
+  });
+});

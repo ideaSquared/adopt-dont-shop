@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SkipLink } from '@adopt-dont-shop/lib.components';
+import { SkipLink, SourceCodeLink } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
@@ -48,6 +48,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           {children}
         </main>
         <footer className={styles.layoutFooter}>
+          <SourceCodeLink />
           <ManageCookiesLink />
         </footer>
       </div>

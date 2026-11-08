@@ -40,7 +40,7 @@
     "typescript"
   ],
   "author": "Adopt Don't Shop Team",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "dependencies": {},
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*",

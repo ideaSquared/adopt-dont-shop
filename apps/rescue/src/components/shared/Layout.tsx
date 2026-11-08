@@ -1,5 +1,5 @@
 import React from 'react';
-import { InstallPwaBanner, SkipLink } from '@adopt-dont-shop/lib.components';
+import { InstallPwaBanner, SkipLink, SourceCodeLink } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import Navigation from './Navigation';
 import { SanctionBannerHost } from '../SanctionBannerHost';
@@ -22,6 +22,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
         <footer className={styles.layoutFooter}>
+          <SourceCodeLink />
           <ManageCookiesLink />
         </footer>
       </div>
