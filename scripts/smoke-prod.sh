@@ -224,6 +224,20 @@ body() {
   curl -s --max-time 20 --noproxy '*' --cacert "$WORK/cert/fullchain.pem" \
     --resolve "$host:$HTTPS_PORT:127.0.0.1" "https://$host:$HTTPS_PORT$path" || true
 }
+# stack_status / stack_body <path>: the hop the production apex vhost makes for
+# /uploads/ (edge -> per-stack nginx, Host = the apex), sent from inside the
+# edge container. Pre-launch the apex serves the landing page, so this hop
+# cannot be reached through the edge; the per-stack nginx only serves
+# uploads for the apex Host. Busybox wget does not follow the redirect here
+# because the first status line is taken.
+stack_status() {
+  { docker exec ads_gateway wget -S -q -O /dev/null --header "Host: $DOMAIN" \
+      "http://ads_prod_nginx$1" 2>&1 || true; } |
+    awk '!code && /HTTP\// { code = $2 } END { print (code ? code : "000") }'
+}
+stack_body() {
+  docker exec ads_gateway wget -q -O - --header "Host: $DOMAIN" "http://ads_prod_nginx$1" 2>/dev/null || true
+}
 check() {
   local description="$1" expected="$2" actual="$3"
   if [[ "$actual" =~ ^($expected)$ ]]; then
@@ -235,8 +249,8 @@ check() {
 }
 
 # Pre-launch, the apex serves the static landing page (deploy/gateway/landing/),
-# so the API and uploads checks below go through api.$DOMAIN, whose vhost
-# proxies to the gateway and includes the same uploads snippet.
+# so the API checks below go through api.$DOMAIN and the uploads checks use
+# stack_status (see above).
 check "public site (landing page)" 200 "$(status "$DOMAIN" /)"
 check "admin site" 200 "$(status "admin.$DOMAIN" /)"
 check "rescue site" 200 "$(status "rescue.$DOMAIN" /)"
@@ -248,12 +262,12 @@ check "legal terms (docs baked into the gateway image)" 200 "$(status "api.$DOMA
 check "login route registered and public (empty body is a 400)" 400 \
   "$(status "api.$DOMAIN" /api/v1/auth/login -X POST -H 'content-type: application/json' -d '{}')"
 check "uploaded photos are served from the uploads volume" 200 \
-  "$(status "api.$DOMAIN" /uploads/pets/smoke-fixture.jpg)"
+  "$(stack_status /uploads/pets/smoke-fixture.jpg)"
 check "uploaded photo content is intact" match \
-  "$([ "$(body "api.$DOMAIN" /uploads/pets/smoke-fixture.jpg)" = "$fixture" ] && echo match || echo mismatch)"
+  "$([ "$(stack_body /uploads/pets/smoke-fixture.jpg)" = "$fixture" ] && echo match || echo mismatch)"
 check "a missing photo is a 404 (not a redirect)" 404 \
-  "$(status "api.$DOMAIN" /uploads/pets/smoke-missing.jpg)"
-check "ID documents are never served directly" 403 "$(status "api.$DOMAIN" /uploads/documents/smoke.pdf)"
+  "$(stack_status /uploads/pets/smoke-missing.jpg)"
+check "ID documents are never served directly" 403 "$(stack_status /uploads/documents/smoke.pdf)"
 # Staging is private (snippets/staging-access.conf): an anonymous request is
 # refused before nginx tries the absent staging stack. The checks above
 # passing shows the missing stack takes nothing else down.
