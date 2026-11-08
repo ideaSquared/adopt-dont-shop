@@ -10,6 +10,7 @@
 - [Before opening a PR](#before-opening-a-pr)
 - [Code style](#code-style)
 - [Test requirements](#test-requirements)
+- [Licensing of contributions](#licensing-of-contributions)
 - [Reporting bugs / proposing features](#reporting-bugs--proposing-features)
 - [Reviewing & code ownership](#reviewing--code-ownership)
 - [Dependency updates](#dependency-updates)
@@ -312,6 +313,10 @@ first, per the example above).
 **Exemptions:** a package that cannot meet a rising floor sets (or keeps) a
 lower `thresholds` block in its own `vitest.config.ts`, with a comment linking
 the tracking ticket. Nothing outside that file overrides it.
+
+## Licensing of contributions
+
+Contributions are accepted under the [AGPL-3.0-only](./LICENSE) licence that covers this repository. A Contributor Licence Agreement (CLA) will be required before external contributions are merged; details to follow.
 
 ## Reporting bugs / proposing features
 

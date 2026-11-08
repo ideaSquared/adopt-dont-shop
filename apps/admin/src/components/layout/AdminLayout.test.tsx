@@ -45,4 +45,13 @@ describe('AdminLayout [ADS-497 slice 5b]', () => {
 
     expect(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBeNull();
   });
+
+  it('renders a "Source code" footer link to the public repository (AGPL-3.0 section 13)', () => {
+    renderLayout();
+
+    expect(screen.getByRole('link', { name: 'Source code' })).toHaveAttribute(
+      'href',
+      'https://github.com/ideaSquared/adopt-dont-shop'
+    );
+  });
 });

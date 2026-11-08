@@ -553,6 +553,13 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   },
   ConfirmDialog: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  // AGPL-3.0 section 13 footer link; the real component is covered in lib.components.
+  SourceCodeLink: () =>
+    React.createElement(
+      'a',
+      { href: 'https://github.com/ideaSquared/adopt-dont-shop' },
+      'Source code'
+    ),
   SkipLink: ({
     href = '#main-content',
     children = 'Skip to main content',

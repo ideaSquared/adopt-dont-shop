@@ -5,7 +5,7 @@
   "main": "dist/adopt-dont-shop-components.es.js",
   "module": "dist/adopt-dont-shop-components.es.js",
   "types": "dist/index.d.ts",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "style": "dist/adopt-dont-shop-components.css",
   "sideEffects": [

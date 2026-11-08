@@ -84,7 +84,7 @@ export { ConfirmDialog } from './components/ui/ConfirmDialog';
 
 // Navigation Components
 export { Breadcrumbs } from './components/navigation/Breadcrumbs';
-export { Footer } from './components/navigation/Footer';
+export { Footer, SourceCodeLink, SOURCE_CODE_URL } from './components/navigation/Footer';
 export { Header } from './components/navigation/Header';
 export { Navbar } from './components/navigation/Navbar';
 export { NavSidebar } from './components/navigation/NavSidebar';
@@ -138,7 +138,7 @@ export type {
 export type { ConfirmDialogProps } from './components/ui/ConfirmDialog';
 
 // Component Types
-export type { FooterProps } from './components/navigation/Footer';
+export type { FooterProps, SourceCodeLinkProps } from './components/navigation/Footer';
 export type { HeaderProps } from './components/navigation/Header';
 
 // Analytics chart primitives + report builder (ADS-105)
