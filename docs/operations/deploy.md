@@ -207,17 +207,31 @@ path E.
 
 ## Database TLS
 
-Connections from the services to Postgres are **plaintext**. Nothing in the
-code reads `DB_SSL_MODE`, `DB_SSL_ROOT_CERT` or `ALLOW_INSECURE_DB`
-(`packages/db/src/client.ts` passes no `ssl` option to `pg`), and the in-stack
-Postgres container has no TLS configured. This is acceptable only because the
-database is reachable solely over the internal Docker bridge network on the
-same host; it publishes no port.
+In the bundled deployment, connections from the services to Postgres are
+**plaintext**: the in-stack Postgres container has no TLS configured, and the
+`database_url` secret that `scripts/deploy-secrets.sh` composes
+(`postgresql://…@database:5432/…`) carries no SSL parameters. Nothing reads
+`DB_SSL_MODE`, `DB_SSL_ROOT_CERT` or `ALLOW_INSECURE_DB`. This is acceptable
+only because the database is reachable solely over the internal Docker bridge
+network on the same host; it publishes no port.
 
-Moving to a managed Postgres (RDS / Neon / Supabase) over a network you do not
-control is **not supported yet**: TLS support must be added to
-`packages/db` first (an `ssl` option with CA verification, wired through each
-service's config), then documented here.
+### Managed Postgres (RDS / Neon / Supabase)
+
+TLS is configured through the connection string. `pg` reads `sslmode` and
+`sslrootcert` from `DATABASE_URL`, and `@adopt-dont-shop/db` passes the
+connection string straight through, so no code change is needed:
+
+1. Point `database_url` at the provider with
+   `?sslmode=verify-full&sslrootcert=/etc/ssl/certs/<provider-ca>.pem`.
+   `scripts/deploy-secrets.sh` currently hard-codes the in-stack `database`
+   host, so it must be changed to emit that URL.
+2. Mount the provider's CA bundle read-only at that path in every
+   schema-owning `service-*` container.
+3. Verify before go-live: a service whose CA or hostname doesn't match fails
+   its `/health/ready` probe instead of connecting.
+
+Use `verify-full`. `pg` currently treats `require` and `verify-ca` as aliases
+for `verify-full` and logs a deprecation warning, so say what you mean.
 
 ## Data at rest
 

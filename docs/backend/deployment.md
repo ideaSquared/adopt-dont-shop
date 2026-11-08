@@ -42,9 +42,10 @@ DB_USERNAME=...
 DB_PASSWORD=...
 PROD_DB_NAME=adopt_dont_shop_prod
 
-# Database TLS is not implemented: connections are plaintext (see
-# docs/operations/deploy.md "Database TLS"); only run Postgres on a trusted
-# private network until TLS support is added to packages/db.
+# Database TLS: the bundled deployment connects in plaintext over the internal
+# Docker network. For managed Postgres, put sslmode=verify-full and
+# sslrootcert=<CA path> in the connection string (see
+# docs/operations/deploy.md "Database TLS").
 
 # Redis
 REDIS_HOST=...
