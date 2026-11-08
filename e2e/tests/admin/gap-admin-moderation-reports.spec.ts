@@ -19,7 +19,7 @@ const REPORT_DESCRIPTION = 'E2E: this listing contains misleading photos and tex
 const fileReportAsAdopter = async (
   label: string,
   report: Record<string, string>
-): Promise<{ title: string }> => {
+): Promise<{ title: string; reportId: string }> => {
   const reporter = await createVerifiedAdopter(label);
   const reporterApi = await loginAccountViaApi(reporter);
   try {
@@ -32,7 +32,8 @@ const fileReportAsAdopter = async (
       ...report,
     });
     await expectOk(filed, 'file moderation report');
-    return { title };
+    const body = (await filed.json()) as { report: { reportId: string } };
+    return { title, reportId: body.report.reportId };
   } finally {
     await reporterApi.dispose();
   }
@@ -41,7 +42,7 @@ const fileReportAsAdopter = async (
 const filePetReport = async (
   apiAs: (role: 'rescue') => Promise<ApiClient>,
   label: string
-): Promise<{ title: string }> => {
+): Promise<{ title: string; reportId: string }> => {
   const pet = await createAvailablePet(await apiAs('rescue'), 'Reported');
   return fileReportAsAdopter(label, {
     reportedEntityType: 'REPORT_ENTITY_TYPE_PET',
@@ -113,16 +114,29 @@ test.describe('closing out a report (ADM-072)', () => {
     page,
     apiAs,
   }) => {
-    const { title } = await filePetReport(apiAs, 'actionreporter');
+    const { title, reportId } = await filePetReport(apiAs, 'actionreporter');
+    const actionReason = 'E2E: a formal warning';
 
     const row = await findReport(page, title);
     await row.getByRole('button', { name: 'Take Action' }).click();
     // The modal is not a labelled dialog: find it by its form.
     const modal = page.locator('form').filter({ has: page.getByLabel('Action Type *') });
     await modal.getByLabel('Action Type *').selectOption('warning_issued');
-    await modal.getByLabel(/^Reason/).fill('E2E: a formal warning');
+    await modal.getByLabel(/^Reason/).fill(actionReason);
     await modal.getByRole('button', { name: 'Take Action' }).click();
 
     await expect(row.getByText('Resolved', { exact: true })).toBeVisible({ timeout: 15_000 });
+
+    // Resolved is not enough: the chosen action itself must have been recorded
+    // against this report (not a dismissal that merely closes it).
+    const adminApi = await apiAs('admin');
+    const actions = await adminApi.context.get(`/api/v1/moderation/actions?report=${reportId}`);
+    await expectOk(actions, 'list moderator actions for the report');
+    const { data } = (await actions.json()) as {
+      data: { actionType: string; reason: string; reportId?: string }[];
+    };
+    expect(data).toHaveLength(1);
+    expect(data[0]?.actionType).toMatch(/warning/i);
+    expect(data[0]?.reason).toBe(actionReason);
   });
 });

@@ -66,7 +66,11 @@ test.describe('availability gating', () => {
         answers: {},
         referencesConsented: true,
       });
-      expect(res.status()).toBeGreaterThanOrEqual(400);
+      // A client-error refusal that names the pet's availability. A 429, 5xx or an
+      // unrelated validation failure must not count as the rule being enforced, or an
+      // outage would flip this expected failure to a pass.
+      expect([400, 403, 404, 409, 422]).toContain(res.status());
+      expect(await res.text()).toMatch(/availab|pending|not accepting/i);
     } finally {
       await adopterApi.dispose();
     }

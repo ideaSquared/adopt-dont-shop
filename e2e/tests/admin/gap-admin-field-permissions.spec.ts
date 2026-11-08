@@ -8,7 +8,7 @@ import { deleteWithCsrf, expectOk, postWithCsrf } from '../../helpers/seeds';
 /**
  * Field permissions (ADM-130): an admin overrides what the adopter role may
  * see of one field of a rescue. Overrides are global per role, so each Playwright
- * worker uses its own field (workers never collide) and every test restores the
+ * worker slot uses its own field (more workers than fields is rejected, never wrapped) and every test restores the
  * default in `finally`.
  */
 
@@ -33,9 +33,13 @@ const RESCUE_FIELDS: readonly RescueField[] = [
 ];
 
 const fieldForWorker = (): RescueField => {
-  const choice = RESCUE_FIELDS[test.info().parallelIndex % RESCUE_FIELDS.length];
+  // Never wrap: two workers sharing a field would overwrite each other's global override.
+  const { parallelIndex } = test.info();
+  const choice = RESCUE_FIELDS[parallelIndex];
   if (!choice) {
-    throw new Error('no rescue field available for this worker');
+    throw new Error(
+      `worker slot ${parallelIndex} has no rescue field of its own (${RESCUE_FIELDS.length} available): run these specs with at most ${RESCUE_FIELDS.length} workers`
+    );
   }
   return choice;
 };

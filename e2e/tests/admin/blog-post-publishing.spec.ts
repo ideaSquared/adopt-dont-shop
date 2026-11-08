@@ -56,6 +56,10 @@ test.describe('blog post lifecycle in content management', () => {
       await expect(visitor.getByRole('heading', { level: 1, name: 'Blog' })).toBeVisible({
         timeout: 30_000,
       });
+      // The heading renders while posts are still loading; only a loaded list can prove absence.
+      await expect(visitor.getByRole('status', { name: 'Loading posts' })).toHaveCount(0, {
+        timeout: 30_000,
+      });
       await expect(postLink).toHaveCount(0);
 
       await row.getByRole('button', { name: 'Publish' }).click();
@@ -73,6 +77,10 @@ test.describe('blog post lifecycle in content management', () => {
 
       await visitor.goto('/blog');
       await expect(visitor.getByRole('heading', { level: 1, name: 'Blog' })).toBeVisible({
+        timeout: 30_000,
+      });
+      // The heading renders while posts are still loading; only a loaded list can prove absence.
+      await expect(visitor.getByRole('status', { name: 'Loading posts' })).toHaveCount(0, {
         timeout: 30_000,
       });
       await expect(postLink).toHaveCount(0);

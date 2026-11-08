@@ -1,8 +1,10 @@
 import { test, expect } from '../../fixtures';
+import { ROLES, SECONDARY_USERS } from '../../fixtures/roles';
 import type { ApiClient } from '../../fixtures/api';
+import { loginAccountViaApi } from '../../helpers/accounts';
 import { dismissCookieBannerPatiently } from '../../helpers/cookie-banner-patient';
 import { petCardLocator } from '../../helpers/pet';
-import { expectOk } from '../../helpers/seeds';
+import { createAvailablePet, expectOk } from '../../helpers/seeds';
 import { skipSwipeIntro } from '../../helpers/swipe-intro';
 
 // Paws Rescue (M1 2WD, Manchester) and Happy Tails Rescue (BS1 4DJ, Bristol) are seeded with
@@ -23,6 +25,25 @@ const rescueIdByName = async (api: ApiClient, name: string): Promise<string> => 
     throw new Error(`seeded rescue ${name} not found, run pnpm db:seed first`);
   }
   return rescue.rescue_id;
+};
+
+/**
+ * Adopters only see available pets, and a fresh stack seeds Happy Tails with just one
+ * (not_available) pet, so the geometric checks would have nothing to measure. Give each
+ * rescue a public, available pet first (Happy Tails through its own director).
+ */
+const ensurePublicPetForEachRescue = async (rescueApi: ApiClient): Promise<void> => {
+  await createAvailablePet(rescueApi, 'DistancePaws');
+  const happyTailsApi = await loginAccountViaApi({
+    email: SECONDARY_USERS.rescueAdmin2,
+    password: ROLES.rescue.password,
+    firstName: 'Maria',
+  });
+  try {
+    await createAvailablePet(happyTailsApi, 'DistanceTails');
+  } finally {
+    await happyTailsApi.dispose();
+  }
 };
 
 /** Miles from `from` to the rescue, as the gateway reports it on that rescue's pets. */
@@ -47,6 +68,7 @@ test.describe('distance in search', () => {
   test('each pet reports its miles from the caller, and nearest flips with the caller', async ({
     apiAs,
   }) => {
+    await ensurePublicPetForEachRescue(await apiAs('rescue'));
     const api = await apiAs('adopter');
     const paws = await rescueIdByName(api, 'Paws Rescue');
     const happyTails = await rescueIdByName(api, 'Happy Tails Rescue');
@@ -76,6 +98,7 @@ test.describe('distance in search', () => {
 
     test('"Distance: Nearest First" lists the nearest pets first', async ({ page, apiAs }) => {
       test.fail(true, 'sortBy=distance is not a supported sort and falls back to created_at');
+      await ensurePublicPetForEachRescue(await apiAs('rescue'));
       const api = await apiAs('adopter');
       const paws = await rescueIdByName(api, 'Paws Rescue');
       const pawsMiles = await distanceTo(api, paws, MANCHESTER);

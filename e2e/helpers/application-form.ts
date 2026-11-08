@@ -33,10 +33,12 @@ async function ensureAnswered(page: Page, freeText: string): Promise<void> {
   }
 
   for (const field of await main.getByRole('textbox').all()) {
-    if ((await field.inputValue()) === '') {
+    const existing = await field.inputValue();
+    if (existing === '') {
       await field.fill(freeText);
     }
-    await expect(field).toHaveValue(freeText, { timeout: 2_000 });
+    // A prefilled answer is kept as it is; only a field filled here must hold freeText.
+    await expect(field).toHaveValue(existing === '' ? freeText : existing, { timeout: 2_000 });
   }
 }
 

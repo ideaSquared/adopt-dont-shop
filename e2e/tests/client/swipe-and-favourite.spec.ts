@@ -23,8 +23,13 @@ test.describe('favourites', () => {
     apiAs,
   }) => {
     const adopterApi = await apiAs('adopter');
-    const { petId, name } = await createAvailablePet(await apiAs('rescue'), 'SwipeFav');
+    const rescueApi = await apiAs('rescue');
+    const { petId, name } = await createAvailablePet(rescueApi, 'SwipeFav');
+    // A favourite that stays: seeing it proves the list has loaded, so the removed
+    // pet's absence is not just the page still waiting for its request.
+    const keeper = await createAvailablePet(rescueApi, 'SwipeKeep');
     await favouritePet(adopterApi, petId);
+    await favouritePet(adopterApi, keeper.petId);
 
     await page.goto('/favorites', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await expect(petCardLocator(page).filter({ hasText: name })).toBeVisible({ timeout: 20_000 });
@@ -34,6 +39,9 @@ test.describe('favourites', () => {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expect(petCardLocator(page).filter({ hasText: keeper.name })).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(petCardLocator(page).filter({ hasText: name })).toHaveCount(0);
   });
 });

@@ -69,10 +69,12 @@ test.describe('applying a sanction from the moderation queue', () => {
                 email: target.email,
                 password: target.password,
               })
-            ).ok(),
+            ).status(),
           { timeout: 30_000 }
         )
-        .toBe(false);
+        // A suspended account is refused with PERMISSION_DENIED (403); a 429 or
+        // 5xx must not be mistaken for the sanction taking effect.
+        .toBe(403);
     } finally {
       await anon.dispose();
     }

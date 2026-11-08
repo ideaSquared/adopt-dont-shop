@@ -1,6 +1,6 @@
 import { test, expect, type ApiClient } from '../../fixtures';
 import { ROLES } from '../../fixtures/roles';
-import { deleteWithCsrf, patchWithCsrf, putWithCsrf } from '../../helpers/seeds';
+import { deleteWithCsrf, patchWithCsrf, postWithCsrf } from '../../helpers/seeds';
 import { URLS } from '../../playwright.config';
 
 /**
@@ -18,6 +18,16 @@ type PetView = {
 
 const DENIED = [403, 404];
 
+// Only a refusal by the pets service counts. A 404 from Fastify for a route that does
+// not exist ("Route POST:/... not found") would also be in DENIED but proves nothing
+// about tenancy.
+const expectRefusedByAuthorisation = async (
+  response: Awaited<ReturnType<typeof postWithCsrf>>
+): Promise<void> => {
+  expect(DENIED).toContain(response.status());
+  expect(await response.text()).not.toMatch(/Route (GET|POST|PUT|PATCH|DELETE):.* not found/);
+};
+
 const happyTailsPet = async (adminApi: ApiClient): Promise<PetView> => {
   const rescues = (await (
     await adminApi.context.get('/api/v1/rescues', { params: { search: 'Happy Tails', limit: 20 } })
@@ -31,9 +41,14 @@ const happyTailsPet = async (adminApi: ApiClient): Promise<PetView> => {
       params: { rescueId: rescue.rescue_id, status: 'all', limit: 20 },
     })
   ).json()) as { data: PetView[] };
-  const pet = pets.data.find(candidate => candidate.rescue_id === rescue.rescue_id);
+  // A pet that is not public (not_available): a public one is legitimately readable by any
+  // signed-in user, which would make "cannot open it by id" untrue by design. Other specs
+  // add available pets to this rescue, so pick the hidden one explicitly.
+  const pet = pets.data.find(
+    candidate => candidate.rescue_id === rescue.rescue_id && candidate.status === 'not_available'
+  );
   if (!pet) {
-    throw new Error('Happy Tails Rescue has no pet — run `pnpm db:seed`');
+    throw new Error('Happy Tails Rescue has no not_available pet — run `pnpm db:seed`');
   }
   return pet;
 };
@@ -46,16 +61,19 @@ test.describe("another rescue's pets (RES-025)", () => {
     const petUrl = `/api/v1/pets/${pet.pet_id}`;
 
     // Cannot open it by id.
-    expect(DENIED).toContain((await rescueApi.context.get(petUrl)).status());
+    await expectRefusedByAuthorisation(await rescueApi.context.get(petUrl));
 
-    // Cannot edit, re-status or delete it.
+    // Cannot edit (PATCH /pets/:id), re-status (POST /pets/:id/status) or delete it.
+    // These are the routes the gateway registers; there is no PUT on a pet.
+    const toStatus = pet.status === 'pending' ? 'on_hold' : 'pending';
     const attempts = await Promise.all([
-      putWithCsrf(rescueApi.context, petUrl, { shortDescription: 'taken over' }),
       patchWithCsrf(rescueApi.context, petUrl, { shortDescription: 'taken over' }),
-      patchWithCsrf(rescueApi.context, `${petUrl}/status`, { status: 'available' }),
+      postWithCsrf(rescueApi.context, `${petUrl}/status`, { toStatus, reason: 'taken over' }),
       deleteWithCsrf(rescueApi.context, petUrl),
     ]);
-    attempts.forEach(response => expect(DENIED).toContain(response.status()));
+    for (const response of attempts) {
+      await expectRefusedByAuthorisation(response);
+    }
 
     // Asking for the other rescue's list still returns none of its pets.
     const listed = (await (

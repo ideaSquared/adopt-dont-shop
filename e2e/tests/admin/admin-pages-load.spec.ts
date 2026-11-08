@@ -1,4 +1,4 @@
-import type { ConsoleMessage, Page } from '@playwright/test';
+import type { ConsoleMessage, Page, Request } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
 
@@ -36,6 +36,8 @@ const ADMIN_PAGES: readonly AdminPageRoute[] = [
   { path: '/security', heading: 'Security Center' },
 ];
 
+const API_QUIET_MS = 750;
+
 const EXPECTED_NOISE =
   /statsig|featureassets|assetsconfigcdn|seeded-users|fonts\.(gstatic|googleapis)\.com/i;
 
@@ -55,10 +57,42 @@ const collectErrors = (page: Page): string[] => {
   return errors;
 };
 
+/**
+ * Headings render before a page's initial data requests finish, so a failed
+ * load can log its error after the heading is already visible. Track gateway
+ * requests from the start of the navigation; once none has been in flight for
+ * a short quiet period the initial loading is over.
+ */
+const trackApiRequests = (page: Page): (() => Promise<void>) => {
+  const inFlight = new Set<Request>();
+  let lastActivity = Date.now();
+  const settle = (request: Request): void => {
+    inFlight.delete(request);
+    lastActivity = Date.now();
+  };
+  page.on('request', request => {
+    if (!request.url().includes('/api/')) {
+      return;
+    }
+    inFlight.add(request);
+    lastActivity = Date.now();
+  });
+  page.on('requestfinished', settle);
+  page.on('requestfailed', settle);
+  return () =>
+    expect
+      .poll(() => inFlight.size === 0 && Date.now() - lastActivity >= API_QUIET_MS, {
+        timeout: 30_000,
+        message: 'initial API requests did not finish',
+      })
+      .toBe(true);
+};
+
 test.describe('admin pages load', () => {
   for (const { path, heading } of ADMIN_PAGES) {
     test(`${path} renders "${heading}" without errors`, async ({ page }) => {
       const errors = collectErrors(page);
+      const apiSettled = trackApiRequests(page);
 
       await page.goto(path);
 
@@ -66,6 +100,7 @@ test.describe('admin pages load', () => {
         { timeout: 30_000 }
       );
       await expect(page).toHaveURL(new RegExp(`${path === '/' ? '/$' : path}$`));
+      await apiSettled();
       await expect(page.getByRole('heading', { name: 'Something went wrong' })).toHaveCount(0);
       expect(errors).toEqual([]);
     });

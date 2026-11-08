@@ -35,6 +35,9 @@ test.describe('chat message escaping', () => {
       dialogs.push(dialog.message());
       await dialog.dismiss();
     });
+    // The payloads set window.__xss. A marker set in this document would be lost on
+    // reload, so it is checked before the reload as well as after it.
+    const payloadRan = () => page.evaluate(() => '__xss' in window);
     try {
       await skipSwipeIntro(page);
       await loginViaUI(page, account.email, account.password);
@@ -71,6 +74,8 @@ test.describe('chat message escaping', () => {
       const long = `${tag} ${'woof '.repeat(200).trim()}`;
       await expect(await send(long)).toBeVisible();
 
+      expect(await payloadRan()).toBe(false);
+
       // The messages survive a reload as text too.
       await page.reload();
       await page
@@ -82,8 +87,9 @@ test.describe('chat message escaping', () => {
         timeout: 15_000,
       });
 
+      await expect(page.getByRole('article').filter({ hasText: tag }).first()).toBeVisible();
       expect(dialogs).toEqual([]);
-      expect(await page.evaluate(() => 'x' in window && '__xss' in window)).toBe(false);
+      expect(await payloadRan()).toBe(false);
     } finally {
       await context.close();
     }
