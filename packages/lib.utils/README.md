@@ -54,7 +54,9 @@ Standalone helpers exported alongside the service:
 Sub-module exports:
 
 - `./env` — environment/URL config helpers (`getEnvironmentConfig`,
-  `getApiBaseUrl`, `buildApiUrl`, …) plus `EnvironmentUrls` / `EnvironmentConfig`.
+  `getApiBaseUrl`, `buildApiUrl`, `isDevelopment`, …) plus `EnvironmentUrls` /
+  `EnvironmentConfig`. `getApiBaseUrl` reads `VITE_API_BASE_URL` and falls back
+  to `''` (same-origin, via the Vite dev proxy) in every mode.
 - `./locale` — UK-locale date/currency/phone/address utilities plus
   `LocaleConfig` and `UKCounty`.
 

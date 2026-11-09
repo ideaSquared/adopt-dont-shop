@@ -27,10 +27,16 @@ vi.mock('../services/libraryServices', () => ({
   },
 }));
 
-vi.mock('../utils/env', () => ({
-  getApiBaseUrl: () => 'http://localhost:5000',
-  isDevelopment: () => false,
-}));
+vi.mock('@adopt-dont-shop/lib.utils', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.utils')>(
+    '@adopt-dont-shop/lib.utils'
+  );
+  return {
+    ...actual,
+    getApiBaseUrl: () => 'http://localhost:5000',
+    isDevelopment: () => false,
+  };
+});
 
 // ADS-586: Override the global lib.components mock with a controllable
 // `useConfirm` so tests can simulate accept/reject of the destructive delete

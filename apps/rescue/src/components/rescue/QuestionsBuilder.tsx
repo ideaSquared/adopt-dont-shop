@@ -8,7 +8,7 @@ import {
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
 import { apiService } from '../../services/libraryServices';
-import { getApiBaseUrl } from '../../utils/env';
+import { getApiBaseUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './QuestionsBuilder.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import { InvitationsService } from '@adopt-dont-shop/lib.invitations';
 import { apiService as globalApiService } from '@adopt-dont-shop/lib.api';
 
 // Configure with the proper base URL
-import { getApiBaseUrl, isDevelopment } from '../utils/env';
+import { getApiBaseUrl, isDevelopment } from '@adopt-dont-shop/lib.utils';
 
 const baseUrl = getApiBaseUrl();
 globalApiService.updateConfig({

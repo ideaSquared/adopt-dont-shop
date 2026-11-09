@@ -73,11 +73,16 @@ Object.defineProperty(import.meta, 'env', {
 });
 
 // Mock environment utilities
-vi.mock('./utils/env', () => ({
-  isDevelopment: () => false,
-  getApiBaseUrl: () => 'http://localhost:5000',
-  getEnvironmentVariable: (_key: string, defaultValue?: string) => defaultValue,
-}));
+vi.mock('@adopt-dont-shop/lib.utils', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.utils')>(
+    '@adopt-dont-shop/lib.utils'
+  );
+  return {
+    ...actual,
+    isDevelopment: () => false,
+    getApiBaseUrl: () => 'http://localhost:5000',
+  };
+});
 
 // Mock library dependencies
 vi.mock('@adopt-dont-shop/lib.auth', () => ({

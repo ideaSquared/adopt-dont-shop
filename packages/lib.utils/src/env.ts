@@ -24,16 +24,16 @@ export interface EnvironmentConfig extends EnvironmentUrls {
 }
 
 /**
- * Default API base URL per environment. Production intentionally has NO
- * hardcoded external host: when VITE_API_BASE_URL is unset a production build
- * falls back to a same-origin/relative base ('') so it can never silently ship
- * pointing at a pinned external host (ADS-1057). The WebSocket base URL is
- * derived from the API base URL — see deriveWsBaseUrl.
+ * Default API base URL per environment. No mode has a hardcoded external host:
+ * when VITE_API_BASE_URL is unset the base falls back to same-origin/relative
+ * ('') so a build can never silently ship pointing at a pinned host
+ * (ADS-1057), and dev/test go through the Vite dev proxy. The WebSocket base
+ * URL is derived from the API base URL — see deriveWsBaseUrl.
  */
 const DEFAULT_API_BASE_URL = {
-  development: 'http://localhost:5000',
+  development: '',
   production: '',
-  test: 'http://localhost:5000',
+  test: '',
 } as const;
 
 /**
@@ -66,6 +66,15 @@ export function getEnvironmentMode(): 'development' | 'production' | 'test' {
     return 'test';
   }
   return 'development';
+}
+
+/**
+ * Whether the app is running under the Vite dev server (or vitest).
+ * Relies on Vite's static replacement of import.meta.env.DEV at build time
+ * (ADS-423); a process.env fallback is always undefined in browser bundles.
+ */
+export function isDevelopment(): boolean {
+  return import.meta.env.DEV === true;
 }
 
 /**
