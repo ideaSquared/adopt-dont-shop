@@ -12,7 +12,19 @@ const mockUser = vi.hoisted(() => ({
 }));
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
-  TwoFactorSettings: () => <div>Two-factor controls</div>,
+  TwoFactorSettings: () => {
+    // Stateful on purpose: stands in for the backup codes shown after enabling.
+    const [codes, setCodes] = useState<string | null>(null);
+    return (
+      <div>
+        <p>Two-factor controls</p>
+        <button type='button' onClick={() => setCodes('ABCD-1234')}>
+          Get backup codes
+        </button>
+        {codes && <p>{codes}</p>}
+      </div>
+    );
+  },
   useAuth: () => ({ user: mockUser.current }),
 }));
 
@@ -113,7 +125,7 @@ describe('AccountSettings', () => {
     expect(row('Email').getByText('jane@example.com')).toBeInTheDocument();
     expect(row('Two-factor sign-in').getByText('Off')).toBeInTheDocument();
     expect(row('Notifications').getByText('Email on, browser alerts off')).toBeInTheDocument();
-    expect(row('Theme').getByText('Light')).toBeInTheDocument();
+    expect(row('Theme').getByText('Light', { selector: 'p' })).toBeInTheDocument();
   });
 
   it('says two-factor sign-in is on when it is', () => {
@@ -126,9 +138,9 @@ describe('AccountSettings', () => {
   it('keeps every form closed until the user asks to change something', () => {
     render(<Harness />);
 
-    expect(screen.queryByText('Details controls')).not.toBeInTheDocument();
-    expect(screen.queryByText('Password controls')).not.toBeInTheDocument();
-    expect(screen.queryByText('Notification controls')).not.toBeInTheDocument();
+    expect(screen.getByText('Details controls')).not.toBeVisible();
+    expect(screen.getByText('Password controls')).not.toBeVisible();
+    expect(screen.getByText('Notification controls')).not.toBeVisible();
   });
 
   it.each([
@@ -142,7 +154,7 @@ describe('AccountSettings', () => {
 
     fireEvent.click(screen.getByRole('button', { name: button }));
 
-    expect(screen.getByText(content)).toBeInTheDocument();
+    expect(screen.getByText(content)).toBeVisible();
     expect(screen.getByRole('button', { name: button.replace('Change', 'Close') })).toHaveAttribute(
       'aria-expanded',
       'true'
@@ -155,8 +167,8 @@ describe('AccountSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Change email' }));
     fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
 
-    expect(screen.getByText('Password controls')).toBeInTheDocument();
-    expect(screen.queryByText('Email controls')).not.toBeInTheDocument();
+    expect(screen.getByText('Password controls')).toBeVisible();
+    expect(screen.getByText('Email controls')).not.toBeVisible();
   });
 
   it('closes a setting again', () => {
@@ -164,7 +176,28 @@ describe('AccountSettings', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close email' }));
 
-    expect(screen.queryByText('Email controls')).not.toBeInTheDocument();
+    expect(screen.getByText('Email controls')).not.toBeVisible();
+  });
+
+  it('keeps new backup codes on screen after switching sections and coming back', () => {
+    render(<Harness initial='two-factor' />);
+    fireEvent.click(screen.getByRole('button', { name: 'Get backup codes' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
+    expect(screen.getByText('ABCD-1234')).not.toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Change two-factor sign-in' }));
+    expect(screen.getByText('ABCD-1234')).toBeVisible();
+  });
+
+  it('keeps new backup codes after closing the two-factor row and reopening it', () => {
+    render(<Harness initial='two-factor' />);
+    fireEvent.click(screen.getByRole('button', { name: 'Get backup codes' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close two-factor sign-in' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Change two-factor sign-in' }));
+
+    expect(screen.getByText('ABCD-1234')).toBeVisible();
   });
 
   it('switches theme straight away from plain choices', () => {
@@ -212,7 +245,7 @@ describe('AccountSettings', () => {
 
     expect(rowTitles().at(-1)).toBe('Privacy & data');
     expect(row('Privacy & data').getByText('Profile visibility')).toBeInTheDocument();
-    expect(screen.getByText('Privacy controls')).toBeInTheDocument();
+    expect(screen.getByText('Privacy controls')).toBeVisible();
   });
 
   it('reports the open section so the app can keep it in the URL', () => {

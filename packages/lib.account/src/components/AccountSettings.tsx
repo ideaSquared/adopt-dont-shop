@@ -86,7 +86,10 @@ const SettingRow = ({ section, isOpen, onToggle }: RowProps) => {
           {isOpen ? 'Close' : 'Change'}
         </Button>
       </div>
-      {isOpen && <div className={styles.rowBody}>{section.content}</div>}
+      {/* Hidden, not unmounted: closing a row mid-flow (e.g. while new two-factor backup codes are shown) must not lose that state. */}
+      <div className={styles.rowBody} hidden={!isOpen}>
+        {section.content}
+      </div>
     </li>
   );
 };
