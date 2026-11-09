@@ -6,7 +6,7 @@ import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
 import { SwipeOnboarding } from '@/components/onboarding/SwipeOnboarding';
 import { SwipeFloatingButton } from '@/components/ui/SwipeFloatingButton';
-import { SanctionBannerHost } from '@/components/SanctionBannerHost';
+import { SanctionBannerHost } from '@adopt-dont-shop/lib.auth';
 import * as styles from './AppShell.css';
 
 export const AppShell: React.FC = () => {

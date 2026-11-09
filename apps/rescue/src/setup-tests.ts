@@ -91,6 +91,7 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
     updateProfile: vi.fn(),
   },
   AuthService: vi.fn(),
+  SanctionBannerHost: () => null,
 }));
 
 vi.mock('@adopt-dont-shop/lib.pets', () => ({
@@ -432,7 +433,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         )
       : null,
   InstallPwaBanner: () => null,
-  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  // ADS C4-5: rendered by lib.auth SanctionBannerHost; tests don't exercise sanctions.
   SanctionBanner: () => null,
   // AGPL-3.0 section 13 footer link; the real component is covered in lib.components.
   SourceCodeLink: () =>

@@ -2,7 +2,7 @@ import React from 'react';
 import { InstallPwaBanner, SkipLink, SourceCodeLink } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import Navigation from './Navigation';
-import { SanctionBannerHost } from '../SanctionBannerHost';
+import { SanctionBannerHost } from '@adopt-dont-shop/lib.auth';
 import * as styles from './Layout.css';
 
 interface LayoutProps {

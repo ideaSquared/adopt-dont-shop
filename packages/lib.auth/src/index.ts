@@ -24,6 +24,7 @@ export {
 export type { PermissionCheckResult } from './hooks/useHasPermission';
 
 // Components
+export { SanctionBannerHost } from './components/SanctionBannerHost';
 export { PermissionGate } from './components/PermissionGate';
 export type { PermissionGateProps } from './components/PermissionGate';
 export { AuthLayout } from './components/AuthLayout';

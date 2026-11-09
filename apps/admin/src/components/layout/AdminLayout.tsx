@@ -3,7 +3,7 @@ import { SkipLink, SourceCodeLink } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
-import { SanctionBannerHost } from '../SanctionBannerHost';
+import { SanctionBannerHost } from '@adopt-dont-shop/lib.auth';
 import * as styles from './AdminLayout.css';
 
 interface AdminLayoutProps {

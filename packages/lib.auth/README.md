@@ -48,7 +48,8 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `LoginForm`, `RegisterForm`, `SocialSignInButtons`, `TwoFactorSettings`,
   `BackupCodesReveal`, and `ForgotPasswordForm` / `ResetPasswordForm` for the
   rescue and admin apps' `/forgot-password` and `/reset-password` pages;
-  app.client keeps its own pages).
+  app.client keeps its own pages). `SanctionBannerHost` is the account-sanction banner bound to the
+  shared `apiService`, with toast feedback on acknowledge; each app mounts it in its layout.
 - **Types**: `User`, `LoginRequest`, `RegisterRequest`, `AuthResponse`, the
   two-factor response types, `RescueRole`, `Permission`, `rolePermissions`.
 
