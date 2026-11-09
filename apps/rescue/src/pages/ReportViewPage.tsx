@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import clsx from 'clsx';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
+  Button,
   ConfirmDialog,
   Heading,
   ReportRenderer,
   Text,
+  toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
 import {
@@ -70,27 +72,42 @@ const ReportViewPage: React.FC = () => {
     if (!confirmed) {
       return;
     }
-    await deleteMutation.mutateAsync(id);
-    navigate('/reports');
+    try {
+      await deleteMutation.mutateAsync(id);
+      toast.success('Report deleted');
+      navigate('/reports');
+    } catch {
+      toast.error('Failed to delete report');
+    }
   };
 
   const handleSchedule = async (): Promise<void> => {
     if (!recipientEmail) {
       return;
     }
-    await scheduleMutation.mutateAsync({
-      cron,
-      recipients: [{ email: recipientEmail }],
-      format: 'pdf',
-      isEnabled: true,
-    });
-    setScheduleOpen(false);
+    try {
+      await scheduleMutation.mutateAsync({
+        cron,
+        recipients: [{ email: recipientEmail }],
+        format: 'pdf',
+        isEnabled: true,
+      });
+      toast.success('Schedule saved');
+      setScheduleOpen(false);
+    } catch {
+      toast.error('Failed to save schedule');
+    }
   };
 
   const handleShare = async (): Promise<void> => {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const result = await tokenShareMutation.mutateAsync({ expiresAt: expires });
-    setShareUrl(`${window.location.origin}/reports/shared/${result.token}`);
+    try {
+      const result = await tokenShareMutation.mutateAsync({ expiresAt: expires });
+      setShareUrl(`${window.location.origin}/reports/shared/${result.token}`);
+      toast.success('Share link created');
+    } catch {
+      toast.error('Failed to create share link');
+    }
   };
 
   return (
@@ -102,17 +119,17 @@ const ReportViewPage: React.FC = () => {
         </div>
         <div className={styles.headerActions}>
           <Link to={`/reports/${id}/edit`}>
-            <button type="button">Edit</button>
+            <Button variant="outline">Edit</Button>
           </Link>
-          <button type="button" onClick={() => setScheduleOpen(o => !o)}>
+          <Button variant="outline" onClick={() => setScheduleOpen(o => !o)}>
             Schedule
-          </button>
-          <button type="button" onClick={handleShare}>
+          </Button>
+          <Button variant="outline" onClick={handleShare}>
             Share link
-          </button>
-          <button type="button" onClick={handleDelete}>
+          </Button>
+          <Button variant="outline" onClick={handleDelete}>
             Delete
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -133,9 +150,9 @@ const ReportViewPage: React.FC = () => {
               placeholder="recipient@example.com"
               className={styles.emailInput}
             />
-            <button type="button" onClick={handleSchedule}>
+            <Button variant="primary" onClick={handleSchedule}>
               Save schedule
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -149,6 +166,8 @@ const ReportViewPage: React.FC = () => {
 
       {executeQuery.isLoading ? (
         <Text>Running report…</Text>
+      ) : executeQuery.isError ? (
+        <Text>Failed to execute the report.</Text>
       ) : (
         <ReportRenderer
           config={reportQuery.data.config as never}

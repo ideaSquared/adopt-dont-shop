@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { Heading, Text } from '@adopt-dont-shop/lib.components';
+import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { useReports, useReportTemplates } from '@adopt-dont-shop/lib.analytics';
 import * as styles from './Reports.css';
 
@@ -24,7 +24,7 @@ const ReportsPage: React.FC = () => {
           <Text>Build custom reports for your rescue, schedule them, and share with the team.</Text>
         </div>
         <Link to="/reports/new">
-          <button type="button">New report</button>
+          <Button variant="primary">New report</Button>
         </Link>
       </div>
 
@@ -32,6 +32,8 @@ const ReportsPage: React.FC = () => {
         <Heading level="h2">Your reports</Heading>
         {reportsQuery.isLoading ? (
           <Text>Loading…</Text>
+        ) : reportsQuery.isError ? (
+          <Text>Failed to load reports.</Text>
         ) : (reportsQuery.data ?? []).length === 0 ? (
           <Text>No saved reports yet — pick a template below to start.</Text>
         ) : (
@@ -54,20 +56,25 @@ const ReportsPage: React.FC = () => {
 
       <section className={styles.section}>
         <Heading level="h2">Templates</Heading>
-        <div className={styles.templateGrid}>
-          {(templatesQuery.data ?? []).map(template => (
-            <Link
-              key={template.template_id}
-              to={`/reports/new?template=${template.template_id}`}
-              className={styles.templateCard}
-            >
-              <strong>{template.name}</strong>
-              <div className={styles.templateMeta}>
-                {template.description ?? `${template.category} report`}
-              </div>
-            </Link>
-          ))}
-        </div>
+        {templatesQuery.isLoading ? (
+          <Text>Loading…</Text>
+        ) : (
+          <div className={styles.templateGrid}>
+            {(templatesQuery.data ?? []).map(template => (
+              <Link
+                key={template.template_id}
+                to={`/reports/new?template=${template.template_id}`}
+                className={styles.templateCard}
+              >
+                <strong>{template.name}</strong>
+                <div className={styles.templateMeta}>
+                  {template.description ?? `${template.category} report`}
+                </div>
+              </Link>
+            ))}
+            {(templatesQuery.data ?? []).length === 0 ? <Text>No templates available.</Text> : null}
+          </div>
+        )}
       </section>
     </div>
   );
