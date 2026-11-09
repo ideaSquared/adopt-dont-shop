@@ -1,5 +1,5 @@
 // Zod schemas for the CMS content create / update routes (ADS-1366).
-// Same pattern as events.schemas.ts: the Fastify body schema stays open and
+// Same pattern as the other gateway write-boundary schemas: the Fastify body schema stays open and
 // the handler safeParses with these. They are strict because Fastify's default
 // ajv silently strips unknown keys rather than rejecting them, so a JSON-schema
 // `additionalProperties: false` could never produce the 400.

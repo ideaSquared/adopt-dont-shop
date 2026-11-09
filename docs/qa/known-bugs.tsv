@@ -21,7 +21,6 @@ B19	Medium	Client	"Nearest first" sorting does nothing (falls back to newest).	C
 B20	Medium	Client	There is no change-password option in the client app.	CLI-082	client/gap-account-and-inbox-flows		
 B21	Low	Client	Applying twice sends you to the existing application with no message explaining why.	CLI-072	client/gap-application-flows		
 B22	Medium	Rescue	Foster page cannot assign a pet (pickers stay on "Loading pets..."), and a placement status shows as "1" so it cannot be ended.	RES-080	rescue/foster-coordination		
-B23	Medium	Rescue	Event times are an hour out in summer (10:00 shows as 11:00), the edit form opens with empty dates, and create and edit forms share duplicate field ids.	RES-070, RES-071	rescue/events-management		
 B24	Low	Rescue	A rescue's website cannot be cleared once set.	RES-050	rescue/rescue-settings-persistence		
 B25	Medium	Rescue	Rescue managers get a 403 on Reports and on the pending invitations list.	RES-091, RES-041	rescue/page-load-smoke, rescue/gap-staff-lifecycle		
 B26	Medium	Rescue	Setting a pet to "Hold" is refused (the card sends a status the server does not know).	RES-023	rescue/gap-pet-edit-archive		

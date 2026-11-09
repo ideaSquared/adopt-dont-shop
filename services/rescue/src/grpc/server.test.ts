@@ -25,7 +25,6 @@ const config: RescueConfig = {
   schema: 'rescue',
   natsUrl: 'nats://localhost:4222',
   petsGrpcUrl: 'service-pets:6003',
-  applicationsGrpcUrl: 'service-applications:6005',
 };
 
 const pool = {} as unknown as Pool;
@@ -33,10 +32,6 @@ const nats = {} as unknown as NatsConnection;
 const petsClient = { getPet: async () => ({}), close: () => undefined } as unknown as Parameters<
   typeof createGrpcServer
 >[0]['petsClient'];
-const applicationsClient = {
-  countAdoptedAdopters: async () => ({ count: 0 }),
-  close: () => undefined,
-} as unknown as Parameters<typeof createGrpcServer>[0]['applicationsClient'];
 
 describe('createGrpcServer', () => {
   it('registers all six RescueService methods on the grpc.Server', () => {
@@ -46,7 +41,6 @@ describe('createGrpcServer', () => {
       nats,
       logger: quietLogger,
       petsClient,
-      applicationsClient,
     });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
@@ -68,7 +62,6 @@ describe('createGrpcServer', () => {
       nats,
       logger: quietLogger,
       petsClient,
-      applicationsClient,
     });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 

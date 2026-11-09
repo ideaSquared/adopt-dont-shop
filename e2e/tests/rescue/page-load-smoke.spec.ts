@@ -38,7 +38,6 @@ const PAGES: PageCase[] = [
   { id: 'RES-050', path: '/settings', heading: 'Rescue Settings' },
   { id: 'RES-051', path: '/user-settings', heading: 'My Settings' },
   { id: 'RES-060', path: '/communication', heading: 'Communication' },
-  { id: 'RES-070', path: '/events', heading: 'Event Management' },
   { id: 'RES-080', path: '/foster', heading: 'Foster Coordination' },
   {
     id: 'RES-090',

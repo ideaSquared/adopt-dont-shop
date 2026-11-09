@@ -21,7 +21,7 @@ import {
   toCmsValidationFailure,
   UpdateContentBodySchema,
 } from './cms.schemas.js';
-import { isSafeImageUrl } from './events.schemas.js';
+import { isSafeImageUrl } from './image-url.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';

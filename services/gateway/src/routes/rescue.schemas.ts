@@ -1,6 +1,6 @@
 // Zod schema for the rescue route's `website` field (ADS-1292).
-// Follows the same pattern as the imageUrl/virtualLink schemas in
-// events.schemas.ts: safeHref sanitises rendering (packages/lib.utils/src/
+// Follows the same pattern as the other gateway write-boundary schemas:
+// safeHref sanitises rendering (packages/lib.utils/src/
 // safe-href.ts), but the gateway also validates at the write boundary so a
 // non-http(s) scheme is rejected before it's ever stored.
 

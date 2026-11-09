@@ -32,7 +32,7 @@ import {
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
-import { isSafeImageUrl } from './events.schemas.js';
+import { isSafeImageUrl } from './image-url.js';
 import { readUserLocation, withDistances } from './pets-distance.js';
 import { petToView, viewToCreateRequest, viewToUpdateRequest } from './pets-view.js';
 import { mapWithConcurrency } from './reports.js';

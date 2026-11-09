@@ -155,15 +155,11 @@ export type Permission =
   | 'reports.update:any'
   | 'reports.delete'
   | 'reports.delete:any'
-  // Second wave of RBAC seed/handler drift (ADS-1304). `events`/`foster`
-  // aren't in PermissionResource (adding them there would also generate
-  // unwanted combinations like `events.suspend`), so these are explicit
+  // Second wave of RBAC seed/handler drift (ADS-1304). `foster`
+  // isn't in PermissionResource (adding it there would also generate
+  // unwanted combinations like `foster.suspend`), so these are explicit
   // literals — same pattern as the auth.privacy-prefs.*/chat.message.*
   // entries above.
-  | 'events.read'
-  | 'events.create'
-  | 'events.update'
-  | 'events.delete'
   | 'foster.create'
   | 'foster.read'
   | 'foster.update'

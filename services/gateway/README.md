@@ -71,7 +71,7 @@ The gateway exposes a REST + WebSocket surface (not a gRPC server) plus health
 and `/metrics`. Route groups under `/api/v1/*`: `auth` / `sessions` /
 `field-permissions` / `users` / `privacy` → auth; `notifications` / `devices` /
 `email` / `broadcast` → notifications; `pets` → pets; `rescue` / `rescues` /
-`staff` / `foster` / `invitations` / `events` → rescue; `applications` /
+`staff` / `foster` / `invitations` → rescue; `applications` /
 `application-documents` / `profile` → applications; `chats` / `conversations` /
 `messages` → chat; `moderation` / `admin/moderation` / `support` → moderation;
 `matching` / `match` / `discovery` / `search` → matching; `audit` / `reports` →

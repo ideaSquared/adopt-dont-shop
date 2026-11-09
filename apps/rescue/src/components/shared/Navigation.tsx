@@ -41,7 +41,6 @@ const Navigation: React.FC = () => {
         { path: '/pets', label: 'Pets', icon: '🐕' },
         { path: '/applications', label: 'Applications', icon: '📋' },
         { path: '/foster', label: 'Foster', icon: '🏠' },
-        { path: '/events', label: 'Events', icon: '🗓️' },
       ],
     },
     {
