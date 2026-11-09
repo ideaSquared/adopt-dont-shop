@@ -169,6 +169,26 @@ describe('Messages page', () => {
       expect(useAdminChatsMock).toHaveBeenLastCalledWith({ status: 'active', page: 1, limit: 20 });
     });
 
+    it('steps back a page when the last chat on the current page is removed', () => {
+      useAdminChatsMock.mockReturnValue({
+        ...pagedResult,
+        data: { ...pagedResult.data, pagination: { page: 1, limit: 20, total: 21, totalPages: 2 } },
+      });
+      const { rerender } = renderWithProviders(<Messages />);
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ page: 2, limit: 20 });
+
+      // The only chat on page 2 is deleted: the refetch for page 2 is empty
+      // and the total drops to 20, which fits on page 1.
+      useAdminChatsMock.mockReturnValue({
+        ...pagedResult,
+        data: { data: [], pagination: { page: 2, limit: 20, total: 20, totalPages: 1 } },
+      });
+      rerender(<Messages />);
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ page: 1, limit: 20 });
+    });
+
     it('goes back to the first page when the search changes', () => {
       useAdminChatsMock.mockReturnValue(pagedResult);
       renderWithProviders(<Messages />);

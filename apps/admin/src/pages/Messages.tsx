@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
   Heading,
@@ -89,6 +89,17 @@ const Messages: React.FC = () => {
   const { deleteChat, updateChatStatus } = useAdminChatMutations();
 
   const chats = chatsData?.data || [];
+  const total = chatsData?.pagination?.total;
+
+  // Deleting or archiving the last chat on the final page shrinks the total
+  // under the current page. The table shows no pager when a page is empty, so
+  // step back to the new last page rather than strand the user there.
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil((total ?? 0) / PAGE_SIZE));
+    if (total !== undefined && page > lastPage) {
+      setPage(lastPage);
+    }
+  }, [total, page]);
   const loading = isLoading;
 
   const stats = {
@@ -424,7 +435,7 @@ const Messages: React.FC = () => {
         loading={loading}
         emptyMessage='No conversations found matching your criteria'
         page={page}
-        total={chatsData?.pagination?.total ?? 0}
+        total={total ?? 0}
         pageSize={PAGE_SIZE}
         onPageChange={setPage}
         getRowId={row => (row as Conversation).id}
