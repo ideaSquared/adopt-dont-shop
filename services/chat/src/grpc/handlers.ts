@@ -803,7 +803,8 @@ export async function listChats(
     const chats = await Promise.all(pageResult.rows.map(row => chatRowToProto(deps, row)));
     return {
       chats: await withUnreadCounts(deps, principal.userId, chats),
-      total: Number.parseInt(countResult.rows[0]?.total ?? '0', 10),
+      // COUNT(*) always returns exactly one row.
+      total: Number.parseInt(countResult.rows[0].total, 10),
     };
   }
 

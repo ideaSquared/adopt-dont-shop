@@ -1893,6 +1893,16 @@ describe('adminListChats', () => {
     expect(pageParams.slice(-2)).toEqual([10, 20]);
   });
 
+  it('starts at the first page when no page is given', async () => {
+    scriptOneChat();
+
+    const res = await adminListChats(mocks.deps, MODERATOR_PRINCIPAL, { page: 0, limit: 10 });
+
+    expect(res.page).toBe(1);
+    const pageParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(pageParams.slice(-2)).toEqual([10, 0]);
+  });
+
   it('filters by status', async () => {
     scriptOneChat();
 
