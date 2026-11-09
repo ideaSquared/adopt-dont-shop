@@ -184,6 +184,7 @@ The table lists the scripts each package defines.
 | `@adopt-dont-shop/eslint-config-node` | `format`, `format:check`, `lint`, `lint:fix` |
 | `@adopt-dont-shop/eslint-config-react` | `format`, `format:check`, `lint`, `lint:fix` |
 | `@adopt-dont-shop/events` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `test`, `test:coverage`, `test:watch`, `type-check` |
+| `@adopt-dont-shop/lib.account` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.analytics` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.api` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
 | `@adopt-dont-shop/lib.applications` | `build`, `clean`, `dev`, `format`, `format:check`, `lint`, `lint:fix`, `prepublishOnly`, `test`, `test:coverage`, `test:watch`, `type-check` |
