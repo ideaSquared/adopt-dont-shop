@@ -5,6 +5,7 @@ import {
   findViolations,
   ratchetCeilings,
   stripComments,
+  stripFallbackVarCalls,
 } from './check-design-tokens.mjs';
 
 const count = (source, category) => countInSource(source)[category];
@@ -158,6 +159,28 @@ describe('exclusions', () => {
   it('ignores the fallback argument of fallbackVar', () => {
     const source = "color: fallbackVar(vars.text.primary, '#333'),";
     expect(count(source, 'colour')).toBe(0);
+  });
+
+  it('ignores a functional colour fallback inside fallbackVar', () => {
+    const source = "color: fallbackVar(vars.text.primary, 'rgba(0, 0, 0, 0.5)'),";
+    expect(count(source, 'colour')).toBe(0);
+  });
+
+  it('ignores a calc() spacing fallback inside fallbackVar', () => {
+    const source = "padding: fallbackVar(vars.spacing['4'], 'calc(1rem + 2px)'),";
+    expect(count(source, 'spacing')).toBe(0);
+  });
+
+  it('ignores a fallbackVar call that spans lines and keeps later lines aligned', () => {
+    const source = [
+      'color: fallbackVar(',
+      '  vars.text.primary,',
+      "  '#333'",
+      '),',
+      "background: '#fff',",
+    ];
+    expect(count(source.join('\n'), 'colour')).toBe(1);
+    expect(stripFallbackVarCalls(source.join('\n')).split('\n')).toHaveLength(5);
   });
 
   it('still counts a literal beside a token on the same line', () => {

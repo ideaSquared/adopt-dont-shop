@@ -62,7 +62,8 @@ const RADIUS_PROP_RE = /^\s*['"]?border-?radius[\w-]*['"]?\s*:\s*(.*)$/i;
 const Z_INDEX_RE = /z-?index['"]?\s*:\s*['"`]?-?[1-9]\d*\b/i;
 
 const VARS_REF_RE = /\bvars(?:\.[\w$]+|\[\s*['"][^'"]+['"]\s*\])+/g;
-const FALLBACK_VAR_RE = /fallbackVar\([^()]*\)/g;
+const FALLBACK_VAR_CALL = 'fallbackVar(';
+const QUOTES = new Set(["'", '"', '`']);
 
 // --- Discovery -------------------------------------------------------------
 
@@ -106,12 +107,57 @@ export function stripComments(source) {
 }
 
 /**
- * Remove token references (`vars.*`) and `fallbackVar(...)` calls from a line.
+ * Index just past the `)` that closes the call whose `(` sits at `open`, or
+ * the end of the source if it never closes. Parentheses inside quoted strings
+ * are ignored, so `'rgba(0, 0, 0, 0.5)'` and `calc(...)` fallbacks stay inside
+ * the call.
+ * @param {string} source
+ * @param {number} open
+ * @returns {number}
+ */
+function endOfCall(source, open) {
+  let depth = 0;
+  let quote = '';
+  for (let i = open; i < source.length; i += 1) {
+    const char = source[i];
+    if (quote) {
+      if (char === '\\') i += 1;
+      else if (char === quote) quote = '';
+      continue;
+    }
+    if (QUOTES.has(char)) quote = char;
+    else if (char === '(') depth += 1;
+    else if (char === ')' && (depth -= 1) === 0) return i + 1;
+  }
+  return source.length;
+}
+
+/**
+ * Blank out every complete `fallbackVar(...)` call, including nested
+ * parentheses and calls that span lines, keeping line breaks so the
+ * per-line counting that follows still lines up.
+ * @param {string} source
+ * @returns {string}
+ */
+export function stripFallbackVarCalls(source) {
+  let out = '';
+  let cursor = 0;
+  for (;;) {
+    const start = source.indexOf(FALLBACK_VAR_CALL, cursor);
+    if (start === -1) return out + source.slice(cursor);
+    const end = endOfCall(source, start + FALLBACK_VAR_CALL.length - 1);
+    out += source.slice(cursor, start) + source.slice(start, end).replace(/[^\n]/g, '');
+    cursor = end;
+  }
+}
+
+/**
+ * Remove token references (`vars.*`) from a line.
  * @param {string} line
  * @returns {string}
  */
 export function stripTokenRefs(line) {
-  return line.replace(FALLBACK_VAR_RE, '').replace(VARS_REF_RE, '');
+  return line.replace(VARS_REF_RE, '');
 }
 
 const hasNonZeroLength = (value, units) =>
@@ -149,7 +195,7 @@ export function categoriesForLine(rawLine) {
  */
 export function countInSource(source) {
   const counts = Object.fromEntries(CATEGORIES.map(category => [category, 0]));
-  for (const line of stripComments(source).split('\n')) {
+  for (const line of stripFallbackVarCalls(stripComments(source)).split('\n')) {
     for (const category of categoriesForLine(line)) counts[category] += 1;
   }
   return counts;
