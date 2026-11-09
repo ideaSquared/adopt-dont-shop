@@ -21,10 +21,15 @@ export const list = recipe({
   },
   variants: {
     orientation: {
+      // No gap between steps: each step's connector spans from the previous
+      // step's centre to its own, which assumes the steps sit edge to edge.
       horizontal: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        '@media': { [NARROW]: { flexDirection: 'column', alignItems: 'stretch' } },
+        gap: 0,
+        '@media': {
+          [NARROW]: { flexDirection: 'column', alignItems: 'stretch', gap: vars.spacing['2'] },
+        },
       },
       vertical: { flexDirection: 'column' },
     },
@@ -46,7 +51,11 @@ export const step = recipe({
       horizontal: {
         flex: 1,
         minWidth: 0,
-        '@media': { [NARROW]: { flex: 'none' } },
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        '@media': {
+          [NARROW]: { flex: 'none', alignItems: 'center', justifyContent: 'flex-start' },
+        },
       },
       vertical: { flex: 'none' },
     },
@@ -55,6 +64,11 @@ export const step = recipe({
     orientation: 'horizontal',
   },
 });
+
+// Horizontal: the title sits under the marker, so the connector is drawn
+// between markers — from the previous step's marker to this one's, at the
+// markers' vertical centre (control padding + half the marker height).
+const MARKER_HALF = `calc(${vars.spacing['5']} / 2)`;
 
 export const connector = recipe({
   base: {
@@ -69,9 +83,20 @@ export const connector = recipe({
       true: { backgroundColor: vars.colors.primary },
       false: {},
     },
+    orientation: {
+      horizontal: {
+        position: 'absolute',
+        top: `calc(${vars.spacing['1']} + ${MARKER_HALF})`,
+        left: `calc(-50% + ${MARKER_HALF} + ${vars.spacing['2']})`,
+        right: `calc(50% + ${MARKER_HALF} + ${vars.spacing['2']})`,
+        minWidth: 0,
+      },
+      vertical: {},
+    },
   },
   defaultVariants: {
     complete: false,
+    orientation: 'horizontal',
   },
 });
 
@@ -110,9 +135,21 @@ export const control = recipe({
         cursor: 'default',
       },
     },
+    // Horizontal: marker on top, title centred underneath, so each title gets
+    // the full step width. Narrow viewports stack the steps, so go back to
+    // marker-beside-title there.
+    orientation: {
+      horizontal: {
+        flexDirection: 'column',
+        textAlign: 'center',
+        '@media': { [NARROW]: { flexDirection: 'row', textAlign: 'left' } },
+      },
+      vertical: {},
+    },
   },
   defaultVariants: {
     clickable: false,
+    orientation: 'horizontal',
   },
 });
 

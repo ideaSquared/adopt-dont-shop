@@ -205,23 +205,6 @@ export const alertWrap = style({
   marginBottom: '1rem',
 });
 
-export const choiceLabel = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  padding: '0.5rem 0.75rem',
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: '0.375rem',
-  cursor: 'pointer',
-  fontSize: '0.95rem',
-});
-
-export const choices = style({
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '0.5rem',
-});
-
 export const reviewSection = style({
   marginBottom: '1.5rem',
   padding: '1rem',
@@ -231,6 +214,10 @@ export const reviewSection = style({
 });
 
 globalStyle(`${reviewSection} h4`, {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'baseline',
+  gap: '1rem',
   fontSize: '0.95rem',
   fontWeight: 600,
   marginBottom: '0.5rem',

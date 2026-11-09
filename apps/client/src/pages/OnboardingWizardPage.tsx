@@ -48,36 +48,36 @@ type FormState = {
 
 type Option = { value: string; label: string; icon: string };
 
-const HOUSING_OPTIONS = [
-  { value: 'apartment', label: 'Apartment / flat' },
-  { value: 'house', label: 'House' },
-  { value: 'other', label: 'Other' },
+const HOUSING_OPTIONS: Option[] = [
+  { value: 'apartment', label: 'Apartment / flat', icon: '🏢' },
+  { value: 'house', label: 'House', icon: '🏡' },
+  { value: 'other', label: 'Other', icon: '✨' },
 ];
 
-const CHILDREN_OPTIONS = [
-  { value: 'none', label: 'No children' },
-  { value: 'young', label: 'Young children (under 10)' },
-  { value: 'older', label: 'Older children (10+)' },
+const CHILDREN_OPTIONS: Option[] = [
+  { value: 'none', label: 'No children', icon: '🧑' },
+  { value: 'young', label: 'Young children (under 10)', icon: '🧸' },
+  { value: 'older', label: 'Older children (10+)', icon: '🎒' },
 ];
 
-const OTHER_PETS_OPTIONS = [
-  { value: 'none', label: 'No other pets' },
-  { value: 'dogs', label: 'Dog(s)' },
-  { value: 'cats', label: 'Cat(s)' },
-  { value: 'mixed', label: 'A mix' },
+const OTHER_PETS_OPTIONS: Option[] = [
+  { value: 'none', label: 'No other pets', icon: '🙌' },
+  { value: 'dogs', label: 'Dog(s)', icon: '🐕' },
+  { value: 'cats', label: 'Cat(s)', icon: '🐈' },
+  { value: 'mixed', label: 'A mix', icon: '🐾' },
 ];
 
-const ALLERGIES_OPTIONS = [
-  { value: 'none', label: 'No allergies' },
-  { value: 'dogs', label: 'Dogs' },
-  { value: 'cats', label: 'Cats' },
-  { value: 'multiple', label: 'Multiple' },
+const ALLERGIES_OPTIONS: Option[] = [
+  { value: 'none', label: 'No allergies', icon: '👍' },
+  { value: 'dogs', label: 'Dogs', icon: '🐕' },
+  { value: 'cats', label: 'Cats', icon: '🐈' },
+  { value: 'multiple', label: 'Multiple', icon: '🤧' },
 ];
 
-const ACTIVITY_OPTIONS = [
-  { value: 'low', label: 'Pretty relaxed' },
-  { value: 'medium', label: 'Moderately active' },
-  { value: 'high', label: 'Very active' },
+const ACTIVITY_OPTIONS: Option[] = [
+  { value: 'low', label: 'Pretty relaxed', icon: '🛋️' },
+  { value: 'medium', label: 'Moderately active', icon: '🚶' },
+  { value: 'high', label: 'Very active', icon: '🏃' },
 ];
 
 const TYPES: Option[] = [
@@ -159,25 +159,35 @@ const ChipGroup: React.FC<ChipGroupProps> = ({ name, options, selected, onToggle
 
 type RadioGroupProps = {
   name: string;
-  options: ReadonlyArray<{ value: string; label: string }>;
+  options: Option[];
   selected: string;
   onChange: (value: string) => void;
 };
 
 const RadioGroup: React.FC<RadioGroupProps> = ({ name, options, selected, onChange }) => (
-  <div className={styles.choices} role='radiogroup' aria-label={name}>
-    {options.map(opt => (
-      <label key={opt.value} className={styles.choiceLabel}>
-        <input
-          type='radio'
-          name={name}
-          value={opt.value}
-          checked={selected === opt.value}
-          onChange={() => onChange(opt.value)}
-        />
-        {opt.label}
-      </label>
-    ))}
+  <div className={styles.chipGroup} role='radiogroup' aria-label={name}>
+    {options.map(opt => {
+      const isSelected = selected === opt.value;
+      return (
+        <label
+          key={opt.value}
+          className={`${styles.chip} ${isSelected ? styles.chipSelected : ''}`}
+        >
+          <input
+            type='radio'
+            className={styles.srInput}
+            name={name}
+            value={opt.value}
+            checked={isSelected}
+            onChange={() => onChange(opt.value)}
+          />
+          <span className={styles.chipIcon} aria-hidden='true'>
+            {opt.icon}
+          </span>
+          {opt.label}
+        </label>
+      );
+    })}
   </div>
 );
 
@@ -473,10 +483,12 @@ export const OnboardingWizardPage: React.FC = () => {
       </div>
 
       <div className={styles.section}>
+        <h3>Do you have a garden or yard?</h3>
+        <p className='hint'>Tick if your new pet would have outdoor space at home.</p>
         <div className={styles.tileGrid}>
           <Tile
             icon='🌳'
-            label='Yard / garden'
+            label='Yes, we have a garden or yard'
             checked={form.yard}
             onChange={checked => setForm(f => ({ ...f, yard: checked }))}
           />
