@@ -217,7 +217,7 @@ globalStyle(`${reviewSection} h4`, {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'baseline',
-  gap: '1rem',
+  gap: vars.spacing['3'],
   fontSize: '0.95rem',
   fontWeight: 600,
   marginBottom: '0.5rem',
