@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import clsx from 'clsx';
+import { useOneTimeUrlToken } from '@adopt-dont-shop/lib.auth';
 import { FormField, Input } from '@adopt-dont-shop/lib.components';
 import { invitationService } from '../services/libraryServices';
 import * as styles from './AcceptInvitation.css';
@@ -14,21 +15,12 @@ interface AcceptInvitationFormData {
 }
 
 const AcceptInvitation: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   // Capture the single-use invitation token ONCE, then strip it from the
   // address bar (ADS-1012) so it doesn't linger in browser history or Referer
   // headers — an invitation token also grants a role at a rescue. Held in
   // state so the URL rewrite doesn't pull it out from under the fetch/submit.
-  const [token] = useState(() => searchParams.get('token'));
-
-  useEffect(() => {
-    if (searchParams.has('token')) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('token');
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
+  const token = useOneTimeUrlToken();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

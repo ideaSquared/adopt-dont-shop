@@ -44,7 +44,9 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   "check your email" screen, not a session.
 - **React**: `AuthProvider` / `AuthContext` / `useAuth`, `PermissionsProvider` /
   `usePermissions`, `useHasPermission` / `useHasAnyPermission` /
-  `useHasAllPermissions`, `PermissionGate`, and the UI components (`AuthLayout`,
+  `useHasAllPermissions`, `useOneTimeUrlToken(paramName = 'token')` (captures a
+  single-use URL token once and strips it from the address bar; needs
+  `react-router`, a peer dependency), `PermissionGate`, and the UI components (`AuthLayout`,
   `LoginForm`, `RegisterForm`, `SocialSignInButtons`, `TwoFactorSettings`,
   `BackupCodesReveal`, and `ForgotPasswordForm` / `ResetPasswordForm` for the
   rescue and admin apps' `/forgot-password` and `/reset-password` pages;

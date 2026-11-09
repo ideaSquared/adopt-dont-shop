@@ -1,28 +1,20 @@
 import { authService } from '@/services';
+import { useOneTimeUrlToken } from '@adopt-dont-shop/lib.auth';
 import { Alert, Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import * as styles from './VerifyEmailPage.css';
 
 type VerificationStatus = 'verifying' | 'success' | 'error' | 'expired';
 
 export const VerifyEmailPage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   // Capture the single-use token ONCE, then strip it from the address bar
   // (ADS-1012) — held in state so the URL rewrite doesn't pull it out from
   // under the verify effect. Previously the strip lived inside the async
   // verify call, so it ran after the token had already sat in the URL (and
   // been observable) through render.
-  const [token] = useState(() => searchParams.get('token'));
-
-  useEffect(() => {
-    if (searchParams.has('token')) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('token');
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
+  const token = useOneTimeUrlToken();
 
   const [status, setStatus] = useState<VerificationStatus>('verifying');
   const [errorMessage, setErrorMessage] = useState('');

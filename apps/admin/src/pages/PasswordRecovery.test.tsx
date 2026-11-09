@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 
-vi.mock('@adopt-dont-shop/lib.auth', () => ({
+vi.mock('@adopt-dont-shop/lib.auth', async importOriginal => ({
+  useOneTimeUrlToken: (await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>())
+    .useOneTimeUrlToken,
   AuthLayout: ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div>
       <h1>{title}</h1>

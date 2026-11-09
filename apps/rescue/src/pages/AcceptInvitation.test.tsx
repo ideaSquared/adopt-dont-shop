@@ -14,6 +14,12 @@ vi.mock('../services/libraryServices', () => ({
   },
 }));
 
+// The shared test setup stubs lib.auth; this page needs the real token hook.
+vi.mock('@adopt-dont-shop/lib.auth', async importOriginal => ({
+  useOneTimeUrlToken: (await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>())
+    .useOneTimeUrlToken,
+}));
+
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={['/accept-invitation?token=tok_123']}>

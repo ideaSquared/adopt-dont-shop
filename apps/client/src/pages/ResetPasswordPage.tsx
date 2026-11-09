@@ -1,10 +1,11 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { authService } from '@/services';
+import { useOneTimeUrlToken } from '@adopt-dont-shop/lib.auth';
 import { Alert, Button, Card, Input } from '@adopt-dont-shop/lib.components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { z } from 'zod';
 import * as styles from './ResetPasswordPage.css';
 
@@ -27,7 +28,6 @@ const resetPasswordSchema = z
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export const ResetPasswordPage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -46,15 +46,7 @@ export const ResetPasswordPage: React.FC = () => {
   // Referer headers for the rest of the session. Held in state so the URL
   // rewrite below doesn't pull it out from under the submit handler. (The
   // analytics layer independently drops it from any transmitted page-view URL.)
-  const [token] = useState(() => searchParams.get('token'));
-
-  useEffect(() => {
-    if (searchParams.has('token')) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('token');
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
+  const token = useOneTimeUrlToken();
 
   const {
     register,

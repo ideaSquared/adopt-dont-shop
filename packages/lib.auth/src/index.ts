@@ -22,6 +22,7 @@ export {
   useHasAllPermissions,
 } from './hooks/useHasPermission';
 export type { PermissionCheckResult } from './hooks/useHasPermission';
+export { useOneTimeUrlToken } from './hooks/useOneTimeUrlToken';
 
 // Components
 export { SanctionBannerHost } from './components/SanctionBannerHost';
