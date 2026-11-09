@@ -28,16 +28,29 @@ const sampleReport = {
   updatedAt: new Date().toISOString(),
 };
 
+const useReportsMock = vi.fn();
+let stubTotal = 1;
+
 vi.mock('@adopt-dont-shop/lib.moderation', () => ({
-  useReports: () => ({
-    data: {
-      data: [sampleReport],
-      pagination: { page: 1, limit: 20, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
-    },
-    isLoading: false,
-    error: null,
-    refetch: refetchMock,
-  }),
+  useReports: (filters: unknown) => {
+    useReportsMock(filters);
+    return {
+      data: {
+        data: [sampleReport],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: stubTotal,
+          totalPages: Math.ceil(stubTotal / 20),
+          hasNext: stubTotal > 20,
+          hasPrev: false,
+        },
+      },
+      isLoading: false,
+      error: null,
+      refetch: refetchMock,
+    };
+  },
   useModerationMetrics: () => ({ data: undefined }),
   useReportMutations: () => ({
     resolveReport: (...args: unknown[]) => resolveReportMock(...args),
@@ -313,5 +326,83 @@ describe('Moderation deep-link routing', () => {
 
     // Page itself still renders (header visible — no crash)
     expect(screen.getByRole('heading', { name: /content moderation/i })).toBeInTheDocument();
+  });
+});
+
+describe('Moderation filtered to one entity', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    stubTotal = 1;
+  });
+
+  it('returns to the first page when the content type changes', async () => {
+    stubTotal = 50;
+    renderModerationAtRoute('/moderation');
+
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+    });
+
+    fireEvent.change(screen.getByLabelText(/content type/i), { target: { value: 'pet' } });
+
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ reportedEntityType: 'pet', page: 1 })
+      );
+    });
+  });
+
+  it('returns to the first page when the entity filter is cleared', async () => {
+    stubTotal = 50;
+    renderModerationAtRoute('/moderation?entityType=conversation&entityId=chat-42');
+
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /show all reports/i }));
+
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ reportedEntityId: undefined, page: 1 })
+      );
+    });
+  });
+
+  it('lists only the linked entity’s reports when opened from a deep link', () => {
+    renderModerationAtRoute('/moderation?entityType=conversation&entityId=chat-42');
+
+    expect(useReportsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ reportedEntityType: 'conversation', reportedEntityId: 'chat-42' })
+    );
+    expect(screen.getByLabelText(/content type/i)).toHaveValue('conversation');
+    expect(screen.getByText(/showing reports for one conversation/i)).toBeInTheDocument();
+  });
+
+  it('goes back to every report when the entity filter is cleared', async () => {
+    renderModerationAtRoute('/moderation?entityType=conversation&entityId=chat-42');
+
+    fireEvent.click(screen.getByRole('button', { name: /show all reports/i }));
+
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ reportedEntityId: undefined })
+      );
+    });
+    expect(screen.queryByText(/showing reports for one conversation/i)).not.toBeInTheDocument();
+  });
+
+  it('drops the entity filter when a different content type is picked', async () => {
+    renderModerationAtRoute('/moderation?entityType=conversation&entityId=chat-42');
+
+    fireEvent.change(screen.getByLabelText(/content type/i), { target: { value: 'pet' } });
+
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ reportedEntityType: 'pet', reportedEntityId: undefined })
+      );
+    });
   });
 });

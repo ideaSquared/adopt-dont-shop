@@ -457,6 +457,10 @@ message ListReportsRequest {
   // returns an OFFSET page plus a real `total` (COUNT) instead of a keyset
   // cursor, so the shared DataTable can render "Page X of Y".
   optional uint32 page = 7;
+  // Filter to reports about one kind of entity, and optionally one entity
+  // of that kind (e.g. a single conversation).
+  optional ReportEntityType reported_entity_type = 8;
+  optional string reported_entity_id = 9;
 }
 
 message ListReportsResponse {

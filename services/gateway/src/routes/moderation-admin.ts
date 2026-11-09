@@ -167,6 +167,8 @@ export const registerModerationAdminRoutes = async (
             severity: { type: 'string' },
             category: { type: 'string' },
             assigned: { type: 'string' },
+            reportedEntityType: { type: 'string' },
+            reportedEntityId: { type: 'string' },
           },
         },
         response: {
@@ -209,6 +211,15 @@ export const registerModerationAdminRoutes = async (
           q.category
         ),
         assignedModerator: q.assigned,
+        reportedEntityType: parseEnum(
+          ModerationV1.ReportEntityType,
+          'REPORT_ENTITY_TYPE',
+          ModerationV1.reportEntityTypeFromJSON,
+          ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_UNSPECIFIED,
+          ModerationV1.ReportEntityType.UNRECOGNIZED,
+          q.reportedEntityType
+        ),
+        reportedEntityId: q.reportedEntityId,
       };
       try {
         const meta = buildMetadata(req);

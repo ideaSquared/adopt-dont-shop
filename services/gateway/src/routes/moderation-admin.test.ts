@@ -139,6 +139,20 @@ describe('moderation admin reports', () => {
     expect(mocks.listReports.mock.calls[0][0].cursor).toBeUndefined();
   });
 
+  it('GET /admin/moderation/reports forwards the reported entity filter to gRPC', async () => {
+    mocks.listReports.mockResolvedValueOnce({ reports: [], total: 0 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/moderation/reports?reportedEntityType=conversation&reportedEntityId=chat-42',
+      headers: ADMIN,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.listReports.mock.calls[0][0]).toMatchObject({
+      reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_CONVERSATION,
+      reportedEntityId: 'chat-42',
+    });
+  });
+
   it('GET /admin/moderation/reports defaults to page 1 when no page is supplied', async () => {
     mocks.listReports.mockResolvedValueOnce({ reports: [REPORT], total: 1 });
     const res = await app.inject({

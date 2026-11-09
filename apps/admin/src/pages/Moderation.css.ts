@@ -304,6 +304,18 @@ export const reportedAt = style({
   color: vars.text.tertiary,
 });
 
+export const entityFilterBanner = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: vars.spacing['4'],
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
+  borderRadius: vars.border.radius.lg,
+  fontSize: vars.typography.size.sm,
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
+});
+
 export const errorBanner = style({
   padding: '2rem',
   textAlign: 'center',
