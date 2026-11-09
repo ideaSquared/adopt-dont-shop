@@ -142,15 +142,36 @@ vars.zIndex.base | docked | dropdown | sticky | overlay | modal | popover | toas
 
 ### Breakpoints
 
+`vars.breakpoints.*` exists in the theme contract but **cannot be used in a media
+query**: it compiles to a CSS custom property, and `var()` is invalid inside a media
+condition. Use the static `breakpoints` constants and the ready-made `media` queries
+instead (plain TypeScript values, exported from `@adopt-dont-shop/lib.components` and
+from the `@adopt-dont-shop/lib.components/theme` entry that `.css.ts` files use):
+
 ```ts
-'@media': {
-  [`(min-width: ${vars.breakpoints.sm})`]: { … },   // 640px
-  [`(min-width: ${vars.breakpoints.md})`]: { … },   // 768px
-  [`(min-width: ${vars.breakpoints.lg})`]: { … },   // 1024px
-  [`(min-width: ${vars.breakpoints.xl})`]: { … },   // 1280px
-  [`(min-width: ${vars.breakpoints['2xl']})`]: { … }, // 1536px
-}
+import { media } from '@adopt-dont-shop/lib.components/theme';
+
+export const header = style({
+  display: 'flex',
+  '@media': {
+    [media.down('md')]: { flexDirection: 'column' }, // screen and (max-width: 768px)
+    [media.up('lg')]: { gap: vars.spacing['5'] }, //     screen and (min-width: 1024px)
+  },
+});
 ```
+
+| Name  | Width    |
+| ----- | -------- |
+| `sm`  | `640px`  |
+| `md`  | `768px`  |
+| `lg`  | `1024px` |
+| `xl`  | `1280px` |
+| `2xl` | `1536px` |
+
+`breakpoints.md` is the raw string (`'768px'`) for building other conditions. Both `up` and
+`down` include the breakpoint width, so pick one direction per component (mobile-first with
+`up`, or desktop-first with `down`) rather than pairing `down('md')` with `up('md')`.
+Use the scale rather than ad-hoc widths such as 380, 480, 600 or 769 px.
 
 ## Reusable components first
 

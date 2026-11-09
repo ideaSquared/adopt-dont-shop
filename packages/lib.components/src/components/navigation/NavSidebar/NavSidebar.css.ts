@@ -1,14 +1,15 @@
 import { recipe } from '@vanilla-extract/recipes';
 import { style } from '@vanilla-extract/css';
 
+import { breakpoints, media } from '../../../styles/breakpoints';
 import { vars } from '../../../styles/theme.css';
 
 // Below this width the sidebar becomes an off-canvas drawer. Exported so app
 // shells can align their own responsive rules with the drawer breakpoint —
 // a shell that switches at a different width leaves a band where the sidebar
 // is off-canvas but the content is still offset for it.
-export const SIDEBAR_MOBILE_MAX_WIDTH = '1024px';
-const MOBILE = `screen and (max-width: ${SIDEBAR_MOBILE_MAX_WIDTH})`;
+export const SIDEBAR_MOBILE_MAX_WIDTH = breakpoints.lg;
+const MOBILE = media.down('lg');
 
 export const SIDEBAR_EXPANDED_WIDTH = '260px';
 export const SIDEBAR_COLLAPSED_WIDTH = '72px';

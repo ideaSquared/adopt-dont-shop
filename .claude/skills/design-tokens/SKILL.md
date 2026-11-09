@@ -179,6 +179,27 @@ export const link = style({
 });
 ```
 
+## Breakpoints
+
+Never put `vars.breakpoints.*` in a media query: it is a theme-contract CSS variable and
+`var()` is invalid inside a media condition, so the rule silently never matches. Use the
+static values from `lib.components` (`sm` 640, `md` 768, `lg` 1024, `xl` 1280, `2xl` 1536 px):
+
+```typescript
+import { media } from '@adopt-dont-shop/lib.components/theme'; // or the package root
+
+export const header = style({
+  display: 'flex',
+  '@media': {
+    [media.down('md')]: { flexDirection: 'column' }, // screen and (max-width: 768px)
+    [media.up('lg')]: { gap: vars.spacing['5'] }, //     screen and (min-width: 1024px)
+  },
+});
+```
+
+`up` and `down` both include the breakpoint width: use one direction per component. Do not
+hard-code `768px`, `769px`, `480px` and friends.
+
 ## Dark mode
 
 `vars` already resolves to the correct theme via the `data-theme` attribute on
@@ -214,6 +235,7 @@ The colour, padding, and border on that progress bar still come from the
   `.css` suffix is required for vanilla-extract to resolve correctly
 - `styled-components` patterns or `className={'btn btn-primary'}` — this project
   uses vanilla-extract exclusively
+- `vars.breakpoints.*` inside `@media` (invalid) — use `media.up()` / `media.down()`
 - Forgetting `prefers-reduced-motion` on transitions — fails the a11y skill
 - `outline: none` on focus — replace with a visible outline using token values
 - Re-declaring theme values locally instead of adding them to `theme.css.ts`
