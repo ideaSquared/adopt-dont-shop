@@ -99,16 +99,22 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   SanctionBannerHost: () => null,
 }));
 
-vi.mock('@adopt-dont-shop/lib.pets', () => ({
-  PetsService: vi.fn(),
-  petManagementService: {
-    getPets: vi.fn(),
-    getPet: vi.fn(),
-    createPet: vi.fn(),
-    updatePet: vi.fn(),
-    deletePet: vi.fn(),
-  },
-}));
+vi.mock('@adopt-dont-shop/lib.pets', async () => {
+  const { formatAge } = await vi.importActual<typeof import('@adopt-dont-shop/lib.pets')>(
+    '@adopt-dont-shop/lib.pets'
+  );
+  return {
+    PetsService: vi.fn(),
+    petManagementService: {
+      getPets: vi.fn(),
+      getPet: vi.fn(),
+      createPet: vi.fn(),
+      updatePet: vi.fn(),
+      deletePet: vi.fn(),
+    },
+    formatAge,
+  };
+});
 
 vi.mock('@adopt-dont-shop/lib.applications', () => ({
   ApplicationsService: vi.fn(),

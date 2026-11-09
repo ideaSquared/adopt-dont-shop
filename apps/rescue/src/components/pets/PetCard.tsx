@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
-import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
+import { formatAge, Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatCurrency, formatRelativeDate, resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetCard.css';
 
@@ -42,21 +42,6 @@ const getStatusVariant = (
     return status as 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care' | 'foster';
   }
   return 'default';
-};
-
-const formatAge = (ageYears: number | undefined, ageMonths: number | undefined) => {
-  const years = ageYears ?? 0;
-  const months = ageMonths ?? 0;
-  if (years === 0 && months === 0) {
-    return 'Unknown';
-  }
-  if (years === 0) {
-    return months === 1 ? '1 month' : `${months} months`;
-  }
-  if (months === 0) {
-    return years === 1 ? '1 year' : `${years} years`;
-  }
-  return `${years}y ${months}m`;
 };
 
 interface PetCardProps {

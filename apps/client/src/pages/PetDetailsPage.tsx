@@ -9,6 +9,7 @@ import { hasAnalyticsConsent } from '@adopt-dont-shop/lib.observability';
 import { PetDetailSkeleton } from '@/components/skeletons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { formatAge } from '@adopt-dont-shop/lib.pets';
 import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetDetailsPage.css';
 
@@ -432,19 +433,6 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         user_authenticated: isAuthenticated.toString(),
       });
     }
-  };
-
-  const formatAge = (ageYears?: number, ageMonths?: number) => {
-    if (!ageYears && !ageMonths) {
-      return 'Unknown';
-    }
-    if (!ageYears && ageMonths) {
-      return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
-    }
-    if (ageYears && !ageMonths) {
-      return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
-    }
-    return `${ageYears} year${ageYears !== 1 ? 's' : ''} ${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
   };
 
   // Pet schema fields are optional because different API responses return

@@ -37,6 +37,7 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `validateMappedRow`, `IMPORTABLE_FIELDS` / `REQUIRED_FIELDS`, and the types
   `ImportableField`, `CsvRow`, `ParsedCsv`, `ColumnMapping`, `ValidRow`,
   `InvalidRow`, `ValidatedRow`.
+- `formatAge(years, months, unknown?)` — shared display string for a pet age ("2 years, 3 months", "6 months"; `unknown` fallback, default "Unknown").
 - Types (`PetsServiceConfig`, …) and constants (species, status enums)
   re-exported from `./types` / `./constants`.
 
@@ -63,4 +64,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.pets-consumers.md](../../docs/libraries/lib.pets-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

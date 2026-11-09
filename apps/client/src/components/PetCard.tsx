@@ -6,6 +6,7 @@ import { Badge, Button, Card, PetImage } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { Heart, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { formatAge } from '@adopt-dont-shop/lib.pets';
 import { resolveFileUrl } from '@adopt-dont-shop/lib.utils';
 import { LoginPromptModal } from './modals/LoginPromptModal';
 import * as styles from './PetCard.css';
@@ -128,21 +129,6 @@ export const PetCard: React.FC<PetCardProps> = ({
   // Pet schema fields are optional because different API responses return
   // different subsets (lib.pets/src/schemas.ts:55-57). Treat absent age,
   // size, and status as "Unknown" rather than crashing the card render.
-  const formatAge = (ageYears: number | undefined, ageMonths: number | undefined) => {
-    const years = ageYears ?? 0;
-    const months = ageMonths ?? 0;
-    if (years === 0 && months === 0) {
-      return 'Unknown';
-    }
-    if (years === 0) {
-      return `${months} month${months !== 1 ? 's' : ''}`;
-    }
-    if (months === 0) {
-      return `${years} year${years !== 1 ? 's' : ''}`;
-    }
-    return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`;
-  };
-
   const formatSize = (size: string | undefined) => {
     if (!size) {
       return 'Unknown';
