@@ -1,17 +1,11 @@
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import Tooltip from './Tooltip';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import React from 'react';
 
-/**
- * The Tooltip wrapper is a thin layer over @radix-ui/react-tooltip. We assert
- * the contract consumers depend on: the trigger child is rendered as-is and
- * forwards the accessibility attributes Radix wires up. Hover-driven visibility
- * is exercised by Radix's own test suite — duplicating it in JSDOM (which
- * does not simulate the pointer/positioning semantics Radix relies on) only
- * produces flaky tests.
- */
+import { Tooltip } from './Tooltip';
+
 describe('Tooltip', () => {
-  it('renders the trigger child unchanged', () => {
+  it('renders the trigger child and keeps the tooltip hidden by default', () => {
     render(
       <Tooltip content='Helpful hint'>
         <button type='button'>Action</button>
@@ -19,20 +13,50 @@ describe('Tooltip', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument();
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  it('wires accessibility attributes onto the trigger', () => {
+  it('shows the content to keyboard users on focus and describes the trigger with it', async () => {
+    const user = userEvent.setup();
     render(
       <Tooltip content='Helpful hint'>
         <button type='button'>Action</button>
       </Tooltip>
     );
 
-    const trigger = screen.getByRole('button', { name: 'Action' });
-    // Radix sets data-state on the trigger so screen-reader users and CSS
-    // know whether the tooltip is open. We assert the attribute exists rather
-    // than its specific value because the closed-by-default value is not part
-    // of our public contract.
-    expect(trigger).toHaveAttribute('data-state');
+    await user.tab();
+
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Helpful hint');
+    expect(screen.getByRole('button', { name: 'Action' })).toHaveAccessibleDescription(
+      'Helpful hint'
+    );
+  });
+
+  it('hides the tooltip when Escape is pressed', async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip content='Helpful hint'>
+        <button type='button'>Action</button>
+      </Tooltip>
+    );
+    await user.tab();
+    await screen.findByRole('tooltip');
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+  });
+
+  it('shows the content on hover', async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip content='Helpful hint'>
+        <button type='button'>Action</button>
+      </Tooltip>
+    );
+
+    await user.hover(screen.getByRole('button', { name: 'Action' }));
+
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Helpful hint');
   });
 });

@@ -96,8 +96,8 @@ UI:
 
 - [`Button`](../../packages/lib.components/docs/Button.md) — standard button
 - [`DateTime`](../../packages/lib.components/src/components/ui/DateTime/README.md) — formatted date/time
-- [`DropdownButton`](../../packages/lib.components/src/components/ui/DropdownButton/README.md) — button dropdown (not exported)
-- [`DropdownMenu` (Dropdown)](../../packages/lib.components/src/components/ui/DropdownMenu/README.md) — click dropdown (not exported)
+- [`DropdownButton`](../../packages/lib.components/src/components/ui/DropdownButton/README.md) — button-styled dropdown menu
+- [`DropdownMenu` (Dropdown)](../../packages/lib.components/src/components/ui/DropdownMenu/README.md) — click-to-open menu of actions and links
 - [`EmptyState`](../../packages/lib.components/src/components/ui/EmptyState/README.md) — empty/no-data state
 - [`ErrorState`](../../packages/lib.components/src/components/ui/ErrorState/README.md) — error state with retry
 - [`ImageGallery`](../../packages/lib.components/src/components/ui/ImageGallery/README.md) — carousel/grid gallery (not exported)
@@ -108,7 +108,7 @@ UI:
 - [`Stepper`](../../packages/lib.components/src/components/ui/Stepper/README.md) — multi-step indicator
 - [`Toast`](../../packages/lib.components/src/components/ui/Toast/README.md) — legacy toast (superseded by `Toaster`)
 - [`Toaster`](../../packages/lib.components/src/components/ui/Toaster/README.md) — sonner-based toast provider + `toast`
-- [`Tooltip`](../../packages/lib.components/src/components/ui/Tooltip/README.md) — hover/focus tooltip (not exported)
+- [`Tooltip`](../../packages/lib.components/src/components/ui/Tooltip/README.md) — hover/focus tooltip
 
 Charts:
 

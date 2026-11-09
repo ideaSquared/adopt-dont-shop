@@ -25,6 +25,12 @@ export type {
   MatchReasonChipsProps,
 } from './components/ui/MatchReasonChips';
 export { Button } from './components/ui/Button';
+export { DropdownButton } from './components/ui/DropdownButton/DropdownButton';
+export type { DropdownButtonProps } from './components/ui/DropdownButton/DropdownButton';
+export { DropdownMenu } from './components/ui/DropdownMenu';
+export type { DropdownMenuItem, DropdownMenuProps } from './components/ui/DropdownMenu';
+export { Tooltip } from './components/ui/Tooltip/Tooltip';
+export type { TooltipProps } from './components/ui/Tooltip/Tooltip';
 export { default as DateTime } from './components/ui/DateTime/DateTime';
 export { Heading } from './components/ui/Heading';
 export { DotSpinner, Spinner } from './components/ui/Spinner';

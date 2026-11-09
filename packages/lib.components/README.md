@@ -37,7 +37,7 @@ The canonical list lives in [`src/index.ts`](src/index.ts), grouped:
   `lightTheme`, `normalTheme`, `vars`, `THEME_STORAGE_KEY`.
 - **Hooks**: `useConfirm`, `useToast`, `useDebouncedValue`.
 - **Foundation**: `Logo`, `Avatar`, `Badge`, `Button`, `DateTime`, `Heading`,
-  `Spinner`, `DotSpinner`, `Text`, `MatchReasonChips`, `Skeleton` (+
+  `Spinner`, `DotSpinner`, `Text`, `DropdownMenu`, `DropdownButton`, `Tooltip`, `MatchReasonChips`, `Skeleton` (+
   `SkeletonCard` / `SkeletonText` / `SkeletonTableRow`).
 - **Layout**: `Container`, `Stack`, `SplitPaneDetail`, `Card` (+ `CardHeader` /
   `CardContent` / `CardFooter`).

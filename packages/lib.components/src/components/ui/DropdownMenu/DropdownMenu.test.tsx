@@ -1,60 +1,133 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-import Dropdown from './DropdownMenu';
+import { DropdownMenu } from './DropdownMenu';
 
-/**
- * Dropdown wraps @radix-ui/react-dropdown-menu. The behaviours the consumer
- * cares about are:
- *   - the labelled trigger is rendered
- *   - opening the menu reveals each configured item, with hrefs preserved
- *     for navigational items and click handlers for action items
- *
- * Radix relies on `pointerdown` events that JSDOM doesn't fully synthesize
- * via userEvent, so we use fireEvent.pointerDown which Radix accepts.
- */
-describe('Dropdown', () => {
-  const renderUI = (component: React.ReactElement) => render(component);
+const openMenu = async (name: string) => {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name }));
+  return user;
+};
 
-  it('renders the trigger label', () => {
-    renderUI(<Dropdown triggerLabel='Menu' items={[]} />);
-    expect(screen.getByText('Menu')).toBeInTheDocument();
+describe('DropdownMenu', () => {
+  it('renders a labelled trigger and keeps the menu closed', () => {
+    render(<DropdownMenu triggerLabel='Menu' items={[{ label: 'Profile' }]} />);
+
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('reveals navigational items with their hrefs when opened', async () => {
-    const items = [
-      { label: 'Profile', to: '/profile' },
-      { label: 'Settings', to: '/settings' },
-    ];
-    renderUI(<Dropdown triggerLabel='Menu' items={items} />);
+  it('opens a menu named after its trigger listing each item', async () => {
+    render(
+      <DropdownMenu triggerLabel='Menu' items={[{ label: 'Profile' }, { label: 'Settings' }]} />
+    );
+    await openMenu('Menu');
 
-    const trigger = screen.getByText('Menu');
-    fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
-    fireEvent.click(trigger);
-
-    await waitFor(() => {
-      expect(screen.getByText('Profile')).toBeInTheDocument();
-    });
-    expect(screen.getByText('Profile').closest('a')).toHaveAttribute('href', '/profile');
-    expect(screen.getByText('Settings').closest('a')).toHaveAttribute('href', '/settings');
+    expect(await screen.findByRole('menu', { name: 'Menu' })).toBeInTheDocument();
+    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([
+      'Profile',
+      'Settings',
+    ]);
   });
 
-  it('invokes the item callback when an action item is selected', async () => {
+  it('renders navigational items as links with their hrefs', async () => {
+    render(<DropdownMenu triggerLabel='Menu' items={[{ label: 'Profile', to: '/profile' }]} />);
+    await openMenu('Menu');
+
+    expect(await screen.findByRole('menuitem', { name: 'Profile' })).toHaveAttribute(
+      'href',
+      '/profile'
+    );
+  });
+
+  it('calls onClick and closes the menu when an action item is chosen', async () => {
     const onSelect = vi.fn();
-    const items = [{ label: 'Sign out', onClick: onSelect }];
-    renderUI(<Dropdown triggerLabel='Menu' items={items} />);
+    render(<DropdownMenu triggerLabel='Menu' items={[{ label: 'Sign out', onClick: onSelect }]} />);
+    const user = await openMenu('Menu');
 
-    const trigger = screen.getByText('Menu');
-    fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
-    fireEvent.click(trigger);
+    await user.click(await screen.findByRole('menuitem', { name: 'Sign out' }));
 
-    const item = await screen.findByText('Sign out');
-    fireEvent.pointerDown(item, { button: 0, pointerType: 'mouse' });
-    fireEvent.pointerUp(item, { button: 0, pointerType: 'mouse' });
-    fireEvent.click(item);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+  });
 
-    await waitFor(() => {
-      expect(onSelect).toHaveBeenCalled();
-    });
+  it('supports keyboard navigation and Escape to close', async () => {
+    const onSelect = vi.fn();
+    render(
+      <DropdownMenu
+        triggerLabel='Menu'
+        items={[{ label: 'First' }, { label: 'Second', onClick: onSelect }]}
+      />
+    );
+    const user = userEvent.setup();
+    await user.tab();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+    expect(onSelect).toHaveBeenCalledTimes(1);
+
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveFocus();
+  });
+
+  it('does not call onClick for disabled items', async () => {
+    const onSelect = vi.fn();
+    render(
+      <DropdownMenu
+        triggerLabel='Menu'
+        items={[{ label: 'Export', onClick: onSelect, disabled: true }]}
+      />
+    );
+    const user = await openMenu('Menu');
+
+    const item = await screen.findByRole('menuitem', { name: 'Export' });
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+    await user.click(item);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('shows item descriptions, the header and separators', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel='Export'
+        header='Export as'
+        items={[
+          { label: 'CSV', description: 'Spreadsheet-compatible', icon: <svg /> },
+          { label: 'Log out', danger: true, separatorBefore: true },
+        ]}
+      />
+    );
+    await openMenu('Export');
+
+    expect(await screen.findByText('Export as')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /CSV/ })).toHaveTextContent(
+      'Spreadsheet-compatible'
+    );
+    expect(screen.getByRole('separator')).toBeInTheDocument();
+  });
+
+  it('opens from a custom trigger element', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel='User menu'
+        trigger={<button type='button'>Avatar</button>}
+        items={[{ label: 'Profile' }]}
+      />
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'User menu' }));
+
+    expect(await screen.findByRole('menu', { name: 'User menu' })).toBeInTheDocument();
+  });
+
+  it('does not open when disabled', async () => {
+    render(<DropdownMenu triggerLabel='Menu' disabled items={[{ label: 'Profile' }]} />);
+
+    expect(screen.getByRole('button', { name: 'Menu' })).toBeDisabled();
   });
 });
