@@ -29,6 +29,7 @@ const sampleReport = {
 };
 
 const useReportsMock = vi.fn();
+let stubTotal = 1;
 
 vi.mock('@adopt-dont-shop/lib.moderation', () => ({
   useReports: (filters: unknown) => {
@@ -36,7 +37,14 @@ vi.mock('@adopt-dont-shop/lib.moderation', () => ({
     return {
       data: {
         data: [sampleReport],
-        pagination: { page: 1, limit: 20, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: stubTotal,
+          totalPages: Math.ceil(stubTotal / 20),
+          hasNext: stubTotal > 20,
+          hasPrev: false,
+        },
       },
       isLoading: false,
       error: null,
@@ -324,6 +332,43 @@ describe('Moderation deep-link routing', () => {
 describe('Moderation filtered to one entity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    stubTotal = 1;
+  });
+
+  it('returns to the first page when the content type changes', async () => {
+    stubTotal = 50;
+    renderModerationAtRoute('/moderation');
+
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+    });
+
+    fireEvent.change(screen.getByLabelText(/content type/i), { target: { value: 'pet' } });
+
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ reportedEntityType: 'pet', page: 1 })
+      );
+    });
+  });
+
+  it('returns to the first page when the entity filter is cleared', async () => {
+    stubTotal = 50;
+    renderModerationAtRoute('/moderation?entityType=conversation&entityId=chat-42');
+
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /show all reports/i }));
+
+    await waitFor(() => {
+      expect(useReportsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ reportedEntityId: undefined, page: 1 })
+      );
+    });
   });
 
   it('lists only the linked entity’s reports when opened from a deep link', () => {

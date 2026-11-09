@@ -135,6 +135,7 @@ const Moderation: React.FC = () => {
   const entityIdFilter = searchParams.get('entityId') || undefined;
 
   const clearEntityId = () => {
+    setCurrentPage(1);
     setSearchParams(
       prev => {
         const next = new URLSearchParams(prev);
@@ -146,6 +147,7 @@ const Moderation: React.FC = () => {
   };
 
   const setEntityTypeParam = (value: string) => {
+    setCurrentPage(1);
     // An entity id only makes sense with the type it came with.
     setSearchParams(
       prev => {

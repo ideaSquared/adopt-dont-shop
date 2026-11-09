@@ -331,6 +331,10 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     onSelectionChange,
     getRowId,
     onRowClick,
+    page,
+    total,
+    pageSize = 20,
+    onPageChange,
   }: {
     columns: Array<{
       key: string;
@@ -345,6 +349,10 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     onSelectionChange?: (ids: string[]) => void;
     getRowId?: (row: Record<string, unknown>) => string;
     onRowClick?: (row: Record<string, unknown>) => void;
+    page?: number;
+    total?: number;
+    pageSize?: number;
+    onPageChange?: (page: number) => void;
     [k: string]: unknown;
   }) => {
     const rowKey = (row: Record<string, unknown>, index: number): string =>
@@ -418,7 +426,37 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
             );
           });
 
-    return React.createElement(
+    // Controlled pagination, as in the real table: Prev/Next only when there
+    // is more than one page.
+    const currentPage = page ?? 1;
+    const pageCount = Math.max(1, Math.ceil((total ?? 0) / pageSize));
+    const pagination =
+      page !== undefined && total !== undefined && onPageChange && pageCount > 1
+        ? React.createElement(
+            'div',
+            null,
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                disabled: currentPage <= 1,
+                onClick: () => onPageChange(currentPage - 1),
+              },
+              'Prev'
+            ),
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                disabled: currentPage >= pageCount,
+                onClick: () => onPageChange(currentPage + 1),
+              },
+              'Next'
+            )
+          )
+        : null;
+
+    const table = React.createElement(
       'table',
       { 'data-testid': 'data-table' },
       React.createElement(
@@ -444,6 +482,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       ),
       React.createElement('tbody', null, ...bodyRows)
     );
+    return React.createElement(React.Fragment, null, table, pagination);
   },
   Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
