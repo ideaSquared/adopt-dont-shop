@@ -1,6 +1,6 @@
 // Test-only token-read seam (ADS-871).
 //
-// Password-reset / email-verification / staff-invitation tokens are normally
+// Password-reset / email-verification / email-change / staff-invitation tokens are normally
 // only delivered by email, so the suite can't read them to drive the FULL
 // auth round-trips. The gateway exposes a test-gated peek endpoint
 // (services/gateway/src/routes/test-token-peek.ts) — OFF unless
@@ -17,6 +17,10 @@ type AuthTokens = {
   verificationTokenExpiresAt: string | null;
   resetToken: string | null;
   resetTokenExpiration: string | null;
+  // A pending email change (POST /api/v1/users/me/email-change). Looked up by
+  // the account's CURRENT email: the address only moves once confirmed.
+  emailChangeToken: string | null;
+  emailChangeTokenExpiresAt: string | null;
 };
 
 async function withAnonApi<T>(fn: (ctx: APIRequestContext) => Promise<T>): Promise<T> {

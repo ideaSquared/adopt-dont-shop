@@ -54,6 +54,8 @@ export type TestTokenPeekRoutesOptions = {
 // what the auth service would have produced.
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h
+// Email-change confirmation (email-change-handlers.ts), 24h like verification.
+const EMAIL_CHANGE_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const mintToken = (): string => randomBytes(32).toString('base64url');
 const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
@@ -69,6 +71,8 @@ type AuthTokenRow = {
   verification_token_expires_at: Date | null;
   minted_reset: boolean | null;
   reset_token_expiration: Date | null;
+  minted_email_change: boolean | null;
+  email_change_expires_at: Date | null;
 };
 
 type InvitationTokenRow = {
@@ -95,7 +99,7 @@ export const registerTestTokenPeekRoutes = async (
   });
 
   // GET /api/v1/test/auth-token?email=…
-  // Mints + returns the verification and reset tokens for a user (see the
+  // Mints + returns the verification, reset and email-change tokens for a user (see the
   // module comment): a fresh token is issued and its hash stored for whichever
   // flow currently has an outstanding hash; a flow with no outstanding hash
   // returns null. Reads/writes auth.users only.
@@ -111,8 +115,10 @@ export const registerTestTokenPeekRoutes = async (
 
       const verificationToken = mintToken();
       const resetToken = mintToken();
+      const emailChangeToken = mintToken();
       const verificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
       const resetExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+      const emailChangeExpires = new Date(Date.now() + EMAIL_CHANGE_TOKEN_TTL_MS);
 
       // Re-arm each hash ONLY where one is currently outstanding (the CASE
       // guards read the pre-UPDATE column value); RETURNING sees the new
@@ -130,18 +136,28 @@ export const registerTestTokenPeekRoutes = async (
                        ELSE reset_token_hash END,
                 reset_token_expiration =
                   CASE WHEN reset_token_hash IS NOT NULL THEN $5
-                       ELSE reset_token_expiration END
+                       ELSE reset_token_expiration END,
+                email_change_token_hash =
+                  CASE WHEN email_change_token_hash IS NOT NULL THEN $6
+                       ELSE email_change_token_hash END,
+                email_change_expires_at =
+                  CASE WHEN email_change_token_hash IS NOT NULL THEN $7
+                       ELSE email_change_expires_at END
           WHERE email = $1 AND deleted_at IS NULL
           RETURNING (verification_token_hash = $2) AS minted_verification,
                     verification_token_expires_at,
                     (reset_token_hash = $4) AS minted_reset,
-                    reset_token_expiration`,
+                    reset_token_expiration,
+                    (email_change_token_hash = $6) AS minted_email_change,
+                    email_change_expires_at`,
         [
           email,
           hashToken(verificationToken),
           verificationExpires,
           hashToken(resetToken),
           resetExpires,
+          hashToken(emailChangeToken),
+          emailChangeExpires,
         ]
       );
       const row = res.rows[0];
@@ -150,6 +166,7 @@ export const registerTestTokenPeekRoutes = async (
       }
       const hasVerification = row.minted_verification === true;
       const hasReset = row.minted_reset === true;
+      const hasEmailChange = row.minted_email_change === true;
       return reply.send({
         verificationToken: hasVerification ? verificationToken : null,
         verificationTokenExpiresAt: hasVerification
@@ -157,6 +174,10 @@ export const registerTestTokenPeekRoutes = async (
           : null,
         resetToken: hasReset ? resetToken : null,
         resetTokenExpiration: hasReset ? (row.reset_token_expiration?.toISOString() ?? null) : null,
+        emailChangeToken: hasEmailChange ? emailChangeToken : null,
+        emailChangeTokenExpiresAt: hasEmailChange
+          ? (row.email_change_expires_at?.toISOString() ?? null)
+          : null,
       });
     }
   );

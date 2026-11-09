@@ -164,6 +164,10 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/onboarding-and-top-picks.spec.ts',
     // Manual-QA gap closure: every gap-*.spec.ts is a validated journey.
     '**/gap-*.spec.ts',
+    // Shared account settings (lib.account): notification preferences
+    // round-trip, change password / email / delete on throwaway accounts, the
+    // last-staff-member erasure guard, and the read-only admin tab check.
+    '**/account-settings.spec.ts',
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
@@ -223,6 +227,10 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/add-pet-validation.spec.ts',
     '**/cross-tenant-and-role-isolation.spec.ts',
     '**/gap-*.spec.ts',
+    // Shared account settings (lib.account): notification preferences
+    // round-trip, change password / email / delete on throwaway accounts, the
+    // last-staff-member erasure guard, and the read-only admin tab check.
+    '**/account-settings.spec.ts',
   ],
   admin: [
     // ADS-867 (batch A3) — admin journeys. superadmin storageState
@@ -265,6 +273,10 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/admin-pet-unpublish.spec.ts',
     '**/admin-moderation-sanction.spec.ts',
     '**/gap-*.spec.ts',
+    // Shared account settings (lib.account): notification preferences
+    // round-trip, change password / email / delete on throwaway accounts, the
+    // last-staff-member erasure guard, and the read-only admin tab check.
+    '**/account-settings.spec.ts',
   ],
 };
 
