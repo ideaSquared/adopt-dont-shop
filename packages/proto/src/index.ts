@@ -490,6 +490,8 @@ export type {
   UpdateChatStatusResponse,
   GetChatStatsRequest,
   GetChatStatsResponse,
+  AdminListChatsRequest,
+  AdminListChatsResponse,
   ChatServiceServer,
   ChatServiceClient,
 } from './generated/proto/adopt_dont_shop/chat/v1/chat.js';

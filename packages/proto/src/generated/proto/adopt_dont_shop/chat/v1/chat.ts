@@ -400,6 +400,30 @@ export interface GetChatStatsResponse {
   averageMessagesPerChat: number;
 }
 
+export interface AdminListChatsRequest {
+  /** 1-indexed. Defaults to 1. */
+  page: number;
+  /** Defaults to 20, max 100. */
+  limit: number;
+  /** Optional lifecycle filter. Unset (or UNSPECIFIED) returns every status. */
+  status?:
+    | ChatStatus
+    | undefined;
+  /**
+   * Optional full-text match against message content (same tsvector match
+   * as SearchChats). Server enforces <= 100 chars; blank means no filter.
+   */
+  query?: string | undefined;
+}
+
+export interface AdminListChatsResponse {
+  chats: Chat[];
+  page: number;
+  limit: number;
+  /** Total chats matching the filter — drives the pagination controls. */
+  total: number;
+}
+
 function createBaseChat(): Chat {
   return {
     chatId: "",
@@ -3560,6 +3584,222 @@ export const GetChatStatsResponse: MessageFns<GetChatStatsResponse> = {
   },
 };
 
+function createBaseAdminListChatsRequest(): AdminListChatsRequest {
+  return { page: 0, limit: 0, status: undefined, query: undefined };
+}
+
+export const AdminListChatsRequest: MessageFns<AdminListChatsRequest> = {
+  encode(message: AdminListChatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.page !== 0) {
+      writer.uint32(8).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(16).uint32(message.limit);
+    }
+    if (message.status !== undefined) {
+      writer.uint32(24).int32(message.status);
+    }
+    if (message.query !== undefined) {
+      writer.uint32(34).string(message.query);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminListChatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminListChatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.query = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminListChatsRequest {
+    return {
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+      status: isSet(object.status) ? chatStatusFromJSON(object.status) : undefined,
+      query: isSet(object.query) ? globalThis.String(object.query) : undefined,
+    };
+  },
+
+  toJSON(message: AdminListChatsRequest): unknown {
+    const obj: any = {};
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    if (message.status !== undefined) {
+      obj.status = chatStatusToJSON(message.status);
+    }
+    if (message.query !== undefined) {
+      obj.query = message.query;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminListChatsRequest>, I>>(base?: I): AdminListChatsRequest {
+    return AdminListChatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminListChatsRequest>, I>>(object: I): AdminListChatsRequest {
+    const message = createBaseAdminListChatsRequest();
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    message.status = object.status ?? undefined;
+    message.query = object.query ?? undefined;
+    return message;
+  },
+};
+
+function createBaseAdminListChatsResponse(): AdminListChatsResponse {
+  return { chats: [], page: 0, limit: 0, total: 0 };
+}
+
+export const AdminListChatsResponse: MessageFns<AdminListChatsResponse> = {
+  encode(message: AdminListChatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.chats) {
+      Chat.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.page !== 0) {
+      writer.uint32(16).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(24).uint32(message.limit);
+    }
+    if (message.total !== 0) {
+      writer.uint32(32).uint32(message.total);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminListChatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminListChatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chats.push(Chat.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminListChatsResponse {
+    return {
+      chats: globalThis.Array.isArray(object?.chats) ? object.chats.map((e: any) => Chat.fromJSON(e)) : [],
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+    };
+  },
+
+  toJSON(message: AdminListChatsResponse): unknown {
+    const obj: any = {};
+    if (message.chats?.length) {
+      obj.chats = message.chats.map((e) => Chat.toJSON(e));
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminListChatsResponse>, I>>(base?: I): AdminListChatsResponse {
+    return AdminListChatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminListChatsResponse>, I>>(object: I): AdminListChatsResponse {
+    const message = createBaseAdminListChatsResponse();
+    message.chats = object.chats?.map((e) => Chat.fromPartial(e)) || [];
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    message.total = object.total ?? 0;
+    return message;
+  },
+};
+
 /**
  * ChatService is the gRPC contract for the chat vertical. It owns
  * the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
@@ -3810,6 +4050,23 @@ export const ChatServiceService = {
       Buffer.from(GetChatStatsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetChatStatsResponse => GetChatStatsResponse.decode(value),
   },
+  /**
+   * Platform-wide chat list for the admin Messages page. Unlike ListChats
+   * it is NOT participant-scoped, so it requires a privileged role
+   * (moderator / admin / super_admin); a plain participant is denied.
+   * Offset-paginated with a real total. Excludes soft-deleted chats.
+   */
+  adminListChats: {
+    path: "/adopt_dont_shop.chat.v1.ChatService/AdminListChats" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminListChatsRequest): Buffer =>
+      Buffer.from(AdminListChatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminListChatsRequest => AdminListChatsRequest.decode(value),
+    responseSerialize: (value: AdminListChatsResponse): Buffer =>
+      Buffer.from(AdminListChatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminListChatsResponse => AdminListChatsResponse.decode(value),
+  },
 } as const;
 
 export interface ChatServiceServer extends UntypedServiceImplementation {
@@ -3916,6 +4173,13 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    * Counts exclude soft-deleted chats and messages.
    */
   getChatStats: handleUnaryCall<GetChatStatsRequest, GetChatStatsResponse>;
+  /**
+   * Platform-wide chat list for the admin Messages page. Unlike ListChats
+   * it is NOT participant-scoped, so it requires a privileged role
+   * (moderator / admin / super_admin); a plain participant is denied.
+   * Offset-paginated with a real total. Excludes soft-deleted chats.
+   */
+  adminListChats: handleUnaryCall<AdminListChatsRequest, AdminListChatsResponse>;
 }
 
 export interface ChatServiceClient extends Client {
@@ -4231,6 +4495,27 @@ export interface ChatServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetChatStatsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Platform-wide chat list for the admin Messages page. Unlike ListChats
+   * it is NOT participant-scoped, so it requires a privileged role
+   * (moderator / admin / super_admin); a plain participant is denied.
+   * Offset-paginated with a real total. Excludes soft-deleted chats.
+   */
+  adminListChats(
+    request: AdminListChatsRequest,
+    callback: (error: ServiceError | null, response: AdminListChatsResponse) => void,
+  ): ClientUnaryCall;
+  adminListChats(
+    request: AdminListChatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminListChatsResponse) => void,
+  ): ClientUnaryCall;
+  adminListChats(
+    request: AdminListChatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminListChatsResponse) => void,
   ): ClientUnaryCall;
 }
 

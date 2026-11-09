@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { renderWithProviders } from '../test-utils';
 import type { Conversation } from '@adopt-dont-shop/lib.chat';
 
@@ -79,7 +79,22 @@ describe('Messages page', () => {
 
       fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'active' } });
 
-      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ status: 'active' });
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ status: 'active', page: 1, limit: 20 });
+    });
+
+    it('offers only the statuses a chat can have, filtering Closed as locked', () => {
+      renderWithProviders(<Messages />);
+
+      const statusFilter = screen.getByLabelText('Status');
+      expect(within(statusFilter).queryByRole('option', { name: 'Blocked' })).toBeNull();
+
+      fireEvent.change(statusFilter, {
+        target: {
+          value: within(statusFilter).getByRole('option', { name: 'Closed' }).getAttribute('value'),
+        },
+      });
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ status: 'locked', page: 1, limit: 20 });
     });
 
     it('re-queries with the search term as the user types', () => {
@@ -87,7 +102,7 @@ describe('Messages page', () => {
 
       fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'hello' } });
 
-      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ search: 'hello' });
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ search: 'hello', page: 1, limit: 20 });
     });
 
     it('renders the conversations returned for the selected filter', () => {
@@ -114,6 +129,74 @@ describe('Messages page', () => {
       fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'active' } });
 
       expect(screen.getAllByText('ActiveAlice').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('pagination', () => {
+    const pagedResult = {
+      data: {
+        data: [conversation({ id: 'chat-p' })],
+        pagination: { page: 1, limit: 20, total: 45, totalPages: 3 },
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    };
+
+    it('asks for the first page of 20 chats', () => {
+      renderWithProviders(<Messages />);
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ page: 1, limit: 20 });
+    });
+
+    it('pages through every chat using the server total', () => {
+      useAdminChatsMock.mockReturnValue(pagedResult);
+      renderWithProviders(<Messages />);
+
+      expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ page: 2, limit: 20 });
+    });
+
+    it('goes back to the first page when the filter changes', () => {
+      useAdminChatsMock.mockReturnValue(pagedResult);
+      renderWithProviders(<Messages />);
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'active' } });
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ status: 'active', page: 1, limit: 20 });
+    });
+
+    it('steps back a page when the last chat on the current page is removed', () => {
+      useAdminChatsMock.mockReturnValue({
+        ...pagedResult,
+        data: { ...pagedResult.data, pagination: { page: 1, limit: 20, total: 21, totalPages: 2 } },
+      });
+      const { rerender } = renderWithProviders(<Messages />);
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ page: 2, limit: 20 });
+
+      // The only chat on page 2 is deleted: the refetch for page 2 is empty
+      // and the total drops to 20, which fits on page 1.
+      useAdminChatsMock.mockReturnValue({
+        ...pagedResult,
+        data: { data: [], pagination: { page: 2, limit: 20, total: 20, totalPages: 1 } },
+      });
+      rerender(<Messages />);
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ page: 1, limit: 20 });
+    });
+
+    it('goes back to the first page when the search changes', () => {
+      useAdminChatsMock.mockReturnValue(pagedResult);
+      renderWithProviders(<Messages />);
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'vet' } });
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ search: 'vet', page: 1, limit: 20 });
     });
   });
 });
