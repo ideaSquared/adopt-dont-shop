@@ -229,6 +229,13 @@ jobs:
         if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
         run: node scripts/check-form-primitives.mjs
 
+      # Ratchet the design-token debt: fail if any category of hard-coded
+      # style value in the apps' .css.ts files (colour, font, spacing, radius,
+      # z-index) exceeds its ceiling in design-tokens-threshold.json.
+      - name: Verify apps do not add hard-coded style values
+        if: steps.changed-code.outputs.code == 'true' || github.event_name != 'pull_request'
+        run: node scripts/check-design-tokens.mjs
+
       # ADS-1028: prettier formatting was enforced only by the lint-staged
       # pre-commit hook, which --no-verify, web-UI and agent commits all bypass
       # — so formatting drift reached main invisibly. Gate every PR on it here

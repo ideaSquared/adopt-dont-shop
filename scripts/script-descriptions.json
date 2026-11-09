@@ -88,6 +88,7 @@
   "check:readmes": "Guard: fail if a workspace README is missing a section from docs/templates/README.{app,service,lib}.md.",
   "check:no-only": "Guard: fail if a committed test file uses a focused test (.only / fdescribe / fit); warns (add --strict to fail) on .skip/.todo/.skipIf/.fixme.",
   "check:forms": "Ratchet: fail if the apps add raw <input>/<select>/<textarea> or TextInput beyond the persisted ceiling (prefer FormField + Input).",
+  "check:tokens": "Ratchet: fail if any category of hard-coded style value (colour, font, spacing, radius, z-index) in the apps' .css.ts files exceeds its persisted ceiling (prefer vars.* tokens).",
   "check:bundle-size": "Guard: fail if any app's built dist/ (.js + .css, excluding sourcemaps) exceeds its persisted budget in scripts/check-bundle-size.mjs. Run `pnpm build:apps` first.",
   "check:dev-auth-guard": "Guard: fail if a dev-auth bypass pattern (dev_user / dev-token-) appears in production source outside its allowed DEV-gated locations.",
   "check:permission-casts": "Guard: fail if any services/**/grpc handler reintroduces a quoted-literal `as Permission` cast instead of importing the permission constant from lib.types.",
