@@ -83,6 +83,9 @@ const CheckYourEmailPage = lazy(() =>
 const ForgotPasswordPage = lazy(() =>
   import('@/pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage }))
 );
+const ConfirmEmailChangePage = lazy(() =>
+  import('@/pages/ConfirmEmailChangePage').then(m => ({ default: m.ConfirmEmailChangePage }))
+);
 const ResetPasswordPage = lazy(() =>
   import('@/pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
 );
@@ -147,6 +150,7 @@ function App() {
                       <Route path='/check-your-email' element={<CheckYourEmailPage />} />
                       <Route path='/forgot-password' element={<ForgotPasswordPage />} />
                       <Route path='/reset-password' element={<ResetPasswordPage />} />
+                      <Route path='/confirm-email-change' element={<ConfirmEmailChangePage />} />
                     </Route>
 
                     <Route element={<AppShell />}>

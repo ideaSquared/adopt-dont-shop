@@ -27,25 +27,17 @@ describe('ProfileEditForm', () => {
     render(<ProfileEditForm user={baseUser} onSave={onSave} onCancel={vi.fn()} />);
 
     await user.clear(screen.getByLabelText(/first name/i));
-    await user.clear(screen.getByLabelText(/^email/i));
     await user.click(screen.getByRole('button', { name: /save changes/i }));
 
     expect(await screen.findByText('First name is required')).toBeInTheDocument();
-    expect(screen.getByText('Email is required')).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it('rejects a malformed email address', async () => {
-    const user = userEvent.setup();
-    const onSave = vi.fn();
-    render(<ProfileEditForm user={baseUser} onSave={onSave} onCancel={vi.fn()} />);
+  it('shows the email read-only and points to the verified change in Settings', () => {
+    render(<ProfileEditForm user={baseUser} onSave={vi.fn()} onCancel={vi.fn()} />);
 
-    await user.clear(screen.getByLabelText(/^email/i));
-    await user.type(screen.getByLabelText(/^email/i), 'not-an-email');
-    await user.click(screen.getByRole('button', { name: /save changes/i }));
-
-    expect(await screen.findByText('Please enter a valid email address')).toBeInTheDocument();
-    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/^email/i)).toHaveAttribute('readonly');
+    expect(screen.getByText(/go to settings, then account/i)).toBeInTheDocument();
   });
 
   it('clears a field error once the user edits it', async () => {

@@ -41,7 +41,6 @@ describe('AccountDetailsForm', () => {
     expect(screen.getByLabelText(/first name/i)).toHaveValue('Ada');
     expect(screen.getByLabelText(/last name/i)).toHaveValue('Lovelace');
     expect(screen.getByLabelText(/phone/i)).toHaveValue('01632 960001');
-    expect(screen.getByText('ada@example.com')).toBeInTheDocument();
   });
 
   it('saves the edited details', async () => {

@@ -7,8 +7,9 @@ Shared personal account settings (notifications, security, appearance, account) 
 One settings UI for the signed-in user's own account, used by `app.admin`,
 `app.client` and `app.rescue` so the three apps don't each grow their own
 version. It owns the notification preferences form (and the TanStack Query
-hooks and Zod-validated service behind it) and the account details, change
-password and delete account forms, and composes them with the existing
+hooks and Zod-validated service behind it), the account details, change
+email, change password and delete account forms, and the confirm-email-change
+screen, and composes them with the existing
 `TwoFactorSettings` (lib.auth) and `ThemeToggle` (lib.components) into a
 tabbed `AccountSettings` component. App-specific settings, such as the
 adopter's privacy and pet preferences in `app.client`, are passed in as extra
@@ -24,6 +25,9 @@ theme) and `lib.utils` (UK phone validation). Backs onto these gateway routes:
 - `GET` / `PUT /api/v1/notifications/preferences` (`notifications.user_notification_prefs`).
 - `PATCH /api/v1/users/account` (name, phone), via `useAuth().updateProfile`.
 - `POST /api/v1/auth/change-password`. It ends every session, so the form signs the user out.
+- `POST /api/v1/users/me/email-change` (step-up re-auth; the same answer whether
+  or not the new address is taken) and `POST /api/v1/auth/confirm-email-change`
+  (public; the emailed token is the credential; ends every session).
 - `POST /api/v1/users/me/erasure-request`. Step-up re-auth; refuses the last
   active super admin and the last staff member of a rescue with `409`.
 
@@ -63,11 +67,13 @@ const [tab, setTab] = useState('notifications');
 ```
 
 - **Components**: `AccountSettings` (controlled tabs: Notifications, Security
-  (password and two-factor), Appearance, Account (your details and delete
-  account), then any `extraTabs`; an unknown `value` shows Notifications, so
-  stale links still land somewhere; `showAccountDetails={false}` drops the
-  name/phone form for an app that edits those fields elsewhere),
-  `NotificationPreferencesForm` (channels,
+  (password and two-factor), Appearance, Account (your details, email and
+  delete account), then any `extraTabs`; an unknown `value` shows
+  Notifications, so stale links still land somewhere;
+  `showAccountDetails={false}` drops the name/phone form for an app that edits
+  those fields elsewhere), `ConfirmEmailChange` (landing screen for the emailed
+  link; confirms on a click, never on page load, because link scanners would
+  spend the one-time token), `NotificationPreferencesForm` (channels,
   categories, quiet hours and timezone). There is deliberately no email digest
   setting: digest emails read `email_preferences`, which no gateway route exposes yet.
 - **Hooks**: `useNotificationPreferences`, `useUpdateNotificationPreferences`

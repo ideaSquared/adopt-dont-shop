@@ -30,7 +30,7 @@ const toErrors = (error: z.ZodError<Details>): DetailsErrors =>
     ])
   );
 
-/** Name and phone number for the signed-in user. Email is shown read-only. */
+/** Name and phone number for the signed-in user. Email has its own form (ChangeEmailForm). */
 export const AccountDetailsForm = () => {
   const { user, updateProfile } = useAuth();
   const [values, setValues] = useState<Details>({
@@ -97,10 +97,6 @@ export const AccountDetailsForm = () => {
           onChange={change('phoneNumber')}
         />
       </FormField>
-      <div>
-        <p className={styles.hint}>Email</p>
-        <p className={styles.readOnlyValue}>{user.email}</p>
-      </div>
 
       <div className={styles.actions}>
         <Button type='submit' isLoading={save.isPending} disabled={save.isPending}>

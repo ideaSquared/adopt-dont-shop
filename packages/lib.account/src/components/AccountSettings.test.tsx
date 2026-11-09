@@ -20,6 +20,9 @@ vi.mock('./ChangePasswordForm', () => ({
 vi.mock('./AccountDetailsForm', () => ({
   AccountDetailsForm: () => <div>Details controls</div>,
 }));
+vi.mock('./ChangeEmailForm', () => ({
+  ChangeEmailForm: () => <div>Email controls</div>,
+}));
 vi.mock('./DeleteAccountSection', () => ({
   DeleteAccountSection: () => <div>Delete controls</div>,
 }));
@@ -69,6 +72,7 @@ describe('AccountSettings', () => {
     ['Security', 'Password controls'],
     ['Appearance', 'Theme controls'],
     ['Account', 'Details controls'],
+    ['Account', 'Email controls'],
     ['Account', 'Delete controls'],
   ])('shows %s settings when that tab is chosen', (tab, content) => {
     render(<Harness />);
@@ -83,6 +87,7 @@ describe('AccountSettings', () => {
     render(<Harness initial='account' showAccountDetails={false} />);
 
     expect(screen.queryByText('Details controls')).not.toBeInTheDocument();
+    expect(screen.getByText('Email controls')).toBeInTheDocument();
     expect(screen.getByText('Delete controls')).toBeInTheDocument();
   });
 

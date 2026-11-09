@@ -2,6 +2,7 @@ import React from 'react';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { Tabs, ThemeToggle } from '@adopt-dont-shop/lib.components';
 import { AccountDetailsForm } from './AccountDetailsForm';
+import { ChangeEmailForm } from './ChangeEmailForm';
 import { ChangePasswordForm } from './ChangePasswordForm';
 import { DeleteAccountSection } from './DeleteAccountSection';
 import { NotificationPreferencesForm } from './NotificationPreferencesForm';
@@ -64,6 +65,9 @@ const sharedTabs = (showAccountDetails: boolean): ReadonlyArray<AccountSettingsT
             <AccountDetailsForm />
           </Panel>
         )}
+        <Panel title='Email'>
+          <ChangeEmailForm />
+        </Panel>
         <Panel title='Delete account'>
           <DeleteAccountSection />
         </Panel>
