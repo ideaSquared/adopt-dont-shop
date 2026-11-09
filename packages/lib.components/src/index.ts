@@ -16,6 +16,8 @@ export { Logo } from './components/ui/Logo';
 export type { LogoProps } from './components/ui/Logo';
 export { Avatar } from './components/ui/Avatar';
 export { Badge } from './components/ui/Badge';
+export { StatusBadge } from './components/ui/StatusBadge';
+export type { StatusBadgeProps } from './components/ui/StatusBadge';
 export { Tabs } from './components/ui/Tabs';
 export type { TabItem, TabsProps } from './components/ui/Tabs';
 export { MatchReasonChips } from './components/ui/MatchReasonChips';

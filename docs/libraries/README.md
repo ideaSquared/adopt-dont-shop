@@ -105,6 +105,7 @@ UI:
 - [`PageHeader`](../../packages/lib.components/src/components/ui/PageHeader/README.md) — page `<h1>` + description + actions
 - [`ConfirmDialog`](../../packages/lib.components/docs/ConfirmDialog.md) — confirm/cancel dialog
 - [`ProgressBar`](../../packages/lib.components/src/components/ui/ProgressBar/README.md) — progress indicator (not exported)
+- [`StatusBadge`](../../packages/lib.components/src/components/ui/StatusBadge/README.md) — badge with shared status labels and colours
 - [`SkipLink`](../../packages/lib.components/docs/SkipLink.md) — skip-to-content a11y link
 - [`Stepper`](../../packages/lib.components/src/components/ui/Stepper/README.md) — multi-step indicator
 - [`Toast`](../../packages/lib.components/src/components/ui/Toast/README.md) — legacy toast (superseded by `Toaster`)
