@@ -124,6 +124,7 @@ const main = async (): Promise<void> => {
       authEmail: {
         frontendUrl: config.frontendUrl,
         rescueAppUrl: config.rescueAppUrl,
+        adminAppUrl: config.adminAppUrl,
         fromEmail: config.defaultFromEmail,
         fromName: config.defaultFromName,
       },

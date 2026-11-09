@@ -41,6 +41,9 @@ export type AuthEmailConfig = {
   frontendUrl: string;
   // Rescue app origin the staff invitation link points at (RESCUE_FRONTEND_URL).
   rescueAppUrl: string;
+  // Admin app origin the reset link points at for admin-side users
+  // (ADMIN_FRONTEND_URL).
+  adminAppUrl: string;
   fromEmail: string;
   fromName: string;
 };
@@ -69,6 +72,8 @@ type PasswordResetRequestedEvent = {
   userId?: string;
   email?: string;
   firstName?: string;
+  // auth.users.user_type. Absent on events published before it rode along.
+  userType?: string;
   resetToken?: string;
   resetExpiresAt?: string;
 };
@@ -181,16 +186,35 @@ export const renderVerificationEmail = (
     closing: 'If you did not create an account, you can ignore this email.',
   });
 
+const ADMIN_APP_USER_TYPES: ReadonlySet<string> = new Set([
+  'admin',
+  'moderator',
+  'super_admin',
+  'support_agent',
+]);
+
+// The reset link opens the app the user signs in to. Anything unrecognised,
+// including an event with no userType, goes to the client app as before.
+const resetAppUrlFor = (userType: string | undefined, config: AuthEmailConfig): string => {
+  if (userType === 'rescue_staff') {
+    return config.rescueAppUrl;
+  }
+  if (userType && ADMIN_APP_USER_TYPES.has(userType)) {
+    return config.adminAppUrl;
+  }
+  return config.frontendUrl;
+};
+
 export const renderPasswordResetEmail = (
   event: PasswordResetRequestedEvent,
-  frontendUrl: string
+  config: AuthEmailConfig
 ): RenderedEmail =>
   render({
     subject: `Reset your password for ${APP_NAME}`,
     greetingName: event.firstName,
     lines: [`We received a request to reset the password for your ${APP_NAME} account.`],
     linkText: 'Choose a new password',
-    url: link(frontendUrl, '/reset-password', event.resetToken ?? ''),
+    url: link(resetAppUrlFor(event.userType, config), '/reset-password', event.resetToken ?? ''),
     expiry: formatExpiry(event.resetExpiresAt),
     closing:
       'If you did not ask for this, you can ignore this email and your password will stay the same.',
@@ -349,7 +373,7 @@ export const registerAuthEmailSubscribers = (
         'auth.passwordResetRequested',
         meta.id,
         event,
-        renderPasswordResetEmail(event, opts.config.frontendUrl)
+        renderPasswordResetEmail(event, opts.config)
       );
     }
   ),

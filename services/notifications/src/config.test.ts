@@ -91,6 +91,49 @@ describe('loadConfig', () => {
     ).toBe('https://rescue.example.com');
   });
 
+  it('builds admin reset links from ADMIN_FRONTEND_URL, defaulting to the local admin app in development', () => {
+    expect(loadConfig({ DATABASE_URL: VALID_DB_URL }).adminAppUrl).toBe('http://localhost:3001');
+    expect(
+      loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        ADMIN_FRONTEND_URL: ' https://admin.example.com ',
+      }).adminAppUrl
+    ).toBe('https://admin.example.com');
+  });
+
+  // The prod/staging compose files pass `${ADMIN_FRONTEND_URL:-}`, so "unset"
+  // reaches the service as an empty string as well as a missing key.
+  it.each([{}, { ADMIN_FRONTEND_URL: '' }])(
+    'still boots in production without ADMIN_FRONTEND_URL (%j), sending admin reset links to FRONTEND_URL',
+    adminEnv => {
+      const config = loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        NODE_ENV: 'production',
+        EMAIL_PROVIDER: 'ethereal',
+        PUSH_PROVIDER: 'none',
+        FRONTEND_URL: 'https://app.example.com',
+        RESCUE_FRONTEND_URL: 'https://rescue.example.com',
+        ...adminEnv,
+      });
+
+      expect(config.adminAppUrl).toBe('https://app.example.com');
+    }
+  );
+
+  it('uses ADMIN_FRONTEND_URL in production when it is set', () => {
+    expect(
+      loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        NODE_ENV: 'production',
+        EMAIL_PROVIDER: 'ethereal',
+        PUSH_PROVIDER: 'none',
+        FRONTEND_URL: 'https://app.example.com',
+        RESCUE_FRONTEND_URL: 'https://rescue.example.com',
+        ADMIN_FRONTEND_URL: 'https://admin.example.com',
+      }).adminAppUrl
+    ).toBe('https://admin.example.com');
+  });
+
   it('refuses to boot in production without RESCUE_FRONTEND_URL, since invitation links would be broken', () => {
     expect(() =>
       loadConfig({

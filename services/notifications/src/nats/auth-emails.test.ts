@@ -26,6 +26,7 @@ const TOKEN = 'tok_AbC-123_secretValue';
 const CONFIG = {
   frontendUrl: 'http://localhost:3000/',
   rescueAppUrl: 'http://localhost:3002/',
+  adminAppUrl: 'http://localhost:3001/',
   fromEmail: 'noreply@adoptdontshop.com',
   fromName: "Adopt Don't Shop",
 };
@@ -164,6 +165,54 @@ describe('registerAuthEmailSubscribers', () => {
     expect(email.htmlContent).toContain(`href="${link}"`);
     expect(email.textContent).toContain(link);
     expect(email.textContent).toMatch(/if you did not ask/i);
+  });
+
+  it('links a rescue staff member to the reset page on the rescue app', async () => {
+    const { handlers } = register();
+
+    await handlers.get('auth.passwordResetRequested')!(
+      { ...RESET, userType: 'rescue_staff' },
+      { id: 'evt-reset-rescue' }
+    );
+
+    const email = insertEmailMock.mock.calls[0][1];
+    const link = `http://localhost:3002/reset-password?token=${TOKEN}`;
+    expect(email.htmlContent).toContain(`href="${link}"`);
+    expect(email.textContent).toContain(link);
+  });
+
+  it.each(['admin', 'super_admin', 'moderator', 'support_agent'])(
+    'links a reset requested by %s to the admin app',
+    async userType => {
+      const { handlers } = register();
+
+      await handlers.get('auth.passwordResetRequested')!(
+        { ...RESET, userType },
+        { id: `evt-reset-${userType}` }
+      );
+
+      const email = insertEmailMock.mock.calls[0][1];
+      const link = `http://localhost:3001/reset-password?token=${TOKEN}`;
+      expect(email.htmlContent).toContain(`href="${link}"`);
+      expect(email.textContent).toContain(link);
+    }
+  );
+
+  it('links an adopter, or an event published before userType rode along, to the client app', async () => {
+    const { handlers } = register();
+
+    await handlers.get('auth.passwordResetRequested')!(
+      { ...RESET, userType: 'adopter' },
+      { id: 'evt-reset-adopter' }
+    );
+    await handlers.get('auth.passwordResetRequested')!(RESET, { id: 'evt-reset-legacy' });
+
+    const link = `http://localhost:3000/reset-password?token=${TOKEN}`;
+    expect(insertEmailMock).toHaveBeenCalledTimes(2);
+    insertEmailMock.mock.calls.forEach(([, email]) => {
+      expect(email.htmlContent).toContain(`href="${link}"`);
+      expect(email.textContent).toContain(link);
+    });
   });
 
   it('queues a staff invitation email linking to the rescue app accept page, without logging the address or token', async () => {

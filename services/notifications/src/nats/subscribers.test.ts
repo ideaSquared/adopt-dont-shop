@@ -513,6 +513,7 @@ describe('registerSubscribers', () => {
       authEmail: {
         frontendUrl: 'http://localhost:3000',
         rescueAppUrl: 'http://localhost:3002',
+        adminAppUrl: 'http://localhost:3001',
         fromEmail: 'noreply@adoptdontshop.com',
         fromName: "Adopt Don't Shop",
       },

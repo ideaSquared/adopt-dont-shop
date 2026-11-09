@@ -501,6 +501,9 @@ export async function forgotPassword(
           userId: user.user_id,
           email: user.email,
           firstName: user.first_name,
+          // Lets service.notifications point the link at the app this user
+          // signs in to (client, rescue or admin).
+          userType: user.user_type,
           resetToken: token,
           resetExpiresAt: expires.toISOString(),
         },

@@ -498,6 +498,9 @@ services:
       FRONTEND_URL: "${FRONTEND_URL:?Error: FRONTEND_URL required}"
       # Rescue app origin for staff invitation email links.
       RESCUE_FRONTEND_URL: "${RESCUE_FRONTEND_URL:?Error: RESCUE_FRONTEND_URL required}"
+      # Admin app origin for admin-side password-reset email links. Optional:
+      # when unset the service falls back to FRONTEND_URL.
+      ADMIN_FRONTEND_URL: "${ADMIN_FRONTEND_URL:-}"
       # Push is off ('none') until an app registers device tokens. To turn it
       # on, set PUSH_PROVIDER=fcm, FCM_PROJECT_ID and FCM_SERVICE_ACCOUNT_JSON
       # in the host .env; deploy.yml then requires both FCM values.
