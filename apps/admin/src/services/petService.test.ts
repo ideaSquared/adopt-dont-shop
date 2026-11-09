@@ -21,6 +21,28 @@ beforeEach(() => {
 });
 
 describe('PetService', () => {
+  describe('getById', () => {
+    it('fetches one pet and maps it to the admin shape', async () => {
+      mockGet.mockResolvedValueOnce({
+        success: true,
+        data: {
+          pet_id: 'p9',
+          name: 'Rex',
+          type: 'dog',
+          status: 'available',
+          rescue_id: 'r1',
+          created_at: '2024-01-01',
+          updated_at: '2024-01-02',
+        },
+      });
+
+      const pet = await petService.getById('p9');
+
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/pets/p9');
+      expect(pet).toMatchObject({ petId: 'p9', name: 'Rex', status: 'available', rescueId: 'r1' });
+    });
+  });
+
   describe('getAll', () => {
     it('maps all provided filters into query params', async () => {
       mockGet.mockResolvedValueOnce({
