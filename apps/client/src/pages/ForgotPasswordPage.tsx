@@ -1,14 +1,7 @@
 import { useCountdown } from '@/hooks/useCountdown';
 import { useStatsig } from '@/hooks/useStatsig';
 import { authService } from '@/services';
-import {
-  ApiError,
-  AuthenticationError,
-  AuthorizationError,
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-} from '@adopt-dont-shop/lib.api';
+import { classifyFailure, rateLimitMessage } from '@adopt-dont-shop/lib.auth';
 import { Alert, Button, Card, Input } from '@adopt-dont-shop/lib.components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
@@ -25,44 +18,6 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const SERVER_ERROR_MESSAGE = 'Something went wrong on our side. Please try again shortly.';
-
-type RequestOutcome =
-  | { kind: 'rate-limited'; retryAfterSeconds: number | undefined }
-  | { kind: 'server-error' }
-  | { kind: 'accepted' };
-
-// C2-6 (superseded) used to show the success screen for every 4xx so a 429
-// could not be correlated with "this email exists". That reasoning no longer
-// holds: both gateway limiters (per-IP, per-email) run before any account
-// lookup and key only on request input, so a 429 is identical for known and
-// unknown emails and surfacing it leaks nothing. Other 4xx responses keep
-// the generic success screen; 5xx, network errors and timeouts are errors.
-const classifyFailure = (err: unknown): RequestOutcome => {
-  if (err instanceof ApiError && err.status === 429) {
-    return { kind: 'rate-limited', retryAfterSeconds: err.retryAfterSeconds };
-  }
-  if (err instanceof ApiError && err.status < 500) {
-    return { kind: 'accepted' };
-  }
-  if (
-    err instanceof ValidationError ||
-    err instanceof NotFoundError ||
-    err instanceof AuthenticationError ||
-    err instanceof AuthorizationError ||
-    err instanceof ConflictError
-  ) {
-    return { kind: 'accepted' };
-  }
-  return { kind: 'server-error' };
-};
-
-const rateLimitMessage = (retryAfterSeconds: number | undefined): string => {
-  const wait =
-    retryAfterSeconds === undefined
-      ? 'a minute'
-      : `${retryAfterSeconds} ${retryAfterSeconds === 1 ? 'second' : 'seconds'}`;
-  return `You've made too many reset requests. Please wait ${wait} and try again.`;
-};
 
 export const ForgotPasswordPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -111,14 +66,14 @@ export const ForgotPasswordPage: React.FC = () => {
         error_message: err instanceof Error ? err.message : 'Unknown error',
       });
 
-      const outcome = classifyFailure(err);
+      const outcome = classifyFailure(email, err);
 
       if (outcome.kind === 'rate-limited') {
         setError(rateLimitMessage(outcome.retryAfterSeconds));
         countdown.start(outcome.retryAfterSeconds ?? RESEND_COOLDOWN_SECONDS);
         return;
       }
-      if (outcome.kind === 'server-error') {
+      if (outcome.kind === 'failed') {
         setError(SERVER_ERROR_MESSAGE);
         return;
       }

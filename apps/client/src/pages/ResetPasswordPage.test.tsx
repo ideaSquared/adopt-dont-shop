@@ -1,5 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@/test-utils/render';
+import { render, screen, waitFor } from '@/test-utils/render';
+import userEvent from '@testing-library/user-event';
+import { authService } from '@/services';
 import { ResetPasswordPage } from './ResetPasswordPage';
 
 vi.mock('@/services', () => ({
@@ -89,5 +91,43 @@ describe('ResetPasswordPage async error announcement [C2-7]', () => {
 
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent(/invalid or missing reset token/i);
+  });
+});
+
+describe('ResetPasswordPage password policy', () => {
+  beforeEach(() => {
+    navigateMock.mockReset();
+    vi.mocked(authService.resetPassword).mockReset();
+    searchParamsValue = new URLSearchParams('?token=token-123');
+  });
+
+  const submit = async (password: string) => {
+    const user = userEvent.setup();
+    render(<ResetPasswordPage />);
+    await user.type(screen.getByLabelText('New Password'), password);
+    await user.type(screen.getByLabelText('Confirm New Password'), password);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /reset password/i })).toBeEnabled()
+    );
+    await user.click(screen.getByRole('button', { name: /reset password/i }));
+  };
+
+  it('rejects a weak password without calling the API', async () => {
+    await submit('alllowercase1!');
+
+    expect(
+      await screen.findByText(/uppercase letter/i, { selector: '[role="alert"], p, span' })
+    ).toBeInTheDocument();
+    expect(authService.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('accepts a password with any symbol, not only @$!%*?&', async () => {
+    vi.mocked(authService.resetPassword).mockResolvedValue(undefined);
+
+    await submit('Str0ng-pass#1');
+
+    await waitFor(() =>
+      expect(authService.resetPassword).toHaveBeenCalledWith('token-123', 'Str0ng-pass#1')
+    );
   });
 });

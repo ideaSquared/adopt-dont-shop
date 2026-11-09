@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { authService, useAuth } from '@adopt-dont-shop/lib.auth';
+import {
+  NEW_PASSWORD_HINT,
+  NewPasswordSchema,
+  authService,
+  useAuth,
+} from '@adopt-dont-shop/lib.auth';
 import { Alert, Button, FormField, Input, toast } from '@adopt-dont-shop/lib.components';
 import { z } from 'zod';
 import * as styles from './account-forms.css';
 
-// Mirrors the gateway's ChangePasswordBodySchema (8–128 characters).
+// New passwords follow the canonical strong policy, capped at the gateway's 128 characters.
 const ChangePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Enter your current password.').max(128),
-    newPassword: z.string().min(8, 'Use at least 8 characters.').max(128),
+    newPassword: NewPasswordSchema,
     confirmPassword: z.string(),
   })
   .refine(values => values.newPassword === values.confirmPassword, {
@@ -83,7 +88,7 @@ export const ChangePasswordForm = () => {
         label='New password'
         htmlFor='new-password'
         required
-        description='At least 8 characters.'
+        description={NEW_PASSWORD_HINT}
         error={errors.newPassword}
       >
         <Input

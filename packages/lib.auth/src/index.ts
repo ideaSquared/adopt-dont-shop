@@ -38,8 +38,15 @@ export type { RegisterFormProps } from './components/RegisterForm';
 export { SocialSignInButtons } from './components/SocialSignInButtons';
 export type { SocialSignInButtonsProps, SocialProvider } from './components/SocialSignInButtons';
 export { TwoFactorSettings } from './components/TwoFactorSettings';
-export { ForgotPasswordForm, ResetPasswordForm } from './components/PasswordRecoveryForms';
+export {
+  ForgotPasswordForm,
+  ResetPasswordForm,
+  classifyFailure,
+  rateLimitMessage,
+} from './components/PasswordRecoveryForms';
+export { NEW_PASSWORD_HINT, NewPasswordSchema } from './utils/new-password';
 export type {
+  RequestOutcome,
   ForgotPasswordFormProps,
   ResetPasswordFormProps,
 } from './components/PasswordRecoveryForms';

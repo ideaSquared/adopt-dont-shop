@@ -1,10 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ApiError } from '@adopt-dont-shop/lib.api';
+import { ApiError, NotFoundError } from '@adopt-dont-shop/lib.api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authService } from '../services/auth-service';
-import { ForgotPasswordForm, ResetPasswordForm } from './PasswordRecoveryForms';
+import {
+  ForgotPasswordForm,
+  ResetPasswordForm,
+  classifyFailure,
+  rateLimitMessage,
+} from './PasswordRecoveryForms';
 
 vi.mock('../services/auth-service', () => ({
   authService: { forgotPassword: vi.fn(), resetPassword: vi.fn() },
@@ -88,6 +93,9 @@ describe('ResetPasswordForm', () => {
 
   it.each([
     ['short', 'short', /at least 8 characters/i],
+    ['alllowercase1!', 'alllowercase1!', /uppercase letter/i],
+    ['NoDigitsHere!', 'NoDigitsHere!', /contain a digit/i],
+    ['NoSymbol12345', 'NoSymbol12345', /special character/i],
     ['NewBehaviour456!', 'NewBehaviour457!', /passwords do not match/i],
   ])('refuses %s / %s before sending', async (password, confirm, message) => {
     await reset(password, confirm);
@@ -109,5 +117,35 @@ describe('ResetPasswordForm', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent(/link is incomplete/i);
     expect(screen.queryByRole('button', { name: 'Reset password' })).not.toBeInTheDocument();
+  });
+});
+
+describe('classifyFailure', () => {
+  it('surfaces a 429 with its retry-after', () => {
+    const err = new ApiError('slow down', 429);
+    expect(classifyFailure('a@example.com', err)).toEqual({
+      kind: 'rate-limited',
+      retryAfterSeconds: err.retryAfterSeconds,
+    });
+  });
+
+  it.each([
+    ['an ApiError 4xx', new ApiError('nope', 404)],
+    ['a typed NotFoundError', new NotFoundError('nope')],
+  ])('answers %s like a sent link', (_label, err) => {
+    expect(classifyFailure('a@example.com', err)).toEqual({ kind: 'sent', email: 'a@example.com' });
+  });
+
+  it('treats a 5xx and unknown failures as real errors', () => {
+    expect(classifyFailure('a@example.com', new ApiError('boom', 503))).toEqual({ kind: 'failed' });
+    expect(classifyFailure('a@example.com', new Error('offline'))).toEqual({ kind: 'failed' });
+  });
+});
+
+describe('rateLimitMessage', () => {
+  it('names the wait in seconds, or a minute when unknown', () => {
+    expect(rateLimitMessage(1)).toMatch(/wait 1 second and/);
+    expect(rateLimitMessage(30)).toMatch(/wait 30 seconds and/);
+    expect(rateLimitMessage(undefined)).toMatch(/wait a minute and/);
   });
 });

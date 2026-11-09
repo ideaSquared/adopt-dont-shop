@@ -1,6 +1,6 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { authService } from '@/services';
-import { useOneTimeUrlToken } from '@adopt-dont-shop/lib.auth';
+import { NewPasswordSchema, useOneTimeUrlToken } from '@adopt-dont-shop/lib.auth';
 import { Alert, Button, Card, Input } from '@adopt-dont-shop/lib.components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useEffect, useState } from 'react';
@@ -11,13 +11,7 @@ import * as styles from './ResetPasswordPage.css';
 
 const resetPasswordSchema = z
   .object({
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[@$!%*?&]/, 'Password must contain at least one special character (@$!%*?&)'),
+    password: NewPasswordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine(data => data.password === data.confirmPassword, {
@@ -196,7 +190,7 @@ export const ResetPasswordPage: React.FC = () => {
                 <li>At least one uppercase letter (A-Z)</li>
                 <li>At least one lowercase letter (a-z)</li>
                 <li>At least one number (0-9)</li>
-                <li>At least one special character (@$!%*?&)</li>
+                <li>At least one special character (such as ! @ # or -)</li>
               </ul>
             </div>
           </div>
