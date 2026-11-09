@@ -5,7 +5,7 @@ import { URLS } from '../playwright.config';
 import { fetchCsrfToken } from './csrf';
 import { uniqueEmail } from './factories';
 import { expectOk, postWithCsrf } from './seeds';
-import { verifyEmailViaPeek } from './token-peek';
+import { peekUserInvitationToken, verifyEmailViaPeek } from './token-peek';
 
 export type Account = { email: string; password: string; firstName: string };
 
@@ -49,4 +49,54 @@ export async function loginAccountViaApi(account: Account): Promise<ApiClient> {
   await expectOk(res, `login ${account.email}`);
   const body = (await res.json()) as { user?: { userId?: string } };
   return { context, userId: body.user?.userId ?? '', dispose: () => context.dispose() };
+}
+
+/**
+ * Whether an email + password pair signs in right now, through the API. Use it
+ * to check that a changed password, email or erased account took effect
+ * without driving the login form again.
+ */
+export async function canSignIn(email: string, password: string): Promise<boolean> {
+  const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
+  try {
+    const res = await postWithCsrf(ctx, '/api/v1/auth/login', { email, password });
+    return res.ok();
+  } finally {
+    await ctx.dispose();
+  }
+}
+
+/**
+ * Create a throwaway platform admin the way the dev seed does
+ * (scripts/lib/seed-generate.mjs ensureAdmin): the super admin creates the
+ * user without emailing the invitation, the invitation token is read through
+ * the peek seam, and redeeming it sets the password. Use it for journeys that
+ * change an admin's password, email, 2FA or existence — never the seeded super
+ * admin the admin project signs in as.
+ */
+export async function createThrowawayAdmin(
+  superAdminApi: ApiClient,
+  label = 'admin'
+): Promise<Account> {
+  const account = { email: uniqueEmail(label), password: 'BehaviourTest123!', firstName: 'Ada' };
+  const created = await postWithCsrf(superAdminApi.context, '/api/v1/admin/users', {
+    email: account.email,
+    firstName: account.firstName,
+    lastName: 'Admin',
+    role: 'admin',
+    sendInvitation: false,
+  });
+  await expectOk(created, `create admin ${account.email}`);
+  const invitationToken = await peekUserInvitationToken(account.email);
+  const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
+  try {
+    const redeemed = await postWithCsrf(ctx, '/api/v1/auth/redeem-invitation', {
+      invitationToken,
+      newPassword: account.password,
+    });
+    await expectOk(redeemed, `redeem invitation for ${account.email}`);
+  } finally {
+    await ctx.dispose();
+  }
+  return account;
 }

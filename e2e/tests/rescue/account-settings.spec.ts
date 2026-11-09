@@ -3,6 +3,8 @@ import { request as playwrightRequest, type Page } from '@playwright/test';
 import { test, expect } from '../../fixtures';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { openAccountContext } from '../../helpers/cross-app-sessions';
+import { confirmEmailChangeFromLink } from '../../helpers/email-change';
+import { uniqueEmail } from '../../helpers/factories';
 import { postWithCsrf } from '../../helpers/seeds';
 import { createRescueWithOwner } from '../../helpers/throwaway-rescue';
 import { URLS } from '../../playwright.config';
@@ -65,6 +67,65 @@ test.describe('rescue staff account settings', () => {
 
       await page.reload();
       await expect(activePanel(page).getByLabel('First name')).toHaveValue('Renamed');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('changing the password signs staff out; only the new password works', async ({
+    apiAs,
+    browser,
+  }) => {
+    const rescue = await createRescueWithOwner(await apiAs('admin'), 'PasswordStaff');
+    const { owner } = rescue;
+    const newPassword = 'NewBehaviour456!';
+    const context = await openAccountContext(browser, owner, URLS.rescue);
+    try {
+      const page = await context.newPage();
+      // The fixed cookie banner covers buttons at the bottom of the page.
+      await dismissCookieBannerWhenShown(page);
+      await page.goto('/user-settings#security');
+      await activePanel(page).getByLabel('Current password').fill(owner.password);
+      await activePanel(page)
+        .getByLabel(/^new password/i)
+        .fill(newPassword);
+      await activePanel(page).getByLabel('Confirm new password').fill(newPassword);
+      await activePanel(page).getByRole('button', { name: 'Change password' }).click();
+
+      // Changing the password ends every session, this one included.
+      await expect(page).toHaveURL(/\/login/);
+      expect(await canSignIn(owner.email, newPassword)).toBe(true);
+      expect(await canSignIn(owner.email, owner.password)).toBe(false);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('changing the email: confirm through the emailed link, then sign in with the new address', async ({
+    apiAs,
+    browser,
+  }) => {
+    const rescue = await createRescueWithOwner(await apiAs('admin'), 'EmailStaff');
+    const { owner } = rescue;
+    const newEmail = uniqueEmail('staff-email-new');
+    const context = await openAccountContext(browser, owner, URLS.rescue);
+    try {
+      const page = await context.newPage();
+      // The fixed cookie banner covers buttons at the bottom of the page.
+      await dismissCookieBannerWhenShown(page);
+      await page.goto('/user-settings#account');
+      await activePanel(page).getByLabel('New email').fill(newEmail);
+      await activePanel(page).getByLabel('Current password').fill(owner.password);
+      await activePanel(page).getByRole('button', { name: 'Send confirmation link' }).click();
+      await expect(activePanel(page).getByText(`Check your inbox at ${newEmail}`)).toBeVisible();
+
+      // Nothing changes until the link is followed.
+      expect(await canSignIn(owner.email, owner.password)).toBe(true);
+
+      await confirmEmailChangeFromLink(browser, owner.email);
+
+      expect(await canSignIn(newEmail, owner.password)).toBe(true);
+      expect(await canSignIn(owner.email, owner.password)).toBe(false);
     } finally {
       await context.close();
     }

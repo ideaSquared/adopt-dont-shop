@@ -136,19 +136,6 @@ test.describe('client profile, password, chat and notifications', () => {
     }
   });
 
-  // CLI-082. NOT DRIVABLE: app.client has no change-password control (the
-  // gateway route POST /auth/change-password exists, nothing in the UI calls it).
-  test.fixme('an adopter changes their password from Settings', async ({ browser }) => {
-    const session = await openSignedInSession(browser, await createVerifiedAdopter('pw-ui'));
-    try {
-      await session.page.goto('/profile');
-      await session.page.getByRole('button', { name: 'Settings' }).click();
-      await expect(session.page.getByRole('button', { name: /change password/i })).toBeVisible();
-    } finally {
-      await session.close();
-    }
-  });
-
   // CLI-082 (backend half): once the password is changed the new one logs in
   // through the real login form and the old one is refused.
   test('after a password change the new password signs in and the old one is rejected', async ({

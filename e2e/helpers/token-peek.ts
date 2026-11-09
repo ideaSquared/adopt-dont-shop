@@ -101,3 +101,25 @@ export async function peekInvitationToken(
     return body.token ?? null;
   });
 }
+
+/**
+ * Read a fresh token for the pending admin-console invitation of an email
+ * (POST /api/v1/admin/users with sendInvitation: false), from the
+ * test-token-peek seam. POST /api/v1/auth/redeem-invitation accepts it.
+ * Throws if no pending invitation exists.
+ */
+export async function peekUserInvitationToken(email: string): Promise<string> {
+  return withAnonApi(async ctx => {
+    const res = await ctx.get('/api/v1/test/user-invitation-token', { params: { email } });
+    if (!res.ok()) {
+      throw new Error(
+        `token-peek user-invitation-token failed for ${email}: ${res.status()} ${(await res.text()).slice(0, 200)}`
+      );
+    }
+    const body = (await res.json()) as { token?: string };
+    if (!body.token) {
+      throw new Error(`token-peek user-invitation-token returned no token for ${email}`);
+    }
+    return body.token;
+  });
+}
