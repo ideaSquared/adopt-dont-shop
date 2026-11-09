@@ -1,7 +1,6 @@
-import { StatsigProvider, useClientAsyncInit } from '@statsig/react-bindings';
-import React, { useMemo } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import './StatsigContext.css';
+import { StatsigWrapper as SharedStatsigWrapper } from '@adopt-dont-shop/lib.feature-flags';
+import React, { useMemo } from 'react';
 
 type StatsigWrapperProps = {
   children: React.ReactNode;
@@ -9,41 +8,16 @@ type StatsigWrapperProps = {
 
 export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
   const { user } = useAuth();
-  const statsigClientKey = import.meta.env.VITE_STATSIG_CLIENT_KEY;
-
-  if (!statsigClientKey) {
-    console.error(
-      'VITE_STATSIG_CLIENT_KEY is not set. Feature flags will not work. Please add it to your .env file.'
-    );
-  }
-
-  const statsigUser = useMemo(
-    () => ({
-      // Email is intentionally omitted — Statsig is a third-party SaaS
-      // and the opaque userID is sufficient for flag bucketing.
-      userID: user?.userId || 'anonymous',
-      custom: {
-        app: 'admin',
-        userType: user?.userType,
-        role: user?.userType, // admin or moderator
-        // Defensive: include rescueId so future per-rescue gating rules
-        // can bucket correctly. Admins typically have no rescueId, so
-        // the field is undefined in the common case.
-        rescueId: user?.rescueId,
-        isAuthenticated: !!user,
-      },
-    }),
-    [user]
-  );
-
-  const { client } = useClientAsyncInit(statsigClientKey || 'client-invalid-key', statsigUser);
+  const extraCustom = useMemo(() => ({ role: user?.userType }), [user?.userType]); // admin or moderator
 
   return (
-    <StatsigProvider
-      client={client}
-      loadingComponent={<div className='statsig-loading-fallback'>Loading...</div>}
+    <SharedStatsigWrapper
+      app='admin'
+      clientKey={import.meta.env.VITE_STATSIG_CLIENT_KEY}
+      user={user}
+      extraCustom={extraCustom}
     >
       {children}
-    </StatsigProvider>
+    </SharedStatsigWrapper>
   );
 };

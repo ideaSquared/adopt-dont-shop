@@ -33,6 +33,7 @@
     "@adopt-dont-shop/lib.components": "workspace:*",
     "@adopt-dont-shop/lib.dev-tools": "workspace:*",
     "@adopt-dont-shop/lib.discovery": "workspace:*",
+    "@adopt-dont-shop/lib.feature-flags": "workspace:*",
     "@adopt-dont-shop/lib.invitations": "workspace:*",
     "@adopt-dont-shop/lib.legal": "workspace:*",
     "@adopt-dont-shop/lib.notifications": "workspace:*",

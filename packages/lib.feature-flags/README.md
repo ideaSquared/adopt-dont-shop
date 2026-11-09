@@ -34,6 +34,9 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `useFeatureGate(name)` → `{ value: boolean }` (not a bare boolean);
   `useDynamicConfig(name)` → `ConfigValue<T> | null`;
   `useConfigValue(name, key, defaultValue)` → the typed value at `key`.
+- `StatsigWrapper` — the shared Statsig provider all three apps mount. Props: `app`, `clientKey`,
+  `user` (passed in, so this lib does not depend on `lib.auth`), optional `extraCustom`, `plugins`
+  (e.g. the client's consent-gated session replay) and `loadingLabel`.
 - Constants: `KNOWN_GATES` (e.g. `ENABLE_REAL_TIME_MESSAGING`,
   `ENABLE_ADVANCED_SEARCH`, `UI_SHOW_BETA_FEATURES`, …) and `KNOWN_CONFIGS`
   (`APPLICATION_SETTINGS`, `SYSTEM_SETTINGS`, `MODERATION_SETTINGS`).
@@ -63,4 +66,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 2 workspace package(s) depend on this library. See [lib.feature-flags-consumers.md](../../docs/libraries/lib.feature-flags-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->
