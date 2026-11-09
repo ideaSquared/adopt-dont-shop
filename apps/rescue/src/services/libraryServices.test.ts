@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
-const captured = vi.hoisted(() => ({ notifications: [] as unknown[] }));
+const captured = vi.hoisted((): { notifications: unknown[] } => ({ notifications: [] }));
 
 vi.mock('@adopt-dont-shop/lib.notifications', () => ({
   NotificationsService: class {
