@@ -55,7 +55,7 @@ export { BackupCodesReveal } from './components/BackupCodesReveal';
 export type { BackupCodesRevealProps } from './components/BackupCodesReveal';
 
 // Utils
-export { isSafeRedirectPath } from './utils/safeRedirect';
+export { isSafeRedirectPath, redirectTargetFromState } from './utils/safeRedirect';
 
 // Types
 export * from './types';

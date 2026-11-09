@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSafeRedirectPath } from './safeRedirect';
+import { isSafeRedirectPath, redirectTargetFromState } from './safeRedirect';
 
 describe('isSafeRedirectPath', () => {
   describe('safe paths', () => {
@@ -56,5 +56,27 @@ describe('isSafeRedirectPath', () => {
     it('rejects a relative path without leading slash', () => {
       expect(isSafeRedirectPath('evil.com')).toBe(false);
     });
+  });
+});
+
+describe('redirectTargetFromState', () => {
+  it('returns the guarded location with its query and hash', () => {
+    const state = { from: { pathname: '/pets', search: '?status=x', hash: '#top' } };
+    expect(redirectTargetFromState(state)).toBe('/pets?status=x#top');
+  });
+
+  it('returns just the path when the location has no query or hash', () => {
+    expect(redirectTargetFromState({ from: { pathname: '/pets' } })).toBe('/pets');
+  });
+
+  it.each([
+    ['no state', null],
+    ['state without from', {}],
+    ['a from without a path', { from: {} }],
+    ['a protocol-relative path', { from: { pathname: '//evil.com', search: '?a=1' } }],
+    ['an absolute URL', { from: { pathname: 'https://evil.com' } }],
+    ['a non-object from', { from: '/pets' }],
+  ])('falls back to "/" for %s', (_label, state) => {
+    expect(redirectTargetFromState(state)).toBe('/');
   });
 });

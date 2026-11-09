@@ -1,10 +1,11 @@
 import React, { ReactNode, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router';
+import { Routes, Route, Navigate, useLocation } from 'react-router';
 import {
   useAuth,
   PermissionsProvider,
   ForgotPasswordPage,
   ResetPasswordPage,
+  redirectTargetFromState,
 } from '@adopt-dont-shop/lib.auth';
 import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
 import { captureException } from '@adopt-dont-shop/lib.observability';
@@ -65,6 +66,7 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 
 const AdminApp: React.FC = () => {
   const { isAuthenticated, isInitializing } = useAuth();
+  const location = useLocation();
 
   if (isInitializing) {
     return <PageLoader />;
@@ -80,7 +82,7 @@ const AdminApp: React.FC = () => {
             <Route path='/register' element={<RegisterPage />} />
             <Route path='/forgot-password' element={<ForgotPasswordPage />} />
             <Route path='/reset-password' element={<ResetPasswordPage />} />
-            <Route path='*' element={<Navigate to='/login' replace />} />
+            <Route path='*' element={<Navigate to='/login' replace state={{ from: location }} />} />
           </Routes>
         </Suspense>
 
@@ -103,8 +105,12 @@ const AdminApp: React.FC = () => {
               {/* Auth routes are not valid for signed-in users — bounce home.
                   This also covers the post-login transition: when the auth
                   state flips before LoginPage's navigate() runs, the URL
-                  is still /login and would otherwise fall through to 404. */}
-              <Route path='/login' element={<Navigate to='/' replace />} />
+                  is still /login and would otherwise fall through to 404.
+                  A deep link the visitor was bounced from returns there. */}
+              <Route
+                path='/login'
+                element={<Navigate to={redirectTargetFromState(location.state)} replace />}
+              />
               <Route path='/register' element={<Navigate to='/' replace />} />
               {/* A reset link opened while signed in still resets the password. */}
               <Route path='/reset-password' element={<ResetPasswordPage />} />

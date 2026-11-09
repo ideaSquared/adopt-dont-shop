@@ -16,6 +16,7 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => useAuthMock(),
   ForgotPasswordPage: () => null,
   ResetPasswordPage: () => null,
+  redirectTargetFromState: () => '/',
   PermissionsProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

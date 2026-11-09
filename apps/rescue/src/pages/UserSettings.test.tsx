@@ -5,7 +5,12 @@ import { MemoryRouter, useLocation } from 'react-router';
 import UserSettings from './UserSettings';
 
 // A staff member who lacks rescue:settings:update must still reach their own settings.
-vi.mock('@adopt-dont-shop/lib.auth', () => ({
+vi.mock('@adopt-dont-shop/lib.auth', async importOriginal => ({
+  // The change-password form reads the real password policy at import time.
+  NewPasswordSchema: (await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>())
+    .NewPasswordSchema,
+  NEW_PASSWORD_HINT: (await importOriginal<typeof import('@adopt-dont-shop/lib.auth')>())
+    .NEW_PASSWORD_HINT,
   useAuth: () => ({ user: { userId: '1' } }),
   useHasPermission: () => ({ allowed: false, isLoading: false, error: null }),
   TwoFactorSettings: () => <div data-testid="two-factor">Two factor</div>,

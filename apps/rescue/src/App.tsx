@@ -1,9 +1,14 @@
 import { ReactNode, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router';
+import { Routes, Route, Navigate, useLocation } from 'react-router';
 import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
 import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
-import { useAuth, ForgotPasswordPage, ResetPasswordPage } from '@adopt-dont-shop/lib.auth';
+import {
+  useAuth,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+  redirectTargetFromState,
+} from '@adopt-dont-shop/lib.auth';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -55,6 +60,7 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 
 function App() {
   const { isAuthenticated, isInitializing } = useAuth();
+  const location = useLocation();
 
   if (isInitializing) {
     return <PageLoader />;
@@ -70,7 +76,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace state={{ from: location }} />} />
           </Routes>
         </Suspense>
 
@@ -86,7 +92,10 @@ function App() {
         <Routes>
           <Route path="/accept-invitation" element={<AcceptInvitation />} />
           <Route path="/register-rescue" element={<RegisterRescue />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route
+            path="/login"
+            element={<Navigate to={redirectTargetFromState(location.state)} replace />}
+          />
           {/* A reset link opened while signed in still resets the password. */}
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 

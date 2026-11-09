@@ -19,6 +19,7 @@ vi.mock('@adopt-dont-shop/lib.legal', () => ({
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   ForgotPasswordPage: () => null,
   ResetPasswordPage: () => null,
+  redirectTargetFromState: () => '/',
   useAuth: () => ({
     user: { userId: 'u1', userType: 'rescue_staff' },
     isAuthenticated: true,

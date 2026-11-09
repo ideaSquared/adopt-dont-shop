@@ -54,7 +54,9 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   keeps its own pages). `SanctionBannerHost` is the account-sanction banner bound to the
   shared `apiService`, with toast feedback on acknowledge; each app mounts it in its layout.
 - **Utilities**: `isSafeRedirectPath` — open-redirect guard for post-login
-  redirect targets (same-origin paths only); `NewPasswordSchema` /
+  redirect targets (same-origin paths only); `redirectTargetFromState` — reads
+  the safe post-login path, query and hash from the `location.state.from` a
+  route guard sets (falls back to `/`); `NewPasswordSchema` /
   `NEW_PASSWORD_HINT` — the one rule every "set a new password" form applies
   (`StrongPasswordSchema` from lib.validation, capped at the gateway's 128
   characters); `classifyFailure` / `rateLimitMessage` — how the forgot-password

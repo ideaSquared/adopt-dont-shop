@@ -1,21 +1,14 @@
-import { AuthLayout, LoginForm, isSafeRedirectPath } from '@adopt-dont-shop/lib.auth';
+import { AuthLayout, LoginForm, redirectTargetFromState } from '@adopt-dont-shop/lib.auth';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { useLocation, useNavigate } from 'react-router';
 import * as styles from './LoginPage.css';
-
-type LocationState = {
-  from?: { pathname?: string };
-};
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleSuccess = () => {
-    const state = location.state as LocationState | null;
-    const rawRedirect = state?.from?.pathname;
-    const redirectTo = isSafeRedirectPath(rawRedirect) ? rawRedirect : '/';
-    navigate(redirectTo, { replace: true });
+    navigate(redirectTargetFromState(location.state), { replace: true });
   };
 
   return (
