@@ -15,6 +15,7 @@ export {
 export type {
   Application,
   ApplicationStatus,
+  ApplicationWithPetInfo,
   DiscoveryPet,
   SwipeAction,
   SwipeSession,

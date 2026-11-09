@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ModerationV1 } from '@adopt-dont-shop/proto';
 
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
 
 import { registerModerationAdminRoutes } from './moderation-admin.js';
 
@@ -324,6 +326,74 @@ describe('moderation admin reports', () => {
       headers: ADMIN,
     });
     expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('moderation admin reports carry display names', () => {
+  // Partial client stubs: the enrichment only reaches getUserName / get.
+  const authClient = {
+    getUserName: vi.fn(({ userId }: { userId: string }) =>
+      Promise.resolve({ userId, firstName: userId === 'usr-1' ? 'Rita' : 'Sam', lastName: 'Lee' })
+    ),
+  } as unknown as AuthClient;
+  const petsClient = {
+    get: vi.fn().mockResolvedValue({ pet: { petId: 'pet-9', name: 'Buddy' } }),
+  } as unknown as PetsClient;
+
+  let app: FastifyInstance;
+  let mocks: Record<string, ReturnType<typeof vi.fn>>;
+
+  beforeEach(async () => {
+    const made = makeClient();
+    mocks = made.mocks;
+    app = Fastify({ logger: false });
+    await registerModerationAdminRoutes(app, { client: made.client, authClient, petsClient });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('names the reporter, reported user and reported user entity in the list', async () => {
+    mocks.listReports.mockResolvedValue({
+      reports: [{ ...REPORT, reportedUserId: 'usr-2' }],
+      total: 1,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/moderation/reports',
+      headers: ADMIN,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data[0]).toMatchObject({
+      reporterName: 'Rita Lee',
+      reportedUserName: 'Sam Lee',
+      reportedEntityName: 'Sam Lee',
+    });
+  });
+
+  it('names a reported pet on a single fetched report', async () => {
+    mocks.getReport.mockResolvedValue({
+      report: {
+        ...REPORT,
+        reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_PET,
+        reportedEntityId: 'pet-9',
+      },
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/moderation/reports/rpt-1',
+      headers: ADMIN,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data).toMatchObject({
+      reporterName: 'Rita Lee',
+      reportedEntityName: 'Buddy',
+    });
   });
 });
 

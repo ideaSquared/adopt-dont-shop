@@ -338,6 +338,39 @@ describe('ReportDetailModal — view-in-context navigation', () => {
     const button = screen.getByTestId('view-entity-button');
     expect(within(button).getByText(/View Message/)).toBeInTheDocument();
   });
+  it('links the reporter, reported user and reported entity by name', () => {
+    const report = makeReport({
+      reporterName: 'Rita Reporter',
+      reportedUserName: 'Sam Target',
+      reportedEntityName: 'Sam Target',
+    });
+
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+
+    expect(screen.getByRole('link', { name: 'Rita Reporter' })).toHaveAttribute(
+      'href',
+      '/users/reporter-1'
+    );
+    const targetLinks = screen.getAllByRole('link', { name: 'Sam Target' });
+    expect(targetLinks.map(link => link.getAttribute('href'))).toEqual([
+      '/users/target-user-1',
+      '/users/target-user-1',
+    ]);
+    expect(screen.queryByText(/reporter-1/)).not.toBeInTheDocument();
+  });
+
+  it('links a reported pet by its name', () => {
+    const report = makeReport({
+      reportedEntityType: 'pet',
+      reportedEntityId: 'pet-7',
+      reportedEntityName: 'Buddy',
+      reportedUserId: null,
+    });
+
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+
+    expect(screen.getByRole('link', { name: 'Buddy' })).toHaveAttribute('href', '/pets/pet-7');
+  });
 });
 
 describe('ReportDetailModal — activity tab', () => {

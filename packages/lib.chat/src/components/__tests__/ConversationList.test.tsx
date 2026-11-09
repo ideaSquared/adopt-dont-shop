@@ -119,4 +119,22 @@ describe('ConversationList', () => {
       expect(screen.getByText('Legacy Rescue')).toBeInTheDocument();
     });
   });
+
+  it('names the pet a conversation is about instead of showing its id', () => {
+    renderWithChatContext(<ConversationList />, {
+      value: buildChatContextValue({
+        conversations: [
+          buildTestConversation({
+            id: 'c1',
+            rescueName: 'Paws Rescue',
+            petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78',
+            petName: 'Buddy',
+          }),
+        ],
+      }),
+    });
+
+    expect(screen.getByText('About Buddy')).toBeInTheDocument();
+    expect(screen.queryByText(/9ff53898/)).not.toBeInTheDocument();
+  });
 });

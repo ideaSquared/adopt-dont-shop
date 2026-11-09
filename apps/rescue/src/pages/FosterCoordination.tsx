@@ -200,7 +200,7 @@ const FosterCoordination: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <>
-          <Link to={`/pets?petId=${String(row.petId)}`}>View pet</Link>
+          <Link to={`/pets/${String(row.petId)}`}>View pet</Link>
           {' · '}
           <Link to={`/applications?petId=${String(row.petId)}`}>Applications</Link>
         </>

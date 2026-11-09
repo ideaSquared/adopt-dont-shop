@@ -388,7 +388,7 @@ describe('ApplicationReview cross-links (ADS-644)', () => {
   it('shows a link to the pet card when the application has a petId', async () => {
     renderWithPet('pet-1');
     const link = await screen.findByRole('link', { name: 'View pet card' });
-    expect(link).toHaveAttribute('href', '/pets?petId=pet-1');
+    expect(link).toHaveAttribute('href', '/pets/pet-1');
   });
 
   it('does not show pet links when the application has no petId', async () => {

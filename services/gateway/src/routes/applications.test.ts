@@ -1306,6 +1306,32 @@ describe('GET /api/v1/applications name enrichment (ADS-1192)', () => {
     }
   });
 
+  it('names the pet and rescue on a single fetched application', async () => {
+    const e = makeEnrichment();
+    const getMock = vi.fn().mockResolvedValue({ application: SUBMITTED_APP });
+    e.petGet.mockResolvedValue({
+      pet: { petId: 'pet-a', name: 'Rex', type: PetsV1.PetType.PET_TYPE_DOG },
+    });
+    e.rescueGet.mockResolvedValue({ rescue: { rescueId: 'rsc-a', name: 'Happy Paws' } });
+
+    const app = await makeEnrichedApp({
+      ...e,
+      client: { get: getMock, close: vi.fn() } as unknown as ApplicationsClient,
+    });
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/applications/app-a',
+        headers: HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Record<string, unknown> };
+      expect(body.data).toMatchObject({ id: 'app-a', petName: 'Rex', rescueName: 'Happy Paws' });
+    } finally {
+      await app.close();
+    }
+  });
+
   it('looks the applicant up by application id, so rescue staff can see who applied', async () => {
     const e = makeEnrichment();
     e.listMock.mockResolvedValue({ applications: [SUBMITTED_APP], total: 1 });

@@ -10,6 +10,7 @@
 // SPA-facing layer.
 
 import rateLimit from '@fastify/rate-limit';
+import type { Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance } from 'fastify';
 
 import {
@@ -29,7 +30,11 @@ import {
   type UpdateSupportTicketRequest,
 } from '@adopt-dont-shop/proto';
 
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
+import { lookupPetNames, lookupRescueNames, lookupUserNames } from '../utils/entity-names.js';
 
 import {
   dataEnvelope,
@@ -40,6 +45,7 @@ import {
   supportTicketToView,
   supportTicketWithThreadToView,
   ticketStatsToView,
+  type ReportView,
 } from './moderation-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
@@ -47,7 +53,57 @@ import { buildPaginationEnvelope, parsePagination } from '../middleware/paginati
 
 export type ModerationAdminRoutesOptions = {
   client: ModerationClient;
+  // Resolve the reporter, reported user and reported entity to display
+  // names for the report list / detail. Optional — absent, the names are
+  // unset and the admin UI falls back.
+  authClient?: AuthClient;
+  petsClient?: PetsClient;
+  rescueClient?: RescueClient;
 };
+
+type ReportNameClients = Omit<ModerationAdminRoutesOptions, 'client'>;
+
+type NamedReportView = ReportView & {
+  reporterName?: string;
+  reportedUserName?: string;
+  reportedEntityName?: string;
+};
+
+const entityIdsOfType = (views: ReadonlyArray<ReportView>, type: string): string[] =>
+  views.filter(v => v.reportedEntityType === type).map(v => v.reportedEntityId);
+
+// Attach display names for every id a report references. Users come from
+// auth, reported pets / rescues from their services; other entity types
+// (application, message, conversation) have no single name and stay unset.
+async function withReportNames(
+  views: ReadonlyArray<ReportView>,
+  clients: ReportNameClients,
+  meta: Metadata
+): Promise<NamedReportView[]> {
+  const [users, pets, rescues] = await Promise.all([
+    lookupUserNames(
+      [
+        ...views.flatMap(v => [v.reporterId, v.reportedUserId ?? '']),
+        ...entityIdsOfType(views, 'user'),
+      ],
+      clients.authClient,
+      meta
+    ),
+    lookupPetNames(entityIdsOfType(views, 'pet'), clients.petsClient, meta),
+    lookupRescueNames(entityIdsOfType(views, 'rescue'), clients.rescueClient, meta),
+  ]);
+  const entityNames: Record<string, Map<string, string>> = {
+    user: users,
+    pet: pets,
+    rescue: rescues,
+  };
+  return views.map(v => ({
+    ...v,
+    reporterName: users.get(v.reporterId),
+    reportedUserName: v.reportedUserId ? users.get(v.reportedUserId) : undefined,
+    reportedEntityName: entityNames[v.reportedEntityType]?.get(v.reportedEntityId),
+  }));
+}
 
 const RL_WRITE = { max: 30, timeWindow: '1 minute' } as const;
 const RL_READ = { max: 120, timeWindow: '1 minute' } as const;
@@ -89,7 +145,7 @@ export const registerModerationAdminRoutes = async (
   app: FastifyInstance,
   opts: ModerationAdminRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, ...nameClients } = opts;
 
   await app.register(rateLimit, { global: false });
 
@@ -155,10 +211,11 @@ export const registerModerationAdminRoutes = async (
         assignedModerator: q.assigned,
       };
       try {
-        const res = await client.listReports(grpcReq, buildMetadata(req));
+        const meta = buildMetadata(req);
+        const res = await client.listReports(grpcReq, meta);
         return reply.send({
           success: true,
-          data: res.reports.map(reportToView),
+          data: await withReportNames(res.reports.map(reportToView), nameClients, meta),
           pagination: buildPaginationEnvelope({
             mode: 'offset',
             page: pagination.page,
@@ -188,14 +245,16 @@ export const registerModerationAdminRoutes = async (
     },
     async (req, reply) => {
       try {
+        const meta = buildMetadata(req);
         const res = await client.getReport(
           { reportId: req.params.id, includeTransitions: false },
-          buildMetadata(req)
+          meta
         );
         if (res.report === undefined) {
           return reply.code(404).send({ error: 'report not found' });
         }
-        return reply.send(dataEnvelope(reportToView(res.report)));
+        const [view] = await withReportNames([reportToView(res.report)], nameClients, meta);
+        return reply.send(dataEnvelope(view));
       } catch (err) {
         return handleGrpcError(err, reply);
       }

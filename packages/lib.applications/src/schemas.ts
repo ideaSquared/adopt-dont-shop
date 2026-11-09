@@ -200,13 +200,17 @@ export const ApplicationWithPetInfoSchema = ApplicationSchema.extend({
   petName: z.string().optional(),
   petType: z.string().optional(),
   petBreed: z.string().optional(),
+  rescueName: z.string().optional(),
 });
 
 // ── Response schemas ───────────────────────────────────────────────────────────
 
 export const ApplicationListResponseSchema = z.object({
   data: z
-    .union([z.object({ applications: z.array(ApplicationSchema) }), z.array(ApplicationSchema)])
+    .union([
+      z.object({ applications: z.array(ApplicationWithPetInfoSchema) }),
+      z.array(ApplicationWithPetInfoSchema),
+    ])
     .optional(),
 });
 

@@ -213,7 +213,7 @@ describe('FosterCoordination', () => {
 
       const petLink = await screen.findByRole('link', { name: 'View pet' });
       const appsLink = screen.getByRole('link', { name: 'Applications' });
-      expect(petLink).toHaveAttribute('href', '/pets?petId=pet-1');
+      expect(petLink).toHaveAttribute('href', '/pets/pet-1');
       expect(appsLink).toHaveAttribute('href', '/applications?petId=pet-1');
     });
 
@@ -229,7 +229,7 @@ describe('FosterCoordination', () => {
         expect(screen.getAllByRole('link', { name: 'View pet' })).toHaveLength(1);
       });
       const links = screen.getAllByRole('link', { name: 'View pet' });
-      expect(links[0]).toHaveAttribute('href', '/pets?petId=pet-1');
+      expect(links[0]).toHaveAttribute('href', '/pets/pet-1');
     });
   });
 

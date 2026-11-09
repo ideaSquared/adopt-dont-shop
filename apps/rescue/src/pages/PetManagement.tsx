@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router';
+import { useSearchParams, useNavigate, useParams } from 'react-router';
 import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
 import { PetListSkeleton } from '../components/skeletons';
 import {
@@ -17,6 +17,7 @@ import PetFormModal from '../components/pets/PetFormModal.tsx';
 import PetStatusFilter from '../components/pets/PetStatusFilter.tsx';
 import PetCsvImportModal from '../components/pets/PetCsvImportModal.tsx';
 import PetBulkActionBar, { type PetBulkAction } from '../components/pets/PetBulkActionBar.tsx';
+import { usePet } from '../hooks/usePet';
 import * as styles from './PetManagement.css';
 
 interface PetStats {
@@ -78,13 +79,11 @@ const PetManagement: React.FC = () => {
 
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  // ADS-644: cross-linking. When deep-linked via /pets?petId=... we use the
-  // petId as the search filter so the matching pet card surfaces immediately.
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Filter state is driven by URL search params so refresh/back preserves it.
   const statusFilter = (searchParams.get('status') ?? 'all') as PetStatus | 'all';
-  const searchFilter = searchParams.get('search') ?? searchParams.get('petId') ?? '';
+  const searchFilter = searchParams.get('search') ?? '';
   const typeFilter = searchParams.get('type') ?? '';
   const sizeFilter = searchParams.get('size') ?? '';
   const breedFilter = searchParams.get('breed') ?? '';
@@ -115,6 +114,18 @@ const PetManagement: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
+  // A pet deep-linked via /pets/:petId opens in the same form as "Edit".
+  const { petId: routePetId } = useParams<{ petId?: string }>();
+  const { data: routePet } = usePet(routePetId);
+  const petInForm = editingPet ?? (routePetId ? routePet : undefined) ?? null;
+
+  const closePetForm = () => {
+    setShowAddModal(false);
+    setEditingPet(null);
+    if (routePetId) {
+      navigate('/pets');
+    }
+  };
 
   // Pagination
   const currentPage = Number(searchParams.get('page') ?? '1');
@@ -248,8 +259,7 @@ const PetManagement: React.FC = () => {
   };
 
   const handlePetSaved = () => {
-    setShowAddModal(false);
-    setEditingPet(null);
+    closePetForm();
     fetchPets();
     fetchStats();
   };
@@ -577,18 +587,15 @@ const PetManagement: React.FC = () => {
       )}
 
       {/* Add/Edit Pet Modal */}
-      {(showAddModal || editingPet) && (
+      {(showAddModal || petInForm) && (
         <PetFormModal
-          isOpen={showAddModal || !!editingPet}
-          pet={editingPet || undefined}
-          onClose={() => {
-            setShowAddModal(false);
-            setEditingPet(null);
-          }}
+          isOpen={showAddModal || !!petInForm}
+          pet={petInForm || undefined}
+          onClose={closePetForm}
           onSubmit={async data => {
             try {
-              if (editingPet) {
-                await petManagementService.updatePet(editingPet.pet_id, data as PetUpdateData);
+              if (petInForm) {
+                await petManagementService.updatePet(petInForm.pet_id, data as PetUpdateData);
               } else {
                 await petManagementService.createPet(data as PetCreateData);
               }

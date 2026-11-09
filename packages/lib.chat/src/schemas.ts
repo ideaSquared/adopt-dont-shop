@@ -88,6 +88,7 @@ export const ConversationSchema = z.object({
   createdAt: z.string(),
   isActive: z.boolean(),
   petId: z.string().optional(),
+  petName: z.string().optional(),
   rescueId: z.string().optional(),
   rescueName: z.string().optional(),
   title: z.string().optional(),

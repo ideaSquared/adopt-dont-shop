@@ -76,7 +76,11 @@ export const permissionsService = new PermissionsService({
 });
 
 // Re-export types for convenience
-export type { Application, ApplicationStatus } from '@adopt-dont-shop/lib.applications';
+export type {
+  Application,
+  ApplicationStatus,
+  ApplicationWithPetInfo,
+} from '@adopt-dont-shop/lib.applications';
 
 export type { DiscoveryPet, SwipeAction, SwipeSession } from '@adopt-dont-shop/lib.discovery';
 

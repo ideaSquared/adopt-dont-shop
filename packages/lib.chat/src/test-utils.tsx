@@ -1,5 +1,6 @@
 import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
+import { MemoryRouter } from 'react-router';
 import { ChatContext } from './context/chat-context';
 import type { ChatContextValue } from './context/chat-context-types';
 import type { ConnectionQuality } from './context/offline-adapter';
@@ -49,7 +50,9 @@ export const renderWithChatContext = (
   { value, ...options }: { value: ChatContextValue } & Omit<RenderOptions, 'wrapper'>
 ): RenderResult => {
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
+    <MemoryRouter>
+      <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
+    </MemoryRouter>
   );
   return render(ui, { wrapper: Wrapper, ...options });
 };

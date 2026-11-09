@@ -10,6 +10,8 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
+import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
 
 import { registerAuditRoutes } from './audit.js';
 
@@ -333,5 +335,48 @@ describe('GET /api/v1/admin/audit-logs', () => {
     });
     expect(httpRes.statusCode).toBe(400);
     expect(queryMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /api/v1/admin/audit-logs — entity names', () => {
+  it('names user and pet aggregates and leaves other types unnamed', async () => {
+    const { client, queryMock } = makeClient();
+    queryMock.mockResolvedValue({
+      events: [
+        EVENT_FIXTURE,
+        { ...EVENT_FIXTURE, eventId: 'e-pet', aggregateType: 'pet', aggregateId: 'pet-1' },
+        { ...EVENT_FIXTURE, eventId: 'e-chat', aggregateType: 'chat', aggregateId: 'chat-1' },
+      ],
+      total: 3,
+    });
+    // Partial client stubs: the enrichment only reaches getUserName / get.
+    const authClient = {
+      getUserName: vi
+        .fn()
+        .mockResolvedValue({ userId: 'usr-1', firstName: 'Rita', lastName: 'Lee' }),
+    } as unknown as AuthClient;
+    const petsClient = {
+      get: vi.fn().mockResolvedValue({ pet: { petId: 'pet-1', name: 'Buddy' } }),
+    } as unknown as PetsClient;
+    const app = Fastify({ logger: false });
+    await registerAuditRoutes(app, { client, authClient, petsClient });
+
+    try {
+      const httpRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/admin/audit-logs',
+        headers: ADMIN_HEADERS,
+      });
+
+      expect(httpRes.statusCode).toBe(200);
+      const body = httpRes.json() as { data: Array<{ metadata: Record<string, unknown> }> };
+      expect(body.data.map(log => log.metadata.entityName)).toEqual([
+        'Rita Lee',
+        'Buddy',
+        undefined,
+      ]);
+    } finally {
+      await app.close();
+    }
   });
 });

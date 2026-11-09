@@ -140,4 +140,21 @@ describe('gateway chat adapter', () => {
 
     expect(conversation.lastMessage).toMatchObject({ senderName: 'Sam Rescue' });
   });
+
+  it('carries the resolved pet and rescue names onto the conversation', () => {
+    const conversation = toConversation({
+      ...chat,
+      petId: 'pet-1',
+      petName: 'Buddy',
+      rescueId: 'rescue-1',
+      rescueName: 'Happy Paws',
+    });
+
+    expect(conversation).toMatchObject({
+      petId: 'pet-1',
+      petName: 'Buddy',
+      rescueId: 'rescue-1',
+      rescueName: 'Happy Paws',
+    });
+  });
 });

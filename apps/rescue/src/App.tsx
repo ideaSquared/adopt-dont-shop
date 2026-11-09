@@ -95,7 +95,9 @@ function App() {
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
-                      <Route path="/pets" element={<PetManagement />} />
+                      {/* /pets/:petId deep-links a pet: the list stays mounted
+                          and the pet opens in its detail form. */}
+                      <Route path="/pets/:petId?" element={<PetManagement />} />
                       {/* ADS D4: a single route serves both the list and the
                           deep-linkable detail (/applications/:id). Keeping one
                           route element means the master-detail page stays

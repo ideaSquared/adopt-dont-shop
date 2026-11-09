@@ -231,6 +231,16 @@ describe('ApplicationsService', () => {
       expect(result.petType).toBe('dog');
       expect(result.petBreed).toBe('Golden Retriever');
     });
+
+    it("keeps the rescue's name", async () => {
+      mockApiService.get.mockResolvedValue({
+        data: { ...mockApplication, rescueName: 'Happy Paws' },
+      });
+
+      const result = await applicationsService.getApplicationById('app-123');
+
+      expect(result.rescueName).toBe('Happy Paws');
+    });
   });
 
   describe('getUserApplications', () => {
@@ -244,6 +254,20 @@ describe('ApplicationsService', () => {
         user_id: 'user-123',
       });
       expect(result).toEqual([mockApplication]);
+    });
+
+    it('keeps the pet and rescue names the gateway attaches to each application', async () => {
+      mockApiService.get.mockResolvedValue({
+        data: [{ ...mockApplication, petName: 'Buddy', petType: 'dog', rescueName: 'Happy Paws' }],
+      });
+
+      const result = await applicationsService.getUserApplications();
+
+      expect(result[0]).toMatchObject({
+        petName: 'Buddy',
+        petType: 'dog',
+        rescueName: 'Happy Paws',
+      });
     });
 
     it('should get all applications when no userId provided', async () => {

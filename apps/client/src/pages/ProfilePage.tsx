@@ -6,13 +6,13 @@ import {
 } from '@/components/profile';
 import { AccountSettings } from '@adopt-dont-shop/lib.account';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { apiService, applicationService, Application, User } from '@/services';
+import { apiService, applicationService, type ApplicationWithPetInfo, User } from '@/services';
 import { Alert, Button, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { ApplicationCardSkeletonList } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import * as styles from './ProfilePage.css';
 
 // Shape of GET /api/v1/users/me/export (GDPR Art. 15/20 self-service
@@ -22,13 +22,6 @@ interface UserDataExport {
   user?: unknown;
   privacyPreferences?: unknown;
   exportedAt: string;
-}
-
-// Extended interface for applications with pet info
-interface ApplicationWithPetInfo extends Application {
-  petName?: string;
-  petType?: string;
-  petBreed?: string;
 }
 
 type TabType = 'profile' | 'applications' | 'settings';
@@ -83,7 +76,7 @@ export const ProfilePage: React.FC = () => {
       }
 
       const userApplications = await applicationService.getUserApplications();
-      setApplications(userApplications as ApplicationWithPetInfo[]);
+      setApplications(userApplications);
     } catch (error) {
       console.error('Failed to load applications:', error);
       setError('Failed to load applications. Please try again.');
@@ -354,12 +347,15 @@ export const ProfilePage: React.FC = () => {
               <div className={styles.applicationInfo}>
                 <h3>Application #{application.id.slice(-6)}</h3>
                 <p>Submitted {formatDate(application.submittedAt || application.createdAt)}</p>
-                {application.petName && (
+                {application.petId && (
                   <p>
-                    Pet: {application.petName} ({application.petType})
+                    Pet:{' '}
+                    <Link to={`/pets/${application.petId}`}>
+                      {application.petName || 'View pet'}
+                    </Link>
+                    {application.petType && ` (${application.petType})`}
                   </p>
                 )}
-                {application.petId && !application.petName && <p>Pet ID: {application.petId}</p>}
               </div>
               <div>
                 <span

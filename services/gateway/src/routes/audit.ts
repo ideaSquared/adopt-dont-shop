@@ -27,6 +27,7 @@
 // middleware already stamps x-user-* metadata.
 
 import rateLimit from '@fastify/rate-limit';
+import type { Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance } from 'fastify';
 
 import {
@@ -37,12 +38,21 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
+import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { buildPaginationEnvelope, parsePagination } from '../middleware/pagination.js';
+import { lookupPetNames, lookupRescueNames, lookupUserNames } from '../utils/entity-names.js';
 
 export type AuditRoutesOptions = {
   client: AuditClient;
+  // Resolve the audited entity (user / pet / rescue aggregate) to a display
+  // name for the admin audit log. Optional — absent, entityName is unset.
+  authClient?: AuthClient;
+  petsClient?: PetsClient;
+  rescueClient?: RescueClient;
 };
 
 // Per-route rate limits. Audit is admin-only — these are sized for
@@ -57,7 +67,7 @@ export const registerAuditRoutes = async (
   app: FastifyInstance,
   opts: AuditRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, ...nameClients } = opts;
 
   await app.register(rateLimit, { global: false });
 
@@ -220,10 +230,14 @@ export const registerAuditRoutes = async (
         occurredAtTo: query.endDate,
       };
       try {
-        const res = await client.query(grpcReq, buildMetadata(req));
+        const meta = buildMetadata(req);
+        const res = await client.query(grpcReq, meta);
+        const entityNames = await lookupEntityNames(res.events, nameClients, meta);
         return reply.send({
           success: true,
-          data: res.events.map(eventToAuditLog),
+          data: res.events.map(e =>
+            eventToAuditLog(e, entityNames[e.aggregateType]?.get(e.aggregateId))
+          ),
           pagination: buildPaginationEnvelope({
             mode: 'offset',
             page: pagination.page,
@@ -239,6 +253,24 @@ export const registerAuditRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
+
+const aggregateIdsOfType = (events: ReadonlyArray<AuditEvent>, type: string): string[] =>
+  events.filter(e => e.aggregateType === type).map(e => e.aggregateId);
+
+// Display names keyed by aggregate type, then aggregate id. Only the
+// aggregate types with a single human-readable name are resolved.
+async function lookupEntityNames(
+  events: ReadonlyArray<AuditEvent>,
+  clients: Omit<AuditRoutesOptions, 'client'>,
+  meta: Metadata
+): Promise<Record<string, Map<string, string>>> {
+  const [user, pet, rescue] = await Promise.all([
+    lookupUserNames(aggregateIdsOfType(events, 'user'), clients.authClient, meta),
+    lookupPetNames(aggregateIdsOfType(events, 'pet'), clients.petsClient, meta),
+    lookupRescueNames(aggregateIdsOfType(events, 'rescue'), clients.rescueClient, meta),
+  ]);
+  return { user, pet, rescue };
+}
 
 // parseOutcome accepts the DB string ('success', 'denied', 'failure')
 // AND the SCREAMING proto form ('AUDIT_OUTCOME_DENIED'). Unknown
@@ -291,8 +323,9 @@ function parseDetails(raw: string | undefined): Record<string, unknown> | undefi
 // The event's uuid event_id fills `id` (the SPA only ever renders it via
 // .toString() as a row key — a numeric id is a monolith artefact). The
 // actor email snapshot is the only human-readable identity the event
-// carries, so it stands in for both userName and userEmail.
-function eventToAuditLog(e: AuditEvent): Record<string, unknown> {
+// carries, so it stands in for both userName and userEmail. `entityName`
+// is the audited aggregate's display name when the gateway resolved one.
+function eventToAuditLog(e: AuditEvent, entityName?: string): Record<string, unknown> {
   return {
     id: e.eventId,
     service: e.service,
@@ -307,6 +340,7 @@ function eventToAuditLog(e: AuditEvent): Record<string, unknown> {
     metadata: {
       entity: e.aggregateType,
       entityId: e.aggregateId,
+      entityName,
       details: parseDetails(e.payloadJson),
       ipAddress: e.ipAddress ?? undefined,
       userAgent: e.userAgent ?? undefined,

@@ -10,6 +10,7 @@ export type AdminApplication = {
   petId: string;
   rescueName: string;
   rescueId: string;
+  applicantId: string;
   applicantName: string;
   applicantEmail: string;
   createdAt: string;
@@ -35,6 +36,7 @@ type BackendApplication = {
   petType?: string;
   rescueId: string;
   rescueName?: string;
+  userId: string;
   userName?: string;
   userEmail?: string;
   createdAt: string;
@@ -62,6 +64,7 @@ const toAdminApplication = (a: BackendApplication): AdminApplication => ({
   petType: a.petType,
   rescueId: a.rescueId,
   rescueName: a.rescueName ?? '',
+  applicantId: a.userId,
   applicantName: a.userName ?? '',
   applicantEmail: a.userEmail ?? '',
   createdAt: a.createdAt,

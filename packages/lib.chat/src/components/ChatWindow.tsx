@@ -1,6 +1,7 @@
 import { Button, Spinner } from '@adopt-dont-shop/lib.components';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router';
 import { useChat } from '../context/use-chat';
 import type { Conversation } from '../types';
 import * as styles from './ChatWindow.css';
@@ -186,9 +187,16 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
         <div className={styles.conversationInfo}>
           <h3>{rescueName}</h3>
           <p>
-            {activeConversation.petId
-              ? `About Pet #${activeConversation.petId}`
-              : 'General conversation'}
+            {activeConversation.petId ? (
+              <>
+                About{' '}
+                <Link to={`/pets/${activeConversation.petId}`}>
+                  {activeConversation.petName || 'this pet'}
+                </Link>
+              </>
+            ) : (
+              'General conversation'
+            )}
           </p>
         </div>
       </div>

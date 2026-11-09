@@ -51,10 +51,6 @@ const StaffCard: React.FC<StaffCardProps> = ({
             <span className={styles.detailLabel}>Added:</span>
             <span className={styles.detailValue}>{formatDate(staffMember.addedAt)}</span>
           </div>
-          <div className={styles.detailItem}>
-            <span className={styles.detailLabel}>User ID:</span>
-            <span className={styles.detailValue}>{staffMember.userId}</span>
-          </div>
         </div>
       </div>
 

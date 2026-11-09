@@ -265,7 +265,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               </p>
               {petIdForLinks && (
                 <p className={styles.headerSubtitle}>
-                  <Link to={`/pets?petId=${petIdForLinks}`}>View pet card</Link>
+                  <Link to={`/pets/${petIdForLinks}`}>View pet card</Link>
                   {activePlacementForPet && (
                     <>
                       {' · '}

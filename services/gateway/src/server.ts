@@ -733,7 +733,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
   if (opts.auditClient) {
-    await registerAuditRoutes(server, { client: opts.auditClient });
+    await registerAuditRoutes(server, {
+      client: opts.auditClient,
+      authClient: opts.authClient,
+      petsClient: opts.petsClient,
+      rescueClient: opts.rescueClient,
+    });
     // Per-entity GET .../:id/activity — the admin SPA's EntityInspector
     // "Activity" tab. Same gRPC stub (GetByTarget), different REST shape
     // than /api/v1/audit/targets/:type/:id.
@@ -779,7 +784,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
     // SPA-facing surface at /api/v1/admin/{moderation,support}/* with
     // frontend-shape envelopes (lib.moderation, lib.support-tickets).
-    await registerModerationAdminRoutes(server, { client: opts.moderationClient });
+    await registerModerationAdminRoutes(server, {
+      client: opts.moderationClient,
+      authClient: opts.authClient,
+      petsClient: opts.petsClient,
+      rescueClient: opts.rescueClient,
+    });
     // Unified admin Triage Inbox at /api/v1/admin/inbox — aggregates
     // moderation reports + support tickets into one queue.
     await registerAdminInboxRoutes(server, { client: opts.moderationClient });
@@ -857,6 +867,8 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerChatRoutes(server, {
       client: opts.chatClient,
       authClient: opts.authClient,
+      petsClient: opts.petsClient,
+      rescueClient: opts.rescueClient,
       petEnquiryUserRateLimiter,
       petEnquiryIpMax: config.enquiryRateLimit.ipMax,
     });
