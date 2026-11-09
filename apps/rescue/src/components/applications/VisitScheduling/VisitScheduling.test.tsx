@@ -122,6 +122,11 @@ describe('VisitScheduling — home visit list', () => {
     expect(screen.getByText(/10:00/)).toBeInTheDocument();
   });
 
+  it('writes the visit date day-first, as UK readers expect', () => {
+    render(<VisitScheduling {...defaultProps} />);
+    expect(screen.getByRole('heading', { name: 'Monday 1 June 2026' })).toBeInTheDocument();
+  });
+
   it('shows a home-visits load error when homeVisitsError is set', () => {
     render(<VisitScheduling {...defaultProps} homeVisitsError="network down" homeVisits={[]} />);
     expect(screen.getByRole('alert')).toHaveTextContent(/failed to load home visits/i);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Input } from '@adopt-dont-shop/lib.components';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import type { HomeVisit } from '../../../types/applications';
 import type { StaffMember } from '../../../services/staffService';
 import * as styles from '../ApplicationReview.css';
@@ -232,12 +233,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
               <div className={styles.visitHeader}>
                 <div className={styles.visitInfo}>
                   <h4 className={styles.visitDate}>
-                    {new Date(visit.scheduledDate).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {formatCustomDate(visit.scheduledDate, 'EEEE d MMMM yyyy')}
                   </h4>
                   <p className={styles.visitTime}>at {visit.scheduledTime}</p>
                   <p className={styles.visitStaff}>Assigned to: {visit.assignedStaff}</p>

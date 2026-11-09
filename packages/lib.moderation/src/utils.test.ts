@@ -50,6 +50,10 @@ describe('formatDate', () => {
     expect(formatted).toContain('Apr');
   });
 
+  it('writes the date day-first with a 24-hour clock', () => {
+    expect(formatDate(new Date(2026, 3, 21, 14, 5))).toBe('21 Apr 2026, 14:05');
+  });
+
   it('accepts an ISO string and produces the same shape', () => {
     expect(formatDate('2026-04-21T09:05:00Z')).toContain('Apr');
   });

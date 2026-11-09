@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatCustomDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './AdoptionTrendsChart.css';
 
 interface DataPoint {
@@ -62,10 +63,7 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
     Z
   `;
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
+  const formatDate = (dateString: string) => formatCustomDate(dateString, 'd MMM');
 
   const handlePointHover = (index: number, event: React.MouseEvent) => {
     setActivePoint(index);
