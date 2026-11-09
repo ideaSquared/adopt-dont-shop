@@ -62,6 +62,9 @@ export type GdprRoutesOptions = {
   // hold the real authenticated userId. Optional so tests / dev that don't
   // wire it keep the per-IP-only backstop behaviour.
   erasureUserRateLimiter?: EmailRateLimiter;
+  // Per-IP backstop max per hour. Defaults to ERASURE_RATE_LIMIT.max; only
+  // the e2e stack raises it (config.erasureRateLimit, GATEWAY_ERASURE_IP_RATE_LIMIT_MAX).
+  erasureIpRateLimitMax?: number;
 };
 
 // userId is sourced from the authenticated x-user-id header today, so this
@@ -86,7 +89,15 @@ export const registerGdprRoutes = async (
   app: FastifyInstance,
   opts: GdprRoutesOptions
 ): Promise<void> => {
-  const { nats, auditClient, authClient, rescueClient, redis, erasureUserRateLimiter } = opts;
+  const {
+    nats,
+    auditClient,
+    authClient,
+    rescueClient,
+    redis,
+    erasureUserRateLimiter,
+    erasureIpRateLimitMax = ERASURE_RATE_LIMIT.max,
+  } = opts;
 
   // Per-principal cap preHandler (ADS-1421) — runs after authenticate.ts's
   // onRequest hook has already stripped any client-forged x-user-id and
@@ -108,7 +119,7 @@ export const registerGdprRoutes = async (
   app.post(
     '/api/v1/users/me/erasure-request',
     {
-      config: { rateLimit: ERASURE_RATE_LIMIT },
+      config: { rateLimit: { ...ERASURE_RATE_LIMIT, max: erasureIpRateLimitMax } },
       preHandler: erasureUserRateLimit,
       schema: {
         tags: ['gdpr'],

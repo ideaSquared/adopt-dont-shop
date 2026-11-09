@@ -13,8 +13,10 @@ import { URLS } from '../../playwright.config';
 // journeys change the password, the email, notification preferences, or erase
 // the account, which must never touch the shared seeded personas.
 //
-// Note: the erasure route allows 5 requests per IP per hour, and the delete
-// test here plus rescue/account-settings.spec.ts spend 2 of them per run.
+// Note: the erasure route allows 5 requests per IP per hour by default; the
+// e2e stack raises that (GATEWAY_ERASURE_IP_RATE_LIMIT_MAX in
+// docker-compose.e2e.yml) because the delete test here and
+// rescue/account-settings.spec.ts erase from the one docker-side IP.
 
 const canSignIn = async (email: string, password: string): Promise<boolean> => {
   const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
