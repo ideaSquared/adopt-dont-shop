@@ -54,6 +54,10 @@ jobs:
               - 'nginx/**'
               - 'deploy/**'
               - 'package.json'
+              # The debt ratchets below read these ceilings, so a ceiling-only PR
+              # must still run the guards.
+              - 'form-primitives-threshold.json'
+              - 'design-tokens-threshold.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
               - 'tsconfig*.json'
