@@ -14,6 +14,17 @@ export const useApplications = (filters: ApplicationFilters = {}) => {
   });
 };
 
+// Fetches one record by id for /applications/:id deep links, so a link opens its
+// record even when it is not on the list page currently loaded. Idle while
+// the id is undefined.
+export const useApplicationById = (applicationId: string | undefined) =>
+  useQuery({
+    queryKey: ['applications', 'detail', applicationId],
+    queryFn: () => applicationService.getById(applicationId ?? ''),
+    enabled: applicationId !== undefined,
+    retry: false,
+  });
+
 export const useBulkUpdateApplications = () => {
   const queryClient = useQueryClient();
 

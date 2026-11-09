@@ -10,7 +10,7 @@ import {
   useDebouncedValue,
 } from '@adopt-dont-shop/lib.components';
 import { Package, Search } from 'lucide-react';
-import { usePets, useBulkUpdatePets, useRescuesList } from '../hooks';
+import { usePets, usePetById, useBulkUpdatePets, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
 import { PetDetailPanel, EntityDetailLayout } from '../components/detail';
@@ -101,22 +101,20 @@ const Pets: React.FC = () => {
 
   const pets: AdminPet[] = data?.data ?? [];
 
-  // ADS: Deep-link pets via /pets/:petId. Look up the active pet from the loaded
-  // list and surface a toast + redirect when an unknown id appears in the URL.
-  const selectedPet: AdminPet | null = petId ? (pets.find(p => p.petId === petId) ?? null) : null;
+  // ADS: Deep-link pets via /pets/:petId. Use the row from the loaded list when
+  // it is there; otherwise fetch the pet by id, so links from elsewhere open
+  // pets on any page. Toast + redirect only when that fetch fails.
+  const listedPet = petId ? pets.find(p => p.petId === petId) : undefined;
+  const petById = usePetById(petId && !isLoading && !listedPet ? petId : undefined);
+  const selectedPet: AdminPet | null = listedPet ?? petById.data ?? null;
 
   useEffect(() => {
-    if (!petId || isLoading) {
+    if (!petId || !petById.isError) {
       return;
     }
-    if (pets.length === 0) {
-      return;
-    }
-    if (!pets.some(p => p.petId === petId)) {
-      toast.error('Pet not found');
-      navigate({ pathname: '/pets', search: searchParams.toString() }, { replace: true });
-    }
-  }, [petId, isLoading, pets, navigate, searchParams]);
+    toast.error('Pet not found');
+    navigate({ pathname: '/pets', search: searchParams.toString() }, { replace: true });
+  }, [petId, petById.isError, navigate, searchParams]);
 
   const handleRowClick = (pet: AdminPet): void => {
     navigate({ pathname: `/pets/${pet.petId}`, search: searchParams.toString() });

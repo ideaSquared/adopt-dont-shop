@@ -87,7 +87,7 @@ describe('UserManagementService', () => {
 
   describe('getUserById', () => {
     it('fetches a single user by ID', async () => {
-      mockGet.mockResolvedValueOnce(fakeUser);
+      mockGet.mockResolvedValueOnce({ success: true, data: fakeUser });
 
       const result = await userManagementService.getUserById('u1');
 

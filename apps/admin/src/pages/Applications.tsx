@@ -10,7 +10,12 @@ import {
   ToastContainer,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { useApplications, useBulkUpdateApplications, useRescuesList } from '../hooks';
+import {
+  useApplications,
+  useApplicationById,
+  useBulkUpdateApplications,
+  useRescuesList,
+} from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
 import { ApplicationDetailPanel, EntityDetailLayout } from '../components/detail';
@@ -93,24 +98,27 @@ const Applications: React.FC = () => {
 
   const applications: AdminApplication[] = data?.data ?? [];
 
-  // Derive selected application from URL param + loaded list.
-  const selectedApplication: AdminApplication | null = applicationId
-    ? (applications.find(app => app.applicationId === applicationId) ?? null)
-    : null;
+  // Derive the selected application from the URL param: the loaded list's row
+  // when it is there, otherwise fetched by id so links from elsewhere open
+  // applications on any page.
+  const listedApplication = applicationId
+    ? applications.find(app => app.applicationId === applicationId)
+    : undefined;
+  const applicationById = useApplicationById(
+    applicationId && !isLoading && !listedApplication ? applicationId : undefined
+  );
+  const selectedApplication: AdminApplication | null =
+    listedApplication ?? applicationById.data ?? null;
 
-  // If the param resolves to no application after loading completes,
-  // redirect back to the list and surface a toast.
+  // If the id fetch fails (unknown id), redirect back to the list and toast.
   useEffect(() => {
-    if (!applicationId || isLoading) {
-      return;
-    }
-    if (applications.find(app => app.applicationId === applicationId)) {
+    if (!applicationId || !applicationById.isError) {
       return;
     }
     const search = searchParams.toString();
     navigate(search ? `/applications?${search}` : '/applications', { replace: true });
     showToast('Application not found', 'error');
-  }, [applicationId, applications, isLoading, navigate, searchParams, showToast]);
+  }, [applicationId, applicationById.isError, navigate, searchParams, showToast]);
 
   const handleRowClick = (app: AdminApplication): void => {
     const search = searchParams.toString();

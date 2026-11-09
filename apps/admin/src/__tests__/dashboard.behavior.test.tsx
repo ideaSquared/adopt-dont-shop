@@ -23,6 +23,9 @@ const mockUseReports = vi.fn();
 const mockUseTickets = vi.fn();
 
 vi.mock('../hooks', () => ({
+  usePetById: () => ({ isError: false }),
+  useApplicationById: () => ({ isError: false }),
+  useUserById: () => ({ isError: false }),
   usePlatformMetrics: () => mockUsePlatformMetrics(),
   useApplications: (filters: unknown) => mockUseApplications(filters),
 }));

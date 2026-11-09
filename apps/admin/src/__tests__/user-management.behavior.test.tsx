@@ -33,8 +33,11 @@ const mockUseDeleteUser = vi.fn();
 const mockUseBulkUpdateUsers = vi.fn();
 const mockUseCreateUser = vi.fn();
 const mockUseEntityActivity = vi.fn();
+// The user fetched by id when a /users/:userId link is not on the loaded page.
+const mockUseUserById = vi.fn();
 
 vi.mock('../hooks', () => ({
+  useUserById: (userId: string | undefined) => mockUseUserById(userId),
   useUsers: (...args: unknown[]) => mockUseUsers(...args),
   useSuspendUser: () => mockUseSuspendUser(),
   useUnsuspendUser: () => mockUseUnsuspendUser(),
@@ -269,6 +272,7 @@ describe('User Management page', () => {
     mockUseDeleteUser.mockReturnValue(mockMutationResult);
     mockUseBulkUpdateUsers.mockReturnValue(mockMutationResult);
     mockUseCreateUser.mockReturnValue(mockMutationResult);
+    mockUseUserById.mockReturnValue({ isError: false });
     mockUseEntityActivity.mockReturnValue({
       data: [],
       isLoading: false,
@@ -491,6 +495,26 @@ describe('User Management page', () => {
       expect(panel).toBeInTheDocument();
       // Panel header shows the user name
       expect(panel).toHaveTextContent('John Doe');
+    });
+
+    it('fetches and shows a linked user who is not on the loaded page', () => {
+      mockUseUserById.mockImplementation((userId: string | undefined) =>
+        userId === 'user-elsewhere'
+          ? {
+              data: {
+                ...mockAdminUsers[0],
+                userId: 'user-elsewhere',
+                firstName: 'Rita',
+                lastName: 'Reporter',
+              },
+              isError: false,
+            }
+          : { isError: false }
+      );
+
+      renderUsersPage('/users/user-elsewhere');
+
+      expect(screen.getByTestId('user-detail-panel')).toHaveTextContent('Rita Reporter');
     });
 
     it('shows the close button on the detail panel', () => {

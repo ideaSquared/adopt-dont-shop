@@ -22,8 +22,11 @@ import type { AdminApplication } from '../services/applicationService';
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
 const mockUseApplications = vi.fn();
+// The application fetched by id when a deep link is not on the loaded page.
+const mockUseApplicationById = vi.fn();
 
 vi.mock('../hooks', () => ({
+  useApplicationById: (id: string | undefined) => mockUseApplicationById(id),
   useApplications: (...args: unknown[]) => mockUseApplications(...args),
   useBulkUpdateApplications: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRescuesList: () => ({ data: { data: [] } }),
@@ -143,6 +146,8 @@ const renderApplicationsAt = (initialRoute: string) => {
 
 beforeEach(() => {
   mockUseApplications.mockReset();
+  mockUseApplicationById.mockReset();
+  mockUseApplicationById.mockReturnValue({ isError: false });
 });
 
 // ── Pre-existing behaviour ───────────────────────────────────────────────────
@@ -215,10 +220,25 @@ describe('Applications page deep-link wiring', () => {
     });
   });
 
+  it('fetches and opens a linked application that is not on the loaded page', async () => {
+    setApplicationsResult({ data: [buildApplication({ applicationId: 'app-real' })] });
+    mockUseApplicationById.mockImplementation((id: string | undefined) =>
+      id === 'app-elsewhere'
+        ? { data: buildApplication({ applicationId: 'app-elsewhere' }), isError: false }
+        : { isError: false }
+    );
+
+    renderApplicationsAt('/applications/app-elsewhere');
+
+    expect(await screen.findByTestId('detail-application-id')).toHaveTextContent('app-elsewhere');
+    expect(screen.getByTestId('location-probe')).toHaveTextContent('/applications/app-elsewhere');
+  });
+
   it('redirects to /applications without crashing when the URL id is unknown', async () => {
     setApplicationsResult({
       data: [buildApplication({ applicationId: 'app-real' })],
     });
+    mockUseApplicationById.mockReturnValue({ isError: true });
 
     renderApplicationsAt('/applications/does-not-exist');
 

@@ -10,6 +10,17 @@ export const usePets = (filters: PetFilters = {}) => {
   });
 };
 
+// Fetches one record by id for /pets/:id deep links, so a link opens its
+// record even when it is not on the list page currently loaded. Idle while
+// the id is undefined.
+export const usePetById = (petId: string | undefined) =>
+  useQuery({
+    queryKey: ['pets', 'detail', petId],
+    queryFn: () => petService.getById(petId ?? ''),
+    enabled: petId !== undefined,
+    retry: false,
+  });
+
 export const useBulkUpdatePets = () => {
   const queryClient = useQueryClient();
 

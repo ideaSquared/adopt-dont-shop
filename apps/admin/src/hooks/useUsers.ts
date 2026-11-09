@@ -17,6 +17,17 @@ export const useUsers = (filters: Parameters<typeof userManagementService.getUse
   });
 };
 
+// Fetches one record by id for /users/:id deep links, so a link opens its
+// record even when it is not on the list page currently loaded. Idle while
+// the id is undefined.
+export const useUserById = (userId: string | undefined) =>
+  useQuery({
+    queryKey: ['users', 'detail', userId],
+    queryFn: () => userManagementService.getUserById(userId ?? ''),
+    enabled: userId !== undefined,
+    retry: false,
+  });
+
 /**
  * Hook to create a new user
  */

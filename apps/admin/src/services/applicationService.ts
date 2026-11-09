@@ -106,6 +106,13 @@ class ApplicationServiceClient {
     };
   }
 
+  async getById(applicationId: string): Promise<AdminApplication> {
+    const response = await apiService.get<{ data: BackendApplication }>(
+      `${this.baseUrl}/${applicationId}`
+    );
+    return toAdminApplication(response.data);
+  }
+
   async bulkUpdate(
     applicationIds: string[],
     updates: { status?: ApplicationStatus; reviewNotes?: string },
