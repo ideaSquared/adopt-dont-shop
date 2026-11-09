@@ -41,7 +41,9 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `getFieldAccessMap`, and the sensitive-field guard `SENSITIVE_FIELD_DENYLIST`,
   `isSensitiveField`, `enforceSensitiveDenylist`.
 - **Plan tiers**: from `./types/plans` (tier types + limits).
-- **Status**: `./status-labels` (shared display labels for status enums) and
+- **Status**: `./status-labels` (shared display labels for status enums),
+  `./status-variants` (status → badge variant maps per domain and
+  `getStatusDisplay(kind, status)`, used by `StatusBadge` in lib.components) and
   `./types/domain-status` (canonical value sets for every entity).
 - **Notifications**: `./types/notifications` (cross-cutting enums + helpers).
 - **Common + activity**: `./types/common` (sort, date range, service config),
@@ -70,4 +72,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 31 workspace package(s) depend on this library. See [lib.types-consumers.md](../../docs/libraries/lib.types-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->
