@@ -4368,6 +4368,24 @@ export const PROTO_SCHEMA: ProtoSchema = {
         },
       ],
     },
+    'adopt_dont_shop.auth.v1.ConfirmEmailChangeRequest': {
+      fullName: 'adopt_dont_shop.auth.v1.ConfirmEmailChangeRequest',
+      fields: [
+        {
+          name: 'token',
+          jsonName: 'token',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'SPECIAL',
+        },
+      ],
+    },
+    'adopt_dont_shop.auth.v1.ConfirmEmailChangeResponse': {
+      fullName: 'adopt_dont_shop.auth.v1.ConfirmEmailChangeResponse',
+      fields: [],
+    },
     'adopt_dont_shop.auth.v1.ConsentDecision': {
       fullName: 'adopt_dont_shop.auth.v1.ConsentDecision',
       fields: [
@@ -6280,6 +6298,67 @@ export const PROTO_SCHEMA: ProtoSchema = {
           optional: false,
           sensitivity: 'INTERNAL',
           comment: 'RFC 3339 timestamp after which hard anonymisation runs.',
+        },
+      ],
+    },
+    'adopt_dont_shop.auth.v1.RequestEmailChangeRequest': {
+      fullName: 'adopt_dont_shop.auth.v1.RequestEmailChangeRequest',
+      fields: [
+        {
+          name: 'new_email',
+          jsonName: 'newEmail',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'PII',
+          comment: 'The address to move the account to. Trimmed and lower-cased server-side.',
+        },
+        {
+          name: 'password',
+          jsonName: 'password',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: 'SPECIAL',
+          comment: 'Step-up re-authentication, same rules as VerifyCredentialsRequest.',
+        },
+        {
+          name: 'two_factor_token',
+          jsonName: 'twoFactorToken',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: true,
+          sensitivity: 'SPECIAL',
+        },
+      ],
+    },
+    'adopt_dont_shop.auth.v1.RequestEmailChangeResponse': {
+      fullName: 'adopt_dont_shop.auth.v1.RequestEmailChangeResponse',
+      fields: [
+        {
+          name: 'verified',
+          jsonName: 'verified',
+          kind: 'scalar',
+          scalarType: 'bool',
+          repeated: false,
+          optional: false,
+          sensitivity: null,
+          comment:
+            'True when the credentials checked out and the request was accepted —\nincluding when the address already belongs to another account.',
+        },
+        {
+          name: 'two_factor_required',
+          jsonName: 'twoFactorRequired',
+          kind: 'scalar',
+          scalarType: 'bool',
+          repeated: false,
+          optional: false,
+          sensitivity: null,
+          comment:
+            'Set when the password was correct but the account has 2FA enabled and no\ntwo_factor_token was supplied. verified is false in this case.',
         },
       ],
     },
@@ -22250,7 +22329,21 @@ export const PROTO_SCHEMA: ProtoSchema = {
           inputType: 'adopt_dont_shop.auth.v1.UpdateAccountRequest',
           outputType: 'adopt_dont_shop.auth.v1.UpdateAccountResponse',
           comment:
-            'Authenticated profile edit (first_name, last_name, phone_number,\nbio, timezone, language, country, city, address). Email changes go\nthrough a dedicated re-verification flow (deferred).',
+            'Authenticated profile edit (first_name, last_name, phone_number,\nbio, timezone, language, country, city, address). Email changes go\nthrough the re-verification flow below (RequestEmailChange +\nConfirmEmailChange).',
+        },
+        {
+          name: 'RequestEmailChange',
+          inputType: 'adopt_dont_shop.auth.v1.RequestEmailChangeRequest',
+          outputType: 'adopt_dont_shop.auth.v1.RequestEmailChangeResponse',
+          comment:
+            'Self-scoped start of an email change. Re-verifies the caller\'s password\n(and a current TOTP for 2FA accounts) the same way VerifyCredentials\ndoes, then stores the new address as pending and mails a single-use\nconfirmation link to it (24h). The account email does not change until\nConfirmEmailChange. An address that already belongs to another account\ngets the SAME response as a free one (no enumeration); nothing is stored\nand that address is told instead. INVALID_ARGUMENT "invalid_email" /\n"email_unchanged" for a malformed or identical address. Requires the\nx-user-id metadata.',
+        },
+        {
+          name: 'ConfirmEmailChange',
+          inputType: 'adopt_dont_shop.auth.v1.ConfirmEmailChangeRequest',
+          outputType: 'adopt_dont_shop.auth.v1.ConfirmEmailChangeResponse',
+          comment:
+            'Public: the token mailed by RequestEmailChange is the credential. Swaps\nthe account email to the pending address, marks it verified and ends\nevery session. INVALID_ARGUMENT "invalid_or_expired_token" for an\nunknown, used or expired token; ALREADY_EXISTS "email_in_use" when the\naddress was taken by another account in the meantime.',
         },
         {
           name: 'ListSessions',

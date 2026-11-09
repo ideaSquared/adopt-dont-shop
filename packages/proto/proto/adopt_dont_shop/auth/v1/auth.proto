@@ -151,8 +151,27 @@ service AuthService {
 
   // Authenticated profile edit (first_name, last_name, phone_number,
   // bio, timezone, language, country, city, address). Email changes go
-  // through a dedicated re-verification flow (deferred).
+  // through the re-verification flow below (RequestEmailChange +
+  // ConfirmEmailChange).
   rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
+
+  // Self-scoped start of an email change. Re-verifies the caller's password
+  // (and a current TOTP for 2FA accounts) the same way VerifyCredentials
+  // does, then stores the new address as pending and mails a single-use
+  // confirmation link to it (24h). The account email does not change until
+  // ConfirmEmailChange. An address that already belongs to another account
+  // gets the SAME response as a free one (no enumeration); nothing is stored
+  // and that address is told instead. INVALID_ARGUMENT "invalid_email" /
+  // "email_unchanged" for a malformed or identical address. Requires the
+  // x-user-id metadata.
+  rpc RequestEmailChange(RequestEmailChangeRequest) returns (RequestEmailChangeResponse);
+
+  // Public: the token mailed by RequestEmailChange is the credential. Swaps
+  // the account email to the pending address, marks it verified and ends
+  // every session. INVALID_ARGUMENT "invalid_or_expired_token" for an
+  // unknown, used or expired token; ALREADY_EXISTS "email_in_use" when the
+  // address was taken by another account in the meantime.
+  rpc ConfirmEmailChange(ConfirmEmailChangeRequest) returns (ConfirmEmailChangeResponse);
 
   // --- Session management --------------------------------------------
   // Phase 2.6+: SPA-facing session list + revoke. Sessions correspond
@@ -811,6 +830,31 @@ message UpdateAccountRequest {
 message UpdateAccountResponse {
   User user = 1;
 }
+
+// --- Email change -----------------------------------------------------
+
+message RequestEmailChangeRequest {
+  // The address to move the account to. Trimmed and lower-cased server-side.
+  string new_email = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_PII];
+  // Step-up re-authentication, same rules as VerifyCredentialsRequest.
+  string password = 2 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+  optional string two_factor_token = 3 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+}
+
+message RequestEmailChangeResponse {
+  // True when the credentials checked out and the request was accepted —
+  // including when the address already belongs to another account.
+  bool verified = 1;
+  // Set when the password was correct but the account has 2FA enabled and no
+  // two_factor_token was supplied. verified is false in this case.
+  bool two_factor_required = 2;
+}
+
+message ConfirmEmailChangeRequest {
+  string token = 1 [(adopt_dont_shop.v1.sensitivity) = SENSITIVITY_SPECIAL];
+}
+
+message ConfirmEmailChangeResponse {}
 
 // --- Sessions ---------------------------------------------------------
 

@@ -28,13 +28,15 @@ import { verifyAndConsumeTotp } from './totp-verification.js';
 // Only the columns the step-up check reads: the password to compare, the 2FA
 // triplet for the replay-guarded TOTP verify, and the denormalised email for
 // the audit snapshot.
-type VerifyUserRow = {
+export type StepUpUserRow = {
   email: string;
   password: string;
   two_factor_enabled: boolean;
   two_factor_secret: string | null;
   two_factor_last_step: number | null;
 };
+
+export type StepUpResult = { verified: boolean; twoFactorRequired: boolean };
 
 // Forensic record of a step-up verification, published as `auth.actionTaken`
 // so service.audit's wildcard subscriber persists it. Routed through
@@ -77,7 +79,7 @@ export async function verifyCredentials(
     throw new HandlerError('INVALID_ARGUMENT', 'password is required');
   }
 
-  const res = await deps.pool.query<VerifyUserRow>(
+  const res = await deps.pool.query<StepUpUserRow>(
     `SELECT email, password, two_factor_enabled, two_factor_secret, two_factor_last_step
        FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
     [principal.userId]
@@ -87,15 +89,24 @@ export async function verifyCredentials(
     throw new HandlerError('NOT_FOUND', 'user not found');
   }
 
+  return checkStepUpCredentials(deps, principal.userId, user, req);
+}
+
+// The step-up check itself, shared with RequestEmailChange (which re-verifies
+// the caller before moving the account to a new address). The caller loads
+// the user row (it may need more columns than these) and has already
+// rejected a missing password.
+export async function checkStepUpCredentials(
+  deps: HandlerDeps,
+  userId: string,
+  user: StepUpUserRow,
+  credentials: { password: string; twoFactorToken?: string }
+): Promise<StepUpResult> {
   // Password first (ADS-1205): a wrong password is a denial and MUST NOT reach
   // the TOTP verifier, so it can never consume a code.
-  const passwordOk = await deps.passwordHasher.compare(req.password, user.password);
+  const passwordOk = await deps.passwordHasher.compare(credentials.password, user.password);
   if (!passwordOk) {
-    await publishVerifyActionTaken(deps, {
-      outcome: 'denied',
-      userId: principal.userId,
-      email: user.email,
-    });
+    await publishVerifyActionTaken(deps, { outcome: 'denied', userId, email: user.email });
     return { verified: false, twoFactorRequired: false };
   }
 
@@ -103,32 +114,24 @@ export async function verifyCredentials(
   // no code is answered with two_factor_required (not a denial) so the caller
   // can collect a code and re-submit — mirroring Login's first-call idiom.
   if (user.two_factor_enabled) {
-    if (!req.twoFactorToken) {
+    if (!credentials.twoFactorToken) {
       return { verified: false, twoFactorRequired: true };
     }
     const totpOk = await verifyAndConsumeTotp(
       deps,
       {
-        userId: principal.userId,
+        userId,
         encryptedSecret: user.two_factor_secret,
         lastStep: user.two_factor_last_step,
       },
-      req.twoFactorToken
+      credentials.twoFactorToken
     );
     if (!totpOk) {
-      await publishVerifyActionTaken(deps, {
-        outcome: 'denied',
-        userId: principal.userId,
-        email: user.email,
-      });
+      await publishVerifyActionTaken(deps, { outcome: 'denied', userId, email: user.email });
       return { verified: false, twoFactorRequired: false };
     }
   }
 
-  await publishVerifyActionTaken(deps, {
-    outcome: 'success',
-    userId: principal.userId,
-    email: user.email,
-  });
+  await publishVerifyActionTaken(deps, { outcome: 'success', userId, email: user.email });
   return { verified: true, twoFactorRequired: false };
 }

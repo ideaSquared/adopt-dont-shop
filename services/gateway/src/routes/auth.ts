@@ -27,6 +27,7 @@
 // (falling back to the request body for non-browser callers), and Logout
 // clears all three auth cookies regardless of the upstream RPC outcome.
 
+import { status as grpcStatus } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply, FastifyRequest, RouteShorthandOptions } from 'fastify';
 
 import {
@@ -64,6 +65,8 @@ import {
   ChangePasswordBodySchema,
   normalizeUpdateAccountBody,
   UpdateAccountBodySchema,
+  RequestEmailChangeBodySchema,
+  ConfirmEmailChangeBodySchema,
 } from './auth.schemas.js';
 
 export type AuthRoutesOptions = {
@@ -155,6 +158,35 @@ export const AUTH_RATE_LIMITS = {
   changePassword: { max: authMax(10), timeWindow: '1 minute' },
   twoFactor: { max: authMax(10), timeWindow: '1 minute' },
   updateAccount: { max: authMax(30), timeWindow: '1 minute' },
+  // Step-up re-auth on every call, like changePassword.
+  requestEmailChange: { max: authMax(10), timeWindow: '1 minute' },
+  // Public token redemption, like verifyEmail.
+  confirmEmailChange: { max: authMax(10), timeWindow: '1 minute' },
+} as const;
+
+// The email-change contract's error bodies: the auth service's machine-
+// readable message for these (gRPC code, message) pairs becomes
+// { success: false, error: <message> } with the given HTTP status. Anything
+// else goes through the shared handleGrpcError mapping.
+const EMAIL_CHANGE_ERRORS: ReadonlyArray<{ code: number; error: string; httpStatus: number }> = [
+  { code: grpcStatus.INVALID_ARGUMENT, error: 'invalid_email', httpStatus: 400 },
+  { code: grpcStatus.INVALID_ARGUMENT, error: 'email_unchanged', httpStatus: 400 },
+  { code: grpcStatus.INVALID_ARGUMENT, error: 'invalid_or_expired_token', httpStatus: 400 },
+  { code: grpcStatus.ALREADY_EXISTS, error: 'email_in_use', httpStatus: 409 },
+];
+
+const handleEmailChangeError = (err: unknown, reply: FastifyReply): FastifyReply => {
+  const { code, details } = (err ?? {}) as { code?: unknown; details?: unknown };
+  const known = EMAIL_CHANGE_ERRORS.find(e => e.code === code && e.error === details);
+  if (!known) {
+    return handleGrpcError(err, reply);
+  }
+  return reply.code(known.httpStatus).send({ success: false, error: known.error });
+};
+
+const EMAIL_CHANGE_ERROR_BODY = {
+  type: 'object',
+  properties: { success: { type: 'boolean' }, error: { type: 'string' } },
 } as const;
 
 export const registerAuthRoutes = async (
@@ -1216,6 +1248,92 @@ export const registerAuthRoutes = async (
         return reply.send({ ...withApiUser(json, res.user), roles: rolesToApi(res.roles ?? []) });
       } catch (err) {
         return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // --- Email change ---------------------------------------------------
+  // Two steps: the signed-in user asks for the change (re-proving their
+  // credentials inline, like the GDPR erasure route), then follows the link
+  // mailed to the new address. The account email only moves on confirm.
+
+  app.post(
+    '/api/v1/users/me/email-change',
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.requestEmailChange },
+      schema: {
+        tags: ['auth'],
+        summary: 'Request a change of email address for the authenticated user',
+        // Nothing is `required` on purpose: a missing password is a 401 and a
+        // missing address the auth service's 400 invalid_email.
+        body: {
+          type: 'object',
+          properties: {
+            newEmail: { type: 'string' },
+            password: { type: 'string' },
+            twoFactorToken: { type: 'string' },
+          },
+        },
+        response: {
+          202: { type: 'object', properties: { success: { type: 'boolean' } } },
+          400: EMAIL_CHANGE_ERROR_BODY,
+          401: EMAIL_CHANGE_ERROR_BODY,
+        },
+      },
+    },
+    async (req, reply) => {
+      const body = RequestEmailChangeBodySchema.parse(req.body ?? {});
+      if (!body.password) {
+        return reply.code(401).send({ success: false, error: 'credential_verification_failed' });
+      }
+      try {
+        const res = await client.requestEmailChange(
+          {
+            newEmail: body.newEmail,
+            password: body.password,
+            twoFactorToken: body.twoFactorToken,
+          },
+          buildMetadata(req)
+        );
+        if (res.twoFactorRequired) {
+          return reply.code(401).send({ success: false, error: 'two_factor_required' });
+        }
+        if (!res.verified) {
+          return reply.code(401).send({ success: false, error: 'credential_verification_failed' });
+        }
+        // Same answer whether or not the address already has an account.
+        return reply.code(202).send({ success: true });
+      } catch (err) {
+        return handleEmailChangeError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/confirm-email-change',
+    {
+      config: { public: true, rateLimit: AUTH_RATE_LIMITS.confirmEmailChange },
+      schema: {
+        tags: ['auth'],
+        summary: 'Confirm an email address change using the token mailed to the new address',
+        security: [],
+        response: {
+          200: { type: 'object', properties: { success: { type: 'boolean' } } },
+          400: EMAIL_CHANGE_ERROR_BODY,
+          409: EMAIL_CHANGE_ERROR_BODY,
+        },
+      },
+    },
+    async (req, reply) => {
+      const parsed = ConfirmEmailChangeBodySchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: 'invalid_or_expired_token' });
+      }
+      try {
+        await client.confirmEmailChange({ token: parsed.data.token }, buildMetadata(req));
+        return reply.send({ success: true });
+      } catch (err) {
+        return handleEmailChangeError(err, reply);
       }
     }
   );

@@ -1,9 +1,11 @@
-// Verification, password-reset and rescue staff invitation emails.
+// Verification, password-reset, email-change and rescue staff invitation emails.
 //
 // service.auth publishes auth.userRegistered (new account, and the resend
-// variant) and auth.passwordResetRequested; service.rescue publishes
-// rescue.staffInvited (the invitee has no account yet, so no first name).
-// Each carries the recipient's address and the raw one-time token. This module turns them into
+// variant), auth.passwordResetRequested, and auth.emailChangeRequested /
+// auth.emailChangeConflict; service.rescue publishes rescue.staffInvited (the
+// invitee has no account yet, so no first name).
+// Each carries the recipient's address and, where there is a link, the raw
+// one-time token. This module turns them into
 // queued emails for the existing email worker (email_queue), keyed so a
 // redelivered event never sends a second email.
 //
@@ -28,7 +30,11 @@ import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 import { escapeHtml } from '../email/escape-html.js';
 import { insertEmail } from '../email/queue.js';
 
-import type { RescueStaffInvitedEvent } from './event-types.js';
+import type {
+  AuthEmailChangeConflictEvent,
+  AuthEmailChangeRequestedEvent,
+  RescueStaffInvitedEvent,
+} from './event-types.js';
 
 export type AuthEmailConfig = {
   // Client app origin the links point at (FRONTEND_URL).
@@ -136,6 +142,29 @@ const render = (parts: {
   return { subject: parts.subject, html, text };
 };
 
+// An email with no link: security notices that must not carry a token.
+const renderNotice = (parts: {
+  subject: string;
+  greetingName: string | null | undefined;
+  lines: string[];
+}): RenderedEmail => {
+  const greeting = parts.greetingName ? `Hello ${parts.greetingName},` : 'Hello,';
+  const text = [greeting, '', ...parts.lines, '', `The ${APP_NAME} team`].join('\n');
+  const html = [
+    `<p>${escapeHtml(greeting)}</p>`,
+    ...parts.lines.map(line => `<p>${escapeHtml(line)}</p>`),
+    `<p>The ${escapeHtml(APP_NAME)} team</p>`,
+  ].join('');
+  return { subject: parts.subject, html, text };
+};
+
+// "n•••@example.com": enough for the account holder to recognise the address,
+// not enough to hand it to whoever reads the old inbox.
+const maskEmail = (email: string): string => {
+  const at = email.lastIndexOf('@');
+  return at < 1 ? '•••' : `${email[0]}•••${email.slice(at)}`;
+};
+
 export const renderVerificationEmail = (
   event: UserRegisteredEvent,
   frontendUrl: string
@@ -181,6 +210,45 @@ export const renderStaffInvitationEmail = (
     url: link(rescueAppUrl, '/accept-invitation', event.token ?? ''),
     expiry: formatExpiry(event.expiration),
     closing: 'If you were not expecting this invitation, you can ignore this email.',
+  });
+
+export const renderEmailChangeConfirmationEmail = (
+  event: AuthEmailChangeRequestedEvent,
+  frontendUrl: string
+): RenderedEmail =>
+  render({
+    subject: `Confirm your new email address for ${APP_NAME}`,
+    greetingName: event.firstName ?? undefined,
+    lines: [
+      `We received a request to change the email address on your ${APP_NAME} account to this one. Please confirm it to finish the change.`,
+      'Your email address will not change until you confirm, and you will need to sign in again afterwards.',
+    ],
+    linkText: 'Confirm my new email address',
+    url: link(frontendUrl, '/confirm-email-change', event.token),
+    expiry: formatExpiry(event.expiresAt),
+    closing: 'If you did not ask for this, you can ignore this email.',
+  });
+
+export const renderEmailChangeNoticeEmail = (event: AuthEmailChangeRequestedEvent): RenderedEmail =>
+  renderNotice({
+    subject: `Email address change requested for your ${APP_NAME} account`,
+    greetingName: event.firstName,
+    lines: [
+      `Someone asked to change the email address on your ${APP_NAME} account to ${maskEmail(event.newEmail)}.`,
+      'The change only happens once the new address is confirmed. Until then, this address stays on your account.',
+      'If this was not you, please contact support straight away and change your password.',
+    ],
+  });
+
+export const renderEmailChangeConflictEmail = (): RenderedEmail =>
+  renderNotice({
+    subject: `This email address already has an account on ${APP_NAME}`,
+    greetingName: undefined,
+    lines: [
+      `Someone tried to move a ${APP_NAME} account to this email address, but this address already has an account, so nothing was changed.`,
+      'If you want to use this address, sign in with it instead. If you have forgotten the password, you can reset it from the sign-in page.',
+      'If this was not you, you can ignore this email.',
+    ],
   });
 
 // A replayed event can outlive its token (JetStream keeps events for days;
@@ -308,6 +376,63 @@ export const registerAuthEmailSubscribers = (
         // The invitee has no user id; the queue row is keyed on the event id.
         { email: event.email },
         renderStaffInvitationEmail(event, opts.config.rescueAppUrl)
+      );
+    }
+  ),
+  subscribe<AuthEmailChangeRequestedEvent>(
+    opts.nats,
+    {
+      subject: 'auth.emailChangeRequested',
+      durable: durableFor('auth.emailChangeRequested'),
+      onError: opts.onError,
+    },
+    async (event, meta) => {
+      if (!event.newEmail || !event.token) {
+        return;
+      }
+      if (isExpired(event.expiresAt, (opts.now ?? (() => new Date()))())) {
+        return;
+      }
+      const recipient = { userId: event.userId, firstName: event.firstName ?? undefined };
+      // One event, two emails: each gets its own idempotency key.
+      await enqueue(
+        opts,
+        'auth.emailChangeRequested',
+        meta.id && `${meta.id}:new-address`,
+        { ...recipient, email: event.newEmail },
+        renderEmailChangeConfirmationEmail(event, opts.config.frontendUrl)
+      );
+      if (!event.oldEmail) {
+        return;
+      }
+      await enqueue(
+        opts,
+        'auth.emailChangeRequested',
+        meta.id && `${meta.id}:old-address`,
+        { ...recipient, email: event.oldEmail },
+        renderEmailChangeNoticeEmail(event)
+      );
+    }
+  ),
+  subscribe<AuthEmailChangeConflictEvent>(
+    opts.nats,
+    {
+      subject: 'auth.emailChangeConflict',
+      durable: durableFor('auth.emailChangeConflict'),
+      onError: opts.onError,
+    },
+    async (event, meta) => {
+      if (!event.newEmail) {
+        return;
+      }
+      await enqueue(
+        opts,
+        'auth.emailChangeConflict',
+        meta.id,
+        // The recipient is another account's address, not the requester, so
+        // the queue row carries no user id.
+        { email: event.newEmail },
+        renderEmailChangeConflictEmail()
       );
     }
   ),

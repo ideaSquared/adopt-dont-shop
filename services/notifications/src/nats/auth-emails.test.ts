@@ -89,6 +89,20 @@ const STAFF_INVITED = {
   token: TOKEN,
 };
 
+const EMAIL_CHANGE_REQUESTED = {
+  userId: 'usr-1',
+  firstName: 'Ada',
+  oldEmail: 'ada@example.com',
+  newEmail: 'newada@example.org',
+  token: TOKEN,
+  expiresAt: '2026-11-08T12:00:00.000Z',
+};
+
+const EMAIL_CHANGE_CONFLICT = {
+  userId: 'usr-1',
+  newEmail: 'taken@example.org',
+};
+
 describe('registerAuthEmailSubscribers', () => {
   beforeEach(() => {
     subscribeMock.mockReset();
@@ -96,20 +110,24 @@ describe('registerAuthEmailSubscribers', () => {
     insertEmailMock.mockResolvedValue({});
   });
 
-  it('subscribes to auth.userRegistered, auth.passwordResetRequested and rescue.staffInvited with their own durables', () => {
+  it('subscribes to each auth email event with its own durable', () => {
     const { subs } = register();
 
-    expect(subs).toHaveLength(3);
+    expect(subs).toHaveLength(5);
     const opts = subscribeMock.mock.calls.map(c => c[1] as { subject: string; durable: string });
     expect(opts.map(o => o.subject)).toEqual([
       'auth.userRegistered',
       'auth.passwordResetRequested',
       'rescue.staffInvited',
+      'auth.emailChangeRequested',
+      'auth.emailChangeConflict',
     ]);
     expect(opts.map(o => o.durable)).toEqual([
       'notifications-workers-auth-userRegistered',
       'notifications-workers-auth-passwordResetRequested',
       'notifications-workers-rescue-staffInvited',
+      'notifications-workers-auth-emailChangeRequested',
+      'notifications-workers-auth-emailChangeConflict',
     ]);
   });
 
@@ -304,5 +322,109 @@ describe('registerAuthEmailSubscribers', () => {
     const logged = JSON.stringify(logCalls);
     expect(logged).not.toContain(TOKEN);
     expect(logged).not.toContain('ada@example.com');
+  });
+  describe('email change', () => {
+    const emailTo = (address: string) =>
+      insertEmailMock.mock.calls.map(c => c[1]).find(e => e.toEmail === address);
+
+    it('mails the confirmation link and its expiry to the new address', async () => {
+      const { handlers } = register();
+
+      await handlers.get('auth.emailChangeRequested')!(EMAIL_CHANGE_REQUESTED, { id: 'evt-ec-1' });
+
+      const email = emailTo('newada@example.org');
+      const link = `http://localhost:3000/confirm-email-change?token=${TOKEN}`;
+      expect(email).toMatchObject({
+        toName: 'Ada',
+        type: 'transactional',
+        userId: 'usr-1',
+        metadata: { essential: true },
+      });
+      expect(email.subject).toMatch(/confirm your new email/i);
+      expect(email.htmlContent).toContain(`href="${link}"`);
+      expect(email.textContent).toContain(link);
+      expect(email.textContent).toMatch(/8 November 2026 at 12:00 UTC/);
+    });
+
+    it('sends the old address a security notice with the masked new address and no link or token', async () => {
+      const { handlers } = register();
+
+      await handlers.get('auth.emailChangeRequested')!(EMAIL_CHANGE_REQUESTED, { id: 'evt-ec-2' });
+
+      expect(insertEmailMock).toHaveBeenCalledTimes(2);
+      const notice = emailTo('ada@example.com');
+      expect(notice.subject).toMatch(/email address change/i);
+      expect(notice.textContent).toContain('n•••@example.org');
+      expect(notice.textContent).toMatch(/contact support/i);
+      for (const body of [notice.textContent, notice.htmlContent, notice.subject]) {
+        expect(body).not.toContain(TOKEN);
+        expect(body).not.toContain('confirm-email-change');
+        expect(body).not.toContain('newada@example.org');
+      }
+      expect(notice.htmlContent).not.toContain('<a ');
+    });
+
+    it('keys the two emails of one request separately, and the same way on redelivery', async () => {
+      const { handlers } = register();
+
+      await handlers.get('auth.emailChangeRequested')!(EMAIL_CHANGE_REQUESTED, { id: 'evt-ec-3' });
+      await handlers.get('auth.emailChangeRequested')!(EMAIL_CHANGE_REQUESTED, { id: 'evt-ec-3' });
+
+      const keys = insertEmailMock.mock.calls.map(c => c[1].idempotencyKey as string);
+      expect(keys).toHaveLength(4);
+      expect(keys.every(k => /^[0-9a-f]{64}$/.test(k))).toBe(true);
+      expect(new Set(keys).size).toBe(2);
+    });
+
+    it('sends nothing for an expired request or one missing its token or addresses', async () => {
+      const { handlers } = register(() => new Date('2026-11-09T00:00:00.000Z'));
+
+      await handlers.get('auth.emailChangeRequested')!(EMAIL_CHANGE_REQUESTED, { id: 'evt-ec-4' });
+      await handlers.get('auth.emailChangeRequested')!(
+        { ...EMAIL_CHANGE_REQUESTED, token: undefined, expiresAt: undefined },
+        { id: 'evt-ec-5' }
+      );
+      await handlers.get('auth.emailChangeRequested')!(
+        { ...EMAIL_CHANGE_REQUESTED, oldEmail: undefined, newEmail: '', expiresAt: undefined },
+        { id: 'evt-ec-6' }
+      );
+
+      expect(insertEmailMock).not.toHaveBeenCalled();
+    });
+
+    it('tells a taken address that someone tried to move an account to it, with no link or token', async () => {
+      const { handlers } = register();
+
+      await handlers.get('auth.emailChangeConflict')!(EMAIL_CHANGE_CONFLICT, { id: 'evt-ec-7' });
+
+      expect(insertEmailMock).toHaveBeenCalledTimes(1);
+      const email = emailTo('taken@example.org');
+      expect(email.subject).toMatch(/already has an account/i);
+      expect(email.textContent).toMatch(/sign in/i);
+      expect(email.htmlContent).not.toContain('<a ');
+      expect(email.textContent).not.toContain('token=');
+      expect(email.metadata).toEqual({ essential: true });
+    });
+
+    it('skips a conflict event with no address', async () => {
+      const { handlers } = register();
+
+      await handlers.get('auth.emailChangeConflict')!({ userId: 'usr-1' }, { id: 'evt-ec-8' });
+
+      expect(insertEmailMock).not.toHaveBeenCalled();
+    });
+
+    it('never writes the token or any address to the logs', async () => {
+      const { handlers, logCalls } = register();
+
+      await handlers.get('auth.emailChangeRequested')!(EMAIL_CHANGE_REQUESTED, { id: 'evt-ec-9' });
+      await handlers.get('auth.emailChangeConflict')!(EMAIL_CHANGE_CONFLICT, { id: 'evt-ec-10' });
+
+      const logged = JSON.stringify(logCalls);
+      expect(logged).not.toContain(TOKEN);
+      expect(logged).not.toContain('ada@example.com');
+      expect(logged).not.toContain('newada@example.org');
+      expect(logged).not.toContain('taken@example.org');
+    });
   });
 });

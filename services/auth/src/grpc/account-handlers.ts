@@ -53,11 +53,11 @@ const MIN_PASSWORD_LENGTH = 8;
 
 // Random URL-safe bearer token. The raw value is sent to the user (email);
 // only its SHA-256 hash is stored — see hashToken().
-function mintToken(): string {
+export function mintToken(): string {
   return randomBytes(32).toString('base64url');
 }
 
-function hashToken(token: string): string {
+export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 

@@ -23,8 +23,12 @@ import {
   AuthV1,
   type AuthCheckSelfErasureRequest,
   type AuthCheckSelfErasureResponse,
+  type ConfirmEmailChangeRequest,
+  type ConfirmEmailChangeResponse,
   type LoginRequest,
   type LoginResponse,
+  type RequestEmailChangeRequest,
+  type RequestEmailChangeResponse,
   type ValidateTokenRequest,
   type ValidateTokenResponse,
   type VerifyCredentialsRequest,
@@ -69,6 +73,8 @@ const makeHandlers = (overrides: Partial<AuthV1.AuthServiceServer>): AuthV1.Auth
   verifyCredentials: unimplemented,
   checkSelfErasure: unimplemented,
   updateAccount: unimplemented,
+  requestEmailChange: unimplemented,
+  confirmEmailChange: unimplemented,
   listSessions: unimplemented,
   revokeSession: unimplemented,
   getPrivacyPreferences: unimplemented,
@@ -227,6 +233,70 @@ describe('auth-client — gRPC contract', () => {
       expect(capturedToken).toBe('123456');
       expect(result.verified).toBe(true);
       expect(result.twoFactorRequired).toBe(false);
+    } finally {
+      client.close();
+      await stub.close();
+    }
+  });
+
+  // ── 2b'. Write-path round-trips: email change ───────────────────
+
+  it('requestEmailChange — address + credentials arrive at the server and the verdict round-trips', async () => {
+    const want: RequestEmailChangeResponse = { verified: false, twoFactorRequired: true };
+    let captured: RequestEmailChangeRequest | undefined;
+
+    const stub = await startTestServer(
+      makeHandlers({
+        requestEmailChange: (
+          call: ServerUnaryCall<RequestEmailChangeRequest, RequestEmailChangeResponse>,
+          cb: sendUnaryData<RequestEmailChangeResponse>
+        ) => {
+          captured = call.request;
+          cb(null, want);
+        },
+      })
+    );
+
+    const client = createAuthClient({ address: stub.address });
+    try {
+      const result = await client.requestEmailChange(
+        { newEmail: 'new@example.com', password: 'hunter2', twoFactorToken: '123456' },
+        new Metadata()
+      );
+      expect(captured).toEqual({
+        newEmail: 'new@example.com',
+        password: 'hunter2',
+        twoFactorToken: '123456',
+      });
+      expect(result).toEqual(want);
+    } finally {
+      client.close();
+      await stub.close();
+    }
+  });
+
+  it('confirmEmailChange — the token arrives and ALREADY_EXISTS keeps its code and message', async () => {
+    let capturedToken = '';
+
+    const stub = await startTestServer(
+      makeHandlers({
+        confirmEmailChange: (
+          call: ServerUnaryCall<ConfirmEmailChangeRequest, ConfirmEmailChangeResponse>,
+          cb: sendUnaryData<ConfirmEmailChangeResponse>
+        ) => {
+          capturedToken = call.request.token;
+          cb(makeServiceError(status.ALREADY_EXISTS, 'email_in_use'), null);
+        },
+      })
+    );
+
+    const client = createAuthClient({ address: stub.address });
+    try {
+      const err = await client
+        .confirmEmailChange({ token: 'tok-1' }, new Metadata())
+        .catch((e: unknown) => e as ServiceError);
+      expect(capturedToken).toBe('tok-1');
+      expect(err).toMatchObject({ code: status.ALREADY_EXISTS, details: 'email_in_use' });
     } finally {
       client.close();
       await stub.close();

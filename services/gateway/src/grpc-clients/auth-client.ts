@@ -57,6 +57,10 @@ import {
   type ResetPasswordResponse,
   type UpdateAccountRequest,
   type UpdateAccountResponse,
+  type RequestEmailChangeRequest,
+  type RequestEmailChangeResponse,
+  type ConfirmEmailChangeRequest,
+  type ConfirmEmailChangeResponse,
   type ValidateTokenRequest,
   type ValidateTokenResponse,
   type VerifyEmailRequest,
@@ -187,6 +191,14 @@ export type AuthClient = {
     metadata: Metadata
   ): Promise<RegenerateBackupCodesResponse>;
   updateAccount(req: UpdateAccountRequest, metadata: Metadata): Promise<UpdateAccountResponse>;
+  requestEmailChange(
+    req: RequestEmailChangeRequest,
+    metadata: Metadata
+  ): Promise<RequestEmailChangeResponse>;
+  confirmEmailChange(
+    req: ConfirmEmailChangeRequest,
+    metadata: Metadata
+  ): Promise<ConfirmEmailChangeResponse>;
   listSessions(req: ListSessionsRequest, metadata: Metadata): Promise<ListSessionsResponse>;
   revokeSession(req: RevokeSessionRequest, metadata: Metadata): Promise<RevokeSessionResponse>;
   adminListSessions(
@@ -392,6 +404,10 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     regenerateBackupCodes: (req, metadata) =>
       callUnary(stub.regenerateBackupCodes, req, metadata, false),
     updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata, false),
+    // NON-idempotent: the step-up check consumes a 2FA code's replay
+    // watermark, and the confirm consumes its single-use token.
+    requestEmailChange: (req, metadata) => callUnary(stub.requestEmailChange, req, metadata, false),
+    confirmEmailChange: (req, metadata) => callUnary(stub.confirmEmailChange, req, metadata, false),
     revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata, false),
     adminRevokeSession: (req, metadata) => callUnary(stub.adminRevokeSession, req, metadata, false),
     adminRevokeAllUserSessions: (req, metadata) =>
