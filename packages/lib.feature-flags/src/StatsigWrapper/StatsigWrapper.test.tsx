@@ -14,7 +14,7 @@ vi.mock('@statsig/react-bindings', () => ({
   useClientAsyncInit: (...args: unknown[]) => mockUseClientAsyncInit(...args),
 }));
 
-vi.mock('./StatsigWrapper.css', () => ({}));
+vi.mock('./StatsigWrapper.css', () => ({ loadingFallback: 'loadingFallback' }));
 
 import { StatsigWrapper, type StatsigWrapperProps } from './StatsigWrapper';
 

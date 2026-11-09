@@ -1,7 +1,7 @@
 import { StatsigProvider, useClientAsyncInit } from '@statsig/react-bindings';
 import { useMemo, type ReactNode } from 'react';
 
-import './StatsigWrapper.css';
+import * as styles from './StatsigWrapper.css';
 
 type ClientAsyncInitOptions = NonNullable<Parameters<typeof useClientAsyncInit>[2]>;
 
@@ -73,7 +73,7 @@ export const StatsigWrapper = ({
   return (
     <StatsigProvider
       client={client}
-      loadingComponent={<div className="statsig-loading-fallback">{loadingLabel}</div>}
+      loadingComponent={<div className={styles.loadingFallback}>{loadingLabel}</div>}
     >
       {children}
     </StatsigProvider>
