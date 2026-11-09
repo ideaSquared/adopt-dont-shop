@@ -1,6 +1,6 @@
 import { ReactNode, lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
-import { ErrorBoundary, Spinner } from '@adopt-dont-shop/lib.components';
+import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
 import { captureException } from '@adopt-dont-shop/lib.observability';
 import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
 import { permissionsService } from '@/services/libraryServices';
@@ -105,9 +105,11 @@ const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.H
 const HelpArticlePage = lazy(() =>
   import('@/pages/HelpArticlePage').then(m => ({ default: m.HelpArticlePage }))
 );
-const NotFoundPage = lazy(() =>
-  import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage }))
-);
+const NOT_FOUND_SUGGESTIONS = [
+  { to: '/discover', label: 'Discover pets' },
+  { to: '/search', label: 'Search' },
+  { to: '/help', label: 'Get help' },
+];
 
 const PageLoader = () => (
   <div className={styles.pageLoader}>
@@ -225,7 +227,15 @@ function App() {
                       <Route path='/about' element={<AboutPage />} />
                       <Route path='/contact' element={<ContactPage />} />
                       {/* ADS-480: 404 catch-all */}
-                      <Route path='*' element={<NotFoundPage />} />
+                      <Route
+                        path='*'
+                        element={
+                          <NotFoundPage
+                            homeLabel='Take me home'
+                            suggestions={NOT_FOUND_SUGGESTIONS}
+                          />
+                        }
+                      />
                     </Route>
                   </Routes>
                 </Suspense>

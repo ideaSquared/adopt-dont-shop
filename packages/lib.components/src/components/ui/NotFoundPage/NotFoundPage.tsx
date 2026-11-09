@@ -2,7 +2,21 @@ import { Link } from 'react-router';
 
 import * as styles from './NotFoundPage.css';
 
-const NotFoundPage = () => (
+export type NotFoundSuggestion = {
+  to: string;
+  label: string;
+};
+
+export type NotFoundPageProps = {
+  /** Text of the primary link, shown after a house emoji. */
+  homeLabel: string;
+  /** Destination of the primary link. Defaults to `/`. */
+  homeTo?: string;
+  /** Optional row of secondary links under the primary one. */
+  suggestions?: ReadonlyArray<NotFoundSuggestion>;
+};
+
+export const NotFoundPage = ({ homeLabel, homeTo = '/', suggestions = [] }: NotFoundPageProps) => (
   <div className={styles.container}>
     <div className={styles.pawprints}>
       <span>🐾</span>
@@ -27,10 +41,22 @@ const NotFoundPage = () => (
       &ldquo;Maybe it got adopted? That&apos;s a happy ending, right?&rdquo;
     </p>
 
-    <Link to='/' className={styles.homeLink}>
-      🏠 Back to dashboard
+    <Link to={homeTo} className={styles.homeLink}>
+      🏠 {homeLabel}
     </Link>
+
+    {suggestions.length > 0 && (
+      <div className={styles.suggestions}>
+        {suggestions.map(suggestion => (
+          <Link key={suggestion.to} to={suggestion.to} className={styles.suggestionLink}>
+            {suggestion.label}
+          </Link>
+        ))}
+      </div>
+    )}
   </div>
 );
+
+NotFoundPage.displayName = 'NotFoundPage';
 
 export default NotFoundPage;

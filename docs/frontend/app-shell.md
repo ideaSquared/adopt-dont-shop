@@ -76,7 +76,7 @@ three:
 - Risky routes (chat, discovery, applications, moderation) are wrapped in a route-level
   `RouteBoundary` — the shared `ErrorBoundary` with an app-supplied `onError` that tags the route — so one route crashing
   does not blank the whole app (ADS-482).
-- A `<Route path="*" element={<NotFoundPage />} />` catch-all closes the protected subtree
+- A `<Route path="*" element={<NotFoundPage homeLabel=... />} />` catch-all (shared `NotFoundPage` from lib.components) closes the protected subtree
   (ADS-480).
 - The legal UI — `CookieBanner` + `LegalReacceptanceModal` from `@adopt-dont-shop/lib.legal` — is
   mounted once per app (ADS-497). `app.client` wraps both in one `lazy()` boundary (`LegalUI`);

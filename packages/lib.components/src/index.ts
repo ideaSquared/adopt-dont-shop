@@ -117,6 +117,8 @@ export * from './components/form/FileUpload';
 export * from './components/ui/EmptyState';
 export { ErrorBoundary } from './components/ui/ErrorBoundary';
 export type { ErrorBoundaryProps } from './components/ui/ErrorBoundary';
+export { NotFoundPage } from './components/ui/NotFoundPage';
+export type { NotFoundPageProps, NotFoundSuggestion } from './components/ui/NotFoundPage';
 export { ErrorState } from './components/ui/ErrorState';
 export type { ErrorStateProps, ErrorStateSize } from './components/ui/ErrorState';
 export * from './components/ui/Stepper';

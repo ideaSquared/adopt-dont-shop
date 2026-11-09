@@ -1,6 +1,6 @@
 import { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
-import { ErrorBoundary, Spinner } from '@adopt-dont-shop/lib.components';
+import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
 import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
@@ -32,7 +32,6 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const Reports = lazy(() => import('./pages/Reports'));
 const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
 const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const RegisterRescue = lazy(() => import('./pages/RegisterRescue'));
 
 import './App.css';
@@ -139,7 +138,7 @@ function App() {
                       <Route path="/reports/:id" element={<ReportViewPage />} />
                       <Route path="/reports/:id/edit" element={<ReportBuilderPage />} />
                       {/* ADS-480: 404 catch-all inside the protected subtree */}
-                      <Route path="*" element={<NotFoundPage />} />
+                      <Route path="*" element={<NotFoundPage homeLabel="Back to dashboard" />} />
                     </Routes>
                   </Suspense>
                 </Layout>

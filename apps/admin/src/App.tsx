@@ -1,7 +1,7 @@
 import React, { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
 import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
-import { ErrorBoundary, Spinner } from '@adopt-dont-shop/lib.components';
+import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
 import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { permissionsService } from './services/libraryServices';
@@ -41,7 +41,6 @@ const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 const BroadcastNotifications = lazy(() => import('./pages/BroadcastNotifications'));
 const PrivacyTools = lazy(() => import('./pages/PrivacyTools'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const PageLoader = () => (
   <div className={styles.pageLoader}>
@@ -272,7 +271,7 @@ const AdminApp: React.FC = () => {
               <Route path='/security/:tab' element={<SecurityCenter />} />
 
               {/* Catch-all 404 */}
-              <Route path='*' element={<NotFoundPage />} />
+              <Route path='*' element={<NotFoundPage homeLabel='Back to dashboard' />} />
             </Routes>
           </Suspense>
         </AdminLayout>

@@ -1,6 +1,6 @@
 import { keyframes, style } from '@vanilla-extract/css';
 
-import { vars } from '@adopt-dont-shop/lib.components/theme';
+import { vars } from '../../../styles/theme.css';
 
 const float = keyframes({
   '0%, 100%': { transform: 'translateY(0)' },

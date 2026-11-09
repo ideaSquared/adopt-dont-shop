@@ -124,6 +124,9 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     React.createElement('textarea', props),
   Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  // Shared app-shell components: pass-through boundary, minimal 404.
+  ErrorBoundary: ({ children }: { children?: React.ReactNode }) => children,
+  NotFoundPage: () => React.createElement('h1', null, '404'),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
   Skeleton: ({ width, height, radius, className, style, ...props }: Record<string, unknown>) =>
     React.createElement('div', {
