@@ -48,9 +48,10 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   single-use URL token once and strips it from the address bar; needs
   `react-router`, a peer dependency), `PermissionGate`, and the UI components (`AuthLayout`,
   `LoginForm`, `RegisterForm`, `SocialSignInButtons`, `TwoFactorSettings`,
-  `BackupCodesReveal`, and `ForgotPasswordForm` / `ResetPasswordForm` for the
-  rescue and admin apps' `/forgot-password` and `/reset-password` pages;
-  app.client keeps its own pages). `SanctionBannerHost` is the account-sanction banner bound to the
+  `BackupCodesReveal`, and `ForgotPasswordForm` / `ResetPasswordForm`, and the
+  route-level `ForgotPasswordPage` / `ResetPasswordPage` that the rescue and
+  admin apps mount at `/forgot-password` and `/reset-password`; app.client
+  keeps its own pages). `SanctionBannerHost` is the account-sanction banner bound to the
   shared `apiService`, with toast feedback on acknowledge; each app mounts it in its layout.
 - **Utilities**: `isSafeRedirectPath` — open-redirect guard for post-login
   redirect targets (same-origin paths only).

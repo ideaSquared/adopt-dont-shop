@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router';
 import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
 import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { useAuth, ForgotPasswordPage, ResetPasswordPage } from '@adopt-dont-shop/lib.auth';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -21,12 +21,6 @@ const Communication = lazy(() => import('./pages/Communication'));
 const FosterCoordination = lazy(() => import('./pages/FosterCoordination'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
-const ForgotPasswordPage = lazy(() =>
-  import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage }))
-);
-const ResetPasswordPage = lazy(() =>
-  import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
-);
 const Analytics = lazy(() => import('./pages/Analytics'));
 // Reports (ADS-105)
 const Reports = lazy(() => import('./pages/Reports'));

@@ -30,6 +30,7 @@ export { PermissionGate } from './components/PermissionGate';
 export type { PermissionGateProps } from './components/PermissionGate';
 export { AuthLayout } from './components/AuthLayout';
 export type { AuthLayoutProps } from './components/AuthLayout';
+export { ForgotPasswordPage, ResetPasswordPage } from './components/PasswordRecoveryPages';
 export { LoginForm } from './components/LoginForm';
 export type { LoginFormProps } from './components/LoginForm';
 export { RegisterForm } from './components/RegisterForm';

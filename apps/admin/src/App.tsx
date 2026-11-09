@@ -1,6 +1,11 @@
 import React, { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
-import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
+import {
+  useAuth,
+  PermissionsProvider,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+} from '@adopt-dont-shop/lib.auth';
 import { ErrorBoundary, NotFoundPage, Spinner } from '@adopt-dont-shop/lib.components';
 import { captureException } from '@adopt-dont-shop/lib.observability';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
@@ -11,12 +16,6 @@ import DevLoginPanel from './components/dev/DevLoginPanel';
 import * as styles from './App.css';
 
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
-const ForgotPasswordPage = lazy(() =>
-  import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage }))
-);
-const ResetPasswordPage = lazy(() =>
-  import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
-);
 const RegisterPage = lazy(() =>
   import('./pages/RegisterPage').then(m => ({ default: m.RegisterPage }))
 );
