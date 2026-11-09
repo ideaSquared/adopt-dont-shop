@@ -80,6 +80,7 @@ const Applications: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkApplicationActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const [bulkFailedIds, setBulkFailedIds] = useState<string[]>([]);
 
   useEffect(() => {
     setPage(1);
@@ -144,16 +145,18 @@ const Applications: React.FC = () => {
       reason,
     });
 
-    // Atomic semantics (ADS-666): the service either updates every
-    // selected application or throws, so any returned result means
-    // the full batch committed. No partial-success branch.
-    setBulkResult({ succeeded: result.updatedCount, failed: 0 });
-    setSelectedRows(new Set());
+    // The gateway fans out per application, so a successful response can
+    // still report per-item failures. Surface them and keep those rows selected.
+    const failedIds = result.failures.map(failure => failure.applicationId);
+    setBulkResult({ succeeded: result.successCount, failed: result.failureCount });
+    setBulkFailedIds(failedIds);
+    setSelectedRows(new Set(failedIds));
   };
 
   const handleBulkModalClose = () => {
     setBulkAction(null);
     setBulkResult(null);
+    setBulkFailedIds([]);
   };
 
   // Columns use the shared DataTable's key/label/render shape. Server-side sort
@@ -342,6 +345,7 @@ const Applications: React.FC = () => {
         }
         isLoading={bulkUpdateApplications.isPending}
         resultSummary={bulkResult}
+        failedIds={bulkFailedIds}
       />
 
       <ToastContainer position='top-right'>

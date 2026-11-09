@@ -13,6 +13,12 @@ export interface UserFilters {
   created_to?: string;
 }
 
+export type BulkUserUpdateResult = {
+  successCount: number;
+  failedCount: number;
+  failedIds: string[];
+};
+
 export type AdminCreateRole =
   | 'admin'
   | 'moderator'
@@ -171,18 +177,27 @@ class UserManagementService {
     userIds: string[],
     updateData: BulkUserUpdateData,
     reason?: string
-  ): Promise<{ success: number; failed: number }> {
-    try {
-      // ADS-651: forward the operator-supplied reason so the backend
-      // bulk endpoint can persist it against each affected user's audit row.
-      return await apiService.post('/api/v1/users/bulk-update', {
-        userIds,
-        updateData,
-        reason,
-      });
-    } catch (error) {
-      throw error;
-    }
+  ): Promise<BulkUserUpdateResult> {
+    // ADS-651: forward the operator-supplied reason so the backend
+    // bulk endpoint can persist it against each affected user's audit row.
+    const response = await apiService.post<{
+      data: {
+        successCount?: number;
+        failedCount?: number;
+        results?: Array<{ userId: string; success: boolean }>;
+      };
+    }>('/api/v1/users/bulk-update', {
+      userIds,
+      updateData,
+      reason,
+    });
+
+    const { successCount = 0, failedCount = 0, results = [] } = response.data;
+    return {
+      successCount,
+      failedCount,
+      failedIds: results.filter(item => !item.success).map(item => item.userId),
+    };
   }
 }
 

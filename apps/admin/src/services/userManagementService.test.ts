@@ -222,7 +222,18 @@ describe('UserManagementService', () => {
 
   describe('bulkUpdateUsers', () => {
     it('posts bulk update with userIds, updateData, and reason', async () => {
-      mockPost.mockResolvedValueOnce({ success: 2, failed: 0 });
+      mockPost.mockResolvedValueOnce({
+        success: true,
+        message: 'Updated 1 user(s), 1 failed',
+        data: {
+          successCount: 1,
+          failedCount: 1,
+          results: [
+            { userId: 'u1', success: true },
+            { userId: 'u2', success: false },
+          ],
+        },
+      });
 
       const result = await userManagementService.bulkUpdateUsers(
         ['u1', 'u2'],
@@ -235,11 +246,14 @@ describe('UserManagementService', () => {
         updateData: { status: 'suspended' },
         reason: 'Policy violations',
       });
-      expect(result).toEqual({ success: 2, failed: 0 });
+      expect(result).toEqual({ successCount: 1, failedCount: 1, failedIds: ['u2'] });
     });
 
     it('posts bulk update without a reason', async () => {
-      mockPost.mockResolvedValueOnce({ success: 1, failed: 0 });
+      mockPost.mockResolvedValueOnce({
+        success: true,
+        data: { successCount: 1, failedCount: 0, results: [] },
+      });
 
       await userManagementService.bulkUpdateUsers(['u1'], { status: 'active' });
 
