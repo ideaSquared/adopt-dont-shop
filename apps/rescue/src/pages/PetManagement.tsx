@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router';
-import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Card,
+  Container,
+  Button,
+  Text,
+  Heading,
+  toast,
+  useFilterParamSetter,
+} from '@adopt-dont-shop/lib.components';
 import { PetListSkeleton } from '../components/skeletons';
 import {
   Pet,
@@ -90,22 +98,7 @@ const PetManagement: React.FC = () => {
   const ageGroupFilter = searchParams.get('ageGroup') ?? '';
   const genderFilter = searchParams.get('gender') ?? '';
 
-  const setFilterParam = (key: string, value: string) => {
-    setSearchParams(
-      prev => {
-        const next = new URLSearchParams(prev);
-        if (value && value !== 'all') {
-          next.set(key, value);
-        } else {
-          next.delete(key);
-        }
-        // Reset to page 1 when filters change
-        next.delete('page');
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  const setFilterParam = useFilterParamSetter(setSearchParams, { resetPage: true });
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [stats, setStats] = useState<PetStats | null>(null);

@@ -631,6 +631,31 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     }, [value, delayMs]);
     return debounced;
   },
+  // Real URL-filter setter so list pages keep writing filters to the query string.
+  useFilterParamSetter:
+    (
+      setSearchParams: (
+        update: (prev: URLSearchParams) => URLSearchParams,
+        options: { replace: boolean }
+      ) => void,
+      { resetPage = false }: { resetPage?: boolean } = {}
+    ) =>
+    (key: string, value: string) =>
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (value && value !== 'all') {
+            next.set(key, value);
+          } else {
+            next.delete(key);
+          }
+          if (resetPage) {
+            next.delete('page');
+          }
+          return next;
+        },
+        { replace: true }
+      ),
   // ADS-585: toast.* is the replacement for native window.alert in app.admin.
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),

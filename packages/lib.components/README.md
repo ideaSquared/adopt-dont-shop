@@ -36,7 +36,7 @@ The canonical list lives in [`src/index.ts`](src/index.ts), grouped:
 - **Theme**: `ThemeProvider`, `useTheme`, `darkTheme`,
   `lightTheme`, `normalTheme`, `vars`, `THEME_STORAGE_KEY`, and the static `breakpoints` / `media.up()` /
   `media.down()` helpers for media queries (`vars.breakpoints` cannot be used in one).
-- **Hooks**: `useConfirm`, `useToast`, `useDebouncedValue`.
+- **Hooks**: `useConfirm`, `useToast`, `useDebouncedValue`, `useFilterParamSetter`.
 - **Foundation**: `Logo`, `Avatar`, `Badge`, `StatusBadge`, `Button`, `DateTime`, `Heading`,
   `Spinner`, `DotSpinner`, `Text`, `DropdownMenu`, `DropdownButton`, `Tooltip`, `MatchReasonChips`, `Skeleton` (+
   `SkeletonCard` / `SkeletonText` / `SkeletonTableRow`).

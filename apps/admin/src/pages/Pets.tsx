@@ -8,6 +8,7 @@ import {
   Text,
   toast,
   useDebouncedValue,
+  useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
 import { Package, Search } from 'lucide-react';
 import { usePets, usePetById, useBulkUpdatePets, useRescuesList } from '../hooks';
@@ -58,20 +59,7 @@ const Pets: React.FC = () => {
   const statusFilter =
     statusParam && VALID_PET_STATUS_FILTERS.has(statusParam) ? statusParam : 'all';
 
-  const setFilterParam = (key: string, value: string) => {
-    setSearchParams(
-      prev => {
-        const next = new URLSearchParams(prev);
-        if (value && value !== 'all') {
-          next.set(key, value);
-        } else {
-          next.delete(key);
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  const setFilterParam = useFilterParamSetter(setSearchParams);
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);

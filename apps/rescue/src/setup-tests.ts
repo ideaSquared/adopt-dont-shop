@@ -403,6 +403,31 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       error ? React.createElement('span', { role: 'alert' }, error) : null,
       !error && description ? React.createElement('span', null, description) : null
     ),
+  // Real URL-filter setter so list pages keep writing filters to the query string.
+  useFilterParamSetter:
+    (
+      setSearchParams: (
+        update: (prev: URLSearchParams) => URLSearchParams,
+        options: { replace: boolean }
+      ) => void,
+      { resetPage = false }: { resetPage?: boolean } = {}
+    ) =>
+    (key: string, value: string) =>
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          if (value && value !== 'all') {
+            next.set(key, value);
+          } else {
+            next.delete(key);
+          }
+          if (resetPage) {
+            next.delete('page');
+          }
+          return next;
+        },
+        { replace: true }
+      ),
   // ADS-586: useConfirm / ConfirmDialog mocks so tests can intercept the
   // promise-based confirm flow without rendering the real modal. Default
   // returns `true` so existing flows don't break.

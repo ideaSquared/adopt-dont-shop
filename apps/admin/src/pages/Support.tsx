@@ -11,6 +11,7 @@ import {
   ToastContainer,
   useDebouncedValue,
   type ToastMessage,
+  useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
 import { CircleAlert, CircleCheck, Clock, MessageSquare, Search } from 'lucide-react';
 import {
@@ -81,20 +82,7 @@ const Support: React.FC = () => {
   const statusFilter: TicketStatus | 'all' =
     statusParam && VALID_TICKET_STATUSES.has(statusParam) ? (statusParam as TicketStatus) : 'all';
 
-  const setFilterParam = (key: string, value: string) => {
-    setSearchParams(
-      prev => {
-        const next = new URLSearchParams(prev);
-        if (value && value !== 'all') {
-          next.set(key, value);
-        } else {
-          next.delete(key);
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  const setFilterParam = useFilterParamSetter(setSearchParams);
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);

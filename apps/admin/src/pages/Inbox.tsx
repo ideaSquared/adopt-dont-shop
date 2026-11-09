@@ -6,6 +6,7 @@ import {
   Input,
   toast,
   useDebouncedValue,
+  useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Search, User, UserPlus } from 'lucide-react';
@@ -125,20 +126,7 @@ const Inbox: React.FC = () => {
   const assignedToParam = searchParams.get('assignedTo');
   const myQueueActive = assignedToParam === 'me';
 
-  const setFilterParam = (key: string, value: string) => {
-    setSearchParams(
-      prev => {
-        const next = new URLSearchParams(prev);
-        if (value && value !== 'all') {
-          next.set(key, value);
-        } else {
-          next.delete(key);
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  const setFilterParam = useFilterParamSetter(setSearchParams);
 
   const toggleMyQueue = () => {
     setFilterParam('assignedTo', myQueueActive ? '' : 'me');

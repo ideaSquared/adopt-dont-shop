@@ -6,6 +6,7 @@ import {
   Input,
   toast,
   useDebouncedValue,
+  useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
 import { CircleCheck, Eye, Search, Shield, TriangleAlert } from 'lucide-react';
 import { BulkActionToolbar } from '../components/ui';
@@ -116,20 +117,7 @@ const Moderation: React.FC = () => {
       ? (severityParam as ReportSeverity)
       : 'all';
 
-  const setFilterParam = (key: string, value: string) => {
-    setSearchParams(
-      prev => {
-        const next = new URLSearchParams(prev);
-        if (value && value !== 'all') {
-          next.set(key, value);
-        } else {
-          next.delete(key);
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  const setFilterParam = useFilterParamSetter(setSearchParams);
 
   const { reportId } = useParams<{ reportId?: string }>();
   const navigate = useNavigate();

@@ -9,6 +9,7 @@ import {
   Toast,
   ToastContainer,
   type ToastMessage,
+  useFilterParamSetter,
 } from '@adopt-dont-shop/lib.components';
 import {
   useApplications,
@@ -60,20 +61,7 @@ const Applications: React.FC = () => {
   const statusParam = searchParams.get('status');
   const statusFilter = statusParam && VALID_STATUS_FILTERS.has(statusParam) ? statusParam : 'all';
 
-  const setFilterParam = (key: string, value: string) => {
-    setSearchParams(
-      prev => {
-        const next = new URLSearchParams(prev);
-        if (value && value !== 'all') {
-          next.set(key, value);
-        } else {
-          next.delete(key);
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  const setFilterParam = useFilterParamSetter(setSearchParams);
 
   const [rescueFilter, setRescueFilter] = useState<string>('all');
   const [page, setPage] = useState(1);

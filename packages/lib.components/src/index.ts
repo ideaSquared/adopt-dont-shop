@@ -12,6 +12,8 @@ export type { ConfirmOptions, UseConfirmReturn } from './hooks/useConfirm';
 export { useToast } from './hooks/useToast';
 export type { ToastMessage, UseToastReturn } from './hooks/useToast';
 export { useDebouncedValue } from './hooks/useDebouncedValue';
+export { useFilterParamSetter } from './hooks/useFilterParamSetter';
+export type { FilterParamSetterOptions } from './hooks/useFilterParamSetter';
 
 // Foundation Components
 export { Logo } from './components/ui/Logo';
