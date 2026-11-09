@@ -23,6 +23,7 @@ import { createRescueClient, type RescueClient } from './rescue-client.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 import { makeOpenPetEnquiry } from './pet-enquiry-handlers.js';
 import {
+  adminListChats,
   deleteChat,
   deleteMessage,
   getChat,
@@ -90,6 +91,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     deleteChat: adapt(deleteChat, { deps, logger }),
     updateChatStatus: adapt(updateChatStatus, { deps, logger }),
     getChatStats: adapt(getChatStats, { deps, logger }),
+    adminListChats: adapt(adminListChats, { deps, logger }),
   });
 
   logger.info('gRPC ChatService registered', {
@@ -109,6 +111,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'deleteChat',
       'updateChatStatus',
       'getChatStats',
+      'adminListChats',
     ],
     grpcPort: config.grpcPort,
   });

@@ -262,6 +262,88 @@ export const registerChatRoutes = async (
     registerChatRoutesForPrefix(app, client, prefix, authClient, { petsClient, rescueClient });
   }
 
+  // ---- GET /api/v1/admin/chats ---------------------------------------
+  // Every chat on the platform for the admin Messages page. GET /chats is
+  // "my chats" (participant-scoped), so staff in no chat saw nothing. The
+  // privileged-role check lives in the chat handler.
+  app.get(
+    '/api/v1/admin/chats',
+    {
+      config: { rateLimit: CHAT_RATE_LIMITS.read },
+      schema: {
+        tags: ['chat'],
+        summary: 'List every chat (moderator / admin / super_admin)',
+        querystring: {
+          type: 'object',
+          properties: {
+            page: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            search: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  limit: { type: 'number' },
+                  total: { type: 'number' },
+                  totalPages: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
+                },
+              },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query);
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const statusFilter = query.status && query.status !== 'all' ? query.status : undefined;
+      const status = statusFilter ? CHAT_STATUS_FROM_STRING[statusFilter] : undefined;
+      if (statusFilter && status === undefined) {
+        return reply.code(400).send({ error: 'status must be one of active, locked, archived' });
+      }
+
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.adminListChats(
+          { page: pagination.page, limit: pagination.limit, status, query: query.search },
+          metadata
+        );
+        const chats = res.chats.map(c => ChatV1.Chat.toJSON(c) as Record<string, unknown>);
+        const [names, subjects] = await Promise.all([
+          lookupUserNames(chatNameIds(chats), authClient, metadata),
+          lookupChatSubjects(chats, { petsClient, rescueClient }, metadata),
+        ]);
+        return reply.send({
+          success: true,
+          data: chats.map(c => withChatSubjects(withChatNames(c, names), subjects)),
+          pagination: buildPaginationEnvelope({
+            mode: 'offset',
+            page: res.page,
+            limit: res.limit,
+            total: res.total,
+          }),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // ---- POST /api/v1/chats/enquiries ----------------------------------
   // Ask a rescue about a pet before applying. Registered once (not per
   // prefix) so the daily cap can't be doubled through the alias.

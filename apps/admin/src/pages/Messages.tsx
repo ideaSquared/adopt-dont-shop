@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
   Heading,
@@ -23,6 +23,8 @@ import {
 import { ChatDetailModal } from '../components/modals';
 import * as styles from './Messages.css';
 
+const PAGE_SIZE = 20;
+
 const getStatusDotClass = (status: string): string => {
   switch (status) {
     case 'active':
@@ -42,6 +44,7 @@ const Messages: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(() =>
     searchParams.get('chatId')
   );
@@ -75,15 +78,28 @@ const Messages: React.FC = () => {
     if (searchQuery) {
       apiFilters.search = searchQuery;
     }
+    apiFilters.page = page;
+    apiFilters.limit = PAGE_SIZE;
 
     return apiFilters;
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, page]);
 
   const { data: chatsData, isLoading, error: chatsError, refetch } = useAdminChats(chatFilters);
   const { data: statsData } = useAdminChatStats();
   const { deleteChat, updateChatStatus } = useAdminChatMutations();
 
   const chats = chatsData?.data || [];
+  const total = chatsData?.pagination?.total;
+
+  // Deleting or archiving the last chat on the final page shrinks the total
+  // under the current page. The table shows no pager when a page is empty, so
+  // step back to the new last page rather than strand the user there.
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil((total ?? 0) / PAGE_SIZE));
+    if (total !== undefined && page > lastPage) {
+      setPage(lastPage);
+    }
+  }, [total, page]);
   const loading = isLoading;
 
   const stats = {
@@ -195,11 +211,11 @@ const Messages: React.FC = () => {
     }
   };
 
-  // Columns use the shared DataTable's key/label/render shape. This table is
-  // client-side (no server pagination or server sort was ever wired — the old
-  // table's sort only wrote URL params the query ignored, and the 'status_badge'
-  // key does not map to a data field), so every column is explicitly
-  // non-sortable rather than opting into the shared table's client-side sort.
+  // Columns use the shared DataTable's key/label/render shape. The table is
+  // server-paginated but has no server sort (the old table's sort only wrote
+  // URL params the query ignored, and the 'status_badge' key does not map to a
+  // data field), so every column is explicitly non-sortable rather than
+  // sorting just the current page client-side.
   const columns: DataTableColumn[] = [
     {
       key: 'status',
@@ -379,7 +395,10 @@ const Messages: React.FC = () => {
 
       <SearchToolbar
         searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={value => {
+          setSearchQuery(value);
+          setPage(1);
+        }}
         searchPlaceholder='Search conversations, participants, or messages...'
         filterConfig={[
           {
@@ -390,13 +409,16 @@ const Messages: React.FC = () => {
               { value: 'all', label: 'All Statuses' },
               { value: 'active', label: 'Active' },
               { value: 'archived', label: 'Archived' },
-              { value: 'blocked', label: 'Blocked' },
-              { value: 'closed', label: 'Closed' },
+              // The chat service calls this read-only state "locked"; the UI says Closed.
+              { value: 'locked', label: 'Closed' },
             ],
           },
         ]}
         filters={{ status: statusFilter }}
-        onFilterChange={(_name, value) => setStatusFilter(String(value))}
+        onFilterChange={(_name, value) => {
+          setStatusFilter(String(value));
+          setPage(1);
+        }}
       />
 
       {chatsError && (
@@ -412,9 +434,10 @@ const Messages: React.FC = () => {
         rows={chats as unknown as Record<string, unknown>[]}
         loading={loading}
         emptyMessage='No conversations found matching your criteria'
-        // No server pagination for chats; keep every returned row on one page
-        // rather than letting the shared table client-paginate at its default.
-        pageSize={Math.max(chats.length, 1)}
+        page={page}
+        total={total ?? 0}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
         getRowId={row => (row as Conversation).id}
         onRowClick={row => setSelectedChatId((row as Conversation).id)}
       />

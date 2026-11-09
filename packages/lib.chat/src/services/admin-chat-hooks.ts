@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import type { Conversation, Message } from '../types';
+import {
+  GatewayChatSchema,
+  GatewayMessageSchema,
+  toConversation,
+  toMessage,
+} from './gateway-chat-adapter';
 
 type UseQueryState<T> = {
   data: T | null;
@@ -72,8 +78,17 @@ export const useAdminChats = (filters: ChatFilters = {}): UseQueryState<ChatList
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiService.get<ChatListResponse>('/api/v1/chats', filters);
-      setData(response);
+      // Platform-wide list; /api/v1/chats is only the caller's own chats.
+      const response = await apiService.get<{
+        success: boolean;
+        data: unknown;
+        pagination: ChatListResponse['pagination'];
+      }>('/api/v1/admin/chats', filters);
+      setData({
+        success: response.success,
+        data: GatewayChatSchema.array().parse(response.data).map(toConversation),
+        pagination: response.pagination,
+      });
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -105,10 +120,10 @@ export const useAdminChatById = (chatId: string | null): UseQueryState<Conversat
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiService.get<{ success: boolean; data: Conversation }>(
+      const response = await apiService.get<{ success: boolean; data: unknown }>(
         `/api/v1/chats/${chatId}`
       );
-      setData(response.data);
+      setData(toConversation(GatewayChatSchema.parse(response.data)));
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -170,11 +185,12 @@ export const useAdminChatMessages = (
         setError(null);
         const query = cursor === undefined ? { limit } : { limit, cursor };
         const response = await apiService.get<{
-          messages: Message[];
+          messages: unknown;
           nextCursor?: string;
           pagination: MessagesPagination;
         }>(`/api/v1/chats/${chatId}/messages`, query);
-        setMessages((prev) => (loadingOlder ? [...prev, ...response.messages] : response.messages));
+        const page = GatewayMessageSchema.array().parse(response.messages).map(toMessage);
+        setMessages((prev) => (loadingOlder ? [...prev, ...page] : page));
         setPagination(response.pagination);
       } catch (err) {
         setError(err as Error);

@@ -78,6 +78,8 @@ import {
   type UpdateChatStatusResponse,
   type GetChatStatsRequest,
   type GetChatStatsResponse,
+  type AdminListChatsRequest,
+  type AdminListChatsResponse,
 } from '@adopt-dont-shop/proto';
 
 // rescueStaffIds lists a rescue's staff user ids. Pet enquiries are a shared
@@ -157,6 +159,13 @@ const VISIBLE_CHATS_SQL = `c.deleted_at IS NULL AND (
       )
       OR (${PET_ENQUIRY_SQL} AND c.rescue_id = $2)
     )`;
+
+// Platform staff who oversee every chat from the admin Messages page. They
+// may read any chat (getChat, listMessages, adminListChats) but are not
+// participants, so they still cannot post, react or mark read.
+const isPlatformStaff = (principal: Principal): boolean =>
+  hasPermission(principal, CHAT_READ) &&
+  (['super_admin', 'admin', 'moderator'] as const).some(role => principal.roles.includes(role));
 
 // Who may use a chat: its participants, super_admin, and — for a pet
 // enquiry (a chat with a pet and no application) — any staff member of the
@@ -698,7 +707,7 @@ export async function listMessages(
   if (!hasPermission(principal, CHAT_READ)) {
     throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
   }
-  if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
+  if (!isPlatformStaff(principal) && !(await isParticipantOrAdmin(deps, principal, req.chatId))) {
     throw new HandlerError('PERMISSION_DENIED', 'only chat participants may list messages');
   }
 
@@ -794,7 +803,8 @@ export async function listChats(
     const chats = await Promise.all(pageResult.rows.map(row => chatRowToProto(deps, row)));
     return {
       chats: await withUnreadCounts(deps, principal.userId, chats),
-      total: Number.parseInt(countResult.rows[0]?.total ?? '0', 10),
+      // COUNT(*) always returns exactly one row.
+      total: Number.parseInt(countResult.rows[0].total, 10),
     };
   }
 
@@ -1424,7 +1434,7 @@ export async function getChat(
 
   // Participant-or-admin gate first so non-participants get NOT_FOUND
   // posture without learning whether the row exists.
-  if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
+  if (!isPlatformStaff(principal) && !(await isParticipantOrAdmin(deps, principal, req.chatId))) {
     throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
   }
 
@@ -1649,4 +1659,68 @@ export async function getChatStats(
   const averageMessagesPerChat = totalChats > 0 ? totalMessages / totalChats : 0;
 
   return { totalChats, totalMessages, activeChats, averageMessagesPerChat };
+}
+
+// --- AdminListChats --------------------------------------------------
+//
+// Every chat on the platform, for the admin Messages page. ListChats is
+// always participant-scoped, so staff who take part in no chat saw an empty
+// list; this is the separate privileged read. Unread counts are left at 0 —
+// they are per-participant and the caller is not one.
+
+export async function adminListChats(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AdminListChatsRequest
+): Promise<AdminListChatsResponse> {
+  if (!isPlatformStaff(principal)) {
+    throw new HandlerError('PERMISSION_DENIED', 'a moderator/admin/super_admin role is required');
+  }
+  const query = req.query?.trim() ?? '';
+  if (query.length > MAX_QUERY_LEN) {
+    throw new HandlerError('INVALID_ARGUMENT', `query must be <= ${MAX_QUERY_LEN} chars`);
+  }
+  const limit = clampLimit(req.limit, DEFAULT_CHAT_LIMIT, MAX_CHAT_LIMIT);
+  const page = Math.max(req.page || 1, 1);
+  const status = req.status === undefined ? undefined : CHAT_STATUS_FROM_PROTO[req.status];
+
+  const filters = [
+    ...(status ? [{ sql: 'c.status = $?', value: status }] : []),
+    ...(query
+      ? [
+          {
+            sql: `EXISTS (
+              SELECT 1 FROM messages m
+              WHERE m.chat_id = c.chat_id AND m.deleted_at IS NULL
+                AND m.search_vector @@ websearch_to_tsquery('english', $?)
+            )`,
+            value: query,
+          },
+        ]
+      : []),
+  ];
+  const params = filters.map(f => f.value);
+  const where = [
+    'c.deleted_at IS NULL',
+    ...filters.map((f, i) => f.sql.replace('$?', `$${i + 1}`)),
+  ].join(' AND ');
+
+  const pageResult = await deps.pool.query<ChatRow>(
+    `SELECT c.* FROM chats c
+     WHERE ${where}
+     ORDER BY c.updated_at DESC, c.chat_id DESC
+     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, limit, (page - 1) * limit]
+  );
+  const countResult = await deps.pool.query<{ total: string }>(
+    `SELECT COUNT(*)::text AS total FROM chats c WHERE ${where}`,
+    params
+  );
+
+  return {
+    chats: await Promise.all(pageResult.rows.map(row => chatRowToProto(deps, row))),
+    page,
+    limit,
+    total: Number.parseInt(countResult.rows[0]?.total ?? '0', 10),
+  };
 }
