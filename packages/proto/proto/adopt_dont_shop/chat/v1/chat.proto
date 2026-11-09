@@ -106,6 +106,12 @@ service ChatService {
   // role (moderator / admin / super_admin); a plain participant is denied.
   // Counts exclude soft-deleted chats and messages.
   rpc GetChatStats(GetChatStatsRequest) returns (GetChatStatsResponse);
+
+  // Platform-wide chat list for the admin Messages page. Unlike ListChats
+  // it is NOT participant-scoped, so it requires a privileged role
+  // (moderator / admin / super_admin); a plain participant is denied.
+  // Offset-paginated with a real total. Excludes soft-deleted chats.
+  rpc AdminListChats(AdminListChatsRequest) returns (AdminListChatsResponse);
 }
 
 // --- Messages --------------------------------------------------------
@@ -408,4 +414,24 @@ message GetChatStatsResponse {
   int64 total_messages = 2;
   int64 active_chats = 3;
   double average_messages_per_chat = 4;
+}
+
+message AdminListChatsRequest {
+  // 1-indexed. Defaults to 1.
+  uint32 page = 1;
+  // Defaults to 20, max 100.
+  uint32 limit = 2;
+  // Optional lifecycle filter. Unset (or UNSPECIFIED) returns every status.
+  optional ChatStatus status = 3;
+  // Optional full-text match against message content (same tsvector match
+  // as SearchChats). Server enforces <= 100 chars; blank means no filter.
+  optional string query = 4;
+}
+
+message AdminListChatsResponse {
+  repeated Chat chats = 1;
+  uint32 page = 2;
+  uint32 limit = 3;
+  // Total chats matching the filter — drives the pagination controls.
+  uint32 total = 4;
 }

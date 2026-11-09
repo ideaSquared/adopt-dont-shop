@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { renderWithProviders } from '../test-utils';
 import type { Conversation } from '@adopt-dont-shop/lib.chat';
 
@@ -80,6 +80,21 @@ describe('Messages page', () => {
       fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'active' } });
 
       expect(useAdminChatsMock).toHaveBeenLastCalledWith({ status: 'active' });
+    });
+
+    it('offers only the statuses a chat can have, filtering Closed as locked', () => {
+      renderWithProviders(<Messages />);
+
+      const statusFilter = screen.getByLabelText('Status');
+      expect(within(statusFilter).queryByRole('option', { name: 'Blocked' })).toBeNull();
+
+      fireEvent.change(statusFilter, {
+        target: {
+          value: within(statusFilter).getByRole('option', { name: 'Closed' }).getAttribute('value'),
+        },
+      });
+
+      expect(useAdminChatsMock).toHaveBeenLastCalledWith({ status: 'locked' });
     });
 
     it('re-queries with the search term as the user types', () => {

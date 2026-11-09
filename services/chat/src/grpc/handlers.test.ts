@@ -20,6 +20,7 @@ import type { ApplicationsClient } from './applications-client.js';
 import type { RescueClient } from './rescue-client.js';
 import {
   HandlerError,
+  adminListChats,
   listChats,
   listMessages,
   makeOpenChat,
@@ -1833,6 +1834,153 @@ describe('getChatStats', () => {
     });
     const res = await getChatStats(mocks.deps, MODERATOR_PRINCIPAL, {});
     expect(res.averageMessagesPerChat).toBe(0);
+  });
+});
+
+// --- AdminListChats -------------------------------------------------
+
+describe('adminListChats', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const scriptOneChat = (total = '1') => {
+    // page SELECT, COUNT, then chatRowToProto → participants + last message
+    mocks.poolScript.push({ rows: [chatRowFixture()] });
+    mocks.poolScript.push({ rows: [{ total }] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+  };
+
+  it('rejects a principal with no chat permission', async () => {
+    await expect(
+      adminListChats(mocks.deps, UNPRIVILEGED_PRINCIPAL, { page: 1, limit: 20 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects a plain participant (chats.read but no staff/admin role)', async () => {
+    await expect(
+      adminListChats(mocks.deps, ADOPTER_PRINCIPAL, { page: 1, limit: 20 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('lists chats the moderator takes no part in, with a total', async () => {
+    scriptOneChat('7');
+
+    const res = await adminListChats(mocks.deps, MODERATOR_PRINCIPAL, { page: 1, limit: 20 });
+
+    expect(res.chats.map(c => c.chatId)).toEqual(['chat-1']);
+    expect(res.chats[0].participantUserIds).toEqual(['usr-adopter', 'usr-rescue']);
+    expect(res).toMatchObject({ total: 7, page: 1, limit: 20 });
+    const pageSql = mocks.poolMock.query.mock.calls[0][0] as string;
+    expect(pageSql).not.toContain('chat_participants');
+    expect(mocks.poolMock.query.mock.calls[0][1]).not.toContain('usr-moderator');
+  });
+
+  it('pages with LIMIT/OFFSET', async () => {
+    scriptOneChat();
+
+    await adminListChats(mocks.deps, MODERATOR_PRINCIPAL, { page: 3, limit: 10 });
+
+    const pageParams = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(pageParams.slice(-2)).toEqual([10, 20]);
+  });
+
+  it('filters by status', async () => {
+    scriptOneChat();
+
+    await adminListChats(mocks.deps, MODERATOR_PRINCIPAL, {
+      page: 1,
+      limit: 20,
+      status: ChatV1.ChatStatus.CHAT_STATUS_ARCHIVED,
+    });
+
+    const [pageSql, pageParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    const [countSql, countParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    expect(pageSql).toContain('c.status =');
+    expect(pageParams).toContain('archived');
+    expect(countSql).toContain('c.status =');
+    expect(countParams).toContain('archived');
+  });
+
+  it('filters by message text', async () => {
+    scriptOneChat();
+
+    await adminListChats(mocks.deps, MODERATOR_PRINCIPAL, {
+      page: 1,
+      limit: 20,
+      query: '  vet visit ',
+    });
+
+    const [pageSql, pageParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(pageSql).toContain('search_vector');
+    expect(pageParams).toContain('vet visit');
+  });
+
+  it('treats a blank query as no filter', async () => {
+    scriptOneChat();
+
+    await adminListChats(mocks.deps, MODERATOR_PRINCIPAL, { page: 1, limit: 20, query: '   ' });
+
+    expect(mocks.poolMock.query.mock.calls[0][0]).not.toContain('search_vector');
+  });
+
+  it('rejects an over-long query', async () => {
+    await expect(
+      adminListChats(mocks.deps, MODERATOR_PRINCIPAL, {
+        page: 1,
+        limit: 20,
+        query: 'x'.repeat(101),
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+});
+
+describe('platform staff reading chats they are not in', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('lets a moderator open any chat', async () => {
+    mocks.poolScript.push({ rows: [chatRowFixture()] });
+    mocks.poolScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await getChat(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1' });
+
+    expect(res.chat?.chatId).toBe('chat-1');
+  });
+
+  it("lets a moderator read any chat's messages", async () => {
+    mocks.poolScript.push({ rows: [messageRowFixture()] });
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await listMessages(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1', limit: 0 });
+
+    expect(res.messages.map(m => m.messageId)).toEqual(['msg-1']);
+  });
+
+  it('does not let a moderator post into a chat they are not in', async () => {
+    const moderatorWhoCanSend: Principal = {
+      ...MODERATOR_PRINCIPAL,
+      permissions: [...MODERATOR_PRINCIPAL.permissions, 'messages.create' as Permission],
+    };
+    mocks.poolScript.push({ rows: [] });
+
+    await expect(sendMessage(mocks.deps, moderatorWhoCanSend, BASE_SEND)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
   });
 });
 

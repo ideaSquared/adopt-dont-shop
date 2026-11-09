@@ -390,8 +390,8 @@ const Messages: React.FC = () => {
               { value: 'all', label: 'All Statuses' },
               { value: 'active', label: 'Active' },
               { value: 'archived', label: 'Archived' },
-              { value: 'blocked', label: 'Blocked' },
-              { value: 'closed', label: 'Closed' },
+              // The chat service calls this read-only state "locked"; the UI says Closed.
+              { value: 'locked', label: 'Closed' },
             ],
           },
         ]}

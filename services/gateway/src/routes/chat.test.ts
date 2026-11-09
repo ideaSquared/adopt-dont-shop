@@ -55,12 +55,14 @@ function makeClient(): ChatClient & {
   deleteChatMock: ReturnType<typeof vi.fn>;
   updateChatStatusMock: ReturnType<typeof vi.fn>;
   getChatStatsMock: ReturnType<typeof vi.fn>;
+  adminListChatsMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
   const openPetEnquiryMock = vi.fn();
   const deleteChatMock = vi.fn();
   const updateChatStatusMock = vi.fn();
   const getChatStatsMock = vi.fn();
+  const adminListChatsMock = vi.fn();
   const sendMessageMock = vi.fn();
   const listMessagesMock = vi.fn();
   const listChatsMock = vi.fn();
@@ -85,6 +87,7 @@ function makeClient(): ChatClient & {
     deleteChat: deleteChatMock,
     updateChatStatus: updateChatStatusMock,
     getChatStats: getChatStatsMock,
+    adminListChats: adminListChatsMock,
     close: vi.fn(),
     openChatMock,
     openPetEnquiryMock,
@@ -100,6 +103,7 @@ function makeClient(): ChatClient & {
     deleteChatMock,
     updateChatStatusMock,
     getChatStatsMock,
+    adminListChatsMock,
   };
 }
 
@@ -1397,6 +1401,74 @@ describe('GET /api/v1/chats/analytics — admin aggregate stats', () => {
 
     expect(client.getChatStatsMock).toHaveBeenCalledTimes(1);
     expect(client.getChatMock).not.toHaveBeenCalled();
+  });
+});
+
+// --- GET /api/v1/admin/chats -----------------------------------------
+
+describe('GET /api/v1/admin/chats — every chat, for platform staff', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+  const authClient = makeAuthClient();
+
+  beforeEach(async () => {
+    client = makeClient();
+    client.adminListChatsMock.mockResolvedValue({
+      chats: [CHAT_FIXTURE],
+      page: 2,
+      limit: 10,
+      total: 25,
+    });
+    app = await buildApp(client, authClient);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns named chats with an offset pagination envelope', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/admin/chats?page=2&limit=10' });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.map((c: { chatId: string }) => c.chatId)).toEqual(['chat-1']);
+    expect(body.data[0].participantNames).toEqual({ 'usr-1': 'usr-1 name', 'usr-2': 'usr-2 name' });
+    expect(body.pagination).toMatchObject({ page: 2, limit: 10, total: 25, totalPages: 3 });
+    expect(client.adminListChatsMock.mock.calls[0][0]).toMatchObject({ page: 2, limit: 10 });
+  });
+
+  it('passes the status filter and search text through', async () => {
+    await app.inject({ method: 'GET', url: '/api/v1/admin/chats?status=archived&search=vet' });
+
+    expect(client.adminListChatsMock.mock.calls[0][0]).toMatchObject({
+      status: ChatV1.ChatStatus.CHAT_STATUS_ARCHIVED,
+      query: 'vet',
+    });
+  });
+
+  it('treats status=all as no status filter', async () => {
+    await app.inject({ method: 'GET', url: '/api/v1/admin/chats?status=all' });
+
+    expect(client.adminListChatsMock.mock.calls[0][0].status).toBeUndefined();
+  });
+
+  it('rejects an unknown status with 400', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/admin/chats?status=blocked' });
+
+    expect(res.statusCode).toBe(400);
+    expect(client.adminListChatsMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a permission denial to 403', async () => {
+    client.adminListChatsMock.mockRejectedValue({
+      code: status.PERMISSION_DENIED,
+      details: 'forbidden',
+    });
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/admin/chats' });
+
+    expect(res.statusCode).toBe(403);
   });
 });
 

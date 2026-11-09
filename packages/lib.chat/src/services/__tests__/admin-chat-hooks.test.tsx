@@ -27,13 +27,40 @@ const chatListResponse = {
   pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
 };
 
+// A chat as the gateway serves it (the chat service's own field names).
+const gatewayChat = {
+  chatId: 'chat-1',
+  participantUserIds: ['usr-1', 'usr-2'],
+  participantNames: { 'usr-1': 'Ada Adopter', 'usr-2': 'Sam Staff' },
+  createdAt: '2026-06-01T00:00:00Z',
+  updatedAt: '2026-06-02T00:00:00Z',
+  status: 'CHAT_STATUS_ARCHIVED',
+  rescueName: 'Happy Paws',
+};
+
+const gatewayChatList = {
+  success: true,
+  data: [gatewayChat],
+  pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+};
+
+const gatewayMessage = (id: string) => ({
+  messageId: id,
+  chatId: 'chat-1',
+  senderUserId: 'usr-1',
+  senderName: 'Ada Adopter',
+  body: `body of ${id}`,
+  content: `body of ${id}`,
+  createdAt: '2026-06-01T00:01:00Z',
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe('useAdminChats', () => {
-  it('fetches chats with the provided filters and exposes the response', async () => {
-    get.mockResolvedValue(chatListResponse);
+  it('lists every chat from the admin endpoint with the provided filters', async () => {
+    get.mockResolvedValue(gatewayChatList);
 
     const filters = { status: 'active', page: 2 };
     const { result } = renderHook(() => useAdminChats(filters));
@@ -41,9 +68,27 @@ describe('useAdminChats', () => {
     expect(result.current.isLoading).toBe(true);
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(get).toHaveBeenCalledWith('/api/v1/chats', filters);
-    expect(result.current.data).toEqual(chatListResponse);
+    expect(get).toHaveBeenCalledWith('/api/v1/admin/chats', filters);
+    expect(result.current.data?.pagination).toEqual(gatewayChatList.pagination);
     expect(result.current.error).toBeNull();
+  });
+
+  it('turns gateway chats into conversations the page can render', async () => {
+    get.mockResolvedValue(gatewayChatList);
+
+    const { result } = renderHook(() => useAdminChats());
+
+    await waitFor(() => expect(result.current.data).not.toBeNull());
+    const [conversation] = result.current.data?.data ?? [];
+    expect(conversation).toMatchObject({
+      id: 'chat-1',
+      status: 'archived',
+      rescueName: 'Happy Paws',
+      participants: [
+        { id: 'usr-1', name: 'Ada Adopter' },
+        { id: 'usr-2', name: 'Sam Staff' },
+      ],
+    });
   });
 
   it('captures the error when the request fails', async () => {
@@ -57,14 +102,14 @@ describe('useAdminChats', () => {
   });
 
   it('refetches on demand', async () => {
-    get.mockResolvedValue(chatListResponse);
+    get.mockResolvedValue(gatewayChatList);
     const { result } = renderHook(() => useAdminChats());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     get.mockClear();
 
     await result.current.refetch();
-    expect(get).toHaveBeenCalledWith('/api/v1/chats', {});
+    expect(get).toHaveBeenCalledWith('/api/v1/admin/chats', {});
   });
 });
 
@@ -77,12 +122,16 @@ describe('useAdminChatById', () => {
     expect(result.current.data).toBeNull();
   });
 
-  it('unwraps the data envelope when a chatId is supplied', async () => {
-    get.mockResolvedValue({ success: true, data: { id: 'chat-9' } });
+  it('returns the chat as a conversation when a chatId is supplied', async () => {
+    get.mockResolvedValue({ success: true, data: { ...gatewayChat, chatId: 'chat-9' } });
 
     const { result } = renderHook(() => useAdminChatById('chat-9'));
 
-    await waitFor(() => expect(result.current.data).toEqual({ id: 'chat-9' }));
+    await waitFor(() => expect(result.current.data?.id).toBe('chat-9'));
+    expect(result.current.data?.participants.map((p) => p.name)).toEqual([
+      'Ada Adopter',
+      'Sam Staff',
+    ]);
     expect(get).toHaveBeenCalledWith('/api/v1/chats/chat-9');
   });
 
@@ -101,7 +150,7 @@ describe('useAdminChatMessages', () => {
     // The route is a keyset feed: the newest page is requested with limit only
     // (no cursor); the hook wraps messages + pagination in { data }.
     const routeBody = {
-      messages: [{ id: 'm1' }],
+      messages: [gatewayMessage('m1')],
       nextCursor: 'cursor-1',
       pagination: { page: 1, limit: 25, hasNext: true, hasPrev: false, nextCursor: 'cursor-1' },
     };
@@ -113,7 +162,14 @@ describe('useAdminChatMessages', () => {
       expect(result.current.data).toEqual({
         success: true,
         data: {
-          messages: [{ id: 'm1' }],
+          messages: [
+            expect.objectContaining({
+              id: 'm1',
+              senderName: 'Ada Adopter',
+              content: 'body of m1',
+              timestamp: '2026-06-01T00:01:00Z',
+            }),
+          ],
           pagination: { page: 1, limit: 25, hasNext: true, hasPrev: false, nextCursor: 'cursor-1' },
         },
       })
@@ -125,12 +181,12 @@ describe('useAdminChatMessages', () => {
   it('threads nextCursor into loadMore and appends the older page (ADS-1209)', async () => {
     get
       .mockResolvedValueOnce({
-        messages: [{ id: 'newest' }],
+        messages: [gatewayMessage('newest')],
         nextCursor: 'cursor-1',
         pagination: { page: 1, limit: 50, hasNext: true, hasPrev: false, nextCursor: 'cursor-1' },
       })
       .mockResolvedValueOnce({
-        messages: [{ id: 'older' }],
+        messages: [gatewayMessage('older')],
         pagination: { page: 1, limit: 50, hasNext: false, hasPrev: true },
       });
 
@@ -147,13 +203,13 @@ describe('useAdminChatMessages', () => {
       cursor: 'cursor-1',
     });
     // ...and the list grows rather than resetting to the newest page.
-    expect(result.current.data?.data.messages).toEqual([{ id: 'newest' }, { id: 'older' }]);
+    expect(result.current.data?.data.messages.map((m) => m.id)).toEqual(['newest', 'older']);
     expect(result.current.hasMore).toBe(false);
   });
 
   it('does not fetch again on loadMore once the feed is exhausted', async () => {
     get.mockResolvedValue({
-      messages: [{ id: 'only' }],
+      messages: [gatewayMessage('only')],
       pagination: { page: 1, limit: 50, hasNext: false, hasPrev: false },
     });
 
