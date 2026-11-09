@@ -775,6 +775,9 @@ importers:
       '@adopt-dont-shop/lib.components':
         specifier: workspace:*
         version: link:../lib.components
+      '@adopt-dont-shop/lib.utils':
+        specifier: workspace:*
+        version: link:../lib.utils
       '@vanilla-extract/css':
         specifier: ^1.20.1
         version: 1.21.3

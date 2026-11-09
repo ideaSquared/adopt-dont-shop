@@ -27,7 +27,6 @@ interface UserSettings {
 interface SettingsFormProps {
   user: User;
   onSave: (settings: Partial<UserSettings>) => Promise<void>;
-  onDeleteAccount?: () => void;
   isLoading?: boolean;
 }
 
@@ -49,12 +48,7 @@ const searchRadiusOptions: SelectOption[] = [
 const singleValue = (value: string | string[]): string =>
   Array.isArray(value) ? (value[0] ?? '') : value;
 
-export const SettingsForm: React.FC<SettingsFormProps> = ({
-  user,
-  onSave,
-  onDeleteAccount,
-  isLoading = false,
-}) => {
+export const SettingsForm: React.FC<SettingsFormProps> = ({ user, onSave, isLoading = false }) => {
   const [settings, setSettings] = useState<UserSettings>({
     privacy: {
       profileVisibility: 'public',
@@ -222,17 +216,6 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
           </div>
         )}
       </form>
-
-      <div className={styles.dangerZone}>
-        <h3>Danger Zone</h3>
-        <p>
-          Once you delete your account, there is no going back. This will permanently delete your
-          profile, applications, and all associated data.
-        </p>
-        <Button variant='secondary' onClick={onDeleteAccount} disabled={isLoading}>
-          Delete Account
-        </Button>
-      </div>
     </div>
   );
 };

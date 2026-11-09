@@ -50,6 +50,7 @@ describe('UserSettings', () => {
       'Notifications',
       'Security',
       'Appearance',
+      'Account',
     ]);
     expect(screen.getByText(/loading notification preferences/i)).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveAttribute(
@@ -62,6 +63,7 @@ describe('UserSettings', () => {
     ['#security', 'Security'],
     ['#appearance', 'Appearance'],
     ['#notifications', 'Notifications'],
+    ['#account', 'Account'],
     // Old bookmarks (and RescueSettings' redirect) still use #preferences.
     ['#preferences', 'Notifications'],
   ])('restores the tab from %s', (hash, name) => {

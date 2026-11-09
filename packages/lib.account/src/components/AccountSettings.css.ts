@@ -2,6 +2,12 @@ import { style } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
+export const panelStack = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['8'],
+});
+
 export const panel = style({
   display: 'flex',
   flexDirection: 'column',

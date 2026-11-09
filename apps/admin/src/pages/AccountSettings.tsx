@@ -9,7 +9,7 @@ const AccountSettings: React.FC = () => {
     <div className={styles.pageContainer}>
       <div className={styles.pageHeader}>
         <h1>Account Settings</h1>
-        <p>Manage your notifications, account security and appearance.</p>
+        <p>Manage your notifications, security, appearance and account.</p>
       </div>
 
       <SharedAccountSettings value={activeTab} onChange={setActiveTab} />

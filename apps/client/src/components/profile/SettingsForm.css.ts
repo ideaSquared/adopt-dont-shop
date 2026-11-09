@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const wrapper = style({
@@ -56,22 +56,4 @@ export const buttonGroup = style({
       flexDirection: 'column',
     },
   },
-});
-
-export const dangerZone = style({
-  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
-  borderRadius: '8px',
-  padding: '1.5rem',
-  background: vars.colors.dangerBgSubtle,
-});
-
-globalStyle(`${dangerZone} h3`, {
-  color: vars.colors.dangerActive,
-  marginBottom: '1rem',
-});
-
-globalStyle(`${dangerZone} p`, {
-  color: vars.colors.dangerHover,
-  marginBottom: '1rem',
-  fontSize: '0.875rem',
 });

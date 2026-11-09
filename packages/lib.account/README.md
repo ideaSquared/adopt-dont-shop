@@ -1,13 +1,14 @@
 # @adopt-dont-shop/lib.account
 
-Shared personal account settings (notifications, security, appearance) for every app.
+Shared personal account settings (notifications, security, appearance, account) for every app.
 
 ## Purpose
 
 One settings UI for the signed-in user's own account, used by `app.admin`,
 `app.client` and `app.rescue` so the three apps don't each grow their own
 version. It owns the notification preferences form (and the TanStack Query
-hooks and Zod-validated service behind it) and composes it with the existing
+hooks and Zod-validated service behind it) and the account details, change
+password and delete account forms, and composes them with the existing
 `TwoFactorSettings` (lib.auth) and `ThemeToggle` (lib.components) into a
 tabbed `AccountSettings` component. App-specific settings, such as the
 adopter's privacy and pet preferences in `app.client`, are passed in as extra
@@ -16,11 +17,15 @@ tabs rather than living here.
 ## Location in the architecture
 
 See [`docs/README.md`](../../docs/README.md#libraries) for where the shared
-libraries sit. Depends on `lib.api` (requests), `lib.auth` (two-factor
-settings) and `lib.components` (form controls, tabs, theme). Backs onto the
-gateway's `GET` / `PUT /api/v1/notifications/preferences`
-(`services/gateway/src/routes/notifications.ts`), which reads and writes
-`notifications.user_notification_prefs`.
+libraries sit. Depends on `lib.api` (requests), `lib.auth` (session, profile,
+password, erasure and two-factor), `lib.components` (form controls, tabs,
+theme) and `lib.utils` (UK phone validation). Backs onto these gateway routes:
+
+- `GET` / `PUT /api/v1/notifications/preferences` (`notifications.user_notification_prefs`).
+- `PATCH /api/v1/users/account` (name, phone), via `useAuth().updateProfile`.
+- `POST /api/v1/auth/change-password`. It ends every session, so the form signs the user out.
+- `POST /api/v1/users/me/erasure-request`. Step-up re-auth; refuses the last
+  active super admin and the last staff member of a rescue with `409`.
 
 ## Scripts
 
@@ -57,9 +62,12 @@ const [tab, setTab] = useState('notifications');
 />;
 ```
 
-- **Components**: `AccountSettings` (controlled tabs: Notifications, Security,
-  Appearance, then any `extraTabs`; an unknown `value` shows Notifications, so
-  stale links still land somewhere), `NotificationPreferencesForm` (channels,
+- **Components**: `AccountSettings` (controlled tabs: Notifications, Security
+  (password and two-factor), Appearance, Account (your details and delete
+  account), then any `extraTabs`; an unknown `value` shows Notifications, so
+  stale links still land somewhere; `showAccountDetails={false}` drops the
+  name/phone form for an app that edits those fields elsewhere),
+  `NotificationPreferencesForm` (channels,
   categories, quiet hours and timezone). There is deliberately no email digest
   setting: digest emails read `email_preferences`, which no gateway route exposes yet.
 - **Hooks**: `useNotificationPreferences`, `useUpdateNotificationPreferences`

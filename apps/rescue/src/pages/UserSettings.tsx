@@ -23,7 +23,7 @@ const UserSettings: React.FC = () => {
     <div className={styles.pageContainer}>
       <div className={styles.pageHeader}>
         <h1>My Settings</h1>
-        <p>Manage your own notifications, account security and appearance.</p>
+        <p>Manage your own notifications, security, appearance and account.</p>
       </div>
 
       <AccountSettings value={location.hash.replace('#', '')} onChange={setActiveTab} />

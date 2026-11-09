@@ -73,6 +73,7 @@ export default mergeConfig(
           __dirname,
           '../lib.components/src/index.ts'
         ),
+        '@adopt-dont-shop/lib.utils': path.resolve(__dirname, '../lib.utils/src/index.ts'),
         '@adopt-dont-shop/lib.components/theme': path.resolve(
           __dirname,
           '../lib.components/src/theme.ts'

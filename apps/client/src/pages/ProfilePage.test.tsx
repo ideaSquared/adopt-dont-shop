@@ -26,10 +26,6 @@ const mockUser = {
   },
 };
 
-// Toggled per-test so the delete modal can be rendered for both a non-2FA and
-// a 2FA account (the `mock` prefix exempts it from vi.mock hoisting checks).
-let mockTwoFactorEnabled = false;
-
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
   const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.auth')>(
     '@adopt-dont-shop/lib.auth'
@@ -37,7 +33,7 @@ vi.mock('@adopt-dont-shop/lib.auth', async () => {
   return {
     ...actual,
     useAuth: () => ({
-      user: { ...mockUser, twoFactorEnabled: mockTwoFactorEnabled },
+      user: mockUser,
       isAuthenticated: true,
       isLoading: false,
       login: vi.fn(),
@@ -55,7 +51,6 @@ vi.mock('@/services', async () => {
   return {
     ...actual,
     applicationService: { getUserApplications: vi.fn().mockResolvedValue([]) },
-    authService: { deleteAccount: vi.fn().mockResolvedValue(undefined) },
     apiService: {
       get: vi.fn().mockResolvedValue({ user: {}, exportedAt: '2026-09-07T00:00:00Z' }),
     },
@@ -69,13 +64,16 @@ vi.mock('@adopt-dont-shop/lib.account', () => ({
     value,
     onChange,
     extraTabs = [],
+    showAccountDetails = true,
   }: {
     value: string;
     onChange: (id: string) => void;
     extraTabs?: ReadonlyArray<{ id: string; label: string; content: React.ReactNode }>;
+    showAccountDetails?: boolean;
   }) => (
     <div>
       <p>Account settings tab: {value}</p>
+      {showAccountDetails && <p>Shared details form</p>}
       {extraTabs.map(tab => (
         <button key={tab.id} role='tab' onClick={() => onChange(tab.id)}>
           {tab.label}
@@ -87,7 +85,7 @@ vi.mock('@adopt-dont-shop/lib.account', () => ({
 }));
 
 import { ProfilePage } from './ProfilePage';
-import { apiService, authService } from '@/services';
+import { apiService } from '@/services';
 
 const renderProfilePage = () =>
   render(
@@ -111,6 +109,15 @@ describe('ProfilePage settings', () => {
     await user.click(screen.getByRole('button', { name: /^settings$/i }));
 
     expect(screen.getByText('Account settings tab: notifications')).toBeInTheDocument();
+  });
+
+  it('leaves name and phone to the Profile tab rather than the shared details form', async () => {
+    const user = userEvent.setup();
+    renderProfilePage();
+
+    await user.click(screen.getByRole('button', { name: /^settings$/i }));
+
+    expect(screen.queryByText('Shared details form')).not.toBeInTheDocument();
   });
 });
 
@@ -172,110 +179,6 @@ describe('ProfilePage settings save', () => {
     expect(screen.queryByText(/settings saved successfully/i)).not.toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();
-  });
-});
-
-// ADS-1205: account erasure is now gated on step-up re-auth — the modal
-// re-collects the current password (always) and a TOTP code (only for 2FA
-// accounts), and threads them through to the erasure request.
-describe('ProfilePage delete-account confirmation', () => {
-  const deleteAccountMock = vi.mocked(authService.deleteAccount);
-
-  beforeEach(() => {
-    mockTwoFactorEnabled = false;
-    deleteAccountMock.mockReset();
-    deleteAccountMock.mockResolvedValue(undefined);
-  });
-
-  // The modal submit button reads "Delete account" (lower-case a); the
-  // Settings-tab danger-zone trigger reads "Delete Account" — matched here by
-  // exact case so the two never collide.
-  const getModalSubmit = () => screen.getByRole('button', { name: 'Delete account' });
-
-  it('asks for the current password', () => {
-    renderProfilePage();
-
-    expect(screen.getByLabelText(/current password/i)).toBeInTheDocument();
-  });
-
-  it('does not show the two-factor code field when 2FA is disabled', () => {
-    renderProfilePage();
-
-    expect(screen.queryByLabelText(/two-factor code/i)).not.toBeInTheDocument();
-  });
-
-  it('shows the two-factor code field when 2FA is enabled', () => {
-    mockTwoFactorEnabled = true;
-    renderProfilePage();
-
-    expect(screen.getByLabelText(/two-factor code/i)).toBeInTheDocument();
-  });
-
-  it('submits the erasure request with the entered password on confirm', async () => {
-    const user = userEvent.setup();
-    renderProfilePage();
-
-    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
-    await user.click(getModalSubmit());
-
-    await waitFor(() => {
-      expect(deleteAccountMock).toHaveBeenCalledTimes(1);
-    });
-    expect(deleteAccountMock).toHaveBeenCalledWith({
-      reason: 'User requested account deletion',
-      password: 'hunter2',
-    });
-  });
-
-  it('threads the two-factor code through for a 2FA account', async () => {
-    mockTwoFactorEnabled = true;
-    const user = userEvent.setup();
-    renderProfilePage();
-
-    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
-    await user.type(screen.getByLabelText(/two-factor code/i), '123456');
-    await user.click(getModalSubmit());
-
-    await waitFor(() => {
-      expect(deleteAccountMock).toHaveBeenCalledTimes(1);
-    });
-    expect(deleteAccountMock).toHaveBeenCalledWith({
-      reason: 'User requested account deletion',
-      password: 'hunter2',
-      twoFactorToken: '123456',
-    });
-  });
-
-  it('does not submit without a password and shows a validation message', async () => {
-    const user = userEvent.setup();
-    renderProfilePage();
-
-    await user.click(getModalSubmit());
-
-    expect(await screen.findByText(/enter your password/i)).toBeInTheDocument();
-    expect(deleteAccountMock).not.toHaveBeenCalled();
-  });
-
-  it('surfaces a friendly error when the password is rejected (401)', async () => {
-    const user = userEvent.setup();
-    deleteAccountMock.mockRejectedValue(new Error('credential_verification_failed'));
-    renderProfilePage();
-
-    await user.type(screen.getByLabelText(/current password/i), 'wrong-password');
-    await user.click(getModalSubmit());
-
-    expect(await screen.findByText(/that password was incorrect/i)).toBeInTheDocument();
-  });
-
-  it('surfaces an error and does not navigate when the erasure request fails', async () => {
-    const user = userEvent.setup();
-    deleteAccountMock.mockRejectedValue(new Error('service_unavailable'));
-    renderProfilePage();
-
-    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
-    await user.click(getModalSubmit());
-
-    expect(await screen.findByText(/service_unavailable/i)).toBeInTheDocument();
   });
 });
 

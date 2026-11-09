@@ -6,17 +6,8 @@ import {
 } from '@/components/profile';
 import { AccountSettings } from '@adopt-dont-shop/lib.account';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { apiService, applicationService, authService, Application, User } from '@/services';
-import {
-  Alert,
-  Button,
-  ConfirmDialog,
-  FormField,
-  Input,
-  Modal,
-  toast,
-  useConfirm,
-} from '@adopt-dont-shop/lib.components';
+import { apiService, applicationService, Application, User } from '@/services';
+import { Alert, Button, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { ApplicationCardSkeletonList } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
@@ -55,13 +46,6 @@ interface UserSettings {
   };
 }
 
-// Friendly copy for the step-up re-auth failures the gateway returns as 401s
-// (ADS-1205). The raw codes travel as the thrown Error message via apiService.
-const DELETE_ERROR_MESSAGES: Record<string, string> = {
-  credential_verification_failed: 'That password was incorrect. Please try again.',
-  two_factor_required: 'Enter the 6-digit code from your authenticator app to continue.',
-};
-
 export const ProfilePage: React.FC = () => {
   const { user, isAuthenticated, updateProfile } = useAuth();
   const navigate = useNavigate();
@@ -76,13 +60,6 @@ export const ProfilePage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { confirmProps } = useConfirm();
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  // ADS-1205: erasure is gated on step-up re-auth, so the modal re-collects the
-  // password (and a TOTP for 2FA accounts).
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteTotp, setDeleteTotp] = useState('');
   // GDPR Art. 15/20 self-service export (ADS-1320).
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -238,59 +215,6 @@ export const ProfilePage: React.FC = () => {
       throw error;
     } finally {
       setIsSavingSettings(false);
-    }
-  };
-
-  const resetDeleteForm = () => {
-    setDeleteError(null);
-    setDeletePassword('');
-    setDeleteTotp('');
-  };
-
-  const handleDeleteAccount = () => {
-    resetDeleteForm();
-    setIsDeleteModalOpen(true);
-  };
-
-  const closeDeleteModal = () => {
-    if (isDeleting) {
-      return;
-    }
-    setIsDeleteModalOpen(false);
-    resetDeleteForm();
-  };
-
-  const submitDeleteAccount = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!deletePassword) {
-      setDeleteError('Please enter your password to confirm deletion.');
-      return;
-    }
-    if (user?.twoFactorEnabled && !deleteTotp) {
-      setDeleteError('Please enter your two-factor authentication code.');
-      return;
-    }
-
-    try {
-      setIsDeleting(true);
-      setDeleteError(null);
-
-      await authService.deleteAccount({
-        reason: 'User requested account deletion',
-        password: deletePassword,
-        ...(user?.twoFactorEnabled ? { twoFactorToken: deleteTotp } : {}),
-      });
-
-      setIsDeleteModalOpen(false);
-      navigate('/');
-    } catch (error) {
-      console.error('Failed to delete account:', error);
-      const raw = error instanceof Error && error.message ? error.message : '';
-      const message = DELETE_ERROR_MESSAGES[raw] ?? (raw || 'Failed to delete account.');
-      setDeleteError(message);
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -479,12 +403,7 @@ export const ProfilePage: React.FC = () => {
         </div>
       )}
       {user && (
-        <SettingsForm
-          user={user}
-          onSave={handleSettingsSave}
-          onDeleteAccount={handleDeleteAccount}
-          isLoading={isSavingSettings}
-        />
+        <SettingsForm user={user} onSave={handleSettingsSave} isLoading={isSavingSettings} />
       )}
       <div className={styles.sectionGap}>
         <h3>Your data</h3>
@@ -507,9 +426,11 @@ export const ProfilePage: React.FC = () => {
   const renderSettingsTab = () => (
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Settings</h2>
+      {/* Name and phone are edited in the Profile tab. */}
       <AccountSettings
         value={settingsTab}
         onChange={setSettingsTab}
+        showAccountDetails={false}
         extraTabs={[{ id: 'privacy', label: 'Privacy & data', content: renderPrivacyTab() }]}
       />
     </div>
@@ -555,70 +476,6 @@ export const ProfilePage: React.FC = () => {
       {activeTab === 'settings' && renderSettingsTab()}
 
       <ConfirmDialog {...confirmProps} />
-
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={closeDeleteModal}
-        title='Delete account?'
-        size='sm'
-      >
-        <form onSubmit={submitDeleteAccount} noValidate>
-          <p>
-            This will permanently delete your profile, applications, and all associated data. This
-            action cannot be undone.
-          </p>
-          <div className={styles.deleteModalField}>
-            <FormField label='Current password' htmlFor='delete-password' required>
-              <Input
-                id='delete-password'
-                type='password'
-                autoComplete='current-password'
-                value={deletePassword}
-                onChange={e => setDeletePassword(e.target.value)}
-                disabled={isDeleting}
-              />
-            </FormField>
-          </div>
-          {user?.twoFactorEnabled && (
-            <div className={styles.deleteModalField}>
-              <FormField
-                label='Two-factor code'
-                htmlFor='delete-totp'
-                required
-                description='Enter the 6-digit code from your authenticator app.'
-              >
-                <Input
-                  id='delete-totp'
-                  type='text'
-                  inputMode='numeric'
-                  autoComplete='one-time-code'
-                  value={deleteTotp}
-                  onChange={e => setDeleteTotp(e.target.value)}
-                  disabled={isDeleting}
-                />
-              </FormField>
-            </div>
-          )}
-          {deleteError && (
-            <div className={styles.deleteModalField} role='alert'>
-              <Alert variant='error'>{deleteError}</Alert>
-            </div>
-          )}
-          <div className={styles.deleteModalActions}>
-            <Button
-              type='button'
-              variant='secondary'
-              onClick={closeDeleteModal}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button type='submit' variant='danger' isLoading={isDeleting} disabled={isDeleting}>
-              Delete account
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };

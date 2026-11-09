@@ -14,18 +14,36 @@ vi.mock('@adopt-dont-shop/lib.components', async importOriginal => ({
 vi.mock('./NotificationPreferencesForm', () => ({
   NotificationPreferencesForm: () => <div>Notification controls</div>,
 }));
+vi.mock('./ChangePasswordForm', () => ({
+  ChangePasswordForm: () => <div>Password controls</div>,
+}));
+vi.mock('./AccountDetailsForm', () => ({
+  AccountDetailsForm: () => <div>Details controls</div>,
+}));
+vi.mock('./DeleteAccountSection', () => ({
+  DeleteAccountSection: () => <div>Delete controls</div>,
+}));
 
 import { AccountSettings, type AccountSettingsTab } from './AccountSettings';
 
 const Harness = ({
   initial = 'notifications',
   extraTabs,
+  showAccountDetails,
 }: {
   initial?: string;
   extraTabs?: ReadonlyArray<AccountSettingsTab>;
+  showAccountDetails?: boolean;
 }) => {
   const [tab, setTab] = useState(initial);
-  return <AccountSettings value={tab} onChange={setTab} extraTabs={extraTabs} />;
+  return (
+    <AccountSettings
+      value={tab}
+      onChange={setTab}
+      extraTabs={extraTabs}
+      showAccountDetails={showAccountDetails}
+    />
+  );
 };
 
 const tabNames = () => screen.getAllByRole('tab').map(tab => tab.textContent);
@@ -35,7 +53,7 @@ describe('AccountSettings', () => {
   it('offers the same personal settings in every app', () => {
     render(<Harness />);
 
-    expect(tabNames()).toEqual(['Notifications', 'Security', 'Appearance']);
+    expect(tabNames()).toEqual(['Notifications', 'Security', 'Appearance', 'Account']);
     expect(screen.getByRole('tablist', { name: /account settings/i })).toBeInTheDocument();
   });
 
@@ -48,7 +66,10 @@ describe('AccountSettings', () => {
 
   it.each([
     ['Security', 'Two-factor controls'],
+    ['Security', 'Password controls'],
     ['Appearance', 'Theme controls'],
+    ['Account', 'Details controls'],
+    ['Account', 'Delete controls'],
   ])('shows %s settings when that tab is chosen', (tab, content) => {
     render(<Harness />);
 
@@ -56,6 +77,13 @@ describe('AccountSettings', () => {
 
     expect(selectedTab()).toHaveTextContent(tab);
     expect(screen.getByText(content)).toBeInTheDocument();
+  });
+
+  it('leaves out the details form when the app edits those fields elsewhere', () => {
+    render(<Harness initial='account' showAccountDetails={false} />);
+
+    expect(screen.queryByText('Details controls')).not.toBeInTheDocument();
+    expect(screen.getByText('Delete controls')).toBeInTheDocument();
   });
 
   it('falls back to notifications for an unknown tab, so stale links still land somewhere', () => {
@@ -72,7 +100,7 @@ describe('AccountSettings', () => {
       />
     );
 
-    expect(tabNames()).toEqual(['Notifications', 'Security', 'Appearance', 'Privacy']);
+    expect(tabNames()).toEqual(['Notifications', 'Security', 'Appearance', 'Account', 'Privacy']);
     expect(selectedTab()).toHaveTextContent('Privacy');
     expect(screen.getByText('Privacy controls')).toBeInTheDocument();
   });
