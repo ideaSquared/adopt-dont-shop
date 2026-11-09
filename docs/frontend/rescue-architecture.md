@@ -5,7 +5,7 @@ _Reference: how `app.rescue`'s shell, contexts, and routes are wired today. The 
 [`app-rescue-prd.md`](./app-rescue-prd.md). This doc is not a delivery plan._
 
 `app.rescue` is the rescue-organization portal — pet listings, application review, foster
-coordination, staff management, events, reporting, and chat with adopters. It follows the shared
+coordination, staff management, reporting, and chat with adopters. It follows the shared
 [app-shell pattern](./app-shell.md); this doc covers only what is specific to the rescue app.
 
 ## Provider spine
@@ -60,8 +60,8 @@ Authenticated (inside `ProtectedRoute` → `Layout`):
 /applications/:id?      Applications        (one route serves list + deep-linkable detail, ADS D4)
 /staff                  StaffManagement
 /settings               RescueSettings
+/user-settings          UserSettings
 /communication          Communication
-/events                 Events
 /foster                 FosterCoordination
 /analytics              Analytics
 /reports                Reports
@@ -77,8 +77,8 @@ route-level `RouteBoundary` (ADS-482).
 
 ## Page components (`src/pages/`)
 
-`Dashboard`, `PetManagement`, `Applications`, `StaffManagement`, `RescueSettings`, `Communication`,
-`Events`, `FosterCoordination`, `Analytics`, `Reports`, `ReportBuilderPage`, `ReportViewPage`,
+`Dashboard`, `PetManagement`, `Applications`, `StaffManagement`, `RescueSettings`, `UserSettings`,
+`Communication`, `FosterCoordination`, `Analytics`, `Reports`, `ReportBuilderPage`, `ReportViewPage`,
 `AcceptInvitation`, `RegisterRescue`, `LoginPage`, `NotFoundPage`.
 
 ```ts
