@@ -46,7 +46,9 @@ The canonical list lives in [`src/index.ts`](src/index.ts):
   `usePermissions`, `useHasPermission` / `useHasAnyPermission` /
   `useHasAllPermissions`, `PermissionGate`, and the UI components (`AuthLayout`,
   `LoginForm`, `RegisterForm`, `SocialSignInButtons`, `TwoFactorSettings`,
-  `BackupCodesReveal`).
+  `BackupCodesReveal`, and `ForgotPasswordForm` / `ResetPasswordForm` for the
+  rescue and admin apps' `/forgot-password` and `/reset-password` pages;
+  app.client keeps its own pages).
 - **Types**: `User`, `LoginRequest`, `RegisterRequest`, `AuthResponse`, the
   two-factor response types, `RescueRole`, `Permission`, `rolePermissions`.
 
@@ -72,4 +74,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 ## Consumers
 
 4 workspace package(s) depend on this library. See [lib.auth-consumers.md](../../docs/libraries/lib.auth-consumers.md) for the auto-generated list — check it before making a breaking change.
+
 <!-- CONSUMERS:END -->

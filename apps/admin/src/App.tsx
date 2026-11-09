@@ -11,6 +11,12 @@ import ErrorBoundary from './components/ErrorBoundary';
 import * as styles from './App.css';
 
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const ForgotPasswordPage = lazy(() =>
+  import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage }))
+);
+const ResetPasswordPage = lazy(() =>
+  import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
+);
 const RegisterPage = lazy(() =>
   import('./pages/RegisterPage').then(m => ({ default: m.RegisterPage }))
 );
@@ -64,6 +70,8 @@ const AdminApp: React.FC = () => {
           <Routes>
             <Route path='/login' element={<LoginPage />} />
             <Route path='/register' element={<RegisterPage />} />
+            <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+            <Route path='/reset-password' element={<ResetPasswordPage />} />
             <Route path='*' element={<Navigate to='/login' replace />} />
           </Routes>
         </Suspense>
@@ -90,6 +98,8 @@ const AdminApp: React.FC = () => {
                   is still /login and would otherwise fall through to 404. */}
               <Route path='/login' element={<Navigate to='/' replace />} />
               <Route path='/register' element={<Navigate to='/' replace />} />
+              {/* A reset link opened while signed in still resets the password. */}
+              <Route path='/reset-password' element={<ResetPasswordPage />} />
 
               {/* Main Dashboard */}
               <Route path='/' element={<Dashboard />} />
