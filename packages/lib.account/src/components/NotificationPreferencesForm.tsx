@@ -96,7 +96,12 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
 
   const change = (patch: Partial<NotificationPreferences>) => {
     setEdits(prev => ({ ...prev, ...patch }));
-    update.reset();
+    // Clear the saved/error message, but never while a save is in flight:
+    // reset() doesn't cancel the request and would re-enable Save, letting an
+    // older request land last and overwrite a newer one.
+    if (!update.isPending) {
+      update.reset();
+    }
   };
 
   const changeQuietHours = (patch: Partial<NotificationPreferences>) => {

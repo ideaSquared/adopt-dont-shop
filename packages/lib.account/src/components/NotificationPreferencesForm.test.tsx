@@ -103,6 +103,21 @@ describe('NotificationPreferencesForm', () => {
     expect(await screen.findByText(/notification preferences saved/i)).toBeInTheDocument();
   });
 
+  it('keeps Save disabled while a save is in flight, even if the user keeps editing', async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateNotificationPreferences).mockReturnValue(new Promise(() => undefined));
+    renderForm();
+
+    await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
+    await user.click(saveButton());
+    await waitFor(() => expect(saveButton()).toBeDisabled());
+
+    await user.click(screen.getByRole('checkbox', { name: /^messages/i }));
+
+    expect(saveButton()).toBeDisabled();
+    expect(updateNotificationPreferences).toHaveBeenCalledTimes(1);
+  });
+
   it('lets the user clear quiet hours', async () => {
     const user = userEvent.setup();
     renderForm();
