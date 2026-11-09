@@ -116,8 +116,18 @@ const PetManagement: React.FC = () => {
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
   // A pet deep-linked via /pets/:petId opens in the same form as "Edit".
   const { petId: routePetId } = useParams<{ petId?: string }>();
-  const { data: routePet } = usePet(routePetId);
+  const { data: routePet, isError: routePetMissing } = usePet(routePetId);
   const petInForm = editingPet ?? (routePetId ? routePet : undefined) ?? null;
+
+  // A deep link to a pet that no longer exists (or can't be loaded) returns to
+  // the list with an explanation rather than silently showing the list.
+  useEffect(() => {
+    if (!routePetId || !routePetMissing) {
+      return;
+    }
+    toast.error('That pet could not be found');
+    navigate('/pets', { replace: true });
+  }, [routePetId, routePetMissing, navigate]);
 
   const closePetForm = () => {
     setShowAddModal(false);

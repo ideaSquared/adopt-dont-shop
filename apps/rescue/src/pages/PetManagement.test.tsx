@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Route, Routes } from 'react-router';
+import { Link, Route, Routes } from 'react-router';
+import { toast } from '@adopt-dont-shop/lib.components';
 import { render, screen, fireEvent, waitFor } from '../test-utils';
 
 /**
@@ -13,7 +14,6 @@ vi.mock('@adopt-dont-shop/lib.pets', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@adopt-dont-shop/lib.pets');
   return {
     ...actual,
-    petsService: { getPetById: getPetByIdMock },
     petManagementService: {
       getMyRescuePets: vi.fn().mockResolvedValue({
         pets: [],
@@ -22,6 +22,11 @@ vi.mock('@adopt-dont-shop/lib.pets', async () => {
     },
   };
 });
+
+// The app's configured pet client (it carries the backend base URL).
+vi.mock('../services/libraryServices', () => ({
+  petService: { getPetById: getPetByIdMock },
+}));
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({ user: { userId: 'staff-1', rescueId: 'rescue-1' }, refreshUser: vi.fn() }),
@@ -46,15 +51,19 @@ import PetManagement from './PetManagement';
 const renderAt = (path: string) => {
   window.history.pushState({}, '', path);
   return render(
-    <Routes>
-      <Route path="/pets/:petId?" element={<PetManagement />} />
-    </Routes>
+    <>
+      <Link to="/pets/pet-1">Open Buddy</Link>
+      <Routes>
+        <Route path="/pets/:petId?" element={<PetManagement />} />
+      </Routes>
+    </>
   );
 };
 
 describe('PetManagement deep link', () => {
   beforeEach(() => {
     getPetByIdMock.mockReset();
+    vi.spyOn(toast, 'error').mockImplementation(() => '');
   });
 
   it('opens the linked pet in its detail form', async () => {
@@ -74,6 +83,30 @@ describe('PetManagement deep link', () => {
 
     await waitFor(() => expect(window.location.pathname).toBe('/pets'));
     expect(screen.queryByRole('dialog', { name: 'Pet form' })).not.toBeInTheDocument();
+  });
+
+  it('returns to the list with an explanation when the linked pet cannot be found', async () => {
+    getPetByIdMock.mockRejectedValue(new Error('pet not found'));
+
+    renderAt('/pets/pet-gone');
+
+    await waitFor(() => expect(window.location.pathname).toBe('/pets'));
+    expect(toast.error).toHaveBeenCalledWith('That pet could not be found');
+    expect(screen.queryByRole('dialog', { name: 'Pet form' })).not.toBeInTheDocument();
+  });
+
+  it('loads the pet afresh each time its link is opened, never from a stale cache', async () => {
+    getPetByIdMock.mockResolvedValueOnce({ pet_id: 'pet-1', name: 'Buddy' });
+    getPetByIdMock.mockResolvedValueOnce({ pet_id: 'pet-1', name: 'Buddy (renamed)' });
+
+    renderAt('/pets/pet-1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Close form' }));
+    await waitFor(() => expect(window.location.pathname).toBe('/pets'));
+
+    fireEvent.click(screen.getByRole('link', { name: 'Open Buddy' }));
+
+    expect(await screen.findByText('Editing Buddy (renamed)')).toBeInTheDocument();
+    expect(getPetByIdMock).toHaveBeenCalledTimes(2);
   });
 
   it('opens no pet form on the plain list', async () => {
