@@ -95,12 +95,15 @@ export const Stepper = ({
           return (
             <li key={step.id} className={styles.step({ orientation })}>
               {index > 0 && (
-                <span className={styles.connector({ complete: prevComplete })} aria-hidden='true' />
+                <span
+                  className={styles.connector({ complete: prevComplete, orientation })}
+                  aria-hidden='true'
+                />
               )}
               {clickable ? (
                 <button
                   type='button'
-                  className={styles.control({ clickable: true })}
+                  className={styles.control({ clickable: true, orientation })}
                   aria-current={isCurrent ? 'step' : undefined}
                   onClick={() => onStepClick?.(index)}
                 >
@@ -108,7 +111,7 @@ export const Stepper = ({
                 </button>
               ) : (
                 <div
-                  className={styles.control({ clickable: false })}
+                  className={styles.control({ clickable: false, orientation })}
                   aria-current={isCurrent ? 'step' : undefined}
                 >
                   {content}

@@ -93,6 +93,20 @@ describe('OnboardingWizardPage', () => {
     expect(screen.getByText('Any allergies to consider?')).toBeInTheDocument();
   });
 
+  it('asks about outdoor space with a question, not a bare toggle', async () => {
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Home & Lifestyle' })).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('heading', { name: 'Do you have a garden or yard?' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: 'Yes, we have a garden or yard' })
+    ).not.toBeChecked();
+  });
+
   it('navigates forward through all 4 steps with Next button', async () => {
     const user = userEvent.setup();
     renderPage();
