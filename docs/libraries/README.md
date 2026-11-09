@@ -106,7 +106,6 @@ UI:
 - [`ProgressBar`](../../packages/lib.components/src/components/ui/ProgressBar/README.md) — progress indicator (not exported)
 - [`SkipLink`](../../packages/lib.components/docs/SkipLink.md) — skip-to-content a11y link
 - [`Stepper`](../../packages/lib.components/src/components/ui/Stepper/README.md) — multi-step indicator
-- [`ThemeToggle`](../../packages/lib.components/src/components/ui/ThemeToggle/README.md) — light/dark toggle
 - [`Toast`](../../packages/lib.components/src/components/ui/Toast/README.md) — legacy toast (superseded by `Toaster`)
 - [`Toaster`](../../packages/lib.components/src/components/ui/Toaster/README.md) — sonner-based toast provider + `toast`
 - [`Tooltip`](../../packages/lib.components/src/components/ui/Tooltip/README.md) — hover/focus tooltip (not exported)

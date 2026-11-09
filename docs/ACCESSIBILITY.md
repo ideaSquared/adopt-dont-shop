@@ -24,13 +24,14 @@ tokens in `packages/lib.components/src/styles/`.
 
 ### How users switch themes
 
-Each app renders `<ThemeToggle />` inside its settings page:
+Each app's settings page (the shared `AccountSettings` from `lib.account`) has a _Theme_ row with
+three radio buttons, Light, Cosy (`normal`) and Dark:
 
-- `app.client`: _Profile → Settings → Appearance_
-- `app.rescue`: _Settings → Appearance_
-- `app.admin`: _Account Settings → Appearance_
+- `app.client`: _Profile → Settings → Theme_
+- `app.rescue`: _My Settings → Theme_
+- `app.admin`: _Account Settings → Theme_
 
-The toggle cycles `light → normal → dark → light`. The preference persists to `localStorage` under the
+The choice applies immediately. The preference persists to `localStorage` under the
 key `theme` (`THEME_STORAGE_KEY`) and is rehydrated on app load.
 
 ### Implementation notes

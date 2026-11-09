@@ -15,11 +15,6 @@ export const twoColumns = style({
   gap: vars.spacing['4'],
 });
 
-export const readOnlyValue = style({
-  margin: 0,
-  color: vars.text.primary,
-});
-
 export const hint = style({
   margin: 0,
   color: vars.text.secondary,

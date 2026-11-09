@@ -57,9 +57,9 @@ describe('TwoFactorSettings', () => {
     it('shows the disabled status and a set-up button', () => {
       renderSettings(buildAuthValue({ user: { ...baseUser, twoFactorEnabled: false } }));
 
-      expect(screen.getByText('Disabled')).toBeInTheDocument();
+      expect(screen.getByText('Off')).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /set up two-factor authentication/i })
+        screen.getByRole('button', { name: /turn on two-factor sign-in/i })
       ).toBeInTheDocument();
     });
 
@@ -70,12 +70,10 @@ describe('TwoFactorSettings', () => {
       });
       renderSettings(buildAuthValue({ user: { ...baseUser, twoFactorEnabled: false } }));
 
-      await userEvent.click(
-        screen.getByRole('button', { name: /set up two-factor authentication/i })
-      );
+      await userEvent.click(screen.getByRole('button', { name: /turn on two-factor sign-in/i }));
 
       expect(await screen.findByText('JBSWY3DPEHPK3PXP')).toBeInTheDocument();
-      expect(screen.getByAltText('2FA QR Code')).toHaveAttribute(
+      expect(screen.getByAltText('QR code for your authenticator app')).toHaveAttribute(
         'src',
         'data:image/png;base64,abc'
       );
@@ -87,9 +85,7 @@ describe('TwoFactorSettings', () => {
       );
       renderSettings(buildAuthValue({ user: { ...baseUser, twoFactorEnabled: false } }));
 
-      await userEvent.click(
-        screen.getByRole('button', { name: /set up two-factor authentication/i })
-      );
+      await userEvent.click(screen.getByRole('button', { name: /turn on two-factor sign-in/i }));
 
       expect(await screen.findByText('Setup unavailable')).toBeInTheDocument();
     });
@@ -101,9 +97,7 @@ describe('TwoFactorSettings', () => {
         secret: 'SECRET123',
         qrCodeDataUrl: 'data:image/png;base64,qr',
       });
-      await userEvent.click(
-        screen.getByRole('button', { name: /set up two-factor authentication/i })
-      );
+      await userEvent.click(screen.getByRole('button', { name: /turn on two-factor sign-in/i }));
       await screen.findByText('SECRET123');
     };
 
@@ -121,7 +115,7 @@ describe('TwoFactorSettings', () => {
 
       await startSetup();
       await userEvent.type(screen.getByPlaceholderText('000000'), '123456');
-      await userEvent.click(screen.getByRole('button', { name: /verify and enable/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^turn on$/i }));
 
       expect(await screen.findByText('code-a')).toBeInTheDocument();
       expect(screen.getByText('code-b')).toBeInTheDocument();
@@ -138,7 +132,7 @@ describe('TwoFactorSettings', () => {
 
       await startSetup();
       await userEvent.type(screen.getByPlaceholderText('000000'), '999999');
-      await userEvent.click(screen.getByRole('button', { name: /verify and enable/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^turn on$/i }));
 
       expect(await screen.findByText('Invalid code')).toBeInTheDocument();
     });
@@ -150,7 +144,7 @@ describe('TwoFactorSettings', () => {
       await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
       expect(
-        screen.getByRole('button', { name: /set up two-factor authentication/i })
+        screen.getByRole('button', { name: /turn on two-factor sign-in/i })
       ).toBeInTheDocument();
     });
 
@@ -163,7 +157,7 @@ describe('TwoFactorSettings', () => {
 
       await startSetup();
       await userEvent.type(screen.getByPlaceholderText('000000'), '123456');
-      await userEvent.click(screen.getByRole('button', { name: /verify and enable/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^turn on$/i }));
 
       expect(
         await screen.findByRole('heading', { name: /save your backup codes/i })
@@ -179,7 +173,7 @@ describe('TwoFactorSettings', () => {
 
       await startSetup();
       await userEvent.type(screen.getByPlaceholderText('000000'), '123456');
-      await userEvent.click(screen.getByRole('button', { name: /verify and enable/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^turn on$/i }));
       await screen.findByText('code-a');
 
       const doneButton = screen.getByRole('button', { name: /done/i });
@@ -189,7 +183,7 @@ describe('TwoFactorSettings', () => {
       await userEvent.click(doneButton);
 
       expect(
-        screen.getByRole('button', { name: /set up two-factor authentication/i })
+        screen.getByRole('button', { name: /turn on two-factor sign-in/i })
       ).toBeInTheDocument();
     });
   });
@@ -201,9 +195,11 @@ describe('TwoFactorSettings', () => {
     it('shows the enabled status with regenerate and disable actions', () => {
       renderSettings(enabledValue());
 
-      expect(screen.getByText('Enabled')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /regenerate backup codes/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /disable 2fa/i })).toBeInTheDocument();
+      expect(screen.getByText('On')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /get new backup codes/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /turn off two-factor sign-in/i })
+      ).toBeInTheDocument();
     });
 
     it('asks for a current TOTP code before regenerating, then reveals the new codes once', async () => {
@@ -212,11 +208,11 @@ describe('TwoFactorSettings', () => {
       });
       renderSettings(enabledValue());
 
-      await userEvent.click(screen.getByRole('button', { name: /regenerate backup codes/i }));
+      await userEvent.click(screen.getByRole('button', { name: /get new backup codes/i }));
 
       // The service must not be called until a code is confirmed.
       expect(authService.twoFactorRegenerateBackupCodes).not.toHaveBeenCalled();
-      const confirmButton = screen.getByRole('button', { name: /confirm regenerate/i });
+      const confirmButton = screen.getByRole('button', { name: /^get new codes$/i });
       expect(confirmButton).toBeDisabled();
 
       await userEvent.type(screen.getByPlaceholderText('000000'), '654321');
@@ -233,10 +229,10 @@ describe('TwoFactorSettings', () => {
     it('returns to the enabled screen when the regenerate confirmation is cancelled', async () => {
       renderSettings(enabledValue());
 
-      await userEvent.click(screen.getByRole('button', { name: /regenerate backup codes/i }));
+      await userEvent.click(screen.getByRole('button', { name: /get new backup codes/i }));
       await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
-      expect(screen.getByRole('button', { name: /regenerate backup codes/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /get new backup codes/i })).toBeInTheDocument();
       expect(authService.twoFactorRegenerateBackupCodes).not.toHaveBeenCalled();
     });
 
@@ -246,9 +242,9 @@ describe('TwoFactorSettings', () => {
       );
       renderSettings(enabledValue());
 
-      await userEvent.click(screen.getByRole('button', { name: /regenerate backup codes/i }));
+      await userEvent.click(screen.getByRole('button', { name: /get new backup codes/i }));
       await userEvent.type(screen.getByPlaceholderText('000000'), '654321');
-      await userEvent.click(screen.getByRole('button', { name: /confirm regenerate/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^get new codes$/i }));
 
       expect(await screen.findByText('Regenerate failed')).toBeInTheDocument();
     });
@@ -262,9 +258,9 @@ describe('TwoFactorSettings', () => {
       });
       renderSettings(enabledValue({ refreshUser }), onStatusChange);
 
-      await userEvent.click(screen.getByRole('button', { name: /disable 2fa/i }));
+      await userEvent.click(screen.getByRole('button', { name: /turn off two-factor sign-in/i }));
       await userEvent.type(screen.getByPlaceholderText('000000'), '123456');
-      await userEvent.click(screen.getByRole('button', { name: /confirm disable/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^turn off$/i }));
 
       await waitFor(() => expect(authService.twoFactorDisable).toHaveBeenCalledWith('123456'));
       await waitFor(() => expect(refreshUser).toHaveBeenCalled());
@@ -277,9 +273,9 @@ describe('TwoFactorSettings', () => {
       );
       renderSettings(enabledValue());
 
-      await userEvent.click(screen.getByRole('button', { name: /disable 2fa/i }));
+      await userEvent.click(screen.getByRole('button', { name: /turn off two-factor sign-in/i }));
       await userEvent.type(screen.getByPlaceholderText('000000'), '123456');
-      await userEvent.click(screen.getByRole('button', { name: /confirm disable/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^turn off$/i }));
 
       expect(await screen.findByText('Disable failed')).toBeInTheDocument();
     });
@@ -287,10 +283,12 @@ describe('TwoFactorSettings', () => {
     it('returns to the enabled screen when the disable confirmation is cancelled', async () => {
       renderSettings(enabledValue());
 
-      await userEvent.click(screen.getByRole('button', { name: /disable 2fa/i }));
+      await userEvent.click(screen.getByRole('button', { name: /turn off two-factor sign-in/i }));
       await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
-      expect(screen.getByRole('button', { name: /disable 2fa/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /turn off two-factor sign-in/i })
+      ).toBeInTheDocument();
     });
   });
 });

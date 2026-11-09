@@ -126,9 +126,9 @@ optional and documented in [`docs/env-reference.md`](../env-reference.md).
 `ThemeProvider` (from `@adopt-dont-shop/lib.components`) wraps each app and applies one of the three
 theme classes generated from the token contract in
 [`packages/lib.components/src/styles/theme.css.ts`](../../packages/lib.components/src/styles/theme.css.ts).
-The `<ThemeToggle />` component cycles `light → normal → dark` and persists the choice in
-`localStorage` under the key `theme` (`THEME_STORAGE_KEY`). Every app renders `<ThemeToggle />`
-inside its account/settings page. Reference every visual property through `vars.*` tokens — see
+`useTheme().setThemeMode` persists the choice in `localStorage` under the key `theme`
+(`THEME_STORAGE_KEY`). Every app lets the user pick a theme from the _Theme_ row of the shared
+`AccountSettings` (`lib.account`) on its account/settings page. Reference every visual property through `vars.*` tokens — see
 [`DESIGN_TOKENS.md`](../../DESIGN_TOKENS.md).
 
 ## Related

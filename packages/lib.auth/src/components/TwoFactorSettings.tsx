@@ -54,7 +54,9 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
       setQrCodeDataUrl(response.qrCodeDataUrl);
       setSetupPhase('scanning');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start 2FA setup');
+      setError(
+        err instanceof Error ? err.message : 'We could not start setting up. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +78,9 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
       await refreshUser();
       onStatusChange?.(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid verification code');
+      setError(
+        err instanceof Error ? err.message : 'That code did not work. Check your app and try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +112,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
       await refreshUser();
       onStatusChange?.(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to disable 2FA');
+      setError(err instanceof Error ? err.message : 'We could not turn it off. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +141,9 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
       setRegenerateToken('');
       setSetupPhase('backup-codes');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to regenerate backup codes');
+      setError(
+        err instanceof Error ? err.message : 'We could not make new backup codes. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -173,19 +179,19 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
     return (
       <div className={styles.container}>
         <div>
-          <span className={styles.statusBadge({ enabled: true })}>Enabled</span>
+          <span className={styles.statusBadge({ enabled: true })}>On</span>
         </div>
         <p className={styles.description}>
-          Two-factor authentication is active on your account. You will be asked for a verification
-          code from your authenticator app each time you sign in.
+          Two-factor sign-in is on. Each time you sign in, we will also ask for the 6-digit code
+          from the authenticator app on your phone.
         </p>
         {error && <Alert variant="error">{error}</Alert>}
         <div className={styles.buttonRow}>
           <Button variant="secondary" onClick={handleStartRegenerate} disabled={isLoading}>
-            Regenerate Backup Codes
+            Get new backup codes
           </Button>
           <Button variant="secondary" onClick={() => setDisablePhase('confirming')}>
-            Disable 2FA
+            Turn off two-factor sign-in
           </Button>
         </div>
       </div>
@@ -197,12 +203,12 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
     return (
       <div className={styles.container}>
         <p className={styles.description}>
-          Enter a code from your authenticator app to confirm regenerating your backup codes. Your
-          existing backup codes will stop working immediately.
+          Enter the 6-digit code from your authenticator app to get new backup codes. Your old
+          backup codes will stop working straight away.
         </p>
         {error && <Alert variant="error">{error}</Alert>}
         <label className={styles.description} htmlFor="regenerate-backup-codes-token">
-          Verification code
+          6-digit code
         </label>
         <input
           id="regenerate-backup-codes-token"
@@ -220,7 +226,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
             onClick={handleConfirmRegenerate}
             disabled={isLoading || regenerateToken.length !== 6}
           >
-            {isLoading ? 'Regenerating...' : 'Confirm Regenerate'}
+            {isLoading ? 'Getting new codes…' : 'Get new codes'}
           </Button>
           <Button variant="secondary" onClick={handleCancelRegenerate} disabled={isLoading}>
             Cancel
@@ -235,7 +241,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
     return (
       <div className={styles.container}>
         <p className={styles.description}>
-          Enter a code from your authenticator app to confirm disabling two-factor authentication.
+          Enter the 6-digit code from your authenticator app to turn off two-factor sign-in.
         </p>
         {error && <Alert variant="error">{error}</Alert>}
         <input
@@ -250,7 +256,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
         />
         <div className={styles.buttonRow}>
           <Button onClick={handleDisable} disabled={isLoading || disableToken.length !== 6}>
-            {isLoading ? 'Disabling...' : 'Confirm Disable'}
+            {isLoading ? 'Turning off…' : 'Turn off'}
           </Button>
           <Button variant="secondary" onClick={handleCancelDisable} disabled={isLoading}>
             Cancel
@@ -266,7 +272,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
       <div className={styles.container}>
         {isEnabled && (
           <div>
-            <span className={styles.statusBadge({ enabled: true })}>Enabled</span>
+            <span className={styles.statusBadge({ enabled: true })}>On</span>
           </div>
         )}
         <BackupCodesReveal
@@ -287,18 +293,22 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
         <div className={styles.setupStep}>
           <div className={styles.stepHeader}>
             <div className={styles.stepNumber}>1</div>
-            Scan this QR code with your authenticator app
+            Scan this code with the authenticator app on your phone
           </div>
           <p className={styles.description}>
             Use an app like Google Authenticator, Authy, or Microsoft Authenticator.
           </p>
-          <img className={styles.qrCodeImage} src={qrCodeDataUrl} alt="2FA QR Code" />
+          <img
+            className={styles.qrCodeImage}
+            src={qrCodeDataUrl}
+            alt="QR code for your authenticator app"
+          />
         </div>
 
         <div className={styles.setupStep}>
           <div className={styles.stepHeader}>
             <div className={styles.stepNumber}>2</div>
-            Or enter this secret key manually
+            Can't scan it? Type this key into the app instead
           </div>
           <code className={styles.secretKey}>{secret}</code>
         </div>
@@ -322,7 +332,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
 
         <div className={styles.buttonRow}>
           <Button onClick={handleVerifyAndEnable} disabled={isLoading || verifyToken.length !== 6}>
-            {isLoading ? 'Verifying...' : 'Verify and Enable'}
+            {isLoading ? 'Turning on…' : 'Turn on'}
           </Button>
           <Button variant="secondary" onClick={handleCancelSetup} disabled={isLoading}>
             Cancel
@@ -336,16 +346,16 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
   return (
     <div className={styles.container}>
       <div>
-        <span className={styles.statusBadge({ enabled: false })}>Disabled</span>
+        <span className={styles.statusBadge({ enabled: false })}>Off</span>
       </div>
       <p className={styles.description}>
-        Add an extra layer of security to your account by requiring a verification code from your
-        authenticator app when you sign in.
+        Keep your account safer. As well as your password, we will ask for a 6-digit code from an
+        authenticator app on your phone when you sign in.
       </p>
       {error && <Alert variant="error">{error}</Alert>}
       <div>
         <Button onClick={handleStartSetup} disabled={isLoading}>
-          {isLoading ? 'Setting up...' : 'Set Up Two-Factor Authentication'}
+          {isLoading ? 'Starting…' : 'Turn on two-factor sign-in'}
         </Button>
       </div>
     </div>

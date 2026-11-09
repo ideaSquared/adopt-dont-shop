@@ -89,10 +89,6 @@ export const ChangeEmailForm = () => {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
-      <div>
-        <p className={styles.hint}>Current email</p>
-        <p className={styles.readOnlyValue}>{currentEmail}</p>
-      </div>
       <FormField label='New email' htmlFor='change-email-new' required>
         <Input
           id='change-email-new'

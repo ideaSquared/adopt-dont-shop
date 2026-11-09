@@ -1,6 +1,7 @@
-import { request as playwrightRequest, type Page } from '@playwright/test';
+import { request as playwrightRequest } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
+import { openSettingsSection } from '../../helpers/account-settings';
 import { dismissCookieBannerWhenShown } from '../../helpers/cookie-banner';
 import { openAccountContext } from '../../helpers/cross-app-sessions';
 import { confirmEmailChangeFromLink } from '../../helpers/email-change';
@@ -23,10 +24,6 @@ const canSignIn = async (email: string, password: string): Promise<boolean> => {
   }
 };
 
-// Inactive tab panels stay mounted (hidden); role queries skip hidden
-// elements, so this is the panel the user is looking at.
-const activePanel = (page: Page) => page.getByRole('tabpanel');
-
 test.describe('rescue staff account settings', () => {
   test('the only staff member of a rescue cannot delete their account', async ({
     apiAs,
@@ -38,8 +35,8 @@ test.describe('rescue staff account settings', () => {
       const page = await context.newPage();
       // The fixed cookie banner covers buttons at the bottom of the page.
       await dismissCookieBannerWhenShown(page);
-      await page.goto('/user-settings#account');
-      await activePanel(page).getByRole('button', { name: 'Delete account…' }).click();
+      await page.goto('/user-settings');
+      await page.getByRole('button', { name: 'Delete account…' }).click();
       const dialog = page.getByRole('dialog');
       await dialog.getByLabel('Current password').fill(rescue.owner.password);
       await dialog.getByRole('button', { name: 'Delete my account' }).click();
@@ -60,13 +57,15 @@ test.describe('rescue staff account settings', () => {
       const page = await context.newPage();
       // The fixed cookie banner covers buttons at the bottom of the page.
       await dismissCookieBannerWhenShown(page);
-      await page.goto('/user-settings#account');
-      await activePanel(page).getByLabel('First name').fill('Renamed');
-      await activePanel(page).getByRole('button', { name: 'Save details' }).click();
-      await expect(activePanel(page).getByText('Details saved.')).toBeVisible();
+      await page.goto('/user-settings');
+      const details = await openSettingsSection(page, 'Your details');
+      await details.getByLabel('First name').fill('Renamed');
+      await details.getByRole('button', { name: 'Save details' }).click();
+      await expect(details.getByText('Details saved.')).toBeVisible();
 
+      // The open section lives in the URL hash, so a reload reopens it.
       await page.reload();
-      await expect(activePanel(page).getByLabel('First name')).toHaveValue('Renamed');
+      await expect(details.getByLabel('First name')).toHaveValue('Renamed');
     } finally {
       await context.close();
     }
@@ -84,13 +83,12 @@ test.describe('rescue staff account settings', () => {
       const page = await context.newPage();
       // The fixed cookie banner covers buttons at the bottom of the page.
       await dismissCookieBannerWhenShown(page);
-      await page.goto('/user-settings#security');
-      await activePanel(page).getByLabel('Current password').fill(owner.password);
-      await activePanel(page)
-        .getByLabel(/^new password/i)
-        .fill(newPassword);
-      await activePanel(page).getByLabel('Confirm new password').fill(newPassword);
-      await activePanel(page).getByRole('button', { name: 'Change password' }).click();
+      await page.goto('/user-settings');
+      const password = await openSettingsSection(page, 'Password');
+      await password.getByLabel('Current password').fill(owner.password);
+      await password.getByLabel(/^new password/i).fill(newPassword);
+      await password.getByLabel('Confirm new password').fill(newPassword);
+      await password.getByRole('button', { name: 'Change password' }).click();
 
       // Changing the password ends every session, this one included.
       await expect(page).toHaveURL(/\/login/);
@@ -113,11 +111,12 @@ test.describe('rescue staff account settings', () => {
       const page = await context.newPage();
       // The fixed cookie banner covers buttons at the bottom of the page.
       await dismissCookieBannerWhenShown(page);
-      await page.goto('/user-settings#account');
-      await activePanel(page).getByLabel('New email').fill(newEmail);
-      await activePanel(page).getByLabel('Current password').fill(owner.password);
-      await activePanel(page).getByRole('button', { name: 'Send confirmation link' }).click();
-      await expect(activePanel(page).getByText(`Check your inbox at ${newEmail}`)).toBeVisible();
+      await page.goto('/user-settings');
+      const email = await openSettingsSection(page, 'Email');
+      await email.getByLabel('New email').fill(newEmail);
+      await email.getByLabel('Current password').fill(owner.password);
+      await email.getByRole('button', { name: 'Send confirmation link' }).click();
+      await expect(email.getByText(`Check your inbox at ${newEmail}`)).toBeVisible();
 
       // Nothing changes until the link is followed.
       expect(await canSignIn(owner.email, owner.password)).toBe(true);

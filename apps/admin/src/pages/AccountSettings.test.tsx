@@ -5,8 +5,8 @@ import { renderWithProviders } from '../test-utils';
 vi.mock('@adopt-dont-shop/lib.account', () => ({
   AccountSettings: ({ value, onChange }: { value: string; onChange: (id: string) => void }) => (
     <div>
-      <p>Showing {value}</p>
-      <button onClick={() => onChange('security')}>Go to security</button>
+      <p>Open section: {value || 'none'}</p>
+      <button onClick={() => onChange('password')}>Change password</button>
     </div>
   ),
 }));
@@ -14,18 +14,18 @@ vi.mock('@adopt-dont-shop/lib.account', () => ({
 import AccountSettings from './AccountSettings';
 
 describe('Admin AccountSettings page', () => {
-  it('shows the shared account settings, opening on notifications', () => {
+  it('shows the shared account settings with nothing open', () => {
     renderWithProviders(<AccountSettings />, { initialRoute: '/account' });
 
     expect(screen.getByRole('heading', { name: 'Account Settings' })).toBeInTheDocument();
-    expect(screen.getByText('Showing notifications')).toBeInTheDocument();
+    expect(screen.getByText('Open section: none')).toBeInTheDocument();
   });
 
-  it('remembers the tab the admin picks', () => {
+  it('remembers the section the admin opens', () => {
     renderWithProviders(<AccountSettings />, { initialRoute: '/account' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Go to security' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
 
-    expect(screen.getByText('Showing security')).toBeInTheDocument();
+    expect(screen.getByText('Open section: password')).toBeInTheDocument();
   });
 });

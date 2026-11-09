@@ -11,13 +11,13 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   TwoFactorSettings: () => <div data-testid="two-factor">Two factor</div>,
 }));
 
+// Real components (setup-tests stubs them): the list's open/close behaviour is
+// part of what these tests cover.
 vi.mock('@adopt-dont-shop/lib.components', async importOriginal => ({
-  // Real Tabs: the page's tab behaviour is part of what these tests cover.
   ...(await importOriginal<typeof import('@adopt-dont-shop/lib.components')>()),
-  ThemeToggle: () => <div data-testid="theme-toggle">Theme</div>,
 }));
 
-// The shared notifications tab fetches preferences; keep it loading.
+// The notifications summary and form fetch preferences; keep them loading.
 vi.mock('@adopt-dont-shop/lib.api', async importOriginal => ({
   ...(await importOriginal<typeof import('@adopt-dont-shop/lib.api')>()),
   apiService: { get: () => new Promise(() => undefined) },
@@ -44,53 +44,32 @@ describe('UserSettings', () => {
     expect(screen.getByRole('heading', { name: 'My Settings' })).toBeInTheDocument();
   });
 
-  it('shows the shared personal tabs, defaulting to notifications', () => {
+  it('opens on the settings list with nothing expanded', () => {
     renderAt('/user-settings');
-    expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual([
-      'Notifications',
-      'Security',
-      'Appearance',
-      'Account',
-    ]);
-    expect(screen.getByText(/loading notification preferences/i)).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(screen.getByRole('list', { name: 'Account settings' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^close/i })).not.toBeInTheDocument();
   });
 
   it.each([
-    ['#security', 'Security'],
-    ['#appearance', 'Appearance'],
-    ['#notifications', 'Notifications'],
-    ['#account', 'Account'],
-    // Old bookmarks (and RescueSettings' redirect) still use #preferences.
-    ['#preferences', 'Notifications'],
-  ])('restores the tab from %s', (hash, name) => {
+    ['#email', 'Close email'],
+    ['#password', 'Close password'],
+    ['#notifications', 'Close notifications'],
+  ])('reopens the section from %s', (hash, name) => {
     renderAt(`/user-settings${hash}`);
-    expect(screen.getByRole('tab', { name })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name })).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('falls back to notifications for an unknown hash', () => {
-    renderAt('/user-settings#nonexistent');
-    expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+  it('shows the plain list for an unknown or retired hash', () => {
+    renderAt('/user-settings#security');
+    expect(screen.queryByRole('button', { name: /^close/i })).not.toBeInTheDocument();
   });
 
-  it('persists the chosen tab in the hash', async () => {
+  it('keeps the open section in the hash, and clears it on close', async () => {
     renderAt('/user-settings');
-    fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('#security'));
-    expect(screen.getByRole('tab', { name: 'Security' })).toHaveAttribute('aria-selected', 'true');
-  });
+    fireEvent.click(screen.getByRole('button', { name: 'Change password' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('#password'));
 
-  it('moves between tabs with the arrow keys and keeps the hash in step', async () => {
-    renderAt('/user-settings');
-    screen.getByRole('tab', { name: 'Notifications' }).focus();
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Notifications' }), { key: 'ArrowRight' });
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('#security'));
-    expect(screen.getByRole('tab', { name: 'Security' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Close password' }));
+    await waitFor(() => expect(screen.getByTestId('location')).toBeEmptyDOMElement());
   });
 });

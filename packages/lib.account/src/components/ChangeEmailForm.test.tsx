@@ -39,10 +39,10 @@ beforeEach(() => {
 });
 
 describe('ChangeEmailForm', () => {
-  it('shows the current email', () => {
+  it('leaves the current email to the settings row above, so it is not shown twice', () => {
     renderForm();
 
-    expect(screen.getByText('ada@example.com')).toBeInTheDocument();
+    expect(screen.queryByText('ada@example.com')).not.toBeInTheDocument();
   });
 
   it('sends a confirmation link to the new address and says the email stays the same until then', async () => {
