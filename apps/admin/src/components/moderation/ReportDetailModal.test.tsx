@@ -14,7 +14,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, userEvent } from '../../test-utils';
 import { ReportDetailModal } from './ReportDetailModal';
-import { openExternal } from '../../utils/openExternal';
+import { openExternal } from '@adopt-dont-shop/lib.utils';
 import type {
   Report,
   ModeratorAction,
@@ -42,9 +42,12 @@ vi.mock('@adopt-dont-shop/lib.moderation', () => ({
   formatRelativeTime: (_d: Date) => '3 days ago',
 }));
 
-vi.mock('../../utils/openExternal', () => ({
-  openExternal: vi.fn(),
-}));
+vi.mock('@adopt-dont-shop/lib.utils', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.utils')>(
+    '@adopt-dont-shop/lib.utils'
+  );
+  return { ...actual, openExternal: vi.fn() };
+});
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');

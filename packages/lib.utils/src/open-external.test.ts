@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { openExternal } from './openExternal';
+import { openExternal } from './open-external';
 
 const openSpy = vi.fn();
 

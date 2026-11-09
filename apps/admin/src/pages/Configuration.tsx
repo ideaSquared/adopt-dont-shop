@@ -1,6 +1,6 @@
 import React from 'react';
 import { useConfigValue, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
-import { openExternal } from '../utils/openExternal';
+import { openExternal } from '@adopt-dont-shop/lib.utils';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import { ExternalLink, Flag, Info, RefreshCw, Settings } from 'lucide-react';
 import {

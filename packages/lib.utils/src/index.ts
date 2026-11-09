@@ -23,3 +23,6 @@ export { safeFormatDate } from './safe-format-date';
 
 // File URL resolver (relative upload paths to absolute; rejects unsafe schemes)
 export { resolveFileUrl } from './file-url';
+
+// Safe new-tab opener for external http(s) URLs
+export { openExternal } from './open-external';
