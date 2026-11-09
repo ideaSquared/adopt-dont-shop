@@ -40,6 +40,8 @@ export { Text } from './components/ui/Text';
 // Layout Components
 export { Container } from './components/layout/Container';
 export { Stack } from './components/layout/Stack';
+export { PageHeader } from './components/ui/PageHeader';
+export type { PageHeaderProps } from './components/ui/PageHeader';
 export { SplitPaneDetail } from './components/layout/SplitPaneDetail';
 export type {
   SplitPaneDetailProps,

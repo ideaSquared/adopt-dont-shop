@@ -102,6 +102,7 @@ UI:
 - [`ErrorState`](../../packages/lib.components/src/components/ui/ErrorState/README.md) — error state with retry
 - [`ImageGallery`](../../packages/lib.components/src/components/ui/ImageGallery/README.md) — carousel/grid gallery (not exported)
 - [`Modal`](../../packages/lib.components/docs/Modal.md) — portalled dialog
+- [`PageHeader`](../../packages/lib.components/src/components/ui/PageHeader/README.md) — page `<h1>` + description + actions
 - [`ConfirmDialog`](../../packages/lib.components/docs/ConfirmDialog.md) — confirm/cancel dialog
 - [`ProgressBar`](../../packages/lib.components/src/components/ui/ProgressBar/README.md) — progress indicator (not exported)
 - [`SkipLink`](../../packages/lib.components/docs/SkipLink.md) — skip-to-content a11y link
