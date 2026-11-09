@@ -61,8 +61,9 @@ const [tab, setTab] = useState('notifications');
   Appearance, then any `extraTabs`; an unknown `value` shows Notifications, so
   stale links still land somewhere), `NotificationPreferencesForm` (channels,
   categories, email digest, quiet hours and timezone).
-- **Hooks**: `useNotificationPreferences`, `useUpdateNotificationPreferences`,
-  `NOTIFICATION_PREFERENCES_QUERY_KEY`.
+- **Hooks**: `useNotificationPreferences`, `useUpdateNotificationPreferences`
+  (cached per signed-in user; the query waits until someone is signed in),
+  `NOTIFICATION_PREFERENCES_QUERY_KEY` (the key prefix, for invalidation).
 - **Service functions**: `fetchNotificationPreferences`,
   `updateNotificationPreferences`, `DIGEST_FREQUENCIES`.
 

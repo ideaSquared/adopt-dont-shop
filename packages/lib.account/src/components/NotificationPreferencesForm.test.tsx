@@ -3,6 +3,10 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@adopt-dont-shop/lib.auth', () => ({
+  useAuth: () => ({ user: { userId: 'user-1' } }),
+}));
+
 vi.mock('../services/notification-preferences-service', async importOriginal => ({
   ...(await importOriginal<typeof import('../services/notification-preferences-service')>()),
   fetchNotificationPreferences: vi.fn(),
@@ -30,8 +34,9 @@ const SAVED: NotificationPreferences = {
   timezone: 'Europe/London',
 };
 
-const renderForm = () => {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const renderForm = (
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+) => {
   return render(
     <QueryClientProvider client={client}>
       <NotificationPreferencesForm />
@@ -122,6 +127,71 @@ describe('NotificationPreferencesForm', () => {
 
     expect(await screen.findByText(/set both a start and end time/i)).toBeInTheDocument();
     expect(updateNotificationPreferences).not.toHaveBeenCalled();
+  });
+
+  it('ties the quiet-hours error to the empty field so screen readers announce it there', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.clear(await screen.findByLabelText(/quiet hours start/i));
+    await user.click(saveButton());
+
+    const start = await screen.findByLabelText(/quiet hours start/i);
+    expect(start).toHaveAttribute('aria-invalid', 'true');
+    expect(start).toHaveAccessibleDescription(/set both a start and end time/i);
+    expect(screen.getByLabelText(/quiet hours end/i)).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('always turns SMS off when saving — the backend rejects any save that enables it', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetchNotificationPreferences).mockResolvedValue({ ...SAVED, smsEnabled: true });
+    renderForm();
+
+    await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
+    await user.click(saveButton());
+
+    await waitFor(() =>
+      expect(updateNotificationPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({ smsEnabled: false, pushEnabled: true })
+      )
+    );
+  });
+
+  it('shows refreshed preferences over a stale cached copy without losing the user’s edits', async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['notification-preferences', 'user-1'], SAVED);
+    let resolveFetch: (prefs: NotificationPreferences) => void = () => undefined;
+    vi.mocked(fetchNotificationPreferences).mockReturnValue(
+      new Promise(resolve => {
+        resolveFetch = resolve;
+      })
+    );
+    renderForm(client);
+
+    // Stale copy renders first; the user edits push before the refetch lands.
+    await user.click(await screen.findByRole('checkbox', { name: /^push/i }));
+    resolveFetch({ ...SAVED, emailEnabled: false });
+
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: /^email/i })).not.toBeChecked()
+    );
+    expect(screen.getByRole('checkbox', { name: /^push/i })).toBeChecked();
+  });
+
+  it('keeps the saved timezone selectable after the user picks another one', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetchNotificationPreferences).mockResolvedValue({
+      ...SAVED,
+      timezone: 'America/New_York',
+    });
+    renderForm();
+
+    await user.click(await screen.findByRole('combobox', { name: /timezone/i }));
+    await user.click(screen.getByRole('option', { name: /uk time/i }));
+    await user.click(screen.getByRole('combobox', { name: /timezone/i }));
+
+    expect(screen.getByRole('option', { name: 'America/New_York' })).toBeInTheDocument();
   });
 
   it('keeps an unlisted saved timezone selectable instead of silently replacing it', async () => {

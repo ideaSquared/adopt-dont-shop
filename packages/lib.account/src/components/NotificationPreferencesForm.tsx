@@ -86,12 +86,16 @@ const isDigestFrequency = (value: string): value is DigestFrequency =>
 type EditorProps = { saved: NotificationPreferences };
 
 const PreferencesEditor = ({ saved }: EditorProps) => {
-  const [draft, setDraft] = useState<NotificationPreferences>(saved);
+  // Only the user's edits are held locally, layered over the latest server
+  // copy: a background refetch replacing stale cached data shows through for
+  // every field the user hasn't touched.
+  const [edits, setEdits] = useState<Partial<NotificationPreferences>>({});
   const [quietHoursError, setQuietHoursError] = useState<string | undefined>();
   const update = useUpdateNotificationPreferences();
+  const draft: NotificationPreferences = { ...saved, ...edits };
 
   const change = (patch: Partial<NotificationPreferences>) => {
-    setDraft(prev => ({ ...prev, ...patch }));
+    setEdits(prev => ({ ...prev, ...patch }));
     update.reset();
   };
 
@@ -107,8 +111,14 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
       setQuietHoursError(parsed.error.issues[0]?.message);
       return;
     }
-    update.mutate(draft);
+    // ADS-1325: the backend rejects any save that enables SMS, so a legacy
+    // row with SMS on would otherwise block every save.
+    update.mutate({ ...draft, smsEnabled: false }, { onSuccess: () => setEdits({}) });
   };
+
+  // The error belongs to whichever time is missing.
+  const startError = draft.quietHoursStart ? undefined : quietHoursError;
+  const endError = draft.quietHoursStart ? quietHoursError : undefined;
 
   const renderFlag = ({ key, label, description }: FlagField) => (
     <CheckboxInput
@@ -161,22 +171,20 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
         description='Pause push and email notifications overnight. Leave both empty to turn quiet hours off.'
       >
         <div className={styles.quietHoursGrid}>
-          <FormField label='Quiet hours start' htmlFor='quiet-hours-start'>
+          <FormField label='Quiet hours start' htmlFor='quiet-hours-start' error={startError}>
             <Input
               id='quiet-hours-start'
               type='time'
               value={draft.quietHoursStart}
               onChange={e => changeQuietHours({ quietHoursStart: e.target.value })}
-              aria-invalid={quietHoursError !== undefined}
             />
           </FormField>
-          <FormField label='Quiet hours end' htmlFor='quiet-hours-end' error={quietHoursError}>
+          <FormField label='Quiet hours end' htmlFor='quiet-hours-end' error={endError}>
             <Input
               id='quiet-hours-end'
               type='time'
               value={draft.quietHoursEnd}
               onChange={e => changeQuietHours({ quietHoursEnd: e.target.value })}
-              aria-invalid={quietHoursError !== undefined}
             />
           </FormField>
         </div>
@@ -184,7 +192,7 @@ const PreferencesEditor = ({ saved }: EditorProps) => {
           label='Timezone'
           data-testid='notification-timezone'
           value={draft.timezone}
-          options={timezoneOptions(draft.timezone)}
+          options={timezoneOptions(saved.timezone)}
           onChange={value => change({ timezone: singleValue(value) })}
           fullWidth
         />
