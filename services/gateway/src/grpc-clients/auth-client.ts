@@ -19,6 +19,8 @@ import {
   type ChangePasswordResponse,
   type VerifyCredentialsRequest,
   type VerifyCredentialsResponse,
+  type AuthCheckSelfErasureRequest,
+  type AuthCheckSelfErasureResponse,
   type DisableTwoFactorRequest,
   type DisableTwoFactorResponse,
   type EnableTwoFactorRequest,
@@ -167,6 +169,10 @@ export type AuthClient = {
     req: VerifyCredentialsRequest,
     metadata: Metadata
   ): Promise<VerifyCredentialsResponse>;
+  checkSelfErasure(
+    req: AuthCheckSelfErasureRequest,
+    metadata: Metadata
+  ): Promise<AuthCheckSelfErasureResponse>;
   setupTwoFactor(req: SetupTwoFactorRequest, metadata: Metadata): Promise<SetupTwoFactorResponse>;
   enableTwoFactor(
     req: EnableTwoFactorRequest,
@@ -417,6 +423,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     // ── Idempotent (reads / validation) ─────────────────────────────
     validateToken: (req, metadata) => callUnary(stub.validateToken, req, metadata, true),
     getMe: (req, metadata) => callUnary(stub.getMe, req, metadata, true),
+    checkSelfErasure: (req, metadata) => callUnary(stub.checkSelfErasure, req, metadata, true),
     listSessions: (req, metadata) => callUnary(stub.listSessions, req, metadata, true),
     adminListSessions: (req, metadata) => callUnary(stub.adminListSessions, req, metadata, true),
     listIpRules: (req, metadata) => callUnary(stub.listIpRules, req, metadata, true),

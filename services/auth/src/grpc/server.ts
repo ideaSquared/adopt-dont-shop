@@ -84,6 +84,7 @@ import {
 } from './privacy-prefs-handlers.js';
 import { getConsentStatus, recordConsent } from './consent-handlers.js';
 import { exportUserData, requestAccountDeletion } from './privacy-handlers.js';
+import { checkSelfErasure } from './self-erasure-handlers.js';
 import { verifyCredentials } from './verify-credentials.js';
 import {
   adminListSessions,
@@ -185,6 +186,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     adminResetPassword: adapt(adminResetPassword, { deps, logger }),
     exportUserData: adapt(exportUserData, { deps, logger }),
     requestAccountDeletion: adapt(requestAccountDeletion, { deps, logger }),
+    // Self-service erasure pre-check - blocks erasing the last active super admin.
+    checkSelfErasure: adapt(checkSelfErasure, { deps, logger }),
     listUserIdsByCohort: adapt(listUserIdsByCohort, { deps, logger }),
     // Admin security management — Security Center sessions + lockout.
     adminListSessions: adapt(adminListSessions, { deps, logger }),
@@ -250,6 +253,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'adminResetPassword',
       'exportUserData',
       'requestAccountDeletion',
+      'checkSelfErasure',
       'listUserIdsByCohort',
       'adminListSessions',
       'adminRevokeSession',

@@ -45,6 +45,8 @@ import {
   type CreateStaffMemberResponse,
   type GetMyStaffMembershipRequest,
   type GetMyStaffMembershipResponse,
+  type RescueCheckSelfErasureRequest,
+  type RescueCheckSelfErasureResponse,
   type GetRescueRequest,
   type GetRescueResponse,
   type InviteStaffRequest,
@@ -127,6 +129,10 @@ export type RescueClient = {
     req: GetMyStaffMembershipRequest,
     metadata: Metadata
   ): Promise<GetMyStaffMembershipResponse>;
+  checkSelfErasure(
+    req: RescueCheckSelfErasureRequest,
+    metadata: Metadata
+  ): Promise<RescueCheckSelfErasureResponse>;
   listStaffMembers(
     req: ListStaffMembersRequest,
     metadata: Metadata
@@ -297,6 +303,7 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
       callUnary(stub.getRescueNames, req, metadata, true, budget),
     getMyStaffMembership: (req, metadata) =>
       callUnary(stub.getMyStaffMembership, req, metadata, true),
+    checkSelfErasure: (req, metadata) => callUnary(stub.checkSelfErasure, req, metadata, true),
     listStaffMembers: (req, metadata) => callUnary(stub.listStaffMembers, req, metadata, true),
     listRescueInvitations: (req, metadata) =>
       callUnary(stub.listRescueInvitations, req, metadata, true),

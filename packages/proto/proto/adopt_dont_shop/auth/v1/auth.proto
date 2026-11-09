@@ -123,6 +123,14 @@ service AuthService {
   // Requires the x-user-id metadata; a missing password is INVALID_ARGUMENT.
   rpc VerifyCredentials(VerifyCredentialsRequest) returns (VerifyCredentialsResponse);
 
+  // Self-service erasure pre-check. Reports whether the calling principal may
+  // erase their own account. Blocked (allowed=false,
+  // blocked_reason="last_super_admin") when the caller is the last active,
+  // non-deleted super admin — erasing them would leave the platform with no
+  // super admin. Self-scoped: there is no user_id field; requires the
+  // x-user-id metadata. Read-only.
+  rpc CheckSelfErasure(CheckSelfErasureRequest) returns (CheckSelfErasureResponse);
+
   // --- Two-factor (TOTP) enrolment -----------------------------------
   // Self-scoped. Setup mints a fresh secret (NOT yet persisted); Enable
   // verifies a TOTP code against that secret and turns 2FA on; Disable
@@ -720,6 +728,18 @@ message VerifyCredentialsResponse {
   // two_factor_token was supplied — the caller should collect a code and
   // re-submit. verified is false in this case.
   bool two_factor_required = 2;
+}
+
+// --- CheckSelfErasure ---------------------------------------------------
+
+message CheckSelfErasureRequest {}
+
+message CheckSelfErasureResponse {
+  // True when nothing in service.auth blocks the caller's self-erasure.
+  bool allowed = 1;
+  // Machine-readable reason when allowed is false ("last_super_admin");
+  // empty otherwise.
+  string blocked_reason = 2;
 }
 
 // --- Two-factor (TOTP) ------------------------------------------------

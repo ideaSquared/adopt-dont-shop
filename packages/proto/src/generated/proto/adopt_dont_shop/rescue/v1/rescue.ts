@@ -572,6 +572,19 @@ export interface GetMyStaffMembershipResponse {
   staffMember?: StaffMember | undefined;
 }
 
+export interface CheckSelfErasureRequest {
+}
+
+export interface CheckSelfErasureResponse {
+  /** True when nothing in service.rescue blocks the caller's self-erasure. */
+  allowed: boolean;
+  /**
+   * Machine-readable reason when allowed is false ("last_rescue_staff");
+   * empty otherwise.
+   */
+  blockedReason: string;
+}
+
 export interface ListStaffMembersRequest {
   /**
    * Rescue to list staff for. When empty, the service resolves the
@@ -4267,6 +4280,129 @@ export const GetMyStaffMembershipResponse: MessageFns<GetMyStaffMembershipRespon
     message.staffMember = (object.staffMember !== undefined && object.staffMember !== null)
       ? StaffMember.fromPartial(object.staffMember)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseCheckSelfErasureRequest(): CheckSelfErasureRequest {
+  return {};
+}
+
+export const CheckSelfErasureRequest: MessageFns<CheckSelfErasureRequest> = {
+  encode(_: CheckSelfErasureRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckSelfErasureRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckSelfErasureRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): CheckSelfErasureRequest {
+    return {};
+  },
+
+  toJSON(_: CheckSelfErasureRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CheckSelfErasureRequest>, I>>(base?: I): CheckSelfErasureRequest {
+    return CheckSelfErasureRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CheckSelfErasureRequest>, I>>(_: I): CheckSelfErasureRequest {
+    const message = createBaseCheckSelfErasureRequest();
+    return message;
+  },
+};
+
+function createBaseCheckSelfErasureResponse(): CheckSelfErasureResponse {
+  return { allowed: false, blockedReason: "" };
+}
+
+export const CheckSelfErasureResponse: MessageFns<CheckSelfErasureResponse> = {
+  encode(message: CheckSelfErasureResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.allowed !== false) {
+      writer.uint32(8).bool(message.allowed);
+    }
+    if (message.blockedReason !== "") {
+      writer.uint32(18).string(message.blockedReason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckSelfErasureResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckSelfErasureResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.allowed = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.blockedReason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CheckSelfErasureResponse {
+    return {
+      allowed: isSet(object.allowed) ? globalThis.Boolean(object.allowed) : false,
+      blockedReason: isSet(object.blockedReason)
+        ? globalThis.String(object.blockedReason)
+        : isSet(object.blocked_reason)
+        ? globalThis.String(object.blocked_reason)
+        : "",
+    };
+  },
+
+  toJSON(message: CheckSelfErasureResponse): unknown {
+    const obj: any = {};
+    if (message.allowed !== false) {
+      obj.allowed = message.allowed;
+    }
+    if (message.blockedReason !== "") {
+      obj.blockedReason = message.blockedReason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CheckSelfErasureResponse>, I>>(base?: I): CheckSelfErasureResponse {
+    return CheckSelfErasureResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CheckSelfErasureResponse>, I>>(object: I): CheckSelfErasureResponse {
+    const message = createBaseCheckSelfErasureResponse();
+    message.allowed = object.allowed ?? false;
+    message.blockedReason = object.blockedReason ?? "";
     return message;
   },
 };
@@ -8967,6 +9103,24 @@ export const RescueServiceService = {
     responseDeserialize: (value: Buffer): GetMyStaffMembershipResponse => GetMyStaffMembershipResponse.decode(value),
   },
   /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_rescue_staff") when the caller is the only
+   * non-deleted staff member of any non-deleted rescue — erasing them would
+   * orphan that rescue. Self-scoped: there is no user_id field. Read-only.
+   */
+  checkSelfErasure: {
+    path: "/adopt_dont_shop.rescue.v1.RescueService/CheckSelfErasure" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CheckSelfErasureRequest): Buffer =>
+      Buffer.from(CheckSelfErasureRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CheckSelfErasureRequest => CheckSelfErasureRequest.decode(value),
+    responseSerialize: (value: CheckSelfErasureResponse): Buffer =>
+      Buffer.from(CheckSelfErasureResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CheckSelfErasureResponse => CheckSelfErasureResponse.decode(value),
+  },
+  /**
    * List all staff members at a rescue. Caller MUST be a verified staff
    * member of that rescue (or admin). Used by the staff "colleagues"
    * view.
@@ -9412,6 +9566,14 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    */
   getMyStaffMembership: handleUnaryCall<GetMyStaffMembershipRequest, GetMyStaffMembershipResponse>;
   /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_rescue_staff") when the caller is the only
+   * non-deleted staff member of any non-deleted rescue — erasing them would
+   * orphan that rescue. Self-scoped: there is no user_id field. Read-only.
+   */
+  checkSelfErasure: handleUnaryCall<CheckSelfErasureRequest, CheckSelfErasureResponse>;
+  /**
    * List all staff members at a rescue. Caller MUST be a verified staff
    * member of that rescue (or admin). Used by the staff "colleagues"
    * view.
@@ -9765,6 +9927,28 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_rescue_staff") when the caller is the only
+   * non-deleted staff member of any non-deleted rescue — erasing them would
+   * orphan that rescue. Self-scoped: there is no user_id field. Read-only.
+   */
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
+  ): ClientUnaryCall;
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
+  ): ClientUnaryCall;
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
   ): ClientUnaryCall;
   /**
    * List all staff members at a rescue. Caller MUST be a verified staff

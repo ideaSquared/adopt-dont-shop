@@ -19,6 +19,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { assertUuid, redisKey } from '../utils/redis-key.js';
@@ -43,6 +44,11 @@ export type GdprRoutesOptions = {
   // invitations. Typed optional only because server.ts forwards an optional
   // client; the handler enforces its presence.
   authClient?: AuthClient;
+  // Required at runtime for the self-erasure pre-check: the erasure route
+  // asks service.rescue whether the caller is the last staff member of any
+  // rescue, and fails closed (500) when it is absent. Typed optional for the
+  // same reason as authClient.
+  rescueClient?: RescueClient;
   // When wired, used for per-user idempotency: a second POST within
   // ERASURE_IDEMPOTENCY_TTL_SECONDS returns the original correlationId.
   redis?: ErasureStore;
@@ -80,7 +86,7 @@ export const registerGdprRoutes = async (
   app: FastifyInstance,
   opts: GdprRoutesOptions
 ): Promise<void> => {
-  const { nats, auditClient, authClient, redis, erasureUserRateLimiter } = opts;
+  const { nats, auditClient, authClient, rescueClient, redis, erasureUserRateLimiter } = opts;
 
   // Per-principal cap preHandler (ADS-1421) — runs after authenticate.ts's
   // onRequest hook has already stripped any client-forged x-user-id and
@@ -132,6 +138,10 @@ export const registerGdprRoutes = async (
             type: 'object',
             properties: { success: { type: 'boolean' }, error: { type: 'string' } },
           },
+          409: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
           500: {
             type: 'object',
             properties: { success: { type: 'boolean' }, error: { type: 'string' } },
@@ -157,8 +167,10 @@ export const registerGdprRoutes = async (
       // wired the gateway refuses (500) rather than skip the check. The
       // password + optional TOTP travel in this same POST body; nothing is
       // published (and no idempotency key is written) unless verification
-      // passes.
-      if (!authClient) {
+      // passes. The rescue client is needed for the self-erasure pre-check
+      // below; checking it here means a misconfigured gateway refuses before
+      // a TOTP code is consumed.
+      if (!authClient || !rescueClient) {
         return reply.code(500).send({ success: false, error: 'verification_unavailable' });
       }
       const password = typeof body.password === 'string' ? body.password : undefined;
@@ -177,6 +189,23 @@ export const registerGdprRoutes = async (
         }
         if (!verifyRes.verified) {
           return reply.code(401).send({ success: false, error: 'credential_verification_failed' });
+        }
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+
+      // Self-erasure pre-check. The owning services decide whether erasing
+      // this account would leave the platform without an active super admin
+      // (auth) or a rescue without any staff (rescue). A blocked verdict is a
+      // 409 carrying the service's reason; a failed check fails closed.
+      try {
+        const verdicts = await Promise.all([
+          authClient.checkSelfErasure({}, buildMetadata(req)),
+          rescueClient.checkSelfErasure({}, buildMetadata(req)),
+        ]);
+        const blocked = verdicts.find(verdict => !verdict.allowed);
+        if (blocked) {
+          return reply.code(409).send({ success: false, error: blocked.blockedReason });
         }
       } catch (err) {
         return handleGrpcError(err, reply);

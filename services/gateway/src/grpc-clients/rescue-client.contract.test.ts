@@ -20,6 +20,8 @@ import {
 
 import {
   RescueV1,
+  type RescueCheckSelfErasureRequest,
+  type RescueCheckSelfErasureResponse,
   type CreateRescueRequest,
   type CreateRescueResponse,
   type GetRescueNamesRequest,
@@ -56,6 +58,7 @@ const makeHandlers = (
   verify: unimplemented,
   inviteStaff: unimplemented,
   getMyStaffMembership: unimplemented,
+  checkSelfErasure: unimplemented,
   listStaffMembers: unimplemented,
   createFosterPlacement: unimplemented,
   listFosterPlacements: unimplemented,
@@ -128,6 +131,30 @@ describe('rescue-client — gRPC contract', () => {
       expect(receivedRescueId).toBe('rescue-001');
       expect(result.rescue?.rescueId).toBe('rescue-001');
       expect(result.rescue?.name).toBe('Happy Paws');
+    } finally {
+      client.close();
+    }
+  });
+
+  it('checkSelfErasure — the blocked verdict and reason round-trip', async () => {
+    const want: RescueCheckSelfErasureResponse = {
+      allowed: false,
+      blockedReason: 'last_rescue_staff',
+    };
+
+    port = await startServer(
+      makeHandlers({
+        checkSelfErasure: (
+          _call: ServerUnaryCall<RescueCheckSelfErasureRequest, RescueCheckSelfErasureResponse>,
+          cb: sendUnaryData<RescueCheckSelfErasureResponse>
+        ) => cb(null, want),
+      })
+    );
+
+    const client = createRescueClient({ address: `127.0.0.1:${port}` });
+    try {
+      const result = await client.checkSelfErasure({}, new Metadata());
+      expect(result).toEqual(want);
     } finally {
       client.close();
     }

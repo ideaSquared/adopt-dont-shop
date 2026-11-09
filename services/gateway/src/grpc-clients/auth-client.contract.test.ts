@@ -21,6 +21,8 @@ import {
 
 import {
   AuthV1,
+  type AuthCheckSelfErasureRequest,
+  type AuthCheckSelfErasureResponse,
   type LoginRequest,
   type LoginResponse,
   type ValidateTokenRequest,
@@ -65,6 +67,7 @@ const makeHandlers = (overrides: Partial<AuthV1.AuthServiceServer>): AuthV1.Auth
   resetPassword: unimplemented,
   changePassword: unimplemented,
   verifyCredentials: unimplemented,
+  checkSelfErasure: unimplemented,
   updateAccount: unimplemented,
   listSessions: unimplemented,
   revokeSession: unimplemented,
@@ -224,6 +227,33 @@ describe('auth-client — gRPC contract', () => {
       expect(capturedToken).toBe('123456');
       expect(result.verified).toBe(true);
       expect(result.twoFactorRequired).toBe(false);
+    } finally {
+      client.close();
+      await stub.close();
+    }
+  });
+
+  // ── 2c. Read-path round-trip: checkSelfErasure ──────────────────
+
+  it('checkSelfErasure — the blocked verdict and reason round-trip', async () => {
+    const want: AuthCheckSelfErasureResponse = {
+      allowed: false,
+      blockedReason: 'last_super_admin',
+    };
+
+    const stub = await startTestServer(
+      makeHandlers({
+        checkSelfErasure: (
+          _call: ServerUnaryCall<AuthCheckSelfErasureRequest, AuthCheckSelfErasureResponse>,
+          cb: sendUnaryData<AuthCheckSelfErasureResponse>
+        ) => cb(null, want),
+      })
+    );
+
+    const client = createAuthClient({ address: stub.address });
+    try {
+      const result = await client.checkSelfErasure({}, new Metadata());
+      expect(result).toEqual(want);
     } finally {
       client.close();
       await stub.close();

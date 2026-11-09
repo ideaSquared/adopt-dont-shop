@@ -4297,6 +4297,36 @@ export const PROTO_SCHEMA: ProtoSchema = {
         },
       ],
     },
+    'adopt_dont_shop.auth.v1.CheckSelfErasureRequest': {
+      fullName: 'adopt_dont_shop.auth.v1.CheckSelfErasureRequest',
+      fields: [],
+    },
+    'adopt_dont_shop.auth.v1.CheckSelfErasureResponse': {
+      fullName: 'adopt_dont_shop.auth.v1.CheckSelfErasureResponse',
+      fields: [
+        {
+          name: 'allowed',
+          jsonName: 'allowed',
+          kind: 'scalar',
+          scalarType: 'bool',
+          repeated: false,
+          optional: false,
+          sensitivity: null,
+          comment: "True when nothing in service.auth blocks the caller's self-erasure.",
+        },
+        {
+          name: 'blocked_reason',
+          jsonName: 'blockedReason',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: null,
+          comment:
+            'Machine-readable reason when allowed is false ("last_super_admin");\nempty otherwise.',
+        },
+      ],
+    },
     'adopt_dont_shop.auth.v1.ColleagueProfile': {
       fullName: 'adopt_dont_shop.auth.v1.ColleagueProfile',
       fields: [
@@ -18654,6 +18684,36 @@ export const PROTO_SCHEMA: ProtoSchema = {
         },
       ],
     },
+    'adopt_dont_shop.rescue.v1.CheckSelfErasureRequest': {
+      fullName: 'adopt_dont_shop.rescue.v1.CheckSelfErasureRequest',
+      fields: [],
+    },
+    'adopt_dont_shop.rescue.v1.CheckSelfErasureResponse': {
+      fullName: 'adopt_dont_shop.rescue.v1.CheckSelfErasureResponse',
+      fields: [
+        {
+          name: 'allowed',
+          jsonName: 'allowed',
+          kind: 'scalar',
+          scalarType: 'bool',
+          repeated: false,
+          optional: false,
+          sensitivity: null,
+          comment: "True when nothing in service.rescue blocks the caller's self-erasure.",
+        },
+        {
+          name: 'blocked_reason',
+          jsonName: 'blockedReason',
+          kind: 'scalar',
+          scalarType: 'string',
+          repeated: false,
+          optional: false,
+          sensitivity: null,
+          comment:
+            'Machine-readable reason when allowed is false ("last_rescue_staff");\nempty otherwise.',
+        },
+      ],
+    },
     'adopt_dont_shop.rescue.v1.CountRescuesRequest': {
       fullName: 'adopt_dont_shop.rescue.v1.CountRescuesRequest',
       fields: [],
@@ -22157,6 +22217,13 @@ export const PROTO_SCHEMA: ProtoSchema = {
             "Step-up re-authentication (ADS-1205). Verifies the calling principal's\npassword (and a current TOTP code when the account has 2FA enabled) and\nreturns pass/fail. Unlike Login it mints NO tokens and mutates no\nsession/cookie state — it exists so a sensitive action (e.g. GDPR account\nerasure) can require the user to re-prove their credentials inline. The\npassword is checked BEFORE the TOTP (mirroring Login) so a wrong password\nnever consumes a code, and backup/recovery codes are NOT accepted here —\na current TOTP is required for 2FA users. Returns two_factor_required=true\n(verified=false) when the password is correct but no TOTP was supplied.\nRequires the x-user-id metadata; a missing password is INVALID_ARGUMENT.",
         },
         {
+          name: 'CheckSelfErasure',
+          inputType: 'adopt_dont_shop.auth.v1.CheckSelfErasureRequest',
+          outputType: 'adopt_dont_shop.auth.v1.CheckSelfErasureResponse',
+          comment:
+            'Self-service erasure pre-check. Reports whether the calling principal may\nerase their own account. Blocked (allowed=false,\nblocked_reason="last_super_admin") when the caller is the last active,\nnon-deleted super admin — erasing them would leave the platform with no\nsuper admin. Self-scoped: there is no user_id field; requires the\nx-user-id metadata. Read-only.',
+        },
+        {
           name: 'SetupTwoFactor',
           inputType: 'adopt_dont_shop.auth.v1.SetupTwoFactorRequest',
           outputType: 'adopt_dont_shop.auth.v1.SetupTwoFactorResponse',
@@ -23322,6 +23389,13 @@ export const PROTO_SCHEMA: ProtoSchema = {
           outputType: 'adopt_dont_shop.rescue.v1.GetMyStaffMembershipResponse',
           comment:
             "Return the calling principal's staff-member record (their rescue\nmembership). NOT_FOUND when the user is not staff at any rescue.\nSelf-scoped — no user_id field.",
+        },
+        {
+          name: 'CheckSelfErasure',
+          inputType: 'adopt_dont_shop.rescue.v1.CheckSelfErasureRequest',
+          outputType: 'adopt_dont_shop.rescue.v1.CheckSelfErasureResponse',
+          comment:
+            'Self-service erasure pre-check. Reports whether the calling principal may\nerase their own account. Blocked (allowed=false,\nblocked_reason="last_rescue_staff") when the caller is the only\nnon-deleted staff member of any non-deleted rescue — erasing them would\norphan that rescue. Self-scoped: there is no user_id field. Read-only.',
         },
         {
           name: 'ListStaffMembers',

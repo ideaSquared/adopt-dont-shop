@@ -746,6 +746,19 @@ export interface VerifyCredentialsResponse {
   twoFactorRequired: boolean;
 }
 
+export interface CheckSelfErasureRequest {
+}
+
+export interface CheckSelfErasureResponse {
+  /** True when nothing in service.auth blocks the caller's self-erasure. */
+  allowed: boolean;
+  /**
+   * Machine-readable reason when allowed is false ("last_super_admin");
+   * empty otherwise.
+   */
+  blockedReason: string;
+}
+
 export interface SetupTwoFactorRequest {
 }
 
@@ -4794,6 +4807,129 @@ export const VerifyCredentialsResponse: MessageFns<VerifyCredentialsResponse> = 
     const message = createBaseVerifyCredentialsResponse();
     message.verified = object.verified ?? false;
     message.twoFactorRequired = object.twoFactorRequired ?? false;
+    return message;
+  },
+};
+
+function createBaseCheckSelfErasureRequest(): CheckSelfErasureRequest {
+  return {};
+}
+
+export const CheckSelfErasureRequest: MessageFns<CheckSelfErasureRequest> = {
+  encode(_: CheckSelfErasureRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckSelfErasureRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckSelfErasureRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): CheckSelfErasureRequest {
+    return {};
+  },
+
+  toJSON(_: CheckSelfErasureRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CheckSelfErasureRequest>, I>>(base?: I): CheckSelfErasureRequest {
+    return CheckSelfErasureRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CheckSelfErasureRequest>, I>>(_: I): CheckSelfErasureRequest {
+    const message = createBaseCheckSelfErasureRequest();
+    return message;
+  },
+};
+
+function createBaseCheckSelfErasureResponse(): CheckSelfErasureResponse {
+  return { allowed: false, blockedReason: "" };
+}
+
+export const CheckSelfErasureResponse: MessageFns<CheckSelfErasureResponse> = {
+  encode(message: CheckSelfErasureResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.allowed !== false) {
+      writer.uint32(8).bool(message.allowed);
+    }
+    if (message.blockedReason !== "") {
+      writer.uint32(18).string(message.blockedReason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckSelfErasureResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckSelfErasureResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.allowed = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.blockedReason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CheckSelfErasureResponse {
+    return {
+      allowed: isSet(object.allowed) ? globalThis.Boolean(object.allowed) : false,
+      blockedReason: isSet(object.blockedReason)
+        ? globalThis.String(object.blockedReason)
+        : isSet(object.blocked_reason)
+        ? globalThis.String(object.blocked_reason)
+        : "",
+    };
+  },
+
+  toJSON(message: CheckSelfErasureResponse): unknown {
+    const obj: any = {};
+    if (message.allowed !== false) {
+      obj.allowed = message.allowed;
+    }
+    if (message.blockedReason !== "") {
+      obj.blockedReason = message.blockedReason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CheckSelfErasureResponse>, I>>(base?: I): CheckSelfErasureResponse {
+    return CheckSelfErasureResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CheckSelfErasureResponse>, I>>(object: I): CheckSelfErasureResponse {
+    const message = createBaseCheckSelfErasureResponse();
+    message.allowed = object.allowed ?? false;
+    message.blockedReason = object.blockedReason ?? "";
     return message;
   },
 };
@@ -13776,6 +13912,25 @@ export const AuthServiceService = {
       Buffer.from(VerifyCredentialsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): VerifyCredentialsResponse => VerifyCredentialsResponse.decode(value),
   },
+  /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_super_admin") when the caller is the last active,
+   * non-deleted super admin — erasing them would leave the platform with no
+   * super admin. Self-scoped: there is no user_id field; requires the
+   * x-user-id metadata. Read-only.
+   */
+  checkSelfErasure: {
+    path: "/adopt_dont_shop.auth.v1.AuthService/CheckSelfErasure" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CheckSelfErasureRequest): Buffer =>
+      Buffer.from(CheckSelfErasureRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CheckSelfErasureRequest => CheckSelfErasureRequest.decode(value),
+    responseSerialize: (value: CheckSelfErasureResponse): Buffer =>
+      Buffer.from(CheckSelfErasureResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CheckSelfErasureResponse => CheckSelfErasureResponse.decode(value),
+  },
   setupTwoFactor: {
     path: "/adopt_dont_shop.auth.v1.AuthService/SetupTwoFactor" as const,
     requestStream: false as const,
@@ -14557,6 +14712,15 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * Requires the x-user-id metadata; a missing password is INVALID_ARGUMENT.
    */
   verifyCredentials: handleUnaryCall<VerifyCredentialsRequest, VerifyCredentialsResponse>;
+  /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_super_admin") when the caller is the last active,
+   * non-deleted super admin — erasing them would leave the platform with no
+   * super admin. Self-scoped: there is no user_id field; requires the
+   * x-user-id metadata. Read-only.
+   */
+  checkSelfErasure: handleUnaryCall<CheckSelfErasureRequest, CheckSelfErasureResponse>;
   setupTwoFactor: handleUnaryCall<SetupTwoFactorRequest, SetupTwoFactorResponse>;
   enableTwoFactor: handleUnaryCall<EnableTwoFactorRequest, EnableTwoFactorResponse>;
   disableTwoFactor: handleUnaryCall<DisableTwoFactorRequest, DisableTwoFactorResponse>;
@@ -15127,6 +15291,29 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: VerifyCredentialsResponse) => void,
+  ): ClientUnaryCall;
+  /**
+   * Self-service erasure pre-check. Reports whether the calling principal may
+   * erase their own account. Blocked (allowed=false,
+   * blocked_reason="last_super_admin") when the caller is the last active,
+   * non-deleted super admin — erasing them would leave the platform with no
+   * super admin. Self-scoped: there is no user_id field; requires the
+   * x-user-id metadata. Read-only.
+   */
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
+  ): ClientUnaryCall;
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
+  ): ClientUnaryCall;
+  checkSelfErasure(
+    request: CheckSelfErasureRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CheckSelfErasureResponse) => void,
   ): ClientUnaryCall;
   setupTwoFactor(
     request: SetupTwoFactorRequest,

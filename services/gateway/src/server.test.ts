@@ -793,9 +793,17 @@ describe('createServer — GDPR erasure route per-principal rate limit (ADS-1421
           principal: { userId: req.accessToken, roles: [1], permissions: [], rescueId: '' },
         }),
       verifyCredentials: () => Promise.resolve({ verified: true, twoFactorRequired: false }),
+      checkSelfErasure: () => Promise.resolve({ allowed: true, blockedReason: '' }),
       getMe: () => Promise.resolve({ user: { email: 'erased@example.com' } }),
       close: () => undefined,
     } as unknown as Parameters<typeof createServer>[0]['authClient'];
+  }
+
+  function makeErasureRescueClient(): Parameters<typeof createServer>[0]['rescueClient'] {
+    return {
+      checkSelfErasure: () => Promise.resolve({ allowed: true, blockedReason: '' }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['rescueClient'];
   }
 
   function makeErasureNats(): import('nats').NatsConnection {
@@ -814,6 +822,7 @@ describe('createServer — GDPR erasure route per-principal rate limit (ADS-1421
       config: { ...baseConfig, trustProxy: true },
       logger: quietLogger,
       authClient: makeErasureAuthClient(),
+      rescueClient: makeErasureRescueClient(),
       nats: makeErasureNats(),
     });
   });
