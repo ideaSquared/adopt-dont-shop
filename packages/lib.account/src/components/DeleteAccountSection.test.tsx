@@ -73,6 +73,33 @@ describe('DeleteAccountSection', () => {
     expect(deleteAccount).not.toHaveBeenCalled();
   });
 
+  it('asks for the two-factor code before submitting when 2FA is on', async () => {
+    const user = userEvent.setup();
+    mockAuth.twoFactorEnabled = true;
+    renderSection();
+
+    await openModal(user);
+    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
+    await user.click(confirmButton());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/enter the 6-digit code/i);
+    expect(deleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('cancelling closes the dialog and forgets the typed password', async () => {
+    const user = userEvent.setup();
+    renderSection();
+
+    await openModal(user);
+    await user.type(screen.getByLabelText(/current password/i), 'hunter2');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await openModal(user);
+    expect(screen.getByLabelText(/current password/i)).toHaveValue('');
+    expect(deleteAccount).not.toHaveBeenCalled();
+  });
+
   it('deletes the account, signs out and leaves the app', async () => {
     const user = userEvent.setup();
     mockAuth.twoFactorEnabled = true;
