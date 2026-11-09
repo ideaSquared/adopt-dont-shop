@@ -86,6 +86,5 @@ See [`.github/CODEOWNERS`](../../.github/CODEOWNERS) for the current owner of
 
 ## Consumers
 
-6 workspace package(s) depend on this library. See [lib.components-consumers.md](../../docs/libraries/lib.components-consumers.md) for the auto-generated list — check it before making a breaking change.
-
+7 workspace package(s) depend on this library. See [lib.components-consumers.md](../../docs/libraries/lib.components-consumers.md) for the auto-generated list — check it before making a breaking change.
 <!-- CONSUMERS:END -->
